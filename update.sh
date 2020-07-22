@@ -20,6 +20,8 @@ function cleanup() {
 
 cleanup
 mkdir -p tmp/ || exit 1
+mkdir -p ddnet/ || exit 1
+mkdir -p teeworlds/ || exit 1
 cd tmp/ || exit 1
 
 wget -r -np -nH --cut-dirs=1 -R index.html https://ddnet.tw/irclogs/ || exit 1
