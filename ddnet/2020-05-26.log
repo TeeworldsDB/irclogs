@@ -1,0 +1,142 @@
+00:00 <+bridge> [ddnet] <Learath2> (at 64bits per value that's 80gb of data)
+10:33 <+bridge> [ddnet] <heinrich5991> @Learath2 shall I make the teleporters "biased" again so that the reimplementation is easier?
+10:33 <+bridge> [ddnet] <heinrich5991> I'd be in favor of it
+10:35 <+bridge> [ddnet] <Learath2> Reimplementation?
+10:35 <+bridge> [ddnet] <Learath2> Also how were the teleporters biased?
+10:36 <+bridge> [ddnet] <heinrich5991> if you have number between 0 and 2**31-1
+10:36 <+bridge> [ddnet] <heinrich5991> if you have a number between 0 and 2**31-1
+10:36 <+bridge> [ddnet] <heinrich5991> and take that modulo say 3
+10:36 <+bridge> [ddnet] <heinrich5991> then it does not divide cleanly
+10:37 <+bridge> [ddnet] <heinrich5991> `2**31-1 = 1, 2**31-2 = 0 mod 3`
+10:37 <+bridge> [ddnet] <Learath2> Ah at even 52 teleporters the bias is incredibly small
+10:37 <+bridge> [ddnet] <heinrich5991> so we have these rests one more time
+10:37 <+bridge> [ddnet] <Learath2> It only starts to get significant at around 2^30
+10:37 <+bridge> [ddnet] <heinrich5991> we have
+10:37 <+bridge> [ddnet] <heinrich5991> ```
+10:37 <+bridge> [ddnet] <heinrich5991> 0: 715827883
+10:37 <+bridge> [ddnet] <heinrich5991> 1: 715827883
+10:37 <+bridge> [ddnet] <heinrich5991> 2: 715827882
+10:37 <+bridge> [ddnet] <heinrich5991> ```
+10:37 <+bridge> [ddnet] <heinrich5991> see that bias?
+10:37 <+bridge> [ddnet] <Learath2> 2^21*
+10:38 <+bridge> [ddnet] <heinrich5991> it's incredible
+10:38 <+bridge> [ddnet] <Learath2> At 2^31 some numbers will happen twice as many as others btw
+10:38 <+bridge> [ddnet] <heinrich5991> yes
+10:38 <+bridge> [ddnet] <heinrich5991> we don't have 2**31 teleporters in maps
+10:38 <+bridge> [ddnet] <Learath2> It does indeed get large when you have bigger buckets
+10:39 <+bridge> [ddnet] <heinrich5991> I doubt we have maps with more than 1000 out teleporters
+10:39 <+bridge> [ddnet] <Learath2> Anyways if we are staying biased maybe we can do `(rand() * range) >> 32`
+10:40 <+bridge> [ddnet] <Learath2> (I also agree we should stay biased, we just dont ever have ranges that get any significant bias)
+10:41 <+bridge> [ddnet] <Learath2> Or just a modulo, not like it's on a performance critical path
+10:42 <+bridge> [ddnet] <Learath2> (Not like there are even paths performance critical enough in tw for this to matter)
+10:43 <+bridge> [ddnet] <heinrich5991> I'll take the modulo, I think
+10:43 <+bridge> [ddnet] <heinrich5991> that's the obvious thing that people can easily implement in all programming languages
+10:44 <+bridge> [ddnet] <heinrich5991> it also obviously generates stuff in 0..n-1
+10:45 <+bridge> [ddnet] <Learath2> I made a lot of pretty histograms and at our ranges you really arent getting any significant bias at all
+11:01 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/2212/commits/c9c7f947b5dbb21b30c4259ceed3a879a8f3a2a1
+11:01 <+bridge> [ddnet] <heinrich5991> @Learath2 ^ my current proposal
+11:45 <+bridge> [ddnet] <Learath2> @heinrich5991 hm the init no longer looks equivalent, is it?
+11:50 <+bridge> [ddnet] <Learath2> oh, it is, cute
+11:51 <+bridge> [ddnet] <Learath2> The last call to RandomBits can also be changed to a step in the LCG instead
+12:10 <+bridge> [ddnet] <heinrich5991> @Learath2 I reverted it to the version I had from wikipedia
+12:11 <+bridge> [ddnet] <Learath2> It's a trivial constant cost, I guess it's fine as is
+12:12 <+bridge> [ddnet] <Learath2> Should we also find a way to get the teleporter prediction now that we have a prng?
+12:12 <+bridge> [ddnet] <heinrich5991> not in this PR IMO
+12:12 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/2212#discussion_r430244452
+12:13 <+bridge> [ddnet] <Learath2> Oh, btw I think you want a lock on this prng
+12:13 <+bridge> [ddnet] <heinrich5991> I think we're single-threaded
+12:13 <+bridge> [ddnet] <Learath2> Are we sure to stay that way?
+12:14 <+bridge> [ddnet] <heinrich5991> planning for unknowns just bloats the code
+12:14 <+bridge> [ddnet] <Learath2> Hm, now that I think about it, it'd be a horrible idea to use this prng out of the main thread
+12:14 <+bridge> [ddnet] <heinrich5991> yes. you can also just instantiate another one
+12:15 <+bridge> [ddnet] <Learath2> We can patch in something like numpy's SeedSequence later if we want semi related prngs
+12:15 <+bridge> [ddnet] <Learath2> as in the stream of numbers isn't related but we can derive the other prng from this ones seed
+12:15 <+bridge> [ddnet] <Learath2> Anyway, I think this is good to merge
+12:18 <+bridge> [ddnet] <Learath2> What should we do with our types btw?
+12:18 <+bridge> [ddnet] <Learath2> I also think that having to include system.h just for types is 😦
+12:35 <+bridge> [ddnet] <heinrich5991> perhaps a different header just for types would be good?
+22:15 <+bridge> [ddnet] <fokkonaut> is there a way i can properly mask events with 128 players? i assume the current int64_t mask doesnt work for 128 players
+22:18 <+bridge> [ddnet] <heinrich5991> simple way out: use the gcc extension `__uint128`
+22:18 <+bridge> [ddnet] <heinrich5991> harder way out: refactor the mask code to work with arbitrary N
+22:18 <+bridge> [ddnet] <fokkonaut> so i need to replace all the int64_t's to __uint128?
+22:19 <+bridge> [ddnet] <heinrich5991> yes. only works on 64bit architectures though, but I guess your server has one of these
+22:24 <+bridge> [ddnet] <fokkonaut> yes
+22:30 <+bridge> [ddnet] <fokkonaut> ```#if !defined(_MSC_VER) || _MSC_VER >= 1600
+22:30 <+bridge> [ddnet] <fokkonaut> #include <stdint.h>
+22:30 <+bridge> [ddnet] <fokkonaut> #else
+22:30 <+bridge> [ddnet] <fokkonaut> typedef __int32 int32_t;
+22:30 <+bridge> [ddnet] <fokkonaut> typedef unsigned __int32 uint32_t;
+22:30 <+bridge> [ddnet] <fokkonaut> typedef __int64 int64_t;
+22:30 <+bridge> [ddnet] <fokkonaut> typedef unsigned __int64 uint64_t;
+22:30 <+bridge> [ddnet] <fokkonaut> #endif```
+22:30 <+bridge> [ddnet] <fokkonaut> @heinrich5991 i need to add the __uint128 there too, right?
+22:31 <+bridge> [ddnet] <fokkonaut> currently its the int64_t, is there a signed uint128?
+22:31 <+bridge> [ddnet] <heinrich5991> no need, but you could do `typedef __uint128 uint128` if you wanted to
+22:31 <+bridge> [ddnet] <heinrich5991> or `typedef __int128 int128`
+22:32 <+bridge> [ddnet] <fokkonaut> whats the difference between int128 and uint128?
+22:32 <+bridge> [ddnet] <heinrich5991> `__int128` is signd and `__uint128` is unsigned
+22:32 <+bridge> [ddnet] <fokkonaut> so i would go with int128, i thinkl
+22:33 <+bridge> [ddnet] <fokkonaut> but there is no uint64_t?
+22:33 <+bridge> [ddnet] <fokkonaut> its defined as a normal int64 with the unsigned prefix
+22:33 <+bridge> [ddnet] <heinrich5991> ah, that code snippet is about msvs anyway
+22:34 <+bridge> [ddnet] <heinrich5991> you don't need to add it there
+22:34 <+bridge> [ddnet] <heinrich5991> I don't know if MSVS even supports int128
+22:34 <+bridge> [ddnet] <heinrich5991> \/uint128
+22:34 <+bridge> [ddnet] <fokkonaut> i hope so, i am working with it
+22:34 <+bridge> [ddnet] <heinrich5991> I only looked for gcc
+22:34 <+bridge> [ddnet] <fokkonaut> well, i do get it suggested
+22:34 <+bridge> [ddnet] <fokkonaut> so i think it works
+22:36 <+bridge> [ddnet] <heinrich5991> > __int8, __int16, __int32, __int64     Sized integer __int n, where n is the size, in bits, of the integer variable. __int8, __int16, __int32 and __int64 are Microsoft-specific keywords. Not all types are available on all architectures. (__int128 is not supported.)
+22:36 <+bridge> [ddnet] <fokkonaut> oof
+22:36 <+bridge> [ddnet] <fokkonaut> what do i do about it?
+22:37 <+bridge> [ddnet] <heinrich5991> build your own int128, or extend the mask code to work with arbitrary N
+22:37 <+bridge> [ddnet] <fokkonaut> how do i build a data type?
+22:37 <+bridge> [ddnet] <heinrich5991> you can build a class that consists of two u64s and implements the needed operatiosn
+22:38 <+bridge> [ddnet] <fokkonaut> __m128 should work, as it says on the internet
+22:39 <+bridge> [ddnet] <fokkonaut> mh, no it doesnt
+22:47 <+bridge> [ddnet] <Jupstar ✪> mh i wrote 256player support once and added a mask for it
+22:47 <+bridge> [ddnet] <Jupstar ✪> https://github.com/Jupeyy/teeworlds-fng2-mod/blob/teeworlds_0.6/src/game/server/gamecontext.h
+22:47 <+bridge> [ddnet] <Jupstar ✪> 
+22:47 <+bridge> [ddnet] <Jupstar ✪> just replace long long with int64_t
+22:47 <+bridge> [ddnet] <Jupstar ✪> 
+22:47 <+bridge> [ddnet] <Jupstar ✪> but it doesnt really support the operator's a normal int datatype would
+22:47 <+bridge> [ddnet] <Jupstar ✪> but its not too hard to write smth like that
+22:55 <+bridge> [ddnet] <fokkonaut> wouldnt i be able to use this but as a m_aMask[2] with 2 times int64_t?
+23:02 <+bridge> [ddnet] <Learath2> MSVC doesn't do 128bit integers, not even emulated ones
+23:02 <+bridge> [ddnet] <Learath2> yay garbage compilers
+23:04 <+bridge> [ddnet] <Learath2> Since you only need to use it as a mask, just use two 64 bit integers and address the correct half for a given index
+23:04 <+bridge> [ddnet] <Learath2> It's only "fun" when you need arithmetic operations
+23:05 <+bridge> [ddnet] <Ryozuki> windows :poggers:
+23:05 <+bridge> [ddnet] <Learath2> boost multiprecision comes with overengineered overbloated version of a 128bit integer if that's what you need
+23:07 <+bridge> [ddnet] <Jupstar ✪> if you change the iterators yes fokko
+23:07 <+bridge> [ddnet] <Learath2> I think stl comes with bitset since forever
+23:07 <+bridge> [ddnet] <Jupstar ✪> the < 4
+23:07 <+bridge> [ddnet] <Learath2> or there is `std::vector<bool>` which is oddly enough a bitset because someone had too much to drink before they made it to the standards committee meeting
+23:11 <+bridge> [ddnet] <Learath2> or I think there is some internal winapi voodoo that enables operations on 128bit integers
+23:12 <+bridge> [ddnet] <Learath2> https://docs.microsoft.com/en-us/windows/win32/winprog/large-integer-functions
+23:12 <+bridge> [ddnet] <Learath2> Uses two nice `DWORD64`s
+23:13 <+bridge> [ddnet] <Learath2> makes for very clean and pleasant code, as is expected of proprietary code from the 80s
+23:13 <+bridge> [ddnet] <Jupstar ✪> if it comes hard on hard, you can also just waste 128bytes xd
+23:13 <+bridge> [ddnet] <Learath2> now don't do that, please
+23:17 <+bridge> [ddnet] <Learath2> Oh shove two `ULARGE_INTEGER`s in a struct now that would be truly horrendous
+23:18 <+bridge> [ddnet] <Learath2> Actually put that struct in a union, with an OctuplePart
+23:20 <+bridge> [ddnet] <heinrich5991> I mean implementing an emulated int128 isn't that hard
+23:22 <+bridge> [ddnet] <Learath2> `People should follow standards. Microsoft is the standard. And the circle is complete. – Bruce Zenone May 7 '14 at 21:45`
+23:22 <+bridge> [ddnet] <Learath2> This attitude is how MSVC has managed to stay relevant for so long
+23:22 <+bridge> [ddnet] <Learath2> No Bruce, Microsoft isn't the standard, they are an implementation vendor
+23:23 <+bridge> [ddnet] <heinrich5991> clang implemented the microsoft standard
+23:24 <+bridge> [ddnet] <Learath2> I'll bet it has something to do with some fat paychecks or some developers on loan
+23:30 <+bridge> [ddnet] <Learath2> Microsoft hasn't dished out anything sane in the last decade
+23:30 <+bridge> [ddnet] <Learath2> except for maybe their implementation of the C++ STL
+23:33 <+bridge> [ddnet] <Learath2> @heinrich5991 what did clang adopt anyway? the msvc extensions?
+23:33 <+bridge> [ddnet] <heinrich5991> it is binary compatible and header compatible with msvs
+23:33 <+bridge> [ddnet] <heinrich5991> including command line arguments etc.
+23:34 <+bridge> [ddnet] <Learath2> Oh that probably explains why I'm missing a `PRIx64`
+23:34 <+bridge> [ddnet] <heinrich5991> it can even generate pdbs
+23:34 <+bridge> [ddnet] <heinrich5991> which they had to reverse engineer
+23:37 <+bridge> [ddnet] <Learath2> Are you sure they reverse engineered it?
+23:37 <+bridge> [ddnet] <heinrich5991> I think they did and then microsoft said: why didn't you ask us for docs
+23:37 <+bridge> [ddnet] <Learath2> I think microsoft has been pretty open for a while now about their shitty proprietary formats
+23:38 <+bridge> [ddnet] <heinrich5991> and then they published some half-working code, but still very valuable for RE
+23:39 <+bridge> [ddnet] <Learath2> One day I hope all these companies will stop maintaining their own binary formats
+23:41 <+bridge> [ddnet] <Learath2> ELF is flexible enough, or heck I'll even take Mach-O or PE, as long as I don't have to keep 3 of them in mind

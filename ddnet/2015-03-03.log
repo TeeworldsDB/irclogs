@@ -1,0 +1,97 @@
+00:07 < eeeee> read once to seed the stdlib prng?
+00:08 < eeeee> if seed is only 32bits once can just bruteforce it
+00:08 < eeeee> s/once/one
+00:09 < eeeee> guess it's fine to use two stdlib prngs though
+00:23 <@heinrich5991> eeeee: mh. just hash 16byte salt + client IP or so
+00:24 < eeeee> then you don't need urandom :P
+00:25 <@heinrich5991> for the 16byte salt
+00:25 < eeeee> also do we have hash in tw?
+00:26 <@heinrich5991> there's this implementation of md5 in one C file, fstd added it multiple times
+00:26 <@heinrich5991> I have no idea regardin g the brokenness of md5, but I think for this use case it's fine
+00:26 < eeeee> well there you go, in the end that's not that different from what you called "rolling your own crypto"
+00:27 <@heinrich5991> In April 2009, a preimage attack against MD5 was published that breaks MD5's preimage resistance. This attack is only theoretical, with a computational complexity of 2123.4 for full preimage.
+00:27 <@heinrich5991> not really, a salted hash is well-understood
+00:27 <@heinrich5991> and the wiki article confirms
+00:27 < eeeee> that thing is probably also "well-understood"
+00:28 <@heinrich5991> what. generating random numbers from game server events? :)
+00:28 < eeeee> well not that, i thought you referred to my sugesstion of copypasting ISAAC and seeding it with rcon password or sth
+00:29 <@heinrich5991> ah. wouldn't use a password ofr this (low entropy), but in general, probably fine
+00:34 < eeeee> okay if we already have md5 then your suggestion sounds fine
+00:34 < eeeee> and we don't even have to read urandom from the server
+00:35 < eeeee> instead we can just add a server variable for the salt and initialize it on server start
+00:36 < eeeee> having it secure without that would be nice too, but not sure if anyone is willing to do all the cross platform work
+01:40 < eeeee> deen: heinrich5991: so is anyone actually gonna do it?
+02:40 <@deen> not me probably
+02:40 <@deen> really busy recently
+06:19 <@EastByte> "sending the token back with every VITAL" <- note that we have to forbid non-vital rcon packets then
+06:21 <@EastByte> would also be nice for chat messages
+06:22 <@EastByte> so the spoofer cannot flood their ip addresses+port into the servers
+06:23 < eeeee> yeah nvm the vital part, just send it with every packet except connless
+06:25 <@EastByte> a 16byte hash with every packet?
+06:25 < eeeee> nono, 4byte
+06:26 <@EastByte> ah I thought using md5
+06:26 < eeeee> we use md5 to generate those 4 bytes
+06:26 <@EastByte> okay...
+06:26 < eeeee> maybe even 3 bytes would be okay...
+06:27 <@EastByte> testing 2**24 numbers doesn't sound so hard
+06:34 < eeeee> if you can reasonably do that you might just as well ddos the server :P
+06:35 < eeeee> you have to guess the port, also
+06:35 <@EastByte> yea, right
+06:37 <@EastByte> still... rcon access is more valueable then ddosing the server
+06:49 < eeeee> for rcon access we can keep the current login just for one command logic
+06:49 < eeeee> then you
+06:49 < eeeee> then you'd have to try all those 2**24 numbers in one tick
+06:49 < eeeee> well nvm you can actually guess the token separately
+06:50 <@EastByte> ^ :)
+06:50 < eeeee> well i'm looking for an easy way to hack in this token
+06:50 < eeeee> like as an extra chunk in the packet or sth
+06:51 <@EastByte> great
+07:01 < eeeee> tfw there already is some m_Token in network.h
+07:01 < eeeee> defined as int, but only 1 byte seems used
+08:15 < eeeee> okay so just appending an int after all the chunks in the packet seems to work
+08:15 < eeeee> doesn't piss off vanilla server or client
+08:59 < eeeee> deen: heinrich5991: https://github.com/eeeee/ddnet/commit/b4541d37dd6cf2eadab889aeb78eb27229f0bc24 looks legit?
+09:00 <@heinrich5991> that dbg_msg should probably go away in the final version
+09:00 < eeeee> yeah obv
+09:00 < eeeee> don't have time to add md5 and urandom today
+09:01 < eeeee> but that framework at least seems to work
+09:01 < eeeee> i.e. playable with both vanilla--ddnet, ddnet--vanilla, ddnet--ddnet
+09:01 < eeeee> and also appears to actually check the value
+09:01 <@heinrich5991> you'll have to tweak the send function wrt the packet sizes
+09:01 < eeeee> yeah, decrease the max payload
+09:04 <@heinrich5991> eeeee: yea, looks fine to me
+09:04 <@heinrich5991> oh wait
+09:04 < eeeee> wat
+09:05 <@heinrich5991> you should probably either use a bigger type than int or remove the possibility of randomly generating the sentinel values (-1, 0)
+09:05 < eeeee> yeah removing the possibility was the plan
+09:05 <@heinrich5991> m_SecurityToken == NET_SECURITY_TOKEN_UNKNOWN && pPacket->m_DataSize == 5
+09:05 <@heinrich5991> also, can you make this forward-compatible by accepting >= 5
+09:06 <@heinrich5991> it's a major PITA that vanilla doesn't accept >= sizeof(SERVERBROWSE_GET_INFO)
+09:06 < eeeee> yeah could do that, but we have to hope no other clients use this trick
+09:07 < eeeee> otherwise would just completely break them
+09:07 < eeeee> IE way ftw
+09:09 <@heinrich5991> mh, yeah. currently there's just the possibility they also send a 32bit payload
+09:09 <@heinrich5991> maybe also send a unique identifier?
+09:09 <@heinrich5991> like
+09:10 <@heinrich5991> 'TKEN'
+09:10 <@heinrich5991> as an int, before token in the connection establishing packets
+09:32 < eeeee> yeah
+13:57 < Nimda_5192> Warch Comp by Warch just released on Oldschool at 2015-03-03 13:54
+16:23 <@EastByte> deen: nim didn't make it to gsoc?
+16:45 <@deen> nope
+16:45 <@deen> neither did Mozilla (including Rust), D, Julia, Perl and many other languages
+16:45 <@deen> google seems to scale down on gsoc
+16:46 <@deen> linux kernel and tor also didn't make it
+16:46 <@deen> accepted projects down from 190 to 137
+16:46 <@deen> organizations*
+16:46 <@deen> i think only 5 (or so) major lanuages were accepted
+16:46 <@deen> haskell, scala, clojure, python, ruby
+16:47 <@EastByte> hmkay
+16:48 <@deen> Araq has offered to buy people some beer if they work on the gsoc projects anyway :P
+16:51 <@EastByte> haha
+16:51 <@EastByte> I don't like beer :P
+16:51 <@EastByte> you can't buy me!!
+17:41 < laxadedi> Sure we can
+17:46 < laxadedi> If you put the girl of your choice for whatever you want against some code, maybe you'll react differently :D
+18:15 <@EastByte> oh hello laxadedi :)
+20:30 < laxa> EastByte: hey :D

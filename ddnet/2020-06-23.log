@@ -1,0 +1,418 @@
+00:00 <+bridge> [ddnet] <Learath2> 😦
+00:00 <+bridge> [ddnet] <Learath2> should we just remove the entire thing? it's proving to be more trouble than it's worth
+00:02 <+bridge> [ddnet] <Ryozuki> did u know that for stuff like https://github.com/ddnet/ddnet/pull/2305
+00:02 <+bridge> [ddnet] <Ryozuki> github has something called milestones, u can make a milestone for 14 and add all the issues and prs u want there
+00:02 <+bridge> [ddnet] <Ryozuki> 👀
+00:03 <+bridge> [ddnet] <deen> @Learath2 nah, I still like it
+00:04 <+bridge> [ddnet] <deen> it's totally expected for me that we get some issues with such a huge change
+00:05 <+bridge> [ddnet] <deen> @Ryozuki didn't know, won't use 😄
+00:05 <+bridge> [ddnet] <Ryozuki> :feelsbadman:
+00:05 <+bridge> [ddnet] <Learath2> Well the backtrace doesn't really tell much, any way to reproduce?
+00:05 <+bridge> [ddnet] <deen> hm, didn't find one
+00:05 <+bridge> [ddnet] <deen> My guess is that the player object is invalid, so it was probably deleted
+00:06 <+bridge> [ddnet] <Learath2> It seems to happen in fakesnap
+00:06 <+bridge> [ddnet] <deen> i checked and the player object was not null
+00:06 <+bridge> [ddnet] <Learath2> Wait what version was the backtrace for?
+00:07 <+bridge> [ddnet] <deen> current master state
+00:07 <+bridge> [ddnet] <deen> I guess?
+00:07 <+bridge> [ddnet] <deen> yes
+00:07 <+bridge> [ddnet] <deen> because otherwise the core dump wouldn't have fit with the executable
+00:07 <+bridge> [ddnet] <Learath2> mh, the optimized symbols are just all over the place
+00:08 <+bridge> [ddnet] <Learath2> gamecontext.cpp:3331 is a call to fakesnap, next frame we are in snap though
+00:09 <+bridge> [ddnet] <deen> yeah, that's how it is with inlining I guess
+00:09 <+bridge> [ddnet] <Learath2> oh, nvm my copy was a couple lines off
+00:10 <+bridge> [ddnet] <Learath2> git reset gets it nice and lined up
+00:13 <+bridge> [ddnet] <Learath2> @deen is there a core remaining I can take a look at?
+00:14 <+bridge> [ddnet] <deen> i was a bit stupid and removed it already :/
+00:14 <+bridge> [ddnet] <deen> let me try to find one more
+00:16 <+bridge> [ddnet] <deen> @Learath2 have one
+00:16 <+bridge> [ddnet] <deen> ger.ddnet.tw: servers/crash2323
+00:16 <+bridge> [ddnet] <deen> see also the log file, the last line looks important
+00:17 <+bridge> [ddnet] <deen> will try to reproduce locally with that
+00:17 <+bridge> [ddnet] <Learath2> is there a built master binary there btw?
+00:17 <+bridge> [ddnet] <deen> i have it now, in servers/crash2323/DDRace64-Server_sql
+00:17 <+bridge> [ddnet] <deen> restored from /proc of a running process
+00:40 <+bridge> [ddnet] <Learath2> The backtrace was so misleading
+00:40 <+bridge> [ddnet] <Learath2> I thought it had to be a null pointer to `IServer` which sounded impossible
+00:41 <+bridge> [ddnet] <deen> hmm, probably because of RelWithDebInfo instead of Debug, right?
+00:41 <+bridge> [ddnet] <deen> all the optimizations messing with the output
+00:41 <+bridge> [ddnet] <Learath2> Yeah, inlining really messes with the backtrace
+00:41 <+bridge> [ddnet] <Learath2> inlining and sibling calls are the two biggest offenders iirc
+00:42 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/2322#issuecomment-647768495 if you add the field `"foobar"`, it would look like `"""foobar"""` in the escaped form
+00:43 <+bridge> [ddnet] <deen> hm, so that's intentional?
+00:43 <+bridge> [ddnet] <heinrich5991> for some reason the excel dialect of csv escapes " to ""
+00:43 <+bridge> [ddnet] <heinrich5991> plus the quoting that has to happen then
+00:43 <+bridge> [ddnet] <deen> seems a bit extreme to me
+00:43 <+bridge> [ddnet] <deen> but ok
+00:43 <+bridge> [ddnet] <Learath2> well does it have to be the excel dialect?
+00:43 <+bridge> [ddnet] <heinrich5991> we can follow a different standard, but that's what excel and python default to
+00:44 <+bridge> [ddnet] <heinrich5991> python also has a different one that could be called saner
+00:44 <+bridge> [ddnet] <deen> I'm fine with that
+00:44 <+bridge> [ddnet] <heinrich5991> with what?
+00:44 <+bridge> [ddnet] <deen> the excel/python thing
+00:45 <+bridge> [ddnet] <Learath2> eh I guess sticking with the python default is fine
+00:45 <+bridge> [ddnet] <heinrich5991> okay
+00:45 <+bridge> [ddnet] <Learath2> it'd work more out of the box
+00:46 <+bridge> [ddnet] <Learath2> Would it be possible for us to first make sure that the user tried to save and only allow the server to output one line?
+00:46 <+bridge> [ddnet] <Learath2> So malicious servers can't spam it with stupid shit
+00:47 <+bridge> [ddnet] <deen> no, I think we should also log when another member of your team saved
+00:47 <+bridge> [ddnet] <deen> even more so actually, since then you have a lower chance of remembering the save code
+00:47 <+bridge> [ddnet] <Learath2> $build_status #2324
+00:47 <+bridge> [ddnet] <DDNet> 🟢
+00:47 <+bridge> [ddnet] <Learath2> hm, true
+00:47 <+bridge> [ddnet] <deen> I'll rebuild servers
+00:48 <+bridge> [ddnet] <heinrich5991> @deen I was fixing your other comment (re the CSV stuff)
+00:48 <+bridge> [ddnet] <heinrich5991> it canceled the build now
+00:48 <+bridge> [ddnet] <Learath2> > \r\n on windows.
+00:48 <+bridge> [ddnet] <Learath2> 
+00:48 <+bridge> [ddnet] <Learath2> Are you sure about this? I was sure the CRT made this transparent to the user
+00:48 <+bridge> [ddnet] <deen> oh, sorry
+00:48 <+bridge> [ddnet] <deen> at least we have \r\n in other places in the source code
+00:48 <+bridge> [ddnet] <heinrich5991> @Learath2 only for text files
+00:49 <+bridge> [ddnet] <heinrich5991> I think we open in binary mode
+00:49 <+bridge> [ddnet] <Learath2> ah
+00:49 <+bridge> [ddnet] <deen> io_write_newline for example
+00:50 <+bridge> [ddnet] <Learath2> aha, a perfect place to use io_write_newline 😄
+00:50 <+bridge> [ddnet] <Learath2> Yeah checked the standard, it is only guaranteed for textfiles and I guess that makes sense
+00:50 <+bridge> [ddnet] <heinrich5991> otherwise it would mangle binary files ^^
+00:50 <+bridge> [ddnet] <heinrich5991> if it were to do that, too
+00:51 <+bridge> [ddnet] <Learath2> I remembered it being a special case for `\n`
+00:52 <+bridge> [ddnet] <heinrich5991> @deen next time someone complains about a server crash with a long time, send me the binary+coredump. I managed to extract the save code in a toy example
+00:52 <+bridge> [ddnet] <Learath2> but that obviously makes no sense, the `\n` is long lost when we get to a compiled binary
+00:52 <+bridge> [ddnet] <deen> ok
+00:52 <+bridge> [ddnet] <Learath2> how?
+00:53 <+bridge> [ddnet] <Learath2> you managed to call `CSaveTee::save()`?
+00:53 <+bridge> [ddnet] <heinrich5991> yes
+00:53 <+bridge> [ddnet] <deen> GER has 70% packet loss to github, other servers fine :/
+00:53 <+bridge> [ddnet] <heinrich5991> github was having dns problems earlier
+00:53 <+bridge> [ddnet] <Learath2> I guess with something like a simple null pointer dereference it's doable, but if the stack is mangled, I don't see how you'd fix it
+00:54 <+bridge> [ddnet] <deen> i changed the host already, still same
+00:54 <+bridge> [ddnet] <heinrich5991> ```
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) call (CSaveTeam *)malloc(sizeof(CSaveTeam))
+00:54 <+bridge> [ddnet] <heinrich5991> $7 = (CSaveTeam *) 0x7ffff7f72000
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) print (((CGameContext *)GameServer())->m_pController)
+00:54 <+bridge> [ddnet] <heinrich5991> $8 = (IGameController *) 0x5555557dbab0
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) call 'CSaveTeam::CSaveTeam(IGameController*)'($7, ((CGameContext *)GameServer())->m_pController)
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) print $7
+00:54 <+bridge> [ddnet] <heinrich5991> $9 = (CSaveTeam *) 0x7ffff7f72000
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) print ($7)->save(1)
+00:54 <+bridge> [ddnet] <heinrich5991> $10 = 0
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) print ($7)->GetString()
+00:54 <+bridge> [ddnet] <heinrich5991> $11 = 0x7ffff7f72010 "2\t2\t1\t1\t0\nheinrich5991\t1\t0\t0\t0\t0\t0\t-1\t0\t1\t0\t-1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t0\t-1\t0\t0\t0\t0\t2352\t0\t0\t1\t0\t1\t0\t0\t1\t3453\t686\t1329\t686\t1329\t0\t0\t686\t1329\t0.000000\t0.000000\t1\t0\t0\t2\t686\t1329\t0.000000\t0.0"...
+00:54 <+bridge> [ddnet] <heinrich5991> (gdb) 
+00:54 <+bridge> [ddnet] <heinrich5991> ```
+00:54 <+bridge> [ddnet] <heinrich5991> @Learath2
+00:54 <+bridge> [ddnet] <Learath2> I guess you could always just nuke the entire stack
+00:54 <+bridge> [ddnet] <heinrich5991> uses just the CServer instance from the stack
+00:55 <+bridge> [ddnet] <Learath2> Good thing that whoever made the CSaveTeam didn't tie it into the sql thing directly
+00:55 <+bridge> [ddnet] <heinrich5991> yup
+00:55 <+bridge> [ddnet] <heinrich5991> not shown: 100s of lines trying to make gdb do what I want 😛
+00:55 <+bridge> [ddnet] <heinrich5991> it looks soo simple now ^^
+00:56 <+bridge> [ddnet] <Learath2> gdb is all practice practice practice 😛
+00:56 <+bridge> [ddnet] <deen> @heinrich5991 that's fancy. Feels lke you should write it down somewhere so that others can use it too
+00:56 <+bridge> [ddnet] <deen> Maybe even in the ddnet README.md
+00:56 <+bridge> [ddnet] <heinrich5991> oh lol
+00:56 <+bridge> [ddnet] <heinrich5991> let's recover a crash once with this, and I'll put it into the readme
+00:57 <+bridge> [ddnet] <heinrich5991> just to see that it works with a non-toy example
+00:57 <+bridge> [ddnet] <Learath2> Actually, gdb doesn't have any overhead, couldn't we run all the servers with a debugger attached to dump saves if it crashes? 😄
+00:58 <+bridge> [ddnet] <heinrich5991> I'll test it on a coredump
+00:58 <+bridge> [ddnet] <heinrich5991> you don't need a debugger attached when you have a coredump
+00:58 <+bridge> [ddnet] <deen> We could also handle segfaults in DDNet-Server and do that directly
+00:58 <+bridge> [ddnet] <Learath2> or maybe a signal handler
+00:58 <+bridge> [ddnet] <heinrich5991> no
+00:58 <+bridge> [ddnet] <heinrich5991> please no
+00:58 <+bridge> [ddnet] <Learath2> 😄
+00:58 <+bridge> [ddnet] <deen> 😄
+00:59 <+bridge> [ddnet] <heinrich5991> I obviously also thought about this
+00:59 <+bridge> [ddnet] <heinrich5991> but corrupted state shouldn't be put back into the freshly started server automatically
+00:59 <+bridge> [ddnet] <Learath2> oh definitely not
+00:59 <+bridge> [ddnet] <deen> good night
+00:59 <+bridge> [ddnet] <heinrich5991> I think that way lies insanity
+00:59 <+bridge> [ddnet] <Learath2> I meant just to pipe the saves out
+00:59 <+bridge> [ddnet] <heinrich5991> good night @deen 🙂
+00:59 <+bridge> [ddnet] <heinrich5991> @Learath2 for that, gdb might also be better. handles invalid references better
+01:00 <+bridge> [ddnet] <Learath2> When you get a terminal signal, just loop through teams, save them, print out and die
+01:00 <+bridge> [ddnet] <Learath2> yeah a gdb script could work too
+01:02 <+bridge> [ddnet] <Learath2> I wonder what happens if you do something wrong in a signal handler
+03:11 <+bridge> [ddnet] <0xc000f> Pls need some help, i want register a server, i open my ports and i can join, but my friends cant they stuck in download "1 second left" but dont download nothing and they get stuck 4ever :x , some help pls
+05:01 <+bridge> [ddnet] <Soreu> @Ravie Hoped you'd draw something until morning. And damn it looks nice.
+05:08 <+bridge> [ddnet] <louis> ooh ye i had that idea before too but im a gfx nobo so i just recolored x_ninja to icy colors
+05:08 <+bridge> [ddnet] <louis> it made a lot more sense imo
+06:16 <+bridge> [ddnet] <Drocsi D.> why dont you make /spec tee colors optional instead of doing the vote
+07:40 <+bridge> [ddnet] <deen> @Learath2 you crash even harder
+08:51 <+bridge> [ddnet] <jason54> hello i wanted to ask you how to put the accounting with the two version of teeworlds sa it gives me this error (disabling 0.7 compability)
+09:06 <+bridge> [ddnet] <heinrich5991> @0xc000f can you try hosting the server with a map they already have? what happens? which version of the server do you use?
+09:06 <+bridge> [ddnet] <heinrich5991> @jason54 I'm not sure what you mean with "accounting". there are no accounts in the standard ddnet source
+09:19 <+bridge> [ddnet] <jason54> https://cdn.discordapp.com/attachments/293493549758939136/724886444279201842/unknown.png
+09:20 <+bridge> [ddnet] <jason54> https://cdn.discordapp.com/attachments/293493549758939136/724886547266142228/unknown.png
+09:33 <+bridge> [ddnet] <Learath2> @jason54 you seem to be missing the wordlist
+09:33 <+bridge> [ddnet] <Learath2> Where did you get this copy of the client?
+09:34 <+bridge> [ddnet] <Learath2> well the server
+09:34 <+bridge> [ddnet] <jason54> on the ddnet github
+09:34 <+bridge> [ddnet] <Learath2> huh, `wordlist.txt` should be in the data folder
+09:35 <+bridge> [ddnet] <Learath2> is it not?
+09:37 <+bridge> [ddnet] <jason54> https://cdn.discordapp.com/attachments/293493549758939136/724890756774625307/unknown.png
+09:37 <+bridge> [ddnet] <Learath2> Can you show me the first couple lines when you launch the server, it should show the what storage paths are added
+09:39 <+bridge> [ddnet] <jason54> I put that I think I was wrong
+09:39 <+bridge> [ddnet] <jason54> ```add_path $USERDIR
+09:39 <+bridge> [ddnet] <jason54> add_path $CURRENTDIR
+09:39 <+bridge> [ddnet] <jason54> add_path types/short
+09:39 <+bridge> [ddnet] <jason54> add_path types/middle
+09:39 <+bridge> [ddnet] <jason54> add_path types/long
+09:39 <+bridge> [ddnet] <jason54> add_path types/fastcap
+09:39 <+bridge> [ddnet] <jason54> add_path types/fastcapnoweapons```
+09:40 <+bridge> [ddnet] <Learath2> Well I see no $DATADIR
+09:40 <+bridge> [ddnet] <Learath2> You either have to move the wordlist into one of those folders ^
+09:40 <+bridge> [ddnet] <Learath2> Or add $DATADIR
+09:41 <+bridge> [ddnet] <jason54> I just did it doesn't change much
+09:41 <+bridge> [ddnet] <jason54> https://cdn.discordapp.com/attachments/293493549758939136/724891958329475163/unknown.png
+09:42 <+bridge> [ddnet] <Learath2> Which one did you do?
+09:43 <+bridge> [ddnet] <jason54> add_path $USERDIR
+09:43 <+bridge> [ddnet] <jason54> add_path $DATADIR
+09:43 <+bridge> [ddnet] <jason54> add_path $CURRENTDIR
+09:43 <+bridge> [ddnet] <Learath2> Well it can't find the data directory, it checks in a couple places
+09:44 <+bridge> [ddnet] <jason54> its little come from when i compiled the version for mysql?
+09:44 <+bridge> [ddnet] <Learath2> little?
+09:45 <+bridge> [ddnet] <jason54> It can
+09:46 <+bridge> [ddnet] <Learath2> The server looks for the data directory using the mapres folder inside it. It looks for it in the same directory as the binary, or in one of the preset locations
+09:46 <+bridge> [ddnet] <Learath2> if you don't have your data dir next to your binary, it won't find it
+09:49 <+bridge> [ddnet] <jason54> I just understood had to put the data folder thank you for your help
+09:50 <+bridge> [ddnet] <Learath2> @heinrich5991 should we maybe have cmake symlink or copy the data folder into the build directory?
+10:15 <+bridge> [ddnet] <heinrich5991> we do, but only on CMake rebuild
+10:15 <+bridge> [ddnet] <heinrich5991> I guess I'll add a list of files in the data directory as well
+11:06 <+bridge> [ddnet] <Learath2> I wonder if there is a way to streamline our rather large cmake file
+11:09 <+bridge> [ddnet] <deen> split up or get rid of the file lists?
+11:10 <+bridge> [ddnet] <heinrich5991> hmm I'm fine with file lists, they don't hurt IMO
+11:18 <+bridge> [ddnet] <Learath2> Meh, I still don't like `CGameContext::PreProcessMsg`
+11:18 <+bridge> [ddnet] <Learath2> It ended up much less streamlined then I hoped
+11:19 <+bridge> [ddnet] <Learath2> Every Cl packet needs some processing, even if it didn't change between 0.6 and 0,7
+11:21 <+bridge> [ddnet] <Learath2> I can't shake off the feeling that maybe I should have generated more code to auto translate the messages that didn't change
+11:22 <+bridge> [ddnet] <Learath2> Not terribly inefficient if the compiler isn't being dense, but it became a function that wouldn't inline well and causes decently sized copy
+11:25 <+bridge> [ddnet] <Learath2> That concludes all the 0.7 issues I know of
+12:00 <+bridge> [ddnet] <Learath2> Btw @deen have you seen any performance issues on 0.7?
+12:01 <+bridge> [ddnet] <deen> you mean on the servers caused by sixup?
+12:01 <+bridge> [ddnet] <fokkonaut> @Learath2 why do we have to translate the emoticon msg?
+12:01 <+bridge> [ddnet] <fokkonaut> it should work the same
+12:01 <+bridge> [ddnet] <deen> CPU load looks totally normal
+12:02 <+bridge> [ddnet] <fokkonaut> @Learath2 for emoticons we only need the MsgID being translated, but that is already like for all packets
+12:04 <+bridge> [ddnet] <fokkonaut> you only need to translate messages if they differ, like cl_say or cl_spectatormode
+12:05 <+bridge> [ddnet] <fokkonaut> But emoticon is the same for both, like cl_kill
+12:15 <+bridge> [ddnet] <fokkonaut> (of course the ID always gets translated)
+12:15 <+bridge> [ddnet] <fokkonaut> BTW: @Learath2 can you show me where, or more, HOW the functions for translating IDs are generated?
+12:17 <+bridge> [ddnet] <Learath2> The way I set up `PreProcessMsg` means I need to translate by hand, I guess being explicit about the message being passed through is nice in a way, but it's a copy that's not completely needed
+12:18 <+bridge> [ddnet] <Learath2> @fokkonaut https://github.com/ddnet/ddnet/blob/master/datasrc/crosscompile.py this is the part that reads both protocols, finds matching messages and generates the mapping
+12:18 <+bridge> [ddnet] <fokkonaut> wow thats smart
+12:19 <+bridge> [ddnet] <Learath2> I still to this day don't know how @deen managed to get both protocols included without conflict, but if you manage that part, it's simple
+12:19 <+bridge> [ddnet] <deen> 😄
+12:20 <+bridge> [ddnet] <fokkonaut> @Learath2 yea thats the part i struggle, can you give me an example of how to just include the ddnet protocol into 0.7?
+12:20 <+bridge> [ddnet] <Learath2> No
+12:20 <+bridge> [ddnet] <Learath2> Oh just the ddnet protocol
+12:20 <+bridge> [ddnet] <Learath2> Well that's simple, just copy over the entire ddnet datasrc directory into a subdirectory of datasrc
+12:21 <+bridge> [ddnet] <Learath2> then you just need to call compile.py to generate the protocol
+12:21 <+bridge> [ddnet] <fokkonaut> i mean plus self compiling
+12:21 <+bridge> [ddnet] <fokkonaut> how you did it
+12:21 <+bridge> [ddnet] <Learath2> self compiling?
+12:22 <+bridge> [ddnet] <fokkonaut> I want to do it the way you did it, but swapped of course
+12:22 <+bridge> [ddnet] <Learath2> Getting the ddnet protocol included is trivial, getting both protocols included in one python script is what idk
+12:22 <+bridge> [ddnet] <Learath2> python modules work in mysterious ways
+12:25 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/ddnet/commit/807c92f1a4b23784bff74583b1cb208d0c53b052
+12:25 <+bridge> [ddnet] <Learath2> generate_maps didn't work in that commit, but the inclusion of the 0.7 protocol worked fine
+12:26 <+bridge> [ddnet] <fokkonaut> ok, thanks
+12:27 <+bridge> [ddnet] <Learath2> I only added L169 and L334 to `compile.py` to put it in a namespace, and modified L167 to include the new generated file
+12:29 <+bridge> [ddnet] <fokkonaut> Thanks!!
+12:31 <+bridge> [ddnet] <deen> @fokkonaut you're adding sevendown in ddnet7? 😄
+12:31 <+bridge> [ddnet] <fokkonaut> No, I have Sevendown in my mod already
+12:31 <+bridge> [ddnet] <fokkonaut> But I want to clean it up
+12:31 <+bridge> [ddnet] <deen> oh
+12:31 <+bridge> [ddnet] <fokkonaut> a little bit
+12:31 <+bridge> [ddnet] <deen> feels like we have so much duplication
+12:31 <+bridge> [ddnet] <fokkonaut> :D
+12:31 <+bridge> [ddnet] <fokkonaut> yes
+12:32 <+bridge> [ddnet] <deen> everyone is reimplementing the same features
+12:32 <+bridge> [ddnet] <fokkonaut> xD
+12:32 <+bridge> [ddnet] <fokkonaut> But well, I had it before ddnet did it, also my mod is on 0.7
+12:32 <+bridge> [ddnet] <fokkonaut> so that was neccessary anyways
+12:32 <+bridge> [ddnet] <deen> So we could've switched ddnet to your mod?
+12:32 <+bridge> [ddnet] <deen> or are there 0.6 ddnet features missing
+12:33 <+bridge> [ddnet] <deen> now it's too late since Learath2 reimplemented it anyway
+12:33 <+bridge> [ddnet] <fokkonaut> Eh, yes that would have been possible
+12:33 <+bridge> [ddnet] <fokkonaut> But ddnet6 is better i think (?)
+12:34 <+bridge> [ddnet] <fokkonaut> because my mod is just ddnet7 + my mod, its based on ddnet
+12:34 <+bridge> [ddnet] <deen> ok
+12:35 <+bridge> [ddnet] <fokkonaut> I wonder what we will do with tw 0.8
+12:36 <+bridge> [ddnet] <deen> get an exponential explosion
+12:36 <+bridge> [ddnet] <deen> with some 0.8 mods with support for 0.7 but not 0.6, some 0.6 with support for 0.7 and 0.8 and all possible other combinations
+12:36 <+bridge> [ddnet] <fokkonaut> xD
+12:39 <+bridge> [ddnet] <Learath2> If I hadn't failed in keeping this nice and clean, we could have supported all the protocols
+12:41 <+bridge> [ddnet] <deen> No need to be so negative
+12:41 <+bridge> [ddnet] <deen> I think it's a huge step forwards to have a single DDNet server where 0.6 and 0.7 players can play together
+12:42 <+bridge> [ddnet] <deen> @fokkonaut you also have 128 player support? Is it something we could add in DDNet?
+12:42 <+bridge> [ddnet] <fokkonaut> We could, but with 0.7 not having info in snaps its gay
+12:43 <+bridge> [ddnet] <fokkonaut> laggy
+12:43 <+bridge> [ddnet] <fokkonaut> we need to improve the algorithm
+12:43 <+bridge> [ddnet] <Learath2> he's been having performance issues with it iirc, if we do migrate, we should get some better collision and stuff
+12:43 <+bridge> [ddnet] <Learath2> chunking the map up so we don't have to iterate all entities would go a huge way
+12:44 <+bridge> [ddnet] <deen> ah, i see
+12:44 <+bridge> [ddnet] <deen> thanks for the info
+12:46 <+bridge> [ddnet] <Learath2> We could probably go with n players if we do optimise a bit
+12:47 <+bridge> [ddnet] <fokkonaut> learath
+12:47 <+bridge> [ddnet] <Learath2> The int64 flag storage can be made into a `std::bitset`
+12:47 <+bridge> [ddnet] <Learath2> Players could fit in a vector
+12:47 <+bridge> [ddnet] <fokkonaut> the problem is we have 0.7 support now
+12:47 <+bridge> [ddnet] <fokkonaut> so we need to sent the connect and disconnect packets each time we change the map
+12:47 <+bridge> [ddnet] <fokkonaut> it doesnt get updated in the snaps anymore
+12:47 <+bridge> [ddnet] <Learath2> change the map? are you sure about that?
+12:48 <+bridge> [ddnet] <fokkonaut> change player map*
+12:48 <+bridge> [ddnet] <fokkonaut> the Idmap
+12:48 <+bridge> [ddnet] <Learath2> ah that, we can work with that
+12:48 <+bridge> [ddnet] <Learath2> an algorithm that more aggressively doesn't move players could help
+12:48 <+bridge> [ddnet] <fokkonaut> I made one
+12:49 <+bridge> [ddnet] <fokkonaut> But that one is not good if > 63 player are inside of your FOV
+12:49 <+bridge> [ddnet] <fokkonaut> then they dont update to the very closest
+12:49 <+bridge> [ddnet] <fokkonaut> but if < 63 are in ur FOV it works fine
+12:49 <+bridge> [ddnet] <fokkonaut> guess that also breaks with /showall
+12:49 <+bridge> [ddnet] <fokkonaut> if i think about it
+12:50 <+bridge> [ddnet] <Learath2> we can work with bounding volumes
+12:50 <+bridge> [ddnet] <fokkonaut> Yes
+12:51 <+bridge> [ddnet] <Learath2> every tee would have a bounding radius around it that's larger then the actual FOV, unless the players fov moves out of the bounding radius, we don't calculate the map again
+12:51 <+bridge> [ddnet] <Learath2> hm, but other tees moving  in and out of the fov would be an issue than
+12:51 <+bridge> [ddnet] <Learath2> then*
+12:52 <+bridge> [ddnet] <Learath2> I'll go bake a cheesecake and think about it more, I'm sure we can come up with something
+12:53 <+bridge> [ddnet] <deen> Happy baking
+12:54 <+bridge> [ddnet] <Learath2> Wait, do we actually need the disconnect and connect messages? We could just mess with the info, the client doesn't need to know
+12:56 <+bridge> [ddnet] <fokkonaut> No, how?
+12:56 <+bridge> [ddnet] <fokkonaut> You cant change the info on 0.7
+12:56 <+bridge> [ddnet] <fokkonaut> You are forced to send SvClientDrop and then SvClientInfo with other information for the same ID
+12:57 <+bridge> [ddnet] <Learath2> Thought we had a namechange message too along with the skinchange one
+12:57 <+bridge> [ddnet] <fokkonaut> Same faked ID*
+12:57 <+bridge> [ddnet] <Learath2> turns out we don't
+12:57 <+bridge> [ddnet] <fokkonaut> Nope, we dont
+12:58 <+bridge> [ddnet] <Learath2> I wonder what about the ability to change info ingame offended them so much that they broke it and didn't reimplement it
+12:58 <+bridge> [ddnet] <fokkonaut> Its just annoying :(
+12:58 <+bridge> [ddnet] <fokkonaut> Because of that we cant change our own name on a Server for your local tee
+12:59 <+bridge> [ddnet] <fokkonaut> It stays the same because you cant send clientdrop to your client when ur online
+12:59 <+bridge> [ddnet] <fokkonaut> Only info for other players can be updated
+13:04 <+bridge> [ddnet] <Learath2> Oh I know a 0.7 issue
+13:04 <+bridge> [ddnet] <Learath2> @fokkonaut can you create it? I don't drop and connect players that changed name, that'll be an issue
+13:05 <+bridge> [ddnet] <fokkonaut> Oh true
+13:05 <+bridge> [ddnet] <fokkonaut> I will create it
+13:05 <+bridge> [ddnet] <fokkonaut> Btw
+13:05 <+bridge> [ddnet] <fokkonaut> Do you use the fak idmap for 0.7?
+13:06 <+bridge> [ddnet] <fokkonaut> Do you send skinchanges?
+13:06 <+bridge> [ddnet] <Learath2> no idmap
+13:06 <+bridge> [ddnet] <Learath2> yes skinchanges
+13:25 <+bridge> [ddnet] <0xc000f> @heinrich5991 I have the map and all run "good" i see my server in master server but i have two common error : Stuck in download or Connecting.. , but both stuck in that process, i have a old version of the server 0.6
+13:26 <+bridge> [ddnet] <0xc000f> I can join in localhost to my server and work all fine but in multiplayer dont work :/
+14:05 <+bridge> [ddnet] <heinrich5991> @fokkonaut @Learath2 can you tell me how you determined that the players out of the snap are the cuase for performance issues?
+14:06 <+bridge> [ddnet] <heinrich5991> the snap deltas also contain information like "this player left" and "that player joined"
+14:06 <+bridge> [ddnet] <heinrich5991> in 0.6
+14:06 <+bridge> [ddnet] <fokkonaut> So many calculations
+14:06 <+bridge> [ddnet] <heinrich5991> that's also in 0.6, the snap diffing algorithm has to check which player names changed etc.
+14:07 <+bridge> [ddnet] <fokkonaut> no, i mean the algorithm for the player id map
+14:07 <+bridge> [ddnet] <fokkonaut> in GameWorld
+14:07 <+bridge> [ddnet] <fokkonaut> Thats very inefficient for 128 players
+14:07 <+bridge> [ddnet] <heinrich5991> what does that have to do with the player names being in/out of the snap?
+14:07 <+bridge> [ddnet] <fokkonaut> Oh, you mean that
+14:08 <+bridge> [ddnet] <heinrich5991> you keep mentioning it
+14:08 <+bridge> [ddnet] <fokkonaut> Well, the biggest issue is that we cant change info
+14:08 <+bridge> [ddnet] <fokkonaut> Without sending ALL data again
+14:08 <+bridge> [ddnet] <fokkonaut> (disconnect, then connect with only 1 value changed)
+14:08 <+bridge> [ddnet] <heinrich5991> ah
+14:09 <+bridge> [ddnet] <heinrich5991> and that happens? that the player data only changes slightly?
+14:09 <+bridge> [ddnet] <fokkonaut> Yes, of course
+14:09 <+bridge> [ddnet] <fokkonaut> the clientinfo packet contains every information about the tee
+14:09 <+bridge> [ddnet] <fokkonaut> And then we have skinupdates
+14:09 <+bridge> [ddnet] <fokkonaut> which contains all skin values
+14:09 <+bridge> [ddnet] <fokkonaut> But no namechange or info change in general
+14:10 <+bridge> [ddnet] <fokkonaut> In the snaps we could handle a namechange very simple, but now we need to send disconnect packets and then again connect with a new name
+14:10 <+bridge> [ddnet] <fokkonaut> And that to everyone except yourself
+14:10 <+bridge> [ddnet] <heinrich5991> ah, but for 128 player support, you need to change player name, clan, skin etc. anyway, right?
+14:10 <+bridge> [ddnet] <fokkonaut> Yes
+14:10 <+bridge> [ddnet] <fokkonaut> a lot
+14:11 <+bridge> [ddnet] <heinrich5991> but also in the snap-based version, right?
+14:11 <+bridge> [ddnet] <fokkonaut> Yes
+14:11 <+bridge> [ddnet] <heinrich5991> so the complaint is more about mods where you want to e.g. solely change a player's name
+14:11 <+bridge> [ddnet] <fokkonaut> i guess
+14:11 <+bridge> [ddnet] <fokkonaut> but in general
+14:12 <+bridge> [ddnet] <fokkonaut> mods arent so free anymore
+14:12 <+bridge> [ddnet] <fokkonaut> you also cant change your local tee's info
+14:12 <+bridge> [ddnet] <fokkonaut> (not for yourself, only others see the change)
+14:12 <+bridge> [ddnet] <heinrich5991> yea, that's annoying
+14:12 <+bridge> [ddnet] <fokkonaut> also you cant change client id of the local tee
+14:13 <+bridge> [ddnet] <fokkonaut> which is why timeout prot doent work in 0.7
+14:13 <+bridge> [ddnet] <fokkonaut> (in our curret ddnet6 with bridge
+14:13 <+bridge> [ddnet] <fokkonaut> )
+14:14 <+bridge> [ddnet] <heinrich5991> yes
+14:28 <+bridge> [ddnet] <Learath2> @deen was there a reason you set up timeout protection this way? After @fokkonaut said why do we change the ID, I started wondering whether we could instead assign the old state to the new id, thus it'd work in 0.7 without client modification
+14:28 <+bridge> [ddnet] <deen> i just tried to make it work, don't really remember the details tbh
+14:29 <+bridge> [ddnet] <deen> you could switch it around, as long as it still works fine
+14:29 <+bridge> [ddnet] <fokkonaut> Well
+14:29 <+bridge> [ddnet] <fokkonaut> we dont even have to do that
+14:29 <+bridge> [ddnet] <fokkonaut> if we do fake ids for 0.7
+14:30 <+bridge> [ddnet] <fokkonaut> Nah wait
+14:30 <+bridge> [ddnet] <fokkonaut> Then dummies get fucked up if we dont do extra work for them like i did in my mod
+14:37 <+bridge> [ddnet] <Learath2> Well dummies are bot vanilla 0.7
+14:37 <+bridge> [ddnet] <Learath2> We can fix custom clients however we like
+14:37 <+bridge> [ddnet] <Learath2> .s/bot/not
+14:37 <+bridge> [ddnet] <heinrich5991> \s/bot/not
+14:38 <+bridge> [ddnet] <heinrich5991> s\/a/b
+14:38 <+bridge> [ddnet] <heinrich5991> `s\/bot/not`
+14:38 <+bridge> [ddnet] <heinrich5991> to not trigger it
+14:38 <+bridge> [ddnet] <Learath2> irc never forgets
+14:38 <+bridge> [ddnet] <Learath2> `s/bot/not`
+14:38 <+bridge> [ddnet] <heinrich5991> s\/a/bn
+14:39 <+bridge> [ddnet] <Learath2> Ah I see
+14:39 <+bridge> [ddnet] <Learath2> Whoever implemented this fake sed, is the laziest engineer alive
+14:39 <+bridge> [ddnet] <Learath2> I couldn't possibly go to sleep knowing I left it like this
+15:49 <+bridge> [ddnet] <heinrich5991> https://pbs.twimg.com/media/EbLLgorUcAEpWYf?format=png&name=900x900
+15:51 <+bridge> [ddnet] <deen> eh
+16:45 <+bridge> [ddnet] <Soreu> @Learath2 about showing the players in /spec, do you mean that showothers transparency and spec transparency should be separate settings?
+16:45 <+bridge> [ddnet] <Soreu> unlike how it'
+16:45 <+bridge> [ddnet] <Soreu> s coded right now
+16:48 <+bridge> [ddnet] <Learath2> I think spec shouldnt have transparency by default
+16:49 <+bridge> [ddnet] <Learath2> So that when you have someone with the spec skin and transparency you know immediately thats just a tee in a different team spec'd
+16:50 <+bridge> [ddnet] <Soreu> I'd honestly be for that transparency, so you can set how much you actually care to see others, same as is with showing others in general, but would really like to see those two things separated as I don't want to see other teams while would love to see ppl in spec because of playing a lot of gores
+16:51 <+bridge> [ddnet] <Soreu> maybe it's just me
+16:51 <+bridge> [ddnet] <Learath2> Well how would you distinguish between a tee in spec in another team vs yours?
+16:54 <+bridge> [ddnet] <Soreu> That's one of the scenarios I didn't think about
+16:54 <+bridge> [ddnet] <Soreu> just the nick color ain't much of helpful
+16:54 <+bridge> [ddnet] <Soreu> but well, how about just not showing /spec from other teams until you... pause to look at them? idk
+16:55 <+bridge> [ddnet] <louis> just don't show them unless
+16:55 <+bridge> [ddnet] <louis> just don't show them
+16:55 <+bridge> [ddnet] <Soreu> @louis Tip: try not to edit messages in this channel. They are sent twice to IRC then.
+16:56 <+bridge> [ddnet] <louis> ok
+16:58 <+bridge> [ddnet] <Learath2> I wouldnt show them at all but there are still people who play with /showothers for one reason or the other
+17:01 <+bridge> [ddnet] <Soreu> Well then, show players in /spec only from same team unless
+17:01 <+bridge> [ddnet] <Soreu> 1. you /spec or /pause
+17:01 <+bridge> [ddnet] <Soreu> 2. you enabled showothers
+17:01 <+bridge> [ddnet] <Soreu> and in both cases, show all /spec players in same way, keeping the colored nicks.
+17:01 <+bridge> [ddnet] <Soreu> Eventually... the spec alpha could be % of showothers alpha, so that spec'd from other teams are less visible :F
+17:02 <+bridge> [ddnet] <Soreu> and yes, it kind of gets overcomplicated
+17:02 <+bridge> [ddnet] <Learath2> Is the alpha for the specd tees really necessary?
+17:02 <+bridge> [ddnet] <Soreu> idk
+17:02 <+bridge> [ddnet] <Learath2> Without it the answer is trivial
+17:03 <+bridge> [ddnet] <Learath2> Only if it's actually required should we look for solutions
+17:03 <+bridge> [ddnet] <Soreu> if I could test the /spec on KoG that'd be easier, as there is a lot more players in spec than on DDNet servers
+17:03 <+bridge> [ddnet] <Soreu> and the only version that I got and that works on KoG servers shows just semi-transparent tees instead of the x_spec skin :f
+17:05 <+bridge> [ddnet] <Soreu> @qshar how long till you add that ddnet char or whatever was needed to KoG servers? ^^'
+17:06 <+bridge> [ddnet] <Learath2> It should be trivial if he has the extended netobj patch in
+17:06 <+bridge> [ddnet] <Learath2> Even if not heinrich's patches are always surprisingly clean
+17:10 <+bridge> [ddnet] <qshar> Can you briefly write me what is the topic about and what do you need us to do? If you are talking about some pull request to ddnet, link it pls.
+17:11 <+bridge> [ddnet] <qshar> @Soreu
+17:12 <+bridge> [ddnet] <Soreu> @qshar DDNet is adding visible players in /spec - https://github.com/ddnet/ddnet/pull/2309 but since this: https://github.com/ddnet/ddnet/pull/2309/commits/933ea7cca30849f3d2020fcd008fa77a26c7592e it no longer works same way on DDNet & KoG servers
+17:12 <+bridge> [ddnet] <Soreu> @Learath2 Best I could do was testing with double dummy, and on entities, but with no opacity it still looks good to me
+17:12 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/725005412998578296/unknown.png
+17:13 <+bridge> [ddnet] <Soreu> ofc the nicks are becoming a mess then
+17:13 <+bridge> [ddnet] <Soreu> so maybe 100% visible x_spec but semit-transparent nick? xd
+17:14 <+bridge> [ddnet] <Soreu> ^ xd
+17:16 <+bridge> [ddnet] <Learath2> @qshar https://github.com/ddnet/ddnet/blob/master/src/game/server/entities/character.cpp#L1225-L1274
+17:16 <+bridge> [ddnet] <Learath2> This is the relevant part, it'll also get you better prediction
+17:18 <+bridge> [ddnet] <qshar> ok, thanks. Gonna take a look and apply it today!
+17:18 <+bridge> [ddnet] <Learath2> @qshar it also requires the extended protocol patch though, if you don't have it yet
+17:19 <+bridge> [ddnet] <qshar> If you implememnted it during last years, then for sure we don't have it
+17:19 <+bridge> [ddnet] <Learath2> https://github.com/ddnet/ddnet/pull/615, It's been 3 years now
+17:20 <+bridge> [ddnet] <Learath2> not sure when you forked kog off
+17:20 <+bridge> [ddnet] <qshar> ye, I see what you mean. No, we don't have it...
+17:20 <+bridge> [ddnet] <Learath2> This huge looking patch applies suprisingly cleanly 😄
+18:17 <+bridge> [ddnet] <heinrich5991> github so round today
+18:22 <+bridge> [ddnet] <Ryozuki> they changing the style

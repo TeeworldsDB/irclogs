@@ -1,0 +1,673 @@
+02:40 <+bridge> [ddnet] <Pepe> is some dev here?
+02:41 <+bridge> [ddnet] <Pepe> might need some help with an issue in my game 😄
+03:13 <+bridge> [ddnet] <!     ZombieToad> hello i am dev
+03:13 <+bridge> [ddnet] <!     ZombieToad> how can i help
+03:13 <+bridge> [ddnet] <Pepe> well
+03:13 <+bridge> [ddnet] <Pepe> just yesterday i installed ubuntu on my laptop
+03:13 <+bridge> [ddnet] <Pepe> 19.10
+03:14 <+bridge> [ddnet] <Pepe> so, when i play ddnet fullscreen it runs normally
+03:14 <+bridge> [ddnet] <Pepe> when i minimize it, it happens some weird video issues
+03:14 <+bridge> [ddnet] <Pepe> graphic issues
+03:31 <+bridge> [ddnet] <!     ZombieToad> dont minimize
+03:31 <+bridge> [ddnet] <!     ZombieToad> ez fix
+05:33 <+bridge> [ddnet] <Pepe> Smart af
+06:07 <+bridge> [ddnet] <Jupstar ✪> @Pepe f1 -> gfx_resizable 0
+06:08 <+bridge> [ddnet] <Jupstar ✪> maybe it should default to 0, until someone fixes the SDL code, which is a mess
+07:04 <+bridge> [ddnet] <deen> @Learath2 that would be weird, I build it with --with-darwinssl
+08:14 <+bridge> [ddnet] <Learath2> @deen well there was that one guy in #general and I also downloaded and checked it. Does the static library maybe use the builtin libcrypto dynamically?
+08:15 <+bridge> [ddnet] <Learath2> I think you are no longer allowed to link with libcrypto on macOS, maybe there is a way to build libcurl with the modern apple crypto apis or maybe we can build and bundle openssl
+10:46 <+bridge> [ddnet] <Learath2> @deen why are we linking statically anyway? I think we should include a framework like we do with sdl
+11:03 <@deen> because I build that myself and for sdl i just take the prepared one
+11:03 <@deen> no idea how build curl into a framework for mac os
+11:17 <+bridge> [ddnet] <Learath2> @deen well there is a ./
+11:18 <+bridge> [ddnet] <Learath2> ./MacOSX-Framework script shipped along with curl
+11:18 <+bridge> [ddnet] <Learath2> it doesn't work anymore in catalina but maybe it still works on whatever old version of macOS you build on
+11:18 <@deen> I cross-compile
+11:20 <+bridge> [ddnet] <Learath2> oh, hmm when you have time can you check if secure transport gets enabled correctly while building?
+11:27 <+bridge> [ddnet] <Learath2> that script looks pretty simple too, it should be easy enough to modify to work with osxcross
+12:05 <@deen> should I use --with-secure-transport instead of --with-darwinssl?
+12:07 <+bridge> [ddnet] <Learath2> --with-darwinssl enables secure transport
+12:07 <+bridge> [ddnet] <Learath2> @deen what SDK are you building with btw?
+12:07 <@deen>   SSL:              no      (--with-{ssl,gnutls,nss,mbedtls,wolfssl,schannel,secure-transport,mesalink,amissl} )
+12:08 <@deen> osxcross
+12:08 <@deen> so apparently darwinssl is not enough (anymore?)
+12:08 <@deen> will try with secure-transport instead
+12:08 <+bridge> [ddnet] <Learath2> yeah but for using osxcross you first get a sdk
+12:08 <@deen> good question, don't remember
+12:09 <+bridge> [ddnet] <Learath2> which version of libcurl is this? on 7.69.1 it seems it's still --with-darwinssl
+12:09 <@deen> 7.67.0
+12:09 <@deen> i checked with --help
+12:09 <+bridge> [ddnet] <Learath2> I guess it is --with-secure-transport on that version
+12:10 <+bridge> [ddnet] <Ryozuki> @Learath2 do u have experience with vulkan
+12:11 <+bridge> [ddnet] <Learath2> not much, I did render a triangle
+12:11 <+bridge> [ddnet] <Ryozuki> im swimming in verbosity and i get a segfault no idea why xDD
+12:12 <+bridge> [ddnet] <Learath2> vulkan is VERY low level
+12:12 <@deen> hm, apparently secure-transport also doesn't work. let me try 7.69.1
+12:14 <+bridge> [ddnet] <Learath2> Your SDK might be too old too, I think secure transport got a major overhaul at 10.8
+12:17 <@deen> ah
+12:17 <@deen> any tip for which one to get?
+12:21 <+bridge> [ddnet] <Learath2> Well i'm not completely sure with regards to compatibility, but I think you can compile with any sdk >= <lowestversionwesupport> and set the deployment target to <lowestversionwesupport>
+13:31 <+bridge> [ddnet] <deen> Turns out curl's configure checks for /System/Library/Frameworks/Security.framework which obviously doesn't exist when I'm cross-compilint
+13:44 <+bridge> [ddnet] <Learath2> @deen how did you fix it?
+13:45 <+bridge> [ddnet] <deen> changed the path manually in the configure file for now
+13:45 <+bridge> [ddnet] <deen> not sure how this can be fixed properly, maybe just get rid of the check?
+13:45 <+bridge> [ddnet] <deen> I'll try to do a patch to curl later
+13:45 <+bridge> [ddnet] <Learath2> huh, does the SDK include Security.framework?
+13:45 <+bridge> [ddnet] <deen> yes
+13:46 <+bridge> [ddnet] <Learath2> interesting, wouldn't know how to fix it either though, it'd be a little bit of a hack to check whether the CFLAGS line has a -isysroot
+13:58 <+bridge> [ddnet] <deen> Like this I guess: https://github.com/curl/curl/pull/5189
+14:00 <+bridge> [ddnet] <Learath2> just a sec, need to install my own SDL framework to test
+14:08 <+bridge> [ddnet] <Learath2> it takes excessive fiddling just to get things to link against my copy of SDL2
+14:10 <+bridge> [ddnet] <Learath2> but the curl change does work
+14:10 <+bridge> [ddnet] <Learath2> atleast when I compile on macOS, I'm not sure if the version you compile will work
+14:17 <+bridge> [ddnet] <deen> thanks for checking
+17:20 <+bridge> [ddnet] <ChillerDragon> bois i still cant read c++ errors is there some sort of tool that is more noob friendly when it comes to linker errors?
+17:21 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/696741495306190938/unknown.png
+17:22 <+bridge> [ddnet] <ChillerDragon> i mean is it even possible to read the error out of this without looking at the code?
+17:35 <+bridge> [ddnet] <heinrich5991> @ChillerDragon it usually means you forgot to define a method of `IClient` that you declared in `CClient`
+17:43 <+bridge> [ddnet] <BannZay> hello misters nerds and hackers! Is there any way I can know how many of DDNet servers users play with vanilla client?
+17:43 <+bridge> [ddnet] <louis> version number maybe
+17:44 <+bridge> [ddnet] <jao> check for clientid=0
+17:44 <+bridge> [ddnet] <BannZay> Ooookay! Can I have log pas to DDNet database now ?
+17:44 <+bridge> [ddnet] <jao> lmao
+17:45 <+bridge> [ddnet] <BannZay> sry for sarcastics, but how it could help me?
+17:45 <+bridge> [ddnet] <jao> then the answer is no
+17:45 <+bridge> [ddnet] <jao> logs cant be public
+17:46 <+bridge> [ddnet] <BannZay> true! But what about some "funny" statistics or something (you call it)
+17:46 <+bridge> [ddnet] <BannZay> I just wonder why devs care about vanilla support so much
+17:46 <+bridge> [ddnet] <jao> new players had vanilla client ofc
+17:47 <+bridge> [ddnet] <heinrich5991> if you have some statistics script that you want to run on the actual servers, you can give it to me to run it on the actual logs
+17:47 <+bridge> [ddnet] <jao> first you find vanilla then ddnet
+17:48 <+bridge> [ddnet] <BannZay> thank you, @heinrich5991 , I will return when I have some
+17:48 <+bridge> [ddnet] <onby> i looked at the stats on my server last year and totaled everyones last-used version number https://pastebin.com/2DC5zJni @BannZay
+17:49 <+bridge> [ddnet] <onby> outdated but similar to what ur asking about
+17:49 <+bridge> [ddnet] <louis> why cant vanilla client just be ddnet
+17:49 <+bridge> [ddnet] <jao> bloat
+17:49 <+bridge> [ddnet] <onby> devs care about vanilla support because alot of people are still using vanilla
+17:49 <+bridge> [ddnet] <louis> isnt ddnet just vanilla but better
+17:50 <+bridge> [ddnet] <louis> are there features exclusive to vanilla
+17:50 <+bridge> [ddnet] <onby> there arent but some people prefer vanilla client
+17:50 <+bridge> [ddnet] <jao> why do u need ddnet features in vanilla client
+17:51 <+bridge> [ddnet] <louis> why not
+17:51 <+bridge> [ddnet] <jao> bloat
+17:51 <+bridge> [ddnet] <louis> if ppl want to see other servers they dont see weird -999 times
+17:51 <+bridge> [ddnet] <onby> antiping/64player support
+17:51 <+bridge> [ddnet] <louis> and skins and quality of life changes
+17:51 <+bridge> [ddnet] <heinrich5991> skins might be a reason to not use ddnet client
+17:51 <+bridge> [ddnet] <louis> just enable vanilla skins only tho lol, it's what i do
+17:52 <+bridge> [ddnet] <onby> u can add or remove whatever skins u want from the game files but some people dont know or dont want to bother
+17:52 <+bridge> [ddnet] <louis> https://cdn.discordapp.com/attachments/293493549758939136/696749238385639554/unknown.png
+17:52 <+bridge> [ddnet] <louis> 1 click fix
+17:53 <+bridge> [ddnet] <jao> no
+17:53 <+bridge> [ddnet] <jao> u need to find it first
+17:53 <+bridge> [ddnet] <jao> so like 5min effort
+17:53 <+bridge> [ddnet] <jao> if ur new
+17:53 <+bridge> [ddnet] <onby> most common reason to not use ddnet client is because its laggier i think
+17:53 <+bridge> [ddnet] <heinrich5991> @onby did you try continuing the bisect? ^^
+17:54 <+bridge> [ddnet] <onby> no i deleted the folder is there an easy way to resume closer to where i left off
+17:56 <+bridge> [ddnet] <Learath2> well you can start from two commits that are closer together
+17:57 <+bridge> [ddnet] <Learath2> you just need a bad commit and a good commit, closer the better
+17:57 <+bridge> [ddnet] <heinrich5991> you could test whether 0a9f291 is bad
+17:57 <+bridge> [ddnet] <heinrich5991> if it is, then we have a bad commit
+17:58 <+bridge> [ddnet] <onby> how to test
+17:58 <+bridge> [ddnet] <Learath2> build it
+17:58 <+bridge> [ddnet] <Learath2> see if if makes your fans spin
+17:58 <+bridge> [ddnet] <heinrich5991> `git checkout 0a9f291`, test it
+17:58 <+bridge> [ddnet] <onby> clone the repo then git checkout? ok
+17:58 <+bridge> [ddnet] <heinrich5991> you don't need to re-clone it if you already have it somewhere
+17:58 <+bridge> [ddnet] <heinrich5991> `git worktree add /tmp/bisect`
+17:59 <+bridge> [ddnet] <heinrich5991> (I only have one git repository for teeworlds and ddnet)
+18:00 <+bridge> [ddnet] <onby> i dont have the newest version ill redo it
+18:01 <+bridge> [ddnet] <heinrich5991> (let's note down commit IDs before deleting this time)
+18:01 <+bridge> [ddnet] <Learath2> I have 1 for ddnet 1 for teeworlds, the branches just diverged so much
+18:01 <+bridge> [ddnet] <heinrich5991> I have two worktrees for that
+18:02 <+bridge> [ddnet] <heinrich5991> still the same repository
+18:02 <+bridge> [ddnet] <ChillerDragon> https://discordapp.com/channels/252358080522747904/293493549758939136/696745007453044737
+18:02 <+bridge> [ddnet] <ChillerDragon> 
+18:02 <+bridge> [ddnet] <ChillerDragon> but is there a tool that tells me which method?
+18:02 <+bridge> [ddnet] <heinrich5991> makes cherry-picking easier
+18:02 <+bridge> [ddnet] <Learath2> huh, never used worktrees
+18:02 <+bridge> [ddnet] <heinrich5991> it's basically another checkout with the same repository
+18:02 <+bridge> [ddnet] <heinrich5991> very useful if you're in the middle of writing a feature and need to test some PR
+18:02 <+bridge> [ddnet] <heinrich5991> @ChillerDragon the method you just added/renamed/changed in some way
+18:03 <+bridge> [ddnet] <ChillerDragon> yea so looking at the code
+18:03 <+bridge> [ddnet] <ChillerDragon> but i have build errors since hours and there is some code i touched 😄
+18:03 <+bridge> [ddnet] <Learath2> @ChillerDragon C++ errors are notoriously shit, there is no tool that makes them better
+18:03 <+bridge> [ddnet] <ChillerDragon> im talking in general
+18:03 <+bridge> [ddnet] <ChillerDragon> sad
+18:03 <+bridge> [ddnet] <ChillerDragon> @Learath2 build one pls thx
+18:04 <+bridge> [ddnet] <Learath2> the information is lost, the compiler is the one that's supposed to handle this
+18:04 <+bridge> [ddnet] <onby> i downloaded it ill build now
+18:04 <+bridge> [ddnet] <ChillerDragon> ye
+18:04 <+bridge> [ddnet] <heinrich5991> @onby 👍
+18:04 <+bridge> [ddnet] <Learath2> but if you ask the compiler people it's the standards committees jo, and if you ask the standards committee it's the users job not to be a moron
+18:05 <+bridge> [ddnet] <ChillerDragon> meh i suck at this job
+18:05 <+bridge> [ddnet] <Learath2> @ChillerDragon a clean rebuild is usually helpful as it might be giving a warning you are ignoring
+18:05 <+bridge> [ddnet] <ChillerDragon> did it
+18:05 <+bridge> [ddnet] <Learath2> also compile with -Wall -Werror
+18:05 <+bridge> [ddnet] <ChillerDragon> ah
+18:05 <+bridge> [ddnet] <ChillerDragon> is that default in tw ?
+18:05 <+bridge> [ddnet] <Learath2> maybe even -Weverything if you have clang
+18:06 <+bridge> [ddnet] <Learath2> @heinrich5991 I thought -Wall -Werror was default but I never get compile errors, how2enable?
+18:06 <+bridge> [ddnet] <heinrich5991> `-Weverything` is useless
+18:06 <+bridge> [ddnet] <heinrich5991> it activates warnings that are not helpful
+18:06 <+bridge> [ddnet] <Ryozuki> @ChillerDragon that  error is pretty sane for c++
+18:06 <+bridge> [ddnet] <Ryozuki> :justatest:
+18:06 <+bridge> [ddnet] <ChillerDragon> ..
+18:06 <+bridge> [ddnet] <heinrich5991> `-Wall -Wextra -Werror` is active for ddnet, I think @Learath2
+18:06 <+bridge> [ddnet] <heinrich5991> eh no
+18:06 <+bridge> [ddnet] <ChillerDragon> still not very helpful
+18:06 <+bridge> [ddnet] <heinrich5991> `-Wall -Wextra`
+18:06 <+bridge> [ddnet] <Ryozuki> well u need to google vtable
+18:06 <+bridge> [ddnet] <heinrich5991> `-Werror` on CI
+18:07 <+bridge> [ddnet] <Learath2> -Weverything I suggested because it enables some weird static analysis, might catch what chiller is missing
+18:07 <+bridge> [ddnet] <ChillerDragon> im sure vtable is some sort of virtual function table
+18:07 <+bridge> [ddnet] <ChillerDragon> why cant it drop a func name
+18:07 <+bridge> [ddnet] <Ryozuki> @ChillerDragon are u using clang or gcc
+18:07 <+bridge> [ddnet] <Ryozuki> i think clang is known for clearer errors
+18:08 <+bridge> [ddnet] <ChillerDragon> idk
+18:08 <+bridge> [ddnet] <heinrich5991> cc --version
+18:08 <+bridge> [ddnet] <Ryozuki> :saddo:
+18:08 <+bridge> [ddnet] <ChillerDragon> cc (Debian 8.3.0-6) 8.3.0
+18:09 <+bridge> [ddnet] <heinrich5991> gcc
+18:09 <+bridge> [ddnet] <Learath2> well the easiest things to check is the virtual constructor and destructor, if they are virtual that is
+18:10 <+bridge> [ddnet] <ChillerDragon> well the issue was a missing = 0; on a virtual
+18:11 <+bridge> [ddnet] <heinrich5991> on a pure virtual
+18:11 <+bridge> [ddnet] <ChillerDragon> i gues
+18:11 <+bridge> [ddnet] <ChillerDragon> yea sad c++ seems to be evil
+18:12 <+bridge> [ddnet] <ChillerDragon> the more bash i write the more annoyed i am by c++ 😄
+18:12 <+bridge> [ddnet] <heinrich5991> I love it when my strings get accidentally split by spaces when I forget to quote them
+18:12 <+bridge> [ddnet] <ChillerDragon> i love how u only have one argument :p
+18:13 <+bridge> [ddnet] <ChillerDragon> shellcheck is ur friend ull never forget to quote
+18:13 <+bridge> [ddnet] <heinrich5991> in python, the compiler does that for me
+18:13 <+bridge> [ddnet] <ChillerDragon> hotkey in vim to lint using shellcheck is bae
+18:13 <+bridge> [ddnet] <ChillerDragon> no more accidental errors
+18:15 <+bridge> [ddnet] <onby> fans still spin, am going to test again with working version rl quick to make sure its nothing else i have running
+18:19 <+bridge> [ddnet] <onby> and fans spun down once i started playing with old client
+18:20 <+bridge> [ddnet] <onby> @heinrich5991 can i continue bisecting from that commit?
+18:21 <+bridge> [ddnet] <Learath2> cppcheck is a decent static analyzer
+18:22 <+bridge> [ddnet] <Learath2> @onby yes, you mark that one bad, then you checkout the good one and mark that one good
+18:22 <+bridge> [ddnet] <onby> how
+18:22 <+bridge> [ddnet] <onby> im nub at git
+18:25 <+bridge> [ddnet] <ChillerDragon> installed cppcheck thanks will look further into it when ill get stuck on something again @Learath2
+18:26 <+bridge> [ddnet] <ChillerDragon> @onby what do you want to do exactly?
+18:26 <+bridge> [ddnet] <onby> continue bisecting versions of ddnet between the commit heinrich just sent ^ and the working version
+18:26 <+bridge> [ddnet] <ChillerDragon> ah
+18:26 <+bridge> [ddnet] <ChillerDragon> git checkout <commithash>
+18:26 <+bridge> [ddnet] <ChillerDragon> i guess?
+18:26 <+bridge> [ddnet] <onby> which
+18:26 <+bridge> [ddnet] <onby> tho
+18:26 <+bridge> [ddnet] <ChillerDragon> git log
+18:27 <+bridge> [ddnet] <ChillerDragon> then search for the current hash
+18:27 <+bridge> [ddnet] <onby> last time it was like git bisect start and  i just typed 10.6.2
+18:27 <+bridge> [ddnet] <ChillerDragon> and scroll up
+18:27 <+bridge> [ddnet] <onby> idr
+18:28 <+bridge> [ddnet] <ChillerDragon> https://paste.zillyhuhn.com/eo
+18:28 <+bridge> [ddnet] <ChillerDragon> @onby those are the hashes following 10.6.2
+18:28 <+bridge> [ddnet] <ChillerDragon> git checkout fe05f0dfbc92bf440e80504777b02a6f49132e0d
+18:28 <+bridge> [ddnet] <ChillerDragon> to step one further
+18:28 <+bridge> [ddnet] <onby> commit ec5ede7633ed9bde1d1673f5dbb92f654030a0e8 (tag: 10.6.2)
+18:29 <+bridge> [ddnet] <onby>     Version 10.6.2
+18:29 <+bridge> [ddnet] <onby> i guess thats the one i need
+18:29 <+bridge> [ddnet] <onby> do i have to git bisect start
+18:30 <+bridge> [ddnet] <ChillerDragon> which commit works for you?
+18:30 <+bridge> [ddnet] <ChillerDragon> or which version?
+18:30 <+bridge> [ddnet] <heinrich5991> git bisect start
+18:30 <+bridge> [ddnet] <onby> 10.6.2 works
+18:30 <+bridge> [ddnet] <heinrich5991> git bisect good <your good version>
+18:30 <+bridge> [ddnet] <ChillerDragon> and master doesnt?
+18:30 <+bridge> [ddnet] <heinrich5991> git bisect bad <version with fans spinning>
+18:30 <+bridge> [ddnet] <onby> it works but fans spin
+18:30 <+bridge> [ddnet] <onby> ok ty and i can put the hash of the commit in its place?
+18:30 <+bridge> [ddnet] <ChillerDragon> yes
+18:31 <+bridge> [ddnet] <ChillerDragon> or the release tag works as well
+18:31 <+bridge> [ddnet] <onby> git bisect bad 0a9f291
+18:31 <+bridge> [ddnet] <onby> Bisecting: 102 revisions left to test after this (roughly 7 steps)
+18:31 <+bridge> [ddnet] <onby> [fed747b9a0baf92f627cfaa42245ef99ce86e441] curl-4.lib needs to reference libcurl-4.dll
+18:31 <+bridge> [ddnet] <onby> ok
+18:31 <+bridge> [ddnet] <heinrich5991> eh
+18:32 <+bridge> [ddnet] <heinrich5991> did you check that 0a9f291 is bad?
+18:32 <+bridge> [ddnet] <onby> [11:15 AM] onby: fans still spin, am going to test again with working version rl quick to make sure its nothing else i have running
+18:32 <+bridge> [ddnet] <onby> [11:19 AM] onby: and fans spun down once i started playing with old client
+18:32 <+bridge> [ddnet] <heinrich5991> good
+18:32 <+bridge> [ddnet] <heinrich5991> then continue testing
+18:32 <+bridge> [ddnet] <onby> do u think it could have something to do with the way its compiled
+18:33 <+bridge> [ddnet] <heinrich5991> I can't rule that out
+18:33 <+bridge> [ddnet] <onby> [ 77%] Linking CXX executable DDNet
+18:33 <+bridge> [ddnet] <onby> ld: library not found for -lGL
+18:33 <+bridge> [ddnet] <onby> oh this error
+18:33 <+bridge> [ddnet] <onby> lol
+18:33 <+bridge> [ddnet] <onby> this mightve been around where we stopped last time
+18:34 <+bridge> [ddnet] <heinrich5991> replace `set(PLATFORM_CLIENT_LIBS GL GLU X11)` by
+18:34 <+bridge> [ddnet] <heinrich5991> ```
+18:34 <+bridge> [ddnet] <heinrich5991> find_library(CARBON Carbon)
+18:34 <+bridge> [ddnet] <heinrich5991> find_library(COCOA Cocoa)
+18:34 <+bridge> [ddnet] <heinrich5991> find_library(OPENGL OpenGL)
+18:34 <+bridge> [ddnet] <heinrich5991> find_library(SECURITY Security)
+18:34 <+bridge> [ddnet] <heinrich5991> set(PLATFORM_CLIENT_LIBS ${COCOA} ${OPENGL} ${CARBON} ${SECURITY})
+18:34 <+bridge> [ddnet] <heinrich5991> ```
+18:34 <+bridge> [ddnet] <heinrich5991> in `CMakeLists.txt`
+18:34 <+bridge> [ddnet] <onby> [ 37%] Linking CXX executable DDNet
+18:34 <+bridge> [ddnet] <onby> Undefined symbols for architecture x86_64:
+18:34 <+bridge> [ddnet] <onby>   "CNotification::notify(char const*, char const*)", referenced from:
+18:34 <+bridge> [ddnet] <onby>       CChat::AddLine(int, int, char const*) in chat.cpp.o
+18:34 <+bridge> [ddnet] <onby>   "_main", referenced from:
+18:34 <+bridge> [ddnet] <onby>      implicit entry/start for main executable
+18:34 <+bridge> [ddnet] <onby>      (maybe you meant: _SDL_main)
+18:35 <+bridge> [ddnet] <heinrich5991> @Learath2 you here btw?
+18:35 <+bridge> [ddnet] <onby> replacing main seems straightforward (?) but idk about the other one
+18:35 <+bridge> [ddnet] <heinrich5991> delete `notify` in the `CCHat::AddLine` function
+18:35 <+bridge> [ddnet] <onby> ```#if defined(CONF_PLATFORM_MACOSX) || defined(__ANDROID__)
+18:35 <+bridge> [ddnet] <onby> extern "C" int SDL_main(int argc, char **argv_) // ignore_convention
+18:35 <+bridge> [ddnet] <onby> {
+18:35 <+bridge> [ddnet] <onby>     const char **argv = const_cast<const char **>(argv_);
+18:35 <+bridge> [ddnet] <onby> #else
+18:35 <+bridge> [ddnet] <onby> int main(int argc, const char **argv) // ignore_convention
+18:35 <+bridge> [ddnet] <onby> {
+18:35 <+bridge> [ddnet] <onby> #endif```
+18:35 <+bridge> [ddnet] <onby> wait wut
+18:36 <+bridge> [ddnet] <onby> in client.cpp
+18:36 <+bridge> [ddnet] <onby> isnt this what it should be
+18:36 <+bridge> [ddnet] <heinrich5991> maybe remove `CONF_PLATFORM_MACOSX` there
+18:36 <+bridge> [ddnet] <heinrich5991> → `#if 0`
+18:37 <+bridge> [ddnet] <onby> Undefined symbols for architecture x86_64:
+18:37 <+bridge> [ddnet] <onby>   "_CFStringCreateWithCString", referenced from:
+18:37 <+bridge> [ddnet] <onby>       _gui_messagebox in system.c.o
+18:37 <+bridge> [ddnet] <onby>   "_CreateStandardAlert", referenced from:
+18:37 <+bridge> [ddnet] <onby>       _gui_messagebox in system.c.o
+18:37 <+bridge> [ddnet] <onby>   "_GetCurrentProcess", referenced from:
+18:37 <+bridge> [ddnet] <onby>       _gui_messagebox in system.c.o
+18:37 <+bridge> [ddnet] <onby>   "_RunStandardAlert", referenced from:
+18:37 <+bridge> [ddnet] <onby>       _gui_messagebox in system.c.o
+18:37 <+bridge> [ddnet] <onby>   "_SetFrontProcess", referenced from:
+18:37 <+bridge> [ddnet] <onby>       _gui_messagebox in system.c.o
+18:37 <+bridge> [ddnet] <onby>   "_TransformProcessType", referenced from:
+18:37 <+bridge> [ddnet] <onby>       _gui_messagebox in system.c.o
+18:37 <+bridge> [ddnet] <onby> 98% finished
+18:37 <+bridge> [ddnet] <onby> should i just comment this stuff out lol
+18:38 <+bridge> [ddnet] <heinrich5991> yes
+18:38 <+bridge> [ddnet] <heinrich5991> the stuff in `gui_messagebox`
+18:38 <+bridge> [ddnet] <onby> it compiled
+18:39 <+bridge> [ddnet] <heinrich5991> woohoo
+18:41 <+bridge> [ddnet] <Learath2> @heinrich5991 kinda here, waiting on bread in the oven
+18:42 <+bridge> [ddnet] <onby> fanspin
+18:42 <+bridge> [ddnet] <heinrich5991> @onby does it even spin thou
+18:42 <+bridge> [ddnet] <heinrich5991> gh
+18:42 <+bridge> [ddnet] <heinrich5991> git bisect bad
+18:42 <+bridge> [ddnet] <heinrich5991> onto the next
+18:42 <+bridge> [ddnet] <onby> and i thought it mightve been because i have two copies of ddnet open but
+18:42 <+bridge> [ddnet] <onby> then i quit and opened the working one and the fps is 350 not 200 and the spining starts to decrease
+18:43 <+bridge> [ddnet] <onby> oke
+18:43 <+bridge> [ddnet] <onby> Bisecting: 51 revisions left to test after this (roughly 6 steps)
+18:43 <+bridge> [ddnet] <onby> error: Your local changes to the following files would be overwritten by checkout:
+18:43 <+bridge> [ddnet] <onby>     src/base/system.c
+18:43 <+bridge> [ddnet] <onby>     src/engine/client/client.cpp
+18:43 <+bridge> [ddnet] <onby> Please commit your changes or stash them before you switch branches.
+18:43 <+bridge> [ddnet] <onby> Aborting
+18:43 <+bridge> [ddnet] <onby> wat do
+18:44 <+bridge> [ddnet] <deen> why do you have local changes?
+18:44 <+bridge> [ddnet] <deen> git stash them and keep going
+18:44 <+bridge> [ddnet] <onby> local changes to get it to compile^
+18:44 <+bridge> [ddnet] <heinrich5991> we have local changes because it doesn't compile without them
+18:45 <+bridge> [ddnet] <onby> does stash mean i will not have to do the changes again
+18:46 <+bridge> [ddnet] <heinrich5991> stash means you can get them back
+18:46 <+bridge> [ddnet] <heinrich5991> yes
+18:47 <+bridge> [ddnet] <heinrich5991> `git stash` saves some changes `git stash pop` applies them again
+18:47 <+bridge> [ddnet] <heinrich5991> (`git stash` is a stack)
+18:47 <+bridge> [ddnet] <onby> ooo ok cool
+18:49 <+bridge> [ddnet] <Learath2> Git stash never worked for me...
+18:49 <+bridge> [ddnet] <Learath2> I always lose my changes and get pissed
+18:52 <+bridge> [ddnet] <Learath2> Btw dont remove or modify client.m
+18:53 <+bridge> [ddnet] <ChillerDragon> git stash is best
+18:53 <+bridge> [ddnet] <Learath2> The way it starts the client could indeed be the issue as it actually messes with the stack
+18:53 <+bridge> [ddnet] <heinrich5991> hm? old versions didn't have it I think @Learath2
+18:53 <+bridge> [ddnet] <onby> rly?lol now im curious what its doing
+18:53 <+bridge> [ddnet] <onby> and git stash worked
+18:53 <+bridge> [ddnet] <heinrich5991> I think @onby's version doesn't have it
+18:53 <+bridge> [ddnet] <Learath2> that's fine, it it doesn't have it then don't add it and if it does have it don't remove it to get it compiling
+18:53 <+bridge> [ddnet] <heinrich5991> ah
+18:54 <+bridge> [ddnet] <onby> #ifdef SDL_USE_CPS
+18:54 <+bridge> [ddnet] <onby>     {
+18:54 <+bridge> [ddnet] <onby>         CPSProcessSerNum PSN;
+18:54 <+bridge> [ddnet] <onby>         /* Tell the dock about us */
+18:54 <+bridge> [ddnet] <onby>         if (!CPSGetCurrentProcess(&PSN))
+18:54 <+bridge> [ddnet] <onby>             if (!CPSEnableForegroundOperation(&PSN,0x03,0x3C,0x2C,0x1103))
+18:54 <+bridge> [ddnet] <onby> 
+18:54 <+bridge> [ddnet] <onby> what is this hacks
+18:54 <+bridge> [ddnet] <Learath2> the old client.m starts the client from a NSApplication event
+18:54 <+bridge> [ddnet] <heinrich5991> wtf
+18:54 <+bridge> [ddnet] <onby> NSA 👀
+18:54 <+bridge> [ddnet] <Learath2> thus actually blocking in the callback which might be affecting performance
+18:55 <+bridge> [ddnet] <Learath2> the new and improved client.m no longer does all that insane stuff
+18:56 <+bridge> [ddnet] <onby> oh wow after a couple more bisects this version finally has the old style of text font
+18:56 <+bridge> [ddnet] <onby> and it seems to be better
+18:56 <+bridge> [ddnet] <ChillerDragon> just play version 902 :p
+18:56 <+bridge> [ddnet] <Ryozuki> dont use mac
+18:56 <+bridge> [ddnet] <onby> i dont like sdl1
+18:56 <+bridge> [ddnet] <Ryozuki> install arch and install the ddnet package
+18:57 <+bridge> [ddnet] <onby> u
+18:57 <+bridge> [ddnet] <ChillerDragon> install hackintosh lmao
+18:57 <+bridge> [ddnet] <Learath2> macOS is so sooooo soooooooo painful
+18:57 <+bridge> [ddnet] <Learath2> om
+18:57 <+bridge> [ddnet] <onby> what should i do if this version seems to be the halfway point between working and not
+18:57 <+bridge> [ddnet] <onby> the fps is noticeably better than last bisect
+18:57 <+bridge> [ddnet] <Learath2> imagine not allowing people to use your ssl library thus not allowing people to use TLS1.3
+18:57 <+bridge> [ddnet] <onby> fans spin only a little bit
+18:57 <+bridge> [ddnet] <ChillerDragon> @Learath2 admit it u slowly become big 🍎  boi
+18:57 <+bridge> [ddnet] <Ryozuki> @onby did u make sure settings are the same
+18:57 <+bridge> [ddnet] <onby> its same settings_ddnet.cfg i have cl_save_settings 0 always
+18:57 <+bridge> [ddnet] <Ryozuki> and what does it mean fans spinning? are u not limiting the cpu ?
+18:57 <+bridge> [ddnet] <Ryozuki> i limit ddnet to 1000hz
+18:58 <+bridge> [ddnet] <onby> it means the fans spin
+18:58 <+bridge> [ddnet] <Learath2> you are only allowed to use the ssl library through apples shitty Secure Transport API which doesn't support anything new
+18:58 <+bridge> [ddnet] <onby> and if the same settings cause no spinning on ddnet 10.6.2 and spinning on 10.6.7 then there is a problem no?
+18:58 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/696765784512266370/unknown.png
+18:58 <+bridge> [ddnet] <Ryozuki> opengl best
+18:58 <+bridge> [ddnet] <Learath2> yeah the opengl3 renderer is great for performance
+18:58 <+bridge> [ddnet] <ChillerDragon> onbgygl3
+18:59 <+bridge> [ddnet] <Ryozuki> we should allow opengl 4.5
+18:59 <+bridge> [ddnet] <Ryozuki> on those who can
+18:59 <+bridge> [ddnet] <Learath2> I still can't believe the bugs we have in it... Imagine failing to render 2d graphics in 2020
+18:59 <+bridge> [ddnet] <Learath2> it's shameful
+18:59 <+bridge> [ddnet] <Learath2> we don't need any opengl 4.5 features
+18:59 <+bridge> [ddnet] <Ryozuki> glxinfo | grep "OpenGL version"
+18:59 <+bridge> [ddnet] <Ryozuki> OpenGL version string: 4.6 (Compatibility Profile) Mesa 20.0.4
+18:59 <+bridge> [ddnet] <Ryozuki> 4.6
+18:59 <+bridge> [ddnet] <onby> [11:57 AM] onby: what should i do if this version seems to be the halfway point between working and not
+18:59 <+bridge> [ddnet] <onby> [11:57 AM] onby: the fps is noticeably better than last bisect
+18:59 <+bridge> [ddnet] <onby> 
+18:59 <+bridge> [ddnet] <onby> but fps seems less than 10.6.2
+18:59 <+bridge> [ddnet] <Ryozuki> lets use all the shiny new things
+18:59 <+bridge> [ddnet] <ChillerDragon> $ glxinfo | grep "OpenGL version"
+18:59 <+bridge> [ddnet] <ChillerDragon> OpenGL version string: 3.0 Mesa 18.3.6
+19:00 <+bridge> [ddnet] <onby> does that point to there being two things that cause reduced fps
+19:00 <+bridge> [ddnet] <onby> should i just mark it as good for now
+19:00 <+bridge> [ddnet] <Ryozuki> @ChillerDragon lol
+19:00 <+bridge> [ddnet] <Ryozuki> arcane laptop
+19:00 <+bridge> [ddnet] <Learath2> @onby take a note of the version
+19:00 <+bridge> [ddnet] <Learath2> actually the exact SHA
+19:00 <+bridge> [ddnet] <Learath2> then mark it bad if you want to bisect further
+19:00 <+bridge> [ddnet] <ChillerDragon> thanks
+19:00 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/696766344686993428/unknown.png
+19:00 <+bridge> [ddnet] <onby> it almost feels like there are two things reducing fps
+19:01 <+bridge> [ddnet] <onby> but its closer towards working than not
+19:01 <+bridge> [ddnet] <Ryozuki> the mac kernel
+19:01 <+bridge> [ddnet] <onby> Bisecting: 24 revisions left to test after this (roughly 5 steps)
+19:01 <+bridge> [ddnet] <onby> [e0bf9a6d7cadf8950b163d20fcce3ecb9e662192] Merge pull request #786 from timakro/pr_check_teleport_hold_hook
+19:01 <+bridge> [ddnet] <Ryozuki> :poggers:
+19:01 <+bridge> [ddnet] <ChillerDragon> isnt mac kernel freebsd or sumsin?
+19:01 <+bridge> [ddnet] <onby> if i mark it as good can i come back to it later and mark it as bad to find the "other" thing
+19:01 <+bridge> [ddnet] <Learath2> it's darwin
+19:01 <+bridge> [ddnet] <ChillerDragon> bsd*
+19:01 <+bridge> [ddnet] <Learath2> branched from bsd waaay back
+19:02 <+bridge> [ddnet] <Ryozuki> lol
+19:02 <+bridge> [ddnet] <ChillerDragon> so bsd->darwin->macos?
+19:02 <+bridge> [ddnet] <Ryozuki> why would apple branch from something that has "free" in it
+19:02 <+bridge> [ddnet] <Ryozuki> its communism
+19:02 <+bridge> [ddnet] <ChillerDragon> cuz they can make it non free
+19:02 <+bridge> [ddnet] <Learath2> well it's Mach kernel
+19:02 <+bridge> [ddnet] <ChillerDragon> bsd license
+19:02 <+bridge> [ddnet] <Learath2> Darwin is the OS structure i think
+19:02 <+bridge> [ddnet] <ChillerDragon> macho vs elf huh?
+19:02 <+bridge> [ddnet] <Ryozuki> macho man
+19:02 <+bridge> [ddnet] <ChillerDragon> 😄
+19:02 <+bridge> [ddnet] <Learath2> it's BSD -> Mach -> XNU
+19:03 <+bridge> [ddnet] <ChillerDragon> where did darwin go?
+19:03 <+bridge> [ddnet] <Ryozuki> unix -> glorious linux
+19:03 <+bridge> [ddnet] <ChillerDragon> isnt mac unix?
+19:03 <+bridge> [ddnet] <Ryozuki> uname -a
+19:03 <+bridge> [ddnet] <Ryozuki> Linux arch 5.5.13-arch2-1 #1 SMP PREEMPT Mon, 30 Mar 2020 20:42:41 +0000 x86_64 GNU/Linux
+19:03 <+bridge> [ddnet] <Ryozuki> :poggers:
+19:03 <+bridge> [ddnet] <Ryozuki> im on the edge in kernel version
+19:03 <+bridge> [ddnet] <ChillerDragon> i use arch btw
+19:04 <+bridge> [ddnet] <Ryozuki> u use debian nobo
+19:04 <+bridge> [ddnet] <ChillerDragon> 😄
+19:04 <+bridge> [ddnet] <Learath2> Darwin is an OS that uses the XNU kernel
+19:04 <+bridge> [ddnet] <Learath2> macOS is based on Darwin
+19:04 <+bridge> [ddnet] <ChillerDragon> ``` 
+19:04 <+bridge> [ddnet] <ChillerDragon> $ uname -a
+19:04 <+bridge> [ddnet] <ChillerDragon> I use arch btw
+19:04 <+bridge> [ddnet] <ChillerDragon> ```
+19:04 <+bridge> [ddnet] <Learath2> iOS is also based on Darwin
+19:04 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/696767346458492928/682313072370778122.png
+19:04 <+bridge> [ddnet] <ChillerDragon> i see
+19:05 <+bridge> [ddnet] <Ryozuki> did u know
+19:05 <+bridge> [ddnet] <Ryozuki> fbi asks apple to not encrypt some stuff
+19:05 <+bridge> [ddnet] <ChillerDragon> did anyone ever bother writing a own mobile os?
+19:05 <+bridge> [ddnet] <Ryozuki> or do it in a way so they can access it
+19:05 <+bridge> [ddnet] <Ryozuki> :kek:
+19:05 <+bridge> [ddnet] <Learath2> ah found the graph i was looking for
+19:05 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/696767558082101289/2880px-Unix_timeline.png
+19:05 <+bridge> [ddnet] <Ryozuki> https://en.wikipedia.org/wiki/FBI%E2%80%93Apple_encryption_dispute
+19:05 <+bridge> [ddnet] <Learath2> huh transparency is shit
+19:05 <+bridge> [ddnet] <heinrich5991> @onby yes, you can come back
+19:05 <+bridge> [ddnet] <onby> OK
+19:05 <+bridge> [ddnet] <onby> i marked it as good
+19:06 <+bridge> [ddnet] <heinrich5991> as long as you note down the last good sha and the last bad sha
+19:06 <+bridge> [ddnet] <ChillerDragon> do ppl still use SunOS?
+19:06 <+bridge> [ddnet] <onby> and i think ill mark the next one as good too
+19:06 <+bridge> [ddnet] <heinrich5991> @onby [7:06 PM] heinrich5991: as long as you note down the last good sha and the last bad sha
+19:06 <+bridge> [ddnet] <Ryozuki> i want to try GNU/Hurd but i think it may not support lot of hardware
+19:06 <+bridge> [ddnet] <heinrich5991> that is important
+19:06 <+bridge> [ddnet] <heinrich5991> @onby ^
+19:06 <+bridge> [ddnet] <onby> yes
+19:06 <+bridge> [ddnet] <Learath2> @ChillerDragon Librem phones run PureOS
+19:06 <+bridge> [ddnet] <onby> i pasted e0bf9a6d7cadf8950b163d20fcce3ecb9e662192
+19:06 <+bridge> [ddnet] <ChillerDragon> @Ryozuki you can implement encryption, if it has backdoor :feelsamazingman:
+19:06 <+bridge> [ddnet] <heinrich5991> @onby need the last good as well
+19:06 <+bridge> [ddnet] <ChillerDragon> pureos has a own kernel @Learath2 ?
+19:07 <+bridge> [ddnet] <Learath2> I think we should shut up about the offtopic stuff so @heinrich5991 can help @onby debug
+19:07 <+bridge> [ddnet] <ChillerDragon> maybe i should switch phone
+19:07 <+bridge> [ddnet] <onby> wdym by last
+19:07 <+bridge> [ddnet] <ChillerDragon> are there apps for pureos? 😄
+19:07 <+bridge> [ddnet] <Learath2> @ChillerDragon it's linux, so is android
+19:07 <+bridge> [ddnet] <heinrich5991> @onby you marked the commit as good, but want to come back later
+19:08 <+bridge> [ddnet] <onby> ive found what seems to be a halfway point where the fans dont spin rly but the fps is a little lower
+19:08 <+bridge> [ddnet] <heinrich5991> you need to note down the last commit that was marked good and the last commit that was marked bad
+19:08 <+bridge> [ddnet] <heinrich5991> i.e. if you never marked a version good before, it's the good version you started with (was it 10.6.2?)
+19:09 <+bridge> [ddnet] <onby> nobody1s-MacBook-Pro:ddnet nobody1$ git bisect bad
+19:09 <+bridge> [ddnet] <onby> Bisecting: 24 revisions left to test after this (roughly 5 steps)
+19:09 <+bridge> [ddnet] <onby> [e0bf9a6d7cadf8950b163d20fcce3ecb9e662192] Merge pull request #786 from timakro/pr_check_teleport_hold_hook
+19:09 <+bridge> [ddnet] <onby> 
+19:09 <+bridge> [ddnet] <onby> nobody1s-MacBook-Pro:ddnet nobody1$ git bisect good
+19:09 <+bridge> [ddnet] <onby> Bisecting: 12 revisions left to test after this (roughly 4 steps)
+19:09 <+bridge> [ddnet] <onby> [727b9f84b6262bb7890e9bd47ee35945ee7a76f5] fixed scoreboard update for slow racers (less hacky) (#765)
+19:09 <+bridge> [ddnet] <onby> are these the two hashes
+19:09 <+bridge> [ddnet] <heinrich5991> k
+19:13 <+bridge> [ddnet] <onby> on 10.6.4 version i dont have fan spinning but i have lower fps
+19:13 <+bridge> [ddnet] <onby> so it does seem to be two bugs
+19:14 <+bridge> [ddnet] <Learath2> okay, choose one bug, then bisect for that
+19:15 <+bridge> [ddnet] <onby> i think ill go after the fan spinning first
+19:22 <+bridge> [ddnet] <onby> nobody1s-MacBook-Pro:ddnet nobody1$ git bisect good
+19:22 <+bridge> [ddnet] <onby> Bisecting: 1 revision left to test after this (roughly 1 step)
+19:22 <+bridge> [ddnet] <onby> [2a1bf9316536f63b76b8cf27535d5f796830007f] Try to fix Windows DPI issue
+19:22 <+bridge> [ddnet] <onby> nobody1s-MacBook-Pro:ddnet nobody1$ git bisect good
+19:22 <+bridge> [ddnet] <onby> Bisecting: 0 revisions left to test after this (roughly 0 steps)
+19:22 <+bridge> [ddnet] <onby> [66f6f16e81520350ece56b8937ac043fc5a308be] Windows DPI fixes #2
+19:22 <+bridge> [ddnet] <onby> nobody1s-MacBook-Pro:ddnet nobody1$
+19:23 <+bridge> [ddnet] <onby> ok so
+19:23 <+bridge> [ddnet] <onby> <https://github.com/ddnet/ddnet/commit/2a1bf9316536f63b76b8cf27535d5f796830007f>
+19:23 <+bridge> [ddnet] <onby> <https://github.com/ddnet/ddnet/commit/66f6f16e81520350ece56b8937ac043fc5a308be>
+19:23 <+bridge> [ddnet] <onby> the problem seems to be one of these?
+19:23 <+bridge> [ddnet] <onby> i dont know whether to mark the final bisect as good or bad
+19:23 <+bridge> [ddnet] <onby> since the fps is like half as much as the version before it
+19:23 <+bridge> [ddnet] <onby> but the fans dont spin
+19:24 <+bridge> [ddnet] <onby> so both may be bad in some way? if i understand the output
+19:27 <+bridge> [ddnet] <onby> this makes sense bcs i have high dpi screen
+19:45 <+bridge> [ddnet] <Learath2> I highly doubt windows dpi fixes affect macOS at all
+19:57 <+bridge> [ddnet] <louis> i mean he does kinda have a point
+19:57 <+bridge> [ddnet] <abcqwerty> he is too nobo to play with normal zoom :kek:
+19:58 <+bridge> [ddnet] <onby> this guy is stupid
+19:59 <+bridge> [ddnet] <onby> "P.s.: some of you might consider it as "cheat" or something but the serverside solution is already there - you cannot see distant players. But yea, this change might lead to advantage until serverside anticheat is not good enough"
+19:59 <+bridge> [ddnet] <onby> i hope thats trolling
+19:59 <+bridge> [ddnet] <louis> i mean
+19:59 <+bridge> [ddnet] <louis> its a thing in fng
+19:59 <+bridge> [ddnet] <louis> isnt it
+19:59 <+bridge> [ddnet] <louis> or is it only in noby fng
+20:00 <+bridge> [ddnet] <abcqwerty> ban
+20:00 <+bridge> [ddnet] <!     ZombieToad> server will never detect zooz
+20:00 <+bridge> [ddnet] <!     ZombieToad> :D
+20:00 <+bridge> [ddnet] <onby> the one on my fng is slightly different but its on all servers
+20:00 <+bridge> [ddnet] <onby> and yeah detecting it is basically impossible
+20:00 <+bridge> [ddnet] <louis> i mean if he really wanted to he could just use a custom client and remove zooz
+20:00 <+bridge> [ddnet] <onby> and if this guy knows that it will be something that has to be detected by an anti cheat
+20:01 <+bridge> [ddnet] <onby> then he knows its a cheat
+20:01 <+bridge> [ddnet] <abcqwerty> well he already did
+20:02 <+bridge> [ddnet] <!     ZombieToad> ez modify 1 line of code for zooz on all server
+20:04 <+bridge> [ddnet] <onby> My own problem:
+20:04 <+bridge> [ddnet] <onby> I play with the cl_dummy_hammer setting, what means my tee always aims at my "dummy" one. But there is other tees where i cannot automatically aim at which renders game at least uncomfortable for playing
+20:04 <+bridge> [ddnet] <onby> 
+20:04 <+bridge> [ddnet] <onby> General problem:
+20:04 <+bridge> [ddnet] <onby> Ridiculous client side limitations leads to client without aimbot
+20:04 <+bridge> [ddnet] <onby> 
+20:04 <+bridge> [ddnet] <onby> I consider aimbot as a graphics setting, which should NOT be limited by any gameplay mode (as dynamic camera is)
+20:09 <+bridge> [ddnet] <louis> if u rendered other tees as ur dummy could u have free aimbot
+20:10 <+bridge> [ddnet] <Learath2> @heinrich5991 how would you do extensions to the demo format?
+20:22 <+bridge> [ddnet] <Ryozuki> @BannZay apply this patch to latest ddnet
+20:22 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/696787048425717820/zoom-unlock.patch
+20:23 <+bridge> [ddnet] <Ryozuki> git apply zoom-unlock.patch
+20:25 <+bridge> [ddnet] <heinrich5991> @Learath2 in vanilla?
+20:27 <+bridge> [ddnet] <onby> so its allowed to post cheats here now?
+20:28 <+bridge> [ddnet] <heinrich5991> @Learath2 please remove it
+20:28 <+bridge> [ddnet] <abcqwerty> @Ryozuki wtf i thought it was a joke
+20:41 <+bridge> [ddnet] <Learath2> I look away for one second :P
+20:41 <+bridge> [ddnet] <Learath2> @heinrich5991 yeah for vanilla
+20:42 <+bridge> [ddnet] <onby> @heinrich5991 so do u think the problem is in the two commits i found
+21:09 <+bridge> [ddnet] <BannZay> > and if this guy knows that it will be something that has to be detected by an anti cheat
+21:09 <+bridge> [ddnet] <BannZay> @onby , actually this something should be handled by game server but surely not "detected by anti cheat". And also whats wrong with customization/setting up your client? I dont like a lot "by default" stuff in DDNet, that is why Ive been photoshoping, learning setting commands, even pushed some PRs to make game fit my needs. In return got called "stupid". Comeee on, man
+21:10 <+bridge> [ddnet] <onby> why bring up anticheat
+21:10 <+bridge> [ddnet] <onby> if what ur suggesting isnt a cheat
+21:10 <+bridge> [ddnet] <abcqwerty> ban
+21:10 <+bridge> [ddnet] <abcqwerty> also u can zooz in ddnet
+21:10 <+bridge> [ddnet] <onby> and theres nothing wrong with customizing ur client as long as ur not doing it to get an unfair advantage over other players
+21:10 <+bridge> [ddnet] <onby> which u r
+21:12 <+bridge> [ddnet] <BannZay> I just wanted to point out to a thing which was some sort of cheat of implementing feature. Its a dirty hack
+21:13 <+bridge> [ddnet] <BannZay> just dont render far tee`s
+21:13 <+bridge> [ddnet] <BannZay> but let me configure fucking setting
+21:13 <+bridge> [ddnet] <onby> all servers already do this for bandwidth reason
+21:13 <+bridge> [ddnet] <onby> but thats not a solution
+21:13 <+bridge> [ddnet] <onby> because its still like getting dyncam in every direction at once that doesnt shake
+21:14 <+bridge> [ddnet] <BannZay> dont render  at client, mister
+21:14 <+bridge> [ddnet] <onby> wat xd
+21:14 <+bridge> [ddnet] <onby> the server decides which tees to send to each client based on how far they are
+21:14 <+bridge> [ddnet] <BannZay> dont render  in client, mister
+21:15 <+bridge> [ddnet] <onby> and ok  i cant call u stupid but i can call the idea stupid
+21:17 <+bridge> [ddnet] <BannZay> well, I dont mean you any of ways
+21:17 <+bridge> [ddnet] <BannZay> but can you explain whats wrong with the idea itself?
+21:17 <+bridge> [ddnet] <onby> its considered cheating in pretty much every pvp mode on tw
+21:18 <+bridge> [ddnet] <onby> the vanilla client cant zoomout
+21:18 <+bridge> [ddnet] <BannZay> okay, I proposed solution. Either do it client or server side. Just let player see only close enemies
+21:18 <+bridge> [ddnet] <onby> yes but what im saying is
+21:18 <+bridge> [ddnet] <onby> every server already does this
+21:18 <+bridge> [ddnet] <BannZay> maybe rander some lines of vision
+21:19 <+bridge> [ddnet] <onby> u can see a tiny bit further than dyn range, in every direction, on standard servers
+21:19 <+bridge> [ddnet] <onby> which isnt as overpowered as seeing every tee ofc but its still a huge advantage
+21:19 <+bridge> [ddnet] <BannZay> so whats the problem of removing this advantage?
+21:20 <+bridge> [ddnet] <BannZay> without touching zoom?
+21:20 <+bridge> [ddnet] <onby> how is it possible
+21:20 <+bridge> [ddnet] <BannZay> cmon
+21:20 <+bridge> [ddnet] <BannZay> you kidding me?
+21:20 <+bridge> [ddnet] <onby> ur not reading
+21:20 <+bridge> [ddnet] <onby> "just let players see only close enemies"
+21:20 <+bridge> [ddnet] <onby> i said already
+21:20 <+bridge> [ddnet] <onby> every server does this
+21:20 <+bridge> [ddnet] <onby> it helps but it does not fix the problem
+21:21 <+bridge> [ddnet] <jao> server doesnt know about dyn
+21:21 <+bridge> [ddnet] <jao> so u have to send in all directions
+21:21 <+bridge> [ddnet] <jao> and then u can abuse it
+21:21 <+bridge> [ddnet] <onby> ^
+21:21 <+bridge> [ddnet] <BannZay> yes, thats why was talking about clientside solution
+21:21 <+bridge> [ddnet] <onby> and even on modified servers that do understand dyn and try to account for it
+21:21 <+bridge> [ddnet] <jao> you cant modify old clients
+21:21 <+bridge> [ddnet] <onby> its still a cheatxd
+21:21 <+bridge> [ddnet] <jao> and you can modify new clients too
+21:22 <+bridge> [ddnet] <BannZay> well
+21:22 <+bridge> [ddnet] <BannZay> dont touch serveer
+21:22 <+bridge> [ddnet] <heinrich5991> I mean the general idea might actually work
+21:22 <+bridge> [ddnet] <heinrich5991> but it wasn't in the PR
+21:22 <+bridge> [ddnet] <BannZay> yea, I just called to implement it
+21:23 <+bridge> [ddnet] <jao> how can it actually work
+21:23 <+bridge> [ddnet] <onby> i can imagine how it would work but i cant imagine how it wouldnt still be cheaty
+21:24 <+bridge> [ddnet] <BannZay> just render tee`s what would u see without zoom
+21:24 <+bridge> [ddnet] <BannZay> nothing more nothing less
+21:24 <+bridge> [ddnet] <onby> so ur getting dyncam that isnt harder to control like dyncam would be
+21:24 <+bridge> [ddnet] <onby> =cheat
+21:24 <+bridge> [ddnet] <jao> then u cant use dyn anymore
+21:25 <+bridge> [ddnet] <BannZay> In general I dont understand dyncam, in particular my sentence still valid
+21:25 <+bridge> [ddnet] <jao> just because u dont like dyn it doesnt mean it should be removed lmao
+21:25 <+bridge> [ddnet] <onby> dyncam 1. comes with every client and 2. doesnt allow u to see any more than anyone else
+21:25 <+bridge> [ddnet] <BannZay> In general I dont understand dyncam in fng, in particular my sentence still valid
+21:25 <+bridge> [ddnet] <Ryozuki> @abcqwerty why would i joke
+21:25 <+bridge> [ddnet] <onby> it just changes where u can see
+21:25 <+bridge> [ddnet] <jao> how is ur sentence still valid
+21:25 <+bridge> [ddnet] <jao> server doesnt know about dyn
+21:25 <+bridge> [ddnet] <BannZay> dont touch server at al
+21:25 <+bridge> [ddnet] <jao> wat
+21:26 <+bridge> [ddnet] <onby> his idea is for the client to only show the tees that a dyner would see, but with zoomout
+21:26 <+bridge> [ddnet] <onby> i think
+21:26 <+bridge> [ddnet] <jao> client side anti cheat isnt possible wtf
+21:26 <+bridge> [ddnet] <onby> but thats still a cheat lol
+21:26 <+bridge> [ddnet] <BannZay> omfg
+21:26 <+bridge> [ddnet] <onby> it sounds more like a limitation that the client would impose, like it currently does by not allowing zoom
+21:26 <+bridge> [ddnet] <Ama> i have a question why is shotgun beyond death allowed on the solo server ?
+21:26 <+bridge> [ddnet] <BannZay> just render tee`s what would u see without zoom
+21:26 <+bridge> [ddnet] <BannZay> nothing more nothing less
+21:26 <+bridge> [ddnet] <BannZay> 
+21:26 <+bridge> [ddnet] <BannZay> 
+21:26 <+bridge> [ddnet] <BannZay> where is cheat?
+21:26 <+bridge> [ddnet] <onby> 2:24 PM] onby: so ur getting dyncam that isnt harder to control like dyncam would be
+21:26 <+bridge> [ddnet] <onby> [2:24 PM] onby: =cheat
+21:26 <+bridge> [ddnet] <heinrich5991> @onby only render tees that you would see without dyncam
+21:27 <+bridge> [ddnet] <jao> you can just modify the client to cheat
+21:27 <+bridge> [ddnet] <onby> oh
+21:27 <+bridge> [ddnet] <heinrich5991> is what @BannZay is proposing
+21:27 <+bridge> [ddnet] <heinrich5991> this would work and this could be implemented
+21:27 <+bridge> [ddnet] <onby> well thats gonna piss off most players on instagib modes i think
+21:27 <+bridge> [ddnet] <BannZay> if you move dyncam right, then render litle further right tees
+21:27 <+bridge> [ddnet] <onby> [2:26 PM] onby: 2:24 PM] onby: so ur getting dyncam that isnt harder to control like dyncam would be
+21:27 <+bridge> [ddnet] <onby> [2:24 PM] onby: =cheat
+21:27 <+bridge> [ddnet] <onby> no
+21:28 <+bridge> [ddnet] <onby> there are tradeoffs that come with using dyncam that make it fair
+21:28 <+bridge> [ddnet] <onby> they cant aim as fast with it for example
+21:30 <+bridge> [ddnet] <abcqwerty> u could make the server aware of dyncam right
+21:30 <+bridge> [ddnet] <jao> how
+21:30 <+bridge> [ddnet] <onby> only if the player has standard mouse settings like max distance, deadzone etc
+21:30 <+bridge> [ddnet] <jao> u cant modify old clients
+21:31 <+bridge> [ddnet] <onby> if u change one of those things then the server cant reliably tell whether someone has dyncam or not
+21:31 <+bridge> [ddnet] <abcqwerty> rip
+21:31 <+bridge> [ddnet] <abcqwerty> oh do clients only send the angle
+21:31 <+bridge> [ddnet] <onby> no
+21:31 <+bridge> [ddnet] <onby> they send position
+21:32 <+bridge> [ddnet] <onby> but still
+21:32 <+bridge> [ddnet] <abcqwerty> oh but they wouldnt send the mouse settings
+21:32 <+bridge> [ddnet] <onby> right
+21:33 <+bridge> [ddnet] <onby> only x,y position of the cursor relative to tee
+21:43 <+bridge> [ddnet] <BannZay> well, hope my idea not that bad as my communication skills. So I hope someday someguy implement unlock zoom in DDNet for us
+21:43 <+bridge> [ddnet] <heinrich5991> I think I understood the idea, and yes, it could be implemented without dyncam at least
+21:43 <+bridge> [ddnet] <onby> communication is fine
+21:43 <+bridge> [ddnet] <heinrich5991> nah, communication seems to not have worked for the longest part, I think
+21:45 <+bridge> [ddnet] <heinrich5991> @onby which commit did you determine from the bisect?
+21:45 <+bridge> [ddnet] <BannZay> as for me I have never used dyncam, since turned it off after client installation
+21:45 <+bridge> [ddnet] <onby> [12:23 PM] onby: https://github.com/ddnet/ddnet/commit/2a1bf9316536f63b76b8cf27535d5f796830007f
+21:45 <+bridge> [ddnet] <onby> https://github.com/ddnet/ddnet/commit/66f6f16e81520350ece56b8937ac043fc5a308be
+21:45 <+bridge> [ddnet] <onby> [12:23 PM] onby: the problem seems to be one of these?
+21:45 <+bridge> [ddnet] <Learath2> I don't think those have any way of being the issue
+21:46 <+bridge> [ddnet] <Learath2> did you try compiling one of these and the commit after one of these?
+21:46 <+bridge> [ddnet] <Learath2> there should be a significant change if this was the issue
+21:46 <+bridge> [ddnet] <heinrich5991> ` | SDL_WINDOW_ALLOW_HIGHDPI`
+21:47 <+bridge> [ddnet] <onby> i will try in a bit
+21:47 <+bridge> [ddnet] <onby> and if not then il try to bisect for the other bug
+22:02 <+bridge> [ddnet] <Trafalgar Law> hi,
+22:02 <+bridge> [ddnet] <Trafalgar Law> 
+22:02 <+bridge> [ddnet] <Trafalgar Law> I made a pr on ddnet7 and the github action have some problems (MacOS debug mode)
+22:02 <+bridge> [ddnet] <Trafalgar Law> Anyone know how to fix this? I have no plan about github action
+22:02 <+bridge> [ddnet] <Trafalgar Law> 
+22:02 <+bridge> [ddnet] <Trafalgar Law> https://github.com/ddnet/ddnet7/pull/89/checks?check_run_id=560400443
+22:06 <+bridge> [ddnet] <heinrich5991> @Trafalgar Law master branch is currently broken, needs a fix (that was recently pushed to teeworlds by Ryozuki and to ddnet by deen)
+22:12 <+bridge> [ddnet] <Learath2> @onby you can checkout the commit before that with ~ and see if that works better
+22:12 <+bridge> [ddnet] <Learath2> I would love to debug this too but teeworlds and ddnet always made my macbook pro fans spin
+22:12 <+bridge> [ddnet] <Learath2> (design failure by apple, this computer so much as gets toasty it starts making sounds like a vacuum cleaner
+22:12 <+bridge> [ddnet] <Learath2> )
+22:29 <+bridge> [ddnet] <onby> how do i use ~
+22:29 <+bridge> [ddnet] <onby> and yeah ill try today
+22:37 <+bridge> [ddnet] <heinrich5991> `<commit sha>~`

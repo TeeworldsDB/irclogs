@@ -1,0 +1,190 @@
+13:19 <+bridge> [ddnet] <Learath2> @fokkonaut you just need std::sort and a lambda function to do the comparison
+13:19 <+bridge> [ddnet] <fokkonaut> :( Tried that
+13:19 <+bridge> [ddnet] <Learath2> (or you could just use a function, instead of a lambda function if you are old school :P)
+13:19 <+bridge> [ddnet] <Learath2> show what you tried
+13:20 <+bridge> [ddnet] <fokkonaut> When I get home
+13:21 <+bridge> [ddnet] <fokkonaut> I dont have that example anymore tho
+13:21 <+bridge> [ddnet] <fokkonaut> Just the one that sorts it correctly but has 2 entries per entry xd
+13:25 <+bridge> [ddnet] <Learath2> `std::sort(v.begin(), v.end(), [](const somestruct &a, const somestruct &b) -> bool { return a.x > b.x; });`
+13:25 <+bridge> [ddnet] <Learath2> sth like this should be correct
+13:26 <+bridge> [ddnet] <fokkonaut> I'll try that! Thanks :))
+13:28 <+bridge> [ddnet] <fokkonaut> what is this -> return thing?
+13:44 <+bridge> [ddnet] <NeXus> its an arrow
+13:45 <+bridge> [ddnet] <NeXus> its an arrow :troll:
+13:50 <+bridge> [ddnet] <jao> const return
+14:02 <+bridge> [ddnet] <deen> @fokkonaut that's literally the only way to explicitly list the return type in lambda functions, otherwise it is inferred, which would also be fine in this case I guess: https://en.cppreference.com/w/cpp/language/lambda
+14:03 <+bridge> [ddnet] <deen> for non-lambda functions you can also use auto as return type and add an -> if the return type depends on the parameters
+15:34 <+bridge> [ddnet] <fokkonaut> Well, it works but I get two entries each...
+15:36 <+bridge> [ddnet] <fokkonaut> ahhh
+15:36 <+bridge> [ddnet] <fokkonaut> okay, lol?
+15:36 <+bridge> [ddnet] <fokkonaut> my listdirectory calls every file twice
+15:36 <+bridge> [ddnet] <fokkonaut> but why
+15:38 <+bridge> [ddnet] <fokkonaut> Yea, thats the error. ListDirectory() goes through all files twice it seems
+15:40 <+bridge> [ddnet] <fokkonaut> Is there a fix? Is this a bug? Or do I have to check whether I opened that file already manually?
+15:40 <+bridge> [ddnet] <Learath2> is this CStorage::ListDirectory you are talking about?
+15:40 <+bridge> [ddnet] <fokkonaut> Yes
+15:41 <+bridge> [ddnet] <fokkonaut> Placing a dbg_msg returning the filename in it, I get each twice
+15:41 <+bridge> [ddnet] <Learath2> what storage type are you using?
+15:41 <+bridge> [ddnet] <fokkonaut> ALL
+15:41 <+bridge> [ddnet] <fokkonaut> TYPE_ALL
+15:43 <+bridge> [ddnet] <Learath2> is it possible that you have some weird storage.cfg that lists a path twice?
+15:43 <+bridge> [ddnet] <heinrich5991> current dir, data dir is the same?
+15:43 <+bridge> [ddnet] <Learath2> could be, either way it's because of the TYPE_ALL
+15:43 <+bridge> [ddnet] <fokkonaut> Well, the files are located in ../files/
+15:44 <+bridge> [ddnet] <fokkonaut> so
+15:44 <+bridge> [ddnet] <heinrich5991> (still a bug, I guess)
+15:44 <+bridge> [ddnet] <fokkonaut> one dir back. then in a folder again
+15:44 <+bridge> [ddnet] <Learath2> @heinrich5991 one I wouldn't really know how to fix tbh
+15:44 <+bridge> [ddnet] <fokkonaut> I dont have a storage.cfg
+15:45 <+bridge> [ddnet] <fokkonaut> Should I just check whether this file has been called already manually for a workaround?
+15:45 <+bridge> [ddnet] <Learath2> ../files sounds like you aren't really using storage correctly tbh
+15:45 <+bridge> [ddnet] <fokkonaut> its a path based on a config var
+15:45 <+bridge> [ddnet] <Learath2> the files are located at ../files relative to what?
+15:45 <+bridge> [ddnet] <fokkonaut> relative to the binary of course
+15:46 <+bridge> [ddnet] <Learath2> well that "of course" is not at all obvious to CStorage 😛
+15:46 <+bridge> [ddnet] <fokkonaut> What do you mean? :F
+15:46 <+bridge> [ddnet] <fokkonaut> What do you mean? :D
+15:46 <+bridge> [ddnet] <fokkonaut> should I try placing them in the binary path/files?
+15:47 <+bridge> [ddnet] <fokkonaut> Well no wait
+15:47 <+bridge> [ddnet] <fokkonaut> ahh
+15:47 <+bridge> [ddnet] <fokkonaut> this might be because of my windows
+15:47 <+bridge> [ddnet] <fokkonaut> I have tested this on windows
+15:47 <+bridge> [ddnet] <fokkonaut> and here it is in binarydir/data/files
+15:48 <+bridge> [ddnet] <fokkonaut> no storage.cfg tho
+15:48 <+bridge> [ddnet] <fokkonaut> no, thats not it :/
+15:48 <+bridge> [ddnet] <Learath2> if there is no storage.cfg, the engine adds $USERDIR, $DATADIR, $CURRENTDIR
+15:49 <+bridge> [ddnet] <Learath2> TYPE_ALL means check all added paths
+15:49 <+bridge> [ddnet] <fokkonaut> I will add a storage.cfg and only include CURRENTDIR, then it only checks for the binary dir, right?
+15:49 <+bridge> [ddnet] <fokkonaut> or what is what?
+15:49 <+bridge> [ddnet] <heinrich5991> $DATADIR is binary dir
+15:50 <+bridge> [ddnet] <fokkonaut> oke
+15:50 <+bridge> [ddnet] <Learath2> $CURRENTDIR is cwd, from where your process started
+15:50 <+bridge> [ddnet] <heinrich5991> listing duplicate names is probably not helpful for CStorage::ListDirectory
+15:51 <+bridge> [ddnet] <heinrich5991> it should probably discard entries with the same name in lower priority folders
+15:51 <+bridge> [ddnet] <fokkonaut> only DATADIR doesnt work, it cant find the files
+15:51 <+bridge> [ddnet] <heinrich5991> maybe I'm wrong about $DATADIR
+15:51 <+bridge> [ddnet] <Learath2> $DATADIR is ./data iirc
+15:52 <+bridge> [ddnet] <Learath2> looks for data/mapres in cwd
+15:52 <+bridge> [ddnet] <fokkonaut> cwd?
+15:52 <+bridge> [ddnet] <Learath2> current working directory
+15:52 <+bridge> [ddnet] <fokkonaut> ?
+15:52 <+bridge> [ddnet] <fokkonaut> yea
+15:52 <+bridge> [ddnet] <Learath2> if it's not in the current working directory, it checks whether it's in the path from argv[0]
+15:53 <+bridge> [ddnet] <fokkonaut> ```add_path $USERDIR
+15:53 <+bridge> [ddnet] <fokkonaut> add_path $DATADIR
+15:53 <+bridge> [ddnet] <fokkonaut> add_path $CURRENTDIR
+15:53 <+bridge> [ddnet] <fokkonaut> add_path $APPDIR```
+15:53 <+bridge> [ddnet] <fokkonaut> this is available
+15:53 <+bridge> [ddnet] <Learath2> there is no $APPDIR
+15:53 <+bridge> [ddnet] <fokkonaut> in 0.7 there is :o
+15:53 <+bridge> [ddnet] <Learath2> damn 0.7 messing around with things again
+15:53 <+bridge> [ddnet] <fokkonaut> $APPDIR
+15:53 <+bridge> [ddnet] <fokkonaut> #    - usable path provided by argv[0]
+15:54 <+bridge> [ddnet] <Learath2> I have no idea what $APPDIR is or might be, given I haven't read the 0.7 source since oy abandoned it 6 years ago
+15:54 <+bridge> [ddnet] <fokkonaut> ```$USERDIR
+15:54 <+bridge> [ddnet] <fokkonaut> #    - ~/.appname on UNIX based systems
+15:54 <+bridge> [ddnet] <fokkonaut> #    - ~/Library/Applications Support/appname on Mac OS X
+15:54 <+bridge> [ddnet] <fokkonaut> #    - %APPDATA%/Appname on Windows based systems
+15:54 <+bridge> [ddnet] <fokkonaut> #    $DATADIR
+15:54 <+bridge> [ddnet] <fokkonaut> #    - the 'data' directory which is part of an official
+15:54 <+bridge> [ddnet] <fokkonaut> #    release
+15:54 <+bridge> [ddnet] <fokkonaut> #    $CURRENTDIR
+15:54 <+bridge> [ddnet] <fokkonaut> #    - current working directory
+15:54 <+bridge> [ddnet] <fokkonaut> #    $APPDIR
+15:54 <+bridge> [ddnet] <fokkonaut> #    - usable path provided by argv[0]```
+15:54 <+bridge> [ddnet] <Learath2> what if no usable path is provided by argv[0]
+15:55 <+bridge> [ddnet] <fokkonaut> idk what that is
+15:55 <+bridge> [ddnet] <Learath2> you'd have to read `AddPath` to see how $APPDIR is handled
+15:56 <+bridge> [ddnet] <Learath2> Anyway, your issue is most definitely one of the paths you are adding is overlapping
+15:56 <+bridge> [ddnet] <Learath2> you could just print out the paths to see which ones are overlapping
+15:57 <+bridge> [ddnet] <fokkonaut> yea
+15:57 <+bridge> [ddnet] <fokkonaut> if I remove APPDIR it is working
+15:57 <+bridge> [ddnet] <fokkonaut> lol
+15:58 <+bridge> [ddnet] <Learath2> bet it's how they handle "usable" path provided by argv[0]
+15:59 <+bridge> [ddnet] <fokkonaut> it was the same path as CURRENTDIR, checked the log of the server
+16:00 <+bridge> [ddnet] <Learath2> Yeah "./" and "" are perfectly "usable" paths
+16:00 <+bridge> [ddnet] <Learath2> @heinrich5991 the better solution would be to make storage paths a set rather then an array
+16:00 <+bridge> [ddnet] <heinrich5991> my thing is also needed
+16:00 <+bridge> [ddnet] <heinrich5991> it's intended that storage paths from higher priority override lower priority ones
+16:01 <+bridge> [ddnet] <heinrich5991> for the "are two paths the same" problem, there are probably also solutions. I'd guess that they're not particularly nice
+16:01 <+bridge> [ddnet] <heinrich5991> you could probably `stat` the directory on linux and compare ino and device number
+16:02 <+bridge> [ddnet] <Learath2> the ugliness can be abstracted into an fs_same_file
+16:02 <+bridge> [ddnet] <heinrich5991> I think the solution will still be hacky and not work at all times if we do it
+16:02 <+bridge> [ddnet] <Learath2> the override in listdirectory isn't particularly pretty to implement either
+16:03 <+bridge> [ddnet] <heinrich5991> see the problems around `#pragma once`
+16:03 <+bridge> [ddnet] <heinrich5991> the problem of "are these two directories the same" is that the question is underspecified IMO
+16:03 <+bridge> [ddnet] <heinrich5991> at least this problem does not exist for the other solution
+16:03 <+bridge> [ddnet] <heinrich5991> *the other bugfix
+16:04 <+bridge> [ddnet] <heinrich5991> I mean we already treat the files as such (`OpenFile` only opens the highest priority file)
+16:04 <+bridge> [ddnet] <Learath2> i'm sure winapi provides some fancy function with many underscores and an Ex at the end that solves the problem
+16:05 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/wiki/Pragma_once#Caveats
+16:05 <+bridge> [ddnet] <heinrich5991> Identifying the same file on a file system is not a trivial task.[6] Symbolic links and especially hard links may cause the same file to be found under different names in different directories. Compilers may use a heuristic that compares file size, modification time and content.[7] Additionally, #pragma once can do the wrong thing if the same file is intentionally copied into sev <message clipped>
+16:06 <+bridge> [ddnet] <Learath2> No underscores but GetFileInformationByHandleEx is a thing
+16:07 <+bridge> [ddnet] <Learath2> The shortcomings of compilers is not particularly interesting. comparing ino and devid on linux and the triplet returned by winapi should be enough for our uses
+16:07 <+bridge> [ddnet] <heinrich5991> okay. the other thing is still needed though, right?
+16:07 <+bridge> [ddnet] <Learath2> yes, definitely
+16:08 <+bridge> [ddnet] <Learath2> no idea how to do it without keeping track of the files returned by fs_listdir and then delaying the calling of the callback
+16:08 <+bridge> [ddnet] <Learath2> I guess it wouldn't look too bad with a lambda function
+16:09 <+bridge> [ddnet] <Learath2> do we have a set in base/tl?
+16:09 <+bridge> [ddnet] <heinrich5991> no, don't think so
+16:10 <+bridge> [ddnet] <heinrich5991> that's gonna get ugly w/o a container
+16:15 <+bridge> [ddnet] <Learath2> matricks's tl code is so cryptic 😛
+17:11 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/ddnet/commit/3f416136
+17:11 <+bridge> [ddnet] <Learath2> Oh they finally fixed the huge avatars
+17:12 <+bridge> [ddnet] <archimede67> xd
+17:12 <+bridge> [ddnet] <Learath2> Turns out fixing the bugs is more intricate then I predicted earlier
+17:12 <+bridge> [ddnet] <Learath2> I don't feel comfortable touching
+17:12 <+bridge> [ddnet] <Learath2> it
+18:25 <+bridge> [ddnet] <Learath2> Also added sort_quick https://github.com/Learath2/ddnet/commit/8da7f65
+18:25 <+bridge> [ddnet] <Learath2> but I forgot what I added it for after adding it
+18:25 <+bridge> [ddnet] <Learath2> such a productive day 😛
+18:49 <+bridge> [ddnet] <fokkonaut> Does anyone here got in touch with 0.7 already or do I have most knowledge about it here and you cant help? xd
+18:53 <+bridge> [ddnet] <fokkonaut> 
+18:53 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/621025482296655873/Screenshot_20190910-185325_Discord.jpg
+18:53 <+bridge> [ddnet] <fokkonaut> @Learath2 LIAR xd
+18:57 <+bridge> [ddnet] <Learath2> It used to be muuuch bigger 😛
+18:58 <+bridge> [ddnet] <fokkonaut> It was like this on phone forever
+18:58 <+bridge> [ddnet] <Learath2> @fokkonaut @heinrich5991 is the only person I imagine knows about some of the 0.7 code
+18:58 <+bridge> [ddnet] <fokkonaut> Mh, well, this could also be known by you
+18:58 <+bridge> [ddnet] <Learath2> I don't think I feel comfortable touching anything about 0.7 yet, too many unknowns about the dev team
+18:59 <+bridge> [ddnet] <Learath2> god forbid we spend time implementing things and they just refuse to cooperate, or vanish into thin air again
+19:02 <+bridge> [ddnet] <fokkonaut> in 0.7, skinchanges arent handled in snap anymore, instead using a `CNetjObj_Sv_SkinChange`. I created a rainbow, so the skinchange message will be sent every tick to the currently snapping client. If there are about 7 players on the server, it will overload the buffer and disconnect the players one by one (or most of them) for the reason `out of buffer`. Oy said, this shouldnt e <message clipped>
+19:02 <+bridge> [ddnet] <Learath2> pleasedont
+19:02 <+bridge> [ddnet] <fokkonaut> mh?
+19:02 <+bridge> [ddnet] <Learath2> make your rainbow slower
+19:03 <+bridge> [ddnet] <Learath2> sending an extra sv skinchange every tick is just very not nice
+19:03 <+bridge> [ddnet] <fokkonaut> if all the 7 people have rainbow* is what i meant
+19:03 <+bridge> [ddnet] <jao> why not ask oy
+19:04 <+bridge> [ddnet] <fokkonaut> @Learath2 By making it slower you mean sending it every (?) 2 ticks or even more?
+19:04 <+bridge> [ddnet] <Learath2> yep that's what I mean
+19:04 <+bridge> [ddnet] <fokkonaut> would 2 be enough?
+19:04 <+bridge> [ddnet] <fokkonaut> i guess it wont
+19:04 <+bridge> [ddnet] <Learath2> 2 ticks is 25 times a second
+19:04 <+bridge> [ddnet] <Learath2> what kinda rainbow is this?
+19:05 <+bridge> [ddnet] <fokkonaut> a smooth transition rainbow, pretty slow
+19:05 <+bridge> [ddnet] <Learath2> also why did they move the skin changes out of the snap?...
+19:05 <+bridge> [ddnet] <fokkonaut> They completely removed them at first
+19:06 <+bridge> [ddnet] <fokkonaut> but some people (also me) didnt want to accept that change, so they reimplemented it using a netobj in like 0.7.2 or .1
+19:06 <+bridge> [ddnet] <Learath2> completely removed skinchanges?
+19:06 <+bridge> [ddnet] <Learath2> oh I remember this
+19:06 <+bridge> [ddnet] <Learath2> such a stupid change
+19:06 <+bridge> [ddnet] <fokkonaut> yea, needed to reconnect
+19:06 <+bridge> [ddnet] <fokkonaut> yes
+19:06 <+bridge> [ddnet] <fokkonaut> name and clan cant even be changed ingame
+19:06 <+bridge> [ddnet] <fokkonaut> i think country cant aswell
+19:19 <+bridge> [ddnet] <Ryozuki> yes 0.7 is stupid
+19:36 <+bridge> [ddnet] <fokkonaut> nah its not stupid
+20:22 <+bridge> [ddnet] <Learath2> I mean those are pretty stupid design decisions
+20:22 <+bridge> [ddnet] <Learath2> probably with no reason even
+20:26 <+bridge> [ddnet] <fokkonaut> Yea, thats true
+20:32 <+bridge> [ddnet] <ChillerDragon> so thats why we should be active in 0.7 and make sure they dont fuck things up
+20:32 <+bridge> [ddnet] <ChillerDragon> 
+20:32 <+bridge> [ddnet] <ChillerDragon> @fokkonaut does a good job there
+20:33 <+bridge> [ddnet] <fokkonaut> 
+20:33 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/621050559226707978/unknown.png
+20:33 <+bridge> [ddnet] <fokkonaut> me top1 master
+21:04 <+bridge> [ddnet] <Gwendal> wow
+21:04 <+bridge> [ddnet] <Gwendal> i didnt expect that many players on 0.7
+21:04 <+bridge> [ddnet] <fokkonaut> ^^
+21:09 <+bridge> [ddnet] <Ryozuki> they are masochists
+21:14 <+bridge> [ddnet] <Dracer> more like sadists

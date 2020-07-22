@@ -1,0 +1,422 @@
+00:40 <+bridge> [ddnet] <Learath2> @deen where do you get that SDL2.framework?
+00:40 <+bridge> [ddnet] <Learath2> it seems to have a wrong path for hidapi in it
+00:53 <+bridge> [ddnet] <Learath2> not our fault, sdl2.0.12 seems to be linking weirdly
+00:54 <+bridge> [ddnet] <Learath2> idk how @rpath is supposed to work exactly but the path it links to for hidapi feels like it should be "@rpath/Frameworks/hidapi.framework"
+07:21 <+bridge> [ddnet] <deen> @Learath2 from the official libsdl.org site
+07:28 <+bridge> [ddnet] <deen> Same issue here I guess: https://github.com/bvschaik/julius/issues/386
+08:50 <+bridge> [ddnet] <deen> @onby @Learath2 can you try again on mac osx?
+08:50 <+bridge> [ddnet] <deen> (i fixed the 13.0.1 release on osx)
+08:50 <+bridge> [ddnet] <onby> ok ill try
+08:50 <+bridge> [ddnet] <Learath2> Did you upload the dmg?
+08:52 <+bridge> [ddnet] <onby> Identifier:            org.DDNetClient.app
+08:52 <+bridge> [ddnet] <onby> Version:               13.0.1
+08:52 <+bridge> [ddnet] <onby> Code Type:             X86-64 (Native)
+08:52 <+bridge> [ddnet] <onby> ...
+08:52 <+bridge> [ddnet] <onby> Crashed Thread:        0
+08:52 <+bridge> [ddnet] <onby> 
+08:52 <+bridge> [ddnet] <onby> Exception Type:        EXC_CRASH (SIGABRT)
+08:52 <+bridge> [ddnet] <onby> Exception Codes:       0x0000000000000000, 0x0000000000000000
+08:52 <+bridge> [ddnet] <onby> Exception Note:        EXC_CORPSE_NOTIFY
+08:52 <+bridge> [ddnet] <onby> 
+08:52 <+bridge> [ddnet] <onby> Termination Reason:    DYLD, [0x1] Library missing
+08:52 <+bridge> [ddnet] <onby> 
+08:52 <+bridge> [ddnet] <onby> Application Specific Information:
+08:52 <+bridge> [ddnet] <onby> dyld: launch, loading dependent libraries
+08:52 <+bridge> [ddnet] <onby> 
+08:53 <+bridge> [ddnet] <onby> Dyld Error Message:
+08:53 <+bridge> [ddnet] <onby>   Library not loaded: @rpath/hidapi.framework/Versions/A/hidapi
+08:53 <+bridge> [ddnet] <onby>   Referenced from: /Users/nobody1/Desktop/DDNet.app/Contents/Frameworks/SDL2.framework/SDL2
+08:53 <+bridge> [ddnet] <onby>   Reason: image not found
+08:54 <+bridge> [ddnet] <onby> Binary Images:
+08:54 <+bridge> [ddnet] <onby>        0x10ff4a000 -        0x110287fff +org.DDNetClient.app (13.0.1) <F0B0E60D-540B-396A-81D2-CA5F8986284F> /Users/USER/Desktop/DDNet.app/Contents/MacOS/DDNet
+08:54 <+bridge> [ddnet] <onby>        0x110541000 -        0x11062efff +libfreetype.6.dylib (24.1) <FF599A1F-62D1-3478-83B6-54282A253C8B> /Users/USER/Desktop/DDNet.app/Contents/Frameworks/libfreetype.6.dylib
+08:54 <+bridge> [ddnet] <onby>        0x11064d000 -        0x11078efff +org.libsdl.SDL2 (2.0.12 - 2.0.12) <3E6D5145-6DE8-3734-95A7-AE31ED09A1A9> /Users/USER/Desktop/DDNet.app/Contents/Frameworks/SDL2.framework/SDL2
+08:54 <+bridge> [ddnet] <onby>        0x11747e000 -        0x1174c8acf  dyld (551.4) <8A72DE9C-A136-3506-AA02-4BA2B82DCAF3> /usr/lib/dyld
+08:55 <+bridge> [ddnet] <Learath2> @deen didn't work for me either
+08:58 <+bridge> [ddnet] <Learath2> The hidapi rpath is wrong in SDL2 itself, not the client
+08:58 <+bridge> [ddnet] <Learath2> last argument of install_name_tool should be sdl2
+08:58 <@deen> ah, too bad...
+08:59 <@deen> so we have to overwrite the rpath in SDL2 directly
+08:59 <+bridge> [ddnet] <Learath2> Yeah, they should be the ones doing it tbh, but we can for the time being
+09:03 <+bridge> [ddnet] <deen> Should I merge and try another build or can someone test locally? ^
+09:03 <+bridge> [ddnet] <Learath2> Wait for a second for CI to build and I can test that
+09:05 <+bridge> [ddnet] <Learath2> I think in this case executable path would be SDL2 not DDNet but ill try
+09:06 <+bridge> [ddnet] <deen> oh
+09:06 <+bridge> [ddnet] <Learath2> I'm not completely sure, let me try first
+09:07 <+bridge> [ddnet] <Learath2> Mach-O binaries are weird sometimes
+09:11 <+bridge> [ddnet] <Learath2> ```dyld: Library not loaded: @executable_path/../Frameworks/SDL2.framework/SDL2/Versions/A/Frameworks/hidapi.framework/Versions/A/hidapi
+09:11 <+bridge> [ddnet] <Learath2>   Referenced from: /Volumes/DDNet-13.0.1-osx/DDNet.app/Contents/Frameworks/SDL2.framework/SDL2
+09:11 <+bridge> [ddnet] <Learath2>   Reason: no suitable image found.  Did find:
+09:11 <+bridge> [ddnet] <Learath2>     /Volumes/DDNet-13.0.1-osx/DDNet.app/Contents/MacOS/../Frameworks/SDL2.framework/SDL2/Versions/A/Frameworks/hidapi.framework/Versions/A/hidapi: stat() failed with errno=20
+09:11 <+bridge> [ddnet] <Learath2>     /Volumes/DDNet-13.0.1-osx/DDNet.app/Contents/MacOS/../Frameworks/SDL2.framework/SDL2/Versions/A/Frameworks/hidapi.framework/Versions/A/hidapi: stat() failed with errno=20
+09:11 <+bridge> [ddnet] <Learath2> Abort trap: 6```
+09:17 <+bridge> [ddnet] <deen> oops, I also had a wrong path in there, pushed again
+09:17 <+bridge> [ddnet] <deen> so we don't know where executable_path points to yet?
+09:19 <+bridge> [ddnet] <Learath2> Not sure :/
+09:19 < Test123> Hi
+09:19 <+bridge> [ddnet] <Learath2> It should be tho, how else could you link a library to a library?
+09:21 <@deen> I think executable_path will be the path to DDNet.app
+09:21 <+bridge> [ddnet] <Learath2> Then this should work
+09:25 <+bridge> [ddnet] <Learath2> I wonder if we can mount and run the dmg on the CI
+09:25 <@deen> would be great
+09:26 <@deen> can you try the version I pushed again?
+09:26 <+bridge> [ddnet] <Learath2> yep, it works
+09:26 <@deen> ok, thanks
+09:27 <+bridge> [ddnet] <Learath2> @deen there is a patch I got into sdl, but it wasnt released on a version yet, you think we should apply that to the macOS ddnet sdl?
+09:27 <@deen> I'm not building my own sdl2 for mac
+09:27 <@deen> do we need it?
+09:27 <+bridge> [ddnet] <Learath2> Oooooh, maybe you should be compiling with the 10.14 or 13 sdk then
+09:27 <+bridge> [ddnet] <Learath2> I forgot about that
+09:27 <@deen> too late!
+09:28 <+bridge> [ddnet] <Learath2> on binaries linked on 10.15 there is a new check enabled in AppKit which crashes on launch
+09:28 <+bridge> [ddnet] <Learath2> if you compile on older AppKit compatibility disables the asserts
+09:28 <@deen> so we're crashing?
+09:29 <+bridge> [ddnet] <Learath2> Yeah, at launch it hits an assert
+09:31 <@deen> so I should downgrade to 10.13 sdk and we're fine?
+09:32 <+bridge> [ddnet] <Learath2> Yeah I think so
+09:32 <+bridge> [ddnet] <Learath2> Or you apply my sdl patch
+09:32 <+bridge> [ddnet] <Learath2> But compiling sdl on our own for mac too is just a pain
+09:32 <+bridge> [ddnet] <deen> exactly, so I'll downgrade sdl
+09:33 <+bridge> [ddnet] <Learath2> We can upgrade sdk when the patch is in a stable sdl
+09:33 <+bridge> [ddnet] <deen> good to know
+09:33 <+bridge> [ddnet] <Learath2> Its broken on old sdl too, you need old sdk
+09:34 <+bridge> [ddnet] <deen> do i need to recompile libs?
+09:35 <+bridge> [ddnet] <Learath2> I never tried, mach-o binaries should be forward compatible though
+09:56 <+bridge> [ddnet] <Learath2> @deen lmk when you have a build, I can test
+10:19 <+bridge> [ddnet] <deen> @Learath2 available now
+10:24 <+bridge> [ddnet] <Learath2> I'm sad to report that that didn't work
+10:25 <+bridge> [ddnet] <Learath2> I mean it did do what's intended but now we get some lazy loading issue
+10:25 <+bridge> [ddnet] <Learath2> what was your `MACOSX_DEPLOYMENT_TARGET`?
+10:27 <+bridge> [ddnet] <Learath2> ```dyld: lazy symbol binding failed: Symbol not found: ___isOSVersionAtLeast
+10:27 <+bridge> [ddnet] <Learath2>   Referenced from: /Volumes/DDNet-13.0.1-osx/DDNet.app/Contents/MacOS/DDNet
+10:27 <+bridge> [ddnet] <Learath2>   Expected in: flat namespace
+10:27 <+bridge> [ddnet] <Learath2> 
+10:27 <+bridge> [ddnet] <Learath2> dyld: Symbol not found: ___isOSVersionAtLeast
+10:27 <+bridge> [ddnet] <Learath2>   Referenced from: /Volumes/DDNet-13.0.1-osx/DDNet.app/Contents/MacOS/DDNet
+10:27 <+bridge> [ddnet] <Learath2>   Expected in: flat namespace
+10:27 <+bridge> [ddnet] <Learath2> 
+10:27 <+bridge> [ddnet] <Learath2> Abort trap: 6
+10:27 <+bridge> [ddnet] <Learath2> logout
+10:27 <+bridge> [ddnet] <Learath2> Saving session...completed.```
+10:30 <+bridge> [ddnet] <deen> I don't set one for the DDNet build, for the libs -mmacosx-version-min=10.9
+10:30 <+bridge> [ddnet] <deen> should I try setting -mmacosx-version-min=10.9 on ddnet as well?
+10:31 <+bridge> [ddnet] <deen> ah, CMakeLists.txt sets 10.7
+10:31 <+bridge> [ddnet] <deen> Also, we have something in CMakeLists.txt just for that failure you see
+10:32 <+bridge> [ddnet] <deen> target_link_libraries(${target} -Wl,-undefined -Wl,dynamic_lookup)
+10:32 <+bridge> [ddnet] <Learath2> yeah noticed that, but that enables lazy binding, idk why it won't bind though
+10:32 <+bridge> [ddnet] <deen> let's try setting all to 10.9?
+10:34 <+bridge> [ddnet] <Learath2> yeah sure, let's try
+10:35 <+bridge> [ddnet] <Learath2> I don't think you can cross compile if you disable the lazy binding @deen
+10:35 <+bridge> [ddnet] <Learath2> you probably don't have libclang_rt.osx.a as it's part of the toolchain not the sdk
+10:37 <+bridge> [ddnet] <deen> ok
+10:37 <+bridge> [ddnet] <deen> this release is really annoying
+10:41 <+bridge> [ddnet] <Learath2> apparently osxcross has a way to build compiler_rt
+10:41 <+bridge> [ddnet] <Learath2> I'll get a linux vm
+10:42 <+bridge> [ddnet] <deen> I guess I'll have to recompile the libs with 10.7
+10:42 <+bridge> [ddnet] <deen> 10.9 also fails in central thing
+10:43 <+bridge> [ddnet] <deen> @Learath2 you can try 13.0.1 again on macosx? I rebuilt with 10.9
+10:43 <+bridge> [ddnet] <Learath2> I'm not sure what's the issue, lazy binding should resolve that symbol just fine
+10:43 <+bridge> [ddnet] <Learath2> @deen is it on ddnet.tw?
+10:44 <+bridge> [ddnet] <deen> yes
+10:45 <+bridge> [ddnet] <Learath2> nope still failing
+10:46 <+bridge> [ddnet] <deen> then I'll rebuild the libs
+10:51 <+bridge> [ddnet] <Learath2> I don't get this, how was this not a problem when you compiled with the 10.15 sdk?
+10:52 <+bridge> [ddnet] <deen> maybe it was but we never got this far in booting up?
+10:52 <+bridge> [ddnet] <deen> *starting up
+10:52 <+bridge> [ddnet] <deen> since we always crashed before
+10:52 <+bridge> [ddnet] <Learath2> ah hidapi wasn't lazily linked, yeah it probably was a problem
+10:53 <+bridge> [ddnet] <deen> curl doesn't build with 10.7
+10:53 <+bridge> [ddnet] <deen> vtls/sectransp.c:1313:6: error: 'SSLSetProtocolVersionMax' is only available on macOS 10.8 or newer [-Werror,-Wunguarded-availability]
+10:57 <+bridge> [ddnet] <Learath2> weren't you going to recompile everything with 10.9 anyway?
+10:57 <+bridge> [ddnet] <deen> no, i had everything with 10.9 and you said it doesn't work
+10:57 <+bridge> [ddnet] <deen> so now I'm going everything 10.7
+10:57 <+bridge> [ddnet] <Learath2> ah, that was with all 10.9
+10:59 <+bridge> [ddnet] <deen> maybe the sdk change caused the problem? should i try rebuilding all?
+10:59 <+bridge> [ddnet] <deen> with 10.9 again
+11:00 <+bridge> [ddnet] <deen> i'm kind of searching in the dark here :/
+11:00 <+bridge> [ddnet] <deen> and before I didn't notice this curl error since ssl was accidentally disabled 😄
+11:01 <+bridge> [ddnet] <Learath2> I'm setting up osxcross on a vm
+11:02 <+bridge> [ddnet] <Learath2> if you are bored of this I can finish it up
+11:02 <+bridge> [ddnet] <deen> I'll give you another dmg file to test soon
+11:03 <+bridge> [ddnet] <Learath2> @deen are you building with --without-ssl btw?
+11:03 <+bridge> [ddnet] <deen> no
+11:03 <+bridge> [ddnet] <Learath2> try --without-ssl --with-secure-transport
+11:18 <+bridge> [ddnet] <Learath2> uhm when I'm cross building cmake can't find sdl framework
+11:24 <+bridge> [ddnet] <Learath2> @deen can you find the bundled SDL2 properly?
+11:24 <+bridge> [ddnet] <Learath2> cmake on linux even when cross compiling doesn't seem to want to find frameworks
+11:32 <+bridge> [ddnet] <deen> what do you mean by find?
+11:33 <+bridge> [ddnet] <Learath2> I don't have SDL2 on my VM, but it should use the bundled lib anyway
+11:33 <+bridge> [ddnet] <Learath2> it says SDL2 not found
+11:34 <+bridge> [ddnet] <deen> --  * SDL2 not found (using bundled version)
+11:34 <+bridge> [ddnet] <deen> for me
+11:34 <+bridge> [ddnet] <deen> did you clone ddnet-libs?
+11:34 <+bridge> [ddnet] <Learath2> yep
+11:34 <+bridge> [ddnet] <Learath2> it finds curl just fine
+11:34 <+bridge> [ddnet] <Learath2> what version of cmake do you use?
+11:34 <+bridge> [ddnet] <deen> I also set -DPREFER_BUNDLED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/darwin.toolchain
+11:34 <+bridge> [ddnet] <deen> cmake version 3.17.0
+11:35 <+bridge> [ddnet] <Learath2> let me upgrade, maybe that'll help, but I set the exact same thing you set
+11:43 <+bridge> [ddnet] <Learath2> why is libqt a dependency of cmake?
+11:43 <+bridge> [ddnet] <Learath2> it pulled in emacs even
+11:43 <+bridge> [ddnet] <deen> probably they have a graphical interface
+11:50 <+bridge> [ddnet] <deen> @Learath2 please try dmg from ddnet.tw again, now rebuilt all with all 10.7
+11:52 <+bridge> [ddnet] <onby> it works
+11:52 <+bridge> [ddnet] <deen> party time
+11:52 <+bridge> [ddnet] <onby> :D
+11:53 <+bridge> [ddnet] <onby> wierd graphical thing goin on here
+11:53 <+bridge> [ddnet] <onby> https://cdn.discordapp.com/attachments/293493549758939136/697383490169340004/Screen_Shot_2020-04-08_at_4.52.50_AM.png
+11:53 <+bridge> [ddnet] <onby> but worth it for new ddnet with good fps
+11:53 <+bridge> [ddnet] <Learath2> @deen wait, onby is on an old osx
+11:53 <+bridge> [ddnet] <Learath2> let me check just to be sure
+11:53 <+bridge> [ddnet] <deen> the lines inbetween? they look like opengl3.3
+11:55 <+bridge> [ddnet] <Learath2> it works, but for a different reason
+11:56 <+bridge> [ddnet] <deen> ?
+11:56 <+bridge> [ddnet] <Learath2> clang optimizes out the version check
+11:56 <+bridge> [ddnet] <deen> 😄
+11:56 <+bridge> [ddnet] <Learath2> i guess it's fine for now
+11:56 <+bridge> [ddnet] <deen> yeah
+11:56 <+bridge> [ddnet] <Learath2> if I ever get cmake working with osxcross I'll fix it
+11:56 <+bridge> [ddnet] <Learath2> it's much easier when you have access to a mac
+11:56 <+bridge> [ddnet] <deen> yes
+11:57 <+bridge> [ddnet] <onby> i now have good fps and no fan spinning on ddnet 13 :D
+11:57 <+bridge> [ddnet] <deen> cool
+11:57 <+bridge> [ddnet] <Learath2> I accidentally killed my terminal, which killed the cmake build I was running....
+11:58 <+bridge> [ddnet] <Learath2> Anyone here running archlinux?
+11:58 <+bridge> [ddnet] <deen> yes
+11:58 <+bridge> [ddnet] <Learath2> Do you know why pacman might be stuck not upgrading things?
+11:58 <+bridge> [ddnet] <Learath2> cmake is 3.17 in extra and it seems to be 3.17 in all mirrors
+11:58 <+bridge> [ddnet] <deen> IgnorePkg/IgnoreGroup in /etc/pacman.conf?
+11:59 <+bridge> [ddnet] <Learath2> ah let me check
+12:00 <+bridge> [ddnet] <Learath2> nope
+12:00 <+bridge> [ddnet] <deen> pacman -S cmake?
+12:01 <+bridge> [ddnet] <Learath2> Packages (1) cmake-3.16.4-1
+12:03 <@deen> pacman -Syu cmake?
+12:03 <+bridge> [ddnet] <Learath2> ```:: Synchronizing package databases...
+12:03 <+bridge> [ddnet] <Learath2>  core is up to date
+12:03 <+bridge> [ddnet] <Learath2>  extra is up to date
+12:04 <+bridge> [ddnet] <Learath2>  community is up to date
+12:04 <+bridge> [ddnet] <Learath2> :: Starting full system upgrade...
+12:04 <+bridge> [ddnet] <Learath2> resolving dependencies...
+12:04 <+bridge> [ddnet] <Learath2> looking for conflicting packages...
+12:04 <+bridge> [ddnet] <Learath2> 
+12:04 <+bridge> [ddnet] <Learath2> Packages (1) cmake-3.16.4-1
+12:04 <+bridge> [ddnet] <Learath2> 
+12:04 <+bridge> [ddnet] <Learath2> Total Download Size:    6.77 MiB
+12:04 <+bridge> [ddnet] <Learath2> Total Installed Size:  35.53 MiB```
+12:04 <+bridge> [ddnet] <Learath2> oh rip irc
+12:04 <+bridge> [ddnet] <deen> weird, maybe you use an out-of-date mirror
+12:05 <+bridge> [ddnet] <Learath2> oh the top mirror is indeed out of date
+12:05 <+bridge> [ddnet] <Learath2> who would do such a thing
+12:09 <+bridge> [ddnet] <Learath2> and mirror status says that mirror is up to date
+12:10 <+bridge> [ddnet] <Learath2> oh nvm, they do list it as out of sync
+12:10 <+bridge> [ddnet] <Learath2> imagine hosting a widely used mirror and not actually mirroring
+12:11 <+bridge> [ddnet] <Ryozuki> do u only have 1 mirror enabled?
+12:11 <+bridge> [ddnet] <Ryozuki> shouldnt it check several mirrors or smth
+12:12 <+bridge> [ddnet] <deen> no, the first that works is always used
+12:12 <+bridge> [ddnet] <Learath2> it's the top mirror and it connected fine so it never checks another
+12:12 <+bridge> [ddnet] <Learath2> they should really add a way to check sync, like a last sync timestamp at the repo root
+12:13 <+bridge> [ddnet] <Learath2> pacman could then display a `WARNING: selected mirror could be out of date (last sync %d)`
+12:13 <+bridge> [ddnet] <deen> tbh I never had an out-of-date mirror
+12:14 <+bridge> [ddnet] <Ryozuki> btw kernel 5.6 made a thing which theorically makes "make" way faster when parallel
+12:14 <+bridge> [ddnet] <Learath2> well if it happens it's quite hard to diagnose
+12:14 <+bridge> [ddnet] <Ryozuki> https://www.phoronix.com/scan.php?page=news_item&px=Linux-Pipe-Parallel-Job-Opt
+12:14 <+bridge> [ddnet] <Learath2> we are up to 5.6 now?
+12:14 <+bridge> [ddnet] <deen> @Learath2 i see updates every day, if there are none something is wrong with the mirror
+12:14 <+bridge> [ddnet] <Ryozuki> "In a simplified test case written by Linus Torvalds, this patch caused the number of context switches on the test program to drop from 11 million to just 1.2 million. "
+12:14 <+bridge> [ddnet] <Ryozuki> :poggers:
+12:15 <+bridge> [ddnet] <Learath2> oh wow, that's an entire order of magnitude better
+12:15 <+bridge> [ddnet] <Ryozuki> yep
+12:16 <+bridge> [ddnet] <Ryozuki> https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ddad21d3e99c743a3aa473121dc5561679e26bb
+12:16 <+bridge> [ddnet] <Ryozuki> here its explained in detail xd
+12:16 <+bridge> [ddnet] <Learath2> context switches are pretty cheap tbf, but when you have millions happening it does stack up
+12:16 <+bridge> [ddnet] <Ryozuki> uname -a
+12:17 <+bridge> [ddnet] <Ryozuki> Linux arch 5.6.2-arch1-2 #1 SMP PREEMPT Sun, 05 Apr 2020 05:13:14 +0000 x86_64 GNU/Linux
+12:17 <+bridge> [ddnet] <Ryozuki> 5.6.2
+12:18 <+bridge> [ddnet] <deen> @Learath2 It really depends on your CPU and the mitigations on Intel made it much slower, see bottom here: https://www.phoronix.com/scan.php?page=article&item=3900x-9900k-400&num=7
+12:19 <+bridge> [ddnet] <Ryozuki> https://github.com/google/llvm-propeller
+12:19 <+bridge> [ddnet] <Learath2> oh the meltdown/spectre mitigations? I can see them raising the cost of a context switch
+12:19 <+bridge> [ddnet] <Ryozuki> can u optimize ddnet with this?
+12:19 <+bridge> [ddnet] <Ryozuki> :poggers:
+12:20 <+bridge> [ddnet] <Learath2> anyway even cmake 3.17 doesn't find SDL2.framework
+12:20 <+bridge> [ddnet] <deen> yes, you can use PGO, can also try LTO
+12:20 <+bridge> [ddnet] <deen> but in my experience you don't win much with PGO
+12:21 <+bridge> [ddnet] <Ryozuki> i see
+12:21 <+bridge> [ddnet] <deen> "2% to 6%", sounds realistic
+12:22 <+bridge> [ddnet] <deen> using a profiler and improving the slow spots selectively should help more
+12:23 <+bridge> [ddnet] <Ryozuki> what profiler you recommend
+12:23 <+bridge> [ddnet] <deen> VTune is what we usually use at work, but I think it costs money
+12:23 <+bridge> [ddnet] <Ryozuki> is gprof good
+12:23 <+bridge> [ddnet] <Learath2> gprof is a sampling profiler, keeping in mind the limitations of sampling profilers it's decent
+12:24 <+bridge> [ddnet] <deen> and valgrind --tool=callgrind is what I use privately, but that's just to get a rough estimate since it changes runtimes hugely
+12:25 <+bridge> [ddnet] <Learath2> yeah callgrind actually logs all the calls but at the cost of runtime performance
+12:25 <+bridge> [ddnet] <Learath2> you are kinda hoping that everything is affected pretty much equally
+12:25 <+bridge> [ddnet] <deen> yes, but it's not true
+12:26 <+bridge> [ddnet] <Learath2> I wonder if there is an architecture that allows a hardware profiler of sorts
+12:27 <+bridge> [ddnet] <deen> if you have cache misses you definitely won't find those wil callgrind. I've seen perf used to find cache misses
+12:27 <+bridge> [ddnet] <Ryozuki> what about "perf·
+12:27 <+bridge> [ddnet] <deen> @Learath2 yes, that's what vtune does. intel cpus have specific registers for profiling
+12:27 <+bridge> [ddnet] <Ryozuki> perf
+12:27 <+bridge> [ddnet] <deen> and perf uses them as well
+12:28 <+bridge> [ddnet] <Learath2> but aren't they all just counters? you wouldn't get any callstack information from those
+12:28 <+bridge> [ddnet] <deen> yeah, right
+12:28 <+bridge> [ddnet] <Learath2> it's a little beyond my ability to go from counter information to optimization
+12:30 <+bridge> [ddnet] <Ryozuki> perf report :monkaS:
+12:30 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697393045347237888/unknown.png
+15:58 <+bridge> [ddnet] <Ryozuki> i didnt test on windows
+15:58 <+bridge> [ddnet] <heinrich5991> @Ryozuki did you test it? (open the client, go somewhere?)
+15:59 <+bridge> [ddnet] <Ryozuki> i tested on linux works fine
+15:59 <+bridge> [ddnet] <heinrich5991> okay
+16:00 <+bridge> [ddnet] <Ryozuki> @heinrich5991 macos failed xd
+16:00 <+bridge> [ddnet] <heinrich5991> seen it
+16:00 <+bridge> [ddnet] <Ryozuki> Could NOT find OpenSSL, try to set the path to OpenSSL root folder in the system variable OPENSSL_ROOT_DIR (missing: OPENSSL_INCLUDE_DIR) 
+16:00 <+bridge> [ddnet] <Ryozuki> -- Could NOT find Crypto (missing: CRYPTO_LIBRARY CRYPTO_INCLUDEDIR)
+16:00 <+bridge> [ddnet] <Ryozuki> i think its not related?
+16:00 <+bridge> [ddnet] <heinrich5991> that's not the error I think
+16:01 <+bridge> [ddnet] <Ryozuki> it has so many warnings
+16:01 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/runs/570919188#step:6:355
+16:01 <+bridge> [ddnet] <heinrich5991> that's the reason the build failed
+16:01 <+bridge> [ddnet] <heinrich5991> that warning
+16:01 <+bridge> [ddnet] <heinrich5991> not sure why it appeared now though
+16:02 <+bridge> [ddnet] <Ryozuki> @heinrich5991 note: before #include "SDL_opengl.h" was only on non macos
+16:02 <+bridge> [ddnet] <Ryozuki> but theorically
+16:02 <+bridge> [ddnet] <Ryozuki> sdl_opengl handles cross platform stuff
+16:02 <+bridge> [ddnet] <Ryozuki> it should include opengl fine on macos
+16:03 <+bridge> [ddnet] <Ryozuki> in my change its included on every os
+16:03 <+bridge> [ddnet] <Ryozuki> like in tw
+16:03 <+bridge> [ddnet] <Ryozuki> note: insert '_Nullable' if the pointer may be null
+16:03 <+bridge> [ddnet] <Ryozuki> never seen this
+16:03 <+bridge> [ddnet] <Ryozuki> maybe some compiler flag on macos?
+16:04 <+bridge> [ddnet] <Ryozuki> @heinrich5991 this nullable stuff is objective-c
+16:04 <+bridge> [ddnet] <Ryozuki> https://stackoverflow.com/questions/32539285/pointer-is-missing-a-nullability-type-specifier
+16:04 <+bridge> [ddnet] <heinrich5991> it's also C I think
+16:05 <+bridge> [ddnet] <Ryozuki> @heinrich5991 i think -Wno-nullability-completeness
+16:05 <+bridge> [ddnet] <Ryozuki> disables this
+16:05 <+bridge> [ddnet] <Ryozuki> or -Wno-nonnull
+16:05 <+bridge> [ddnet] <Ryozuki> idk
+16:08 <+bridge> [ddnet] <heinrich5991> why does it start happening with this commit though?
+16:09 <+bridge> [ddnet] <Ryozuki> no idea
+16:09 <+bridge> [ddnet] <Ryozuki> maybe its cuz SDL_opengl.h
+16:10 <+bridge> [ddnet] <heinrich5991> maybe also something on the CI was updated
+16:10 <+bridge> [ddnet] <heinrich5991> I can't re-run master CI unfortunately
+16:10 <+bridge> [ddnet] <Ryozuki> fix a typo somewhere
+16:10 <+bridge> [ddnet] <Ryozuki> xd
+16:21 <+bridge> [ddnet] <Ryozuki> @Learath2 ^?
+16:52 <+bridge> [ddnet] <Ryozuki> i ran valgrind on ddnet client, maybe someone finds something
+16:52 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697458959409479750/valgrind-out.txt
+17:55 <+bridge> [ddnet] <Ryozuki> @heinrich5991 `CUIRect MenuBar, CModeBar, ToolBar, StatusBar, ExtraEditor, UndoList, ToolBox;` declaring a value like this initializes them explicitly right?
+17:55 <+bridge> [ddnet] <Ryozuki> or maybe not
+17:56 <+bridge> [ddnet] <Ryozuki> ah nevermind this isnt the issue i think
+17:58 <+bridge> [ddnet] <heinrich5991> it only initializes them if the constructor does something or the constructors of the struct members do something
+18:09 <+bridge> [ddnet] <Ryozuki> sometimes it feels like valgrind tells u nothing :lol:
+18:11 <+bridge> [ddnet] <Ryozuki> ```
+18:11 <+bridge> [ddnet] <Ryozuki> Uninitialised value was created by a stack allocation
+18:11 <+bridge> [ddnet] <Ryozuki> ==84015==    at 0x1F998E: CDemoRecorder::Start(IStorage*, IConsole*, char const*, char const*, char const*, SHA256_DIGEST*, unsigned int, char const*, unsigned int, unsigned char*, IOINTERNAL*, bool (*)(void const*, int, void*), void*) (demo.cpp:45)
+18:11 <+bridge> [ddnet] <Ryozuki> ```
+18:11 <+bridge> [ddnet] <Ryozuki> sure but why u dont tell me exactly what stack allocated variable it is 😤
+18:12 <+bridge> [ddnet] <heinrich5991> rip IRC, but it says here:
+18:12 <+bridge> [ddnet] <heinrich5991> ah, message too long, I'm not allowed to rip IRC
+18:12 <+bridge> [ddnet] <Ryozuki> ?
+18:12 <+bridge> [ddnet] <Ryozuki> make a pastebin or smth
+18:14 <+bridge> [ddnet] <heinrich5991> it says in the lines above that it comes from this function:
+18:14 <+bridge> [ddnet] <heinrich5991> ```
+18:14 <+bridge> [ddnet] <heinrich5991> ==84015==    by 0x1FA13A: CDemoRecorder::Start(IStorage*, IConsole*, char const*, char const*, char const*, SHA256_DIGEST*, unsigned int, char const*, unsigned int, unsigned char*, IOINTERNAL*, bool (*)(void const*, int, void*), void*) (demo.cpp:167)
+18:14 <+bridge> [ddnet] <heinrich5991> ```
+18:14 <+bridge> [ddnet] <heinrich5991> check line 167 and you see that it's `aChunk`
+18:14 <+bridge> [ddnet] <Ryozuki> oh true
+18:14 <+bridge> [ddnet] <Ryozuki> it isnt initialized
+18:15 <+bridge> [ddnet] <heinrich5991> I don't really see how it cannot be uninitialized though
+18:15 <+bridge> [ddnet] <heinrich5991> I don't really see how it cannot be initialized though
+18:15 <+bridge> [ddnet] <Ryozuki> hmm
+18:15 <+bridge> [ddnet] <Ryozuki> maybe i should memzero it?
+18:15 <+bridge> [ddnet] <heinrich5991> I don't really see how it can not be initialized though
+18:15 <+bridge> [ddnet] <heinrich5991> no
+18:15 <+bridge> [ddnet] <deen> > @heinrich5991 i think -Wno-nullability-completeness
+18:15 <+bridge> [ddnet] <deen> @Ryozuki I tried that and there were even more other failures: https://github.com/ddnet/ddnet/pull/2124/files
+18:16 <+bridge> [ddnet] <Ryozuki> @heinrich5991 then i suppose this should be ignored right?
+18:16 <+bridge> [ddnet] <Ryozuki> @deen :o
+18:18 <+bridge> [ddnet] <heinrich5991> @Ryozuki I don't think valgrind has false positives, so I'm kinda suprised here
+18:18 <+bridge> [ddnet] <Ryozuki> well valgrind says it isnt perfect in their web xD
+18:18 <+bridge> [ddnet] <heinrich5991> ok
+18:18 <+bridge> [ddnet] <heinrich5991> link?
+18:19 <+bridge> [ddnet] <Ryozuki> https://valgrind.org/docs/manual/quick-start.html
+18:19 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697480735266701392/unknown.png
+18:19 <+bridge> [ddnet] <Ryozuki> in the caveeats section
+18:19 <+bridge> [ddnet] <heinrich5991> broken encoding, nice
+18:19 <+bridge> [ddnet] <Ryozuki> xd
+18:20 <+bridge> [ddnet] <Ryozuki> maybe its not aChunk?
+18:20 <+bridge> [ddnet] <Ryozuki> but only aChunk makes sense
+18:21 <+bridge> [ddnet] <Ryozuki> well its definitly aChunk
+18:21 <+bridge> [ddnet] <Ryozuki> cuz the top error is Syscall param write(buf) points to uninitialised byte(s
+18:21 <+bridge> [ddnet] <Ryozuki> and io_write calls fwrite
+18:22 <+bridge> [ddnet] <Ryozuki> @heinrich5991 why shouldnt we memzero it? does fwrite handle it?
+18:22 <+bridge> [ddnet] <heinrich5991> fread should initialize all the bytes up to the number returned
+18:23 <+bridge> [ddnet] <heinrich5991> fwrite should only read as far as the parameter goes
+18:23 <+bridge> [ddnet] <heinrich5991> so there shouldn't™ be uninitialized bytes there
+18:23 <+bridge> [ddnet] <Ryozuki> true
+18:23 <+bridge> [ddnet] <heinrich5991> `mem_zero` would probably silence that warning, but it would do unnecessary work
+18:23 <+bridge> [ddnet] <Ryozuki> yea
+18:24 <+bridge> [ddnet] <deen> You could create a suppression file if we have actual false positives
+18:24 <+bridge> [ddnet] <deen> then we don't have to keep looking into the same stuff again and again
+18:24 <+bridge> [ddnet] <deen> and add it to the repository I mean
+18:24 <+bridge> [ddnet] <Ryozuki> ok
+18:24 <+bridge> [ddnet] <Ryozuki> i guess i have to rerun with -gen-suppressions=all
+18:25 <+bridge> [ddnet] <deen> you could write the suppression file manually, but probably easier that way
+18:44 <+bridge> [ddnet] <Ryozuki> it complains aBuf is uninitialized but i dont see how, m_pTooltip is initialized to 0 in the ctor
+18:44 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697486983370506300/unknown.png
+18:44 <+bridge> [ddnet] <Ryozuki> is valgrind not that good?
+18:46 <+bridge> [ddnet] <heinrich5991> @Ryozuki can you point me to the line in the valgrind-out.txt file?
+18:47 <+bridge> [ddnet] <heinrich5991> notification from github: @Ryozuki pushed 0 commits.
+18:47 <+bridge> [ddnet] <Ryozuki> i removed a commit i made
+18:47 <+bridge> [ddnet] <heinrich5991> ah
+18:47 <+bridge> [ddnet] <Ryozuki> cuz it was already initialized
+18:47 <+bridge> [ddnet] <Ryozuki> how to print current line in less?
+18:47 <+bridge> [ddnet] <Ryozuki> xD
+18:48 <+bridge> [ddnet] <heinrich5991> idk
+18:48 <+bridge> [ddnet] <heinrich5991> https://stackoverflow.com/a/831707
+18:48 <+bridge> [ddnet] <Ryozuki> ah -N
+18:48 <+bridge> [ddnet] <heinrich5991> > You can also toggle line numbers without quitting less by typing `-N`.
+18:49 <+bridge> [ddnet] <heinrich5991> > You can also press `=` while `less` is open to just display (at the bottom of the screen) information about the current screen, including line numbers, with format:
+18:50 <+bridge> [ddnet] <Ryozuki> 556
+18:50 <+bridge> [ddnet] <Ryozuki> use the new file i uploaded with gen suppressions btw
+18:51 <+bridge> [ddnet] <Ryozuki> valgrind maybe doesnt know what str_format does
+18:51 <+bridge> [ddnet] <heinrich5991> it shouldn't care what `str_format` does, afaik it tracks which bytes have been initialized and which have not
+18:54 <+bridge> [ddnet] <Ryozuki> well its either str_format or str_copy
+18:54 <+bridge> [ddnet] <heinrich5991> or `str_utf8_decode`
+18:55 <+bridge> [ddnet] <heinrich5991> or even `TextEx`?
+18:56 <+bridge> [ddnet] <Ryozuki> all those functions just use ptext
+18:56 <+bridge> [ddnet] <Ryozuki> which is aBuf
+18:56 <+bridge> [ddnet] <Ryozuki> iirc
+18:56 <+bridge> [ddnet] <heinrich5991> well, but if they read past the 0 byte, then they read uninit data
+18:57 <+bridge> [ddnet] <heinrich5991> (I'm looking into it right now)
+18:57 <+bridge> [ddnet] <Ryozuki> if this leaks it would be big right? its called every render call xD
+18:57 <+bridge> [ddnet] <heinrich5991> this isn't mem leaks, but reading of uninit data
+18:57 <+bridge> [ddnet] <Ryozuki> ah yeah
+18:57 <+bridge> [ddnet] <Ryozuki> which could lead to ub?
+18:58 <+bridge> [ddnet] <heinrich5991> which is UB
+18:59 <+bridge> [ddnet] <heinrich5991> unlikely to cause problems that deep in the call stack, should still be fixed
+18:59 <+bridge> [ddnet] <Ryozuki> well ill take a break now, ill come later at night maybe
+18:59 <+bridge> [ddnet] <heinrich5991> I'll highlight you if I find something
+19:00 <+bridge> [ddnet] <Ryozuki> ok
+19:00 <+bridge> [ddnet] <heinrich5991> @Ryozuki ah, found it
+19:00 <+bridge> [ddnet] <heinrich5991> line 920 in TextEx reads two characters ahead
+19:01 <+bridge> [ddnet] <heinrich5991> i.e. one past the null byte
+19:03 <+bridge> [ddnet] <Ryozuki> Ok send remind me it on git, i wont be at pc for a whilw
+21:23 <+bridge> [ddnet] <Ryozuki> @heinrich5991 i guess this fixes it?
+21:23 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697527153633263666/unknown.png
+21:24 <+bridge> [ddnet] <Ryozuki> hm wait
+21:25 <+bridge> [ddnet] <Ryozuki> i guess this
+21:25 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697527566109769779/unknown.png
+21:28 <+bridge> [ddnet] <Ryozuki> i think a check like this is also good
+21:28 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697528249521274910/unknown.png
+21:29 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/pull/2128/commits/8f1cc4c83d3e88c3db33dd46ba3ecbbdc18b6932
+21:33 <+bridge> [ddnet] <Learath2> @heinrich5991 can you help me debug a cmake problem while compiling with osxcross?
+21:53 <+bridge> [ddnet] <heinrich5991> @Ryozuki you shouldn't check for !pText and return
+21:53 <+bridge> [ddnet] <heinrich5991> it is not in the function's responsibility to check that the user passed in a non-null pointer
+21:53 <+bridge> [ddnet] <heinrich5991> if you want to check, do it with an assert
+21:58 <+bridge> [ddnet] <heinrich5991> @Learath2 what's the issue?
+21:58 <+bridge> [ddnet] <heinrich5991> (playing cs right now though)
+22:40 <+bridge> [ddnet] <Ryozuki> ok
+23:05 <+bridge> [ddnet] <Trafalgar Law> @deen did you failed here? https://i.imgur.com/GoUljV7.png
+23:05 <+bridge> [ddnet] <Trafalgar Law> You delete rifle but you added again
+23:06 <+bridge> [ddnet] <Learath2> I nuked my VM, will set it up again tomorrow
+23:06 <+bridge> [ddnet] <Learath2> @heinrich5991 it was having trouble finding the bundled SDL2

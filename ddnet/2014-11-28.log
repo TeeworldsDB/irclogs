@@ -1,0 +1,430 @@
+00:06 < BeaR> hm should be able to do it, easier basically check the distance of two lines, so a 2nd order equotion. Would remove the loop over distance
+00:11 <@deen> 256 players: http://ddnet.tw/256.png
+00:11 < BeaR> lol
+00:12 <@deen> aaaaah, now that I can easily simulate many players I can maybe find out why servers sometimes need so much memory!
+00:14 < BeaR> how much network capacity needed?
+00:17 <@deen> I don't know, let it run between 2 servers^^
+00:18 <@deen> 60% of memory is for the snapshot storage?!
+00:18 <@deen> why would that need to be that much?!
+00:19 <@deen> snapshot.cpp:437
+00:19 <@deen> it allocates more and more
+00:27 <@deen> 64 MB of snapshots, hm
+00:29 < maple> !twp mB.*
+00:29 < Nimda> No mB.* found online.
+00:29 < BeaR> 256kB snapshots per client
+00:30 <@deen> no, I'm testing with 64 player server again
+00:30 <@deen> 1 MB per player
+00:30 <@deen> it's supposed to be 3 seconds
+00:30 < BeaR> y lol
+00:30 < BeaR> how big is one snapshot?
+00:30 <@deen> i don't think 3 seconds of snapshots should be 1 MB^^
+00:32 <@deen> oh wow, even if I call PurgeAll it doesn't go down
+00:32 < BeaR> huh what
+00:33 <@deen> Or I don't understand how massif works
+00:34 <@deen> looks like it works after all
+00:35 <@deen> 9 KB per snapshot
+00:35 <@deen> 9196 bytes
+00:37 <@deen> that's a lot of mallocs btw
+00:40 <@deen> hm no, i don't get what's happening
+00:40 < BeaR> huh?
+00:40 <@deen> memory seems to go down just fine
+00:40 <@deen> in my test case
+00:41 <@deen> but on real server it stays up after a few days of running
+00:41 <@deen> never found the reason for that
+00:43 < BeaR> it's supposed to go down?
+00:43 <@deen> yeah
+00:44 <@deen> even when the server is empty after a few days
+00:44 <@deen> you can do whatever you want and memory stays up
+00:44 <@deen> I've looked for leaks and fixed all that were reported, but issue is still there
+00:48 <@deen> traffic for 256 players on a single spot is 9 MB/s down, 20 MB/s up
+00:50 <@deen> 100mbit/s server wouldn't even be enough, interesting
+00:52 < Learath2> getting snap size down is quite impossible sooo yeah
+00:52 < Learath2> 256 players not the greatest of ideas
+00:52 <@deen> haha
+00:53 <@deen> well, it's often been requested to run all of the european tournament on 1 server
+00:53 <@deen> so you can watch everyone
+00:53 < Learath2> well its pretty hard for all players to be in the same spot
+00:53 <@deen> and since we get 200-300 tournament players in europe, that would be necessary
+00:53 <@deen> when the tournament starts, they all spawn at the same spot
+00:55 < Learath2> well for solo tournaments it should be k
+00:55 < Learath2> as noone sees eachother 
+00:55 <@deen> nope
+00:55 <@deen> on ddnet they all see eachother
+00:56 <@deen> by default, and can disable it
+00:56 < Learath2> 256 people in the same screen i dont think thats feasable for the players too
+00:57 < BeaR> but the hug of death ):
+00:57 < BeaR> btw Learath2 kerning is working
+00:57 < BeaR> tested it
+00:57 < BeaR> only for a few chars but it's working
+00:57 < Learath2> mmmh doesnt seem to be working for me at all
+00:57 < BeaR> well FT_Get_kerning returns values != 0
+00:58 < Learath2> BeaR: the font has kerning pairs for alot of chars 
+00:59 <@deen> freetype rendering is pretty slow. i removed some useless texts and now people are happy that they get enough fps to play with entities
+00:59 < BeaR> it's not freetype, it's teeworlds text interface (:
+00:59 <@deen> oh
+00:59 < Learath2> yeah teeworlds text stuff seems weird
+00:59 < Learath2> couldnt make much sense of it actually 
+00:59 <@deen> i assumed it's just a thin layer, never looked at it
+01:00 <@heinrich5991> it renders the characters separately every frame
+01:00 < BeaR> too much texture invalidation and lacks batching
+01:00 < BeaR> it's on oy's todo list but well ._.
+01:00 < Learath2> oy first needs to be resurrected 
+01:01 < BeaR> he pushed 0.6.3!
+01:01 < Learath2> OMG
+01:01 < BeaR> :D
+01:02 < Learath2> vote to replace oy by a group of people leaded by oy
+01:02 < Learath2> he is obv too busy to deal with tw
+01:08 < Learath2> anyone here used the json parser before ?
+01:08 <@deen> EastByte did!
+01:08 <@deen> code is in serverbrowser.cpp
+01:09 < Learath2> i have a problem about how im going to get the whole file inside a buffer
+01:09 < Learath2> and BeaR the font seems to have Kerning pairs for all possible combinations
+01:10 < BeaR> possible not that much into ttf :d
+01:11 <@deen> Learath2: what's the problem? like this? https://github.com/def-/ddnet/blob/DDRace64/src/engine/client/serverbrowser.cpp#L869-L877
+01:11 <@heinrich5991> BeaR: not sure how Oy's name was put onto the commits, he didn't commit these, actually
+01:12 < BeaR> ah lol
+01:12 <@deen> heinrich5991: i also wondered because i assumed you did that
+01:13 < Learath2> oh wow sry didnt even see that deen
+01:13 < Learath2> after 2AM i get a little bit fuzzy especially when im out of coffee
+01:13 <@deen> Learath2: no problem =)
+01:13 <@heinrich5991> deen: original commits: https://github.com/heinrich5991/teeworlds/tree/0.6
+01:13 <@deen> heinrich5991: he stole your commits!
+01:14 <@heinrich5991> ^^ no idea how that happened
+01:14 <@heinrich5991> oh meh
+01:14 <@heinrich5991> and he also did a mistake :((
+01:15 <@deen> I was really surprised that my fix didn't work in new gcc versions
+01:15 <@deen> damn undefined behaviour in the C standard^^
+01:15 < Learath2> report oy for hacking
+01:15 <@deen> i always thought signed integers overflow
+01:15 <@deen> and wrap around
+01:16 < Learath2> i know unsigned overflow is well defined
+01:16 <@deen> yes
+01:16 < Learath2> singed integer overflow isnt ?
+01:16 <@deen> but signed integer not
+01:16 < Learath2> weeeiiiird
+01:16 <@deen> it's so undefined that your program may do anything after a signed integer overflow...
+01:16 < BeaR> C \o/
+01:16 <@deen> so you can't even check if an overflow happened after it happened
+01:17 <@deen> you have to prevent it before
+01:17 <@deen> which is rather difficult for multiplications
+01:18 < Learath2> deen: you can check after an overflow happened prolly
+01:19 <@deen> no
+01:19 <@deen> I did that
+01:19 <@deen> and gcc optimizes it away
+01:19 <@deen> I wanted to report a bug, but people reported it before
+01:19 <@deen> and it's allowed by the C standard apparently
+01:19 < Learath2> did you just read my mind ?
+01:19 <@deen> who knows ;)
+01:19 < Learath2> what exactly did you try ?
+01:19 <@heinrich5991> deen: check whether INT_MAX/a > b if you wanna multiply a*b
+01:20 <@deen> Learath2: I checked if the result of the multiplication is < 0
+01:21 < Learath2> oh thats nicer I'd advice to check if (a*b)/b == a 
+01:21 < Learath2> but that prolly would get optimized away
+01:21 <@heinrich5991> that's undefined behavior again
+01:22 <@heinrich5991> (if a*b overflows)
+01:22 <@heinrich5991> deen: Learath2: http://blog.llvm.org/2011/05/what-every-c-programmer-should-know.html
+01:24 < Learath2> heinrich5991: what are the odds of Undefined behaviour/b equaling a 
+01:24 < Learath2> :D
+01:24 <@deen> heinrich5991: doesn't work for negative numbers
+01:24 <@deen> https://www.securecoding.cert.org/confluence/display/seccode/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow
+01:25 <@heinrich5991> yes, you're right
+01:25 <@deen> they have a proper solution for multiplication
+01:25 < Learath2> that solution tho
+01:25 < Learath2> thats a beast
+01:26 <@deen> yeah...
+01:26 <@deen> just for a single safe multiplication
+01:26 < Learath2> you could prolly do some bit magic but 3sleepy to figure out how
+01:26 <@deen> at least branch prediction can work its wonder there
+01:28 <@heinrich5991> have you read the blog I linked? it's pretty good to know the most common sources of undefined behaviour in C
+01:33 <@deen> me or Learath2 ?
+01:36 <@deen> I've skimmed it but it's on my read list
+01:47 <@deen> big GER2 lags today =/
+02:00 < eeeee> for collision people usually use some kind of a spatial index like quadtree
+02:00 < eeeee> but in this case it might be an overkill
+02:00 < eeeee> i think just ordering the characters by x+y would be enough
+02:04 < eeeee> also not sure what exactly is your plan for the tournament
+02:05 < eeeee> but i'd try to put players and spectators on separate servers
+02:05 < eeeee> not sure if that's possible though
+02:05 <@deen> yeah, that would be great
+02:05 <@deen> my plan for tournament would be to just have a 256 player server for europe
+02:06 < eeeee> how many players and spectators do you expect?
+02:07 <@deen> lets check old tournaments
+02:08 <@deen> Big png: http://ddnet.tw/612.png
+02:09 <@deen> something like 260 players and 60 spectators on european tournament servers at that tournament
+02:10 <@deen> but since the livestream isn't running anymore i would expect more spectators
+02:12 < eeeee> maybe instead of using one server for players we could somehow hack a single server for spectators which would show players from all servers
+02:12 <@deen> yeah, i tried making that client sided
+02:12 <@deen> but would be cleaner on a server
+02:13 <@deen> especially if it works on all servers worldwide
+02:13 < eeeee> currently we don't have a solution even for a single server though
+02:14 < eeeee> not sure how can you do that without much effort
+02:14 <@deen> me neither
+02:14 <@deen> having a livestreamer was a nice solution I think :P
+02:26 < Nimda> DDNet Brazil went down!
+02:27 < Nimda> DDNet Brazil went back online!
+02:50 <@deen> shit! 3 days left in Chile but we only have traffic left for 1
+02:50 <@deen> damn, that means no tournament in chile
+02:54 < Nimda> DDNet Brazil went down!
+02:55 < Nimda> DDNet Brazil went back online!
+03:33 < Nimda> DDNet Brazil went down!
+03:34 < Nimda> DDNet Brazil went back online!
+04:59 <@deen> I believe I've just found a stack overflow in opusenc
+04:59 <@deen> American fuzzy lop is great
+07:42 < Nimda> DDNet Chile went down!
+07:44 < Nimda> DDNet Chile went back online!
+08:02 < Nimda> DDNet Chile went down!
+08:03 < Nimda> DDNet Chile went back online!
+08:07 < Nimda> DDNet Chile went down!
+08:08 < Nimda> DDNet Chile went back online!
+13:06 < happyMeow> sup guys
+13:39 <@deen> hi happyMeow 
+13:39 < happyMeow> how r u 
+13:40 <@deen> fine
+13:40 <@deen> and you're happy?
+13:40 < happyMeow> yes! 
+13:41 < happyMeow> i got my salary today and the department for billing did a mistake and paid me 200€ more than neccessary
+13:41 < happyMeow> xD
+13:41 <@deen> haha
+13:44 < happyMeow> do i may ask you what you're hosting the server on? its a root?
+13:44 < happyMeow> or just vServer
+13:44 <@deen> what server?
+13:44 < happyMeow> ddnet serverS
+13:44 <@deen> ddnet has a few servers: http://ddnet.tw/status/
+13:44 <@deen> they're all vservers right now
+13:45 < happyMeow> kk 
+13:45 < happyMeow> im very interested in such things like server hosting etc
+13:46 <@deen> I'm suddenly interested in finding security bugs in all libraries I use
+13:46 < happyMeow> thats understandable, you might find them before others do
+13:47 < happyMeow> are you studying this topic all about IT or just an self-educated project ?
+13:47 <@deen> I'm just running AFL on all programs^^
+13:48 < happyMeow> what means AFL ?
+13:48 <@deen> http://lcamtuf.coredump.cx/afl/
+13:51 < happyMeow> this seems really helpfully
+13:51 <@deen> it is, reported a crash already: https://git.xiph.org/?p=opus-tools.git;a=commit;h=f6963f289a4644bc11ab68934b9ce2df870a8516
+13:53 <@deen> and now i found one in wavpack as well
+13:54 <@deen> i really would like to run it on ddnet server with network input, but it works only with files
+13:58 < happyMeow> i will take a deeper look on it when im home, seems very interesting :D
+13:59 < happyMeow> you mean for analyzing incoming/outgoing packets?
+14:01 <@deen> no, for making the server crash and then fixing the crashes
+14:01 <@deen> AFL would create the incoming packets
+14:01 <@deen> and keep manipulating them to find all possible crashes
+14:02 < happyMeow> but that isnt possible yet, isnt it?
+14:03 <@deen> not directly
+14:03 <@deen> I would have to make the server read the packets from a file instead of over network
+14:05 < happyMeow> It would the effort be worth it
+14:18 <@heinrich5991> deen: btw, that's one of the reasons sound in maps might be a bad idea
+14:18 <@deen> heinrich5991: yeah
+14:18 <@heinrich5991> I didn't want to say it back then
+14:18 <@heinrich5991> because everyone was so enthusiastic
+14:21 <@deen> I'm still enthusiastic about opus
+14:21 <@heinrich5991> deen: which library?
+14:21 <@heinrich5991> one also used in browsers?
+14:21 <@deen> have you seen how small file sizes get and how good the quality stays?
+14:21 <@deen> heinrich5991: which library what?
+14:22 <@heinrich5991> which library do you want to use for opus?
+14:22 <@deen> We're using opus already
+14:22 <@deen> and there is only 1 opus library
+14:23 <@deen> opus is pretty complicated, i doubt anyone will write another one soon
+14:26 <@deen> wavpack was way too big for maps
+14:33 <@heinrich5991> so the library seems to be used in browser
+14:33 <@heinrich5991> s
+14:33 <@deen> opus, yes
+14:33 <@deen> I didn't really scan the library yet, only the surrounding tools
+14:34 <@deen> and they did some extensive fuzzing themselves before. the crash I found was just added after that
+14:35 <@deen> in wavpack the actual library segfaults
+14:35 <@deen> calling memcpy with size -1
+14:35 <@heinrich5991> can you link the tool again?
+14:35 <@deen> http://lcamtuf.coredump.cx/afl/
+14:47 <@deen> can't make AFL work with ddnet-server =/
+14:58 < Nimda> DDNet South Africa went down!
+14:59 < Nimda> DDNet South Africa went back online!
+15:01 <@deen> afl says it crashes on every input, but when i test the inputs no crash happens =/
+15:04 <@EastByte> afl looks strange :)
+15:05 < o_be_one> hi gang :)
+15:06 <@EastByte> hello o_be_two
+15:14 <@deen> woo, next segfault in wavpack
+15:19 < o_be_one> ahah EastByte my dummy is not online :p
+15:23 < laxadedi> deen: are you there ? I could use your help :p
+15:25 <@deen> hi
+15:25 <@deen> what's up laxa?
+15:25 < laxadedi> hi :)
+15:25 < laxadedi> I need to do some python for school today, some bullshit stuff for office
+15:25 < laxadedi> I need to open a json file
+15:25 <@heinrich5991> laxadedi: what py for school? :)
+15:25 < laxadedi> 3.2
+15:26 < laxadedi> I need to read from a json file that use utf-8 encoding
+15:26 < laxadedi> but I can't use this : import codecs
+15:26 < laxadedi> :D
+15:26 < laxadedi> Question is : how to do that ?
+15:28 <@heinrich5991> laxadedi: import json; json.load(open(filename))
+15:28 < laxadedi> let me try that
+15:28 < laxadedi> but I dont think it'll work
+15:28 < laxadedi> it's already what I am doing
+15:29 <@heinrich5991> do it interactively or use
+15:29 <@heinrich5991> import json; print(json.load(open(filename)))
+15:30 < laxadedi> heinrich5991: nop, not working
+15:31 <@heinrich5991> what's the problem?
+15:31 <@EastByte> python always works, you can't do anything wrong
+15:31 < laxadedi> the special chars are fucked up
+15:31 < laxadedi> I tried with import codecs
+15:31 < laxadedi> it worked perfectly
+15:31 < laxadedi> but the teacher says I can't use it...
+15:32 <@EastByte> check the json file then
+15:32 <@heinrich5991> laxadedi: can you givem e the json file?
+15:33 < laxadedi> it's some french bullshit
+15:33 < laxadedi> wait
+15:33 < laxadedi> http://pastebin.com/iLy6Wiat
+15:35 <@EastByte> import json; print(json.load(open(filename)))
+15:35 <@EastByte> works for me
+15:35 <@heinrich5991> laxadedi: works fine for me :o
+15:36 < laxadedi> python 3.2 on windows ?
+15:36 <@EastByte> what error do you get?
+15:36 < laxadedi> I have no error
+15:37 < laxadedi> but if I print my json
+15:37 < laxadedi> special chars are fucked up
+15:37 <@EastByte> maybe because of the console
+15:37 <@EastByte> cmd.exe doesn't have utf8 support by default does it?
+15:37 < laxadedi> I use python shell
+15:38 < laxadedi> and the final document I am generating is fucked up too
+15:38 < laxadedi> and if I try to open the file using codecs.open(filename, 'r', 'utf-8')
+15:38 < laxadedi> then it works
+15:40 <@heinrich5991> laxadedi: check with notepad++ whether your documents are actually fucked up
+15:40 < laxadedi> the word ones ?
+15:40 <@heinrich5991> "and the final document I am generating is fucked up too"
+15:41 < laxadedi> ok
+15:41 <@EastByte> well ms word supports utf8, you just need to tell word about the charset at the beginning
+15:41 < laxadedi> can't read it with notepad
+15:41 < laxadedi> it's .doc document
+15:41 < laxadedi> anyway
+15:41 <@EastByte> what the hell?
+15:42 < laxadedi> it's not important anymore, I am suppose to have 20/20 already
+15:42 < laxadedi> it would have been for bonus
+15:42 < laxadedi> but it's still weird
+15:42 <@EastByte> why do you have a .doc document?
+15:42 < laxadedi> cause that's my exercice
+15:43 < laxadedi> take some json, take 1 template, generate a final doc with those files
+15:43 <@EastByte> well create a textfile first and then work on building word documents...
+15:44 < laxadedi> Well, doesn't matter, I give up :p
+15:44 < laxadedi> afk smoke
+15:44 <@EastByte> ...
+15:53 < laxadedi> Sorry EastByte :D
+15:53 < laxadedi> Thanks for help though guys
+16:02 <@heinrich5991> deen: I wouldn't push security-by-obscurity fixes to github: branch flybot-prot
+16:03 <@deen> heinrich5991: i don't consider that a fix
+16:03 <@heinrich5991> but you want to deploy it?
+16:03 <@deen> it breaks normal playing, just wanted to show it to people who suggest to me that flybot is easy to fix
+16:03 <@deen> no, i don't
+16:04 <@heinrich5991> ah
+16:04 <@heinrich5991> what do you want to fix, btw? – is botting considered bad?
+16:04 <@deen> heinrich5991: i can show you on a server
+16:05 <@deen> they just levitate around, hooking so fast that you can't even see the hook
+16:05 <@deen> easy to cheat some hard maps with that
+16:05 <@deen> so yes, considered bad
+16:11 < o_be_one> hey Maple how are you :D ?
+16:11 < o_be_one> Maple, seen your last vid on ddnet.tw, running map deathpack ... Awesome :D !
+16:11 <@deen> yeah, that was a nice run
+16:13 < o_be_one> sure !
+16:16 < Maple> oh hey
+16:16 < Maple> im great and ty !
+16:19 <@heinrich5991> does someone of you use windows and can compile teeworlds?
+16:19 < laxadedi> ok rebooting server, fuck those updates
+16:19 <@heinrich5991> if so, could you test out
+16:19 <@heinrich5991> https://github.com/heinrich5991/teeworlds/tree/sdl2_test
+16:19 <@heinrich5991> this one?
+16:19 <@deen> oh wow, you're working on sdl2!
+16:19 <@heinrich5991> I'd really like to get sdl2 merged
+16:20 <@deen> me too!
+16:20 <@deen> I've been trying it so often, but always buggy on linux
+16:20 <@heinrich5991> (I'm not really working on it, just trying to actually use the effort that has already been put into this)
+16:20 < Maple> :c
+16:20 <@deen> ah, then the bugs are probably still there =/
+16:20 <@heinrich5991> yes. but please report them to me
+16:21 <@heinrich5991> as said, I'd like to get it merged
+16:21 <@heinrich5991> report problems here: https://github.com/teeworlds/teeworlds/pull/1246
+16:21 <@deen> got fuzzing working on ddnet-server
+16:21 <@deen> many crashes to analyze now =/
+16:21 <@deen> about 100 unique ones already
+16:24 <@deen> i think the current TW 0.7 doesn't compile on windows at all right now
+16:24 <@deen> other directory looked weird
+16:25 <@deen> and when we got it compiled it crashed on start
+16:25 <@deen> a few commits back worked
+16:26 <@deen> heinrich5991: how do you want the bug reports?
+16:27 <@heinrich5991> https://github.com/teeworlds/teeworlds/pull/1246
+16:27 <@heinrich5991> if related to sdl2
+16:28 <@heinrich5991> otherwise just on teeworlds/teeworlds
+16:28 <@heinrich5991> deen: ^
+16:39 <@deen> ok, made a quick test and wrote down what i noticed
+16:45 <@deen> heinrich5991: map files look pretty exploitable anyway
+16:45 <@deen> getting segfaults everywhere
+16:45 <@deen> even without opus i mean
+16:56 <@heinrich5991> deen: yea, I know that
+16:56 <@heinrich5991> only reads AFAIK though
+17:09 <@heinrich5991> deen: I can only reproduce #4 :/
+17:12 <@deen> maybe window manager specific =/
+17:12 <@deen> and xcompose
+17:13 <@deen> but it would be bad if stuff stops working that worked in 1.2
+17:37 < Xrothx> Hello
+17:38 < BeaR> hellu
+17:38 < Xrothx> Anyone online with php knowledge? I might have a job for him/her :) 
+17:41 <@EastByte> finding a dev for your tw server webinterface won't be that easy^^
+17:41 < Nimda> Plue by Hake & Tuna just released on Moderate at 2014-11-28 17:36
+17:43 <@EastByte> everytime I respond to xrothx he times out
+17:43 <@deen> haha
+17:43 <@deen> maybe his irc client segfaults
+17:43 <@deen> ah wait, webchat^^
+20:36 < eeeee> heinrich5991: doesn't work, complains about missing SDL.h
+20:38 < eeeee> because it still passes -I others/sdl/include
+20:38 < eeeee> instead of -I others/sdl2/include
+20:45 < eeeee> moving sdl.lua to sdl2 dir works
+20:45 < eeeee> but freetype libs are also missing
+20:49 < eeeee> getting freetype libs back from commit 174ba3 finally makes it compile
+20:49 <@deen> yeah, as I said, compile is broken on windows on 0.7 branch
+20:50 < eeeee> well hein asked to test his sdl2_test branch
+20:50 <@deen> yes
+20:50 < eeeee> i have no idea if that's the same code as in 0.7
+20:51 < Nimda> Atmosphere by =CuBe= & =Typhoon= just released on Solo at 2014-11-28 20:48
+20:54 < eeeee> what are the benefits of using sdl2?
+20:55 <@deen> more modern, fewer bugs
+20:55 <@deen> platform independent copy-paste support
+20:55 <@deen> text input independent of key presses
+20:55 <@deen> and support for all these weird text input formats
+20:55 <@heinrich5991> eeeee: better fullscreen, multi-monitor stuff
+20:56 <@heinrich5991> eeeee: freetype libs missing is intended by oy
+20:56 <@deen> i think you can't write arabic chat in TW currently
+21:29 < laxa> deen: why you release map that have had no testing ?
+21:30 <@deen> laxa: which map?
+21:30 < laxa> atmosphere
+21:30 <@deen> who says it wasn't tested?
+21:30 < laxa> no thread on forum
+21:30 < laxa> maggi complaining on TS cause he says map is bad
+21:32 <@deen> that map was tested
+21:32 <@deen> but yes, I'm releasing maps without testing
+21:32 <@deen> because we don't have many active testers
+21:32 <@deen> maybe 2-3 are active
+21:32 <@deen> most just want to be known as a tester and then they stop testing
+21:33 <@deen> and complain to me when I release maps after they've been untested for multiple months
+21:33 < laxa> maggi already found a cheat on the map apparently
+21:33 < laxa> no more information about this
+21:33 < laxa> I told you I am ok to test solo maps
+21:33 < laxa> but if there is no thread, I can't know it's a solo map or whatever
+21:34 < laxa> there is another solo map I tested who has no threa
+21:34 < laxa> d
+21:34 < laxa> solo future
+21:34 < laxa> ok afk going to eat now
+22:36 < o_be_one> deen, can i test maps ?
+23:00 <@deen> o_be_one: sure, grab a tester and help them. they'll show you what to look for and how to test
+23:04 < o_be_one> ok i'll try, there is no special access for that ? its not on private server ?
+23:04 <@deen> the testers know the pw
+23:05 < o_be_one> ok good to know :)
+23:05 < o_be_one> well i go home see you :D
+23:06 <@deen> ye
+23:08 < laxa> deen: could you please put .cfg of Atmosphere on test server or on github ? :)
+23:16 <@deen> tune_zone 1 ground_jump_impulse 30
+23:16 <@deen> that's all
+23:16 <@deen> autoupload to github happens every night
+23:27 < Maple> welp
+23:27 < Maple> nealson put a map that crashes you on test server
+23:32 <@deen> meh, i was just investigating that today
+23:33 <@deen> name of the map?
+23:39 <@heinrich5991> it's very easy :/
+23:39 <@heinrich5991> there's no range checking at all in the df code

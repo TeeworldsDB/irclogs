@@ -1,0 +1,159 @@
+18:02 <@heinrich5991> minus: master proposal: https://heinrich5991.de/temp/master.svg
+18:54 <@matricks> HerzogDeXtEr: why http?
+18:54 <@matricks> grr
+18:54 < rand> heinrich5991: *
+18:54 <@matricks> heinrich5991: 
+18:55 < rand> there was some idea about dos protection on http server
+18:55 < rand> dunno why/how
+18:55 < EastByte> using a CDN e.g.
+19:16 <@heinrich5991> matricks: easier to put behind a CDN
+19:17 <@heinrich5991> but I think you asked that question several times already
+19:20 <@matricks> soooo, you hide the master server behind a http firewall thingie?
+19:21 <@heinrich5991> matricks: yes
+19:21 <@matricks> fair enough
+19:22 <@heinrich5991> especially useful for caching the server list
+19:22 <@matricks> looks like the first register call is unnessesary however
+19:22 <@heinrich5991> since that's non-dynamic
+19:23 <@heinrich5991> the idea behind that was that the master server could skip that test in case the forward check server is being ddosed
+19:23 <@heinrich5991> not sure how to detect that though, and if that's a useful counter-measure
+19:25 <@minus> I think I have some suggestions and ideas, heinrich5991
+19:25 <@heinrich5991> cool
+19:28  * matricks wish he had more time
+19:29 <@matricks> too much on the schedule :/
+19:31 <@matricks> btw, <3 http://www.moddb.com/mods/brutal-doom/addons/idkfa-doom-soundtrack
+19:38 <@minus> how'd you make that diagram btw, heinrich5991?
+19:38 <@minus> mscgen?
+19:38 <@heinrich5991> I wondered how to do such a diagram
+19:39 <@heinrich5991> searching a little found me a website, wait a sec
+19:39 <@heinrich5991> https://bramp.github.io/js-sequence-diagrams/
+19:39 < BotoX> what's that second post for heinrich5991 
+19:39 < BotoX> the /fwcheck
+19:40 <@heinrich5991> to ask for a UDP packet to be sent to your server
+19:40 <@heinrich5991> that will be repeated a couple of times if you don't receive the UDP packet
+19:40 < BotoX> yeah well am I not kinda asking for that when I do /registetr
+19:40 <@minus> yeah, i'd just have /register
+19:40 < BotoX> what's the point of /register then
+19:40 < BotoX> I could just do /fwcheck right away then, no?
+19:40 <@minus> the fwchecks should be done without asking, on the masterserver's own volition
+19:40 < BotoX> yes
+19:41 <@heinrich5991> BotoX: not if the forward checker is under attack and the master lets you register without forward check
+19:42 <@minus> heinrich5991: but does that make any difference to the server?
+19:42 <@heinrich5991> minus: the server needs to know whether it is registered or whether it needs to keep trying / reporting error to the user on failure
+19:42 <@minus> the server tries to register anyway every couple of minutes
+19:42 < BotoX> yeah I don't see the point
+19:42 <@minus> also you could return the registration status on /register if you wanted
+19:42 < BotoX> you do POST /register and always get the same response
+19:42 <@heinrich5991> but it needs to report failure to the user ("nat issue")
+19:43 < BotoX> that's done by the server
+19:43 < BotoX> Hey, I didn't receive a packet after 30 seconds
+19:43 < BotoX> or 10 probably
+19:43 <@heinrich5991> that might be due to packet loss
+19:43 < BotoX> then your server is ass anyways
+19:43 <@heinrich5991> I need to ask for the UDP packet a couple of times
+19:44 <@heinrich5991> but yea, maybe just /register would work
+19:44 <@minus> just put a flag in /register, yeah
+19:44 < BotoX> I really don't understand what you're trying to achieve.
+19:44 < BotoX> In my eyes: POST /register IP:PORT
+19:44 <@minus> unsure about the second post to /register
+19:44 < BotoX> server sends UDP packet 
+19:44 <@minus> i guess for re-registering it makes sense
+19:44 < BotoX> *master
+19:45 < BotoX> re-registering is done by the master
+19:45 < BotoX> Check list, if it's there then update
+19:45 < BotoX> and return the result in the response
+19:45 < BotoX> "you will get a fwcheck packet"
+19:45 < BotoX> "you are fine"
+19:45 <@heinrich5991> minus: you need an answer to the master to verify that you've received the fwcheck token
+19:45 <@minus> actually, cbf right now, i'm gonna go watch some stuff
+19:45 <@heinrich5991> :P
+19:45 < BotoX> and if the response is "you will get a fwcheck packet" then the server waits for that
+19:46 < BotoX> if it doesn't receive it it just does POST /register again
+19:46 <@minus> heinrich5991: makes sense if you don't want it to report to the checker
+19:46 < BotoX> when it receives the packet it does POST /register token=<received>
+19:46 < BotoX> and then it gets <BotoX> "you are fine"
+19:46 <@heinrich5991> yea, works
+19:46 <@heinrich5991> will do that
+19:46 <@minus> yup, /register should also return the current registration status
+19:47 <@heinrich5991> does that
+19:47 <@minus> the client should not /register on its own after a successful registration then
+19:47 <@minus> just post again if it receives another fwcheck
+19:47 <@heinrich5991> we need heartbeats
+19:48 <@minus> if it doesn't receive an fwcheck for x minutes it will pick a new master
+19:48 < BotoX> well if it does /register again then the server will just respond with registered again 
+19:48 < BotoX> why not let the server do the heartbeat
+19:48 < BotoX> just do the register procedure every 5 minutes or so
+19:48 <@heinrich5991> yea
+19:48 <@heinrich5991> like we currently do already
+19:48 < BotoX> yeah I think that's better
+19:49 <@minus> putting the responsibility on the client
+19:49 <@minus> fair, but doesn't let the master control the frequency
+19:49 < BotoX> since the heartbeats would have to be UDP again...
+19:49 <@minus> huh
+19:49 <@heinrich5991> BotoX: no, HTTP POST /register again
+19:49 < BotoX> (the master initiated heartbeats)
+19:49 <@heinrich5991> ah yea
+19:49 <@minus> ofc, fwcheck as on initial check
+19:49 < BotoX> and you could do the frequency in the /register result
+19:50 <@minus> fair
+19:50 < BotoX> next_check=<unix timestamp>
+19:50 <@heinrich5991> reregister shouldn't need the fw check
+19:50 < BotoX> fw check will only be done if the server is not already registered
+19:50 <@heinrich5991> yup
+19:51 <@minus> fwiw /register should give the client a token as well
+19:51 <@minus> so it can confirm that the fwcheck came from the master
+19:52 < BotoX> nah
+19:52 <@minus> (it's a DDoS vector otherwise)
+19:52 <@heinrich5991> yes, did that already
+19:52 < BotoX> it will only do the POST /register if it's in the registering state
+19:52 <@minus> fair
+19:52 <@minus> still safer like this
+19:52 < BotoX> it should ignore heartbeats that have not been requested
+19:52 <@minus> and not complicated
+19:52 < BotoX> but yeah sure that is fine too
+19:53 < BotoX> both to be sure :p
+19:53 <@minus> time/ip/port-based token
+19:53 <@heinrich5991> yup
+19:53 <@minus> +secret ofc
+19:53 <@heinrich5991> doesn't need to get saved
+19:53 <@minus> minimize DoS vectors everywhere
+19:54 <@minus> fwiw the checker could even send fwchecks from spoofed addresses
+19:54 < BotoX> that's a good idea
+19:54 <@minus> no it's not
+19:54 < BotoX> no it actually is
+19:54 <@minus> ip address spoofing should die
+19:54 < BotoX> to prevent DoS of the actual server
+19:54 < BotoX> if you put it behind CF
+19:54 <@heinrich5991> BotoX: fwchecker is separate server
+19:55 < BotoX> alright
+19:55 <@minus> if you do have a DDoS filter on the master you won't have any problems
+19:55 < BotoX> well you could host a few masters on cheap servers
+19:55 <@minus> since fwcheck will only need outgoing udp
+19:55 < BotoX> put them behind HTTP firewalls
+19:55 < BotoX> like cloudflare etc.
+19:55 < BotoX> that are free
+19:55 < BotoX> and the fwchecker sends with spoofed addr to not reveal the real server ip
+19:56 <@heinrich5991> minus: bandwidth could still be saturated
+19:56 <@heinrich5991> if attacker knows the ip
+19:56 < BotoX> because most ISPs will null all of your traffic on a DDoS
+19:56 <@matricks> fwcheckers ip is easy to get
+19:57 < BotoX> most DDoS protected services will turn off UDP traffic completely in case of a UDP flood
+19:57 <@minus> matricks: minus │ fwiw the checker could even send fwchecks from spoofed addresses
+19:57 < BotoX> not sure about outgoing though
+19:57 <@matricks> minus: but where does the report to then?
+19:57 <@minus> matricks: http
+19:57 <@matricks> oh, it just gets a token, right
+19:58 <@matricks> remind me again to never do a networked game
+19:58 < BotoX> do it right from the start matricks :p
+19:58 <@matricks> BotoX: there is no right from the start
+19:58 < BotoX> multiplayer games are the only fun games imo!
+19:58 < BotoX> that's probably true aswell
+19:59 <@matricks> attackers modify their attacks and comes up with new ways
+19:59 <@matricks> and in the end, bandwidth saturation is a bitch
+19:59 < BotoX> which is why HTTP is a solid choice
+19:59 <@matricks> only networked game I would do now is a co-op one
+20:01 <@matricks> there is so much you could do to make the network experience better in a co-op game as well
+20:02 <@matricks> now, stranger things
+20:02 < rand> new season ?
+20:02 <@matricks> no, season 1
+20:02 < rand> k
+20:18 <@minus> master3 bit the dust again :/

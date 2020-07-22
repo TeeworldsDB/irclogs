@@ -1,0 +1,89 @@
+13:30 < mekrioz> indicud ddnet bitte mal Mithandir bannen, er blockt am start 
+13:32 < mekrioz> er blockt immernoch
+13:58 < ddnet-commits> [ddnet] Learath2 opened pull request #757: /pause'd players stay in player list (master...dd_pr_pausefix) https://git.io/v95AN
+13:58 < ddnet-commits> [ddnet] def- closed pull request #757: /pause'd players stay in player list (master...dd_pr_pausefix) https://git.io/v95AN
+15:08 <@heinrich5991> Learath2: have you tested with vanilla client?
+15:08 <@heinrich5991> you also changed the behavior there
+15:10 <@heinrich5991> also, I don't understand the commit message ^^
+15:32 <@Learath2> ./pause added people to the spec list
+15:32 <@Learath2> which meant you couldn't spectate paused players
+15:32 <@Learath2> i didn't change behaviour in that commit, i changed it in the one before by effectively switching around PAUSED_SPEC and PAUSED_PAUSED
+15:36 <@heinrich5991> ah
+15:36 <@heinrich5991> then nvm
+17:53 < Ryozuki> i compiled the sql version of ddnet server and i get this after configuring it
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: executing 'mysql.cfg'
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: No such command: sv_sql_ip.
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: No such command: sv_sql_port.
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: No such command: sv_sql_database.
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: No such command: sv_sql_prefix.
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: No such command: sv_sql_pw.
+17:54 < Ryozuki> [17-05-15 17:53:00][console]: No such command: sv_sql_user.
+17:54 < Ryozuki> how that can be?
+17:54 < Ryozuki> also: 
+17:54 < Ryozuki> [17-05-15 17:53:00][sql]: FATAL ERROR: Could not init SqlScore
+18:24 < Ryozuki> compiling with cmake:
+18:24 < Ryozuki> [ 30%] Linking CXX executable DDNet-Server
+18:24 < Ryozuki> CMakeFiles/DDNet-Server.dir/src/engine/server/sql_server.cpp.o: In function `CSqlServer::Connect()':
+18:24 < Ryozuki> sql_server.cpp:(.text+0x1990): undefined reference to `get_driver_instance'
+18:47 <@Learath2> this is why i cant really test mysql stuff :D
+18:47 <@Learath2> its painful
+19:38 <@deen> bam server_sql_release
+19:38 <@deen> Ryozuki: You might run the wrong binary
+20:50 < Ryozuki> config.lua has mysqlconfig enabled, and i recompiled 4 times
+20:50 < Ryozuki> still dont work
+20:51 < Ryozuki> i also want to do some sql work for ddnet
+20:51 < Ryozuki> like https://github.com/ddnet/ddnet/issues/746
+20:51 < Ryozuki> but if i cant test it..
+20:52 < Ryozuki> https://pastebin.com/54NKDA1h
+20:53 < Ryozuki> compiling with bam works, but server dont recognize sql commands
+20:53 < Ryozuki> with cmake fails
+20:53 < Ryozuki> In function `CSqlServer::Connect()':
+20:53 < Ryozuki> sql_server.cpp:(.text+0x1990): undefined reference to `get_driver_instance'
+20:54 < Ryozuki> maybe some lib im missing?
+20:54 < Ryozuki> i checked them, so i think not
+20:55 < Ryozuki> bam version is 0.4.0-3
+21:36 < Ryozuki> could it be that its not sql_user 'user'
+21:36 < Ryozuki> now? it changed?
+22:07 <@deen> Ryozuki: run DDNet-Server_sql
+22:07 <@deen> oh yeah, that's possible^^
+22:08 <@deen> add_sqlserver r teeworlds record teeworlds "password" "localhost" "3306"
+22:08 <@deen> add_sqlserver w teeworlds record teeworlds "password" "localhost" "3306"
+22:20 < Ryozuki> is there some docs about this command?
+22:21 < Ryozuki> i guess first teeworlds is user
+22:21 <@deen> src/engine/server/server.cpp:Console()->Register("add_sqlserver", "s['r'|'w'] s[Database] s[Prefix] s[User] s[Password] s[IP] i[Port] ?i[SetUpDatabase ?]", CFGFLAG_SERVER, ConAddSqlServer, this, "add a sqlserver");
+22:27 <@deen> grep is magic
+22:32 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v9FCi
+22:32 < ddnet-commits> ddnet/master 74e19b2 def: Version 10.6
+22:33 < Ryozuki> is smth more needed?
+22:33 < Ryozuki> it says added read server and write server
+22:33 < Ryozuki> but i go on sv and type points and say its file based
+22:34 < Ryozuki> and i dont see any table in db
+22:34 <@deen> sv_use_sql 1
+22:35 < Ryozuki> [17-05-15 22:35:05][sql]: sql connection established
+22:35 < Ryozuki> [17-05-15 22:35:05][sql]: MySQL Error: Table 'teeworlds.record_race' doesn't exist
+22:35 < Ryozuki> [17-05-15 22:35:05][sql]: ERROR: Tables were NOT created
+22:35 < Ryozuki> [17-05-15 22:35:05][sql]: FATAL ERROR: Could not init SqlScore
+22:36 < Ryozuki> arent tables made automatically?
+22:36 <@deen> add a 1 add the end of the add_sqlserver lines
+22:36 <@deen> at the end*
+22:36 <@deen> ?i[SetUpDatabase ?] sounds like that
+22:37 < Ryozuki> ok works
+22:38 < Ryozuki> is the point system made externally?
+22:38 <@deen> yeah, you need to add entries to record_maps manually
+22:38 <@deen> the easiest way is importing the entire ddnet database
+22:38 <@deen> then you can play around
+22:40 < Ryozuki> ok thx
+22:40 < Ryozuki> ill update the tutorial
+22:40 <@deen> thanks
+22:40 <@deen> if you have suggestions for making this stuff easier, do them or make issues
+22:41 <@deen> (like making db creation standard)
+22:42 < Ryozuki> ok
+22:42 < Ryozuki> how much space uses whole db?
+22:43 < Ryozuki> i have only 4gb left :/
+22:43 <@deen> dunno
+22:44 < Ryozuki> well ill cut it
+22:48 <@deen> can't really compare it with the one we have on ddnet since we use lots of additional indexes for performanc
+22:48 <@deen> so much that inserting is now the slow part, haha
+22:48 < Ryozuki> lol
+22:50 <@deen> but we read much more than insert, so that's fine
+22:53 < Ryozuki> it currently creates the db automatically

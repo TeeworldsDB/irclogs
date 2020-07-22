@@ -1,0 +1,165 @@
+01:24 < ddnet-commits> [ddnet] heinrich5991 opened pull request #1037: Update README.md instructions for installing dependencies (master...pr_ddnet_cmake_readme_dependencies) https://git.io/vAWOY
+01:37 < ddnet-commits> [ddnet] heinrich5991 opened pull request #1038: Support older wavpack versions  (master...pr_ddnet_cmake_revert) https://git.io/vAWOh
+06:47 < ddnet-commits> [ddnet] def- closed pull request #1037: Update README.md instructions for installing dependencies (master...pr_ddnet_cmake_readme_dependencies) https://git.io/vAWOY
+13:53 <@heinrich5991> deen: do you have some time right now to compare our setups wrt. https://github.com/ddnet/ddnet/pull/1038
+13:54 <@heinrich5991> I do `mkdir pnglite;cmake .. -DPREFER_BUNDLED_LIBS=ON;make`
+13:54 <@heinrich5991> and it compiles
+13:55 <@heinrich5991> `$ git rev-parse HEAD; cmake --version | head -n1`
+13:56 <@heinrich5991> `73c03544b4523ebeef55b9d4032a33bddbb47e2f`
+13:56 <@heinrich5991> `cmake version 3.10.1`
+13:59 <+bridge> [ddnet] <deen> b14370e6adae096231a3aa6821be3987c13630b2
+13:59 <+bridge> [ddnet] <deen> cmake version 3.10.2
+14:01 <+bridge> [ddnet] <heinrich5991> can you try executing the exact command line that I executed, if you haven't already?
+14:01 <+bridge> [ddnet] <deen> I have
+14:01 <+bridge> [ddnet] <heinrich5991> ok
+14:02 <+bridge> [ddnet] <deen> CMake Error: The following variables are used in this project, but they are set to NOTFOUND.
+14:02 <+bridge> [ddnet] <deen> Please set them or make sure they are set and tested correctly in the CMake files:
+14:02 <+bridge> [ddnet] <deen> PNGLITE_LIBRARIES (ADVANCED)
+14:03 <+bridge> [ddnet] <heinrich5991> oh, I'm missing a `cd pnglite` in my command
+14:03 <+bridge> [ddnet] <deen> I did that of course 😉
+14:03 <+bridge> [ddnet] <heinrich5991> kk 😉
+14:04 <+bridge> [ddnet] <Ryozuki> 😌
+14:09 <+bridge> [ddnet] <heinrich5991> this doesn't make sense 😦
+14:12 <+bridge> [ddnet] <heinrich5991> ```
+14:12 <+bridge> [ddnet] <heinrich5991> diff --git a/cmake/FindPnglite.cmake b/cmake/FindPnglite.cmake
+14:12 <+bridge> [ddnet] <heinrich5991> index b011a5011..7c327684e 100644
+14:12 <+bridge> [ddnet] <heinrich5991> --- a/cmake/FindPnglite.cmake
+14:12 <+bridge> [ddnet] <heinrich5991> +++ b/cmake/FindPnglite.cmake
+14:12 <+bridge> [ddnet] <heinrich5991> @@ -17,7 +17,11 @@ if(NOT PREFER_BUNDLED_LIBS)
+14:12 <+bridge> [ddnet] <heinrich5991>  
+14:12 <+bridge> [ddnet] <heinrich5991>    mark_as_advanced(PNGLITE_LIBRARY PNGLITE_INCLUDEDIR)
+14:12 <+bridge> [ddnet] <heinrich5991>  
+14:12 <+bridge> [ddnet] <heinrich5991> +  message(STATUS "shouldn't happen ${PNGLITE_LIBRARY} ${PNGLITE_INCLUDEDIR}")
+14:12 <+bridge> [ddnet] <heinrich5991> +
+14:12 <+bridge> [ddnet] <heinrich5991>    if(PNGLITE_LIBRARY AND PNGLITE_INCLUDEDIR)
+14:12 <+bridge> [ddnet] <heinrich5991> +    message(STATUS "HOW??? ${PNGLITE_LIBRARY} ${PNGLITE_INCLUDEDIR}")
+14:12 <+bridge> [ddnet] <heinrich5991> +
+14:12 <+bridge> [ddnet] <heinrich5991>      include(FindPackageHandleStandardArgs)
+14:12 <+bridge> [ddnet] <heinrich5991>      find_package_handle_standard_args(Pnglite DEFAULT_MSG PNGLITE_LIBRARY PNGLITE_INCLUDEDIR)
+14:12 <+bridge> [ddnet] <heinrich5991>  
+14:12 <+bridge> [ddnet] <heinrich5991> ```
+14:12 <+bridge> [ddnet] <heinrich5991> @deen can you apply this patch and tell me whether "shouldn't happen appears in the output"?
+14:13 <+bridge> [ddnet] <heinrich5991> @deen can you apply this patch and tell me whether "shouldn't happen" appears in the output?
+14:19 <+bridge> [ddnet] <deen> no
+14:19 <+bridge> [ddnet] <deen> no additional messages
+14:21 <+bridge> [ddnet] <heinrich5991> could you post the `CMakeCache.txt`?
+14:22 <+bridge> [ddnet] <deen> ah^^
+14:22 <+bridge> [ddnet] <deen> deleting that file helps
+14:23 <+bridge> [ddnet] <deen> but should that be necessary?
+14:23 <+bridge> [ddnet] <deen> it's not even in the build directory, right?
+14:23 <+bridge> [ddnet] <deen> ah, no, even worse
+14:23 <+bridge> [ddnet] <deen> cmake takes the CMakeCache.txt from src-directory if it's there, even if it builds somewhere else
+14:23 <+bridge> [ddnet] <deen> sounds like a bug
+14:24 <+bridge> [ddnet] <deen> stat("..", {st_mode=S_IFDIR|0755, st_size=4096, ...}) = 0
+14:24 <+bridge> [ddnet] <deen> getcwd("/media/ddnet/pnglite", 2048)    = 21
+14:24 <+bridge> [ddnet] <deen> access("/media/ddnet/CMakeCache.txt", R_OK) = -1 ENOENT (No such file or directory)
+14:24 <+bridge> [ddnet] <deen> access("/media/ddnet/CMakeLists.txt", R_OK) = 0
+14:24 <+bridge> [ddnet] <deen> getcwd("/media/ddnet/pnglite", 2048)    = 21
+14:24 <+bridge> [ddnet] <deen> access("/media/ddnet/pnglite/CMakeCache.txt", R_OK) = 0
+14:24 <+bridge> [ddnet] <deen> openat(AT_FDCWD, "/media/ddnet/pnglite/CMakeCache.txt", O_RDONLY) = 3
+14:24 <+bridge> [ddnet] <heinrich5991> ahh
+14:24 <+bridge> [ddnet] <deen> even before the own one
+14:25 <+bridge> [ddnet] <heinrich5991> `cmake [<options>] (<path-to-source> | <path-to-existing-build>)`
+14:25 <+bridge> [ddnet] <heinrich5991> that's unfortunately not a bug, but a feature 😦
+14:25 <+bridge> [ddnet] <deen> meh
+14:26 <+bridge> [ddnet] <deen> sounds like they need a flag --really-this-is-the-source=<path-to-source>
+14:26 <+bridge> [ddnet] <deen> interesting, there's also a PreLoad.cmake
+14:26 <+bridge> [ddnet] <heinrich5991> they have an undocumented flag that they refuse to document IIRC
+14:27 <+bridge> [ddnet] <deen> so when using cmake never build in the src directory I guess...
+14:27 <+bridge> [ddnet] <heinrich5991> well, it's not that bad, but you can't have other builds then
+14:28 <+bridge> [ddnet] <heinrich5991> `cmake -H.. -B.`
+14:30 <+bridge> [ddnet] <heinrich5991> `-H` for source directory, `-B` for build directory. but they explicitly don't support these flags officially
+17:10 <@Nimda> Arcadian by Jimmy Jazz & Soapy Sandwich just released on Brutal at 2018-02-16 18:00
+17:10 <@Nimda> Quick by Deeper just released on Solo at 2018-02-10 16:30
+17:10 <@Nimda> Flux by Pulsar just released on Brutal at 2018-02-07 18:00
+17:10 <@Nimda> Dynasty by Cellegen just released on Solo at 2018-02-02 16:30
+17:10 <@Nimda> Sky Stone by Tropo just released on Moderate at 2018-01-27 16:30
+17:10 <@Nimda> Cave Fly by Im 'corneum just released on Solo at 2018-01-20 16:30
+17:10 <@Nimda> rizek by Fňokurka oo7 just released on Moderate at 2018-01-10 19:14
+17:10 <@Nimda> Skave by Im 'corneum just released on Brutal at 2018-01-06 16:30
+17:10 <@Nimda> Back in Time by Silex & StorмPʜöɴix just released on Brutal at 2017-12-30 18:30
+17:10 <@Nimda> ChillDontKill by ChillerDragon just released on Brutal at 2017-12-22 18:00
+17:10 <@Nimda> Sparadrap by clefairy' just released on Solo at 2017-12-12 18:00
+17:11 <@Nimda> blur by Im 'corneum just released on Brutal at 2017-12-09 16:30
+17:11 <@Nimda> Stronghold 2 by Pipou just released on Brutal at 2017-12-02 16:00
+17:11 <@Nimda> Binary by Pulsar just released on Insane at 2017-11-18 16:30
+17:11 <@Nimda> Rope swing by Mokuz just released on Solo at 2017-11-15 18:00
+17:11 <@Nimda> Nightstar by ΔWΞSƟΜΞ & AmaZiinG just released on Brutal at 2017-11-05 16:30
+17:11 <@Nimda> Offpanic by Themix just released on Brutal at 2017-10-11 19:52
+17:11 <@Nimda> Sooth by Michel just released on Brutal at 2017-10-07 16:30
+17:11 <@Nimda> Stop Over 1.0 by N9mkOik just released on Solo at 2017-09-22 18:00
+17:11 <@Nimda> Guhimbarwa by maggi323 just released on Moderate at 2017-09-20 18:00
+17:11 <+bridge> [ddnet] <jao> spam
+17:12 <+bridge> [ddnet] <jao> someone should fix that shit
+17:13 <+bridge> [ddnet] <ChillerDragon> ye pls give sp someone server access he can fix it
+17:17 <+bridge> [ddnet] <Alexander_> I guess this is the right place to ask
+17:17 <+bridge> [ddnet] <Alexander_> But
+17:17 <+bridge> [ddnet] <Alexander_> TeeWorlds needs Rich Embed
+17:17 <+bridge> [ddnet] <Alexander_> And I'm thinking of it like
+17:18 <+bridge> [ddnet] <Alexander_> The icon could be like your Tee and it could say what server/map you are playing on
+17:18 <+bridge> [ddnet] <Alexander_> would be a nice addon to ddnet client
+17:21 <+bridge> [ddnet] <jao> what is Rich Embed?
+17:22 <+bridge> [ddnet] <heinrich5991> I also don't know the term
+17:24 <+bridge> [ddnet] <Ryozuki> oh
+17:25 <+bridge> [ddnet] <Ryozuki> he means `discord rich presence` https://discordapp.com/rich-presence
+17:25 <+bridge> [ddnet] <Ryozuki> when you click on  a user to see its info you can see extra info
+17:26 <+bridge> [ddnet] <Ryozuki> for example in teeworlds would be on what sv he is playing
+17:26 <+bridge> [ddnet] <Ryozuki> and what map
+17:26 <+bridge> [ddnet] <Ryozuki> and players
+17:26 <+bridge> [ddnet] <jao> ah for advanced stalking
+17:26 <+bridge> [ddnet] <Ryozuki> uh i dont think so
+17:26 <+bridge> [ddnet] <Ryozuki> i can add u to my friend list in tw and stalk you
+17:26 <+bridge> [ddnet] <Ryozuki> it changes nothing
+17:26 <+bridge> [ddnet] <jao> yes, this is the advanced version of it
+17:26 <+bridge> [ddnet] <Ryozuki> nope
+17:26 <+bridge> [ddnet] <jao> don't even have to open tw 😄
+17:27 <+bridge> [ddnet] <Ryozuki> https://ddnet.tw/status/ go here, control+f and type the name of player
+17:27 <+bridge> [ddnet] <Ryozuki> u dont have to open tw :happy:
+17:27 <+bridge> [ddnet] <jao> but you have to type and go on a seperate website
+17:31 <+bridge> [ddnet] <ChillerDragon> there is this stalkee website
+17:31 <+bridge> [ddnet] <ChillerDragon> what was it called
+17:32 <+bridge> [ddnet] <jao> teestalker
+17:32 <+bridge> [ddnet] <ChillerDragon> ye?
+17:32 <+bridge> [ddnet] <jao> y
+17:32 <+bridge> [ddnet] <ChillerDragon> https://www.teestalker.com/
+17:32 <+bridge> [ddnet] <ChillerDragon> xd
+17:32 <+bridge> [ddnet] <ChillerDragon> whats the url?
+17:32 <+bridge> [ddnet] <jao> no one is hosting it afaik
+17:32 <+bridge> [ddnet] <ChillerDragon> oh .-.
+17:32 <+bridge> [ddnet] <jao> https://github.com/Piepow/TeeStalker
+17:32 <+bridge> [ddnet] <ChillerDragon> i used it some time ago
+17:32 <+bridge> [ddnet] <jao> who did you stalk
+17:33 <+bridge> [ddnet] <ChillerDragon> heueueueu
+17:33 <+bridge> [ddnet] <ChillerDragon> some1 has to host it agian
+17:33 <+bridge> [ddnet] <ChillerDragon> great tool
+17:34 <+bridge> [ddnet] <ChillerDragon> @snail your are vil lul?
+17:34 <+bridge> [ddnet] <ChillerDragon> evil*
+17:34 <+bridge> [ddnet] <jao> i doubt it's worth it
+17:34 <+bridge> [ddnet] <ChillerDragon> http://puu.sh/zpMhh/14afafa8bd.jpg
+17:35 <+bridge> [ddnet] <jao> y he is evil
+17:35 <+bridge> [ddnet] <ChillerDragon> didnt expect that
+17:36 <+bridge> [ddnet] <jao> bad stalker
+17:36 <+bridge> [ddnet] <ChillerDragon> Rei got haxxored .-.
+17:36 <+bridge> [ddnet] <ChillerDragon> @ReiTW | Blizzard Team  :c
+17:36 <+bridge> [ddnet] <ChillerDragon> check master guiis
+17:37 <+bridge> [ddnet] <ReiTW | Blizzard Team> @ChillerDragon hm?
+17:49 <+bridge> [ddnet] <ReiTW | Blizzard Team> @heinrich5991 when you're there
+17:49 <+bridge> [ddnet] <ReiTW | Blizzard Team> lets private
+20:16 < ddnet-commits> [ddnet] def- closed pull request #1038: Support older wavpack versions  (master...pr_ddnet_cmake_revert) https://git.io/vAWOh
+20:16 < ddnet-commits> [ddnet] def- closed pull request #1021: CMakeLists.txt: enable using system libwebsockets, pnglite, wavpack (master...temp2) https://git.io/vNhA0
+22:08 <+bridge> [ddnet] <ChillerDragon> https://i.imgur.com/ZChQclS.png
+22:08 <+bridge> [ddnet] <ChillerDragon> how is this possible?
+22:09 <+bridge> [ddnet] <ChillerDragon> server 149.202.127.134:8309
+22:09 <+bridge> [ddnet] <ChillerDragon> has no ping address gametype or map and isnt listed in master?
+22:09 <+bridge> [ddnet] <ChillerDragon> whats going wrong?
+22:22 <+bridge> [ddnet] <fokkonaut> its in master and the info is there aswell
+22:22 <+bridge> [ddnet] <fokkonaut> may be your client/internet
+22:22 <+bridge> [ddnet] <ChillerDragon> no its ddnet
+22:22 <+bridge> [ddnet] <fokkonaut> i mean
+22:22 <+bridge> [ddnet] <ChillerDragon> it can be found on status.tw and with vanilla clients
+22:23 <+bridge> [ddnet] <ChillerDragon> it says registerd in the master as well
+22:23 <+bridge> [ddnet] <fokkonaut> i can find it too
+22:23 <+bridge> [ddnet] <fokkonaut> it is
+22:23 <+bridge> [ddnet] <fokkonaut> obviously
+22:23 <+bridge> [ddnet] <fokkonaut> because i see it in INTERNET
+22:23 <+bridge> [ddnet] <fokkonaut> and the info from screenshot is there too

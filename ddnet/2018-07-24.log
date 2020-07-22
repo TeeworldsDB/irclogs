@@ -1,0 +1,204 @@
+08:03 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/fN4W2
+08:03 < ddnet-commits> ddnet/master 2b1df78 Dennis Felsing: Version 11.3
+08:13 <+Learath2> deen: can you compile ddnet on mac?
+08:13 <@deen> for mac
+08:13 <@deen> not on
+08:19 <+Learath2> another question, what's our guaranteed bw on nfo?
+08:20 <@deen> none
+08:21 <+Learath2> oh that makes more sense, I was thinking the 60 odd megs we get from this attack shouldn't matter if we let it through
+08:23 <@deen> I don't know about any shared hoster offering guaranteed network speed
+08:24 <@deen> and sometimes they will just turn you off entirely
+08:31 <+Learath2> deen: I was thinking whether a hoster offering guaranteed network speed would suit us better, but I'm not sure how the teeworlds server code will take the incoming packets
+08:33 <@deen> by overloading the kernel obv
+08:33 <@deen> I never got to write that recvmmsg/sendmmsg stuff that would help a ton here
+08:35 <+Learath2> well I can give it a look
+08:36 <@deen>   Instantiate it for send(2x)+recv(1x) in network_{client,server}.cpp
+08:36 <@deen>   First call net_udp_recv_mmsg(NETSOCKET sock, mmsghdr *msgs, int maxmsgs);
+08:36 <@deen>   Then call net_udp_recv_mmsg2 to get out the read messages (while loop)
+08:37 <+Learath2> will our single thread networking even allow something like a 500mbps attack not to disturb the gqme performance?
+08:39 <@deen> will have to measure, at least it would be much better than what we currently have
+08:40 <@deen> and then you can recvmmsg from multiple threads at once if it's not enough, but most of our servers are single core anyway
+08:40 <@deen> Ryozuki: client released
+08:46 <+Learath2> deen: what do you mean instantiate it btw?
+08:48 <@deen> good question, wrote that long ago :D
+08:48 <@deen> filling the data structure with the results of a recvmmsg call
+08:48 <@deen> and then later just loop over it to have the least amount of code changes
+08:49 <+Learath2> and what does the 2x and the 1x mean?
+08:51 <@deen> I guess we have two differnet kinds of sends, so need two sendmmsgs?
+08:51 <@deen> not sure
+08:56 <+Learath2> heh, you know what would be a cute way not to have many code changes? If C++ had coroutines :)
+09:02 <@deen> sure
+09:11 <@deen> just wait for c++20
+09:12 <@deen> (or possibly the one after that, I don't think they've decided on the coroutine proposal yet)
+09:36 <@deen> Ryozuki: client released
+09:36 < Ryozuki> :D
+09:36 < Ryozuki> i'm gonna write changelog now
+09:36 <@deen> Thanks
+09:52 < Ryozuki> done
+11:27 <+bridge> [ddnet] <Jupstar ✪> Yeah that was about the margin functions .. Hmargin doesn't create a horizontal margin but a margin between the horizontal line as Heinrich described. Not really intuitive at the beginning but ok
+11:30 <+bridge> [ddnet] <Jupstar ✪> Yeah that was about the margin functions .. Hmargin doesn't create a horizontal margin (between the two rects) but a margin between the horizontal line as Heinrich described. Not really intuitive at the beginning but ok
+12:00 < Ryozuki> deen, https://forum.ddnet.tw/viewtopic.php?f=33&t=6581
+12:03 <+bridge> [ddnet] <fokkonaut> @heinrich5991 is it possible to create the dummy for multiple servers by somehow changing the address from NetClient[1].Connect in DummyConnect() in engine\client\client.cpp?
+12:05 <+bridge> [ddnet] <heinrich5991> I honestly don't know what will break then ^^
+12:05 <+bridge> [ddnet] <heinrich5991> try it out 🙂
+12:07 <+bridge> [ddnet] <fokkonaut> i tried, but cant really figure out how. The parameter needs to be a NETADDR but i dont know what exactly it is
+12:15 <@deen> Ryozuki: thanks, news posts written
+12:16 < Ryozuki> thank you :P
+12:17 < Ryozuki> it's funny 'cause i write "Please abstain from posting useless posts in this thread (such as "lol", "wtf", etc), sharing your opinion and bugs is fine." and the second post is already "lmao"
+12:18 < Ryozuki> so sad
+12:18 <+bridge> [ddnet] <heinrich5991> a `NETADDR` is either an IPv4 address or an IPv6 address
+12:18 <+bridge> [ddnet] <heinrich5991> + a port
+12:19 <@heinrich5991> even I didn't see that, and I thought I read the post :o
+12:21 <+bridge> [ddnet] <fokkonaut> give me an example please
+12:24 <+bridge> [ddnet] <heinrich5991> ```
+12:24 <+bridge> [ddnet] <heinrich5991> NETADDR Addr;
+12:24 <+bridge> [ddnet] <heinrich5991> if(net_addr_from_str(&Addr, "127.0.0.1:8303"))
+12:24 <+bridge> [ddnet] <heinrich5991> {
+12:24 <+bridge> [ddnet] <heinrich5991>     /* error parsing the address */
+12:24 <+bridge> [ddnet] <heinrich5991> }
+12:24 <+bridge> [ddnet] <heinrich5991> ```
+12:25 <+bridge> [ddnet] <fokkonaut> ```
+12:25 <+bridge> [ddnet] <fokkonaut> m_NetClient[1].Connect(&m_ServerAddress);```
+12:25 <+bridge> [ddnet] <fokkonaut> this is the code
+12:26 <+bridge> [ddnet] <fokkonaut> unedited
+12:26 <+bridge> [ddnet] <fokkonaut> m_ServerAddress is  a NETADDR
+12:29 <+bridge> [ddnet] <fokkonaut> i cant get it to wotrk
+12:29 <+bridge> [ddnet] <fokkonaut> i cant get it to work
+12:30 <+bridge> [ddnet] <heinrich5991> what do you mean?
+12:30 <+bridge> [ddnet] <fokkonaut> ah wait a sec^^
+12:33 <+bridge> [ddnet] <fokkonaut> hahaaa
+12:33 <+bridge> [ddnet] <fokkonaut> it works
+12:33 <+bridge> [ddnet] <fokkonaut> i mean
+12:33 <+bridge> [ddnet] <fokkonaut> my dummy is on another server
+12:33 <+bridge> [ddnet] <fokkonaut> and i get server messages from it
+12:34 <+bridge> [ddnet] <fokkonaut> but my client doesnt show im on if i switch to the dummy
+12:34 <+bridge> [ddnet] <fokkonaut> i really think someone can make this happen
+12:35 <+bridge> [ddnet] <fokkonaut> i can even chat on the other server without seeing it xD
+12:36 <+bridge> [ddnet] <fokkonaut> and emotes work too
+12:44 <+bridge> [ddnet] <fokkonaut> about the checkbox thing @heinrich5991
+12:44 <+bridge> [ddnet] <fokkonaut> ```    if (DoButton_CheckBox(&g_Config.m_ClReplaceVanillaSkins, Localize("Kitty skins (DDCat)"), g_Config.m_ClReplaceVanillaSkins, &ReplaceVanillaSkins))
+12:44 <+bridge> [ddnet] <fokkonaut> ````
+12:44 <+bridge> [ddnet] <fokkonaut> ```    if (DoButton_CheckBox(&g_Config.m_ClReplaceVanillaSkins, Localize("Kitty skins (DDCat)"), g_Config.m_ClReplaceVanillaSkins, &ReplaceVanillaSkins))
+12:44 <+bridge> [ddnet] <fokkonaut> ```
+12:45 <+bridge> [ddnet] <fokkonaut> the first parameter is the ID you said
+12:45 <+bridge> [ddnet] <fokkonaut> but how can i make a different one for the coala checkbox?
+13:01 <+bridge> [ddnet] <Learath2> Well the address of the config option should be unique enough, why do you want another one?
+13:03 <+bridge> [ddnet] <fokkonaut> if i click the one box the other will be clicked too
+13:15 <+bridge> [ddnet] <fokkonaut> @heinrich5991
+13:16 <+bridge> [ddnet] <fokkonaut> ```    ReplaceVanillaSkins.HSplitTop(20.0f, &ReplaceVanillaSkinsLabel, &ReplaceVanillaSkins);
+13:16 <+bridge> [ddnet] <fokkonaut> 
+13:16 <+bridge> [ddnet] <fokkonaut>     if (DoButton_CheckBox(&g_Config.m_ClReplaceVanillaSkins, Localize("Kitty skins (DDCat)"), g_Config.m_ClReplaceVanillaSkins==1, &ReplaceVanillaSkinsLabel))
+13:16 <+bridge> [ddnet] <fokkonaut>     {
+13:16 <+bridge> [ddnet] <fokkonaut>         g_Config.m_ClReplaceVanillaSkins = 1;
+13:16 <+bridge> [ddnet] <fokkonaut>     }
+13:16 <+bridge> [ddnet] <fokkonaut> 
+13:16 <+bridge> [ddnet] <fokkonaut>     ReplaceVanillaSkins.HSplitTop(20.0f, &ReplaceVanillaSkinsLabel, &ReplaceVanillaSkins);
+13:16 <+bridge> [ddnet] <fokkonaut> 
+13:16 <+bridge> [ddnet] <fokkonaut>     if (DoButton_CheckBox(&g_Config.m_ClReplaceVanillaSkins, Localize("Coala skins (DDCoala)"), g_Config.m_ClReplaceVanillaSkins==2, &ReplaceVanillaSkinsLabel))
+13:16 <+bridge> [ddnet] <fokkonaut>     {
+13:16 <+bridge> [ddnet] <fokkonaut>         g_Config.m_ClReplaceVanillaSkins = 2;
+13:16 <+bridge> [ddnet] <fokkonaut>     }```
+13:16 <+bridge> [ddnet] <fokkonaut> what to do
+13:17 <+bridge> [ddnet] <fokkonaut> @heinrich5991 how can i use different IDs for the checkboxes
+13:18 <+bridge> [ddnet] <fokkonaut> because the config var is the same
+13:18 <+bridge> [ddnet] <fokkonaut> due to the prefix
+13:31 <+bridge> [ddnet] <fokkonaut> @Learath2 do you know that?
+13:43 < ddnet-commits> [ddnet] fokkonaut opened pull request #1218: added coala skins (DDCoala) (master...master) https://git.io/fN41m
+14:02 <@deen> Why do you want check boxes?
+14:02 <@deen> Why not just let the user enter a string like coala or kitty
+14:03 <@heinrich5991> I think check boxes are fine
+14:03 <@heinrich5991> not much that the user could enter there
+14:03 <@heinrich5991> the config should be a string though, IMO
+14:12 <@deen> well, user could copy their own skins in, but ok
+14:23 <+bridge> [ddnet] <fokkonaut> can we allow zooming out one time on any server? my defualt zoom is 9 because my screen is bigger than others and zoom 10 looks ugly
+14:28 <+bridge> [ddnet] <onby> wtf no dont make ddnet a cheat client
+14:28 <@deen> Well, it gives you advantages
+14:28 <@deen> so i'd consider it unfair
+14:28 <@deen> You can play in a smaller window
+14:31 < Ryozuki> deen, can you edit the news a bit? The moderate map is made by hi_leute_gll and Meliodafu
+14:31 < Ryozuki> forgot to tell you sorry
+14:31 <@deen> oops
+14:31 <@deen> you told me about 2 mappers at some point, I just forgot
+14:32 < Ryozuki> (the solo map is by hileute only)
+14:36 <@deen> I moved some old teehistorian data over to ddnet.tw, now GER has more capacity again
+15:11 <+bridge> [ddnet] <heinrich5991> @fokkonaut that gives an unfair advantage in some game modes
+15:16 <+bridge> [ddnet] <fokkonaut> true
+15:24 <+bridge> [ddnet] <fokkonaut> why are some in config_variables.h and some in variables.h?
+15:25 <+bridge> [ddnet] <heinrich5991> I don't know
+15:25 <+bridge> [ddnet] <heinrich5991> presumably because some are more game-related (in `src/game`) and some are more engine-related (in `src/engine`)
+15:52 <+bridge> [ddnet] <ReiTW | Blizzard> @fokkonaut there is a lot more to do to make it work
+16:06 <+bridge> [ddnet] <fokkonaut> @heinrich5991 how do check if the var is empty or not?
+16:06 <+bridge> [ddnet] <heinrich5991> check whether the first element is 0
+16:06 <+bridge> [ddnet] <fokkonaut> how
+16:06 <+bridge> [ddnet] <heinrich5991> `if(g_Config.m_ClVanillaSkinPrefix[0])`
+16:07 <+bridge> [ddnet] <heinrich5991> this is "if the string is nonempty"
+16:07 <+bridge> [ddnet] <fokkonaut> ok^^
+16:12 <+bridge> [ddnet] <fokkonaut> ok im done
+16:15 <+bridge> [ddnet] <fokkonaut> @heinrich5991 look at github
+16:15 <+bridge> [ddnet] <heinrich5991> you didn't like the checkboxes anymore?
+16:16 <+bridge> [ddnet] <fokkonaut> yep
+16:16 <+bridge> [ddnet] <heinrich5991> that doesn't really seem discoverable to me anymore
+16:16 <+bridge> [ddnet] <fokkonaut> what do you mean?
+16:17 <+bridge> [ddnet] <heinrich5991> ah, you added it to the UI
+16:17 <+bridge> [ddnet] <heinrich5991> mh
+16:17 <+bridge> [ddnet] <heinrich5991> adding a check whether the prefix is already contained in the skin name would allow some deduplication of the skins
+16:18 <+bridge> [ddnet] <heinrich5991> "// index 0 and 7 are bluekitty and limekitty"
+16:18 <+bridge> [ddnet] <fokkonaut> so i need to check if the input is kitty and i != 0 and 7?
+16:18 <+bridge> [ddnet] <heinrich5991> no
+16:18 <+bridge> [ddnet] <fokkonaut> for kitty now
+16:18 <+bridge> [ddnet] <fokkonaut> why
+16:18 <+bridge> [ddnet] <heinrich5991> you can check whether kitty is contained in the skin name
+16:18 <+bridge> [ddnet] <heinrich5991> whether the prefix is already contained in the skin name
+16:19 <+bridge> [ddnet] <fokkonaut> that is too hard for me heinrich
+16:19 <+bridge> [ddnet] <fokkonaut> you can merge this and then add that?
+16:19 <+bridge> [ddnet] <heinrich5991> the function `str_find` in src/base/system.h does what you need
+16:20 <+bridge> [ddnet] <fokkonaut> ???^^
+16:20 <+bridge> [ddnet] <fokkonaut> i dont know if that would be reliable at all
+16:20 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/blob/2b1df782d3254227af5e2c3614cdad26ccb5bcde/src/base/system.h#L1241-L1256
+16:21 <+bridge> [ddnet] <heinrich5991> whether the algorithm I described would be reliable or whether the function I gave you would be reliable?
+16:21 <+bridge> [ddnet] <fokkonaut> the algorithm
+16:22 <+bridge> [ddnet] <heinrich5991> mh. it's a heuristic, definitely
+16:22 <+bridge> [ddnet] <heinrich5991> it works for our use cases, at least
+16:22 <+bridge> [ddnet] <fokkonaut> mhh
+16:24 <+bridge> [ddnet] <heinrich5991> hmm
+17:19 <+bridge> [ddnet] <qshar> hmh
+17:26 < ddnet-commits> [ddnet] heinrich5991 closed pull request #1218: added skin prefix (master...master) https://git.io/fN41m
+17:52 < ddnet-commits> [ddnet] bojidar-bg opened pull request #1219: Changing vanila skins option no longer requires restart (master...1216-vanila-skins-no-restart) https://git.io/fNBsD
+18:06 < ddnet-commits> [ddnet] heinrich5991 opened pull request #1220: Add some UI for the skin prefix stuff (master...pr_ddnet_ui_skinprefix) https://git.io/fNBZV
+18:59 < bano> I can use sendmmsg too, i know how to use it with raw sockets, so what's your point, and my real dedicated servers have more cores and ram than what your shitty nfo virtual dedicated server will ever have. You won't win this war, cuz i am willing to spend more money than you. This is like a pay to win game, i pay more then i will win, deal with it.
+20:14 <+Ryozuki> what does voice?
+20:14 <+Ryozuki> (from what i recall u could talk without it)
+20:14 <@heinrich5991> you only talk with voice if the channel has mode +m
+20:14 <@heinrich5991> *you can only
+20:14 <+Ryozuki> how to check channel modes
+20:15 <@heinrich5991> depends on your client
+20:15 <@heinrich5991> for me, it's in the top right of my window
+20:15 <+Ryozuki> hmm im using hexchat
+20:15 <@heinrich5991> ah, you can maybe try /mode #ddnet
+20:16 <+Ryozuki> +mtCN 
+20:16 <+Ryozuki> works
+20:45 <@heinrich5991> Ryozuki: mind rejoining the channel? I'd like to test my bot
+20:46 <+Ryozuki> sure
+20:46 <@heinrich5991> cool, thanks :)
+20:47 <+Ryozuki> btw when you whois someone u don't see his ip right? it's confusing because i think if you whois urself you see ur ip
+20:47 <@heinrich5991> I see your IP address
+20:47 <+Ryozuki> :O
+20:47 <+Ryozuki> even if im logged in?
+20:47 <@heinrich5991> you can remedy this by logging into Q and setting mode +x
+20:47 <+Ryozuki> i am logged in
+20:47 <@heinrich5991> /mode Ryozuki +x
+20:48 <+Ryozuki> oh nice
+20:48 <+Ryozuki> this will save forever?
+20:48 <@heinrich5991> now I don't see your IP address anymore
+20:48 <@heinrich5991> need this everytime you log into quakenet
+20:48 <@heinrich5991> there should be a setting for this in your client
+20:48 <+Ryozuki> ok ill add to settings
+20:49 <+Ryozuki> ill test
+20:49 <+Ryozuki> yay
+20:49 <@heinrich5991> works :)
+20:50 <@heinrich5991> deen: could you give me +m (that way, I could give people +o in this channel, permanently), or use Q to set +o on ddvoice?
+22:31 <@deen> how to do that?
+22:31 <@deen> heinrich5991: ^
+22:32 <@heinrich5991> /msg Q chanlev #ddnet heinrich5991 +m
+22:32 <@deen> done
+22:33 <@heinrich5991> thanks, works

@@ -1,0 +1,141 @@
+09:47 < Shiki> Hi guys
+09:48 < Shiki> could someone please enlighten me what's the story behind "crashmeplx" in rcon?
+09:48 < Shiki> https://github.com/def-/ddnet/search?utf8=%E2%9C%93&q=crashmeplx
+09:49 < Shiki> I saw comments in src/game/client/gameclient.cpp, but I don't find them very clarifying
+09:49 < Shiki> I saw "crashmeplx" frequently in my vanilla server rcon logs and wonder what is that
+09:55 <@EastByte> Shiki: it's and indicator for ddrace/ddnet client
+09:55 <@EastByte> supporting 64 players
+09:57 < Shiki> hm, it makes my vanilla server logs looks pretty messy :)
+09:57 <@EastByte> ^^
+09:57 < Shiki> is it possible to check servertype before sending this "command"?
+09:57 < Shiki> or there's no such info available at that moment?
+10:00 < Shiki> I'd prefer not seeing such lines in 16 players ctf server logs, so I it looks like an issue to me
+10:00 < Sadale> I also saw crashmeplx in my rcon
+10:06 <@EastByte> Should be possible
+10:06 < Shiki> ok, I create an issue for now then
+10:06 <@EastByte> okay
+10:07 < Shiki> if none is willing to implement it, then I can
+12:39 <@deen> it's not an indiciation for ddrace/ddnet client, it's an indication that this client can receive more than 16 player objects
+12:39 <@deen> because if a client can't, you end up crashing the client
+12:39 <@EastByte> okay, I got that wrong
+12:39 <@deen> end I would appreciate if we don't change this behaviour, as it might break a few mods that rely on crashmeplx being sent to indicate 32/34/64/whatever player support
+12:40 <@deen> city mods use that as well afaik
+12:40 <@deen> i also tried removing it once, but that caused some problems
+12:42 <@EastByte> but what about vanilla gametypes?
+12:42 <@deen> what's with them?
+12:43 < Shiki> maybe gametype can be checked at least for dm/ctf/tdm before sending crashmeplx?
+12:43 < Shiki> it just occurred to me as strange seeing player auth in rcon and right after that seeing "crashmeplx"
+12:44 <@EastByte> if we know the gametype we can should atleast prevent crashmeplx on vanilla gametypes
+12:44 <@EastByte> -can
+12:44 < Shiki> also, what's the exact purpose of that, how does it work? :O
+12:45 < Shiki> server sends info about 64 players only if it recieves crashmeplx?
+12:45 <@EastByte> the vanilla client only supports 16 player objects
+12:45 <@EastByte> yes
+12:46 < Shiki> hmmm, why not use something like empty echo instead?
+12:46 <@deen> empty echo?
+12:46 <@deen> i didn't invent this, I just added it to ddnet client because i noticed that it works with all 32/64 player servers
+12:47 <@EastByte> yea we can't change that
+12:47 < Shiki> "echo "
+12:47 <@EastByte> ^ still would cause rcon logs
+12:47 <@deen> probably the fault of eeeee and fstd 
+12:47 <@EastByte> ^.^
+12:47 < Shiki> yeah, I understand that it can't be changed now, I just complain that crashmeplx looks ugly and confusing :-)
+12:52 < Shiki> also, when is this line executed? https://github.com/def-/ddnet/blob/e97c8ac08f05205052728bdf5fd1b60a5c9c3a5f/src/engine/client/client.cpp#L1922
+12:52 <@deen> Shiki: when the server send the CON_READY netmsg?
+12:52 <@EastByte> on CON_READY :p
+12:52 <@deen> so immediately when connecting
+12:53 < Shiki> well, I can read the if, I just don't know when exactly corresponding msg is sent :P
+12:53 < Shiki> deen: thanks!
+12:54 <@EastByte> it's after the client loaded the map and sent NETMSG_READY
+12:54 <@deen> Shiki: https://github.com/def-/ddnet/blob/e97c8ac08f05205052728bdf5fd1b60a5c9c3a5f/src/engine/shared/protocol.h#L9-L27
+12:55 <@deen> oh, that's not as exact as i remembered
+12:55 <@deen> there must have been another diagram
+12:55 <@EastByte> right
+13:43 <@deen> DoNe using the ddnet stats: http://forum.ddnet.tw/viewtopic.php?f=3&t=1921
+13:50 <@deen> (I told him learning SQL would be valuable for that :P)
+15:23 <@deen> Looks like H-Client is adding the ffmpeg recording stuff: https://www.teeworlds.com/forum/viewtopic.php?pid=114921#p114921
+15:29 <@EastByte> "Basically i create a pipe and sent the buffer to ffmpeg."
+15:30 <@EastByte> pretty nice if you don't want to ship additional dependencies
+15:30 <@deen> sure, but most are on windows and no one has ffmpeg on windows
+15:30 <@deen> so it doesn't really matter whether you use libffmpeg or the binary
+15:31 <@EastByte> kinda
+15:31 <@deen> and i would prefer not to have this in the client and instead as an external tool
+15:31 <@deen> but if the H-Client stuff works well, we could ask unsigned char* if we can take it for ddnetclient
+15:31 <@EastByte> right
+15:32 <@deen> ouch, a static ffmpeg binary is 31 MB
+15:32 <@deen> definitely would prefer an external tool
+15:36 <@deen> oh, and h-client probably can't even open ddnet's new demo format, ouch
+15:40 < Learath2> I actially tried to read through the code and anything I could imagine looks uhm hacky
+16:05 < masoudd> ffmpeg is huge because it can literally convert from anything to anything (if it is possible to do, ffmpeg can do it). But teeworld doesn't need to do that, does it? only one video and one audio encoder would suffice
+16:10 < Edible> welp, you dont need to update ffmpeg that much
+16:55 < WolfAlex> deen: is it possible to disallow rcon for not secure connections (no ddnet client with token-thingy)
+17:48 < Learath2> we dont quite have to include all of ffmpeg which the static linked binary you found prolly has
+18:56 <@deen> WolfAlex: would make sense, i guess
+18:57 <@deen> masoudd: yeah, since ffmpeg is thaaat huge, maybe we should just use the most common codecs (x264 for video, ??? for audio, mp4 container?)
+18:59 < masoudd> deen: Maybe. I was thinking more like vp8/vorbis and mkv container (webm), but whatever works. We need to consider the time it takes to encode. I know x264 is fast but I'm not sure if it's fast enough to encode in real time.
+19:00 < masoudd> I think x264 commonly goes with aac in mp4 containers
+19:10 <@EastByte> https://i.imgur.com/iHge6RJ.jpg
+19:10 <@EastByte> I can't wait to join the windows 10 botnet
+19:12 < Learath2> :D 
+19:12 < Learath2> Engaging tin-foil protocol
+20:23 < eeeee> maybe we can fetch libffmpeg on-demand with the updater codez when user tries to access the feature?
+20:55 <@deen> still ping 100 on GER at many evenings from Deutsche Telekom net
+21:09 < Learath2> eeeee: I'm working on getting a client headless for now
+21:22 < fstd> Learath2: i have a headless client
+21:22 <@deen> Learath2: that's my preference, but now that I think about it, normal people would probably prefer it to be in-client =/
+21:22 < fstd> provided i can dig it out
+21:22 < Learath2> fstd: on your github i presume ?
+21:22 <@deen> not sure what to do
+21:22 < fstd> Learath2: not sure, i'll see if i find it
+21:23 <@EastByte> ehm, don't forget we need opengl
+21:23 < Learath2> deen: well pulling in libavcodec and libavformat and feeding them the frames seems to be enough
+21:26 < Learath2> oh and also me figuring out how teeworlds rendering works would be nice :D
+21:28 <@EastByte> I don't think sdl has some kind of headless mode
+21:29 < Learath2> sdl was only used to create the window iirc but not sure anymore :D
+21:30 <@EastByte> I don't think this will work
+21:31 <@EastByte> headless opengl rendering will require additinal libs anyways
+21:33 <@EastByte> by 'external tool' I thought about a demo player in an own binary
+21:33 <@EastByte> just to encode videos
+21:33 < Learath2> why reinvent demo playing while you can just hack it out of the client
+21:34 < Learath2> you'd need to reimplement most of the client anyways to have a working demo player
+21:34 <@EastByte> nope, it's just a stripped copy
+21:34 <@EastByte> but implementing it into the client directly would be easier either way
+21:35 <@EastByte> and you could even use it ingame
+21:36 < Learath2> that differance is just feed the frames to (libavc && SDL) || libavc
+21:36 <@EastByte> hm, I don't understand
+21:36 < Learath2> sdls only purpose here is to keep the window updated with OpenGLs rendering 
+21:37 <@EastByte> basically
+21:37 < Learath2> what I was thinking was just instead of giving SDL the frames to display I just give them to libavc to encode
+21:38 <@EastByte> it's not that simple :P
+21:38 < Learath2> do enlighten me
+21:40 <@EastByte> graphics acceleration
+21:40 <@EastByte> I'm not exactly sure
+21:41 <@EastByte> some graphics drivers render on screen directly
+21:41 <@deen> EastByte: i think we can still just use opengl, but render offscreen
+21:41 <@deen> but I've never done something like that, so I guess we'll see if it works^^
+21:41 <@EastByte> well I tried it
+21:41 <@EastByte> couldn't figure out how to create a headless opengl context
+21:42 <@EastByte> you could use a software rendering lib though
+21:42 <@deen> http://stackoverflow.com/questions/14785007/can-i-use-opengl-for-off-screen-rendering
+21:43 <@deen> and the linked duplicate too
+21:44 <@deen> Learath2: how are you planning to show the status, allow settings? command line?
+21:45 <@deen> also, I'm curious how quickly some people can convert demos to videos
+21:45 <@deen> I've seen people with 500 or more fps, so it will depend on how fast x264 is set and cpu
+21:45 < Learath2> no idea for now. more focused on where to hook in and how to get opengl to render to a framebuffer 
+21:46 <@EastByte> well my question would be how to get a gl rendering context without creating a window
+21:47 < Learath2> well a google search yields more then enough different ways for it
+21:48 <@EastByte> "The modern way to implement off-screen rendering is using a regular, but hidden window with the usual OpenGL context and a FBO as render target."
+21:48 <@deen> meh, but ok if that works
+21:48 < Learath2> also saw another one that suggested passing GetDesktopWindow as the window
+21:49 <@deen> that's useful in itself, I've always wanted a DDNet screensaver that shows random people racing
+21:50 < Learath2> well the answer did include as long as you dont try to display anything
+22:03 < fstd> more like screenruiner these days
+22:03 <@deen> fstd: don't worry, I'll get out my old CRT for it :P
+22:03 < fstd> fair enough ;)
+23:05 <@deen> i would really appreciate if hosters informed me when they lower prizes or offer more features for the servers, but don't give those to existing customers of course...
+23:05 <@deen> Found out today RUS could have 3 times the disk space and Chile could be 5 € cheaper
+23:25 < Learath2> Hetzner did the same thing I could get 2x the ram and 5x the storage for the same price but nope we better not tell our customers
+23:28 <@deen> yeah, found out similar stuff with GER and USA
+23:28 <@deen> guess I have to manually check every server from time to time...
+23:57 <@deen> any complaints about proposing ddnet client+server for a debian package?
+23:58 <@deen> just talked to a debian developer (the one who just added nim to debian unstable) and he says it looks good

@@ -1,0 +1,262 @@
+00:22 <+bridge> [ddnet] <ChillerDragon> yo any1 bored and wanna debug my guiless tw client? It only survives 2 seconds .-.
+00:22 <+bridge> [ddnet] <ChillerDragon> https://github.com/ChillerDragon/chillerbot-ng
+08:09 <@heinrich5991> Learath2: it has that
+08:09 <@heinrich5991> see the downloader client (it's maybe a bit unwieldy :/ )
+09:13 <@deen> heinrich5991: I mean just a client that gives you chat on the command line and lets you use console and rcon
+10:21 <+Learath2> deen: I always wanted to code one but never had the time, should be pretty easy with libtw already doing the work tho
+10:32 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/fAGlt
+10:32 < ddnet-commits> ddnet/master a63f210 Dennis Felsing: Fix segfault when deleting lock
+11:33 < ddnet-commits> [ddnet] def- pushed 2 new commits to master: https://git.io/fAGEf
+11:33 < ddnet-commits> ddnet/master 925f7b6 Dennis Felsing: Fix weird Windows compilation
+11:33 < ddnet-commits> ddnet/master c9f28ce Dennis Felsing: Forbid copying classes in threading
+12:37 <+bridge> [ddnet] <n000b> @deen  ath has such a future. You only see the console, if i am right. Probably not what you are looking for but i thought it was worth mentioning.
+12:44 <@deen> onby also has it, so no need to rewrite it 3 times over
+13:37 <+bridge> [ddnet] <ChillerDragon> @deen onby doesnt want to share his source thats why was creating my own version. And i successfully kicked the graphics and it also is able to connect but it somehow crashes after 2 secs and i have no idea how to debug that
+13:49 < ddnet-commits> [ddnet] def- opened pull request #1281: Test (fix #1280) (master...test2) https://git.io/fAG6Z
+13:54 <+bridge> [ddnet] <Ryozuki> why does base/system.c defines functions that are already defined?
+13:54 <+bridge> [ddnet] <Ryozuki> ```void mem_copy(void *dest, const void *source, unsigned size)
+13:54 <+bridge> [ddnet] <Ryozuki> {
+13:54 <+bridge> [ddnet] <Ryozuki>     memcpy(dest, source, size);
+13:54 <+bridge> [ddnet] <Ryozuki> }```
+13:54 <+bridge> [ddnet] <Ryozuki> is it for style convention? compatibility with something?
+13:55 <+bridge> [ddnet] <deen> @ChillerDragon gdb
+13:56 <+bridge> [ddnet] <deen> convention and being able to add something in there later on
+14:58 <+bridge> [ddnet] <ChillerDragon> the good old gdb advice .-.
+14:58 <+bridge> [ddnet] <ChillerDragon> any spot where i can learn how to master gdb that i finally understand the output?
+15:01 <+bridge> [ddnet] <ZimE> @onby start sharing already :thonkery:
+15:04 <@heinrich5991> ChillerDragon: you need very few commands to use gdb successfully
+15:05 <@heinrich5991> gdb ./DDNet
+15:05 <@heinrich5991> to start a debugging session for the client
+15:05 <@heinrich5991> then in the gdb prompt:
+15:05 <@heinrich5991> run
+15:05 <@heinrich5991> then make it crash
+15:06 <@heinrich5991> then run `bt`
+15:06 <@heinrich5991> this shows you where it crashed (and all the functions that led to this crash)
+15:09 <@heinrich5991> this is basically it. more commands: `print variable`: tells you the value of `variable` (can also be an expression), `up`, `down` goes up and down in the call stack (e.g. to print variables from different functions)
+15:17 <+bridge> [ddnet] <Learath2> `break File:LineNo` or `break FuncName` sets breakpoints
+15:18 <@heinrich5991> oh yea, that one is also useful
+15:19 <+Learath2> c continues after hitting a breakpoint, n steps one line, s steps one line but if it can go deeper it'll go deeper, r starts the program again
+15:19 <+Learath2> that's about all you need :)
+15:19 <@heinrich5991> (continue, next, step, run; run starts the program from the *start* again)
+15:33 <+Learath2> oh also very useful while stepping is if you just hit enter it repeats the last command
+15:34 <@heinrich5991> l(ist) shows you the surrounding code lines
+15:50 <+Learath2> One last thing if you launch gdb with `gdb -tui` you get code view on top :)
+15:54 <@deen> no need to use -tui, just use ctrl-x a to toggle the TUI
+15:54 <@heinrich5991> (the point, however, is that you need very little to actually debug a segfault: `gdb ./DDNet`, `run`, `bt`
+15:54 <@heinrich5991> )
+15:55 <@deen> And you have to understand what a backtrace is
+16:01 <@deen> And if something is unclear, the documentation is good: https://sourceware.org/gdb/current/onlinedocs/gdb/
+16:02 <@deen> A few months ago I discovered that Python also has pdb: https://docs.python.org/3/library/pdb.html
+16:13 <@heinrich5991> nice
+16:14 <@heinrich5991> I've never looked far enough to find a python debugger, it was too easy using printf-debugging ^^
+16:14 <@heinrich5991> thanks for that hint :)
+17:41 <+bridge> [ddnet] <Learath2> @heinrich5991 connection packets are not supposed to be compressed right?
+17:41 <@heinrich5991> yes, control packets are never compressed anywhere, but vanilla supports decompressing control packets
+17:42 <+bridge> [ddnet] <Learath2> I tried to use CNetClient from outside tw, it seems to compress the packets
+17:42 <+bridge> [ddnet] <Learath2> what prevents their comression normally?\
+17:44 <@heinrich5991> huh
+17:45 <@heinrich5991> it seems compression is enabled
+17:45 <@heinrich5991> let me check vanilla
+17:45 <+bridge> [ddnet] <Learath2> I'm fairly certain the packets we receive on the servers are not compressed, we can them out at the firewall
+17:46 <@heinrich5991> okay, it does allow compression
+17:46 <@heinrich5991> it's just that the compressed packets are usually longer, I think each compressed packet has at least 3 bytes of data
+17:46 <@heinrich5991> whereas the normal control messages have 1 byte of data, uncompressed
+17:48 <+bridge> [ddnet] <Learath2> Well somehow mine "compresses" it to 1 byte which is insane, so I'm guessing I need to initialize something about huffman
+17:48 <@heinrich5991> yes, huffman needs to be initialized
+17:49 <@heinrich5991> call CNetBase::Init()
+17:49 <@heinrich5991> (or construct a CEngine)
+17:51 <@heinrich5991> Learath2: here's the compression table: https://github.com/heinrich5991/libtw2/blob/master/doc/huffman.md#appendix
+17:51 <+bridge> [ddnet] <Learath2> yay, that fixes some of it
+17:51 <+bridge> [ddnet] <Learath2> heinrich5991: How long is the securitytoken? 4 bytes?
+17:51 <@heinrich5991> yes
+17:52 <@heinrich5991> +TKEN
+17:52 <@heinrich5991> (another 4 bytes for the CONNECT message)
+17:52 <@heinrich5991> note that there is no support for that message in libtw2 yet
+17:54 <+bridge> [ddnet] <ZimE> huffman compression is used on the whole payload?
+17:54 <@heinrich5991> yes
+17:54 <@heinrich5991> on everything except the three bytes of teeworlds packet header
+17:56 <+bridge> [ddnet] <Learath2> hmm heinrich5991 could dbg_lognetwork not be updated to log properly with security tokens?
+17:58 <@heinrich5991> mh?
+17:59 <+bridge> [ddnet] <Learath2> `00 00 00 00 0C 00 00 00 10 00 00 02 54 4B 45 4E 02 CE E9 05`
+17:59 <+bridge> [ddnet] <Learath2> 00 indicates that it's raw, 00 00 00 0C indicates it's 12 bytes, there are more then 12 bytes remaining
+18:00 <+bridge> [ddnet] <Learath2> however this is insane, 00 00 00 0C is printed by `io_write(Size, sizeof Size);` and `io_write(Data, Size);`
+18:01 <@heinrich5991> b'\x00\x00\x00\x00\x0c\x00\x00\x00\x10\x00\x00\x02TKEN\x02\xce\xe9\x05'
+18:01 <@heinrich5991> wait what?
+18:01 <@heinrich5991> not &Size?
+18:02 <+bridge> [ddnet] <Learath2> it' &Size, I miswrote
+18:02 <@heinrich5991> so what's insane?
+18:02 <+bridge> [ddnet] <Learath2> a 12 is written, and the next  command can only possibly write 12 bytes
+18:03 <+bridge> [ddnet] <Learath2> so where do the rest of the bytes (which obviously belong to the packet and are the security token bytes) come from?
+18:03 <@heinrich5991> I only see 12 bytes
+18:03 <@heinrich5991> 00 00 00 00 (type)
+18:03 <@heinrich5991> 0c 00 00 00 (size)
+18:03 <+bridge> [ddnet] <Learath2> Oh I am a moron
+18:03 <@heinrich5991> little endian? :)
+18:03 <+bridge> [ddnet] <Learath2> endianness
+18:07 <+bridge> [ddnet] <Learath2> heinrich5991: `10 00 00 00 02 CE E9 05` do you happen to know which packet this is?
+18:07 <+bridge> [ddnet] <Learath2> 10 00 00 00
+18:07 <@heinrich5991> that looks like a keepalive
+18:07 <@heinrich5991> sent when nothing is happening
+18:07 <@heinrich5991> I think every half a second or so
+18:07 <+bridge> [ddnet] <Learath2> so if I start getting keepalives is it safe to assume I have connected successfully?
+18:08 <@heinrich5991> yes
+18:08 <@heinrich5991> however in a normal connection, you'll never receive KEEPALIVEs
+18:08 <+bridge> [ddnet] <ZimE> xD
+18:08 <@heinrich5991> because there's always an outstanding conversation (log on) or you're already in game so you're receiving snaps every 0.04 seconds
+18:09 <@heinrich5991> Learath2: what are you doing? :)
+18:10 <+bridge> [ddnet] <Learath2> coding a chat only client 😛
+18:10 <@heinrich5991> why you not using libtw2? :)
+18:11 <+bridge> [ddnet] <Learath2> deen wanted one that is a target, and I wanted to see how spaghetti the tw code is
+18:12 <@heinrich5991> ah, like a part of ddnet?
+18:12 <+bridge> [ddnet] <Learath2> and my rust is pretty rusty (ha)
+18:12 <+bridge> [ddnet] <Learath2> yeah `make text_client`
+18:12 <+bridge> [ddnet] <ZimE> with rust?
+18:12 <+bridge> [ddnet] <ZimE> ayyy
+18:12 <+bridge> [ddnet] <Learath2> not with rust, with C
+18:13 <+bridge> [ddnet] <Learath2> well C+(+?)
+18:13 <+bridge> [ddnet] <Learath2> @heinrich5991 so after connecting, the client is supposed to send 10 00 00 01?
+18:14 <@heinrich5991> no, that's the first thing the client sends, that's the CONNECT message
+18:15 <+bridge> [ddnet] <Learath2> So wait, I am getting keepalives, the server is definitely expecting me to send sth
+18:15 <+bridge> [ddnet] <Learath2> is there a protocol doc somewhere that outlines the process?
+18:15 <+bridge> [ddnet] <Learath2> NETMSG_INFO?
+18:15 <@heinrich5991> lol
+18:15 <@heinrich5991> but yes, I wrote a bit on that
+18:15 <@heinrich5991> only a tiny bit though
+18:15 <@heinrich5991> but lol docs
+18:16 <@heinrich5991> https://github.com/heinrich5991/libtw2/blob/master/doc/connection.md
+18:18 <@heinrich5991> these are the system messages: https://github.com/heinrich5991/libtw2/blob/97c8d8291f81f4e742bd458e84052b009bef7206/gamenet/generate/msg_system.py#L3-L25
+18:18 <@heinrich5991> the game messages can be found in datasrc/network.py in your ddnet source code
+18:20 <@heinrich5991> Learath2: questions?
+18:33 <+bridge> [ddnet] <ZimE> can u help me with the first 8 bytes? xD
+18:33 <+bridge> [ddnet] <ZimE> 
+18:33 <+bridge> [ddnet] <ZimE> https://cdn.discordapp.com/attachments/293493549758939136/484400103533314048/unknown.png
+18:33 <+bridge> [ddnet] <ZimE> 9th byte is client_id from the writer
+18:33 <+bridge> [ddnet] <ZimE> then the message follows
+18:33 <+bridge> [ddnet] <ZimE> and last 4 bytes are some footer
+18:34 <@heinrich5991> I should really finish my wireshark dissector some time
+18:34 <+bridge> [ddnet] <ZimE> xD
+18:35 <@heinrich5991> https://github.com/heinrich5991/libtw2/blob/master/doc/packet.md gives information about the first 6 bytes
+18:35 <+bridge> [ddnet] <ZimE> thx
+18:35 <@heinrich5991> next byte is message ID
+18:38 <@heinrich5991> that's 6/2=3, i.e. the third item in the list https://github.com/ddnet/ddnet/blob/c9f28ce0941ef1727242005ff1cd18c4b741aef3/datasrc/network.py#L230
+18:38 <@heinrich5991> so it's a Sv_Chat message
+18:38 <@heinrich5991> containing two integers and a string
+18:38 <+bridge> [ddnet] <ZimE> why /2 though
+18:38 <@heinrich5991> (also, capturing bytes as picture, really? :P)
+18:39 <@heinrich5991> the number is either even or odd
+18:39 <@heinrich5991> if it's even, it's a game message and /2 is the ID
+18:39 <@heinrich5991> if it's odd, then it's a system message and /2 (rounded down) is the ID
+18:39 <+bridge> [ddnet] <ZimE> hm ok
+18:39 <+bridge> [ddnet] <Learath2> hmm, I really should have just used libtw
+18:40 <+bridge> [ddnet] <Learath2> why does network,cpp depend on a config being available? :/
+18:40 <+bridge> [ddnet] <Learath2> atleast it doesn't request it from a kernel
+18:41 <+bridge> [ddnet] <Learath2> at that point I might aswell work backwards and remove stuff from the actual client
+18:41 <+bridge> [ddnet] <ZimE> lol
+18:42 <+bridge> [ddnet] <ZimE> what is libtw2 btw
+18:42 <@heinrich5991> some building parts for teeworlds, rewritten from scratch, in rust
+18:42 <@heinrich5991> can read maps, demos, teehistorian, can decode/encode messages, has a working map downloader and a bare-minimum server
+18:43 <+bridge> [ddnet] <Learath2> heinrich5991 any tip on getting config working? 😛
+18:45 <@heinrich5991> no, not really
+18:45 <@heinrich5991> src/engine/config.h seems to be the interface
+18:46 <@heinrich5991> haven't really worked with that a lot
+18:48 <+bridge> [ddnet] <Learath2> eh, just created a kernel and registered config in it 😛
+18:51 <+bridge> [ddnet] <Learath2> kernel itself depends on storage, yeah this is all pretty spaghetti
+19:21 <+bridge> [ddnet] <Learath2> well got it connected and sending messages, now just need to set up a send buffer
+19:34 <+bridge> [ddnet] <ChillerDragon> wow thanks a lot for the gdb instructions ima test them later c: !!! ❤ @Learath2 @heinrich5991 @deen
+19:34 <+bridge> [ddnet] <jxsl13> bt full
+19:34 <+bridge> [ddnet] <jxsl13> for more detail
+19:36 <+bridge> [ddnet] <jxsl13> ``` Thread 1 "zcatch_srv_d" received signal SIGSEGV, Segmentation fault.
+19:36 <+bridge> [ddnet] <jxsl13> 0x000055555558ca66 in CRingBufferBase::Allocate (this=0x7ffff6ca73b8, Size=71) at src/engine/shared/ringbuffer.cpp:109
+19:36 <+bridge> [ddnet] <jxsl13> 109                pNewItem->m_pNext->m_pPrev = pNewItem;
+19:36 <+bridge> [ddnet] <jxsl13> #0  0x000055555558ca66 in CRingBufferBase::Allocate (this=0x7ffff6ca73b8, Size=71) at src/engine/shared/ringbuffer.cpp:109
+19:36 <+bridge> [ddnet] <jxsl13> #1  0x0000555555573b6a in TStaticRingBuffer<CNetChunkResend, 32768, 0>::Allocate (this=0x7ffff6ca73b8, Size=71) at src/engine/shared/ringbuffer.h:59
+19:36 <+bridge> [ddnet] <jxsl13> #2  0x0000555555572b49 in CNetConnection::QueueChunkEx (this=0x7ffff6ca7398, Flags=1, DataSize=31, pData=0x7fffffffcf00, Sequence=416) at src/engine/shared/network_conn.cpp:128
+19:36 <+bridge> [ddnet] <jxsl13> #3  0x0000555555572c4b in CNetConnection::QueueChunk (this=0x7ffff6ca7398, Flags=1, DataSize=31, pData=0x7fffffffcf00) at src/engine/shared/network_conn.cpp:154
+19:36 <+bridge> [ddnet] <jxsl13> #4  0x000055555558ec66 in CNetServer::Send (this=0x7ffff6c8de08, pChunk=0x7fffffffce80) at src/engine/shared/network_server.cpp:647
+19:36 <+bridge> [ddnet] <jxsl13> #5  0x0000555555591754 in CServer::SendMsgEx (this=0x7ffff6a47010, pMsg=0x7fffffffcf00, Flags=1, ClientID=3, System=true) at src/engine/server/server.cpp:683
+19:36 <+bridge> [ddnet] <jxsl13> #6  0x000055555559252e in CServer::SendRconLine (this=0x7ffff6a47010, ClientID=3, pLine=0x7fffffffd780 "[game]: leave player='7:iheb'") at src/engine/server/server.cpp:927
+19:36 <+bridge> [ddnet] <jxsl13> #7  0x00005555555925d4 in CServer::SendRconLineAuthed (pLine=0x7fffffffd780 "[game]: leave player='7:iheb'", pUser=0x7ffff6a47010) at src/engine/server/server.cpp:942
+19:36 <+bridge> [ddnet] <jxsl13> #8  0x000055555557c618 in CConsole::Print (this=0x555555981720, Level=0, pFrom=0x5555556b5e33 "game", pStr=0x7fffffffdbb0 "leave player='7:iheb'")
+19:36 <+bridge> [ddnet] <jxsl13>     at src/engine/shared/console.cpp:204
+19:36 <+bridge> [ddnet] <jxsl13> #9  0x00005555555d1fc5 in CPlayer::OnDisconnect (this=0x555555958450 <ms_PoolDataCPlayer+8176>, pReason=0x7ffff6cd10a0 "") at src/game/server/player.cpp:331 ```
+19:36 <+bridge> [ddnet] <jxsl13> anyone :/?
+19:36 <+bridge> [ddnet] <ChillerDragon> baut the console client. Why i used the ddnet source is because i want a client that can do more than chatting. I just love consoles and using some ncurses stuff or what ever to enable keypresses would be awesome. And rendering a poor image out of text just shwing tees and collision tiles would be awesome. If you just want to chill on a server vote, chat. move around see a bit of <message clipped>
+19:39 <+bridge> [ddnet] <Learath2> @jxsl13 pretty hard without seeing some code
+19:39 <+bridge> [ddnet] <jxsl13> https://git.johnbehm.de/jxsl13/zcatch
+19:41 <@heinrich5991> print pNewItem->m_pNext
+19:41 <@heinrich5991> print pNewItem
+19:42 <+bridge> [ddnet] <jxsl13> how ._. this occurs quite often, but not in the way I can reproduce it.. and the debugger is turned off atm ?
+19:42 <@heinrich5991> you should write these lines in the debugger ^^
+19:43 <@heinrich5991> (if you can get the stack trace, you should be able to print these as well, from inside gdb)
+19:43 <+bridge> [ddnet] <jxsl13> then gotta wait for it to crash again, @ChillerDragon  mind flooding my server johnbehm.de:8303 ?
+19:43 <@heinrich5991> you can save coredumps or so
+19:43 <+bridge> [ddnet] <Learath2> heinrich5991: do you know how CGameClient populates its m_aClients?
+19:43 <+bridge> [ddnet] <jxsl13> ``` #0  0x000055555558ca66 in CRingBufferBase::Allocate (this=0x7ffff6ca73b8, Size=71) at src/engine/shared/ringbuffer.cpp:109
+19:43 <+bridge> [ddnet] <jxsl13>         pNewItem = 0x7ffff6ca74a8
+19:43 <@heinrich5991> then you can investigate the crash even if no debugger was attached at the time
+19:43 <+bridge> [ddnet] <jxsl13>         WantedSize = 96
+19:43 <+bridge> [ddnet] <jxsl13>         pBlock = 0x7ffff6ca7448
+19:44 <+bridge> [ddnet] <jxsl13> #1  0x0000555555573b6a in TStaticRingBuffer<CNetChunkResend, 32768, 0>::Allocate (this=0x7ffff6ca73b8, Size=71) at src/engine/shared/ringbuffer.h:59
+19:44 <+bridge> [ddnet] <jxsl13> No locals.
+19:44 <+bridge> [ddnet] <jxsl13> #2  0x0000555555572b49 in CNetConnection::QueueChunkEx (this=0x7ffff6ca7398, Flags=1, DataSize=31, pData=0x7fffffffcf00, Sequence=416) at src/engine/shared/network_conn.cpp:128
+19:44 <+bridge> [ddnet] <jxsl13>         pResend = 0x5007fffffffcec0
+19:44 <+bridge> [ddnet] <jxsl13>         pChunkData = 0x7ffff6caf58d ""
+19:44 <+bridge> [ddnet] <jxsl13>         Header = {m_Flags = 1, m_Size = 31, m_Sequence = 416}
+19:44 <+bridge> [ddnet] <jxsl13> ```
+19:44 <+bridge> [ddnet] <jxsl13> bt full info
+19:44 <@heinrich5991> print pNewItem->m_pNext
+19:45 <@heinrich5991> Learath2: in Reset or so and in the snapshot handling
+19:45 <+bridge> [ddnet] <jxsl13> how do I save the coredump?
+19:45 <@heinrich5991> I don't know
+19:45 <@heinrich5991> there's an option in linux to save them automatically
+19:45 <+bridge> [ddnet] <Learath2> damn, I have to handle snapshot stuff to get client names
+19:45 <@heinrich5991> yes
+19:46 <@heinrich5991> there you'll also find one obvious flaw in the tw protocol
+19:46 <@heinrich5991> :
+19:46 <@heinrich5991> nothing synchronizes game messages with snapshots
+19:46 <@heinrich5991> i.e. you can get chat messages for people who have left/whose slot has been reassigned
+19:46 <@heinrich5991> then you get the wrong sender in the client
+19:49 <+bridge> [ddnet] <jxsl13> in gdb this seems to do the job generate-core-file ... let's wait xD
+20:05 <+bridge> [ddnet] <ZimE> fk it i give up
+20:06 <+bridge> [ddnet] <ZimE> writing python program to chat in tw 2 hard
+20:17 <+bridge> [ddnet] <deen> @ZimE Use libtw2 and learn yourself some rust for great good
+20:18 <+bridge> [ddnet] <onby> lol thats all ur trying to do??
+20:18 <+bridge> [ddnet] <onby> 
+20:18 <+bridge> [ddnet] <onby> https://cdn.discordapp.com/attachments/293493549758939136/484426659680878593/Screen_Shot_2018-08-29_at_1.17.41_PM.png
+20:23 <+bridge> [ddnet] <ZimE> bypassing ur protection was too ez
+20:32 <+bridge> [ddnet] <onby> u tried so many times lmao
+20:33 <+bridge> [ddnet] <ReiTW | Blizzard> nub apple
+20:33 <@heinrich5991> maybe I should write a python wrapper for libtw2
+20:33 <@heinrich5991> might come handy for some easy scripting
+20:34 <@heinrich5991> https://github.com/heinrich5991/libtw2/issues/13
+20:46 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/ddnet/commit/d069f7dcd
+20:46 <+bridge> [ddnet] <Learath2> Such a horrible experience
+20:47 <+bridge> [ddnet] <Learath2> Will finish it up when I can see again
+20:52 <@heinrich5991> receive! not recieve ^^
+20:53 <+bridge> [ddnet] <Learath2> fixeth
+20:54 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/ddnet/tree/dd_pr_twchat
+20:59 <+bridge> [ddnet] <Learath2> now the question is do I introduce sth like readline or do I just do a non-blocking read of stdin until I get a \n in my buffer and call it a day? 😛
+20:59 <@heinrich5991> if I had to guess, I'd say you'd settle for the latter
+20:59 <@heinrich5991> :P
+21:00 <+bridge> [ddnet] <Learath2> I really don't feel like implementing a whole input buffer and a send queue :/
+21:01 <+bridge> [ddnet] <Learath2> i'll check how fstd does it in icat, maybe I can steal sth 😃
+21:02 <@heinrich5991> icat just reads from stdin
+21:05 <+fstd> actually the process is quite a bit involved
+21:05 <+fstd> iirc
+21:06 <@heinrich5991> mhk
+21:06 <@heinrich5991> select()?
+21:08 <+fstd> on the icat level, it first checks whether it can read (which ends up as a select, yes)
+21:08 <+fstd> and confusingly already fills the read buffer as part of the check
+21:09 <+fstd> whereas the actual "readline" function just considers that buffer and never does any i/o by itself
+21:11 <+fstd> while i consider libsrsirc to be mostly nice code, i'm not proud of icat's stdin part :-)
+21:11 <+fstd> i messed with it a lot
+22:44 <+bridge_> [ddnet] <ChillerDragon> meh fok windows ``C:\MinGW\bin\gdb.exe: TUI mode is not supported
+22:44 <+bridge_> [ddnet] <ChillerDragon> ``
+23:56 <+bridge_> [ddnet] <ReiTW | Blizzard> hi, is there a flag to allow editing a config variable only in the cfg file?
+23:57 <+bridge_> [ddnet] <ChillerDragon> ?
+23:57 <+bridge_> [ddnet] <ChillerDragon> client or server side
+23:58 <+bridge_> [ddnet] <ChillerDragon> i think sv_test_cmds can only be set in config
+23:59 <+bridge_> [ddnet] <ChillerDragon> just load the config var value into a variable after loading the config and use this variable instead
+23:59 <+bridge_> [ddnet] <ReiTW | Blizzard> srv side
+23:59 <+bridge_> [ddnet] <ChillerDragon> idont think there is a flag
+23:59 <+bridge_> [ddnet] <ReiTW | Blizzard> nah test cmds can be edited

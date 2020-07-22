@@ -1,0 +1,51 @@
+15:09 <+bridge> [ddnet] <fokkonaut> this is the old jetpack prediction, can anyone tell me how the client knows at this position whether we have jetpack on or off? i dont see any check for e.g. the faketuning or so
+15:09 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/commit/0b3f3b03b57c39dfec1506570cf35ce8b7bb1221#diff-0d0221c586efbe7eda89b6e5075098fdL561-L564
+15:19 <+bridge> [ddnet] <fokkonaut> This link, no idea why the one above doesnt work
+15:19 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/f37f8a8268731e38497dd88f6f95e15bb0e05222/src/game/gamecore.cpp#L561-L564
+17:31 <+bridge> [ddnet] <fokkonaut> @Learath2 there are some issues with the chat commands. First: args are not shown, second: when just giving a parameter, like `?i`, without a `[Description]`, it will make something weird, for example adds a <string> to the arg list
+17:34 <+bridge> [ddnet] <Learath2> Where, in the latest version of the pr?
+17:34 <+bridge> [ddnet] <fokkonaut> yes
+17:35 <+bridge> [ddnet] <Learath2> I'd ask you to just debug it but I doubt you'll even give it a go, so I'll take a look later tomorrow
+17:47 <+bridge> [ddnet] <heinrich5991> @Learath2 btw. null antibot is deployed
+17:47 <+bridge> [ddnet] <heinrich5991> shall I try noby's? 🙂
+17:47 <+bridge> [ddnet] <Learath2> sure, give it a go
+17:48 <+bridge> [ddnet] <Learath2> @fokkonaut would you be so kind to atleast give me a testcase or am I going to have to grasp around in the dark again?
+17:49 <+bridge> [ddnet] <fokkonaut> what do you mean?
+17:49 <+bridge> [ddnet] <fokkonaut> you can try it on my server, if your client is up to date with master
+17:49 <+bridge> [ddnet] <fokkonaut> type `/po` and you should see it
+18:15 <+bridge> [ddnet] <heinrich5991> @Learath2 @onby it's live 😉
+18:36 <+bridge> [ddnet] <Learath2> Hooray
+18:37 <+bridge> [ddnet] <Learath2> @fokkonaut you should have said it had a bug in the issue... now oy merged it, now I need to fix it tonight
+18:40 <+bridge> [ddnet] <Learath2> @fokkonaut /policeinfo has ?i and it displays [number] for me
+18:40 <+bridge> [ddnet] <fokkonaut> is that correct?
+18:40 <+bridge> [ddnet] <Learath2> yes
+18:40 <+bridge> [ddnet] <fokkonaut> and all other commands dont display anything
+18:40 <+bridge> [ddnet] <Learath2> i means you need a number, [] means it's optional
+18:41 <+bridge> [ddnet] <Learath2> which command needs to display something but isn't displaying something?
+18:41 <+bridge> [ddnet] <fokkonaut> every command
+18:41 <+bridge> [ddnet] <fokkonaut> almost
+18:42 <+bridge> [ddnet] <Learath2> the ones with descriptions are broken, not the ones without description 😛
+18:42 <+bridge> [ddnet] <fokkonaut> yes
+18:42 <+bridge> [ddnet] <fokkonaut> but why
+18:44 <+bridge> [ddnet] <Learath2> found it, fixed it
+19:19 <+bridge> [ddnet] <Learath2> @heinrich5991 do you like the serverinfo extension I pull requested as a solution? Do you think maybe we should do something more future-proof?
+19:24 <+bridge> [ddnet] <heinrich5991> I'm fine with the protocol
+19:25 <+bridge> [ddnet] <heinrich5991> I think you should support receiving packets out of order
+19:25 <+bridge> [ddnet] <heinrich5991> quick look at the code gives me a new `Truncate` which isn't really needed, you can track the size instead (in the end, don't use `Packer.Size()` but the size you tracked
+19:26 <+bridge> [ddnet] <heinrich5991> @Learath2 answer is in the first line, is that a reasonable answer to your question?
+19:27 <+bridge> [ddnet] <Learath2> I think so, I'm just a little unsure because it kinda feels like I could possibly wasting our one chance to rework the protocol on something pretty un-extensible
+19:27 <+bridge> [ddnet] <heinrich5991> the thing is, we can extend it furtherly be putting more request header into the packet
+19:28 <+bridge> [ddnet] <heinrich5991> so I'm not too worried about that
+19:28 <+bridge> [ddnet] <heinrich5991> (unlike in 0.6 where we had to cram it into 2 bytes)
+19:29 <+bridge> [ddnet] <Learath2> @heinrich5991 without `CPacker::Truncate` I need to extend the scope of PreviousSize or add a new variable to keep track of size
+19:30 <+bridge> [ddnet] <heinrich5991> I'd prefer (this does not mean you have to change this) to add a variable or broaden the scope to extending a class
+19:30 <+bridge> [ddnet] <heinrich5991> in this case you already have the variable `i` at a similar scope
+19:30 <+bridge> [ddnet] <Learath2> Things coming before the playerlist will be a problem for extensibility, things coming after the playerlist is also troublesome because older clients will accidentally read the next thing into a clients name if the server isn't 64p
+19:31 <+bridge> [ddnet] <heinrich5991> if we want to put more things there, we can make the client request them
+19:31 <+bridge> [ddnet] <heinrich5991> by adding more stuff to the request
+19:32 <+bridge> [ddnet] <Learath2> I think I prefer Truncate, PreviousSize doesn't really make sense to me outside of the scope of the for loop
+19:35 <+bridge> [ddnet] <Learath2> The ingame version of the serverinfo might be trouble for future extensions, without the GETINFO we don't know whether the client is capable of the extended protocol
+19:37 <+bridge> [ddnet] <heinrich5991> ah that one
+19:37 <+bridge> [ddnet] <heinrich5991> blurb
+19:37 <+bridge> [ddnet] <heinrich5991> food. will reply afterwrads
+20:51 <+bridge> [ddnet] <heinrich5991> @Learath2 I guess we could send more stuff there, too :/

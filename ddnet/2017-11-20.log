@@ -1,0 +1,66 @@
+14:55 <+ddnet-discord> <heinrich5991> @HMH your threadsafe queue doesn't look threadsafe to me btw
+14:56 <+ddnet-discord> <heinrich5991> and I don't know why it needs to be parametric over its container and the smart pointer it uses
+14:56 <+ddnet-discord> <heinrich5991> can't it just store the element type directly
+14:56 <+ddnet-discord> <HMH> that might be true, I guess you can enlighten me then ?
+14:57 <+ddnet-discord> <HMH> If it stores the element type directly I have found that this creates issues with ownership, thus the smartpointers
+15:01 <+ddnet-discord> <heinrich5991> in that case, can't you store smartpointers in the queue instead?
+15:01 <+ddnet-discord> <heinrich5991> like instead of queue<T>, you just use queue<unique_ptr<T>> if you want it behind a unique_ptr?
+15:02 <+ddnet-discord> <HMH> I see
+15:02 <+ddnet-discord> <heinrich5991> re thread-unsafety:
+15:02 <+ddnet-discord> <heinrich5991> e.g. look at the `Front` implementation
+15:02 <+ddnet-discord> <heinrich5991> it takes the lock, returns the reference and then releases the lock
+15:03 <+ddnet-discord> <heinrich5991> but the reference can become invalid as soon as the lock is released
+15:03 <+ddnet-discord> <heinrich5991> the calling function can't do anything with the returned reference AFAICT
+15:04 <+ddnet-discord> <HMH> Yes, that is why there is GetLock
+15:04 <+ddnet-discord> <HMH> and that is also why I use a recursive mutex
+15:05 <+ddnet-discord> <HMH> So ideally you do something like this:
+15:05 <+ddnet-discord> <HMH> ```
+15:05 <+ddnet-discord> <HMH> {
+15:05 <+ddnet-discord> <HMH> auto Lck = Q.GetLock();
+15:05 <+ddnet-discord> <HMH> Q.whatever()
+15:05 <+ddnet-discord> <HMH> ...
+15:05 <+ddnet-discord> <HMH> }
+15:05 <+ddnet-discord> <HMH> // Lock released
+15:06 <+ddnet-discord> <HMH> ```
+15:07 <+ddnet-discord> <HMH> The lock in there is to make reading always threadsafe but yes after returning things might have changed.
+15:07 <+ddnet-discord> <heinrich5991> but what use is the lock in the `Front` function?
+15:07 <+ddnet-discord> <heinrich5991> if you can't use the reference anyway?
+15:10 <+ddnet-discord> <HMH> It is probably not too useful to have these extra locks in there. Do you have an Idea to enforce locking, so it becomes impossible / hard to forget calling GetLock btw ?
+16:28 <+ddnet-discord> <RyO's> Sometimes eyes are blocked and you can't change
+16:31 <+ddnet-discord> <heinrich5991> ```
+16:31 <+ddnet-discord> <heinrich5991>     abc
+16:31 <+ddnet-discord> <heinrich5991> ```
+18:10 <+ddnet-discord> <Learath2> @HMH you could force the usage of Queue through a wrapper which aquires the lock in constructor and releases it on destructor
+23:44 < dezzer> "/notice Nimda I am not a bot
+23:44 <+ddnet-discord> <Savander> Nonono
+23:46 <+ddnet-discord> <heinrich5991> nonono?
+23:50 <+dezzer> yesss
+23:50 <+ddnet-discord> <Savander> have you ever tried Vivaldi browser?
+23:52 <+dezzer> vivaldi is shit
+23:52 <+dezzer> opera is better
+23:52 <+ddnet-discord> <heinrich5991> vivaldi is closed-source
+23:52 <+ddnet-discord> <Savander> why is shit
+23:53 <+ddnet-discord> <Savander> feels much better than google chroem
+23:53 <+ddnet-discord> <Savander> even if the same engine
+23:53 <+ddnet-discord> <heinrich5991> apparently opera is closed-source as well
+23:53 <+ddnet-discord> <Savander> I don't know, what they did to google chrome
+23:53 <+ddnet-discord> <heinrich5991> wow, like it's 2000 again
+23:53 <+ddnet-discord> <Savander> but it works as shit
+23:53 <+ddnet-discord> <Savander> but it works like shit
+23:53 <+ddnet-discord> <heinrich5991> have you tried firefox? ^^
+23:54 <+ddnet-discord> <Savander> yea
+23:54 <+ddnet-discord> <Savander> i tried opera, firefox, chrome
+23:54 <+ddnet-discord> <Savander> they are most popular
+23:54 <+ddnet-discord> <Beefywhale> have you tried the new Firefox tho
+23:54 <+ddnet-discord> <Savander> that's why im asking what do you think about vivaldi
+23:54 <+ddnet-discord> <heinrich5991> @Beefywhale 😛
+23:54 <+ddnet-discord> <Savander> what they changed?
+23:54 <+ddnet-discord> <Beefywhale> Everything
+23:54 <+ddnet-discord> <Savander> suddenly, they are monster
+23:54 <+ddnet-discord> <heinrich5991> part of the rendering engine was rewritten in rust 😃
+23:54 <+ddnet-discord> <Savander> of perfromance
+23:54 <+ddnet-discord> <Savander> or what
+23:54 <+ddnet-discord> <Beefywhale> performance and the look
+23:55 <+ddnet-discord> <Beefywhale> it uses barley any ram
+23:55 <+ddnet-discord> <Beefywhale> even with 100+ tabs open
+23:55 <+dezzer> firefox is the best browser

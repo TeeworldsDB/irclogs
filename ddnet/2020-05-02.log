@@ -1,0 +1,241 @@
+00:01 <+bridge> [ddnet] <heinrich5991> @deen https://github.com/bors-ng/bors-ng/issues/185 didn't have movement for three years though
+00:10 <+bridge> [ddnet] <fokkonaut> @deen oh no, the updater requires http.h, which is not in 0.7
+00:10 <+bridge> [ddnet] <fokkonaut> so I guess I need that too :/? Uhm... I think this wont happen if no one PRs it :D
+01:22 <+bridge> [ddnet] <fokkonaut> @Learath2 i need your help/opinion... I am in a conflict with myself regarding 128 players. I got it to a point where it works pretty good, also with dummy and so on. I made it so that players with the same IP get the same faked IDs in the map. Vanilla clients 0.7 works fine of course, and I made an adjustment in my 0.7 F-Client for some things for the dummy (because everything is different, e.g. team changes, client enter, drop etc. ever
+01:23 <+bridge> [ddnet] <fokkonaut> DDNet clients work fine too, also with dummy. Expect one point: whisper. When whispering to the dummy that is not active at the moment, it will of course say the name of the player with the fake id of the current player's map. I could fix that by sending RECV whispers as server messages for DDNet clients.
+01:24 <+bridge> [ddnet] <fokkonaut> But generally, I am not 100% sure whether I should keep the whole thing or go back to 64 players. I mean, it definitely is a nice thing to have, since for example today I had 80 players at a time. Usually tho, it is around 60-70
+01:26 <+bridge> [ddnet] <heinrich5991> @Learath2 did you figure out why bors chokes on some PRs?
+01:29 <+bridge> [ddnet] <Learath2> @heinrich5991 well it was choking on that one because it was modifying a file in .github/workflows, apparently integrations are not allowed to make changes to that
+01:30 <+bridge> [ddnet] <heinrich5991> ah yea: https://github.community/t5/GitHub-Actions/GitHub-action-Resource-not-accessible-by-integration/m-p/19950/highlight/true#M75
+01:30 <+bridge> [ddnet] <Learath2> @fokkonaut I'd stick to 64 players, the translation patches were never nice, I think 64 is more then enough
+01:30 <+bridge> [ddnet] <heinrich5991> ty
+01:30 <+bridge> [ddnet] <fokkonaut> @Learath2 well, BlmapChill is a big map tho, and 128 is working fine besides that
+01:31 <+bridge> [ddnet] <fokkonaut> but i also think the algorithm is a bit laggy
+01:31 <+bridge> [ddnet] <Learath2> this is all fixable but it'll take a lot of work, to get the algorithms all optimized
+01:33 <+bridge> [ddnet] <Learath2> I don't get your whisper issue, the current players id map should match the dummies exactly
+01:33 <+bridge> [ddnet] <fokkonaut> No, of course it doesnt on the serverside
+01:34 <+bridge> [ddnet] <fokkonaut> if the dummy is in another area where other tees are
+01:34 <+bridge> [ddnet] <fokkonaut> they have different id's on dummy/main
+01:34 <+bridge> [ddnet] <Learath2> yeah but the first part is the same
+01:34 <+bridge> [ddnet] <fokkonaut> its about WHO sent the message
+01:34 <+bridge> [ddnet] <Learath2> oh, do we send a client id and not an actual name?
+01:35 <+bridge> [ddnet] <fokkonaut> yes, thats how ddnet whisper works.
+01:35 <+bridge> [ddnet] <fokkonaut> so as i said, i could fix it by sending a servermsg to all clients with the same IP as the receipiant
+01:35 <+bridge> [ddnet] <Learath2> why all clients? you as the server always know the correct recipient
+01:36 <+bridge> [ddnet] <fokkonaut> Yes, but if I send it to the dummy only, the main wont receive it
+01:36 <+bridge> [ddnet] <fokkonaut> only whisper and team messages are received when they go to the udmmy
+01:36 <+bridge> [ddnet] <Learath2> this all sounds very meh
+01:38 <+bridge> [ddnet] <fokkonaut> yea. but okay, another thing. Lets imagine I remove 128 support. F-Client still has some things in the client, for example a complete set of m_aClients[] for thedummy, so that the dummy can have different infos for each client, that was of course used for 128 players, as the info is not in snaps anymore. But if I remove that, also team changes for specific tees to specific tees only wouldnt work in 0.7 dummy anymore. My mod does team chan
+01:38 <+bridge> [ddnet] <fokkonaut> i am completely overwhelmed right now xD
+01:39 <+bridge> [ddnet] <fokkonaut> i hate 0.7 for moving stuff out of snaps
+01:41 <+bridge> [ddnet] <Learath2> with 64 clients you should never be lacking info
+01:42 <+bridge> [ddnet] <fokkonaut> yes, but if my dummy joins a minigame, it gets teamchanges to team blue for everybody thats not in the same minigame, when swapping to the main again, the others are of course still in team blue, which is false.
+01:42 <+bridge> [ddnet] <fokkonaut> The second m_aCleints array fixes that
+01:42 <+bridge> [ddnet] <fokkonaut> but i inititally did that for 128 players, so i think i would need to keep that too in the client, even if i remove 128
+01:42 <+bridge> [ddnet] <heinrich5991> having different sets information for dummy and main sounds logical to me
+01:42 <+bridge> [ddnet] <fokkonaut> yea
+01:43 <+bridge> [ddnet] <fokkonaut> This is a point where I really notice how much better the Snap thing is
+01:43 <+bridge> [ddnet] <Learath2> @heinrich5991 why? the dummy and the main client exist in the same game world
+01:43 <+bridge> [ddnet] <fokkonaut> But for cases like the team changes it is neccessary
+01:44 <+bridge> [ddnet] <heinrich5991> @Learath2 in every server implementation, currently
+01:44 <+bridge> [ddnet] <heinrich5991> but if I write my own tw server, there's no guarantee I send the same IDs to every player
+01:45 <+bridge> [ddnet] <heinrich5991> e.g. I could choose to send cid=0 for the client's own tee
+01:46 <+bridge> [ddnet] <Learath2> Well I don't like these kinds of "many mods in one mod" mods to begin with tbh
+01:46 <+bridge> [ddnet] <Learath2> @heinrich5991 I don't think this is a good idea
+01:46 <+bridge> [ddnet] <heinrich5991> why not?
+01:46 <+bridge> [ddnet] <Learath2> adding 50 layers of translation is just not a good idea
+01:46 <+bridge> [ddnet] <fokkonaut> @Learath2 well, teeworlds adventure mod also does this, they have multiworld and also send faked ids
+01:47 <+bridge> [ddnet] <Learath2> then I don't like the "teeworlds adventure mod" either
+01:47 <+bridge> [ddnet] <fokkonaut> XD
+01:48 <+bridge> [ddnet] <Learath2> @heinrich5991 why would you want inconsistent ids anyway, it would only give you more players in one server, or support some mod in mod situations
+01:48 <+bridge> [ddnet] <heinrich5991> because I don't want to leak server state e.g.
+01:48 <+bridge> [ddnet] <fokkonaut> dummy is only a mod too, it should work as a real new client i think
+01:49 <+bridge> [ddnet] <Learath2> no harm to leaking the actual client ids
+01:50 <+bridge> [ddnet] <Learath2> only more complexity with designing the translation layer that'll just add overhead
+01:51 <+bridge> [ddnet] <heinrich5991> "runtime overhead" meh
+01:51 <+bridge> [ddnet] <heinrich5991> "runtime overhead"? meh
+01:51 <+bridge> [ddnet] <Learath2> at the very best case I can imagine (a swap from your cid to 0 and put the guy at 0 in your position (at that point why bother you are still leaking state)) it's still a constant overhead of an extra branch instruction
+01:52 <+bridge> [ddnet] <heinrich5991> you shouldn't worry about that extra instruction
+01:52 <+bridge> [ddnet] <heinrich5991> you should worry about making a proper collision algorithm first
+01:52 <+bridge> [ddnet] <heinrich5991> (that is not O(n^2). that costs more instructions)
+01:52 <+bridge> [ddnet] <Learath2> At no gain, it's still an extra instruction
+01:53 <+bridge> [ddnet] <heinrich5991> say you want to swap tees in 0.7
+01:53 <+bridge> [ddnet] <heinrich5991> then you need your ID swapping feature anyway
+01:53 <+bridge> [ddnet] <Learath2> why?
+01:54 <+bridge> [ddnet] <heinrich5991> ah, you could copy over the tee data, fair enough
+01:54 <+bridge> [ddnet] <Learath2> any useful translation table and you are looking at some very bad performance characteristics
+01:54 <+bridge> [ddnet] <heinrich5991> why?
+01:54 <+bridge> [ddnet] <Learath2> at the very least while generating the table
+01:56 <+bridge> [ddnet] <Learath2> if you want to support more then 64 clients, you are going to have to sort the tees based on distance, that's O(logn) with a good algorithm
+01:57 <+bridge> [ddnet] <Learath2> If you want just a 64 -> 64 mapping, it'll have a [64][64] memory cost
+01:58 <+bridge> [ddnet] <heinrich5991> which is 4KB btw
+01:58 <+bridge> [ddnet] <Learath2> besides, put aside the cost, we don't seem to care about that much in 2020, it doesn't bring anything to the table, I don't see a good use for it
+01:58 <+bridge> [ddnet] <heinrich5991> but okay, I see that you don't need it, so it's unnecessary overhead
+01:58 <+bridge> [ddnet] <heinrich5991> but I do think that you worry about the wrong costs if you're worried about one extra mispredicted branch per network packet
+01:59 <+bridge> [ddnet] <Learath2> this is how these things add up, we have all become too lax, started relying on the processors raw power to take care of things, fancy branch predicting algorithms in cpus, speculative execution
+02:00 <+bridge> [ddnet] <heinrich5991> I think you're setting the wrong targets
+02:00 <+bridge> [ddnet] <heinrich5991> I'm sure I can find a branch like this in the handcoded assembly game rct2, for example
+02:00 <+bridge> [ddnet] <heinrich5991> which is an example for very good performance
+02:01 <+bridge> [ddnet] <Learath2> if they need the branch, then it's fine
+02:01 <+bridge> [ddnet] <heinrich5991> I'm sure I'll find unneeded branches in there
+02:01 <+bridge> [ddnet] <heinrich5991> e.g. reducing the number of syscalls, that's a lot better target
+02:01 <+bridge> [ddnet] <heinrich5991> these cost actual time
+02:01 <+bridge> [ddnet] <heinrich5991> especially with spectre/etc. fixes
+02:02 <+bridge> [ddnet] <Learath2> Ofc they are more significant
+02:03 <+bridge> [ddnet] <Learath2> this is all beside the point though, it's only a single branch insruction in the silly no-op translation "table"
+02:03 <+bridge> [ddnet] <heinrich5991> yes, but I find it ridiculous that you claim that that branch matters
+02:04 <+bridge> [ddnet] <heinrich5991> I agree that adding a translation table is not worth it for no benefit
+02:04 <+bridge> [ddnet] <heinrich5991> but claiming that a branch there matters, is absurd IMO
+02:04 <+bridge> [ddnet] <Learath2> depends on how you define "matters"
+02:04 <+bridge> [ddnet] <heinrich5991> matters for software performance
+02:04 <+bridge> [ddnet] <heinrich5991> for making your software run faster on a '95 computer
+02:05 <+bridge> [ddnet] <Learath2> that branch instruction will cost you a couple cycles, and it will have no gain, I don't see how anyone can argue that that is fine
+02:06 <+bridge> [ddnet] <Learath2> If there was any value gain, fine there is nothing to argue, the branch is insignificant
+02:06 <+bridge> [ddnet] <heinrich5991> say the gain is that I want every client id to be 0
+02:06 <+bridge> [ddnet] <heinrich5991> that is the only reason
+02:06 <+bridge> [ddnet] <heinrich5991> even then it's completely insignificant
+02:06 <+bridge> [ddnet] <heinrich5991> I can't state enough wishes of that form to make it matter
+02:06 <+bridge> [ddnet] <Learath2> if you need that, sure branch away
+02:07 <+bridge> [ddnet] <heinrich5991> it's just that I find cid=0 aesthetically more pleasing
+02:07 <+bridge> [ddnet] <heinrich5991> even this very discussion probably used up more cycles than the branch in my hypothetical tw server 😛
+02:07 <+bridge> [ddnet] <heinrich5991> by broadcasting it to many people, etc. etc.
+02:08 <+bridge> [ddnet] <heinrich5991> so in a sense, arguing about that branch made performance worse already
+02:09 <+bridge> [ddnet] <Learath2> I don't get the point of this, every decision you make comes with a cost and a reward, you try to maximize reward and minimize cost
+02:09 <+bridge> [ddnet] <heinrich5991> except that you have a meta optimizer there, too
+02:10 <+bridge> [ddnet] <heinrich5991> that makes you not care about details that don't matter
+02:10 <+bridge> [ddnet] <heinrich5991> otherwise you'd spend too much time optimizing things that don't matter
+02:10 <+bridge> [ddnet] <heinrich5991> as a matter of fact, this optimizer just called, sorry
+02:13 <+bridge> [ddnet] <Learath2> Premature optimization is not a good idea, sure. Not being cognisant of the performance implications of your code is worse imho
+02:16 <+bridge> [ddnet] <Learath2> in context of teeworlds we have the luxury of being lax with our code because we have many cycles to spare before the performance becomes an issue to players
+02:17 <+bridge> [ddnet] <Learath2> can't apply the same attitude working with high performance software where you want to squeeze out as much performance as you can nor can you apply it to embedded programming where you don't have performance to throw out the window
+02:20 <+bridge> [ddnet] <Learath2> branch mispredictions and cache misses have non zero cost, they don't matter much for something like teeworlds that lies in the middle of the spectrum, that doesn't mean we should shove a loop that branches a million times in the middle of the main loop
+02:21 <+bridge> [ddnet] <heinrich5991> I agree with your previous messages
+02:22 <+bridge> [ddnet] <Learath2> anyway this is a tangent,  I don't think we should decouple the clients understanding of the gameworld from the servers
+02:23 <+bridge> [ddnet] <fokkonaut> Having a seperate set of clients for dummy and main is just like having another client as dummy
+02:24 <+bridge> [ddnet] <fokkonaut> it just makes sense imo (for 0.7, in 0.6 it is automatically due to snaps)
+02:25 <+bridge> [ddnet] <Learath2> if you think clients shouldn't be receiving the same set of clients, yes, that is the correct approach
+02:25 <+bridge> [ddnet] <fokkonaut> for mods you can never kniw
+02:25 <+bridge> [ddnet] <fokkonaut> know*
+02:28 <+bridge> [ddnet] <Learath2> I also still believe the player info belonged in the snap
+02:28 <+bridge> [ddnet] <fokkonaut> Me too
+02:30 <+bridge> [ddnet] <Learath2> apparently the new skin system made the snap a bit larger
+02:30 <+bridge> [ddnet] <fokkonaut> Is it so much bigger?
+02:31 <+bridge> [ddnet] <Learath2> idk, I never checked it
+02:31 <+bridge> [ddnet] <fokkonaut> guess a few new entries is not too bad
+02:31 <+bridge> [ddnet] <Learath2> still, delta compression should be dropping the entire playerinfo
+02:31 <+bridge> [ddnet] <fokkonaut> wym?
+02:32 <+bridge> [ddnet] <Learath2> we don't always send complete snapshots
+02:32 <+bridge> [ddnet] <Learath2> most of them are diffs called deltashots
+02:32 <+bridge> [ddnet] <fokkonaut> Why?
+02:33 <+bridge> [ddnet] <Learath2> because it'd be a huge amount of traffic to keep sending entire snapshots?
+02:33 <+bridge> [ddnet] <fokkonaut> Oh yea true
+02:36 <+bridge> [ddnet] <Learath2> I'm very sleepy, I have an upset stomach so I can't sleep
+02:36 <+bridge> [ddnet] <Learath2> so annoying
+14:13 <+bridge> [ddnet] <Learath2> You need to enable the python language server in vscode to get proper intellisense...
+14:28 <+bridge> [ddnet] <Ryozuki> ofc
+14:34 <+bridge> [ddnet] <Learath2> not microsofts one, that one doesn't want to do type inference
+14:34 <+bridge> [ddnet] <Learath2> you need to enable the jedi one
+14:38 <+bridge> [ddnet] <Learath2> also protip: if any of you wants a windows 10 virtual machine, go for a windows 7 one instead it performs much smoother under virtualization
+14:38 <+bridge> [ddnet] <Learath2> if you have to get a windows 10 one, boot the vm headless and RDP into the machine instead, microsofts rdp works better then all 3 virtualization platforms I tried
+14:39 <+bridge> [ddnet] <Learath2> (their native display adapters that is)
+14:40 <+bridge> [ddnet] <heinrich5991> can you rdp from linux?
+14:42 <+bridge> [ddnet] <Learath2> hm, didn't test it from linux, macOS has an official client, so does iOS, I think linux has a couple unofficial alternatives that perform well but I can't vouch for those
+14:51 <+bridge> [ddnet] <Learath2> Is there a tool better then bors? If not I'm thinking of doing https://github.com/bors-ng/bors-ng/issues/185
+15:34 <+bridge> [ddnet] <heinrich5991> @Learath2 if you find a better tool, let me know
+16:45 <+bridge> [ddnet] <Learath2> hm, I really expected more from pythons functional programming interfaces, you can't even easily chain
+16:46 <+bridge> [ddnet] <Learath2> Java and javascript both handle this beautifully
+16:48 <+bridge> [ddnet] <heinrich5991> `itertools.chain`?
+16:49 <+bridge> [ddnet] <Learath2> chain as in chain higher order functions like filter, map, reduce
+16:52 <+bridge> [ddnet] <heinrich5991> maybe I don't know what chain is
+16:52 <+bridge> [ddnet] <heinrich5991> do you mean flatten?
+16:52 <+bridge> [ddnet] <Learath2> `list.stream().map(m -> sin(m)).filter(m -> m > 0).collect(toList())` is what it'd look like in Java
+16:53 <+bridge> [ddnet] <Learath2> `list.map(m => sin(m)).filter(m => m > 0)` in js
+16:53 <+bridge> [ddnet] <heinrich5991> `[sin(m) for m in list if sin(m) > 0]` pythonic
+16:53 <+bridge> [ddnet] <Learath2> `list(filter(lambda m: m > 0, list(map(lambda m: sin(m)))` in python
+16:54 <+bridge> [ddnet] <Learath2> ofc I can use a list comprehension, my complaint was about the higher order functions filter, map and reduce
+16:54 <+bridge> [ddnet] <heinrich5991> hm
+16:55 <+bridge> [ddnet] <heinrich5991> I guess python's stance on this is: use comprehensions instead of higher order functions?
+16:55 <+bridge> [ddnet] <Learath2> hm, if that is your stance about something in your language, I don't think it belongs in the language
+16:56 <+bridge> [ddnet] <jao> list comprehensions have some problems
+16:56 <+bridge> [ddnet] <heinrich5991> I was thinking that list comprehensions are equivalent in functionality
+16:58 <+bridge> [ddnet] <heinrich5991> yes, lambdas are too verbose for other things in python
+16:58 <+bridge> [ddnet] <Learath2> I'm pretty sure they are
+17:01 <+bridge> [ddnet] <Learath2> well javascript lacks it but java and rust have lazy evaluation for their streams and iterables respectively
+17:01 <+bridge> [ddnet] <heinrich5991> put it in paranthesis in python to achieve that
+17:01 <+bridge> [ddnet] <Learath2> put what in parenthesis?
+17:01 <+bridge> [ddnet] <heinrich5991> the list comprehension
+17:02 <+bridge> [ddnet] <Ryozuki> (for x in a)
+17:02 <+bridge> [ddnet] <heinrich5991> `(sin(a) for a in iterable)`
+17:02 <+bridge> [ddnet] <Learath2> hm, hadn't seen that before, that's useful
+17:03 <+bridge> [ddnet] <Ryozuki> this makes a generator iirc
+17:03 <+bridge> [ddnet] <heinrich5991> yes
+17:07 <+bridge> [ddnet] <Learath2> fwiw I prefer the chained calls to the list comprehension syntax, it's just easier on the eyes imho
+17:07 <+bridge> [ddnet] <Learath2> I guess one could argue that pythons list comprehensions are "easier" to read as it's basically english
+17:07 <+bridge> [ddnet] <Learath2> oh and list comprehensions are just awkward to type
+17:10 <+bridge> [ddnet] <Learath2> Overall, I think if I wanted a language that lacks a type system, I think I'd use javascript nowadays
+17:10 <+bridge> [ddnet] <Learath2> Next up on the docket of things to try is perl
+17:11 <+bridge> [ddnet] <Ryozuki> js has its weird things but its good
+17:11 <+bridge> [ddnet] <Ryozuki> i use typescript if i can tho
+17:11 <+bridge> [ddnet] <Learath2> I also go for ts for any project that's getting deployed
+17:11 <+bridge> [ddnet] <Ryozuki> also the way it seamlessly connects with html when using react, jsx tsx
+17:11 <+bridge> [ddnet] <Ryozuki> i love it
+17:15 <+bridge> [ddnet] <Learath2> observables and promises aren't half bad constructs for doing asynchronous work too
+17:19 <+bridge> [ddnet] <Learath2> nim's futures are also cool
+17:20 <+bridge> [ddnet] <Learath2> maybe I can take a look at Go, it's supposed to be great for concurrency
+17:44 <+bridge> [ddnet] <Chairn> tee keep crying now when you hold fire while frozen
+17:44 <+bridge> [ddnet] <Chairn> is that wanted behavior?
+17:53 <+bridge> [ddnet] <heinrich5991> no
+18:03 <+bridge> [ddnet] <Learath2> lol, how did that happen? 😄
+18:03 <+bridge> [ddnet] <heinrich5991> the same commit as before, I guess
+18:03 <+bridge> [ddnet] <heinrich5991> the same PR
+18:04 <+bridge> [ddnet] <Learath2> idk what "as before" refers to in this context
+18:04 <+bridge> [ddnet] <Learath2> also do you know of a python equivalent for an assignment in an if stmt?
+18:04 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/2086
+18:04 <+bridge> [ddnet] <Learath2> or if let in rust
+18:04 <+bridge> [ddnet] <heinrich5991> they implemented the "walrus operator" recently
+18:05 <+bridge> [ddnet] <heinrich5991> if m := re.match("abc", "abc"):
+18:05 <+bridge> [ddnet] <Learath2> it's >= 3.8 sadly
+18:05 <+bridge> [ddnet] <heinrich5991> `if m := re.match("abc", "abc"):`
+18:05 <+bridge> [ddnet] <heinrich5991> ah
+18:05 <+bridge> [ddnet] <Learath2> too recent
+18:05 <+bridge> [ddnet] <heinrich5991> other than that, not aware of any
+18:05 <+bridge> [ddnet] <Learath2> is the idiom really `m = re.match() if m is not None:`?
+18:06 <+bridge> [ddnet] <heinrich5991> yes
+18:06 <+bridge> [ddnet] <heinrich5991> or `if m:` also works
+18:06 <+bridge> [ddnet] <Learath2> this language was made by the scope leak gang 🙂
+18:07 <+bridge> [ddnet] <heinrich5991> there is only¹ function scope in python anyway
+18:07 <+bridge> [ddnet] <Learath2> yeah, needs more scoping
+18:07 <+bridge> [ddnet] <Learath2> scopes are nice to avoid bugs, like types
+18:07 <+bridge> [ddnet] <heinrich5991> yep
+18:07 <+bridge> [ddnet] <heinrich5991> try messing with lambdas and captured variables
+18:07 <+bridge> [ddnet] <heinrich5991> that's horrible in python
+18:08 <+bridge> [ddnet] <heinrich5991> `return [lambda: i for i in range(10)]`
+18:08 <+bridge> [ddnet] <heinrich5991> gives you a nice list of ten functions returning 9
+18:08 <+bridge> [ddnet] <Learath2> wait what?
+18:09 <+bridge> [ddnet] <heinrich5991> the "fix" for that is: `return [lambda i=i: i for i in range(10)]`, which is even worse
+18:11 <+bridge> [ddnet] <Learath2> who decides the direction of python now that the BDFL is gone?
+18:12 <+bridge> [ddnet] <heinrich5991> the community, probably? I don't know
+18:14 <+bridge> [ddnet] <heinrich5991> ah look, JS has the very same problem
+18:14 <+bridge> [ddnet] <heinrich5991> `var array = 0; for (var i = 0; i < 10; i++) { array.push(function() { return i; }); }`
+18:14 <+bridge> [ddnet] <heinrich5991> gives you a list of ten functions returning 10
+18:16 <+bridge> [ddnet] <heinrich5991> how to fix it in JS?
+18:27 <+bridge> [ddnet] <Learath2> you want a list of 10 functions returning from 0 to 9?
+18:28 <+bridge> [ddnet] <heinrich5991> yes
+18:30 <+bridge> [ddnet] <Learath2> `let arr = []; for(let i = 0; i < 10; i++) arr.push(() => i);`
+18:30 <+bridge> [ddnet] <Learath2> (arrow functions (lambdas) have lexical scope)
+18:32 <+bridge> [ddnet] <heinrich5991> so the fix is replacing `function() { return ...; } ` with `() => ...`?
+18:32 <+bridge> [ddnet] <Learath2> yes
+18:32 <+bridge> [ddnet] <Learath2> or `() => { return ...; }` if you prefer
+18:35 <+bridge> [ddnet] <Learath2> hm, I don't get why the initial python example doesn't work
+18:36 <+bridge> [ddnet] <heinrich5991> because it captures the variable i which changes later on
+18:37 <+bridge> [ddnet] <heinrich5991> why does the JS example not work with functions but with lambdas?
+18:37 <+bridge> [ddnet] <heinrich5991> or "what is lexical scope?"
+18:37 <+bridge> [ddnet] <heinrich5991> and "what scope do `function()s` have?"
+18:38 <+bridge> [ddnet] <Learath2> now that I've read it again, I don't think the scope was the issue here
+18:42 <+bridge> [ddnet] <Learath2> ah an anonymous function would work too, it's scope creep
+18:43 <+bridge> [ddnet] <Learath2> it's `let i` instead of `var i` that's fixing it
+18:50 <+bridge> [ddnet] <Learath2> @heinrich5991 with let the scope of i is constrained to what's inside the loop body, at each iteration you get a new i, and the new anonymous function you create forms a closure around that new instance of i
+18:50 <+bridge> [ddnet] <Learath2> with var it's scope is not limited at all so it suffers from the same issue with python
+18:51 <+bridge> [ddnet] <heinrich5991> ah
+18:57 <+bridge> [ddnet] <Learath2> js is such a minefield
+18:59 <+bridge> [ddnet] <Learath2> but with ES6 we now have better control over scope (like let)

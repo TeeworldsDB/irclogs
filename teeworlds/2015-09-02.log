@@ -1,0 +1,171 @@
+00:07 < needs> Hey :)  I'm writing a programto make some stats, and for that I need to get the server's list from the master
+00:07 < Savander> needs, https://www.teeworlds.com/forum/viewtopic.php?id=7737
+00:07 < Savander> check this
+00:09 < needs> The master server is supposed to split the list in multiple packets but I don't see any code to adress that in your link?
+00:10 < Savander> or
+00:10 < Savander> i have other solution
+00:10 < needs> My question was about that : since mutliple packets can be send, how do I know when to stop receiving data ?
+00:10 <@minus> here's my implementation https://git.mnus.de/minus/teeworlds_srvbrowse/tree/master
+00:11 <@minus> needs: you don't know
+00:11 <@minus> well, you could request the server count and calculate
+00:12 < Savander> minus, i thought it's mediafire
+00:12 < Savander> lol.
+00:12 < needs> The count can change between the "count request" and the "server list request", so it won't work either
+00:12 <@minus> oO
+00:12 < Savander> simillar look.
+00:12 < Savander> xd
+00:13 <@minus> needs: fair, i just work with timeouts, so does teeworlds
+00:13 <@minus> actually no, teeworlds doesn't
+00:15 < needs> I've not fully understand how the networking stack works, but it seems that the socket is never really closed, waiting for hypothetic packets from master?
+00:15 <@minus> yep
+00:15 <@minus> the same socket is also used for games
+00:16 <@minus> good night o/
+00:16 < needs> Arg, even if it is a little less efficient, TCP should definitively bu used for master
+00:16 <@minus> meh, it worked fine so far
+00:16 < needs> It just makes writing external programs using the same protocol a huge burden
+00:17 < needs> Anyway, I will got for the count first, and then get th server list
+00:17 < needs> *go
+00:17 <@minus> well, you still have to ping/query the servers themselves, those would have to be tcp too
+00:17 < teeworlds-steam> Guillaume (http://steamcommunity.com/profiles/76561198027993545) entered chat.
+00:18 <@minus> heinrich5991: can you turn off the joins/quits?
+00:19 <@minus> needs: feel free to ask me more tomorrow :P that's the only part of teeworlds i know reasonably well
+00:20 < needs> TCP or some kind of data should be sent to mark the end of the list
+00:20 < needs> Okay, have a good night :)
+00:25 < heinrich5991> needs: if you need tools to query the master servers, there's already some of them IIRC
+00:25 < needs> Where can I find them?
+00:25 < teeworlds-steam> Guillaume (http://steamcommunity.com/profiles/76561198027993545) left chat.
+00:27 < needs> And also : since UDP packet are not retransmitted, incomplete server list can occurs time to time?
+00:28 < heinrich5991> needs: https://github.com/heinrich5991/teeworlds/blob/serverbrowser/src/tools/browser.cpp
+00:28 < heinrich5991> this is my c++ from a long time ago
+00:28 < heinrich5991> handles incomplete lists by rerequesting them
+00:29 < needs> How do know its incomplete
+00:29 < needs> Thank for th elink
+00:31 < heinrich5991> needs: by the count
+00:31 < heinrich5991> note that the count includes 0.5 servers
+00:31 < heinrich5991> and the server count is updated more often than the actual list
+00:33 < needs> So you send two requests, one for the count and right after the one to get the server list ?
+00:34 < needs> What happend if between the two, a server is added ?
+00:36 < needs> Okay, I see how your code works, it use O_NONBLOCK on sockets and regularly check for new packets
+00:36 < heinrich5991> needs: it assumes the difference of 5 or so is ok
+00:36 < needs> That's what I wanted to avoid :(
+00:37 < needs> Ok, fair enough, that should work 99.99% of the time
+00:47 < needs> Still, having to import the whole teeworlds tree to just retrieve a list of server is not very convenient :|
+00:47 < needs> It's even more a problem when you don't want to use C++ at all :D
+00:48 < needs> But I won't start a C++ troll that night ^^
+00:48 < heinrich5991> needs: just make it a console application
+00:48 < heinrich5991> another possibility would be https://github.com/fstd/libtw/tree/ext64
+00:49 < heinrich5991> is c++ too, though
+00:49 < needs> Nice project
+00:50 < heinrich5991> that's not mine ^^
+00:50 < fstd> take it with a brick of salt
+00:50 < needs> However he use the two request scheme to get the server list :(
+00:51 < fstd> mean what?
+00:53 < needs> You first request the servers count and then the actual list, hoping not too much changes happened between the twos requests
+00:53 < heinrich5991> needs: the requests are within a few milliseconds, the actual problem is that the server count is updated more often than the server list
+00:54 < needs> Also you have to handle missing UDP packets, so have a timeout...
+00:54 < needs> Still changes cna happen between two request right ?
+00:55 < heinrich5991> not really
+00:55 < fstd> yeah i also didn't like that potential discrepancy
+00:55 < heinrich5991> I mean, do any of you two listen to me?
+00:55 < heinrich5991> "the actual problem is that the server count is updated more often than the server list"
+00:55 < needs> I don't see it solve my problem ^^
+00:55 < fstd> i don't understand how that is relevant
+00:55 < needs> *how
+00:55 < fstd> other than making things worse
+00:56 < heinrich5991> it makes things practically worse, not only theoretically
+00:56 < needs> Why ?  It just use more CPU, but at least the count is up-to-date?
+00:57 < heinrich5991> you could probably try to re-request it if you only get full packets
+00:57 < needs> Doesn't work in the case no packets follow a full packet
+00:57 < needs> I mean, without using O_NONBLOCK
+00:58 < needs> And doesn't solve missing UDP packets
+00:58 < fstd> actually i don't think that libtw requires you to fetch the list first
+00:58 < heinrich5991> instead of O_NONBLOCK you can use select
+00:58 < fstd> although well, it currently assumes you know roughly how many servers to expect, to counter the packet loss issue
+00:58 < needs> But anyway, the protocol still works fine as it is for most of the case, so I will try to deal with it
+00:59 < fstd> s/fetch the list/fetch the count/
+00:59 < heinrich5991> (I'm not trying to defend the protocol, I'm trying to find the best method to work around its issues)
+00:59 < fstd> (oh wait, never mind, it effectively does by not exposing the pertinent function as part of the public interface)
+01:00 < needs> fstd: it did https://github.com/fstd/libtw/blob/ext64/libtw/master.cpp#L71
+01:00 < needs> Ah ok, you figured it out
+01:01 < fstd> needs: i was thinking https://github.com/fstd/libtw/blob/ext64/include/libtw/master.h#L32
+01:01 < fstd> which should actually work on its own, but is currently private
+01:02 < needs> Indeed
+01:02 < needs> All that code to in the end simulate a TCP connexion ^^!
+01:02 < fstd> heh
+01:07 < needs> heinrich5991: select() is indeed a decent way to deal with the issue
+01:12 < needs> poll() is even better in my case :D
+01:13 < needs> thanks for your suggestion
+01:22 < needs> Afterall, using UDP instead of TCP will put less pressure on the master server, trading an easy protocol for a slight increase in performance seems not that bad since master-server is a key point for the game
+01:29 < heinrich5991> using HTTP would have the advantage that you have access to many caching services, like cloudflare
+01:36 < needs> Why not
+01:41 < Fels> oink
+01:46 < needs> Have we seen any significant increase in players since the release on Steam?
+01:47 < Fels> http://steamcharts.com/app/380840
+01:48 < Fels> this player count is only for steam though.
+01:49 < needs> It can also be old players just using Steam instead of the vanilla client
+01:49 < Fels> yea, ofcourse
+01:49 < Fels> but you cant say that for sure.
+01:50 < Fels> the best way is to look at the playercount ingame
+01:50 < needs> I haven't play since so I was wondering if someone more aware than me can fill my curiousity ;)
+01:51 < needs> I've just checked right now, 500 players seems okay at this time of the day
+01:53 < Fels> well.. i cant see a huge increase, but this could change sooner or later.
+01:53 < needs> Well, the count doesn't account for players in server that accept more than 16 players
+01:53 < needs> Okay
+02:02 < needs> Good night :)
+13:35 < Fels> oink
+18:08 < Fels> oink
+21:40 < Fels> oink
+21:40 < Savander> kwa
+21:45 <@matricks> pig
+22:01 < BotoX> hmm
+22:02 < Savander> mmh
+22:02 < BotoX> I have a tcp connection with boost asio (asyncio), I am wondering how to make an async reverse shell 
+22:12 <@minus> i've worked with boost asio a bit. i must say i have no clue
+22:12 <@minus> boost asio is hard
+22:23 < BotoX> or
+22:23 < BotoX> I could just system() the command
+22:23 < BotoX> and use a perl reverse shell xd
+22:23 < BotoX> *system() the received data
+22:24 <@minus> OS X actually calls perl to do some regex matching in a standard library function
+22:24 < BotoX> lol
+22:25 <@minus>  http://www.opensource.apple.com/source/Libc/Libc-997.90.3/gen/wordexp.c ctrl-f perl
+22:27 < BotoX> Hmm
+22:27 < BotoX> could I somehow redirect popen pipes to the boost asio tcp socket
+22:29 < heinrich5991> if I can just overclock the UNIX django, I can basic the DDoS root. damn. no dice. but wait... if I disencrypt their kilobytes with a backdoor handshake, then... jackpot!
+22:30 < EastByte> ^
+22:30 <@minus> wut
+22:31 < BotoX> okay, fork dup2 to the socket file descriptor
+22:31 < BotoX> but how do I get the socketfd xd
+22:31 < EastByte> why do you not use netcat?
+22:31 < BotoX> I gained FTP access to a gameserver (srcds - source engine)
+22:31 < EastByte> BotoX doing leet stuff again...
+22:31 < BotoX> Currently I am modifying one of the sourcemod extensions to put a reverse shell in it
+22:32 < BotoX> this one: https://github.com/nefarius/sm-ext-socket
+22:32 < heinrich5991> that sounds.. totally not malicious
+22:32 < BotoX> :p
+22:38 <@minus> linux would be so much nicer if X11 didn't randomly decide to freeze
+23:04 < fstd> you mean X11 would me so much nicer if X11 didn't randomly decide to freeze
+23:08 < heinrich5991> wayland is coming
+23:08 <@minus> well, that's implied
+23:10 < heinrich5991> x11 doesn't randomly freeze for me, it's out-of-memory situations that aren't well handled..
+23:10 < deen> for me x11 problems usually result from bad graphics drivers
+23:11 <@minus> yeah, 99% of the time
+23:11 <@minus> intel a lot more than radeon
+23:11 < EastByte> my x11 often freezes when I do drag&drop stuff from window to window
+23:11 < deen> that's interesting, what intel gpu are you using, minus?
+23:11 <@minus> HD 4600 iirc
+23:12 <@minus> actually i have an idea why it froze before
+23:12 < heinrich5991> (for reference, I'm using an nvidia card, and I don't have these issues)
+23:12 <@minus> i tried to SIGSTOP a splash screen, maybe i hit i3 instead
+23:13 <@minus> but blaming X isn't wrong anyway
+23:13 < heinrich5991> $ kill 0 -STOP
+23:13 < heinrich5991> ^ frees up a lot of cpu time
+23:13 < heinrich5991> (don't execute that btw)
+23:14 < heinrich5991> on an *entirely* unrelated note
+23:14 < heinrich5991> does someone know why these steam broadcasts don't seem to work with teeworlds? https://steamcommunity.com/app/380840/broadcasts/
+23:14 < heinrich5991> only sound working
+23:16 < deen> heinrich5991: maybe sdl2 fixes it
+23:16 < heinrich5991> mhmh. magic!
+23:17 < heinrich5991> but there are probably a lot of games using sdl1.2 and still able to stream
+23:59 < tomreyn> hi there. i'm wondering whether you considered making use of coverity scan?
+23:59 < tomreyn> apparently there's a fork of teeworlds up ther ebut this hasn't been updated in a good while

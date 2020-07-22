@@ -1,0 +1,191 @@
+14:43 < LDune> hey rand
+14:44 < LDune> I think I saw you reintroduced the error factors on the bots
+14:44 < LDune> it's nice :)
+14:44 < LDune> \nick Dune
+14:44 < Dune> got anything in the works for teeworlds?
+14:50 < rand> hey
+14:52 < rand> i don't have anything more than the PR, the bots code have not much to bring to vanilla but this is nice for faking a lot of clients
+14:53 < rand> (making the game crashes somtimes cf #1570)
+14:53 < Dune> allow me to disagree
+14:53 < Dune> I think such bots would bring something to vanilla teeworlds :)
+14:54 < Dune> would be nice to have bots for warmup or something
+14:55 < rand> maybe, but my implementation sucks ^^
+14:55 < rand> that make me think that if spectators and players could have separate slots, it could be logical to have separated bot slots
+14:56 < rand> but this whole thing would be a big change
+14:57 < rand> I tried yesterday to view what would be the change in protocol and game source and I realize I don't have a good overview of the code, engine/game/network
+14:59 < rand> Either this is not the right way, or it's a feature that should mature (and/or beyond my level atm)
+14:59 < Dune> I don't have a good overview either
+19:06 < bridge> [teeworlds] <LordSk> hey rand thanks for reviewing my fps limit PR btw
+19:06 < bridge> [teeworlds] <LordSk> it helped a lot knowing there were no issues on linux 😃
+19:39 < bridge> [freenode] <Digit> ack.  i was in a game with other players for a moment there.  ... oh back in!
+19:39 < bridge> [freenode] <Digit> lizard!  :)
+19:40 < bridge> [freenode] <Digit> god damnit, they just left. XD
+19:40 < bridge> [freenode] <Digit> teeworlds is so lonely these days.
+19:41 < bridge> [freenode] <Digit> another joined, then they left too.  :/   closer to getting a game.  :[
+19:41 < bridge> [freenode] <Digit> probably for the best.   i should stop playing it.  :3   get some real exercise.
+19:52 < Dune> today's blog is out btw: https://www.teeworlds.com/?page=journal :)
+19:53 < rand> :D
+19:54 < Dune> I think I'll try to keep them daily on weekdays, like in the old times. lots of contents to discuss
+19:55 < bridge> [teeworlds] <Sonix> nice post!
+20:32 < bridge> [freenode] <Digit> agreed
+20:33 < bridge> [freenode] <Digit> could do with a topic in here.  with link to the site/journal
+20:41 < rand> m, i feel like the client don't like mutlti monitor display as a window on my tiling manager
+20:41 < rand> or my wm doesn't like teeworlds
+20:42 < rand> oh, that's because of fullscreen nvm
+20:45 < rand> oh no, segfault
+20:45 < rand> after writing new settings
+20:47 < minus> my WM doesn't implement relative cursor positioning and cursor constraints
+20:47 < minus> playing teeworlds works very not well like that
+21:02 < Dune> rand could you trace the segfault maybe?
+21:03 < rand> I'm not sure if it's link to previous build that don't overlap well (but do at compile time)
+21:04 < rand> I don't have a way to reproduce 100% and the segfault is when the parent ask to join
+21:04 < rand> the file is modified at least
+21:05 < Dune> so something that happens after writing settings
+21:05 < rand> Dune: I'm trying your PR about composed binds btw
+21:05 < rand> without success :c
+21:05 < Dune> ah, thanks rand
+21:05 < Dune> huh?
+21:05 < Dune> what fails?
+21:06 < rand> i can't input modifier+key, i get lctrl alone for example
+21:06 < Dune> adding binds only works in the console
+21:07 < rand> and when adding from console, like `bind ctrl+w quit` pressing ctrl+q does not quit
+21:07 < Dune> gotta do a bunch of fixes in menus.cpp to make it work with buttons (and still allow single binds like Ctrl)
+21:07 < rand> *ctrl+w
+21:07 < Dune> ah
+21:07 < Dune> interesting
+21:07 < Dune> where do you ctrl+q from
+21:08 < rand> typo
+21:08 < Dune> or w, whatever
+21:08 < Dune> ingame?
+21:08 < rand> oh, in menu in fact
+21:08 < Dune> can you try both?
+21:08 < Dune> (it should work in both but the code is different)
+21:09 < Dune> but I think Q is filtered out in menus because only FX bind keys are allowed there
+21:09 < rand> hm gotta remove lctrl before xD
+21:09 < bridge> [teeworlds] <Sonix> it would be nice to have toggle binds too 😃
+21:09 < Dune> or use rctrl
+21:09 < Dune> Sonix: yeah I proposed that in the issue, but forgot about it haha
+21:09 < Dune> to be fair it's been 7 years lol
+21:10 < bridge> [teeworlds] <Sonix> yeah dunno why it was never considered
+21:10 < Dune> because issues stack up faster than they get solved :p
+21:11 < Dune> so yeah I should implement toggle, but it's completely separate actually, so it's fine in a different PR
+21:11 < bridge> [teeworlds] <Sonix> yeah
+21:11 < bridge> [teeworlds] <Sonix> nice
+21:13 < rand> Dune: i used `bind alt+p say hello` and pressing `p` alone made me say `hello`
+21:13 < Dune> ugh
+21:13 < rand> so does alt+p or ctrl+p
+21:14 < Dune> strange, I tested that kind of stuff thoroughly
+21:14 < Dune> maybe not ingame
+21:17 < rand> maybe there is a difference between our setups
+21:17 < Dune> // don't handle invalid events and keys that aren't set to anything
+21:17 < Dune> 	if(!((Event.m_Key >= KEY_F1 && Event.m_Key <= KEY_F12) || (Event.m_Key >= KEY_F13 && Event.m_Key <= KEY_F24)))
+21:18 < Dune> that's in the menus
+21:18 < Dune> nah I think I didn't test that ingame rand
+21:18 < Dune> but for example alt+f3 should work in the menus
+21:20 < Dune> oh, I found the bug, rand
+21:21 < Dune> https://github.com/teeworlds/teeworlds/pull/1589/commits/cfaa0ea638ed072c662ff0fd9f8203e904137939#diff-63aaff7441339699fa58138c34201923R62
+21:21 < Dune> line 100 should be the same as line 68
+21:21 < Dune> in binds.cpp
+21:22 < Dune> (the whole if block should be the same)
+21:22 < Dune> but I don't have my dev computer here :c
+21:25 < Dune> thanks :)
+21:37 < rand> ouch
+21:37 < rand> we have a issue on servers (0.6) ><
+21:38 < Dune> yeah I saw
+21:39 < bridge> [teeworlds] <Sonix> I've updated the to-do list in the graphics forum
+21:40 < Dune> oooh
+21:40 < Dune> great idea Sonix
+21:42 < Dune> rather look into android's files Sonix, he's active
+21:44 < bridge> [teeworlds] <Sonix> yeah i know
+21:45 < Dune> would be great to include those in 0.7.1
+21:46 < bridge> [teeworlds] <Sonix> there are a handful of fixes to do before releasing androids
+21:48 < bridge> [teeworlds] <Sonix> i guess u could test them too if u have time dune
+21:48 < Dune> then listing those fixes clearly for him to work on would be greatly motivating and helpful
+21:48 < bridge> [teeworlds] <Sonix> thats what im doing in his thread
+21:49 < Dune> eh I'm not an artistic guy :c got trash tastes
+21:49 < Dune> you did it already?
+21:49 < bridge> [teeworlds] <Sonix> i mean just test how they look ingame
+21:49 < bridge> [teeworlds] <Sonix> if any bugs appear etc
+21:50 < Dune> https://www.teeworlds.com/forum/viewtopic.php?pid=121793#p121793
+21:50 < Dune> last answer is by him
+21:51 < bridge> [teeworlds] <Sonix> uh i know
+21:52 < bridge> [teeworlds] <Sonix> im waiting to test everything entirely and collect all the screenshots containing bugs and post everything at once
+21:54 < Dune> I see, thank you very much for the help :)
+21:55 < bridge> [teeworlds] <Sonix> Im wondering if he's actually checking them in game
+21:55 < bridge> [teeworlds] <Sonix> 
+21:55 < bridge> [teeworlds] <Sonix> https://cdn.discordapp.com/attachments/490150878934990850/506934174935154711/screenshot_2018-10-22_20-54-41.png
+21:55 < Dune> he said he can't because he doesn't know how to host a map
+21:56 < Dune> ideally you could sort that out with him? :|
+21:56 < bridge> [teeworlds] <Sonix> well he can join any server
+21:56 < bridge> [teeworlds] <Sonix> there are some now
+21:57 < bridge> [teeworlds] <Sonix> well i'll let him know in the next days anyway
+21:57 < Dune> good!
+22:02 < Learath2> Is the mouse sensitivity weirdly high in the editor on 0.7 too?
+22:02 < Learath2> Been trying to figure out why that's the case in 0.6 for a couple hours now
+22:05 < bridge> [teeworlds] <Sonix> It seems a bit faster yeah
+22:06 < Learath2> The code handling the mouse movement seems to be the same in both editor.cpp and in menus.cpp so it's pretty weird
+22:09 < bridge> [teeworlds] <ChillerDragon> Learath2 i could hardly feel a difference why do u put that much effort in something that has almost no effect?
+22:11 < Learath2> It's an anomaly that doesn't make sense. I like knowing how things work.
+22:12 < bridge> [teeworlds] <ChillerDragon> ye i get that. But there is so much stuff to do...
+22:12 < bridge> [teeworlds] <ChillerDragon> no you know what do what you want i try to not judge you c: sowwy
+22:12 < Learath2> It could be some weird bug where we call UpdateAndRender twice without Input()->NextFrame(); and then adding something to UpdateAndRender would behave unexpectdly aswell
+22:20 < Dune> goddamn avira keeps flagging my teeworlds with a trojan
+22:20 < bridge> [teeworlds] <ChillerDragon> avira sux lul
+22:27 < rand> not sure about it but, is the 0.6.4 client compatible with 0.6.5 server ?
+22:28 < bridge> [teeworlds] <Dune> 0.6.x is always compatible with 0.6.x
+22:31 < rand> ok thx
+22:32 < rand> i got this message in server log : client dropped. cid=0 addr=1.1.1.1:42  reason='Wrong version. Server is running '0.6 e42d81cd67b8c7bc' and client '0.6 626fce9a778df4d4''
+22:33 < Dune> then the client is running a different nethash somehow
+22:33 < rand> 626fce9a778df4d4 is 0.6.4
+22:33 < Dune> huh
+22:33 < Dune> by the way, this "error" is just a notice, client can choose to bypass it actually
+22:33 < Dune> but still
+22:33 < Dune> I have 0.6.1 client and connect to any 065 server
+22:35 < rand> maybe a mod client that gives up on nethash mismatch, ok
+22:35 < Dune> yeah, strange
+22:36 < bridge> [teeworlds] <ZombieToad> when i compiled 0.6.5 i couldnt connect to any server
+22:37 < bridge> [teeworlds] <ZombieToad> 
+22:37 < bridge> [teeworlds] <ZombieToad> https://cdn.discordapp.com/attachments/490150878934990850/506944651245387786/screenshot_2018-10-30_21-36-04.png
+22:37 < Dune> which sources did you use
+22:37 < bridge> [teeworlds] <ZombieToad> teeworlds github
+22:37 < bridge> [teeworlds] <ZombieToad> the 0.6 branch
+22:38 < Dune> I don't have the issue with the 0.6.5 download
+22:38 < Dune> so it's not 0.6.5 that you use, it's 0.6 trunk
+22:40 < rand> the nethash is the same
+22:40 < rand> e42d81cd67b8c7bc is for 0.6.5-release
+22:40 < rand> i can reproduce
+22:41 < Dune> I can't, with 0.6.5 binaries
+22:41 < rand> still, my client 0.6.4 can connect on every server I tested
+22:41 < rand> wichcraft
+22:49 < rand> wait
+22:50 < rand> https://github.com/teeworlds/teeworlds/commit/ebeb289fef90df0b9a060f6e197b58472660a515 and  https://github.com/teeworlds/teeworlds/blob/0.6/scripts/cmd5.py#L33
+22:52 < rand> so, the server check the whole hash… 
+22:53 < rand> but i'm not sure that explains why I can join 0.6.x server with one client and only 0.6.5 client with another
+22:56 < rand> 0.6.x is fine with every server and 0.6.5-release can connect only on 0.6.5…
+23:03 < rand> ok, the 0.6.5 client i build send client version info while the others don't…
+23:04 < rand> so it got rejected
+23:04 < rand> poor guy
+23:04 < Dune> :(
+23:05 < rand> Dune: can you check if your client send info on connecting ?
+23:05 < rand> there is a message : `[client]: connected, sending info`
+23:05 < Dune> huh, I'm not sure what you mean
+23:05 < Dune> ah
+23:05 < Dune> 065?
+23:05 < rand> yes, since you don't have the issue
+23:05 < Dune> yeah
+23:05 < Dune> it does
+23:06 < rand> whatever the server version ?
+23:06 < Dune> huh, I tried <0.6.5
+23:06 < Dune> but client gotta send info ofc?
+23:06 < rand> fair enough
+23:06 < rand> and on 0.6.5 ?
+23:07 < rand> > '163.172.95.239:8304' for instance
+23:09 < rand> oh, i guess my server should not have this hash, because of the tweak in cmd5
+23:10 < rand> but building from 0.6.5-release, i does not work and I end up with a new hash
+23:11 < rand> it just happened I don't send info on my server…
+23:27 < rand> hm, 0.6.4 thinks 0.6.5 send it dm1…
+23:28 < rand> this is becoming weirder and weirder
+23:47 < rand> > ConstructLegacyHandshake
+23:48 < rand> https://github.com/teeworlds/teeworlds/commit/aababc63eeeee1bc41672502ca6c7a1dd9f61d94
+23:48 < rand> why did I tldr ? :')
+23:55 < Dune> :x

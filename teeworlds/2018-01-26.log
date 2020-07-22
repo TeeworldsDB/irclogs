@@ -1,0 +1,91 @@
+00:10 <@minus> i was joking; JIT can't beat zero overhead abstractions
+00:12 < koomi> at least in theory it can by using characteristics of the actual encountered data
+00:13 <@minus> you mean like speculative execution?
+00:13 < pinkieval> minus: :D
+00:13 < koomi> that might indeed work for parsing packets, but you'd have to be very careful to have identical (or at least very similar) execution traces
+00:13 < koomi> nah
+00:14 < pinkieval> I tried writing a Brainfuck interpreter in Rust and in RPython once
+00:14 < pinkieval> the one in RPython was much faster
+00:14 < pinkieval> (RPython = a language based on Python, which automatically generates a JIT compiler for your interpreters)
+00:16 <@minus> on an unrelated note: X11 and Slack a pile of shit
+00:17 < pinkieval> switch to Wayland?
+00:18 <@minus> sway isn't really as usable and stable as I'd like yet
+00:19 < pinkieval> I gave up trying to find usable and stable software
+00:19 < pinkieval> everything is shit
+00:20 <@minus> sad but true
+00:24 < koomi> not a healthy way too look at the world
+00:24 < koomi> luajit is an absolutely amazing piece of software for example :-)
+00:25 <@minus> but does it support the latest lua version?
+00:25 < koomi> I don't think it's even being maintaned
+00:26 <@minus> Q.E.D.
+00:26 < koomi> why? it's still amazing and not shitty at all
+00:27 <@minus> huh, latest beta is from may 2017
+00:27 <@minus> that's not terribly unmaintained
+00:30 < koomi> then it might be maintaned to some degree, but it sure won't have the latest spectre mitigations ;-)
+00:31 <@minus> hah
+00:32 < koomi> oh, they added "JIT compiler support for x64 in GC64 mode"
+00:32 < koomi> IIRC that was one of the blockers for new lua versions
+00:33 < koomi> (not that I have any idea what that actually means)
+00:41 < pinkieval> “GC64 mode which allows the full low 47-bit address space to be used by LuaJIT's GC-managed memory”
+00:41 < pinkieval> (GC = garbage collector)
+12:44 < pinkieval> wow. ~15 hours ago I stopped a tw server that was getting ddosed
+12:44 < pinkieval> the ddos did not stop yet
+12:48 < pinkieval> unrelated: since we mentionned breaking the protocol earlier, I have two ideas: 1. allow servers to push Lua scripts to clients to improve the interface of mods 2. use a password validation à-la SCRAM to prevent server impersonation
+12:49 < pinkieval> the motivation between 2 is that a) users won't send their password by mistake (I have seen that a lot on servers which have a /identify command) b) if the server does not know the password, the user is notified
+19:31 < Learath2> pinkieval: I had certificate validation a-la TLS working on my ddnet branch while implementing accounts
+19:33 < Learath2> 1. If I'm not mistaken matricks worked on something like that for a couple seconds, compiling mods to bytecode and running it on a VM
+19:45 < pinkieval> I'm not sure amateur servers would bother getting a valid certificate
+19:46 < pinkieval> eg. except for the ~5 biggest IRC networks, most don't have valid certificates
+19:48 <@heinrich5991> pinkieval: SCRAM doesn't help
+19:48 < Learath2> well didn't implement it with actual ssl certs anyways, implemented my own, was just messing around at that point :D
+19:48 <@heinrich5991> *doesn't fix everything
+19:48 <@heinrich5991> you just MITM the authentication
+19:48 <@heinrich5991> i.e. host a copied server
+19:48 <@heinrich5991> wait for someone to join your rogue server
+19:48 <@heinrich5991> forward the SCRAM-exchange to the real server
+19:49 <@heinrich5991> profit
+19:49 < Learath2> because heinrich5991 doesn't trust my crypto ddnet will probably end up with some solution to that problem that involves some cutting edge libraries :)
+19:49 < Learath2> you can just steal ours when we are done
+19:49 < pinkieval> heinrich5991: indeed
+19:49 < pinkieval> but at least the password is safe
+19:49 <@heinrich5991> safeish
+19:50 < pinkieval> but I agree
+19:54 <@heinrich5991> if the wikipedia article is right, offline password recovery is not possible with https://en.wikipedia.org/wiki/Secure_Remote_Password_protocol 
+19:54 <@heinrich5991> whereas in scram, you can still brute-force your way through pbkdf2 for weak passwords
+19:55 < pinkieval> what about using client certificates?
+19:56 < Learath2> for what?
+19:56 < pinkieval> Learath2: authenticating clients to servers
+19:56 < Learath2> it's what I have currently
+19:56 < Learath2> (non working state)
+19:56 < pinkieval> oh wait, SRP also does two-ways auth
+19:56 < pinkieval> nvm then
+20:03 < Learath2> I hate it when a wikipedia page is missing the definition for a variable which makes the entirep page just pointless
+20:06 < pinkieval> Learath2: which var?
+20:06 < Learath2> lowercase a and b, 
+20:10 < pinkieval> Learath2: they have to be computed from A and B
+20:11 < pinkieval> or maybe it's the other way around
+20:13 < pinkieval> both are mostly equivalent for N large enough, anyway
+20:16 < pinkieval> er, I mean small enough (wrt a and b)
+20:33 < eeeee> why use custom a-la TLS thing when you can just use the actual DTLS
+20:38 < eeeee> servers can auto generate certs and then ddnet can have a facility which signs those certs as legit after we've been seeing the server for some time and the presented cert is consistent when queried from various different locations (the signatures can be stored on ddnet servers, no need for the game servers to maintain them)
+20:38 < pinkieval> nice idea
+20:39 < eeeee> this somewhat protects against mitm but overall kinda useless
+20:40 < eeeee> (the signatures part)
+20:40 < pinkieval> the main issue I think is impersionation, not mitm
+20:40 < pinkieval> impersonation *
+20:41 < eeeee> clients can still be tricked into joining a rogue server which looks similar to the real one and pasting the password there. in https land that's solved with someone manually reviewing all cert requests - not something we can implement in ddnet
+20:42 < Learath2> never thought about other servers tbh
+20:42 < eeeee> best thing we can do imo is to just make people use passwords and manage access with public keys
+20:42 < eeeee> s/use/not use/
+20:43 < Learath2> I wanted it to work with ddnet servers, could give intermediaries to communities that we trust, but that was about the scope of my project
+20:43 < pinkieval> we're back to Zooko's triangle
+20:43 < eeeee> yeah that's also fair, not that many trustworthy communities anyway
+20:44 < Learath2> the problem I was having was actually encrypting the UDP traffic, given it's lossy
+20:44 < Learath2> sure I could figure something out but didn't have much time to look at it the last 2 months
+20:45 < eeeee> as i mentioned i dont think it's worth the time to do custom thing anyway
+20:46 < Learath2> yeah, I didn't even know about DTLS when I started it and my main goal was to avoid yet another library in ddnet
+20:47 < Learath2> but noone else seems to share my concern with the #libraries->\+inf as time->\+inf :D
+20:47 < eeeee> but we already openssl anyway
+20:47 < Learath2> does openssl even dtls?
+20:47 < eeeee> i think it does
+20:48 < Learath2> I guess I'm reading up on dtls now :)

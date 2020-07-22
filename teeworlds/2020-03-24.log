@@ -1,0 +1,93 @@
+13:18 < Learath2> @LordSk feel free to take a look at #2509, I'll finish it up but I need to take a day or two
+13:19 < Dune> oh, doesn't look bad :)
+13:19 < Learath2> When I did the listbox I wasn't really thinking forward and now I want a way to add icons to the left and a way to return a key instead of the index of the selected entry
+14:10 < Learath2> heinrich5991: Re:serverinfo I think that's unintentionally what I was doing aswell. The entry exists before the main packet
+14:16 < Learath2> I don't get why 2492 keeps failing to compile, that variable is not unused
+14:24 < Dune> 2509 fails for teeworlds\src\game\editor\ed2_ui.cpp(522,52): warning C4305: 'argument': truncation from 'double' to 'T' [D:\a\teeworlds\teeworlds\debug\teeworlds.vcxproj]
+14:25 < Learath2> I have no idea what that even means
+14:25 < Dune> 2492 only fails with cmake, somehow
+14:25 < Dune> Learath2: he doesn't know if he should use float or double I think?
+14:26 < Dune> you have to specify the .f
+14:26 < Dune> 	const vec4 ButtonColorLight(0.162f, 0.1, 0.29f, 1);
+14:26 < Learath2> oh, I was going so quick throwing the colors out there I missed that :P
+14:26 < Learath2> yeah, 0.1 indeed is a double
+14:27 < Dune> I'll go for a meeting and have a look
+15:01 < Learath2> Idk who has access to the settings of the repo but you should disable circleCI
+15:17 <@heinrich5991> Learath2: tried disabling it, no idea if it works
+15:17 <@heinrich5991> didn't really find it
+15:37 < Ryozuki> heinrich5991 are you here?
+15:40 < bridge> [teeworlds] <heinrich5991> kinda but not really
+15:40 < Ryozuki> heinrich5991 what do you think about using findfreetype that is bundled from cmake instead of our own
+15:40 < Ryozuki> it is there since 3.0.3 iirc
+15:40 < Ryozuki> maybe earlier
+15:40 < Ryozuki> there is also a warning in cmake rn 
+15:40 < bridge> [teeworlds] <heinrich5991> I'd like to not use cmake-specific `Find*` for the most part
+15:40 < Ryozuki> why not
+15:41 < bridge> [teeworlds] <heinrich5991> it makes things harder to debug when they fail
+15:41 < Ryozuki> are you sure
+15:41 < bridge> [teeworlds] <heinrich5991> pretty sure, I'd need to find the version of their `Find*` script before starting to debug it
+15:42 < bridge> [teeworlds] <heinrich5991> is there a motivation to use them here?
+15:42 < bridge> [teeworlds] <heinrich5991> if there is, we can consider changing to them
+15:42 < Ryozuki> no u go to /usr/share/cmake and ur set
+15:42 < bridge> [teeworlds] <heinrich5991> these change from cmake version to cmake version
+15:42 < Ryozuki> i would relly more on it and also we got a warning, due to having our freetype named ownfreetype
+15:42 < Ryozuki> and we cant use freetype as is cuz it says a warning about shadowing their script
+15:43 < bridge> [teeworlds] <heinrich5991> because of `FindOpenGL` I guess
+15:43 < bridge> [teeworlds] <heinrich5991> we could patch that out, I didn't like that in the first place
+15:43 < Ryozuki> ?
+15:43 < Ryozuki> what about findopengl
+15:43 < bridge> [teeworlds] <heinrich5991> we use cmake's `FindOpenGL`
+15:43 < bridge> [teeworlds] <heinrich5991> I'd guess it's causing the warning
+15:43 < bridge> [teeworlds] <heinrich5991> because it also looks for freetype
+15:43 < Ryozuki> no its not
+15:44 < bridge> [teeworlds] <heinrich5991> where does the other freetype come from?
+15:44 < Ryozuki> i think you should check the warning beforehand
+15:44 < Ryozuki> you may be confusing things
+15:44 < bridge> [teeworlds] <heinrich5991> can you paste it?
+15:44 < Ryozuki> ec
+15:44 < Ryozuki> sec
+15:45 < Ryozuki> CMake Warning (dev) at /usr/share/cmake-3.17/Modules/FindPackageHandleStandardArgs.cmake:272 (message):
+15:45 < Ryozuki>   The package name passed to `find_package_handle_standard_args` (Freetype)
+15:45 < Ryozuki>   does not match the name of the calling package (OwnFreetype).  This can
+15:45 < Ryozuki>   lead to problems in calling code that expects `find_package` result
+15:45 < Ryozuki>   variables (e.g., `_FOUND`) to follow a certain pattern.
+15:45 < Ryozuki> Call Stack (most recent call first):
+15:45 < Ryozuki>   cmake/FindOwnFreetype.cmake:23 (find_package_handle_standard_args)
+15:45 < Ryozuki>   CMakeLists.txt:312 (find_package)
+15:45 < Ryozuki> This warning is for project developers.  Use -Wno-dev to suppress it.
+15:45 < Ryozuki> this is cuz we have ownfreetype.cmake to not shadow cmake one
+15:46 < Ryozuki> oh
+15:46 < Ryozuki> it may be because opengl at the end
+15:46 < Ryozuki> when i rename our findownfreetype to findfreetype i get this
+15:46 < Ryozuki> CMake Warning (dev) at /usr/share/cmake-3.17/Modules/FindX11.cmake:207 (find_package):
+15:46 < Ryozuki>   File /usr/share/cmake-3.17/Modules/FindX11.cmake includes
+15:46 < Ryozuki>   /home/ryozuki/Documents/teeworlds/cmake/FindFreetype.cmake (found via
+15:46 < Ryozuki>   CMAKE_MODULE_PATH) which shadows
+15:46 < Ryozuki>   /usr/share/cmake-3.17/Modules/FindFreetype.cmake.  This may cause errors
+15:47 < Ryozuki>   later on .
+15:47 < Ryozuki>   Policy CMP0017 is not set: Prefer files from the CMake module directory
+15:47 < bridge> [teeworlds] <heinrich5991> yea
+15:47 < Ryozuki>   when including from there.  Run "cmake --help-policy CMP0017" for policy
+15:47 < Ryozuki>   details.  Use the cmake_policy command to set the policy and suppress this
+15:47 < Ryozuki>   warning.
+15:47 < Ryozuki> Call Stack (most recent call first):
+15:47 < Ryozuki>   CMakeLists.txt:412 (find_package)
+15:47 < Ryozuki> This warning is for project developers.  Use -Wno-dev to suppress it.
+15:47 < Ryozuki> still, using bundled freetype script solves the issue fast
+15:48 < bridge> [teeworlds] <heinrich5991> no, you still have to care about using the fallback for ourselves
+15:48 < bridge> [teeworlds] <heinrich5991> maybe we can just use our own opengl thing
+15:48 < bridge> [teeworlds] <heinrich5991> then we can rename freetype back
+15:50 < bridge> [teeworlds] <heinrich5991> @Ryozuki or to quickly fix it, you can use `cmake_policy(SET CMP0017 NEW)` and rename freetype back
+15:52 < Ryozuki> ok
+16:24 < Ryozuki> are you against using macros?
+16:24 < bridge> [teeworlds] <heinrich5991> wdym?
+16:24 < Ryozuki> i notice a common pattern, its even documented, in cscrollregion you always init it the same way
+16:24 < Ryozuki> so i thought why not make a macro
+16:25 < Ryozuki> menus.h L184
+16:25 < Ryozuki> even adding a rect is repetitive
+16:30 < Ryozuki> nevermind
+17:25 < bridge> [teeworlds] <Dune> Changing the defaults would be more sound, but I thought it's not worth it to break mods, so I didn't do it
+18:19 < Ryozuki> ecdsa or rsa?
+18:29 < bridge> [teeworlds] <Dune> For?
+18:29 < bridge> [teeworlds] <heinrich5991> ecdsa is more efficient IIRC
+18:45 < Ryozuki> i see

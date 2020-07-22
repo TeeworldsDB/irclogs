@@ -1,0 +1,92 @@
+20:40 <@heinrich5991> mhmh. bam 0.5.0 is backwards-incompatible :/
+20:41 <@matricks> yap
+20:41 <@matricks> too many chnages
+20:41 <@matricks> chagnes
+20:41 <@matricks> and lua 5.3 instead of 5.1
+20:41 <@heinrich5991> now we need to keep 2 versions of bam for the next few years ^^
+23:02 <@minus> well
+23:08 <@heinrich5991> well!
+23:09 <@minus> you usually build it from source anyway
+23:09 <@minus> got distracted, forgot to elaborate my thoughts!
+23:10 <@minus> oh right, i wanted to update the bam file in teeworlds git
+23:11 <@minus> heinrich5991: why a crypto RNG?
+23:12 <@heinrich5991> generating rcon pw
+23:12 <@heinrich5991> if none is set
+23:12 <@minus> shouldn't it just be disabled then?
+23:12 <@heinrich5991> allows you to start the server without configuration and change it afterwards
+23:12 <@minus> meh
+23:13 <@minus> hm, arch linux already has bam 0.5.0, matricks
+23:13 <@heinrich5991> flagged it out of date yesterday :)
+23:13 <@heinrich5991> minus: that's quite a use case for starting test servers on windows
+23:14 <@heinrich5991> fiddling with config files and command line options is very annoying there
+23:16 < needs1> I'm not used to wireshark, but it seems teeworlds UDP packet are around 150 bytes in size, does that sounds plausible?
+23:17 <@minus> configure.lua:89: attempt to call a nil value (global 'setfenv')
+23:17 <@minus> oh shit
+23:19 <@minus> okay no, i give up
+23:20 <@minus> matricks: you go fix teeworlds' bam scripts for 0.5, you can probably do it much more easily than me
+23:23 < needs1> Well no, they are more around 80 bytes in size, that's quite small!
+23:27 <@minus> well, it's not a bulk data transfer, needs1
+23:28 < needs1> I guess packets are stll compressed using huffman or something similar?
+23:30 <@minus> they're compressed with huffman (the dictionary is builtin) if noone changed
+23:31 < needs1> It also receive/send an average of 22 packets per seconds
+23:34 < needs1> Hence there can be a lag of 1/20s = 50ms when I press a key down?
+23:35 < needs1> Or does packets are sent as soon as they are available?
+23:35 <@minus> packets should be sent as soon as you press a key, not sure on the specifics though
+23:36 <@heinrich5991> I think they're queried every 1/50s
+23:36 <@heinrich5991> and then sent on demand
+23:36 <@matricks> minus: https://gist.github.com/anonymous/20fa6308a69977af5cef96e806180e9f
+23:36 <@matricks> needs1: it's a bit more complex then that
+23:37 <@matricks> minus: in configure.lua
+23:37 <@matricks> just loadfile that have changed more or less
+23:37 <@matricks> and moved a definition
+23:37 < needs1> matricks: I guess that's where prediction takes its sens?
+23:38 <@matricks> needs1: well, yeah
+23:38 <@matricks> needs1: the game runs at 50hz
+23:38 <@matricks> snapping usually occurs at 25hz
+23:39 < needs1> What is "snapping"?
+23:40 <@matricks> needs1: a snapshot is a state of the game that is needed in order to render it on the client
+23:40 <@matricks> needs1: snapping == taking a snapshot of the game
+23:40 <@matricks> needs1: the server pushes these out at 25hz
+23:40 <@matricks> to the clients
+23:41 < needs1> I see, it's the delta snapshot technic, correct?
+23:41 <@matricks> well, first a complete snap is created, then delta compression, integer packing and last huffman
+23:42 < needs1> "delta compression"?  Is it where delta is actualy computed?
+23:42 <@matricks> yes
+23:42 < needs1> I see
+23:43 <@matricks> the server takes the last known state that it knows that they client have and creates an update from that
+23:45 < needs1> Hummmmm ^^
+23:45 <@matricks> looking at the packets in wireshark doesn't say much
+23:45 <@matricks> too obfuscated
+23:47 < needs1> I'm actually in the process of implementing delta snapshots for my own game, I have done the packing, delta comrpession and more or less the snapshot "protocol" done as well (ie, sequence numbers, ack...)
+23:47 < needs1> But I cannot see for now the whole picture, with prediction and where there is lag
+23:48 < needs1> For example I cannot see how teeworlds go through this 1/20s of lags induced by server polling rate
+23:48 < needs1> I cannot understand why prediction somehow "cancel" this lags
+23:48 <@matricks> it doen't ;)
+23:49 < needs1> Ah
+23:50 <@matricks> needs1: network code in game comes down to lieing your teeth out and getting away with it
+23:51 < needs1> Oh really? why?  I find the delta snapshot technic rather smart and simple.  My biggest concern right now is the size of my packets
+23:51 <@matricks> that is not lieing
+23:51 <@matricks> prediction part is the lieing prt
+23:54 <@matricks> on the client you have 3 different times that you are trying to keep track of
+23:54 <@matricks> well, 2
+23:55 <@matricks> you have the game time, the predicted game time
+23:55 <@matricks> and you mix and match graphical elements from both of em to render something that feels more responsive
+23:55 <@matricks> problem is that anythong that happens in the predicted timeline might be changed
+23:56 < needs1> game time = time of the last known "synched" snapshots between server and client?
+23:57 <@minus> matricks: does that replace the entire config.Load?
+23:57 <@matricks> game time == last snapshot recived from the server
+23:57 <@matricks> mor or less
+23:57 <@matricks> minus: beginning of it yes
+23:57 <@minus> until if options_func?
+23:57 <@matricks> yap
+23:58 <@minus> (which seems fairly pointless because options_func is definitely set by that point)
+23:58 <@matricks> minus: no
+23:58 <@matricks> minus: loadfile can fail
+23:58 <@minus> right
+23:58 <@minus> there's still the setfenv problem though
+23:58 <@minus> that function was removed in 5.2 or 5.3
+23:58 <@matricks> remove that
+23:59 <@matricks> just remove that line
+23:59 <@matricks> the new loadfile does that
+23:59 < needs1> Prediction does take the last known snapshot and try to simulate the game for a time of (current_time - game_time), no?  And it does that each frames, right?
+23:59 <@matricks> the predicted time is game_time + latency to the server

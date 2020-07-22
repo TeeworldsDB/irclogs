@@ -1,0 +1,111 @@
+15:20 < BotoX> hmm, any C++ wizards here :v
+15:20 < Sadale> not me :
+15:20 < Sadale> :p
+15:20 < BotoX> Have an object from somewhere, it has a virtual function
+15:21 < BotoX> some class inherits it, assigns the virtual to a function
+15:21 < BotoX> so basically this is just a function pointer in the vtable of that object, right?
+15:21 < BotoX> I should be able to modify the function pointer as I please
+15:21 < BotoX> I want to change it to my own function and then back to the original
+15:21 < LittleWhite> You can't modify the vtable 
+15:22 < LittleWhite> You can override the virtual function, then call the base implementation, using Base::function() syntax
+15:22 < BotoX> How would I override the virtual function without subclassing the class
+15:23 < Sadale> I don't think it's possible with C++
+15:23 < BotoX> extension.cpp:531:23: error: invalid use of member function (did you forget the ‘()’ ?)
+15:23 < BotoX>   gamehelpers->TextMsg = &SourceMod::IGameHelpers::TextMsg;
+15:23 < BotoX> ya idk :sadface:
+15:24 < Sadale> BotoX, is TextMsg a method?
+15:24 < BotoX> yeah ofc
+15:24 < BotoX> gamehelpers->TextMsg = &TextMsgEx;
+15:24 < Sadale> I doubt that you could do that.
+15:24 < BotoX> without classes
+15:24 < BotoX> TextMsgEx is a function now
+15:24 < BotoX> still same
+15:25 < BotoX> gamehelpers->TextMsg is the virtual method
+15:25 <@minus> the vtable isn't a per-instance thing, but a per-class thing iirc
+15:25 < Sadale> BotoX, is the class of the instance gamehelpers under your control?
+15:25 < BotoX> nope
+15:26 < Sadale> BotoX, oh, well. Couldn't help then. I was about to ask you to use a variable to store a function pointer or function object(a.k.a. functor)
+15:26 < BotoX> I'm trying to modify it from an extension (library)
+15:26 < Sadale> BotoX, oh wait. Actually still works. 
+15:27 < Sadale> BotoX, Let's say the class of the instance gamehelpers is GameHelper. Then subclass GameHelper. Define a function pointer/functor in the subclass. Then override the method TextMsg that calls the function of function pointer/functor
+15:28 < BotoX> Thing is I want to override it on that instance
+15:28 < BotoX> and dynamically
+15:28 < Sadale> BotoX, why doesn't the functor approach work?
+15:29 < BotoX> because of this error message:  error: invalid use of member function (did you forget the ‘()’ ?)
+15:29 < BotoX> heh
+15:29 < Sadale> no. I didn't meant that.
+15:29 < Sadale> ugrh! Maybe I should write some code to explain that
+15:31 < allu2> Is it considered a problem that server lists are starting to fill in with "! (space)(space)....Servername" ?
+15:31 < BotoX> people do it to be on top with name sorting
+15:31 < BotoX> don't think anyone cares
+15:31 < allu2> I start to feel like only way to compete is to do the same :P
+15:32 < allu2> Eventually probably running servers with name like !(space).......! and have all info in MOTD :P
+15:32 < BotoX> servername \x00
+15:32 < BotoX> :D
+15:32 < Sadale> BotoX, oh. wait. Is gamehelpers->TextMsg a function pointer?
+15:32 < Sadale> or is gamehelpers->TextMsg itself is a method?
+15:33 < BotoX> virtual bool TextMsg(int client, int dest, const char *msg) =0;
+15:33 < Sadale> good.
+15:33 < allu2> Perhaps sorting by player count by default would reduce this server name competition?
+15:33 < Sadale> BotoX, This is my idea: http://secret.sadale.duckdns.org/kod/GameHelper.txt
+15:34 < Sadale> BotoX, note: I haven't code in C++ for a while. so the syntax may be wrong.
+15:34 < BotoX> not possible
+15:34 < BotoX> I don't own gamehelper
+15:34 < BotoX> I don't create it
+15:34 < Sadale> BotoX, can't you subclass it?
+15:34 < BotoX> I get the instance
+15:34 < Sadale> oh. ok.
+15:34 < BotoX> which is constructed in another program
+15:35 <@minus> so basically you want to hook into a method of some instance?
+15:35 < BotoX> yeah
+15:35 < BotoX> I think CDetour
+15:35 < BotoX> is what some extensions are using
+15:35 < BotoX> to hook into the engine
+15:35 < Sadale> ah!
+15:35 < BotoX> Should try copying that
+15:36 <@minus> that's the usual way i think, putting detour code at the beginning of the actual function
+15:37 <@minus> the vtable idea isn't bad though
+15:37 <@minus> the problem is that you need to find the vtable
+15:38 < BotoX> better to use detouring
+15:38 < Sadale> BotoX, Maybe this one. But probably not what you want :p http://secret.sadale.duckdns.org/kod/GameHelper2.txt
+15:39 <@minus> BotoX: can you LD_PRELOAD?
+15:39 < BotoX> no
+15:39 <@minus> how can you inject?
+15:40 < BotoX> dlsym
+15:40 <@minus> oh, i see
+15:40 <@minus> so your code doesn't run before the rest but after
+15:40 < BotoX> yeah
+15:40 < BotoX> and I want to hook a bunch of things to run them without logging/messages
+15:40 <@minus> exploiting a dlsym call somewhere in the code?
+15:40 < BotoX> no. it's an extension system
+15:40 < BotoX> sourcemod
+15:43 <@minus> finding the vtable and using that would be interesting, but not very likely to work. virtual function implementation is a compiler thing (it's not defined how the vtable has to be implemented) and it might also be in a read-only segment, since it's constant, per class\
+15:43 < WolfAlex> minus: there is a server redirecting traffic to my server (5.164.109.32:8303) 
+15:44 <@minus> and?
+15:44 < WolfAlex> hm thats ok?
+15:44 < BotoX> sniffing on some accounts system? ^^
+15:45 < WolfAlex> BotoX: yea
+15:45 < WolfAlex> i guess
+15:46 < Sadale> WolfAlex, why do they do that?
+15:47 < BotoX> grabbing passwords from his account system
+15:47 < WolfAlex> well not my system, i'm just hosting
+15:51 < Sadale> oh
+15:51 < Sadale> wow. that's evil.
+15:52 <@minus> WolfAlex: just block traffic from that IP
+15:54 < WolfAlex> minus: okay, i've banned the server in teeworlds for now
+15:55 < Sadale> master server ban? :3
+15:55 <@minus> no, this solution is better
+15:56 <@minus> the culprit might not notice
+16:25 < WolfAlex> EastByte: ssh auf port 80? xd
+16:25 <@minus> like a firewall-bypassing boss
+16:25 < EastByte> wrong channel I suppose
+16:26 <@minus> i run ssh on port 23 (amongst others)
+16:26 < WolfAlex> ops
+16:26 < WolfAlex> ._.
+16:26 < botnik> http://www.urbandictionary.com/define.php?term=._.
+16:43 < Sadale> minus, it's not wise telling others about that :p
+16:44 <@minus> why? it's still SSH, and it's for firewall-bypassing purposes
+16:44 < Sadale> BTW, the ssh of my home server is LAN-only. 100% safe unless local network is compomised :p
+16:44 < Sadale> minus, oh ok. I thought that it's for security purpose
+16:45 < Sadale> you know, running ssh on port 22 is more dangerous
+16:45 <@minus> well, i don't have ssh running on port 22 to reduce the number of brute force attempts

@@ -1,0 +1,136 @@
+10:53 <@deen> Anyone have a good idea about that? https://forum.ddnet.tw/viewtopic.php?t=4665&p=47390#p47390
+11:01 < Learath2> deen: we could escape chat commands that take a victim
+11:06 <@deen> Learath2: how?
+11:09 < Learath2> deen: why do we even allow ; in chat commands? is it needed?
+11:09 <@deen> yeah, it's pretty useful
+11:09 <@deen> you can have a bind that uses multiple chat commands without getting muted by server for spam
+11:10 <@deen> timeout foo; showothers 1; showall 1; ...
+11:10 <@deen> but we could get rid of it, probably fewer people know and use it than are affected by the abuse of it
+11:11 < Learath2> at what level is the ; handled? all the way at console?
+11:11 <@deen> by the server
+12:02 <@EastByte> deen: what about a serverside detection of auto-completed names which forces the client to put the name in "" if it does contain a ;
+12:03 <@deen> EastByte: that's hacky and inconsistent and causes new attack vectors I believe
+12:03 <@deen> Join server as "; kill", ask player to look at your points, leave server immediately, player gets killed
+12:04 <@deen> Join server as ; showothers 1, no one can use their showothers bind anymore
+12:04 <@EastByte> ^ they will be notified to put the cmd in ""
+12:04 <@EastByte> and if a player leaves the auto-complete also doesnt work anymore
+12:04 <@deen> the player leaves after the other used auto-complete, but before he pressed enter
+12:05 <@EastByte> sure there is a small attack-vector left
+12:05 <@deen> i don't like the inconsistency
+12:12 < Learath2> deen: well / is already banned in nicks
+12:12 <@deen> Learath2: yeah, i did that and people were not happy
+12:12 < Learath2> we could ignore all ;s that dont come after a /
+12:13 <@deen> Learath2: explain please
+12:14 < Learath2> for a semicolon to be interpreted as end of line it needs to come after a / so your example before becomes "timeout foo/; showothers 1/; showall 1/;"
+12:15 < Learath2> people who intentionally want to put the semicolon can just do /; and b/c / is already banned there is no way to abuse it with autocomplete
+12:16 <@EastByte> sounds funny
+12:16 < Learath2> much better then heuristics
+12:16 < Learath2> and works on all clients
+12:17 <@EastByte> so you mean just use /; for seperation in chat cmds
+12:17 < Learath2> yep
+12:18 <@EastByte> but how do we notify people that ; alone doesn't work anymore
+12:18 < nameless-tee> From what I remember / is only banned as first symbol in nickname or not?
+12:19 < Learath2> could send them a directed message saying "Stray ; in message. This is no longer supported."
+12:19 < Learath2> anyone using seperated commands should know how to change them aswell
+12:20 <@EastByte> but you cannot lookup names containing ; then
+12:21 < Learath2> oh nvm we cant inform them
+12:21 <@EastByte> nameless-tee: yes, right
+12:21 < Learath2> they'll try and it wont work
+12:22 <@EastByte> and we also need to block / entirely
+12:22 <@EastByte> or havn't I understood your exlanation?
+12:23 < Learath2> well i thought / was entirely disallowed
+12:23 < Learath2> either way this really sounds dangerous kill just kills your run
+12:23 <@heinrich5991> we could do something like
+12:23 <@EastByte> but I like the idea of using a seperator that's illegal in names
+12:24 <@heinrich5991> /allowsemicolons;<cmd>;<cmd2>
+12:24 <@heinrich5991> that way, nicks can't do it, because it's too long
+12:24 <@heinrich5991> only works if it appears directly after the /
+12:26 <@EastByte> would work I guess, and "/points asd;asd" needs to be interpreted as /points "asd;asd" then
+12:26 < Learath2> heinrich5991: i guess mine looks better and both have the same problem
+12:27 <@EastByte> main problem, we cannot notify the user about it?
+12:27 < Learath2> yep both have the same issue
+12:28 <@heinrich5991> we could only issue a warning for binds in the beginning
+12:28 <@heinrich5991> Learath2: the good thing about mine is that it's forward (backward?) compatible with old servers
+12:28 <@heinrich5991> you can have the same binds on an old server
+12:28 <@heinrich5991> it doesn't care about allowsemicolons
+12:28 < Learath2> we could do some wacky hack with checking if there is anyone with a semicolon in their name in the server and if not send a message saying ; is deprecated
+12:29 <@heinrich5991> nah, like: if the client had the state "typing" before, don't allow it
+12:29 < Learath2> ooh didnt think about that
+12:29 <@heinrich5991> if the client didn't, i.e. bind, then allow it and issue a warning
+12:29 < Learath2> well anyway we inform the client will be a hack
+12:30 < Learath2> s/a hack/probabilistic/
+12:30 <@heinrich5991> mh?
+12:31 < Learath2> what if i'm retarded and i type out "/showothers 1; showall 1;" each and every game
+12:32 < Learath2> how will that even be interpreted btw?
+12:34 <@deen> Learath2: you say retarded but I read server logs and some people have 'bind mouse1 "+fire; say /showall 1;..."'
+12:34 < Learath2> oh or that
+12:35 <@deen> which must be fun on vanilla servers
+12:36 <@heinrich5991> Learath2: that would be interpreted as /showothers "1;" showall "1;"
+12:37 < Learath2> allowsemicolons is nice
+12:38 < Learath2> there is no legitimate use of ; in a command except for nicks so we could try to str_find nicks in the entire line and inform ppl of abuse
+13:17 <+necropotame> I want to add (small) support to DDNet maps in TeeUniverse. If we drop the sound layer, I've just to read 6 different special layers (game, tele, speedup, ...), is it correct ? Or you added something more in the map format ?
+13:22 <@heinrich5991> lemme check :D
+13:24 <@heinrich5991> yes, I count the same number
+13:24 <@heinrich5991> beware that the format is quite hacky though
+13:26 <+necropotame> ?
+13:27 <+necropotame> I try to put as much check as I can to avoid stupid segfault from weird maps, but do you have something in mind ?
+13:29 <@heinrich5991> the offset of the layer data depends on the kind of special layer you have
+13:30 <@heinrich5991>             TILELAYERFLAG_TELEPORT => 0,
+13:30 <@heinrich5991>             TILELAYERFLAG_SPEEDUP => 1,
+13:30 <@heinrich5991>             TILELAYERFLAG_FRONT => 2,
+13:30 <@heinrich5991>             TILELAYERFLAG_SWITCH => 3,
+13:30 <@heinrich5991>             TILELAYERFLAG_TUNE => 4,
+13:32 <+necropotame> Like all layers use the same vector of char, and a tile is a struct containing char m_Teleport, char m_Speedup, ... ?
+13:32 <@heinrich5991> no
+13:33 <@heinrich5991> like the tilelayer item
+13:33 <@heinrich5991> the one containing the 32-bit integers
+13:34 <@heinrich5991> where usually the integerwith offset 11 is the data index
+13:34 <@heinrich5991> but for these tilelayers it depends on the type
+13:34 <@heinrich5991> it's 13 for teleport, 14 for speedup, etc.
+13:35 <+necropotame> pTilemapItem->m_Tele = *((int*)(pTilemapItem) + 15);
+13:35 <+necropotame> I see
+13:36 <+necropotame> But I don't understand the use of it (even the +11)
+13:39 <+necropotame> Oh shit, you associate value in addition to the inex to each tile
+13:39 <+necropotame> index*
+13:40 <@heinrich5991> ?
+13:40 <@heinrich5991> I don't understand what you say
+13:41 <+necropotame> I though each layer use CTile, but in fact, you use CTeleTile, CSpeedupTile, ...
+13:41 <+necropotame> Each layer need a specific attention, it's not just like tile with the TeeWorlds entities
+13:42 <+necropotame> (I'm completly noob with DDNet, I assume it ^^)
+13:45 <@heinrich5991> oh yea, apparantly
+13:45 <@heinrich5991> I didn't know that :o
+13:47 <+necropotame> I guess I've to discuss with you more in details about how adapt the editor to DDNet. In particular with the separation between entities and zones that I've made, but also fir this layer thing
+13:47 <@heinrich5991> I probably don't know all of it
+13:47 <@heinrich5991> but yea, ask away
+13:47 <+necropotame> "you" in the sense of DDNet team :P
+17:41 <+necropotame> Someone can point me a good DDRace map, not extreme or with an exaggerated number of features, that I can use for test in my editor? I will maybe play a little with quad based entities to see if it's interesting
+17:42 < kamillentee> @deen
+17:42 <@heinrich5991> necropotame: maybe the standard map, kobra 4?
+17:43 <+necropotame> OK, I will try with that :)
+17:43 < kamillentee> cant you simply replace semicolon in names with a greek question mark, nobody would notice it.
+17:44 <@EastByte> ^ that would be another approach
+17:44 < kamillentee> should be already done when one player joins the game
+17:49 <@EastByte> I don't see any meaningful disadvantage in that
+17:50 <@EastByte> ';' and ';' look similar in teeworlds and ; only consumes one additional byte
+17:52 <@EastByte> (I mean ; consumes one additional byte: 0xCD 0xBE)
+17:52 <@heinrich5991> kamillentee: doesn't work if you manually query the rank of someone with a semicolon
+17:53 <@EastByte> oops, only thought about auto-complete
+17:56 < kamillentee> heinrich5991 All names should be automatically renamed already while joining the server, if they are containing semicolons to a version with greek question mark 
+17:56 <@heinrich5991> and what if I type /rank foo;bar?
+17:57 <@heinrich5991> (I mean manually. then the thing won't be replaced)
+17:57 < kamillentee> ah thats what you meant
+17:57 < kamillentee> hm almost nobody does that
+18:00 <@EastByte> would be inconsistent, though
+18:08 < kamillentee> well so far only forbidding names would really work. If you choose the replace way, I would use ":" instead of ";" . Looks not to bad and is not that different. For example ";D" would look like ":D"  https://ddnet.tw/players/;D/
+18:18 < kamillentee> hm might be bad since sometimes both names are used: ;) and :) Another way would be to rename names to an escaped version e.g. "pls ; kill me" would be "pls \; kill me". That would require the feature to escape with backslash in teeworlds
+18:21 <@heinrich5991> kamillentee: we have some kind of solution
+18:21 < kamillentee> ok nice
+18:21 <@heinrich5991> [12:24:03] <@heinrich5991> /allowsemicolons;<cmd>;<cmd2>
+18:21 <@heinrich5991> [12:24:10] <@heinrich5991> that way, nicks can't do it, because it's too long
+18:21 <@heinrich5991> [12:24:37] <@heinrich5991> only works if it appears directly after the /
+18:22 <@heinrich5991> (the idea is, only if you write allowsemicolons, you're allowed to use them as command separators
+20:56 < laxa> !help
+20:58 <+laxa> !help
+21:01 <+laxa> !ddnetpeak
+21:01 <@Nimda> Current players on DDNet : 399
+21:01 <@Nimda> Current DDNet peak : 810 users online at 2015-04-26 20:11:01

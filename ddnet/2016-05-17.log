@@ -1,0 +1,79 @@
+02:27 < rymer> ey xxltomate
+11:39 < f4c3> anyone online?
+11:40 < f4c3> my question is: where to write the command "git clone path" ??
+12:22 < f4c3> Can anyone help me?
+12:23 < f4c3> When I type the command "git clone path" it everytime says fatal: cant connect blabla
+12:33 <@heinrich5991> f4c3: can you give the full command and the full error?
+12:41 < f4c3> yes wait
+12:41 < f4c3> command: git clone https://github.com/ddnet/ddnet-maps
+12:44 < f4c3> error: unable to access 'https://github.com/ddnet/ddnet-maps': error setting certificate verify locations:   :CAfile: C:Programme/Git/mingw32/libexec/ssl/certs/ca-bundle.crt   ... CApath: none
+12:51 <@deen> Oh, git clone on Windows :/
+12:51 <@deen> f4c3: what are you  trying to do? If you just need the maps once, you can download the zip file
+12:52 <@deen> I don't know how to solve it properly, but as an insecure workaround this might work: git config --global http.sslverify "false"
+12:56 < f4c3> I try the second method at the mainpage from ddnet.tw .... i want to easy update ir
+12:56 <@deen> ok
+12:57 <@deen> If you know of a good tutorial for getting git running on Windows, I could add that on ddnet.tw
+12:58 < Gabee_> deen: I'm really sorry
+12:58 < Gabee_> git in the ubuntu bash on w10?
+12:59 < f4c3> Shall i use bash?
+12:59 < f4c3> because there it dont work
+13:00 <@deen> No idea, I don't know all this windows stuff
+13:01 < f4c3> you use linux?
+13:01 <@deen> yeah
+13:02 < f4c3> ah nice ...:)
+13:02 < f4c3> i search for a tutorial
+18:42 < vali> huhu *_*
+19:21 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vrWnh
+19:21 < ddnet-commits> ddnet/master bb634d7 def: Reconnect to last server address, not the one selected in browser
+21:29 <@deen> I thought about using recvmmsg to get a bit more performance, but it's broken: "The timeout argument does  not  work  as  intended.   The  timeout  is checked  only  after  the  receipt  of each datagram, so that if up to vlen-1 datagrams are received before the timeout expires, but then  no further datagrams are received, the call will block forever."
+21:30 <@deen> Should be fine with non-blocking reads only I guess
+21:32 <@EastByte> Okay
+21:37 <@deen> A third of the sys calls of a DDNet server are recfrom and sendto each
+21:37 <@deen> they always occur in large chunks, so ideal for sendmmsg/recvmmsg
+21:38 <@deen> the last third are mostly strange time and gettimeofday calls, I thought I got rid of most of them
+21:40 <@deen> server with 30 players causes 3000 syscalls a second
+22:00 <@deen> PACKET_MMAP is very cool, reading packets with 0 syscalls, too bad it's not for regular applications (requires root, doesn't work with normal udp socket): https://www.kernel.org/doc/Documentation/networking/packet_mmap.txt
+22:04 <@deen> and then the glibc version matters a lot for syscalls. new versions of glibc don't syscall at all for gettimeofday
+22:05 <@deen> (or something else is causing that, not sure yet)
+22:13 <@deen> Reading the glibc implementation, that's done by vDSO, interesting: http://man7.org/linux/man-pages/man7/vdso.7.html
+22:19 <@heinrich5991> what's recvmmsg?
+22:19 <@heinrich5991> ah
+22:19 <@heinrich5991> receive multiple packets
+22:32 <@deen> totally confused why some of our servers use vdso gettimeofday, others not even though they have more recent kernel and glibc
+22:41 <@deen> ok, probably depends on the underlying clock that the vps uses. pvclock is used with kvm and doesn't support vdso. but looks like there's some progress being made: https://lkml.org/lkml/2015/12/9/914
+22:45 < Gabee_> deen: you're on vpses?
+22:46 < Gabee_> wouldn't it cheaper to get dedis?
+22:46 <@deen> how are dedicated servers cheaper?
+22:46 < Gabee_> it depends on how much vpses you have
+22:47 < Gabee_> so my bad, I thought you had a lot of vpses :P
+22:47 <@deen> 1 per location
+22:47 <@deen> usually 1 weak cpu core is enough as well
+22:47 < Gabee_> Oh
+22:47 < Gabee_> So all the ddnet ger.. are on one VPS?
+22:47 <@deen> just GER is struggling a bit since we got switched to an overloaded server, so I'm optimizing the server a bit more
+22:47 <@deen> yeah
+22:48 <@deen> (and GER only struggled in tournament, not usually)
+22:55 < Gabee_> Oh interesting
+22:55 < Gabee_> I thought it would require more ressources to run the server
+22:55 < Gabee_> deen: if you want to check I'm running an iwar server
+22:56 < Gabee_> it's currently in dev, iwar is a ddnet-based copy of ddwar
+22:56 < Gabee_> with up to date stuff
+22:56 <@deen> what's ddwar?
+22:57 <@deen> and resource usage is pretty low. the biggest problem are big maps for RAM. CPU-wise 200-500 players work fine with a core depending on its performance
+23:07 < Gabee_> you don't know what is ddwar?
+23:07 < Gabee_> eeeee: kill deen pls :P
+23:16 <@heinrich5991> ddwar is a blocker mod by eeeee AFAIK
+23:16 <@deen> ok
+23:16 <@deen> right, i remember reading that in his git repo
+23:17 <@deen> when I stole the 64 player code
+23:17 < Gabee_> deen: lol
+23:17 < Gabee_> deen: so it's ddnet
+23:18 < Gabee_> with points system for block
+23:18 < Gabee_> + anti chatblock
+23:40 <@deen> I believe this can be abused to DoS a server easily, can someone confirm? https://github.com/ddnet/ddnet/blob/master/src/engine/shared/network_server.cpp#L599
+23:41 <@deen> Basically if you send an invalid ctrl packet to a server, the server returns its Recv function, does skipping all other packets for this tick.
+23:41 <@deen> So if you spam the server with invalid ctrl packets regular packets will get read much slower than they could be
+23:42 <@deen> I believe it should just be a "continue" instead of "return 0"
+23:44 <@deen> oh, that's new code from EastByte, thought that's something old. Vanilla teeworlds 0.7 has something very similar though
+23:45 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vrlqa
+23:45 < ddnet-commits> ddnet/master 1645310 def: Keep reading packets after invalid control packet

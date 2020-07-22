@@ -1,0 +1,257 @@
+00:41 <+ddnet-discord> <Savander> What's happening to ger?
+01:03 < ddnet-commits> [ddnet] heinrich5991 opened pull request #956: Remove unused header file `src/engine/shared/storage.h` (master...pr_ddnet_unused_storage_h) https://git.io/vbe3A
+01:06 < ddnet-commits> [ddnet] heinrich5991 opened pull request #957: Add manual locking to `ASYNCIO` for transacted writes (master...pr_ddnet_fix_dbgmsg_newline) https://git.io/vbesf
+01:08 < ddnet-commits> [ddnet] heinrich5991 opened pull request #958: Add interface headers to `CMakeLists.txt` (master...pr_ddnet_cmake_interface_headers) https://git.io/vbest
+01:30 <+ddnet-discord> <Learath2> @heinrich5991 slow down 😛
+01:30 <+ddnet-discord> <heinrich5991> @Learath2 already slowed down 😛
+01:42 <+ddnet-discord> <Learath2> @heinrich5991 does #953 work?
+01:43 <+ddnet-discord> <heinrich5991> yes, tested it
+01:43 <+ddnet-discord> <jao> time for bors
+01:44 <+ddnet-discord> <Learath2> I can't really test it at all on windows as I can't launch any of the opengl builds :/
+01:44 <+ddnet-discord> <heinrich5991> gfx_opengl3 0?
+01:45 <+ddnet-discord> <heinrich5991> `gfx_opengl3 0`?
+01:45 <+ddnet-discord> <Learath2> nope, instant crash
+01:48 <+ddnet-discord> <heinrich5991> mh
+01:48 <+ddnet-discord> <heinrich5991> that's bad
+01:48 <+ddnet-discord> <heinrich5991> even though you changed the config option?
+01:48 <+ddnet-discord> <Learath2> yeah
+01:48 <+ddnet-discord> <Learath2> I'll try to compile my own see if it reproduces
+01:48 <+ddnet-discord> <Learath2> if it does can get you a bt
+01:49 <+ddnet-discord> <Learath2> or could fix it 😛
+01:49 <+ddnet-discord> <heinrich5991> 😉
+01:49 <+ddnet-discord> <heinrich5991> but #953 should work™
+01:49 <+ddnet-discord> <heinrich5991> but if you want, there are 6 other, less risky, PRs open by me 😛
+01:51 <+ddnet-discord> <heinrich5991> @Learath2 how do you compile on windows btw?
+01:51 <+ddnet-discord> <Learath2> normally with mingw but this is a clean install, I only have VS
+01:51 <+ddnet-discord> <heinrich5991> vs2017?
+01:51 <+ddnet-discord> <Learath2> y
+01:51 <+ddnet-discord> <heinrich5991> you could try the method in my tutorial 😉
+01:52 <+ddnet-discord> <Learath2> ue4 doesn't work with any other IDE or compiler
+01:52 <+ddnet-discord> <Learath2> @heinrich5991 your tutorial generates 2 errors
+01:53 <+ddnet-discord> <heinrich5991> tell me
+01:53 <+ddnet-discord> <Learath2> http://codepad.org/4mBb4wpT
+01:54 <+ddnet-discord> <Learath2> would probably have worked if I had git in my path but don't have git on this computer yet either
+01:55 <+ddnet-discord> <heinrich5991> you can install git via vs2017
+01:55 <+ddnet-discord> <heinrich5991> and I tell the people to install it in the tutorial 😃
+01:55 <+ddnet-discord> <heinrich5991> but I'll patch out that git dependency
+01:55 <+ddnet-discord> <Learath2> well it did clone properly
+01:56 <+ddnet-discord> <heinrich5991> did you select "Git for Windows" (or similar) in the vs installer though?
+01:56 <+ddnet-discord> <Learath2> doubt it
+01:57 <+ddnet-discord> <Learath2> I didn't hopefully it doesn't pollute my path with it 😛
+01:57 <+ddnet-discord> <Learath2> 257mb for git 😄 While the entirety of msysgit is 36mb
+02:00 <+ddnet-discord> <Learath2> @heinrich5991 if git isn't found maybe skip gtest alltogether
+02:02 <+ddnet-discord> <Learath2> @heinrich5991 heh the crash isn't in opengl at all but in aio_write
+02:02 <+ddnet-discord> <Learath2> well io_write from aio_thread but same same
+02:02 <+ddnet-discord> <heinrich5991> good (?)
+02:02 <+ddnet-discord> <Learath2> better then it being an arcane opengl crash
+02:03 <+ddnet-discord> <heinrich5991> back to the drawing board? 😦
+02:04 <+ddnet-discord> <Learath2> isn't visual studio supposed to be the fruit of millions of dollars of investment from microsoft?
+02:05 <+ddnet-discord> <Learath2> the icons disappeared 😛
+02:11 <+ddnet-discord> <Learath2> hmm, this debugger is harder to use then I remember
+02:15 <+ddnet-discord> <Learath2> @heinrich5991 do you know how to check the fd associated with a (FILE *) here?
+02:15 <@heinrich5991> on windows?
+02:15 <+ddnet-discord> <Learath2> in VS2017 to be exact
+02:15 <+ddnet-discord> <heinrich5991> no, don't
+02:19 <+ddnet-discord> <Learath2> am I supposed to keep track of them by paper?
+02:21 <+ddnet-discord> <heinrich5991> have you tried hovering a `FILE *`?
+02:21 <+ddnet-discord> <Learath2> it's technically not a FILE * in tw code
+02:21 <+ddnet-discord> <Learath2> we cast it to a `IOINTERNAL` or sth like that
+02:22 <+ddnet-discord> <Learath2> is it possible that we are calling io_write before ever calling io_open? wtf
+02:22 <+ddnet-discord> <heinrich5991> yea... that probably tricks the debugger
+02:22 <+ddnet-discord> <heinrich5991> yes, for `stdout`
+02:23 <+ddnet-discord> <Learath2> if I put enough breakpoints it doesn't crash at all
+02:24 <+ddnet-discord> <Learath2> my favourite kind of bug
+02:24 <+ddnet-discord> <Learath2> @heinrich5991 it's a write to stdout that causes the crash
+02:24 <+ddnet-discord> <Learath2> I might get a couple wires and hook it up to my MCU to get more information about it as that's about as much as I can get from VS
+02:25 <+ddnet-discord> <heinrich5991> it's maybe related to https://github.com/ddnet/ddnet/issues/914
+02:25 <+ddnet-discord> <Learath2> we pass buffers as pointers, I don't even know what it tried to write :/
+02:26 < ddnet-commits> [ddnet] heinrich5991 opened pull request #959:  Fail gracefully when trying to automatically download GTest  (master...pr_ddnet_cmake_fail_gracefully_gtest) https://git.io/vben4
+02:27 <+ddnet-discord> <Learath2> what would be a simple `print (char *)buffer` in gdb, the best substitute is inspecting the memory address by hand as far as I can see
+02:28 <+ddnet-discord> <Learath2> I don't see anything off with the call tbh
+02:29 <+ddnet-discord> <heinrich5991> try sth like `(char*) pArray` in the watch window apparently
+02:29 <+ddnet-discord> <Learath2> MAGIC
+02:32 <+ddnet-discord> <Learath2> hmm, might be printing one too many bytes
+02:33 <+ddnet-discord> <Learath2> nah not that
+02:37 <+ddnet-discord> <Learath2> @heinrich5991 wanna give me a hand here?
+02:37 <+ddnet-discord> <heinrich5991> I can try
+02:37 <+ddnet-discord> <Learath2> if you have time that is
+02:37 <+ddnet-discord> <Learath2> 😛
+02:37 <+ddnet-discord> <heinrich5991> but I tried to stare that code down already
+02:37 <+ddnet-discord> <heinrich5991> it won the the staring contest so far
+02:38 <+ddnet-discord> <heinrich5991> I might be blind to the mistake as I wrote the code ^^
+02:38 <+ddnet-discord> <Learath2> feel free to debug on my computer where it consistently happens as long as you don't slow it down too much
+02:39 <+ddnet-discord> <heinrich5991> you could comment out the code in the `static void logger_file(const char *line, void *user)` function to see if you can start the client then
+02:39 <+ddnet-discord> <heinrich5991> @Learath2 ^
+02:41 <+ddnet-discord> <Learath2> crashes on another io_write
+02:41 <+ddnet-discord> <heinrich5991> backtrace? does it contain `aio`?
+02:41 <+ddnet-discord> <Learath2> oh not another io_write
+02:42 <+ddnet-discord> <Learath2> its a lock_unlock in fetcher
+02:42 <+ddnet-discord> <heinrich5991> with or w/o my PR?
+02:42 <+ddnet-discord> <heinrich5991> ^^
+02:42 <+ddnet-discord> <Learath2> w/o your PR
+02:42 <+ddnet-discord> <Learath2> which takes me to my next question, how do I checkout prs in vs?
+02:43 <+ddnet-discord> <heinrich5991> good question, don't remember what I did last time
+02:43 <+ddnet-discord> <heinrich5991> maybe just add my repository as a remote
+02:43 <+ddnet-discord> <heinrich5991> and fetch the appropriate branch
+02:43 <+ddnet-discord> <Learath2> sure, how? 😄
+02:44 <+ddnet-discord> <heinrich5991> in the panel on the right, go to repository options or so
+02:44 <+ddnet-discord> <heinrich5991> you can add a remote there
+02:46 <+ddnet-discord> <Learath2> do you know how to fetch?
+02:46 <+ddnet-discord> <Learath2> I mean hmm
+02:46 <+ddnet-discord> <Learath2> oh a restart fixed it nvm
+02:49 <+ddnet-discord> <Learath2> @heinrich5991 well your job overhaul fixes that bug
+02:49 <+ddnet-discord> <Learath2> so the crash is only with logger_file
+02:49 <+ddnet-discord> <heinrich5991> yay \o/
+02:49 <+ddnet-discord> <Learath2> well not yay
+02:50 <+ddnet-discord> <Learath2> I don't have any idea where to even start looking at that thing
+02:50 <+ddnet-discord> <heinrich5991> well, I find likely that it is somewhere between `aio_write` and `aio_thread`
+02:51 <+ddnet-discord> <heinrich5991> but since I haven't found the bug so far, maybe I'm looking at the wrong place
+02:51 <+ddnet-discord> <Learath2> yet it crashes all the way in ntdll.dll
+02:51 <+ddnet-discord> <Learath2> so it manages to get past every sanity check between there and our code 😛
+02:52 <+ddnet-discord> <Learath2> the input is fine and the size looks to be correct btw
+02:52 <+ddnet-discord> <heinrich5991> mh
+02:53 <+ddnet-discord> <Learath2> oh wait
+02:53 <+ddnet-discord> <Learath2> actually not
+02:54 <+ddnet-discord> <Learath2> with 1 line break per line it's 1009 lines
+02:54 <+ddnet-discord> <Learath2> with 1 line break per line it's 1009 characters
+02:54 <+ddnet-discord> <Learath2> but we have \r\n in windoze
+02:54 <+ddnet-discord> <Learath2> our passed size is only 906
+02:54 <+ddnet-discord> <Learath2> hmm, but a lower size shouldn't be a problem
+02:55 <+ddnet-discord> <Learath2> also it's normal given you are using a "circular" buffer
+02:55 <+ddnet-discord> <Learath2> actually I dont ever see how you could read past in this case :/
+02:56 <+ddnet-discord> <Learath2> you know what would be great? valgrind or asan 😛
+02:57 <+ddnet-discord> <heinrich5991> currently trying thread sanitizer from clang
+02:59 <+ddnet-discord> <Learath2> mingw doesn't provide --fsanitize=address for windows
+02:59 <+ddnet-discord> <Learath2> how do people even develop anything on windows? 😛
+03:01 <+ddnet-discord> <heinrich5991> the same question will be asked by people switching to windows 😃
+03:01 <+ddnet-discord> <heinrich5991> you probably have to forget a bit of your linux knowledge and find out how to do what you want natively 😃
+03:01 <+ddnet-discord> <Learath2> you meant s/windows/linux/ in your previous statement
+03:02 <+ddnet-discord> <Learath2> and switching to linux was pure bliss in that regard. I'd switch just for valgrind tbh
+03:03 <+ddnet-discord> <heinrich5991> I remember me switching to linux. it was definitely not a bliss for me, everything worked differently and I didn't manage to do almost anything
+03:04 <+ddnet-discord> <Learath2> oh everything except development, surely was painful
+03:07 <+ddnet-discord> <heinrich5991> I'll go to bed soon
+03:07 <+ddnet-discord> <Learath2> great, so this one will be unsolved for a decade or so
+03:08 <+ddnet-discord> <Learath2> guess I'll just comment out the file_logger while building my own
+03:11 <+ddnet-discord> <worstwish> what is this language
+03:11 <+ddnet-discord> <heinrich5991> @worstwish which language?
+03:11 <+ddnet-discord> <worstwish> its def not english my friends
+03:11 <+ddnet-discord> <worstwish> you guys are from a different planet
+03:13 <+ddnet-discord> <heinrich5991> I think the technical term is "technical language" 🙂
+03:13 <+ddnet-discord> <worstwish> 👍
+03:14 <+ddnet-discord> <worstwish> what's the special reason behind your numbers @heinrich5991
+03:14 <+ddnet-discord> <heinrich5991> guess 😛
+03:14 <+ddnet-discord> <worstwish> a girl?
+03:14 <+ddnet-discord> <heinrich5991> nah
+03:14 <+ddnet-discord> <worstwish> a boy?
+03:15 <+ddnet-discord> <heinrich5991> nah
+03:15 <+ddnet-discord> <worstwish> learath?
+03:15 <+ddnet-discord> <worstwish> Oh, 5991 = 1995
+03:15 <+ddnet-discord> <heinrich5991> 😛
+03:16 <+ddnet-discord> <heinrich5991> I was eleven years old, okay? ^^
+03:16 <+ddnet-discord> <worstwish> we all were
+03:16 <+ddnet-discord> <heinrich5991> how old are you? 😉
+03:16 <+ddnet-discord> <Learath2> I think I'm done, the only tool that looks halfway viable for windows is Dr Memory. It looks like it's from 1981, the latest update on the documentation is for VS2015 and the code slows the client down so much that it works, I also highly doubt threads were invented back when this monstrosity was written, so even if it crashed I doubt I'd get any result
+03:17 <+ddnet-discord> <worstwish> not under 13 (def your type)
+03:17 <+ddnet-discord> <worstwish> Kappa
+03:17 <+ddnet-discord> <worstwish> I'm 18
+03:17 <+ddnet-discord> <heinrich5991> mh 🙂
+03:18 <+ddnet-discord> <heinrich5991> and where're you from? germany, as most people in here?
+03:18 <+ddnet-discord> <worstwish> nope, Albania
+03:18 <+ddnet-discord> <worstwish> shit country
+03:18 <+ddnet-discord> <heinrich5991> ah right, I think you told me that before
+03:18 <+ddnet-discord> <worstwish> BUT I'm moving to germany
+03:18 <+ddnet-discord> <heinrich5991> huh, why?
+03:18 <+ddnet-discord> <worstwish> yes we had something special going on
+03:19 <+ddnet-discord> <worstwish> my parents live there
+03:19 <+ddnet-discord> <worstwish> and work
+03:19 <+ddnet-discord> <heinrich5991> ah
+03:19 <+ddnet-discord> <heinrich5991> if you're 18, are you looking to study somewhere?
+03:19 <+ddnet-discord> <worstwish> well
+03:19 <+ddnet-discord> <worstwish> I still haven't finished the last grade
+03:19 <+ddnet-discord> <worstwish> I'm studying economy rn
+03:20 <+ddnet-discord> <heinrich5991> oh
+03:20 <+ddnet-discord> <worstwish> class or grade idk how you say that
+03:20 <+ddnet-discord> <heinrich5991> still in school and already studying?
+03:20 <+ddnet-discord> <worstwish> 12th class
+03:20 <+ddnet-discord> <worstwish> I mean
+03:21 <+ddnet-discord> <worstwish> the thing teachers teach us in this class is mostly about economy and business administration
+03:21 <+ddnet-discord> <heinrich5991> ah
+03:21 <+ddnet-discord> <worstwish> if you get what I mean
+03:21 <+ddnet-discord> <heinrich5991> so you're gonna be my boss somewhen 😉
+03:21 <+ddnet-discord> <worstwish> I don't know how to explain it properly
+03:21 <+ddnet-discord> <worstwish> tbh
+03:21 <+ddnet-discord> <worstwish> I don't like it lmao
+03:21 <+ddnet-discord> <worstwish> it is too stressful
+03:22 <+ddnet-discord> <worstwish> I want to find something that I can actually enjoy n shit
+03:22 <+ddnet-discord> <worstwish> but nowadays that seems impossible
+03:22 <+ddnet-discord> <heinrich5991> hmm
+03:23 <+ddnet-discord> <heinrich5991> I totally don't know you, so I can't really help here
+03:23 <+ddnet-discord> <worstwish> its just like trying to follow the girl of your dreams but your ex drags you behind
+03:23 <+ddnet-discord> <worstwish> from behind
+03:23 <+ddnet-discord> <heinrich5991> – do you have something you really enjoy, some kind of hoby or so?
+03:23 <+ddnet-discord> <heinrich5991> – do you have something you really enjoy, some kind of hobby or so?
+03:23 <+ddnet-discord> <worstwish> I actually do
+03:23 <+ddnet-discord> <heinrich5991> ok, drop the "really"
+03:24 <+ddnet-discord> <heinrich5991> something you enjoy should be enough ^^
+03:24 <+ddnet-discord> <heinrich5991> what is it?
+03:24 <+ddnet-discord> <worstwish> well
+03:24 <+ddnet-discord> <worstwish> sex?
+03:24 <+ddnet-discord> <worstwish> jk, tbh the only hobby that makes me happy
+03:24 <+ddnet-discord> <worstwish> is the gym
+03:25 <+ddnet-discord> <worstwish> and its not even a hobby
+03:25 <+ddnet-discord> <worstwish> its a part of my life
+03:25 <+ddnet-discord> <heinrich5991> that's definitely not my area of expertise
+03:26 <+ddnet-discord> <heinrich5991> I do enjoy climbing – but I'd have no idea what kind of jobs fit to your description
+03:26 <+ddnet-discord> <worstwish> we're way too different, it won't work :c
+03:26 <+ddnet-discord> <worstwish> climbing?
+03:26 <+ddnet-discord> <worstwish> that seems exciting
+03:26 <+ddnet-discord> <Learath2> we should probably change the website with our updated compatibility
+03:26 <+ddnet-discord> <worstwish> hi @Learath2
+03:26 <+ddnet-discord> <Learath2> hi worstwish
+03:26 <+ddnet-discord> <worstwish> I missed you
+03:27 <+ddnet-discord> <Learath2> Windows 32bit (mostly)\n Windows 64bit (mostly) should work fine
+03:27 <+ddnet-discord> <heinrich5991> ^^
+03:27 <+ddnet-discord> <heinrich5991> I'll try to get the fix for the issues 😦
+03:27 <+ddnet-discord> <heinrich5991> but now I have to sleep :/
+03:27 <+ddnet-discord> <heinrich5991> I'm actually still a bit ill and uni starts tomorrow again 😦
+03:28 <+ddnet-discord> <heinrich5991> g'night
+03:28 <+ddnet-discord> <worstwish> sleep well
+03:28 <+ddnet-discord> <worstwish> and hope you get better buddy
+03:29 <+ddnet-discord> <heinrich5991> thanks
+03:30 <+ddnet-discord> <Learath2> night
+03:58 <+ddnet-discord> <Learath2> OGL
+03:58 <+ddnet-discord> <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/384538480417439755/1.xml
+03:58 <+ddnet-discord> <Learath2> io_write
+03:58 <+ddnet-discord> <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/384538514424856586/2.xml
+03:59 <+ddnet-discord> <Learath2> App Verifier is quite nice and works at a decent enough speed, but the output I get from it is not much more useful then the call stack itself 😛
+04:01 <+ddnet-discord> <Learath2> https://hastebin.com/axacitutag.m and these are the leaks I could find with dr memory, all also present in linux
+11:53 <+ddnet-discord> <ZimE> after i compile the unchanged source of ddnet i get a problem ingame
+11:54 <+ddnet-discord> <ZimE> if i run into a wall, the tee sinks like 1.0f down into the ground
+11:55 <+ddnet-discord> <ZimE> that doesnt happen on the compiled exe from the website though
+12:18 <+ddnet-discord> <Mokuz> :feelsbadman:
+14:10 <+ddnet-discord> <deen> @ZimE  Compiler, version, OS, CPU arch? Try some weird compiler flags to change float behaviour
+14:57 <+ddnet-discord> <Savander> deen:, whats going on on ger ?
+14:57 <+ddnet-discord> <Savander> With lags? DDoS? Firewall configuration?
+15:55 <+ddnet-discord> <deen> Looks like DoS
+15:55 <+ddnet-discord> <deen> At least I see 600 Mbit/s incoming traffic
+15:56 <+ddnet-discord> <deen> probably my fault, I asked admins to disable the FW rules they had 😅
+15:56 <+ddnet-discord> <deen> because I suspected them to cause lags in last days
+15:57 <+ddnet-discord> <Savander> DoS since yesterday
+15:57 <+ddnet-discord> <deen> @HMH ok, reenable again I guess. Sounds like it's even worse without the protection
+22:10 <+eeeee> `win 9
+22:14 <@heinrich5991> `win 9.5?
+22:14 <@heinrich5991> `win 95?
+22:26 <+eeeee> /win 9
+22:26 <@heinrich5991> ahh
+22:26 <+fstd_> /dos 6.22
+22:26 <+fstd_> for workgroups
+22:26 <+fstd_> wait, no
+22:27 <+eeeee> i gave up figuring out which one of kbd->macos->iterm->mosh->tmux->irssi eats my alt
+22:28 <+eeeee> /dos 6.22 is for foreveralone, not for workgroups
+22:32 <@heinrich5991> /linux 3.11 for workgroups!
+22:32 <+ddnet-discord> <Savander> what a mystery over here?
+22:33 <+eeeee> http://esyr.org/dump/Lin3.11.logo.png
+22:36 <@heinrich5991> ^^
+22:40 <+ddnet-discord> <Savander> huh
+23:41 <+ddnet-discord> <Savander> boris sapmmer
+23:42 <+eeeee> in soviet russia pullreq accept YOU

@@ -1,0 +1,428 @@
+17:30 < Learath2> currently every time an entity is marked for destruction CGameWorld::RemoveEntity is called twice, once in RemoveEntites explicitly and once through ~CEntity()
+17:31 < Learath2> This isn't a problem when you have a single gameworld, but when working with multiple gameworlds, the gameworld reference is already invalid as soon as the entity is removed from a world, which causes a null pointer dereference
+18:11 < Dune> huh, where should it be destructed then?
+18:20 < Learath2> Well either explicitly RemoveEntity, or let the destructor do RemoveEntity. With ddnet I stopped letting entities self-insert/remove to/from worlds so I explicitly insert/remove the entities I create/destroy
+18:21 < bridge> [teeworlds] <jxsl13> destructor samantically better
+18:21 < Learath2> letting the destructor do it is a little dangerous when you can override the destructor though
+18:22 < bridge> [teeworlds] <jxsl13> and you can't override an yothe rmethod?
+18:22 < bridge> [teeworlds] <jxsl13> RemoveEntity for example
+18:23 < Learath2> RemoveEntity is a method of the game world
+18:23 < bridge> [teeworlds] <jxsl13> overridable?
+18:23 < bridge> [teeworlds] <jxsl13> it's the same argument that doesn't say anything
+18:24 < bridge> [teeworlds] <jxsl13> if you can break your leg by walking, you should not walk is what I see here as an argument
+18:24 < Learath2> First of all, it's much more common to inherit from CEntity then CGameWorld
+18:24 < bridge> [teeworlds] <jxsl13> semantically a destructor removes an object properly and cleans up afterwards
+18:25 < Learath2> Second, RemoveEntity is indeed not a virtual method, so if you are trying to override it you are obviously doing something wrong
+18:25 < bridge> [teeworlds] <jxsl13> well, then keep it as is
+18:26 < Learath2> Third, CGameWorld is a "container" an item of the container affecting it's container is hardly great encapsulation, items don't remove themselves from linked lists
+18:27 < Learath2> As is you are calling RemoveEntity twice. If you are okay with that, knock yourselves out, just wanted to point out a problem I encountered during development
+18:27 < bridge> [teeworlds] <jxsl13> usually the destructor should be called in reverse order by inheritance(if I'm not off here), thus you don't override it, but overshadow, I guess implementing the entity destruction for every class in the base class CEntity would make sense and not care about inheriting classes
+18:28 < bridge> [teeworlds] <jxsl13> actually doing anything about the removal from the World class
+18:29 < bridge> [teeworlds] <jxsl13> short, implement in CEntity destructor and let inheriting classes not care about the removal from the world object
+18:33 < Dune> just put that in `RemoveEntity` and call it a day
+18:33 < Learath2> Which is what is done currently, but you are also calling RemoveEntity from CGameWorld::RemoveEntities, which is the double call I'm talking about...
+18:33 < Learath2> If you are letting the entities handle the removal from the world, fine, be consistent about it
+18:36 < bridge> [teeworlds] <jxsl13> mind linking the code lines?
+18:36 < Dune> grepr removeentitysrc/game/server/gameworld.cpp:85:void CGameWorld::RemoveEntity(CEntity *pEnt)
+18:36 < bridge> [teeworlds] <jxsl13> the problem lines
+18:37 < Learath2> gameworld.cpp#157 is the extra call I'm talking about
+18:39 < Learath2> But the problem is there is no guarantee that Destroy() will lead to a RemoveEntity() as Destroy is a virtual method. I'd just get rid of destroy and delete the entity there and let the destructor chain handle it
+18:39 < bridge> [teeworlds] <jxsl13> I find the Destroy() function rather weird.
+18:40 < Learath2> But then CCharacter doesn't actually destruct itself on Destroy() so that'd break that
+18:41 < Learath2> Which is one of the reasons why I took the other approach
+18:41 < Learath2> More flexible and in my case allows me to easily move entities between gameworlds
+18:44 < bridge> [teeworlds] <jxsl13> nice, so CCharacter inherits the weird Destroy funcrtion and overshadows it with a newly implementation that doesn't contain the code of the inherited destroy function from CEntity
+18:45 < Learath2> Which is intended by the way, characters aren't destroyed, they are set not alive and set alive when spawned
+18:46 < bridge> [teeworlds] <jxsl13> calling both functions the same is imo bad
+18:48 < bridge> [teeworlds] <jxsl13> would prefer if the "delete this" war removed, but might break a lot of stuff
+18:48 < bridge> [teeworlds] <jxsl13> was*
+18:48 < Learath2> There are a handful of places where Destroy is called, it's not too hard to rework
+18:49 < bridge> [teeworlds] <jxsl13> also funny: CCharacter has a reset function, that calls Destroy, then why not use Reset instead of Destroy
+18:49 < bridge> [teeworlds] <jxsl13> as both do the same
+18:49 < Learath2> also funny: nothing ever should be calling Destroy on a CCharacter anyway
+18:49 < Learath2> except itself
+18:50 < bridge> [teeworlds] <jxsl13> publicly accessible
+18:50 < bridge> [teeworlds] <jxsl13> should at leats be protected for inheritance purposes.. ,Destroy is bad imo
+18:51 < bridge> [teeworlds] <jxsl13> CEntity::Destroy
+18:53 < Learath2> It's the only natural solution if you want to delete entities but also want entities that can't be deleted
+18:53 < Dune> I wonder if that will mess up mods that merge without being aware enough of what's going on
+18:53 < Dune> only those with several worlds are affected I imagine
+18:54 < Learath2> Just removing the RemoveEntity on L157 shouldn't change anything, only entity that behaves differently is CCharacter and that is never supposed to be deleted anyway let alone marked for destruction
+18:54 < bridge> [teeworlds] <jxsl13> mind elaborate on that, ccharacters cannot be deleted as you said? but rest can?
+18:54 < Learath2> @jxsl3 they can be deleted ofc, they just never are
+18:55 < Learath2> Destroy for CCharacter is never called except if CCharacter calls it, so it's pointless anyway
+18:57 < bridge> [teeworlds] <jxsl13> why is delete pEnt not a feasible solution on line 158 instead of pEnt->Destroy()?
+18:57 < bridge> [teeworlds] <jxsl13> delete pEnt;
+18:58 < bridge> [teeworlds] <jxsl13> hm, character
+18:58 < bridge> [teeworlds] <Assa> "I could fix it right, or I simply use smartpointer"
+18:58 < bridge> [teeworlds] <jxsl13> teeworlds = anti stl 😮
+18:59 < Dune> STL = pure garbage*
+18:59 < Dune> * C++ committee member
+18:59 < Learath2> @jxsl3 A character is never to be marked for destruction as far as I can see
+18:59 < bridge> [teeworlds] <jxsl13> (and because dune hates stl)
+18:59 < Learath2> Dune: STL has a couple useful things, smart pointers are pretty nice
+19:00 < bridge> [teeworlds] <jxsl13> (and I don't know how bit the commitee is, so I cannot evaluate your value as one person there)
+19:00 < Dune> Oh yeah, STL has a lot of useful things
+19:00 < bridge> [teeworlds] <jxsl13> big*
+19:00 < Dune> Only the implementation of containers is systematically garbage
+19:00 < Dune> If you don't care about performance, STL is fine. And it's really stable!
+19:00 < bridge> [teeworlds] <jxsl13> don't hate on vector, even tho it's naming is garbage 😮
+19:01 < bridge> [teeworlds] <Assa> smartpointer are the best thing to make bad software at least have less mermory leaks
+19:01 < Dune> @jxsl13: the implementation of vector in STL is terrible, because it is decades old, and the standard locks one implementation
+19:01 < Learath2> I never benched it myself but iirc vector can be 0 overhead, no?
+19:01 < Dune> even the smallvector of LLVM was benched to give better results on LARGE vectors than the std::vector
+19:02 < Dune> I like the ideas of smart pointers though :)  but only where necessary
+19:02 < Learath2> Eh, the standard sticking it's nose into implementation is not good
+19:02 < Dune> It's good for only one thing: performance predictability
+19:02 < bridge> [teeworlds] <Assa> for performance I usually go away from vectors and use either single linked lists or stacks or heaps, trees, stuff
+19:02 < bridge> [teeworlds] <jxsl13> I only tested it on tw level and compared to a c array with 64 players it was kinda worse by a factor of 4 ._.
+19:02 < Dune> @Assa as long as you use it from a recent library vectors can be fine
+19:03 < bridge> [teeworlds] <jxsl13> guess rust is the way to go ._.
+19:03 < Dune> just use a c++ lib
+19:03 < Dune> or make your own baselib
+19:03 < Learath2> I'd rather shoot myself then link with boost...
+19:03 < Dune> I know :D  but there are nice alternatives now
+19:04 < bridge> [teeworlds] <Assa> what do you use for signals?
+19:04 < bridge> [teeworlds] <jxsl13> if you wanna use an external lib for every little shit in c++, what's the worth of c++ then -> 0
+19:04 < Learath2> Oh don't say that, C++ has a nice inheritence system
+19:04 < bridge> [teeworlds] <Assa> theoretically you could use QT for everything
+19:04 < Learath2> RTTI is not half bad either
+19:05 < bridge> [teeworlds] <jxsl13> well, wow xD one of many features
+19:05 < bridge> [teeworlds] <jxsl13> RAII is nice
+19:05 < bridge> [teeworlds] <jxsl13> that's about it, then
+19:05 < Learath2> C++ is pretty decent to use without it's STL
+19:06 < Dune> @jxsl13 c++ is fine, the *implementation* of the standard lib enforced by the standards is garbage
+19:06 < bridge> [teeworlds] <Assa> if you look on java, it's not better: you add an external lib to your pom for everything
+19:06 < bridge> [teeworlds] <jxsl13> production cycle is bad, as you'd need to implement everything from scratch yourself
+19:06 < Dune> you can write your own naive containers and they will have better performance
+19:06 < bridge> [teeworlds] <jxsl13> or search for libs
+19:06 < bridge> [teeworlds] <heinrich5991> @Dune do you have some links or evidence for the "stl is garbage" statement btw?
+19:06 < bridge> [teeworlds] <jxsl13> that might not be supported
+19:07 < Learath2> I kinda nuked the entirety of IGameController to make it into an actual interface
+19:07 < bridge> [teeworlds] <jxsl13> tw needs to be refactored from scratch anyway ._.
+19:07 < bridge> [teeworlds] <heinrich5991> do they have better performance because they can't accept every combination of throwing move/copy/whatever constructors that the STL containers must support?
+19:07 < Learath2> ohi @heinrich5991, mind taking a quick look at my last pr while you are around, promise it'll just be like 5 min tops
+19:07 < bridge> [teeworlds] <Assa> can't wait for teeworlds 2.0
+19:08 < bridge> [teeworlds] <heinrich5991> link?
+19:08 < bridge> [teeworlds] <jxsl13> you be ded by then, @Assa
+19:08 < bridge> [teeworlds] <jxsl13> xD
+19:08 < bridge> [teeworlds] <Assa> www.imaginary-content.com
+19:08 < bridge> [teeworlds] <jxsl13> hm hm
+19:08 < Learath2> @heinrich5991 https://github.com/ddnet/ddnet/pull/1939
+19:09 < bridge> [teeworlds] <Assa> Am I allowed to do my own teeworlds 2.0 with Vulcan, beer and hookers?
+19:09 < bridge> [teeworlds] <heinrich5991> that looked hard to review 😄
+19:09 < bridge> [teeworlds] <heinrich5991> but okay, I'll take a look
+19:09 < Learath2> @heinrich5991 you already reviewed the thing, I just need an ok for the last commit :P
+19:09 < bridge> [teeworlds] <jxsl13> rip vulkan, 2k lines of initialization code
+19:09 < bridge> [teeworlds] <Assa> i want an easy to use graphics library
+19:10 < bridge> [teeworlds] <Assa> but i probably end with unity then
+19:10 < bridge> [teeworlds] <jxsl13> beer and hookers are approved
+19:11 < Dune> heinrich5991 looking for one but I'm afraid not, it was a live thing
+19:12 < Dune> cf. chandler carruth 
+19:12 < Dune> every small implementation detail of STL containers was put in the standard, so they cannot move anymore
+19:12 < Learath2> Dune: iirc std::vector was 0 overhead if you preallocated the memory, so it atleast won't perform worse then an array if you know the size beforehand :P
+19:12 < bridge> [teeworlds] <jxsl13> let's pray for c++23 to throw away the C compatibility
+19:12 < Dune> possible but then just use a static array if you know the size
+19:13 < Dune> EASTL is a good lightweight alternative iirc
+19:13 < bridge> [teeworlds] <heinrich5991> D
+19:13 < Learath2> If not for the C standard holding the C++ commitee down, they'd have turned the entire language into some meta language of templates
+19:13 < bridge> [teeworlds] <heinrich5991> as far as I know, stuff like `std::vector`, `std::unique_ptr`, `std::shared_ptr` are fine
+19:13 < bridge> [teeworlds] <heinrich5991> @Dune
+19:13 < Dune> +1 Learath2
+19:14 < Dune> std::vector is not the worst iirc
+19:14 < bridge> [teeworlds] <jxsl13> and maybe cut off the 40 year olsd stuff that's still being supported
+19:14 < Dune> The STL has absurd implementation standards for performance predictability that prevent better implementations
+19:14 < bridge> [teeworlds] <heinrich5991> can you name concrete things that affect `std::vector`? I can't imagine any
+19:14 < Learath2> @jxsl3 any particular C things that you don't want in your C++?
+19:14 < Learath2> @heinrich5991 a bad reallocation strategy?
+19:15 < Dune> trying to find the LLVM benches that show their vector designed for small sizes performs better than vector even on huge arrays
+19:15 < bridge> [teeworlds] <heinrich5991> true. I don't think it's specified by the standard, but let's check
+19:15 < bridge> [teeworlds] <jxsl13> what was it called again, the Binary Application Interface of C is fully supported and not above that, thus preventing features?
+19:15 < Dune> as far as implementation details go, I remember hashmaps has something that enforces that the pointer to some elements cannot change in some bizarre scenarios
+19:16 < bridge> [teeworlds] <heinrich5991> yes
+19:16 < bridge> [teeworlds] <heinrich5991> I agree that hashmaps are bad, becaue they enforce linked list buckets IIRC
+19:16 < Dune> the simple fact that implementations could not change for decades should indicate that this library is unsuited for performance
+19:16 < bridge> [teeworlds] <jxsl13> heated debate 😮
+19:16 < Dune> but you're right, I'd like to have concrete examples of vectors
+19:16 < bridge> [teeworlds] <jxsl13> xD
+19:17 < bridge> [teeworlds] <heinrich5991> `std::vector` doesn't need to change in decades, tbf
+19:17 < bridge> [teeworlds] <heinrich5991> it's a glorified array, arrays haven't changed in 70 years
+19:18 < bridge> [teeworlds] <Dune> https://cdn.discordapp.com/attachments/490150878934990850/656560961255112719/unknown.png
+19:20 < Dune> iirc the one container that is fine is the string
+19:22 < Dune> heinrich5991: did you find out if the reallocation strategy is specified by the standards?
+19:23 < bridge> [teeworlds] <jxsl13> is the 1000 of Smallvector a predefined allocation size?
+19:23 < bridge> [teeworlds] <heinrich5991> it doesn't look like it
+19:23 < Learath2> Dune: I took a look at the standard and didn't really see it specified, however it might be inferred from the wording that new_size is just enough to fit the new item
+19:23 < bridge> [teeworlds] <heinrich5991> only that it's amortized O(1)
+19:24 < Learath2> which would be a bad strategy
+19:24 < bridge> [teeworlds] <heinrich5991> that wouldn't be amortized O(1) then
+19:24 < Dune> iirc actual algorithms aren't in the standard, but strange specific behaviours are, and lock into some possibilities
+19:24 < bridge> [teeworlds] <heinrich5991> for hashmaps
+19:25 < bridge> [teeworlds] <jxsl13> *too high for me, leaves to play Anno 1800 ._., @Learath2 remove the line, just giving my 2 cents here.
+19:27 < Learath2> @heinrich5991 where did you see it's amortized O(1)?
+19:27 < bridge> [teeworlds] <heinrich5991> that's something I remembered, let me check
+19:30 < bridge> [teeworlds] <heinrich5991> 23.2.3 (sequence containers) 16
+19:30 < bridge> [teeworlds] <jxsl13> *heated debate continues*
+19:30 < bridge> [teeworlds] <heinrich5991> > Table 101 lists operations that are provided for some types of sequence containers but not others. An
+19:30 < bridge> [teeworlds] <heinrich5991> > implementation shall provide these operations for all container types shown in the “container” column, and
+19:30 < bridge> [teeworlds] <heinrich5991> > shall implement them so as to take amortized constant time.
+19:30 < bridge> [teeworlds] <heinrich5991> `a.push_back(t)`
+19:31 < Learath2> I see
+19:42 < bridge> [teeworlds] <heinrich5991> https://lemire.me/blog/2012/06/20/do-not-waste-time-with-stl-vectors/
+19:43 < bridge> [teeworlds] <heinrich5991> "stl vectors are fine"
+19:48 < bridge> [teeworlds] <Dune> fair enough
+19:53 < bridge> [teeworlds] <heinrich5991> https://zeux.io/2019/01/17/is-c-fast/
+19:55 < bridge> [teeworlds] <heinrich5991> ```
+19:55 < bridge> [teeworlds] <heinrich5991> compiler  std::vector  arrays
+19:55 < bridge> [teeworlds] <heinrich5991> gcc            334 ms  318 ms
+19:55 < bridge> [teeworlds] <heinrich5991> clang          327 ms  297 ms
+19:55 < bridge> [teeworlds] <heinrich5991> clang libc++   328 ms  299 ms
+19:55 < bridge> [teeworlds] <heinrich5991> msvc           285 ms  265 ms
+19:55 < bridge> [teeworlds] <heinrich5991> ```
+19:58 < bridge> [teeworlds] <heinrich5991> > Release performance also slightly increased across the board - this is because for many of our arrays, the default initialization performed by std::vector’s constructor is redundant as we’re going to fill the array anyway. With std::vector, you can either resize a large array and then compute the items (which requires default-initializing every item redundantly), or reserve and push_back repeatedly (which requires a bit m
+19:58 < bridge> [teeworlds] <heinrich5991> that's a reason for `std::vector` to be less performant than our own container type
+20:00 < bridge> [teeworlds] <Dune> > Some time last year during a regular lunch time C++ discussion at work somebody said “there’s a good language subset of C++, C with classes”, to which I replied “there’s an even better subset, C with structs”. 
+20:00 < bridge> [teeworlds] <Dune> huh :)
+20:03 < Learath2> Somebody doesn't like OOP :P
+20:03 < Learath2> Not that I enjoy oop
+20:03 < bridge> [teeworlds] <Dune> I think it's nice if you minimize the amount of abstractions you use
+20:04 < bridge> [teeworlds] <Dune> A lot of OOP code seem to have a dick competition in making the most abstract, generic code
+20:04 < bridge> [teeworlds] <Dune> Abstraction has a cost
+20:04 < bridge> [teeworlds] <heinrich5991> that's a too general statement
+20:04 < bridge> [teeworlds] <heinrich5991> (i.e. it's too handwavy to argue with it)
+20:05 < bridge> [teeworlds] <heinrich5991> you can say "it has a cognitive cost. it has a compile-time cost. it has a runtime cost"
+20:05 < bridge> [teeworlds] <heinrich5991> not all abstractions have a runtime cost
+20:05 < bridge> [teeworlds] <heinrich5991> some abstractions have a negative cognitive cost
+20:05 < bridge> [teeworlds] <Dune> right
+20:06 < bridge> [teeworlds] <Dune> well https://www.reddit.com/r/cpp/comments/degmy1/cppcon_2019_chandler_carruth_there_are_no/
+20:06 < bridge> [teeworlds] <Dune> but in a way, C is an abstraction of assembly, isn't it
+20:06 < bridge> [teeworlds] <heinrich5991> can't watch a movie rn
+20:06 < bridge> [teeworlds] <heinrich5991> yea
+20:07 < Oy> is there a picture with the eye outline?
+20:08 < Dune> well, zatline had sent me two pictures, with/without the outline
+20:08 < Dune> but I can't tell which one has the outline
+20:13 < Oy> hm ok
+20:16 < bridge> [teeworlds] <Dune> And it should probably affect the whole menu -> doesn't it?
+20:17 < Oy> dunno, din't test it :P
+20:17 < Oy> u wrote server browser and settings
+20:18 < bridge> [teeworlds] <Dune> Yeah. Demos too.
+20:18 < Oy> yeah and ingame
+20:18 < bridge> [teeworlds] <Dune> It was an accident
+20:18 < bridge> [teeworlds] <Dune> I like to call it a feature
+20:19 < Oy> :D
+20:21 < bridge> [teeworlds] <Dune> I wrote something that uses the settings.cfg to figure if the last version is <= 073 and set the winter background if not. So that people get to see it upon upgrade once
+20:21 < bridge> [teeworlds] <Dune> None stays none for theme haters :p
+20:21 < bridge> [teeworlds] <Dune> Not sure if scanning settings.cfg is the clean way though
+20:25 < Oy> u could check if it finds the new settings0.7.cfg. if it doesn't u know :P
+20:31 < bridge> [teeworlds] <Dune> http://github.com/Dune-jr/teeworlds/pull/new/winter_theme
+20:31 < bridge> [teeworlds] <Dune> the concept
+20:32 < bridge> [teeworlds] <Dune> might be useful to extract thatinfo in a variable
+20:32 < bridge> [teeworlds] <Dune> but as u hinted its useless for now
+20:33 < Oy> shows "There isn’t anything to compare."
+20:34 < Oy> yeah, we should probably add a simple way how we can get that information in the future
+20:35 < Oy> oh wait, didn't we have an issue before where we changed the default value and how that should be handled?
+20:52 < Dune> kinda but that's different imo
+20:53 < Dune> wrong branch
+20:53 < Dune> https://github.com/Dune-jr/teeworlds/pull/new/task-defaultwinter
+20:53 < Dune> or https://github.com/Dune-jr/teeworlds/pull/new/task-defaultwinter2
+21:06 < Oy> we could add that config "lastversionplayed" for 0.7.4 and set its default value to 0.7.3, then you don't have to parse sth
+21:06 < Oy> and on exit of the client we update it
+21:06 < Dune> ooh
+21:06 < Dune> and we make it a saved config
+21:08 < Learath2> I tried to chop up gamecontroller into pieces so that it'd be easier to mod, but gamecontroller is so deeply engrained
+21:09 < Oy> Dune: yeah
+21:09 < Oy> Learath2: thought about that too
+21:10 < Learath2> imho, IGameController should be stripped down to an interface, we should let controllers register commands so we can move the team/mod related commands out of CGameContext
+21:11 < Dune> oh Learath2 had a bug in the gameworld destructors we need to keep track of
+21:11 < Learath2> Dune: it's not really that important, it's just a harmless double call if you have a single gameworld
+21:13 < Dune> it would be nice to fix it in the base code still tho
+21:13 < Dune> Oy: like https://github.com/Dune-jr/teeworlds/pull/new/task-defaultwinter3 ?
+21:14 < Learath2> anyways, I was thinking multiple inheritence for gamemodes, so something like `class CCTFController : public IVanillaController, public ITeamController, public IFlagController`
+21:14 < Learath2> Is that way too ugly? :P
+21:14 < Oy> kinda :P
+21:14 < Learath2> Yeah, that's why I scrapped it :/
+21:16 < Oy> Dune: the default, max value of the config value isn't correct
+21:16 < Learath2> eh, I'll give it another go tomorrow, maybe I'll come up with something better
+21:16 < Oy> ok :)
+21:17 < Oy> player probably needs some cleanup too
+21:19 < Oy> and if(g_Config.m_ClLastVersionPlayed < 0x0703) <- "<="
+21:19 < bridge> [teeworlds] <Dune> right
+21:19 < Learath2> what is your stance on dynamic_casts btw? just so I don't end up with something you won't merge :P
+21:20 <@heinrich5991> where would you need those?
+21:20 < bridge> [teeworlds] <Dune> we have them all over don't we?
+21:20 < Oy> just the interfaces?
+21:20 <@heinrich5991> Dune: I don't see any `dynamic_cast` in the source
+21:21 < Learath2> heinrich5991: Well it's a way of handling the class hierarchy
+21:21 <@heinrich5991> `dynamic_cast` is for downcasting something like a `CEntity` to a `CCharacter`, right?
+21:21 <@heinrich5991> (and checking whether the type is correct)
+21:22 < Learath2> Checking whether the type is correct is the use case I was thinking
+21:23 < Learath2> Currently most mods will just do a cast to (CModGameController), assuming the cast is safe
+21:23 <@heinrich5991> ah
+21:24 < bridge> [teeworlds] <Dune> heinrinch5991: aren't some of the implicit C style casts dynamic ?
+21:24 < bridge> [teeworlds] <heinrich5991> no
+21:24 < bridge> [teeworlds] <heinrich5991> dynamic casts check that the types match *at runtime*
+21:25 < Learath2> I guess it'd be better if I can avoid calling gamemode specific functions from cgamecontext but then the interface for igamecontroller needs to support teams
+21:25 < Learath2> basically I'm trying to think of a way to avoid the current IGameController::IsTeamplay()
+21:26 < Learath2> (I think the compiler is allowed to optimize a dynamic_cast, so it doesn't have to be at runtime)
+21:26 <@heinrich5991> trying to understand the reasoning. what are the downsides of the current approach?
+21:26 <@heinrich5991> yes
+21:26 < Learath2> Currently inheriting from IGameController isn't much of a use because it has very gamemode specific behaviour
+21:28 < Learath2> IGameController is also a little hard to read and I think the handling of teams there is one of the things that makes it hard, thus I'm trying to think of a way to abstract that away, without having to repeat code in tdm and ctf e.g.
+21:29 < Learath2> Tbh, if nothing atleast IGameController should be made into an ABC so it's atleast easy to inherit from
+21:34 < Oy> you want to split administrative and gameplay stuff?
+21:34 < Learath2> Administrative as in?
+21:35 < Oy> everything that is in there and that's not gameplay related
+21:36 < Oy> like team balance/change etc. stuff
+21:37 < Oy> map change
+21:37 < Learath2> I think they should be separated yes
+21:38 < Oy> yeah, thought about that too
+21:39 < Learath2> But even more then that the gamecontroller just needs to be more abstract. Some mods don't have a concept of matches, rounds, teams, map cycles, warmup, tournaments
+21:40 < Learath2> All the code is there as soon as you inherit from IGameController and you end up overriding most of it just to get things working
+21:42 < Oy> you pretty much just need the virtual functions: wincheck, on spawn/death,...
+21:51 < bridge> [teeworlds] <Assa> IGameControllerTeam : public IGameController
+21:55 < bridge> [teeworlds] <Ryozuki> I tried to make a mod using only the mod controller, you can barely do cool stuff
+21:56 < bridge> [teeworlds] <Ryozuki> Well at the end u might modify some projectiles here a laser there so it never feels "clean"
+21:56 < Learath2> the d7 branch of ddnet7 is trying to be minimally invasive, but I did have to touch igamecontroller at the end
+21:56 < bridge> [teeworlds] <Ryozuki> Ye there is no way around it
+21:56 < Learath2> entities worst case you can create your own
+21:57 < bridge> [teeworlds] <Assa> oh there are way more invasive mods
+21:57 < bridge> [teeworlds] <Ryozuki> Well u alwsys end up using vanilla entities u just handle them diferently in ur entity class
+21:57 < bridge> [teeworlds] <Ryozuki> But modding in tw always feels hacky
+21:57 < bridge> [teeworlds] <Ryozuki> I dont get the pleasure i get from modding minecraft with forge
+21:57 < bridge> [teeworlds] <Ryozuki> I know its very subjective
+21:58 < bridge> [teeworlds] <Ryozuki> Tw protocol needs a change so its more dynamic
+21:58 < bridge> [teeworlds] <Assa> espacially the netprotokoll
+21:59 < bridge> [teeworlds] <Ryozuki> Sending ur own textures and stuff
+21:59 < Learath2> well heinrich5991 did modify most of the protocol to be extendable, but that's not in 0.7 yet is it?
+21:59 <@heinrich5991> that's only ddnet to be precise
+21:59 < bridge> [teeworlds] <Assa> even the ip header hat reserved bits for future
+21:59 < bridge> [teeworlds] <Assa> *had
+22:00 < Learath2> I think the protocol extensions we made on ddnet are quite nice, maybe you could get those into teeworlds
+22:00 < bridge> [teeworlds] <heinrich5991> yes, but those are unfortunately useless due to ossification
+22:00 < bridge> [teeworlds] <heinrich5991> i.e. firewalls around the world drop packets if you set those bits
+22:01 < bridge> [teeworlds] <Assa> did you see ipv6?
+22:01 < bridge> [teeworlds] <Assa> it has a dynamic header sice and you can add subheaders as much as you want
+22:01 < bridge> [teeworlds] <Assa> *size
+22:01 < bridge> [teeworlds] <Ryozuki> My isp still doesnt have ipv6 support
+22:02 < Learath2> I don't really know much if any residential isp that deployed ipv6
+22:02 < bridge> [teeworlds] <Ryozuki> Their dns server does tho
+22:02 < bridge> [teeworlds] <heinrich5991> my isp has ipv6
+22:02 < bridge> [teeworlds] <Ryozuki> Orange has ipv6 support
+22:02 < bridge> [teeworlds] <Ryozuki> I was with then sometime
+22:02 < bridge> [teeworlds] <heinrich5991> my uni dropped ipv6 3 years ago, I believe due to deploying a nat
+22:02 < Learath2> I knew of Orange, what do you have heinrich5991 
+22:03 < bridge> [teeworlds] <heinrich5991> telekom
+22:03 < Learath2> I'd wager most isps would deploy 50 NATs on top of eachother before deploying ipv6
+22:03 < Learath2> NAT is pretty well implemented in hardware nowadays, blazing fast
+22:03 < bridge> [teeworlds] <Assa> my point is not sending ipv6 packages, just implementing something like it for teeworlds
+22:04 < bridge> [teeworlds] <Assa> so you can easily add stuff like serversided auto grenade pickup
+22:04 < Learath2> auto grenade pickup?
+22:05 < bridge> [teeworlds] <Assa> auto weapon pickup on server side
+22:05 < bridge> [teeworlds] <Ryozuki> U mean switching to the weapon on pickup
+22:05 < bridge> [teeworlds] <Assa> you can grab a weapon, shoot the old weapon, and then autoswitch with the current system
+22:05 < bridge> [teeworlds] <Ryozuki> Pickup is serverside already
+22:05 < bridge> [teeworlds] <Assa> NO IT ISNT
+22:05 < Learath2> we have a pretty decent way of extending the protocol for ddnet, you can do extra netmsgs, extra netobjects, extra snapitems
+22:05 < bridge> [teeworlds] <heinrich5991> https://github.com/ddnet/ddnet/blob/fbbf7b3929c6c6045331c64b8ed5b26f8967a983/datasrc/network.py#L236
+22:05 < bridge> [teeworlds] <Ryozuki> Ur confised
+22:05 < bridge> [teeworlds] <heinrich5991> example
+22:06 < bridge> [teeworlds] <heinrich5991> that's how we can extend the protocol
+22:06 < bridge> [teeworlds] <Ryozuki> Auto pickup is not the same as auto switch on pickup
+22:06 < bridge> [teeworlds] <Assa> excuse me, i mean autoswitch
+22:06 < Learath2> But the protocol is atleast nicely extendable thanks to NETMSG_NULL or equivalent
+22:07 < Learath2> Minimally invasive modding is pretty impossible
+22:07 < bridge> [teeworlds] <redix> When it's in official teeworlds you can just add netmessages. The extended protocol is useful for mods thought. But you always need a custom client then
+22:07 < Learath2> redix: but when you add netmessages you get issues with compatibility
+22:07 < bridge> [teeworlds] <Assa> unless teeworlds includes a general api (which is fairly impossible) you probably can't do minimal invasive mapping
+22:08 < bridge> [teeworlds] <redix> Yeah you have to check the version before sending
+22:08 < Learath2> @Assa fairly impossible is what I'm trying to achieve by abstracting away stuff
+22:09 < bridge> [teeworlds] <Assa> I made mods breaking nearly everything in teeworlds
+22:09 < bridge> [teeworlds] <redix> A few netmessages have already been added since 0.7 release
+22:09 < Learath2> @redix which is not the best way to handle things imho, if teeworlds intends to be mod friendly this time around, I think it's pretty important to provide a stable framework to extend the protocol
+22:09 < bridge> [teeworlds] <redix> True
+22:09 < bridge> [teeworlds] <Assa> you can't write an api which includes every potential idea a teeworlds developer might need
+22:10 < Learath2> @Assa yes but you can create enough hooks that most anything can be implemented, if something else is needed then they can always contribute it back to teeworlds
+22:11 < Learath2> Or you can try to isolate behaviour instead, e.g. keep the gamemode specific behaviour out of core
+22:12 < bridge> [teeworlds] <Assa> it's mostly the engine where I see the problem
+22:12 < bridge> [teeworlds] <heinrich5991> is it?
+22:12 < bridge> [teeworlds] <heinrich5991> what do you need there?
+22:13 < bridge> [teeworlds] <Assa> in teeworlds are some singletone interfaces
+22:13 < Learath2> huh, in vanilla the engine is pretty decently separated
+22:13 < bridge> [teeworlds] <Assa> like IStorage
+22:13 < bridge> [teeworlds] <heinrich5991> `CGameServer` usually doesn't need `IStorage`
+22:13 < Learath2> The singleton pattern is a completely acceptable pattern
+22:13 < bridge> [teeworlds] <heinrich5991> in fact, I checked earlier today:
+22:13 < bridge> [teeworlds] <Assa> but IMap for example
+22:14 < bridge> [teeworlds] <heinrich5991> ```
+22:14 < bridge> [teeworlds] <heinrich5991> 528:    m_pServer = Kernel()->RequestInterface<IServer>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2529:    m_pConsole = Kernel()->RequestInterface<IConsole>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2530:    m_pEngine = Kernel()->RequestInterface<IEngine>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2531:    m_pStorage = Kernel()->RequestInterface<IStorage>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2572:    m_pServer = Kernel()->RequestInterface<IServer>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2573:    m_pConsole = Kernel()->RequestInterface<IConsole>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2574:    m_pEngine = Kernel()->RequestInterface<IEngine>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2575:    m_pStorage = Kernel()->RequestInterface<IStorage>();
+22:14 < bridge> [teeworlds] <heinrich5991> 2754:    CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
+22:14 < bridge> [teeworlds] <heinrich5991> 2759:        pFront = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(m_Layers.FrontLayer()->m_Front);
+22:14 < bridge> [teeworlds] <heinrich5991> 2761:        pSwitch = (CSwitchTile *)Kernel()->RequestInterface<IMap>()->GetData(m_Layers.SwitchLayer()->m_Switch);
+22:14 < bridge> [teeworlds] <heinrich5991> 3026:    IMap *pMap = Kernel()->RequestInterface<IMap>();
+22:14 < bridge> [teeworlds] <heinrich5991> ```
+22:14 < bridge> [teeworlds] <heinrich5991> ```
+22:14 < bridge> [teeworlds] <heinrich5991> > rg RequestInterface src/game/server/
+22:14 < bridge> [teeworlds] <heinrich5991> src/game/server/gamecontext.cpp
+22:14 <@heinrich5991> sorry
+22:14 < bridge> [teeworlds] <heinrich5991> 1437:    m_pServer = Kernel()->RequestInterface<IServer>();
+22:14 < bridge> [teeworlds] <heinrich5991> 1438:    m_pConsole = Kernel()->RequestInterface<IConsole>();
+22:14 < Learath2> :D
+22:14 < bridge> [teeworlds] <heinrich5991> 1465:    m_pServer = Kernel()->RequestInterface<IServer>();
+22:14 < bridge> [teeworlds] <heinrich5991> 1466:    m_pConsole = Kernel()->RequestInterface<IConsole>();
+22:14 < bridge> [teeworlds] <heinrich5991> 1492:    CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
+22:14 < bridge> [teeworlds] <heinrich5991> ```
+22:14 < bridge> [teeworlds] <Assa> I wrote a mapgenerator in teeworlds, I broke a lot of engine stuff
+22:14 < Dune> rip irc
+22:15 < Dune> all this stuff would be server side right?
+22:15 < Learath2> stuff?
+22:16 < bridge> [teeworlds] <Assa> yes
+22:16 < bridge> [teeworlds] <Assa> i needed to add sdl2 to the server side
+22:16 < Learath2> Wait, why? :D
+22:16 < bridge> [teeworlds] <heinrich5991> wait what
+22:16 < bridge> [teeworlds] <heinrich5991> 😛
+22:16 < bridge> [teeworlds] <Assa> so i can add textures to the generated maps
+22:16 < bridge> [teeworlds] <Assa> technically you could add a viewer and watch the server, too xD
+22:17 < Learath2> Are you rendering the textures on the fly aswell?
+22:17 < bridge> [teeworlds] <Assa> good question
+22:18 < bridge> [teeworlds] <redix> The png loading code is mixed with the opengl/sdl code.
+22:18 < bridge> [teeworlds] <Assa> I added @LordSk s editor on the server side
+22:19 < bridge> [teeworlds] <Assa> so i don't know how it works, but yes, png loading is mixed opengl/sdl code
+22:19 < bridge> [teeworlds] <redix> Might be easier to copy the png code from there
+22:19 < bridge> [teeworlds] <redix> Instead of linking all the stuff from the client
+22:20 < bridge> [teeworlds] <Assa> only sdl2, and only bam works now xD
+22:20 < Learath2> anyways, tomorrow I'll make IGameController completely abstract so it's more pleasent to work with it in the meanwhile
+22:21 < Learath2> If I find a decent way to chop it up and abstract away some other things, I guess that can be done later
+22:21 < Dune> it would be nice if that'd make merges easier :)
+22:22 < Dune> it takes a lot of effort to write well contained server mods
+22:23 < Learath2> I once had an idea for a "modloader" for teeworlds, even wrote one but it only had hooks for adding chat commands. It's really hard to create a nice api for this kind of thing
+22:23 < Learath2> So I gave up on that and now I'm trying to isolate the gamemode from the gameserver
+22:27 < bridge> [teeworlds] <Assa> I have an idea for a proxy teeverse server
+22:27 < bridge> [teeworlds] <Assa> but I am very sure the ping won't like it
+22:27 < Dune> "proxy"?
+22:28 < bridge> [teeworlds] <Assa> yes, you have a main world server, with a CTF, zCatch, tournament, yourmode, dunesawesome - mod-gates
+22:28 < bridge> [teeworlds] <Assa> and if you go into this gates, the server proxies you to other servers
+22:29 < bridge> [teeworlds] <Assa> so you connect indirectly to other servers without noticing
+22:29 < Learath2> Well if the servers are on the same machine or atleast the same network, ping should be pretty low
+22:30 < bridge> [teeworlds] <Assa> it has the huge advantage of abstraction and 'hiding' the ip of the subservers
+22:30 < Learath2> we had a similar idea of packing the entire state of the server and shipping it to another server in the case of ddos, but that turned out to be too much data :P
+22:30 < bridge> [teeworlds] <Assa> you can do the same with switching the proxy
+22:30 < bridge> [teeworlds] <Assa> and thus archive ddos protection
+22:31 < bridge> [teeworlds] <Assa> note: as long as you have un-ddossed-proxies
+22:39 < Dune> thats a pretty cool idea
+22:39 < Dune> the state of a server is that big?
+22:41 < bridge> [teeworlds] <Assa> i guess you need to copy all of the server ram
+22:42 < bridge> [teeworlds] <Assa> so ~500 Mb?
+22:44 < bridge> [teeworlds] <Assa> i like the idea of a proxy, you could start server on demand
+23:26 < bridge> [teeworlds] <jxsl13> is the packaging thingy broken http://repology.org/metapackage/teeworlds/versions
+23:26 < bridge> [teeworlds] <jxsl13> or is it something in ym network
+23:26 < bridge> [teeworlds] <jxsl13> my
+23:26 < bridge> [teeworlds] <jxsl13> https://github.com/teeworlds/teeworlds
+23:27 < bridge> [teeworlds] <jxsl13> the image that's usually on the left side showing versions and repositories like AUR
+23:27 < bridge> [teeworlds] <jxsl13> right*

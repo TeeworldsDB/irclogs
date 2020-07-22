@@ -1,0 +1,83 @@
+01:48 <+bridge> [ddnet] <Neb> Fun bug xd
+10:09 <+bridge> [ddnet] <deen> @Im 'corneum thanks, found the issue
+12:48 <+bridge> [ddnet] <Learath2> @deen do you happen to be here by luck?
+12:48 <+bridge> [ddnet] <Learath2> or @heinrich5991
+13:22 <+bridge> [ddnet] <heinrich5991> @Learath2 now am
+13:23 <+bridge> [ddnet] <Learath2> @heinrich5991 do you happen to be familiar with STL?
+13:23 <+bridge> [ddnet] <heinrich5991> no, ask your question 🙂
+13:27 <+bridge> [ddnet] <heinrich5991> @Learath2 no question? :/
+13:27 <+bridge> [ddnet] <Learath2> Oh sorry, no highlight so I missed it 😛
+13:28 <+bridge> [ddnet] <Learath2> I'm retro-fitting a rb tree implementation I have to behave more like an STL container, the objective is to learn a little more modern C++
+13:28 <+bridge> [ddnet] <Learath2> Do you happen to know how one is supposed to do allocations and implement iterators in an STL container?
+13:34 <+bridge> [ddnet] <heinrich5991> no, not really
+13:34 <+bridge> [ddnet] <heinrich5991> I guess the cppreference website could help: https://en.cppreference.com/w/cpp/memory/allocator, etc.
+15:24 <+bridge> [ddnet] <Learath2> @heinrich5991 still here?
+15:24 <+bridge> [ddnet] <heinrich5991> was about to leave
+15:24 <+bridge> [ddnet] <Learath2> I was going to ask whether https://gist.github.com/Learath2/120269494b3bd42c786fe3c55687503a looks about right
+15:25 <+bridge> [ddnet] <Learath2> but it's not so easy to read, so you should just leave 😛
+15:25 <+bridge> [ddnet] <heinrich5991> what data structure is this? a binary tree?
+15:25 <+bridge> [ddnet] <Learath2> yep a binary search tree
+15:25 <+bridge> [ddnet] <heinrich5991> `node` takes `T` by value?
+15:25 <+bridge> [ddnet] <Learath2> node allocates storage for it
+15:26 <+bridge> [ddnet] <heinrich5991> but the constructor, does it take `T` by value?
+15:26 <+bridge> [ddnet] <Learath2> I updated the gist to show the entire thing
+15:26 <+bridge> [ddnet] <Learath2> It takes a reference to T yeah
+15:26 <+bridge> [ddnet] <Learath2> It takes a reference to T no
+15:26 <+bridge> [ddnet] <heinrich5991> doesn't do anything with its parameter though
+15:26 <+bridge> [ddnet] <Learath2> The constructor?
+15:27 <+bridge> [ddnet] <heinrich5991> yes
+15:27 <+bridge> [ddnet] <Learath2> Oh yeah forgot to set it, there should be a `*m_pData = Data;` there
+15:27 <+bridge> [ddnet] <heinrich5991> or rather `new(m_pData) T(Data)`, is that a thing? you could also use c++'s new move operator if you'd like
+15:28 <+bridge> [ddnet] <Learath2> Oh I think that is a thing in C++ yeah
+15:28 <+bridge> [ddnet] <heinrich5991> has this thing compiled already?
+15:28 <+bridge> [ddnet] <Learath2> Move operator I'm not sure about
+15:28 <+bridge> [ddnet] <heinrich5991> `node **pRoot = m_pRoot;` this looks like a type error
+15:28 <+bridge> [ddnet] <heinrich5991> next line declares the same thing again 😄
+15:29 <+bridge> [ddnet] <heinrich5991> other than that, looks kinda good
+15:29 <+bridge> [ddnet] <Learath2> @heinrich5991 it doesn't compile because of some allocator thing I'm trying to figure out
+15:29 <+bridge> [ddnet] <heinrich5991> except that it goes into an endless loop if you insert an element that is neither `<` nor `>`, I think
+15:30 <+bridge> [ddnet] <heinrich5991> I think `node **pRoot = m_pRoot;` should be `node **pRoot = &m_pRoot;`
+15:31 <+bridge> [ddnet] <Learath2> Oh, then I guess it doesn't compile, even if I fix the allocator
+15:31 <+bridge> [ddnet] <heinrich5991> the loop condition is also useless, never fulfilled
+15:31 <+bridge> [ddnet] <heinrich5991> wait a second
+15:32 <+bridge> [ddnet] <heinrich5991> more type errors, `pRoot = (*pRoot)->m_pLeft;` should also have a `&` operator
+15:34 <+bridge> [ddnet] <Learath2> @heinrich5991 updated the gist again
+15:34 <+bridge> [ddnet] <Learath2> Fixed all the trivial errors and got it compiling
+15:35 <+bridge> [ddnet] <heinrich5991> `if(!(*pRoot))` never triggers due to the loop condition
+15:36 <+bridge> [ddnet] <Learath2> Uff, I'm so rusty
+15:39 <+bridge> [ddnet] <Learath2> @heinrich5991 can you take a look again?
+15:41 <+bridge> [ddnet] <heinrich5991> you slightly changed behavior, now duplicate nodes will be inserted
+15:41 <+bridge> [ddnet] <heinrich5991> other than that, the last thing that I see is that `new` doesn't return `nullptr` on failure, but throws `std::bad_alloc`
+15:42 <+bridge> [ddnet] <Learath2> idk a good way to deal with duplicate nodes
+15:42 <+bridge> [ddnet] <Learath2> what is the convention?
+15:42 <+bridge> [ddnet] <heinrich5991> in a set? don't insert them
+15:42 <+bridge> [ddnet] <heinrich5991> I think
+15:43 <+bridge> [ddnet] <heinrich5991> https://en.cppreference.com/w/cpp/container/set/insert
+15:43 <+bridge> [ddnet] <heinrich5991> > Inserts element(s) into the container, if the container doesn't already contain an element with an equivalent key.
+15:44 <+bridge> [ddnet] <Learath2> One last thing, do you see a nice way to not insert that node without making the code ugly? 😛
+15:45 <+bridge> [ddnet] <heinrich5991> ```
+15:45 <+bridge> [ddnet] <heinrich5991> else if(*(*pRoot)->m_pData > Data)
+15:45 <+bridge> [ddnet] <heinrich5991> { … }
+15:45 <+bridge> [ddnet] <heinrich5991> else
+15:45 <+bridge> [ddnet] <heinrich5991> {
+15:45 <+bridge> [ddnet] <heinrich5991>   delete t;
+15:45 <+bridge> [ddnet] <heinrich5991>   return;
+15:45 <+bridge> [ddnet] <heinrich5991> }
+15:45 <+bridge> [ddnet] <heinrich5991> ```
+15:46 <+bridge> [ddnet] <Learath2> oh, that should work, I'm retarded
+15:46 <+bridge> [ddnet] <heinrich5991> afk for a bit
+15:46 <+bridge> [ddnet] <heinrich5991> feel free to ask questions, will be back in a bit
+16:15 <+bridge> [ddnet] <Learath2> @heinrich5991 do you know of a way to visualize a binary tree easily?
+16:17 <+bridge> [ddnet] <heinrich5991> no
+16:17 <+bridge> [ddnet] <heinrich5991> idea: print a tree-like structure to the terminal
+16:17 <+bridge> [ddnet] <heinrich5991> but not sure if good
+16:17 <+bridge> [ddnet] <heinrich5991> if you have a good solution to this, please tell me
+16:17 <+bridge> [ddnet] <heinrich5991> I also needed it at some point
+16:18 <+bridge> [ddnet] <Learath2> Do you know of a way to quickly verify the tree is fine from the inorder representation?
+16:18 <+bridge> [ddnet] <Learath2> it's quite some work to implement it properly is the problem
+16:18 <+bridge> [ddnet] <heinrich5991> walk the tree in the inorder representation?
+16:18 <+bridge> [ddnet] <Learath2> I walk the tree, I'm not sure if it's correct just from that walk though
+16:18 <+bridge> [ddnet] <heinrich5991> hm
+16:19 <+bridge> [ddnet] <heinrich5991> dunno, and have to leave4
+16:19 <+bridge> [ddnet] <heinrich5991> bye, see you later
+16:20 <+bridge> [ddnet] <Learath2> bye

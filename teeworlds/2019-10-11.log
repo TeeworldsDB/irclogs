@@ -1,0 +1,72 @@
+00:28 < bridge> [teeworlds] <jxsl13> it seems like dummies are not being correctly taken into concideration with that new FriendlyFire test.
+00:32 < bridge> [teeworlds] <jxsl13> hm, it seems I'm wrong.
+10:19 < rand> in fact, since ClientInGame() returns false for dummies, I guess some tests could be simplified
+12:42 < bridge> [teeworlds] <jxsl13> http://www.dunecase.com/index.html
+16:53 < bridge> [teeworlds] <jxsl13> an econ python api would be cool.
+16:56 < bridge> [teeworlds] <fokkonaut> Why is it even needed to check for existing player/isdummy when sending a message? afaik while sending it checks for the client state aswell as if its a dummy. (at least for dummies on my server, i have my own). Maybe you remember the thing where my console got spammed because i didnt check whether m_applayers[i] exists before sending a kill message. I thought it would return any <message clipped>
+16:58 < bridge> [teeworlds] <jxsl13> checking m_apPlayers usually prevents from dereferencing a nullptr :D
+16:59 < bridge> [teeworlds] <fokkonaut> yea
+17:00 < bridge> [teeworlds] <fokkonaut> Well, my kill messages work a bit different, I dont send them to everyone (-1), i send them to each player individually because players from other minigames are not supposed to get them. Before I added the check whether player exists, it sent the message also to the invalid clients, and that spammed the console because it told me thats not possble
+17:00 < bridge> [teeworlds] <fokkonaut> sonething invalid was the message, trying the send message blabla
+17:00 < bridge> [teeworlds] <fokkonaut> But as i said, i thought it would return anyways if the client state is not ingame
+17:02 < bridge> [teeworlds] <jxsl13> I'd love to send sounds individually :'(
+17:02 < bridge> [teeworlds] <fokkonaut> you can
+17:02 < bridge> [teeworlds] <fokkonaut> I made a SoundGlobal() function, like the old one in 0.6 (hack ofc, they removed it from server) and an individual sound function
+17:03 < bridge> [teeworlds] <jxsl13> all I saw yesterday was that sound events are being created in the world, and haven't looked further into it.
+17:04 < bridge> [teeworlds] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/3fbe40e16cab948a974b02366d81355c1122c7df/src/game/server/gamecontext.cpp#L177
+17:05 < bridge> [teeworlds] <fokkonaut> this is the normal CreateSound()
+17:05 < bridge> [teeworlds] <jxsl13> maybe add some target id to the events
+17:05 < bridge> [teeworlds] <jxsl13> with a default value of -1
+17:05 < bridge> [teeworlds] <fokkonaut> ```void CGameContext::CreateSound(int Sound, int ClientID){	CreateSound(m_apPlayers[ClientID]->m_ViewPos, Sound, CmaskOne(ClientID));}```
+17:05 < bridge> [teeworlds] <fokkonaut> this is it
+17:05 < bridge> [teeworlds] <fokkonaut> With this, you can send the sound to one player only
+17:06 < bridge> [teeworlds] <fokkonaut> We use m_apPlayers->viewpos, because character one wouldnt work for spectators
+17:06 < bridge> [teeworlds] <fokkonaut> CmaskOne gets the mask of only that single client
+17:06 < bridge> [teeworlds] <fokkonaut> So other wont hear it
+17:09 < bridge> [teeworlds] <jxsl13> thanks, will maybe later look into it. Even tho I kinda don't want to tinker mich with vanilla logic, will kind of need this for projectiles, will I just need to prevent the event creation with this function? Kinda swap the creation of e.g. an explosion with this?
+17:11 < bridge> [teeworlds] <fokkonaut> You can send explosions only to a single player with CmaskOns aswell
+17:11 < bridge> [teeworlds] <fokkonaut> Or what is yout plan?
+17:11 < bridge> [teeworlds] <fokkonaut> you cant split explosions from their sound
+17:13 < bridge> [teeworlds] <jxsl13> my plan is to send projectile/lasers with their sounds etc only to one target, the one shooting them and for everyone else not to see those effects and or sounds.
+17:13 < bridge> [teeworlds] <fokkonaut> But can they interact with it?
+17:13 < bridge> [teeworlds] <jxsl13> no.
+17:14 < bridge> [teeworlds] <jxsl13> those other players should not be affected by the projectiles sent from the, let's call him "punished" player
+17:15 < bridge> [teeworlds] <jxsl13> it's kinda hacky, atm that the shokting player actually sees the projectiles, but doesn't hear the sounds
+17:16 < bridge> [teeworlds] <fokkonaut> Whats your progress?
+17:16 < bridge> [teeworlds] <fokkonaut> Like what do you have already?
+17:18 < bridge> [teeworlds] <fokkonaut> (Github, maybe?)
+17:19 < bridge> [teeworlds] <jxsl13> the snap part is kinda done, the explosions are disabled, but would be nice to have them sent to the punished player as well and the sounds should be sent to the player as well.
+17:19 < bridge> [teeworlds] <jxsl13> it's on the zcatch github
+17:23 < bridge> [teeworlds] <fokkonaut> Yeah, both are basically the same. You need to send explosion and sounds only to CmaskOne(id). Therefore, just add another parameter to the CreateExplosion and CreateSound function (int Mask = -1). You have to add that Mask parameter after sizeof(CNetEvent_whatever). Just seperated by a comma.
+17:23 < bridge> [teeworlds] <fokkonaut> And for the explosion, you have to make sure that you pass the client id of the punished tee, to check while dealing damage, that really only that one tee is getting through, all others just continue
+17:23 < rand> the method SendXXX used in CCharacter::Die is a low level function, so it does assume you know what you are doing with it. That's why you have to check the presence of client. There may be another solution
+17:23 < bridge> [teeworlds] <fokkonaut> Ahh
+17:23 < bridge> [teeworlds] <fokkonaut> Thanks
+17:25 < bridge> [teeworlds] <fokkonaut> I forgot, you also need to modify eventhandler
+17:25 < bridge> [teeworlds] <fokkonaut> Just need to add a Mask parameter to eventhandler::Create() too
+17:26 < bridge> [teeworlds] <fokkonaut> m_aClientMasks[m_NumEvents] = Mask in that case
+17:26 < bridge> [teeworlds] <fokkonaut> I can help if you want
+17:30 < bridge> [teeworlds] <fokkonaut> I will make a PR :p
+17:56 < bridge> [teeworlds] <fokkonaut> starting now, needed to fix my server first
+18:03 < bridge> [teeworlds] <fokkonaut> @jxsl13 cant build with cmake?
+18:30 < bridge> [teeworlds] <jxsl13> I only build woth cmake
+18:32 < bridge> [teeworlds] <jxsl13> thanks for the pr @fokkonaut
+18:33 < bridge> [teeworlds] <fokkonaut> np
+18:33 < bridge> [teeworlds] <fokkonaut> @jxsl13 I couldnt get it to create the cache
+18:34 < bridge> [teeworlds] <fokkonaut> at least not first try, as i said, dont have time, will go soon, that means no pc :p
+18:34 < bridge> [teeworlds] <fokkonaut> even if the pr doesnt work, you should get the idea of how it works now
+18:35 < bridge> [teeworlds] <jxsl13> yeah, I will fix any build issues myself thanks.
+18:35 < bridge> [teeworlds] <fokkonaut> ^^
+18:35 < bridge> [teeworlds] <jxsl13> except for windows
+18:35 < bridge> [teeworlds] <jxsl13> xD
+18:35 < bridge> [teeworlds] <fokkonaut> oh, well thats the problem then
+18:35 < bridge> [teeworlds] <fokkonaut> I am on windows
+18:35 < bridge> [teeworlds] <jxsl13> well, ok xD
+18:38 < bridge> [teeworlds] <fokkonaut> xd
+18:54 < bridge> [teeworlds] <ChillerDragon> any opinions on changing ``spectate_next`` a bit? I was thinking about only wasting one key for spectate binds and do ``bind x "+spectate;spectate_next`` but it doesnt work too smoth for now. ``spectate_next`` has some weird delay and it keeps switching when it gets hold.
+18:56 < bridge> [teeworlds] <fokkonaut> leave it like it is pls
+18:56 < bridge> [teeworlds] <fokkonaut> xd
+19:32 < bridge> [teeworlds] <fokkonaut> the delay is server side
+19:32 < bridge> [teeworlds] <fokkonaut> btw
+21:37 < bridge> [teeworlds] <ChillerDragon> then dont resend it on hold
+21:58 < bridge> [teeworlds] <fokkonaut> u

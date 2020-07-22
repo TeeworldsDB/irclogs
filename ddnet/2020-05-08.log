@@ -1,0 +1,106 @@
+17:41 <+bridge> [ddnet] <Chairn> cant compile on Windows 😦
+17:42 <+bridge> [ddnet] <Chairn> made a post here https://forum.ddnet.tw/viewtopic.php?f=16&t=5765&p=68316#p68316
+17:43 <+bridge> [ddnet] <Learath2> Which version are you compiling?
+17:43 <+bridge> [ddnet] <Learath2> we do provide a FindCrypt.cmake which you seem to be missing
+17:43 <+bridge> [ddnet] <Learath2> Also you can't use bash to generate MSYS Makefiles
+17:44 <+bridge> [ddnet] <Learath2> Well you can but it's finding g++ which is an issue
+17:44 <+bridge> [ddnet] <Learath2> So you first need to decide whether you want to compile with `MinGW and gcc` or `VS and MSVC`
+17:45 <+bridge> [ddnet] <Learath2> I don't know how to compile in VS at all so you'll have to ask someone else, but I think I can figure out how to get it to compile on the command prompt with msvc
+17:50 <+bridge> [ddnet] <redix> Did you initialize the submodules?
+17:50 <+bridge> [ddnet] <redix> in ddnet-libs?
+17:51 <+bridge> [ddnet] <Learath2> shouldn't be necessary for `FindCrypto.cmake` to be there, but yeah that'd also help for future problems
+17:54 <+bridge> [ddnet] <redix> Hmm okay. Just noticed that it did not find any deps
+17:56 <+bridge> [ddnet] <Chairn> yeah, i did git submodules update
+18:00 <+bridge> [ddnet] <Chairn> well, starting from a fresh clone works
+18:00 <+bridge> [ddnet] <Chairn> so i guess sth went wrong in my fork
+18:02 <+bridge> [ddnet] <Chairn> i'll just clean everything then
+18:02 <+bridge> [ddnet] <redix> It does not use the modules in the cmake directory
+18:02 <+bridge> [ddnet] <Chairn> > Also you can't use bash to generate MSYS Makefiles
+18:02 <+bridge> [ddnet] <Chairn> Indeed, any idea why? It says syntax error with make, but it works with MinGW makefiles
+18:02 <+bridge> [ddnet] <redix> Did you modify this block in your fork:
+18:03 <+bridge> [ddnet] <redix> https://github.com/ddnet/ddnet/blob/2649fb52342bf8772fd7963ff2e3de301492176c/CMakeLists.txt#L48-L52
+18:03 <+bridge> [ddnet] <redix> ?
+18:06 <+bridge> [ddnet] <Chairn> no, wasn't marked as modified by status
+18:06 <+bridge> [ddnet] <Chairn> no, wasn't marked as modified by git status
+18:10 <+bridge> [ddnet] <Chairn> i just hard resetted things, and it worked
+18:10 <+bridge> [ddnet] <redix> Can you check the value of `CMAKE_MODULE_PATH` in your CMakeCache.txt?
+18:10 <+bridge> [ddnet] <redix> Ah okay :)
+20:40 <+bridge> [ddnet] <Learath2> @Chairn do you have msys2?
+20:40 <+bridge> [ddnet] <Chairn> not really
+20:41 <+bridge> [ddnet] <Learath2> ah you got it working
+20:41 <+bridge> [ddnet] <Learath2> I'm guessing with VS
+20:41 <+bridge> [ddnet] <Chairn> yup
+20:41 <+bridge> [ddnet] <Chairn> no
+20:41 <+bridge> [ddnet] <Chairn> got rid of it
+20:41 <+bridge> [ddnet] <Chairn> stayed with a fresh install of mingw
+20:41 <+bridge> [ddnet] <Chairn> + bash that is installed with git
+20:41 <+bridge> [ddnet] <Learath2> interesting combination, surprised that it all worked out 🙂
+20:42 <+bridge> [ddnet] <Chairn> well, there are some weird things when i build, but it does build
+20:42 <+bridge> [ddnet] <Learath2> msys2 with mingw cmake is the combination I got working
+20:42 <+bridge> [ddnet] <Chairn> like i got thousands of warning for glew
+20:42 <+bridge> [ddnet] <Chairn> + some unrecognized flag for ddnet files
+20:42 <+bridge> [ddnet] <Chairn> but it does build so, i don't really care
+21:20 <+bridge> [ddnet] <Chairn> Can the server freely change the view position of a client?
+21:31 <+bridge> [ddnet] <heinrich5991> no
+21:31 <+bridge> [ddnet] <heinrich5991> position is always on the tee
+21:32 <+bridge> [ddnet] <Chairn> even in spec?
+21:32 <+bridge> [ddnet] <Chairn> i tried to force CPlayer::m_ViewPos but without any success
+21:33 <+bridge> [ddnet] <louis> u can tp the tee places
+21:33 <+bridge> [ddnet] <louis> obviously
+21:34 <+bridge> [ddnet] <abcqwerty> you can do some faketee stuff
+22:14 <+bridge> [ddnet] <fokkonaut> @Chairn you can set the viewpos only if spectatorinfo is on
+22:14 <+bridge> [ddnet] <fokkonaut> so while setting viewpos you need to send spectatorinfo from snap
+22:14 <+bridge> [ddnet] <Chairn> from server to client or from client to server?
+22:15 <+bridge> [ddnet] <fokkonaut> server to client, its the snap from CPlayer
+22:15 <+bridge> [ddnet] <fokkonaut> so `if (var) m_ViewPos = ` and then in the snap just a `|| var` for the spectatorinfo part
+22:16 <+bridge> [ddnet] <fokkonaut> And of course in the spectatorinfo force the spectatorID that gets sent to -1 (freeview) if `var == true`
+22:16 <+bridge> [ddnet] <Chairn> ok, thx
+22:17 <+bridge> [ddnet] <fokkonaut> np
+22:41 <+bridge> [ddnet] <Chairn> Well, i can force to go spec, but i still can't figure out why viewpos is not updated
+22:41 <+bridge> [ddnet] <Chairn> i guess i'll need client modification as well
+22:46 <+bridge> [ddnet] <fokkonaut> no
+22:46 <+bridge> [ddnet] <fokkonaut> of course you dont.
+22:46 <+bridge> [ddnet] <fokkonaut> You need to check all places where m_ViewPos gets set. Maybe just try adding a new variable `m_ViewPosFromYourMod` (xd) and then set that, in the spectatorinfo then send this variable if `var == true`
+22:47 <+bridge> [ddnet] <Chairn> ahah, found
+22:47 <+bridge> [ddnet] <fokkonaut> :)
+22:47 <+bridge> [ddnet] <Chairn> should have not used spec_freeview as the client ignores it
+22:47 <+bridge> [ddnet] <fokkonaut> ?
+22:47 <+bridge> [ddnet] <Chairn> well, it ignores the pos if specid is freeview, so i just put the client id instead and it worked
+22:48 <+bridge> [ddnet] <fokkonaut> that shouldnt be the way to go
+22:48 <+bridge> [ddnet] <fokkonaut> are you on 0.7 or 0.6
+22:48 <+bridge> [ddnet] <Chairn> 0.6
+22:48 <+bridge> [ddnet] <fokkonaut> then it should be enough tho, mh
+22:51 <+bridge> [ddnet] <Chairn> well, not working perfectly everytime 😦
+22:51 <+bridge> [ddnet] <fokkonaut> https://discordapp.com/channels/252358080522747904/293493549758939136/708419664690151606
+22:53 <+bridge> [ddnet] <Chairn> the problem is to find the order in which every function is called
+22:56 <+bridge> [ddnet] <fokkonaut> as i said, just use a new variable
+23:01 <+bridge> [ddnet] <Chairn> already done, still the viewpos is not always exactly like i want, there seems to have some movement around the target, i don't know why
+23:01 <+bridge> [ddnet] <fokkonaut> do you want to set it to view a tee, or a random position?
+23:02 <+bridge> [ddnet] <fokkonaut> if you want it to be on a tee, then of course send the real client id of the tee (like in /pause). otherwise just set the position to -1, if the viewpos is not on a tee
+23:03 <+bridge> [ddnet] <Chairn> random position
+23:29 <+bridge> [ddnet] <Patiga> does anyone here know the story behind multiple front/tele layers and so on in maps?
+23:30 <+bridge> [ddnet] <Patiga> im kinda confused by how that is a thing
+23:30 <+bridge> [ddnet] <louis> i think u can edit them in with a custom client
+23:30 <+bridge> [ddnet] <louis> multiple front/tele layers sounds useful
+23:30 <+bridge> [ddnet] <louis> should be implemented into ddnet imo
+23:31 <+bridge> [ddnet] <Patiga> pls no
+23:31 <+bridge> [ddnet] <louis> pls yes
+23:31 <+bridge> [ddnet] <Patiga> by what i saw they appear to be empty, at least in the map edito
+23:31 <+bridge> [ddnet] <Patiga> r
+23:32 <+bridge> [ddnet] <heinrich5991> this makes needlessly complicated
+23:32 <+bridge> [ddnet] <heinrich5991> with more stuff stacking
+23:32 <+bridge> [ddnet] <louis> u could do cool things tho
+23:32 <+bridge> [ddnet] <louis> i think
+23:32 <+bridge> [ddnet] <Patiga> thats already what the front layer is for
+23:33 <+bridge> [ddnet] <louis> u could make a hookthru telegun
+23:33 <+bridge> [ddnet] <louis> :o
+23:33 <+bridge> [ddnet] <louis> idk why hookthrough is in the front layer
+23:34 <+bridge> [ddnet] <louis> very confusing to new mappers
+23:34 <+bridge> [ddnet] <Chairn> dang, i made it work with ddnet client, but doesn't work with tw client...
+23:34 <+bridge> [ddnet] <louis> ofc theres the "shortcut for hookthru" but i still think it places in front iirc
+23:34 <+bridge> [ddnet] <louis> @Chairn made what
+23:35 <+bridge> [ddnet] <louis> why are there two chairns in this srv lol
+23:35 <+bridge> [ddnet] <Chairn> where you see 2?
+23:36 <+bridge> [ddnet] <louis> @Chairn @Chairn
+23:36 <+bridge> [ddnet] <Chairn> i probably connected once with web browser
+23:36 <+bridge> [ddnet] <louis> oh

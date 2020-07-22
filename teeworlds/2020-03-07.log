@@ -1,0 +1,51 @@
+00:48 < bridge> [teeworlds] <redix> but then it's because of buggy drivers. 0.7 handles colors differently because of the dilate fix
+01:00 < bridge> [teeworlds] <fokkonaut> yes. it is due to buggy drivers. the helptext of that config var is something like "might fix some color bugs on some drivers"
+01:01 < bridge> [teeworlds] <fokkonaut> Well, @redix, does your "fix" with setting all vars 0.3f work?
+01:05 < bridge> [teeworlds] <redix> ah okay. some drivers have buggy implementations for deprecated opengl stuff =\
+01:05 < bridge> [teeworlds] <redix> for me it did when i wanted to render a transparent tee. premultiplying by alpha is used at other places as well: https://github.com/teeworlds/teeworlds/pull/1676/files
+12:22 < bridge> [teeworlds] <fokkonaut> thanks redix, pre calculating worked
+13:05 < Learath2> Do you think we should get the new color code from ddnet into 0.7? It's been working pretty decently and there hasn't been reports of any bug in a while
+13:06 < Learath2> Also I'd like to get 2479# in sooner then later
+13:06 < bridge> [teeworlds] <Dune> Learath2: could you explain?
+13:07 < Learath2> Dune: the colors?
+13:07 < bridge> [teeworlds] <Dune> Yes
+13:08 < Learath2> https://github.com/ddnet/ddnet/blob/master/src/base/color.h
+13:08 < Learath2> It's a cleanup of the color conversion stuff that happened at the point of use in the past and it clears up what kind of color a function expects
+13:09 < bridge> [teeworlds] <Dune> Oh that'd have saved me days
+13:10 < bridge> [teeworlds] <Dune> Yeah we need proper abstractions for RGB/HSL/HSLA/RGBA
+13:12 < Learath2> Not sure what your stance would be on the C++ style casts I introduced though. e.g. color_cast<ColorHSLA>(Rgb)
+13:13 < bridge> [teeworlds] <Dune> I prefer C stuff as much as possible, but casts seems very appropriate here, easier to read, and not adding complexity
+13:18 < Learath2> Ah, there is also another concern there, we lighten tee colors so the colors saved in the config aren't actually the colors, there is some complexity introduced when reading those, hence the Lighten and Darken functions there. With ddnet I was trying to keep behaviour the same, but maybe we could come up with something better for vanilla
+14:44 < Learath2> Do we have a way to store CNetChunks?
+14:45 < Learath2> s/way/data structure/
+15:03 < bridge> [teeworlds] <ChillerDragon> yo perl hackers do you know what s/foo/bar/xg; does? I assume its like in sed being a replace and 'g' is replacing all matches in a line but what does 'x' do?
+19:28 < bridge> [teeworlds] <jxsl13> perl seems dead, but seemingly isn't as there are lots of perl jobs available. but I doubt any of the young'uns here do perl, grandpa chilli.
+19:29 < bridge> [teeworlds] <jxsl13> is there any proper explanation or documentation how the map format is constructed? or anyone's brain that is willing to explain it or a part of it?
+20:24 < Dune> Learath2, is diffie-hellman really mitm resistant?
+20:24 < Learath2> Yep
+20:24 < Dune> the server could replace all the packets during the key agreement
+20:24 < Learath2> Then you couldn't read the messages
+20:25 < Learath2> As long as we both can read the messages, the exchange took place and no one else has the key
+20:25 < Learath2> Oh, you could actually establish 2 keys and relay messages in between
+20:26 < Learath2> okay then it's not safe :P
+20:26 < Dune> yeah
+20:26 < Dune> you need accounts
+20:26 < Learath2> We need authentication somehow
+20:26 < Dune> so not possible with the current infrastructure :/
+20:26 < Learath2> I have an implementation of accounts working with private keys, it's just not easy to make accessible to users
+20:27 < Dune> what's the accessibility issue?
+20:27 < Dune> you can't really auth users without a central point, but I guess you can say that Learath is the same as last time's Learath
+20:27 < Learath2> Yep exactly what I had in mind
+20:28 < Dune> but then can't the server intercept that, unless you do p2p
+20:28 < Learath2> The accessibility issue is that there is no recovering a pricate key
+20:28 < Learath2> private*
+20:28 < Learath2> the server can never authenticate as me as it lacks the private key
+20:29 < Dune> how do people know what your pubkey is then
+20:29 < Dune> registered at a trusted place?
+20:30 < Learath2> that's another accessibilty issue I'm having, but yes that's the idea I had, there could be central places you could trust to get the pubkeys
+20:30 < Dune> I guess we can make teeworlds.com show a pubkey for everyone yeah
+20:31 < Dune> but then you run into issues of servers requiring authentification
+20:31 < Dune> and Teeworlds is less free
+20:31 < Learath2> I also had that implemented, servers presenting ed25519 certificates to signify official ddnet servers
+20:32 < Learath2> didn't really like the idea of having a root of trust though :/
+20:33 < Learath2> well best we can do is to ensure malicious servers can't cause issue

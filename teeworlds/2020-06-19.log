@@ -1,0 +1,49 @@
+15:14 < bridge> [teeworlds] <Learath2> I actually don't even know how I'll handle selection over linebreaks :/
+15:16 < bridge> [teeworlds] <Dune> for the copy-paste PR?
+15:16 < bridge> [teeworlds] <Learath2> yeah
+15:16 < bridge> [teeworlds] <Dune> any fundamental problem?
+15:16 < bridge> [teeworlds] <Learath2> Well I was rendering it in 3 pieces, the part before the selection, the selection, the part after the selection
+15:17 < bridge> [teeworlds] <Learath2> That obviously won't work if the parts are not inline
+15:17 < bridge> [teeworlds] <Dune> how does it behave atm?
+15:17 < bridge> [teeworlds] <Learath2> I'm building it right now to check
+15:22 < bridge> [teeworlds] <Learath2> hm it selects on the wrong line, but even worse the rendering for multiline is horrible
+15:22 < bridge> [teeworlds] <Learath2> the cursor moving around reflows the text
+15:23 < bridge> [teeworlds] <Learath2> hm I wonder if my patch breaks that
+15:25 < bridge> [teeworlds] <Learath2> nope it's awful in master
+15:25 < bridge> [teeworlds] <Learath2> oh I bet it's awful only for a long uninterrupted string because it's looking for a wordstop to break
+15:34 < bridge> [teeworlds] <Learath2> You know what would be great? A way to specify the background color for a cursor
+15:36 < bridge> [teeworlds] <Learath2> I have no way to know where the last line ended :/
+15:36 < bridge> [teeworlds] <Learath2> Poll: Do I hack in the ending of last line into the cursor or background color?
+15:37 < bridge> [teeworlds] <Learath2> Oh or bonus option, `CTextRender::TextBackground()`
+15:38 < bridge> [teeworlds] <Dune> oh boy that looks dirty
+15:38 < bridge> [teeworlds] <Dune> but `CTextRender` is already a pile of dirt I guess :D
+15:39 < bridge> [teeworlds] <Learath2> Tbh selections are supposed to be an overlay not background color
+15:39 < bridge> [teeworlds] <Learath2> I actually don't know the UI best practices in that regards
+15:41 < bridge> [teeworlds] <Learath2> Yeah it's supposed to be an overlay, sooo `class CTextCursor { bool m_Selecting; vec4 m_SelectionColor; }`?
+15:42 < bridge> [teeworlds] <Learath2> meh, everything I can think of actually sounds awfully dirty, I wonder how other projects do it
+15:47 < bridge> [teeworlds] <Learath2> Btw, why did matricks think that the old `CTextRender` interface was foolish?
+15:58 < bridge> [teeworlds] <Learath2> Also turns out rendering a rectangle isn't actually trivial when you don't have `CRenderTools` 😄
+16:07 < bridge> [teeworlds] <Learath2> Actually this is quite impossible to do like this, you can't change textures while drawing, I bet it'd kill performance to begin and end after each character
+16:17 < bridge> [teeworlds] <heinrich5991> he mentioned too many virtual calls
+16:35 < bridge> [teeworlds] <Learath2> Okay, I actually don't know how to fix this
+16:35 < bridge> [teeworlds] <Learath2> Any suggestions are very welcome
+16:53 < bridge> [teeworlds] <redix> You could do a third pass in addition to outline and text. But querying all the characters a third time (with a linear lookup) won't help performance =\
+16:53 < bridge> [teeworlds] <Learath2> I've written something so ugly it'll make your hair fall out
+16:53 < bridge> [teeworlds] <Learath2> but I'll commit it see if oy will have a seizure
+16:53 < bridge> [teeworlds] <redix> Great :D
+17:00 < bridge> [teeworlds] <Dune> It'd be good if text selection rendering did not worse text rendering performance when there is no text selection
+17:00 < bridge> [teeworlds] <Learath2> I can only hope god will forgive me for this https://github.com/teeworlds/teeworlds/pull/2521/commits/6ee9edbaa462dc4c8e9dd88a98da4c9f762092d7
+17:00 < bridge> [teeworlds] <Dune> text rendering is already very bad
+17:00 < bridge> [teeworlds] <Learath2> An extra branch per batch shouldn't(tm) matter much about performance
+17:02 < bridge> [teeworlds] <redix> At least this solution won't hurt performance :)
+17:03 < bridge> [teeworlds] <Learath2> The text reflowing when you have multiline text is very annoying btw
+17:04 < bridge> [teeworlds] <Learath2> Now onto the console one, how do I get a linebreak in the console?
+17:09 < bridge> [teeworlds] <Dune> The console has linebreaks?
+17:10 < bridge> [teeworlds] <Learath2> Well Oy said: "When there's a line break in the console the cursor isn't shown anymore and when you select sth it's not rendered correctly."
+17:10 < bridge> [teeworlds] <Dune> I don't understand how you can get a line break in the console
+17:10 < bridge> [teeworlds] <Dune> enter sends the command
+17:11 < bridge> [teeworlds] <Learath2> I tried \ to escape the newline but that doesn't do it either
+17:11 < bridge> [teeworlds] <Learath2> a very long line doesn't wrap for me either
+17:11 < bridge> [teeworlds] <jxsl13> removing linebreaks from text or executing in the case of the console would be preferralke imo.
+17:12 < bridge> [teeworlds] <jxsl13> preferrable*
+17:12 < bridge> [teeworlds] <Dune> just ask oy how to reproduce

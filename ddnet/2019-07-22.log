@@ -1,0 +1,244 @@
+00:00 <+bridge_> [ddnet] <Learath2> @archimede67 chrome is an overachiever
+00:01 <+bridge_> [ddnet] <archimede67> i don't get that many of cpu usage tho
+00:01 <+bridge_> [ddnet] <Evgesha> why scoreboard "wrongly" always instantly show correct top time
+00:01 <+bridge_> [ddnet] <Evgesha> and the same code in hud.cpp can't do that
+00:06 <+bridge_> [ddnet] <Learath2> It's correct only on ddnet servers, go on a ddrace server (if those exist anymore) and it won't work at all
+00:06 <+bridge_> [ddnet] <Learath2> ddrace servers used to send DDRaceTime in that message instead
+00:07 <+bridge_> [ddnet] <Learath2> @heinrich5991 I think we should drop some of this legacy baggage tbh, I don't think anyone sends the ddrace kind of Sv_Record anymore
+00:07 <+bridge_> [ddnet] <Evgesha> is there any servers except ddnet and kog
+00:07 <+bridge_> [ddnet] <Evgesha> lol
+00:07 <+bridge_> [ddnet] <heinrich5991> while you're at it, maybe also drop the old 64p info packet
+00:08 <+bridge_> [ddnet] <Learath2> @heinrich5991 I don't even remember an old 64p info packet
+00:09 <+bridge_> [ddnet] <heinrich5991> the one with `"\xff…fstd"`
+00:09 <+bridge_> [ddnet] <heinrich5991> the one where you have to re-request all the servers that *might* have the extension
+00:09 <+bridge_> [ddnet] <Learath2> oh, we still support that?
+00:09 <+bridge_> [ddnet] <Learath2> I wonder if there are any servers in the wild that still use that 😄
+00:10 <+bridge_> [ddnet] <heinrich5991> I wouldn't bet on forks of ddnet to have updated
+01:52 <+bridge_> [ddnet] <Alexander> ^ I thought that that was a (useless) feature
+01:53 <+bridge_> [ddnet] <Alexander> And once i thought that it stops time
+01:53 <+bridge_> [ddnet] <Alexander> I mean pauses
+01:54 <+bridge_> [ddnet] <Alexander> The command should be renamed to /spectate or smth, just saying
+04:10 <+bridge_> [ddnet] <fokkonaut> Does anyone know why the over-head emotes on DDNet fng2 servers are smoother and slower than on any other server? I would like to implement that as a feature
+04:10 <+bridge_> [ddnet] <fokkonaut> 
+04:10 <+bridge_> [ddnet] <fokkonaut> I checked the source from Jupeyy but couldnt find anything
+04:14 <+bridge_> [ddnet] <fokkonaut> @onby u maybe?
+08:03 <+bridge_> [ddnet] <Learath2> @fokkonaut does the decimals thing happen with the latest patch on a latest patch server? I assumed that was an artifact of the misdetermined message type in hud.cpp
+08:54 <+bridge_> [ddnet] <fokkonaut> I havent tested it, just saw it yesterday again and thought, man i wanted to report this long ago already xd
+09:09 <+bridge_> [ddnet] <Learath2> yeah I wanted to fix it aswell, but I think the Sv_Record fix should cover that aswell
+09:13 <+bridge_> [ddnet] <fokkonaut> I can test it in some minutes
+09:18 <+bridge_> [ddnet] <fokkonaut> nope, still not fixed
+09:19 <+bridge_> [ddnet] <fokkonaut> the deci seconds are still paused when you /pause
+09:19 <+bridge_> [ddnet] <fokkonaut> same for spectator mode btw
+09:29 <+bridge_> [ddnet] <Learath2> @fokkonaut but did you test it on the new server? the server was sending the wrong flag
+09:29 <+bridge_> [ddnet] <fokkonaut> I pulled ddnet master and did it on my lan server
+09:29 <+bridge_> [ddnet] <fokkonaut> Just compiled
+09:30 <+bridge_> [ddnet] <Learath2> okay, well I can fix it tonight, or you can take a look if you want
+09:30 <+bridge_> [ddnet] <Learath2> shouldn't be too difficult
+09:31 <+bridge_> [ddnet] <fokkonaut> Btw: what is the difference here?
+09:31 <+bridge_> [ddnet] <fokkonaut> ```| GAMEINFOFLAG_DDRACE_RECORD_MESSAGE
+09:31 <+bridge_> [ddnet] <fokkonaut>         | GAMEINFOFLAG_RACE_RECORD_MESSAGE```
+09:31 <+bridge_> [ddnet] <fokkonaut> Btw: what is the difference here?
+09:31 <+bridge_> [ddnet] <fokkonaut> ```GAMEINFOFLAG_DDRACE_RECORD_MESSAGE
+09:31 <+bridge_> [ddnet] <fokkonaut> GAMEINFOFLAG_RACE_RECORD_MESSAGE```
+09:33 <+bridge_> [ddnet] <Learath2> @fokkonaut DDRace servers send m_DDRaceTime and m_CheckpointDiff in their record messages
+09:33 <+bridge_> [ddnet] <fokkonaut> and this one `GAMEINFOFLAG_RACE_SHOW_RECORD` is not even used
+09:34 <+bridge_> [ddnet] <Learath2> scratch that, ddrace servers only send m_DDRaceTime
+09:34 <+bridge_> [ddnet] <fokkonaut> @Learath2 Why does DDNet send the RACE message then?
+09:34 <+bridge_> [ddnet] <Learath2> DDNet and old Race servers send the ServerRecord instead
+09:34 <+bridge_> [ddnet] <fokkonaut> ah
+09:34 <+bridge_> [ddnet] <fokkonaut> https://discordapp.com/channels/252358080522747904/293493549758939136/602765119482757122
+09:35 <+bridge_> [ddnet] <Learath2> That was tricky, I actually wanted to remove that feature but wasn't sure if it was a good idea so I added a flag instead
+09:35 <+bridge_> [ddnet] <fokkonaut> oh wait
+09:35 <+bridge_> [ddnet] <fokkonaut> I see, it is used
+09:35 <+bridge_> [ddnet] <Learath2> if a server sends that, the timer on top will display the server record instead of the server time
+09:35 <+bridge_> [ddnet] <fokkonaut> is cool
+09:36 <+bridge_> [ddnet] <fokkonaut> I mean, for custom servers, not officials
+09:36 <+bridge_> [ddnet] <Learath2> it's behaviour exhibited by old race servers iirc
+09:39 <+bridge_> [ddnet] <fokkonaut> If I set a flag, then check for something and want to remove a flag then using &= ~FLAG, do I have to check whether the flag is in already using m_Flags&FLAG, or will it just automatically detect thta
+09:41 <+bridge_> [ddnet] <Learath2> Well the pattern is that usually we set the flag only after the check
+09:41 <+bridge_> [ddnet] <fokkonaut> Well, I have 2 checks for my case
+09:42 <+bridge_> [ddnet] <Learath2> but to remove a flag `&= ~Flag` should always work and `-= Flag` will work if you know that the flag is set for certain 😛
+09:42 <+bridge_> [ddnet] <fokkonaut> so, if I use `&= ~FLAG`, I dont have to check for it first?
+09:42 <+bridge_> [ddnet] <Learath2> nope no need to check
+09:42 <+bridge_> [ddnet] <fokkonaut> great, thanks
+09:44 <+bridge_> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/d6fbd34c7d67d2e1ea312aa59d01c5673919f7a6/src/game/server/gamecontroller.cpp#L595
+09:44 <+bridge_> [ddnet] <fokkonaut> 
+09:44 <+bridge_> [ddnet] <fokkonaut> I have some checks here, can you tell me if I can format that stuff better?
+09:46 <+bridge_> [ddnet] <Learath2> @fokkonaut this looks more organized tbh, I'd keep it
+09:46 <+bridge_> [ddnet] <Learath2> but you could move the definition of `pSnapChar` up so that you can merge the two ifs setting `GAMEINFOFLAG_ALLOW_ZOOM`
+09:47 <+bridge_> [ddnet] <Learath2> I wouldn't tbh, readability > linecount in this case, especially your peformance gains would be minimal
+09:47 <+bridge_> [ddnet] <fokkonaut> Okay :)
+09:51 <+bridge_> [ddnet] <Learath2> @fokkonaut I don't think we can fix the decisecs while in freeze
+09:51 <+bridge_> [ddnet] <fokkonaut> I am just looking at the code
+09:51 <+bridge_> [ddnet] <Learath2> took a look and we seem to use the race tick for the decisecs as the timer itself doesn't have the precision
+09:51 <+bridge_> [ddnet] <Learath2> we could possibly fake it
+09:51 <+bridge_> [ddnet] <Learath2> while paused, not while in freeze*
+09:52 <+bridge_> [ddnet] <fokkonaut> Freeze isnt affected?
+09:52 <+bridge_> [ddnet] <fokkonaut> Being spectator is affected
+09:52 <+bridge_> [ddnet] <fokkonaut> ah yes :D
+09:52 <+bridge_> [ddnet] <Learath2> nono, it's just in pause/spec, you just don't receive the ddracetime anymore
+09:52 <+bridge_> [ddnet] <fokkonaut> Yes, thats what I got too :D
+09:52 <+bridge_> [ddnet] <fokkonaut> I ended up in engine/client.cpp, where it doesnt get the snapshot while spectating
+09:53 <+bridge_> [ddnet] <fokkonaut> I ended up in engine/client/client.cpp, where it doesnt get the snapshot while spectating
+09:53 <+bridge_> [ddnet] <Learath2> you do receive the snapshot, you just don't get Sv_DDRaceTime iirc
+09:54 <+bridge_> [ddnet] <fokkonaut> swc
+09:54 <+bridge_> [ddnet] <fokkonaut> sec
+09:55 <+bridge_> [ddnet] <Learath2> oh that has nothing to do with it
+09:55 <+bridge_> [ddnet] <Learath2> m_DDRaceTick is already faked 😛
+09:55 <+bridge_> [ddnet] <Learath2> I wonder why it doesnt work in pause
+09:56 <+bridge_> [ddnet] <Learath2> maybe predtick doesn't move anymore
+09:56 <+bridge_> [ddnet] <fokkonaut> Would make sense
+09:56 <+bridge_> [ddnet] <fokkonaut> wait
+09:56 <+bridge_> [ddnet] <fokkonaut> I think I know
+09:59 <+bridge_> [ddnet] <fokkonaut> @Learath2 something broke :x
+10:00 <+bridge_> [ddnet] <fokkonaut> yup, the `GAMEINFOFLAG_RACE_RECORD_MESSAGE` breaks the timer completely xD
+10:00 <+bridge_> [ddnet] <fokkonaut> It completely gets stuck
+10:04 <+bridge_> [ddnet] <Learath2> maybe we should just remove that branch, I have a feeling it never worked at all
+10:04 <+bridge_> [ddnet] <fokkonaut> Do so
+10:04 <+bridge_> [ddnet] <Learath2> @deen do you remember why that was added? hud.cpp:L129 ?
+10:04 <+bridge_> [ddnet] <fokkonaut> ```if(LastChangeTick != Client()->PredGameTick())
+10:04 <+bridge_> [ddnet] <fokkonaut>     {
+10:04 <+bridge_> [ddnet] <fokkonaut>         m_DDRaceTick += 100/Client()->GameTickSpeed();
+10:04 <+bridge_> [ddnet] <fokkonaut>         LastChangeTick = Client()->PredGameTick();
+10:04 <+bridge_> [ddnet] <fokkonaut>     }```
+10:04 <+bridge_> [ddnet] <fokkonaut> This is where it gets stuck @Learath2, hud.cpp:L917
+10:05 <+bridge_> [ddnet] <fokkonaut> if you comment out the `m_DDRaceTick += ...` you will see it
+10:05 <+bridge_> [ddnet] <Learath2> what happens if you comment that out?
+10:05 <+bridge_> [ddnet] <fokkonaut> The deci second will stay at 0
+10:05 <+bridge_> [ddnet] <fokkonaut> (so the last recognized value)
+10:06 <+bridge_> [ddnet] <Learath2> I know, that branch is never taken when you are spec/paused
+10:06 <+bridge_> [ddnet] <Learath2> I think that's because the pred tick never moves
+10:07 <+bridge_> [ddnet] <fokkonaut> So we can't really fix that, can we?
+10:08 <+bridge_> [ddnet] <Learath2> well idk why the predtick doesnt move when in spec
+10:09 <+bridge_> [ddnet] <fokkonaut> https://discordapp.com/channels/252358080522747904/293493549758939136/602770040852578304
+10:09 <+bridge_> [ddnet] <fokkonaut> ```if(NewPredTick > m_PredTick[g_Config.m_ClDummy])
+10:09 <+bridge_> [ddnet] <fokkonaut>             {
+10:09 <+bridge_> [ddnet] <fokkonaut>                 m_PredTick[g_Config.m_ClDummy] = NewPredTick;```
+10:09 <+bridge_> [ddnet] <fokkonaut> engine/client/client.cpp:L2607
+10:09 <+bridge_> [ddnet] <Learath2> I'm looking at it, but I don't see why the client wouldn't get snapshots while paused
+10:15 <+bridge_> [ddnet] <fokkonaut> `if(NewPredTick > m_PredTick[g_Config.m_ClDummy]) this is also the case while spectating
+10:15 <+bridge_> [ddnet] <fokkonaut> `if(NewPredTick > m_PredTick[g_Config.m_ClDummy])` this is also the case while spectating
+10:16 <+bridge_> [ddnet] <fokkonaut> AH
+10:23 <+bridge_> [ddnet] <Learath2> figured it out?
+10:23 <+bridge_> [ddnet] <fokkonaut> No, this starts getting very weird
+10:23 <+bridge_> [ddnet] <Learath2> 😄
+10:30 <+bridge_> [ddnet] <fokkonaut> OKAY
+10:33 <+bridge_> [ddnet] <fokkonaut> There we go
+10:33 <+bridge_> [ddnet] <fokkonaut> Found it
+10:34 <+bridge_> [ddnet] <fokkonaut> It is this little line in hud.cpp:L777, `if(/*m_pClient->m_Snap.m_pLocalCharacter && (*/!(m_pClient->m_Snap.m_pGameInfoObj->m_GameStateFlags&GAMESTATEFLAG_GAMEOVER))` (i commented this out and it worked)
+10:34 <+bridge_> [ddnet] <fokkonaut> I mean, I commented the `m_pClient->m_Snap.m_pLocalCharacter` out
+10:34 <+bridge_> [ddnet] <fokkonaut> Because this would call `RenderDDRaceEffects();`, in which this gets set: `m_DDRaceTick += 100/Client()->GameTickSpeed();`
+10:42 <+bridge_> [ddnet] <deen> @Learath2 https://github.com/ddnet/ddnet/commit/b1ed78d58de673ebeb425b296481bedcc2285971
+10:43 <+bridge_> [ddnet] <Learath2> @deen I mean originally, why was such a branch needed in the first place?
+11:36 <+bridge_> [ddnet] <deen> git log -L 129,129:src/game/client/components/hud.cpp
+11:37 <+bridge_> [ddnet] <deen> Shows that this is the source: https://github.com/ddnet/ddnet/commit/ceeb44ef2ed5649eaf0473c6cbd272d7f31a7b5e
+11:38 <+bridge_> [ddnet] <deen> So it's for race servers I guess
+11:38 <+bridge_> [ddnet] <deen> not ddrace
+11:39 <+bridge_> [ddnet] <fokkonaut> @heinrich5991 Your system broke zoom on mods like blockZ, where you can zoom in /pause, but not in normal gameplay, you can just pause, zoom out and unpause, the behaivor in this case is very weird, you cant zoom in or out in gameplay, but reset your zoom level to your default zoom, so if that is not 10, you can also cheat like this.
+13:03 <+bridge_> [ddnet] <Learath2> But race servers send record not ddracetime
+16:37 <+bridge_> [ddnet] <Arseniy Zarche> hey, guys
+16:37 <+bridge_> [ddnet] <Arseniy Zarche> i just reinstalled windows, all is ok
+16:37 <+bridge_> [ddnet] <Arseniy Zarche> but when i start ddnet (from win 7 x64 to win 7 x64) i have 3 fps. rly! how to fix it?
+16:38 <+bridge_> [ddnet] <Arseniy Zarche> ```Сигнатура проблемы:
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Имя события проблемы:    BEX64
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Имя приложения:    DDNet.exe
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Версия приложения:    0.0.0.0
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Отметка времени приложения:    00000000
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Имя модуля с ошибкой:    StackHash_1dc2
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Версия модуля с ошибкой:    0.0.0.0
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Отметка времени модуля с ошибкой:    00000000
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Смещение исключения:    0000000000000000
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Код исключения:    c0000005
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Данные исключения:    0000000000000008
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Версия ОС:    6.1.7601.2.1.0.256.1
+16:38 <+bridge_> [ddnet] <Arseniy Zarche>   Код языка:    1049
+16:39 <+bridge_> [ddnet] <Arseniy Zarche>   Дополнительные сведения 1:    1dc2
+16:39 <+bridge_> [ddnet] <Arseniy Zarche>   Дополнительные сведения 2:    1dc22fb1de37d348f27e54dbb5278e7d
+16:39 <+bridge_> [ddnet] <Arseniy Zarche>   Дополнительные сведения 3:    cbc5
+16:39 <+bridge_> [ddnet] <Arseniy Zarche>   Дополнительные сведения 4:    cbc5ec6970b2af35927ad67117ca57e2```
+16:39 <+bridge_> [ddnet] <Arseniy Zarche> 
+16:39 <+bridge_> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/602872201162784778/unknown.png
+16:41 <+bridge_> [ddnet] <Arseniy Zarche> sometimes it crashes
+16:45 <+bridge_> [ddnet] <Arseniy Zarche> and why there is no rus servers? 0.0
+16:50 <+bridge_> [ddnet] <Ryozuki> putin putin
+17:02 <+bridge_> [ddnet] <fokkonaut> @heinrich5991 to my zoom bug: it happens when your dummy is connected
+17:02 <+bridge_> [ddnet] <fokkonaut> wait, it might not be there with the new client
+17:17 <+bridge_> [ddnet] <Learath2> I don't think these servers exist anymore
+17:17 <+bridge_> [ddnet] <Learath2> I think I'll just remove the branch in hud
+17:24 <+bridge_> [ddnet] <Learath2> @heinrich5991 You seem to define a flag `SERVERCAPFLAG_DDNET`, but you don't ever send it, is that intentional?
+17:25 <+bridge_> [ddnet] <Learath2> oh, it's compatibility with the older format
+17:41 <+bridge_> [ddnet] <Learath2> My ddnet repo broke, thanks microsoft
+17:41 <+bridge_> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/602887883044683776/Screenshot_2019-07-22_at_18.40.54.png
+17:42 <+bridge_> [ddnet] <Learath2> I'll push to ddnet/ddnet instead I guess
+17:43 <+bridge_> [ddnet] <heinrich5991> servercapflag_ddnet?
+17:43 <+bridge_> [ddnet] <Learath2> I guess I won't as that's also broken
+17:43 <+bridge_> [ddnet] <Learath2> @heinrich5991 yeah, servercapflag_ddnet
+17:44 <+bridge_> [ddnet] <heinrich5991> set it pls
+17:44 <+bridge_> [ddnet] <Learath2> @heinrich5991 should we be setting it?
+17:44 <+bridge_> [ddnet] <heinrich5991> yes
+17:44 <+bridge_> [ddnet] <Learath2> @heinrich5991 that should come with a version bump right?
+17:46 <+bridge_> [ddnet] <fokkonaut> @Learath2 github has its problems, its not you
+17:46 <+bridge_> [ddnet] <fokkonaut> its every repo xd
+17:47 <+bridge_> [ddnet] <heinrich5991> @Learath2 yea, I guess
+17:48 <+bridge_> [ddnet] <Learath2> why must github do this right when I wanted to create a pr
+17:49 <+bridge_> [ddnet] <fokkonaut> the pr is there already
+17:49 <+bridge_> [ddnet] <fokkonaut> i saw it before github broke
+17:49 <+bridge_> [ddnet] <Learath2> no another one
+17:49 <+bridge_> [ddnet] <fokkonaut> oh
+18:17 <+bridge_> [ddnet] <Learath2> rip github, may he rest in peace
+18:32 <+bridge_> [ddnet] <heinrich5991> @Learath2 I think this isn't really a capability tbh
+18:33 <+bridge_> [ddnet] <heinrich5991> in the client.cpp code, there already is a `DDNet` variable
+18:34 <+bridge_> [ddnet] <Learath2> @heinrich5991 you don't think rcon accepting usernames is a capability?
+18:34 <+bridge_> [ddnet] <heinrich5991> not a capability of the server
+18:34 <+bridge_> [ddnet] <heinrich5991> or rather
+18:35 <+bridge_> [ddnet] <heinrich5991> well, it is one
+18:35 <+bridge_> [ddnet] <heinrich5991> but we want to only want to activate it in the client when there actually is a username
+18:36 <+bridge_> [ddnet] <Learath2> Okay I'll remove that part
+18:41 <+bridge_> [ddnet] <Learath2> Actually this all looks wrong...
+18:41 <+bridge_> [ddnet] <Learath2> no need to bump the version eve
+18:41 <+bridge_> [ddnet] <Learath2> n
+18:41 <+bridge_> [ddnet] <Learath2> you were already checking it
+18:41 <+bridge_> [ddnet] <heinrich5991> yes
+20:59 <+bridge_> [ddnet] <Evgesha> @Arseniy Zarche видеокарту не подключил, на интегрированной играешь?
+21:10 <+bridge_> [ddnet] <Ryozuki> @Learath2
+21:10 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/602940626274615296/unknown.png
+21:10 <+bridge_> [ddnet] <Ryozuki> :twintri:
+21:11 <+bridge_> [ddnet] <Ryozuki> oh
+21:11 <+bridge_> [ddnet] <Ryozuki> it was a force push and a old notif
+21:11 <+bridge_> [ddnet] <Ryozuki> xd
+22:05 <+bridge_> [ddnet] <Learath2> :D
+22:07 <+bridge_> [ddnet] <Arseniy Zarche> @Evgesha
+22:07 <+bridge_> [ddnet] <Arseniy Zarche> драйвера не вставали по какой-то пиздец тупой причине
+22:07 <+bridge_> [ddnet] <Arseniy Zarche> вообще ноут херовый, бсод постоянно вылетает с одной и той же ошибкой
+22:10 <+bridge_> [ddnet] <Evgesha> ошибка драйверов обычно. Надо переставлять, слишком криво у тебя всё встало действительно
+22:10 <+bridge_> [ddnet] <Evgesha> BSOD = кривой драйвер
+22:10 <+bridge_> [ddnet] <Evgesha> ставь win10, там по умолчанию все дрова стоят
+22:11 <+bridge_> [ddnet] <Evgesha> @Arseniy Zarche
+22:18 <+bridge_> [ddnet] <Arseniy Zarche> хах
+22:18 <+bridge_> [ddnet] <Arseniy Zarche> ноут не под вин10 точно
+22:18 <+bridge_> [ddnet] <Arseniy Zarche> да и всё, я на другом компе
+23:08 <+bridge_> [ddnet] <Arseniy Zarche> wo
+23:08 <+bridge_> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/602970184474427417/unknown.png
+23:08 <+bridge_> [ddnet] <Arseniy Zarche> ta
+23:08 <+bridge_> [ddnet] <Arseniy Zarche> fak
+23:08 <+bridge_> [ddnet] <Arseniy Zarche> why this problem is here?
+23:09 <+bridge_> [ddnet] <Arseniy Zarche> i just compile this: https://github.com/teeworlds/teeworlds
+23:17 <+bridge_> [ddnet] <ChillerDragon> upgrade bam
+23:17 <+bridge_> [ddnet] <ChillerDragon> get latest bam from https://github.com/matricks/bam
+23:25 <+bridge_> [ddnet] <Arseniy Zarche> may i just "download zip" @ChillerDragon ?
+23:26 <+bridge_> [ddnet] <Arseniy Zarche> thanks, it helps
+23:26 <+bridge_> [ddnet] <Arseniy Zarche> hehe wtf?
+23:26 <+bridge_> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/602974860011896833/unknown.png
+23:34 <+bridge_> [ddnet] <Arseniy Zarche> i hate windows 7
+23:34 <+bridge_> [ddnet] <Arseniy Zarche> i cant normally compile ANY server here
+23:35 <+bridge_> [ddnet] <Arseniy Zarche> i will install LINUX!!!
+23:46 <+bridge_> [ddnet] <onby> try just bam
+23:46 <+bridge_> [ddnet] <onby> not bam server_release
+23:47 <+bridge_> [ddnet] <Arseniy Zarche> already
+23:48 <+bridge_> [ddnet] <Arseniy Zarche> but i have problem which i cant delete
+23:48 <+bridge_> [ddnet] <Arseniy Zarche> 
+23:48 <+bridge_> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/602980293862883340/unknown.png
+23:48 <+bridge_> [ddnet] <Arseniy Zarche> its already on second pc on win 7
+23:48 <+bridge_> [ddnet] <Arseniy Zarche> what the best ver. of debian 8 x64?
+23:49 <+bridge_> [ddnet] <Arseniy Zarche> i chose amd64
+23:59 <+bridge_> [ddnet] <heinrich5991> amd64 sounds right

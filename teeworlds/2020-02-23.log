@@ -1,0 +1,74 @@
+15:45 < bridge> [teeworlds] <jxsl13> is there way to get a player's ip + port in the gamecontext? like GetClientAddr() which seemingly only returns the IP
+15:46 < bridge> [teeworlds] <jxsl13> without modifying the source.
+16:34 < bridge> [teeworlds] <fokkonaut> without modifying probably not
+16:35 < bridge> [teeworlds] <fokkonaut> but using econ you can sneak it
+16:35 < bridge> [teeworlds] <fokkonaut> as econ has access to status command and/or can check the logs, and in the join leave msgs you get the full ip
+16:35 < bridge> [teeworlds] <fokkonaut> + port
+16:49 < bridge> [teeworlds] <ChillerDragon> "in the gamecontext" sounds like not modifying source other than gamecontext.cpp
+17:15 < bridge> [teeworlds] <jxsl13> yeah, but seemingly adding an optional parameter to GetClientAddr() that's default to false is the only not hacky way
+17:28 < bridge> [teeworlds] <jxsl13> @ChillerDragon https://github.com/teeworlds/teeworlds/issues/2475 any feedback in regard to the patch?
+17:28 < bridge> [teeworlds] <jxsl13> that's in the comment
+17:49 < bridge> [teeworlds] <ChillerDragon> #development
+17:49 < bridge> [teeworlds] <ChillerDragon> ah the patch sry didnt read
+17:51 < bridge> [teeworlds] <ChillerDragon> im not too sure tbh
+17:51 < bridge> [teeworlds] <ChillerDragon> i like to complain about the logging but im still agianst changing it :/
+17:51 < bridge> [teeworlds] <ChillerDragon> its just a mess to maintain two versions of logging then to support older versions
+17:52 < bridge> [teeworlds] <ChillerDragon> also multiple logs might give you insight on errors when a client disconnects during connection in which stage it happend or similar cases
+17:54 < bridge> [teeworlds] <jxsl13> well, the patch only removes one specific line when joining by adding a player name and the disconnect messages were added that contain
+17:55 < bridge> [teeworlds] <jxsl13> nick, id, ip, port
+17:55 < bridge> [teeworlds] <ChillerDragon> https://github.com/teeworlds/teeworlds/issues/2475#issuecomment-590090413
+17:56 < bridge> [teeworlds] <ChillerDragon> ye i red the patch
+17:57 < bridge> [teeworlds] <jxsl13> the granularity more or less stays
+17:57 < bridge> [teeworlds] <ChillerDragon> still every logparser has to be rewritten
+17:58 < bridge> [teeworlds] <ChillerDragon> and every logparser that wants to support the olg version as well has to maintain duplicated code
+17:58 < bridge> [teeworlds] <ChillerDragon> old*
+17:58 < bridge> [teeworlds] <jxsl13> do you use that one line that has been removed?
+17:58 < bridge> [teeworlds] <ChillerDragon> one line?
+17:58 < bridge> [teeworlds] <ChillerDragon> didnt you remove multiple
+17:58 < bridge> [teeworlds] <ChillerDragon> well i use them all but i guess its not about me
+17:59 < bridge> [teeworlds] <ChillerDragon> me having to rewrite a parser shouldnt be a holdback to refactor tw
+17:59 < bridge> [teeworlds] <jxsl13> player joined...
+17:59 < bridge> [teeworlds] <jxsl13> that's the only line removed and replaced
+17:59 < bridge> [teeworlds] <jxsl13> to contain nick, id, ip, port
+18:00 < bridge> [teeworlds] <jxsl13> also now one would only need to parse for two lines without any complext logic
+18:00 < bridge> [teeworlds] <jxsl13> complex*
+18:00 < bridge> [teeworlds] <jxsl13> server_join, server_leave
+18:00 < bridge> [teeworlds] <ChillerDragon> ye ikr
+18:00 < bridge> [teeworlds] <ChillerDragon> parsing two lines is annoying
+18:01 < bridge> [teeworlds] <ChillerDragon> but didnt you duplicate information now?
+18:01 < bridge> [teeworlds] <ChillerDragon> maybe it would be best if you could show a diff of the actual log output
+18:01 < bridge> [teeworlds] <jxsl13> in my opinion the logs are not consistent
+18:02 < bridge> [teeworlds] <jxsl13> gotta look in my copy history x)
+18:16 < bridge> [teeworlds] <jxsl13> is commented
+18:23 < bridge> [teeworlds] <ChillerDragon> ty
+18:24 < bridge> [teeworlds] <ChillerDragon> seems likes its two times your patch tho so not very comparable
+18:28 < bridge> [teeworlds] <fokkonaut> @jxsl13 
+18:28 < bridge> [teeworlds] <fokkonaut> 1. add =false to the other header too for port
+18:28 < bridge> [teeworlds] <fokkonaut> 2. i dont like that the gamecontext is handling the message. the engine is aware of networking stuff and the client states and should also handle these messages. The GAME context is for the GAME stuff imo
+18:29 < bridge> [teeworlds] <fokkonaut> But I agree that the messages should be simplified, but as said not from gamecontext
+18:32 < bridge> [teeworlds] <jxsl13> is the engine aware of nickname?
+18:32 < bridge> [teeworlds] <fokkonaut> of course
+18:32 < bridge> [teeworlds] <fokkonaut> Lol
+18:32 < bridge> [teeworlds] <fokkonaut> *server()* ->clientname xd
+18:32 < bridge> [teeworlds] <jxsl13> the problem is actually those ingame states
+18:33 < bridge> [teeworlds] <fokkonaut> what do you mean
+18:33 < bridge> [teeworlds] <jxsl13> the engine also drops players before they are even properly connected to the server
+18:33 < bridge> [teeworlds] <jxsl13> and then loose their connection
+18:33 < bridge> [teeworlds] <jxsl13> or disconnect
+18:33 < bridge> [teeworlds] <fokkonaut> and how is it a problem?
+18:34 < bridge> [teeworlds] <fokkonaut> dont log these i guess
+18:34 < bridge> [teeworlds] <jxsl13> are those connecting -> ready -> enter handled by the engine as well?
+18:34 < bridge> [teeworlds] <fokkonaut> yes
+18:36 < bridge> [teeworlds] <jxsl13> then gotta take a look there
+18:37 < bridge> [teeworlds] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/master/src/engine/server/server.cpp#L692
+18:37 < bridge> [teeworlds] <fokkonaut> take a look here for example
+18:37 < bridge> [teeworlds] <fokkonaut> the engine even calls the gamecontext function
+18:38 < bridge> [teeworlds] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/master/src/engine/server/server.cpp#L926
+18:38 < bridge> [teeworlds] <fokkonaut> aswell as the joining
+18:51 < bridge> [teeworlds] <jxsl13> moving it to engine/server makes the Port parameter obsolete
+18:51 < bridge> [teeworlds] <jxsl13> (Y)
+20:03 < bridge> [teeworlds] <Assa> i got some really weird bugs with sv_high_bandwith
+20:03 < bridge> [teeworlds] <Assa> for me the ping(!) gets better and for others it gets worse
+20:03 < bridge> [teeworlds] <Assa> and it's not a local server
+20:13 < bridge> [teeworlds] <jxsl13> good ping -> better, bad ping with a lot of packet loss -> gets worse
+20:13 < bridge> [teeworlds] <jxsl13> that was kinda the result of the previous discussion here.

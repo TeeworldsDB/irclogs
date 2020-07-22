@@ -1,0 +1,518 @@
+09:33 <+bridge> [ddnet] <Learath2> I can take a look
+09:40 <+bridge> [ddnet] <Learath2> @timakro how did you handle the shift in the packet flags?
+10:01 <+bridge> [ddnet] <fokkonaut> I can also do it
+10:05 <+bridge> [ddnet] <fokkonaut> @Learath2 what shift do you mean?
+10:11 <+bridge> [ddnet] <Learath2> I thought ddnet added atleast one extra flag
+10:11 <+bridge> [ddnet] <Learath2> ah but we don't send it, right
+10:12 <+bridge> [ddnet] <fokkonaut> yes
+10:12 <+bridge> [ddnet] <fokkonaut> its only used serverside
+10:14 <@Learath2> then I don't get the change in pack and unpack
+10:14 <+bridge> [ddnet] <fokkonaut> What exactly?
+10:15 <+bridge> [ddnet] <fokkonaut> The split?
+10:36 <+bridge> [ddnet] <Learath2> split and the if sixup block in unpackpacket
+10:37 <+bridge> [ddnet] <heinrich5991> https://github.com/unique-clan/unique-race/commit/5675762cf6fc321ea3a7211f55b08b103b97a8ab#diff-a2df712cfb938eda9a173f36c865c2ccR1268
+10:38 <+bridge> [ddnet] <heinrich5991> it seems teehistorian misses `CL_STARTINFO`
+10:45 <+bridge> [ddnet] <fokkonaut> @heinrich5991 thats true, there needs to be a workaround. This is needed tho, so that we can manually unpack the packet, version dependent
+10:46 <+bridge> [ddnet] <fokkonaut> @Learath2 the split can either be 4 or 6, based on sixup or not
+10:46 <+bridge> [ddnet] <fokkonaut> which sixup block? the flag one or the other one with the security token?
+10:47 <+bridge> [ddnet] <Learath2> I can see what the split can be, I'm asking why, what changed between 0.6 and 0.7 that requires that change
+10:48 <+bridge> [ddnet] <fokkonaut> if you check the code in 0.7, you can see it starts at other positions
+10:48 <+bridge> [ddnet] <Learath2> And in unpack the very first sixup block that does something with the flags
+10:49 <+bridge> [ddnet] <fokkonaut> the flags are different for both versions, in 0.7 the control flag is 1, resend is 2 and compression is 4, we are just translating them there
+10:50 <+bridge> [ddnet] <Learath2> I see, missed that change in 0.7
+10:50 <+bridge> [ddnet] <fokkonaut> thats also why we can even detect 0.7 clients, because they send flags&1, which is control. in 0.6 flags&1 is the unused flag, which never gets sent
+10:51 <+bridge> [ddnet] <heinrich5991> hmmm
+10:51 <+bridge> [ddnet] <heinrich5991> I'm looking at network.h in 0.6 and 0.7 right now
+10:51 <+bridge> [ddnet] <heinrich5991> I see 0.6 has four flags, which of them is unused?
+10:52 <+bridge> [ddnet] <heinrich5991> `CONTROL`, `CONNLESS`, `RESEND`, `COMPRESSION`
+10:52 <+bridge> [ddnet] <fokkonaut> the entry got removed in ddnet, in vanilla you see an actual flag `NET_PACKETFLAG_UNUSED = 1`
+10:52 <+bridge> [ddnet] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/0.6/src/engine/shared/network.h#L67
+10:52 <+bridge> [ddnet] <Learath2> ah 0.7 gave more bits to size from seq, that's why the split is different
+10:53 <+bridge> [ddnet] <Learath2> bigger packets = faster map download
+10:53 <+bridge> [ddnet] <heinrich5991> ehm, this isn't accurate
+10:53 <+bridge> [ddnet] <heinrich5991> this is 0.6.5 and up only, not even ddnet
+10:53 <+bridge> [ddnet] <heinrich5991> (@ `NET_PACKETFLAG_UNUSED`)
+10:54 <+bridge> [ddnet] <Learath2> Wait ddnet has control as 1
+10:54 <+bridge> [ddnet] <heinrich5991> yes, flags start two bits earlier in 0.6.5
+10:55 <+bridge> [ddnet] <Learath2> was it the 2 bits that are accidentally thought of as part of ack?
+10:55 <+bridge> [ddnet] <heinrich5991> yes, I think so
+10:56 <+bridge> [ddnet] <heinrich5991> looking into the code right now
+10:56 <+bridge> [ddnet] <fokkonaut> ah @heinrich5991 the unused flag thing was the thing he did for 0.6.5 <-> 0.7
+10:56 <+bridge> [ddnet] <fokkonaut> yes
+10:57 <+bridge> [ddnet] <Learath2> The extra 2 bits shouldn't really change anything due to bit order though, no?
+10:57 <+bridge> [ddnet] <Learath2> the least significant bit is at the end
+10:58 <+bridge> [ddnet] <heinrich5991> okay, it seems the client only interprets them on receiving, not sending (as the max sequence is 1<<10)
+10:58 <+bridge> [ddnet] <heinrich5991> (that's probably why it could be used for `NET_PACKETFLAG_TOKEN`)
+10:59 <+bridge> [ddnet] <heinrich5991> ok. seems to be sound (the 0.7 detection)
+10:59 <+bridge> [ddnet] <heinrich5991> on the teehistorian side: teehistorian needs to be informed about 0.7 clients (in ddnet); and no messages can be given to the server but not to teehistorian
+11:00 <+bridge> [ddnet] <Learath2> @heinrich5991 is ddnet even 0.6.5 compatible? I remember there being an issue about this
+11:01 <+bridge> [ddnet] <heinrich5991> there was an issue by deen IIRC, might just be the vanilla token
+11:01 <+bridge> [ddnet] <heinrich5991> it's not compatible with 0.6.5 tokens
+11:01 <+bridge> [ddnet] <heinrich5991> it's somewhat compatible with 0.6.5 tokens
+11:01 <+bridge> [ddnet] <fokkonaut> i am so confused right now, now that you said that with the unused flag :D i still have 1 last unused flag check in my own mod and it just works with it, not without? xd well nevermind
+11:01 <+bridge> [ddnet] <heinrich5991> in that it makes 0.6.5 fall back to the <=0.6.4 protocol
+11:02 <+bridge> [ddnet] <heinrich5991> @fokkonaut well you *do* need a way to distinguish 0.6 from 0.7 clients
+11:02 <+bridge> [ddnet] <fokkonaut> ye
+11:02 <+bridge> [ddnet] <fokkonaut> i mostly decide from the connect packets
+11:02 <+bridge> [ddnet] <fokkonaut> i mostly decide from the connless packets
+11:02 <+bridge> [ddnet] <heinrich5991> ye, that sounds good
+11:03 <+bridge> [ddnet] <fokkonaut> but there is one last fallback, that checks for it and its somehow needed xD
+11:03 <+bridge> [ddnet] <fokkonaut> nvm tho
+11:03 <+bridge> [ddnet] <heinrich5991> that doesn't sound good ^^
+11:03 <+bridge> [ddnet] <fokkonaut> yea
+11:03 <+bridge> [ddnet] <heinrich5991> eh
+11:03 <+bridge> [ddnet] <heinrich5991> did you edit that?
+11:04 <+bridge> [ddnet] <Learath2> At a network level, do we know the clients version from the start?
+11:04 <+bridge> [ddnet] <heinrich5991> we know it from the connect packet
+11:04 <+bridge> [ddnet] <heinrich5991> not sure if fokkonaut edited his message to say something that different, but determining the version from the connect packet is sound
+11:04 <+bridge> [ddnet] <fokkonaut> no, i decide in the connless packet
+11:04 <+bridge> [ddnet] <heinrich5991> which connless packet?
+11:05 <+bridge> [ddnet] <heinrich5991> people can connect to the server without having sent a recent connless packet
+11:05 <+bridge> [ddnet] <fokkonaut> ah yes true, connless packet check is for deciding whether a 0.6 or 0.7 client asked from the browser
+11:06 <+bridge> [ddnet] <heinrich5991> you should decide it from the connect packet (and afterwards by client IP)
+11:06 <+bridge> [ddnet] <fokkonaut> cant
+11:06 <+bridge> [ddnet] <heinrich5991> IP address/port combo, while connected
+11:06 <+bridge> [ddnet] <fokkonaut> you need to know it before
+11:06 <+bridge> [ddnet] <heinrich5991> no
+11:06 <+bridge> [ddnet] <fokkonaut> since the first packet
+11:06 <+bridge> [ddnet] <fokkonaut> yes
+11:06 <+bridge> [ddnet] <heinrich5991> I can formulate it with words
+11:06 <+bridge> [ddnet] <fokkonaut> you need to translate flags already
+11:06 <+bridge> [ddnet] <heinrich5991> so it is possible to program
+11:07 <+bridge> [ddnet] <heinrich5991> unknown client -> check which connect packet
+11:07 <+bridge> [ddnet] <heinrich5991> known client -> we know the version
+11:07 <+bridge> [ddnet] <Learath2> @heinrich5991 NET_CTRLMSG_TOKEN is >0.6.5 right? If we receive that from a connection that connection is new client?
+11:07 <+bridge> [ddnet] <fokkonaut> check its value
+11:07 <+bridge> [ddnet] <fokkonaut> it should have the same value as a 0.6 flag
+11:07 <+bridge> [ddnet] <heinrich5991> @Learath2 that's not a connection yet, you shouldn't store anything
+11:08 <+bridge> [ddnet] <heinrich5991> but yes, need to answer `NET_CTRLMSG_TOKEN` for 0.7 as well
+11:09 <+bridge> [ddnet] <Learath2> yeah I guess not saving state there is safer
+11:09 <+bridge> [ddnet] <heinrich5991> it's the anti IP spoof measure
+11:09 <+bridge> [ddnet] <heinrich5991> if you save anything, you lose
+11:09 <+bridge> [ddnet] <heinrich5991> ok, so new algorithm
+11:10 <+bridge> [ddnet] <heinrich5991> unknown client:
+11:10 <+bridge> [ddnet] <heinrich5991> check 0.7 connless message
+11:10 <+bridge> [ddnet] <heinrich5991> check 0.6 connless message
+11:10 <+bridge> [ddnet] <heinrich5991> check 0.7 connect message
+11:10 <+bridge> [ddnet] <heinrich5991> check 0.7 token message
+11:10 <+bridge> [ddnet] <heinrich5991> check 0.6 connect message
+11:10 <+bridge> [ddnet] <heinrich5991> discard
+11:10 <+bridge> [ddnet] <heinrich5991> known client:
+11:10 <+bridge> [ddnet] <heinrich5991> we know what to do
+11:11 <+bridge> [ddnet] <Learath2> why bother with the connless message at all?
+11:11 <+bridge> [ddnet] <fokkonaut> master
+11:11 <+bridge> [ddnet] <fokkonaut> browser
+11:12 <+bridge> [ddnet] <Learath2> well okay, but that's not what I was asking, I just wanted to know where in the connection do we know a 0.7 client is a 0.7 client
+11:13 <+bridge> [ddnet] <heinrich5991> from the connect message
+11:13 <+bridge> [ddnet] <heinrich5991> it's different in 0.6 and 0.7
+11:15 <+bridge> [ddnet] <fokkonaut> tbh i dont even know why my whole thing works
+11:15 <+bridge> [ddnet] <fokkonaut> i feel like i should remove it again xd
+11:20 <+bridge> [ddnet] <timakro> @Learath2 Okay, so `NET_PACKETFLAG_UNUSED` is unused in 0.6 (as the name suggests) and in 0.7 it is `NET_PACKETFLAG_CONTROL`. You get 2 control messages which you detect as 0.7 by that flag. On the second control message which is `NET_CTRLMSG_CONNECT` you should (in contrast to 0.6 where this happens on the 3rd packet) create the connection and store the 0.7 state there.
+11:22 <+bridge> [ddnet] <fokkonaut> @timakro packetflag_control is also 1 in 0.6
+11:22 <+bridge> [ddnet] <heinrich5991> no, it's in a different bit
+11:22 <+bridge> [ddnet] <fokkonaut> oh
+11:23 <+bridge> [ddnet] <heinrich5991> in 0.6 it's the third most significant bit
+11:23 <+bridge> [ddnet] <heinrich5991> in 0.6 it's the fourth most significant bit
+11:23 <+bridge> [ddnet] <fokkonaut> ah, now i understand my thign again xd
+11:23 <+bridge> [ddnet] <heinrich5991> in 0.7 it's the 6th most significant bit
+11:24 <+bridge> [ddnet] <timakro> So the first control message is `NET_CTRLMSG_TOKEN`, you answer with a token there, I just use the ip hashing function from ddnet code, no fancy token manager/cache. I believe in 0.7 there is a 3rd packet but the 3rd packet doesn't carry the client token anymore. Only the first `NET_CTRLMSG_TOKEN` and the second `NET_CTRLMSG_CONNECT` carry the client token so when you receive the 2nd package check the token against the one you sent in the f
+11:24 <+bridge> [ddnet] <timakro> So the first control message is `NET_CTRLMSG_TOKEN`, you answer with a token there, I just use the ip hashing function from ddnet code, no fancy token manager/cache. I believe in 0.7 there is also a 3rd packet but the 3rd packet doesn't carry the client token anymore. Only the first `NET_CTRLMSG_TOKEN` and the second `NET_CTRLMSG_CONNECT` carry the client token so when you receive the 2nd package check the token against the one you sent in 
+11:25 <+bridge> [ddnet] <timakro> gosh how can i call the 2 tokens so you can distinguish them
+11:25 <+bridge> [ddnet] <timakro> warning: in my code the names are totally all over the place
+11:25 <+bridge> [ddnet] <heinrich5991> client token, server token?
+11:25 <+bridge> [ddnet] <timakro> good
+11:25 <+bridge> [ddnet] <fokkonaut> lmao
+11:26 <+bridge> [ddnet] <timakro> they always have response token in 0.7 code which kind of depends on the perspective
+11:26 <+bridge> [ddnet] <timakro> they always have "response token" in 0.7 code which kind of depends on the perspective
+11:26 <+bridge> [ddnet] <timakro> So the first control message is `NET_CTRLMSG_TOKEN`, you answer with a your server token there, I just use the ip hashing function from ddnet code, no fancy token manager/cache. I believe in 0.7 there is also a 3rd packet but the 3rd packet doesn't carry the client token anymore. Only the first `NET_CTRLMSG_TOKEN` and the second `NET_CTRLMSG_CONNECT` carry the client token so when you receive the 2nd package check the token against the serv
+11:27 <+bridge> [ddnet] <timakro> updated the message as good as i could to make that understandable
+11:28 <+bridge> [ddnet] <heinrich5991> if you needed to store the client token, that would defeat the point of `NET_CTRLMSG_TOKEN`. it's supposed to be a way for the server to verify the client's IP address without storing any data on it
+11:28 <+bridge> [ddnet] <timakro> https://github.com/unique-clan/unique-race/blob/master/src/engine/shared/network_server.cpp#L764-L797
+11:29 <+bridge> [ddnet] <timakro> This is the connection sequence. There are also changes in `UnpackPacket` to make this work
+11:32 <+bridge> [ddnet] <timakro> You can skip connless packets right now, that's just for serverstatus and masterservers. The way I check for 0.7 there is a little bit more dangerous I guess. The 0.6 connless packets include an ack field which isn't used because this is connless .... don'
+11:33 <+bridge> [ddnet] <timakro> You can skip connless packets right now, that's just for serverstatus and masterservers. The way I check for 0.7 there is a little bit more dangerous I guess. The 0.6 connless packets include an ack field which isn't used because this is connless .... don't ask why they have that field. In 0.7 that's the version field and for now just set to `1`. So I check if that field is `1` and in that case I assume it's 0.7. I haven't seen a 0.6 client
+11:33 <+bridge> [ddnet] <fokkonaut> @timakro btw: your 0.7/0.6 servers are not visible in the 0.6 browser.
+11:33 <+bridge> [ddnet] <fokkonaut> your version number is 0.7/0.6, that works for 0.7 clients, as they only look for 0.7, but 0.6 clients look for 0.6.x, for example 0.6.4
+11:34 <+bridge> [ddnet] <timakro> nah thats not the reason
+11:34 <+bridge> [ddnet] <fokkonaut> it is
+11:34 <+bridge> [ddnet] <fokkonaut> i tried it
+11:34 <+bridge> [ddnet] <timakro> it should sen 0.6/0.7 to 0.6 clients
+11:34 <+bridge> [ddnet] <timakro> it should send 0.6/0.7 to 0.6 clients
+11:34 <+bridge> [ddnet] <fokkonaut> ah
+11:34 <+bridge> [ddnet] <fokkonaut> but it doesnt?
+11:34 <+bridge> [ddnet] <fokkonaut> oh it does, but only 1 server
+11:35 <+bridge> [ddnet] <timakro> i see them all
+11:35 <+bridge> [ddnet] <timakro> except CAN
+11:36 <+bridge> [ddnet] <timakro> ah no 1 is missing
+11:37 <+bridge> [ddnet] <timakro> this might actually be a problem with the ack value detection is was just talking about
+11:37 <+bridge> [ddnet] <timakro> maybe some mastersrvs send an ack of `1`
+11:37 <+bridge> [ddnet] <timakro> there might be a better way of distinguishing 0.6/0.7 connless packets
+11:38 <+bridge> [ddnet] <heinrich5991> yes, check for the contents
+11:38 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/blob/F-DDrace/src/engine/shared/network.cpp#L305-L391
+11:38 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/blob/F-DDrace/src/engine/shared/network_server.cpp#L160-L183
+11:38 <+bridge> [ddnet] <heinrich5991> in 0.7 it's offset by 7 bytes, in 0.6 it's offset by 6 bytes
+11:39 <+bridge> [ddnet] <heinrich5991> hm
+11:39 <+bridge> [ddnet] <fokkonaut> works fine for me
+11:41 <+bridge> [ddnet] <heinrich5991> or check the version field maybe?
+11:41 <+bridge> [ddnet] <fokkonaut> thats a 0.7 only thing iirc
+11:42 <+bridge> [ddnet] <heinrich5991> yea
+11:42 <+bridge> [ddnet] <timakro> > You can skip connless packets right now, that's just for serverstatus and masterservers. The way I check for 0.7 there is a little bit more dangerous I guess. The 0.6 connless packets include an ack field which isn't used because this is connless .... don't ask why they have that field. In 0.7 that's the version field and for now just set to `1`. So I check if that field is `1` and in that case I assume it's 0.7. I haven't seen a 0.6 clie
+11:42 <+bridge> [ddnet] <timakro> @timakro
+11:43 <+bridge> [ddnet] <timakro> ack=version
+11:44 <+bridge> [ddnet] <heinrich5991> in 0.6 the header is 0xff-ed out except for ddnet
+11:44 <+bridge> [ddnet] <heinrich5991> for connless packets
+11:44 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/blob/F-DDrace/src/engine/shared/network_server.cpp#L171-L177
+11:44 <+bridge> [ddnet] <fokkonaut> this unpacks the flags the way 0.6 does it, then checks for it, below it is the 0.7 connless check
+11:44 <+bridge> [ddnet] <Learath2> After taking a look, I don't really think I can do much better then @timakro, so I guess we should port it
+11:45 <+bridge> [ddnet] <timakro> please do better with the msg ids
+11:45 <+bridge> [ddnet] <timakro> write some abstraction layer for different msg ids
+11:45 <+bridge> [ddnet] <heinrich5991> (my personal preference would be to make it more encapsulated from the code)
+11:45 <+bridge> [ddnet] <heinrich5991> (so we don't have 0.7 support littered all over the place, preferably only in one file and callbacks to this place)
+11:46 <+bridge> [ddnet] <Learath2> @heinrich5991 thats what I was looking for too but I couldnt isolate it into the network code
+11:46 <+bridge> [ddnet] <timakro> you need to go into a lot of ::Snap functions
+11:48 <+bridge> [ddnet] <timakro> Ah this is how fokkonaut distinguishes 0.6/0.7 connless https://github.com/fokkonaut/F-DDrace/blob/F-DDrace/src/engine/shared/network_server.cpp#L179-L180
+11:49 <+bridge> [ddnet] <heinrich5991> @Learath2 here's a really old version of mine: https://github.com/heinrich5991/teeworlds/tree/version_7/src/proxy
+11:49 <+bridge> [ddnet] <heinrich5991> 7 years ago, wow
+11:49 <+bridge> [ddnet] <Learath2> Stupid vanilla moving stuff out of the snap.....
+11:49 <+bridge> [ddnet] <heinrich5991> the API can be seen here: https://github.com/heinrich5991/teeworlds/blob/version_7/src/proxy/hacks/hacks.h
+11:49 <+bridge> [ddnet] <Learath2> @heinrich5991 is this some translating proxy that works completely separately from the server?
+11:49 <+bridge> [ddnet] <heinrich5991> no, it works inside the server
+11:50 <+bridge> [ddnet] <heinrich5991> but with very few entry points
+11:50 <+bridge> [ddnet] <heinrich5991> it also worked inside the client IIRC
+11:50 <+bridge> [ddnet] <fokkonaut> @timakro no, not only this, also the thing above it, that first checks for a 0.6 connless packet
+11:51 <+bridge> [ddnet] <fokkonaut> @timakro first i unpack the flags like it is a 0.6 packet, check if its valid and then go on to the 0.7 check
+11:51 <+bridge> [ddnet] <Learath2> I'll give it a try
+11:51 <+bridge> [ddnet] <heinrich5991> hmm, I don't see any low-level transformation there
+11:51 <+bridge> [ddnet] <heinrich5991> was that before the network change in 0.7?
+11:51 <+bridge> [ddnet] <heinrich5991> but should be addable with a couple of more hooks
+11:52 <+bridge> [ddnet] <timakro> @fokkonaut the part above checks for the UNUSED flag
+11:52 <+bridge> [ddnet] <fokkonaut> no
+11:52 <+bridge> [ddnet] <fokkonaut> above = über, oder?
+11:52 <+bridge> [ddnet] <fokkonaut> below is unter
+11:52 <+bridge> [ddnet] <timakro> ah sorry
+11:53 <+bridge> [ddnet] <timakro> you have the 0.7 flags unpacking ofc
+11:53 <+bridge> [ddnet] <fokkonaut> yea, you always got confused on it xD
+11:55 <+bridge> [ddnet] <heinrich5991> @Learath2 this looks like a 0.6-0.5 proxy, the thing I did 😦
+11:55 <+bridge> [ddnet] <heinrich5991> but it should™ be applicable to 0.7-0.6 too
+11:56 <+bridge> [ddnet] <timakro> @Learath2 when you want to minimize entry points you could write a `UnpackPacket07` and just have a few lines in `Recv` which check for UNUSED flag or known connection and in that case call `UnpackPacket07` to unpack the same packet again
+11:56 <+bridge> [ddnet] <timakro> Or maybe directly pass it off somewhere else for the control packet handling
+11:56 <+bridge> [ddnet] <fokkonaut> @timakro heinrich said, the unused flag is only a 0.6.5+ thing
+11:57 <+bridge> [ddnet] <fokkonaut> but for me it also works xd
+12:00 <+bridge> [ddnet] <timakro> @fokkonaut So for connless packets your function just returns true?
+12:00 <+bridge> [ddnet] <timakro> I still don't get it
+12:01 <+bridge> [ddnet] <fokkonaut> for 0.6 connless packets it returns true
+12:01 <+bridge> [ddnet] <fokkonaut> dor 0.7 connless packets false
+12:01 <+bridge> [ddnet] <fokkonaut> sevendwon = 0.6
+12:01 <+bridge> [ddnet] <fokkonaut> and if there is a connection already, it returns what the connection says (is 0.6 or 0.7)
+12:02 <+bridge> [ddnet] <fokkonaut> and if its not a connless packet, and we dont have a connection yet, it returns !(flags&1)
+12:02 <+bridge> [ddnet] <timakro> but the connless flag ist the same in 0.6 and 0.7, you can't use that to distinguish
+12:02 <+bridge> [ddnet] <fokkonaut> i can, because in 0.6 the flags are unpacked differently
+12:02 <+bridge> [ddnet] <fokkonaut> as you see here:
+12:02 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/blob/F-DDrace/src/engine/shared/network_server.cpp#L171
+12:03 <+bridge> [ddnet] <fokkonaut> this is the 0.6 unpacking
+12:03 <+bridge> [ddnet] <timakro> idk how stuff is unpacked right now but it's effectively the same bit
+12:03 <+bridge> [ddnet] <fokkonaut> no
+12:03 <+bridge> [ddnet] <fokkonaut> well, idk
+12:03 <+bridge> [ddnet] <fokkonaut> but if you compare 0.7/ddnet unpack function, you see that the flags are unpacked differently
+12:04 <+bridge> [ddnet] <timakro> right
+12:04 <+bridge> [ddnet] <fokkonaut> thats what i do here, i first assume its a 0.6 packet, unpack the flags into a seperate variable, then translate for the connless packet, check for it and then return or not
+12:04 <+bridge> [ddnet] <fokkonaut> if i dont return, i check for 0.7 connless packets
+12:04 <+bridge> [ddnet] <fokkonaut> https://discordapp.com/channels/252358080522747904/293493549758939136/695930307886579772
+12:04 <+bridge> [ddnet] <fokkonaut> check those 2 links
+12:12 <+bridge> [ddnet] <timakro> ```
+12:12 <+bridge> [ddnet] <timakro> Unused Token Control Resend cOmpression coNnless (Ack)
+12:12 <+bridge> [ddnet] <timakro> 0.6   ORNCaaAA
+12:12 <+bridge> [ddnet] <timakro> 0.6.5 ORNCTUAA
+12:12 <+bridge> [ddnet] <timakro> 0.7   --NORCAA
+12:12 <+bridge> [ddnet] <timakro> 
+12:12 <+bridge> [ddnet] <timakro> The small "a" are unused, the ack is not using those. That's what heinrich used in 0.6.5 to make space for the token flag.
+12:12 <+bridge> [ddnet] <timakro> As you can see the connless flag is the same in all versions.
+12:12 <+bridge> [ddnet] <timakro> ```
+12:14 <+bridge> [ddnet] <timakro> ```
+12:14 <+bridge> [ddnet] <timakro> Unused Token Control Resend cOmpression coNnless (Ack)
+12:14 <+bridge> [ddnet] <timakro> 0.6   ORNCaaAA
+12:14 <+bridge> [ddnet] <timakro> 0.6.5 ORNCTUAA
+12:14 <+bridge> [ddnet] <timakro> 0.7   --NORCAA
+12:14 <+bridge> [ddnet] <timakro> 
+12:14 <+bridge> [ddnet] <timakro> The small "a" are unused, the ack is not using those. That's what heinrich used in 0.6.5 to make space for the token flag.
+12:15 <+bridge> [ddnet] <timakro> As you can see the connless flag is the same in all versions.
+12:15 <+bridge> [ddnet] <timakro> 
+12:15 <+bridge> [ddnet] <timakro> And you can see how the unused flag, that's how heinrich called
+12:15 <+bridge> [ddnet] <timakro> it in 0.6.5 can be used to detect 0.7 packets. Because in 0.7
+12:15 <+bridge> [ddnet] <timakro> it is the control flag and therefore set during the connection
+12:15 <+bridge> [ddnet] <timakro> sequence, in 0.6.5 it's unused (hence the name) and in 0.6 it's
+12:15 <+bridge> [ddnet] <timakro> part of the ack but never set.
+12:15 <+bridge> [ddnet] <timakro> ```
+12:45 <+bridge> [ddnet] <heinrich5991> @Learath2 are you currently trying to do it? does it work?
+13:16 <+bridge> [ddnet] <Learath2> I'm eating, then I'll try
+13:52 <+bridge> [ddnet] <ChillerDragon> lel i just recived my first spam/fishing mail ever
+13:52 <+bridge> [ddnet] <ChillerDragon> maybe this is a thing now and i wanted to warn u
+13:52 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/695963956300349490/unknown.png
+13:52 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/695964008079163442/unknown.png
+13:52 <+bridge> [ddnet] <Learath2> Okay now I'm giving it a try
+13:53 <+bridge> [ddnet] <Learath2> The idea is to keep to modifications to the code at a minimum, that means translating as much of the 0.7 difference before CServer, if possible even keep it out of the network code
+14:10 <+bridge> [ddnet] <Learath2> @heinrich5991 I don't think I can make something as polished as yours tbh
+14:10 <+bridge> [ddnet] <heinrich5991> don't want to invest the work (fair) or a roadblocker?
+14:11 <+bridge> [ddnet] <Learath2> I'm not even quite sure where to begin making something like that
+14:13 <+bridge> [ddnet] <heinrich5991> just keep in mind, that in the end we're doing simple byte transformations. I think this is what led to most of the design. we need a couple of hooks. before network unpacking: to translate the packet headers, before returning from CNetServer: to translate the game messages, before applying the snapshot diffs: to apply the correct snapshot diffs
+14:13 <+bridge> [ddnet] <heinrich5991> (snapshot diffs slightly differ between versions, due to differing object sizes)
+14:14 <+bridge> [ddnet] <Learath2> well the snaphots are actually different too
+14:14 <+bridge> [ddnet] <heinrich5991> the internals you mean? yes, true. handle that after the snapshot dif
+14:15 <+bridge> [ddnet] <heinrich5991> create a completely new snapshot and modify all the objects in process. you need to put one of the versions into a namespace or do something else to prevent the names from conflicting
+14:17 <+bridge> [ddnet] <heinrich5991> still sounds infeasible? 😦 ok
+14:20 <+bridge> [ddnet] <Learath2> doesn't I'm just taking a look at the code to see all the places I need to hook in
+14:22 <+bridge> [ddnet] <Learath2> @heinrich5991 how about I hook into OnSnap where there are changes and construct the snapshots correctly in the first place?
+14:22 <+bridge> [ddnet] <heinrich5991> it'll get slightly more intertwined with the code that way, but it should also work
+14:23 <+bridge> [ddnet] <Learath2> I'm just not sure if I can re-craft the snapshot
+14:23 <+bridge> [ddnet] <heinrich5991> `CSnapshotBuilder` is your friend
+14:23 <+bridge> [ddnet] <Learath2> At that level I don't have access to any of the information needed, I only have the crafted snapshot
+14:24 <+bridge> [ddnet] <heinrich5991> ah, yes
+14:24 <+bridge> [ddnet] <Learath2> does it even contain enough for me to do all the modifications needed?
+14:24 <+bridge> [ddnet] <Learath2> what is new in the snapshots to begin with?
+14:24 <+bridge> [ddnet] <heinrich5991> snapshots no longer carry player data
+14:24 <+bridge> [ddnet] <heinrich5991> that's a new one
+14:25 <+bridge> [ddnet] <Learath2> dropping stuff should be fairly simple
+14:25 <+bridge> [ddnet] <heinrich5991> so you'd have to generate messages when you see new players in the snapshot/when players disappear in the snapshot
+14:25 <+bridge> [ddnet] <Learath2> ah true
+14:26 <+bridge> [ddnet] <Learath2> so I'd need to keep track of the players separately or hook into the code for the events
+14:26 <+bridge> [ddnet] <heinrich5991> yes
+14:31 <+bridge> [ddnet] <Learath2> Okay, tell me if this sounds about sane:
+14:33 <+bridge> [ddnet] <Learath2> We have a class `CTranslator` and a subclass of it `CTranslator07`. On connection when we detect a client is a 07 client we create an instance of `CTranslator07` and assign it to a new field in `CNetConnection`
+14:33 <+bridge> [ddnet] <Learath2> Before unpacking and after packing for a connection, we call the translator object to perform any required modification
+14:34 <+bridge> [ddnet] <heinrich5991> (this might generate additional packets)
+14:35 <+bridge> [ddnet] <Learath2> That covers the network layer, what I'm having trouble imagining is the server part, `CServer` calling all the way into `CNetConnection` seems a little overreaching to me, but introducing separate translators for every layer of the protocol seems like it'd be too much
+14:35 <+bridge> [ddnet] <heinrich5991> did you see how I did it? I made a "god" object that all the different layers can call into
+14:36 <+bridge> [ddnet] <heinrich5991> that covered the whole API of the translation layer
+14:36 <+bridge> [ddnet] <Learath2> At the network layer I don't think there'd be any new packets generated
+14:36 <+bridge> [ddnet] <Learath2> @heinrich5991 no I had some trouble reading it tbh, did you make it a kernel interface?
+14:36 <+bridge> [ddnet] <heinrich5991> yes, I did
+14:36 <+bridge> [ddnet] <heinrich5991> sec, searching the link for myself
+14:37 <+bridge> [ddnet] <heinrich5991> okay, entirely undocumented, I'm sorry
+14:38 <+bridge> [ddnet] <Learath2> well making it a kernel interface does actually fix my issue
+14:39 <+bridge> [ddnet] <heinrich5991> https://github.com/heinrich5991/teeworlds/blob/version_7/src/proxy/hacks.h
+14:39 <+bridge> [ddnet] <heinrich5991> oh actually, it is documented
+14:39 <+bridge> [ddnet] <heinrich5991> the interface
+14:40 <+bridge> [ddnet] <heinrich5991> needs more callbacks though, for the different network layer
+14:40 <+bridge> [ddnet] <Learath2> is the network layer even aware of the kernel anyway?
+14:40 <+bridge> [ddnet] <heinrich5991> not sure, in case not, just pass it with the other interfaces it needs
+14:40 <+bridge> [ddnet] <Learath2> also another issue is that like this we can only ever have a single translator
+14:40 <+bridge> [ddnet] <heinrich5991> why?
+14:41 <+bridge> [ddnet] <Learath2> there is a global kernel object that does the translation, how do we differ at the connection level?
+14:41 <+bridge> [ddnet] <Learath2> things either go through the translator or they don't
+14:41 <+bridge> [ddnet] <heinrich5991> the translator gets all the messages
+14:41 <+bridge> [ddnet] <heinrich5991> it keeps track of which client is which
+14:42 <+bridge> [ddnet] <heinrich5991> the god object does that
+14:42 <+bridge> [ddnet] <heinrich5991> so it can figure out which translator to use or any at all
+14:42 <+bridge> [ddnet] <Learath2> Is that a good idea? an observer is usually not the greatest of patterns
+14:43 <+bridge> [ddnet] <heinrich5991> I don't know what an observer is tbh
+14:43 <+bridge> [ddnet] <Learath2> e.g. the god object observes the server and tracks changes
+14:43 <+bridge> [ddnet] <Learath2> what if it falls out of sync?
+14:44 <+bridge> [ddnet] <heinrich5991> the "observer" here is the source of truth regarding which client is which version
+14:44 <+bridge> [ddnet] <Learath2> ah, the connection doesn't do any tracking at all?
+14:44 <+bridge> [ddnet] <heinrich5991> i.e. we don't have redundant storage of information here
+14:44 <+bridge> [ddnet] <heinrich5991> yes
+14:45 <+bridge> [ddnet] <Learath2> Okay, so we have a global object that everything goes through
+14:45 <+bridge> [ddnet] <Learath2> before being handled by their respective layers
+14:45 <+bridge> [ddnet] <Learath2> I guess at the end we could also query the global object about any messages it needs to send for a connection
+14:46 <+bridge> [ddnet] <heinrich5991> yes
+14:46 <+bridge> [ddnet] <Learath2> do you think the global object should maybe track connections? maybe we can use it for the client too
+14:46 <+bridge> [ddnet] <Learath2> e.g. a client that can connect to 0.6 and 0.7
+14:47 <+bridge> [ddnet] <heinrich5991> yes, the transformation is similar, and indeed, the above mentioned source allowed 0.6 clients to connect to 0.6 servers, too
+14:47 <+bridge> [ddnet] <heinrich5991> lol
+14:47 <+bridge> [ddnet] <heinrich5991> 0.5 servers
+14:47 <+bridge> [ddnet] <Learath2> 😄
+14:48 <+bridge> [ddnet] <Learath2> that raises a question though, do we have a separate implementation of the "god" object on client and server?
+14:48 <+bridge> [ddnet] <heinrich5991> I'd do one of them first
+14:49 <+bridge> [ddnet] <heinrich5991> I think it's similar enough to easily adapt the solution of one to the other
+14:49 <+bridge> [ddnet] <Learath2> Yes but if the infrastructure isn't set up properly for it from the beginning it'll just be an overengineered translator, what timakro made but just in a more elaborate package
+14:50 <+bridge> [ddnet] <heinrich5991> hm.
+14:50 <+bridge> [ddnet] <heinrich5991> ah. yes, maybe a separate god object for client and server would be good
+14:50 <+bridge> [ddnet] <heinrich5991> hm. or do you really need it? maybe not
+14:50 <+bridge> [ddnet] <heinrich5991> I don't know. I guess one would figure out in the implementation? ^^
+14:51 <+bridge> [ddnet] <Learath2> yeah, there is so much we can discuss before just starting to code
+14:51 <+bridge> [ddnet] <heinrich5991> I don't get the meaning behind that line ^
+14:52 <+bridge> [ddnet] <Learath2> You can plan out some of these things but others you just have to start implementing and see
+14:52 <+bridge> [ddnet] <heinrich5991> ah
+14:52 <+bridge> [ddnet] <Learath2> atleast for me, I'm not that good at planning things out indepth
+14:52 <+bridge> [ddnet] <heinrich5991> yes, I also always encounter roadblocks for things I thought I had planned through
+14:55 <+bridge> [ddnet] <heinrich5991> I'll go learn some math, if you're okay for now, @Learath2 ?
+14:55 <+bridge> [ddnet] <Learath2> yeah, hf
+14:55 <+bridge> [ddnet] <heinrich5991> ty
+15:29 <+bridge> [ddnet] <timakro> hey heinrich, on a scale from 1 to 10, how much does this trigger you? https://github.com/unique-clan/unique-race/commit/bad32bbd9ef104d0fa70e9260325d068fe9d152f
+15:29 <+bridge> [ddnet] <timakro> @heinrich5991
+15:38 <+bridge> [ddnet] <Learath2> this is all so complicated...
+15:39 <+bridge> [ddnet] <Learath2> what an intertwined mess
+15:39 <+bridge> [ddnet] <Learath2> @timakro why was that needed?
+15:40 <+bridge> [ddnet] <timakro> https://github.com/ddnet/ddnet/commit/5e723f6199ce019fbe7b8335267e646558ef69af
+15:40 <+bridge> [ddnet] <Learath2> old clients cant handle projectile moreinfo? I think that's handled waay up the stack
+15:45 <+bridge> [ddnet] <Learath2> @timakro https://github.com/ddnet/ddnet/blob/master/src/game/server/entities/projectile.cpp#L328
+15:46 <+bridge> [ddnet] <Learath2> @heinrich5991 I think I give up, I don't quite like this construct and I'm not really enjoying coding this
+15:47 <+bridge> [ddnet] <timakro> @Learath2 i guess i could not send them extra info but that would mean that a lot of client versions miss out on projectile antiping
+15:47 <+bridge> [ddnet] <Learath2> Well they won't be able to handle it, no?
+15:48 <+bridge> [ddnet] <timakro> note that VERSION_DDNET_ANTIPING_PROJECTILE < 11030
+15:48 <+bridge> [ddnet] <Learath2> Ah did the clients between 604 and 11030 also incorrectly check IsDDNet?
+15:49 <+bridge> [ddnet] <timakro> yep
+15:49 <+bridge> [ddnet] <Learath2> I guess there is nothing else you can do
+15:50 <+bridge> [ddnet] <timakro> + I can enjoy showing this commit to heinrich :)
+15:50 <+bridge> [ddnet] <timakro> It's a win win situation
+15:50 <+bridge> [ddnet] <Learath2> wait, is zombietoads commit the one that fixed it?
+15:50 <+bridge> [ddnet] <timakro> yeah
+15:51 <+bridge> [ddnet] <Learath2> It says !UseExtraInfo || !IsDDNet, use extra info is a flag inside the projectile itself
+15:51 <+bridge> [ddnet] <Learath2> was that also wrong in those versions?
+15:51 <+bridge> [ddnet] <timakro> Actually I have no idea how this extra info stuff works
+15:52 <+bridge> [ddnet] <timakro> I needed the DDNET server info hack before for various reasons but lately I noticed that everything seems to work without it but apparently some people are using old clients so I did this
+15:54 <+bridge> [ddnet] <timakro> and here it doesn't check @Learath2 https://github.com/ddnet/ddnet/commit/5e723f6199ce019fbe7b8335267e646558ef69af#diff-5f4b4a1f29f305a328a7e5cd2360c45dL78
+15:54 <+bridge> [ddnet] <Learath2> It doesn't check what?
+15:54 <+bridge> [ddnet] <Learath2> It calls ExtractInfo which checks UseExtractInfo too
+15:54 <+bridge> [ddnet] <Learath2> Extra*
+15:55 <+bridge> [ddnet] <timakro> ah you're right, idk
+15:55 <+bridge> [ddnet] <Learath2> can you tell me a version that has broken projectiles?
+15:55 <+bridge> [ddnet] <Learath2> like one you know for sure
+15:56 <+bridge> [ddnet] <timakro> 11.2.1 is the version before ZombieToads fix and projectiles don't work on unique race servers (until i update them)
+15:58 <+bridge> [ddnet] <Learath2> ah I was reading that if statement wrong
+15:58 <+bridge> [ddnet] <Learath2> I'm guessing the person who wrote it read it wrong too
+15:59 <+bridge> [ddnet] <timakro> which one :D?
+15:59 <+bridge> [ddnet] <heinrich5991> @Learath2 I mean code it the way you like then, I guess
+15:59 <+bridge> [ddnet] <heinrich5991> deen wants to have it ^^
+15:59 <+bridge> [ddnet] <Learath2> It's supposed to be !(UseExtraInfo() || IsDDNet)
+15:59 <+bridge> [ddnet] <Learath2> anyway, that being wrong means you indeed have to fake ddnet
+16:00 <+bridge> [ddnet] <heinrich5991> @timakro I think you should have just passed the client ID to that function
+16:00 <+bridge> [ddnet] <Learath2> @heinrich5991 I don't see a good way to do this so I really don't feel like doing it at all
+16:00 <+bridge> [ddnet] <timakro> @heinrich5991 we don't have the client id for connless
+16:01 <+bridge> [ddnet] <Learath2> @fokkonaut seemed interested, maybe he can port it
+16:07 <+bridge> [ddnet] <timakro> The state-machine-like code in the server that handles the registration at the masterservers in engine/server/register.cpp didn't reallly change between 0.6 and 0.7 but it's still broken. It can get into the `REGISTERSTATE_HEARTBEAT` and `REGISTERSTATE_REGISTERED` states with the `m_RegisterRegisteredServer` (which holds the id of the master server we are connected to: 0-3) set to `-1`.
+16:09 <+bridge> [ddnet] <timakro> I don't know why this worked in the first place all those years. I must have changed something in my 0.7 support endeavors so this invalid state doesn't fix itself by reconnecting.
+16:11 <+bridge> [ddnet] <Learath2> (also all the token stuff really gave me a headache)
+16:12 <+bridge> [ddnet] <Learath2> ((also CNetBase not actually being a net base at all in 0.6 is not fun to work with))
+16:12 <+bridge> [ddnet] <heinrich5991> ((what do you mean, net base?))
+16:12 <+bridge> [ddnet] <Learath2> it's not the parent class of anything, it's just a class that has some static methods
+16:13 <+bridge> [ddnet] <Learath2> basically a class abused as a namespace
+16:13 <+bridge> [ddnet] <timakro> (((there is even a comment in the code saying something in the likes of  "Seems like this class is just a collection of functions that fit nowhere else")))
+16:14 <+bridge> [ddnet] <timakro> ((((i guess he means base in terms of parent class))))
+16:16 <+bridge> [ddnet] <Learath2> it's better in 0.7 with oy's recent rework where CNetServer and CNetClient are children of CNetBase
+16:19 <+bridge> [ddnet] <fokkonaut> @Learath2 port what
+16:19 <+bridge> [ddnet] <Learath2> (((((also not knowing how the network code works at this level means I'm just not making any progress but just reading code)))))
+16:20 <+bridge> [ddnet] <Learath2> @fokkonaut timakro's patch to handle 0.7 clients on a 0.6 server
+16:20 <+bridge> [ddnet] <fokkonaut> why doesnt he do itm
+16:20 <+bridge> [ddnet] <fokkonaut> ?*
+16:21 <+bridge> [ddnet] <Learath2> He can if he wants to
+16:22 <+bridge> [ddnet] <timakro> I wouldn't like to pull request what I did for unique race
+16:22 <+bridge> [ddnet] <timakro> I consider the unique race codebase my hack-outlet xD
+16:22 <+bridge> [ddnet] <timakro> A place where I write code that works and doesn't look nice
+16:23 <+bridge> [ddnet] <deen> unlike ddnet for me :justatest:
+16:23 <+bridge> [ddnet] <timakro> The really low level stuff could kinda be copied, maybe a tiny bit more isolated like heinrich suggested
+16:23 <+bridge> [ddnet] <timakro> But anything in the game/ directories would have to be rewritten for ddnet anyways
+16:24 <+bridge> [ddnet] <timakro> going carefully over all the features and testing
+16:29 <+bridge> [ddnet] <timakro> @Learath2 If you're still interested in doing this (or building the foundation, ddnet has a lot of contributors who can also help with the higher level stuff e.g. 0.7 race support) and you want to see results I can basically tell you what you need to change to talk with 0.7 clients step by step
+16:29 <+bridge> [ddnet] <timakro> 
+16:29 <+bridge> [ddnet] <timakro> The biggest eyesore in my code is the message id conversion, I'm sure we could find a better solution for that.
+16:30 <+bridge> [ddnet] <heinrich5991> the conversion id → id or the way you implemented changing the message id in the message bytes itself?
+16:30 <+bridge> [ddnet] <heinrich5991> id to id map is fine
+16:30 <+bridge> [ddnet] <timakro> the latter
+16:30 <+bridge> [ddnet] <heinrich5991> the other thing can be fixed by utilizing a packer and repacking that integer
+16:30 <+bridge> [ddnet] <heinrich5991> ID = GetInt();
+16:31 <+bridge> [ddnet] <timakro> Before doing anything 0.7 related I'd start with this 0.7 patch removing the system flag hack, let me find it for you
+16:31 <+bridge> [ddnet] <timakro> Before doing anything 0.7 protocol related I'd start with this 0.7 patch removing the system flag hack, let me find it for you
+16:31 <+bridge> [ddnet] <heinrich5991> NewPacker.AddInt(Translate(ID);
+16:31 <+bridge> [ddnet] <heinrich5991> NewPacker.AddRaw(GetRest());
+16:32 <+bridge> [ddnet] <timakro> yes that looks good
+16:32 <+bridge> [ddnet] <Learath2> This is all fine and dandy, putting all this stuff in the proper place is the actual problem. `extern int Translate(int ID);` isn't exactly something I'm willing to code
+16:33 <+bridge> [ddnet] <Learath2> pseudo code is easy enough to write, just wrap whatever part needs changes within a `Translate()`
+16:33 <+bridge> [ddnet] <heinrich5991> 😉
+16:33 <+bridge> [ddnet] <heinrich5991> this was just about the message ID conversion of @timakro that he disliked
+16:34 <+bridge> [ddnet] <heinrich5991> can you link it, @timakro?
+16:34 <+bridge> [ddnet] <timakro> First we should get this into ddnet to prevent a lot of pain later https://github.com/teeworlds/teeworlds/commit/9023796d270b216c5859cc6b351a91a4656c58ec
+16:35 <+bridge> [ddnet] <timakro> link the message id conversion?
+16:35 <+bridge> [ddnet] <heinrich5991> the place where it is applied
+16:35 <+bridge> [ddnet] <heinrich5991> because Learath2 wondered what my pseudocode did
+16:35 <+bridge> [ddnet] <heinrich5991> but I guess it's fine, nvm
+16:36 <+bridge> [ddnet] <Learath2> I even know what the pseudocode does, where is it going to live? some static function in CNetBase like all the other orphans without a home?
+16:36 <+bridge> [ddnet] <timakro> https://github.com/unique-clan/unique-race/blob/master/src/engine/shared/network_server.cpp#L687
+16:36 <+bridge> [ddnet] <timakro> https://github.com/unique-clan/unique-race/blob/master/src/engine/shared/network_server.cpp#L833
+16:36 <+bridge> [ddnet] <timakro> oh where that pseudocode would go
+16:36 <+bridge> [ddnet] <timakro> let me find an example
+16:38 <+bridge> [ddnet] <Learath2> @timakro I think @ChillerDragon already got the system flag fix into ddnet
+16:38 <+bridge> [ddnet] <timakro> ah nice
+16:41 <+bridge> [ddnet] <timakro> here we send a chunk of map data, my code converts the message id `NETMSG_MAP_DATA` at a later point, instead we would already translate it here https://github.com/unique-clan/unique-race/commit/5675762cf6fc321ea3a7211f55b08b103b97a8ab#diff-25bcc1bcfab43c7e0957ca2fa89fe34fL953-L959
+16:41 <+bridge> [ddnet] <timakro> and also the payload is different, @heinrich5991 how would you do that?
+16:42 <+bridge> [ddnet] <timakro> and don't call the function "Translate" because thats already used for 64 player support
+16:46 <+bridge> [ddnet] <timakro> well and the translate function would take the client id as well ofc
+17:07 <+bridge> [ddnet] <Learath2> I have concluded that there is no good way to do this as overriding things in C++ isn't pretty. That leaves an ugly object that modifies data on the byte level or ugly compatibility code everywhere. I don't like either, so I'll just do the ugly compatibility code everywhere
+17:07 <+bridge> [ddnet] <Learath2> I'll move as much of it as I can into a separate class, but that's about it
+17:19 <+bridge> [ddnet] <Learath2> Actually I guess I won't be doing anything as building on macOS is broken again with XCode11
+17:19 <+bridge> [ddnet] <Learath2> yay macOS, I'll just go cry in a corner, whoever wants to do it can just go ahead
+17:21 <+bridge> [ddnet] <heinrich5991> what is the error?
+17:22 <+bridge> [ddnet] <Learath2> `ld: cannot link directly with dylib/framework, your binary is not an allowed client of /usr/lib/libcrypto.dylib for architecture x86_64`
+17:24 <+bridge> [ddnet] <heinrich5991> https://forums.developer.apple.com/thread/124782#390243
+17:24 <+bridge> [ddnet] <heinrich5991> aha
+17:26 <+bridge> [ddnet] <Learath2> why do they have to keep breaking things?
+17:27 <+bridge> [ddnet] <Learath2> They should hire Oy
+17:28 <+bridge> [ddnet] <Learath2> fixed that one, that breaks sdl2, as expected
+17:28 <+bridge> [ddnet] <heinrich5991> huh? 😦
+17:29 <+bridge> [ddnet] <Learath2> `--  * SDL2 not found (using bundled version)` yet it goes ahead and adds the flag `-framework SDL2` to the linker invocation
+17:30 <+bridge> [ddnet] <heinrich5991> 😦
+17:31 <+bridge> [ddnet] <Learath2> okay a clean rebuild fixed that, now I'm forced to link with the bundled version of SDL2
+17:32 <+bridge> [ddnet] <Learath2> can I please link with system SDL2 somehow?
+17:36 <+bridge> [ddnet] <heinrich5991> CMakeCache.txt pls
+17:36 <+bridge> [ddnet] <heinrich5991> and CMakeOut or so
+17:37 <+bridge> [ddnet] <heinrich5991> CMakeFiles/CMake{Error,Output}.log
+17:37 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/F9 cache
+17:37 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/ep error, https://paste.pr0.tips/GA Output
+17:38 <+bridge> [ddnet] <heinrich5991> do you have sdl2 installed as a framework (whatever that might mean, idk)?
+17:39 <+bridge> [ddnet] <Learath2> Nah, but I have sdl2 installed and pkg config resolves it just fine
+17:41 <+bridge> [ddnet] <Learath2> I guess I can just compile SDL2 as a framework and install that
+17:41 <+bridge> [ddnet] <heinrich5991> I'm not even sure if that fixes it
+17:41 <+bridge> [ddnet] <Learath2> not like cmake wants to use pkg-config
+17:41 <+bridge> [ddnet] <heinrich5991> yes, cmake's pkg-config does find it
+17:41 <+bridge> [ddnet] <heinrich5991> I'm not sure where it gets lost, debugging
+17:44 <+bridge> [ddnet] <Learath2> it can indeed link to the framework version if I compile and install it
+17:45 <+bridge> [ddnet] <heinrich5991> can you try (to help me understand the problem) whether adding `-DSDL2_ROOT=/usr/local/lib` to the initial command line fixes the issue?
+17:46 <+bridge> [ddnet] <heinrich5991> hmm
+17:46 <+bridge> [ddnet] <heinrich5991> it should prefer the pkg-config version
+17:50 <+bridge> [ddnet] <Learath2> do you want me to uninstall the framework first?
+17:51 <+bridge> [ddnet] <heinrich5991> if you consider the current state of cmake-detection as a bug, yes
+17:52 <+bridge> [ddnet] <heinrich5991> so probably yes if it's not too much of a hassle @Learath2
+17:54 <+bridge> [ddnet] <Learath2> eeh cmake says its ignoring that variable
+17:54 <+bridge> [ddnet] <heinrich5991> eh 😦
+17:54 <+bridge> [ddnet] <Learath2> ```CMake Warning (dev) at CMakeLists.txt:326 (find_package):
+17:54 <+bridge> [ddnet] <Learath2>   Policy CMP0074 is not set: find_package uses <PackageName>_ROOT variables.
+17:54 <+bridge> [ddnet] <Learath2>   Run "cmake --help-policy CMP0074" for policy details.  Use the cmake_policy
+17:54 <+bridge> [ddnet] <Learath2>   command to set the policy and suppress this warning.
+17:54 <+bridge> [ddnet] <Learath2> 
+17:54 <+bridge> [ddnet] <Learath2>   CMake variable SDL2_ROOT is set to:
+17:54 <+bridge> [ddnet] <Learath2> 
+17:54 <+bridge> [ddnet] <Learath2>     /usr/local/lib
+17:54 <+bridge> [ddnet] <Learath2> 
+17:54 <+bridge> [ddnet] <Learath2>   For compatibility, CMake is ignoring the variable.```
+17:54 <+bridge> [ddnet] <Learath2> oh rip irc
+17:55 <+bridge> [ddnet] <Learath2> @heinrich5991 aren't the bundled ones supposed to be a last resort?
+17:55 <+bridge> [ddnet] <heinrich5991> yes
+17:56 <+bridge> [ddnet] <heinrich5991> I don't get how they're found
+17:57 <+bridge> [ddnet] <heinrich5991> can you do a `message(STATUS "${HINTS_SDL2_LIBDIR}xx${SDL2_LIBDIR}xx${PC_SDL2_LIBDIR}xx${PC_SDL2_LIBRARY_DIR}xx${PATHS_SDL2_LIBDIR}xx${CROSSCOMPILING_NO_CMAKE_SYSTEM_PATH})`?
+17:58 <+bridge> [ddnet] <heinrich5991> directly before the `find_library` call
+17:59 <+bridge> [ddnet] <Learath2> `-- xxxx/usr/local/libxxxxddnet-libs/sdl/mac/lib64xx`
+18:00 <+bridge> [ddnet] <heinrich5991> what is SDL2 called in /usr/local/lib?
+18:01 <+bridge> [ddnet] <Learath2> libSDL2.dylib
+18:02 <+bridge> [ddnet] <Learath2> ```[learath2@l2mbp] ~/Desktop/C/ddnet/build [0]$ pkg-config --libs sdl2
+18:02 <+bridge> [ddnet] <Learath2> -L/usr/local/lib -lSDL2```
+18:08 <+bridge> [ddnet] <Learath2> @timakro https://github.com/unique-clan/unique-race/commit/5675762cf6fc321ea3a7211f55b08b103b97a8ab#diff-63ef4efa21065289932d3640f20bf733R213 is this correct?
+18:14 <+bridge> [ddnet] <Learath2> for a 0.6 packet the first byte is ffffaaaa, for a 0.7 one it's ffffffaa, while unpacking you always shift right 2, for a 0.6 packet the upper 2 bits of the ack would be considered flags?
+18:20 <+bridge> [ddnet] <Learath2> if it's not Sixup don't you have to shift right 2 more?
+18:23 <+bridge> [ddnet] <Learath2> ah you also upgrade to 0.6.5 flags in this patch
+18:45 <+bridge> [ddnet] <timakro> yep
+18:49 <+bridge> [ddnet] <Learath2> pff I wasted so much time on this thing that didn't pan out, there goes my commit spree
+19:21 <+bridge> [ddnet] <ChillerDragon> i love the term "commit spree"
+19:31 <+bridge> [ddnet] <Learath2> how will oy respect me if i don't commit every day? 😦
+19:32 <+bridge> [ddnet] <Learath2> how will I look my father in the eye and tell him that I didn't commit today?
+20:30 <+bridge> [ddnet] <Trafalgar Law> Where is your commit @Learath2 !!
+20:31 <+bridge> [ddnet] <Learath2> im trying but the only thing i have to work on is too hard 😦
+20:34 <+bridge> [ddnet] <Trafalgar Law> You will do it 🙂
+20:41 <+bridge> [ddnet] <heinrich5991> @Learath2 https://github.com/teeworlds/teeworlds/issues/2442
+20:41 <+bridge> [ddnet] <heinrich5991> only show success messages when they're the first
+20:41 <+bridge> [ddnet] <heinrich5991> wdyt?
+22:04 <+bridge> [ddnet] <Learath2> @heinrich5991 oy's suggestion sounds sane
+22:05 <+bridge> [ddnet] <heinrich5991> wanted to show you an easy commit 😉
+23:15 <+bridge> [ddnet] <Trafalgar Law> @Learath2 Your commit :pepesweat:
+23:15 <+bridge> [ddnet] <Learath2> it won't happen, shame has been brought upon family
+23:43 <+bridge> [ddnet] <Trafalgar Law> :pepesweat:
+23:46 <+bridge> [ddnet] <ChillerDragon> Then it’s a easy commit for you @Trafalgar Law 🙂

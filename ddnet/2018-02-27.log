@@ -1,0 +1,181 @@
+00:08 <+Learath2> sure, I can give that one a go too
+13:43 <+bridge_> [ddnet] <ChillerDragon> yo i have some c files and i want to compile all of them except one? how do i do it using bash and clang?
+13:43 <+bridge_> [ddnet] <ChillerDragon> 
+13:43 <+bridge_> [ddnet] <ChillerDragon> i tried:
+13:43 <+bridge_> [ddnet] <ChillerDragon> ``clang *.c !(error.c)``
+13:55 <+bridge_> [ddnet] <ChillerDragon> found a hacky solution for interested ppl
+13:55 <+bridge_> [ddnet] <ChillerDragon> 
+13:55 <+bridge_> [ddnet] <ChillerDragon> clang `find . -name "*.c" -not -name "error.c"
+13:55 <+bridge_> [ddnet] <ChillerDragon> found a hacky solution for interested ppl
+13:55 <+bridge_> [ddnet] <ChillerDragon> 
+13:55 <+bridge_> [ddnet] <ChillerDragon> clang `find . -name "*.c" -not -name "error.c"`
+13:55 <+bridge_> [ddnet] <ChillerDragon> found a hacky solution for interested ppl
+13:55 <+bridge_> [ddnet] <ChillerDragon> ```
+13:55 <+bridge_> [ddnet] <ChillerDragon> clang `find . -name "*.c" -not -name "error.c"`
+13:55 <+bridge_> [ddnet] <ChillerDragon> ```
+14:35 <+bridge_> [ddnet] <heinrich5991> that's not hacky 🙂
+14:37 <+Learath2> much cleaner than what I would have come up with to be certain :P
+14:38 <+bridge_> [ddnet] <deen> find . -name "*.c" -not -name "error.c" -print0 | xargs -0 clang
+14:38 <+bridge_> [ddnet] <deen> to handle files with weird characters like spaces
+14:38 <+bridge_> [ddnet] <heinrich5991> that even works for file names with hyphens 😉
+14:38 <+bridge_> [ddnet] <heinrich5991> because each file name has a `.` in the beginning
+14:40 <+Learath2> find | grep -E ".cpp$" | grep -v fs.cpp | tr '\n' ' ' | xargs clang
+14:41 <+bridge_> [ddnet] <heinrich5991> `tr '\n' ' '` is useless
+14:42 <+bridge_> [ddnet] <heinrich5991> this also compiles files like `abcpp`
+14:42 <+bridge_> [ddnet] <heinrich5991> doesn't compile `hfs.cpp`
+14:42 <+bridge_> [ddnet] <heinrich5991> 😛
+14:43 <+Learath2> find | grep -E ".cpp$" | grep -Ev "^fs.cpp$" | sed s/^/\"/ | sed s/$/\"/ | tr '\n' ' ' | xargs clang
+14:43 <+Learath2> find | grep -E "\.cpp$" | grep -Ev "^fs.cpp$" | sed s/^/\"/ | sed s/$/\"/ | tr '\n' ' ' | xargs clang
+14:44 <+bridge_> [ddnet] <deen> how is that better than "find -name '*.cpp' -not -name '*fs.cpp' -print0 | xargs -0 clang"?
+14:44 <+bridge_> [ddnet] <heinrich5991> `xargs` has no problems with line breaks
+14:45 <+bridge_> [ddnet] <deen> (except my stars get eaten by discord)
+14:45 <+bridge_> [ddnet] <heinrich5991> @deen your solution was already perfect 😛
+14:45 <+bridge_> [ddnet] <heinrich5991> `xargs` does have problems with quotes that you hand to it, @Learath2
+14:45 <+Learath2> It's what I would have come up with is all
+14:45 <+bridge_> [ddnet] <deen> ok
+14:46 <+Learath2> obv much worse then yours or chillers :P
+14:46 <+bridge_> [ddnet] <deen> No worries, at work I have some ugly 500 character pipe-scripts to analyze code a bit 😄
+14:47 <+Learath2> clang $(find | grep -E "\.cpp$" | grep -Ev "^fs.cpp$" | sed s/^/\"/ | sed s/$/\"/ | tr '\n' ' ')
+14:47 <+bridge_> [freenode] <nemo> what sadist would put spaces in a code file name ☺
+14:47 <+Learath2> is my final answer :P
+14:47 <+bridge_> [freenode] <nemo> I'd reject that patch on general principles
+14:48 <+bridge_> [ddnet] <ChillerDragon> a great thx
+14:49 <+bridge_> [ddnet] <heinrich5991> Learath2: have you tried it on a folder?
+14:50 <+bridge_> [ddnet] <heinrich5991> I think it wouldn't work due to the quotes you added
+14:50 <+Learath2> clang "src/toast.cpp" wouldn't work?
+14:50 <@heinrich5991> that would
+14:50 <+Learath2> then this should aswell, no?
+14:50 <@heinrich5991> but that's not how $() `` or xargs work IIRC
+14:51 <@heinrich5991> because clang is going to see the equivalent of
+14:51 <@heinrich5991> clang '"src/toast.cpp"'
+14:53 <+Learath2> yeah definitely doesn't work
+14:54 <+Learath2> I'd give up at that point and revert to `mv error.c error.t && clang *.c && mv error.t error.c`
+14:57 <+bridge_> [ddnet] <heinrich5991> ^^
+15:02 <+bridge_> [freenode] <nemo> commit a new non-error.c revision then revert ☺
+15:04 <+bridge_> [ddnet] <heinrich5991> use a proper build system 😉
+15:12 <+bridge_> [ddnet] <ChillerDragon> mv error.c error.t is funny c: i should have done that
+15:13 <+bridge_> [ddnet] <ChillerDragon> well i failed everything anyways and this command doesnt help xd
+15:37 <+bridge_> [freenode] <nemo> heinrich5991: hey. you guys use opus right?
+15:37 <@heinrich5991> yes
+15:37 <+bridge_> [freenode] <nemo> great
+15:37 <+bridge_> [freenode] <nemo> heinrich5991: I was poking at this in #hedgewars - you mind telling me if I'm wildly off-base?
+15:37 <+bridge_> [freenode] <nemo> heinrich5991: was hoping to crib off you guys again
+15:38 <@heinrich5991> k, checking
+16:03 <+bridge_> [ddnet] <heinrich5991> @Learath2 can you give me an example of a blacklisted dnsbl entry?
+16:26 <+bridge_> [ddnet] <Im 'corneum> who thought this was a good idea?
+16:26 <+bridge_> [ddnet] <Im 'corneum> https://cdn.discordapp.com/attachments/293493549758939136/418066382631206914/screenshot_2018-02-27_16-25-47.png
+16:28 <+bridge_> [ddnet] <heinrich5991> `/r` was never a good idea
+16:29 <+bridge_> [ddnet] <Im 'corneum> on homeserver for testing its perfect.
+16:29 <+bridge_> [ddnet] <Im 'corneum> i have it bound to r since forever
+16:32 <+bridge_> [ddnet] <snail> sv_rescue_delay 0?
+16:33 <+bridge_> [ddnet] <Im 'corneum> thanks
+16:34 <+bridge_> [ddnet] <ChillerDragon> bind super lol
+16:34 <+bridge_> [ddnet] <ChillerDragon> @Im 'corneum
+16:35 <+bridge_> [ddnet] <Im 'corneum> i have
+16:35 <+bridge_> [ddnet] <ChillerDragon> so no need for /r
+16:35 <+bridge_> [ddnet] <Im 'corneum> lol yes. i dont want to go back to where i came from all the time. also its one button press more
+16:36 <+bridge_> [ddnet] <ChillerDragon> hm ye
+16:36 <+bridge_> [ddnet] <ChillerDragon> one press more?
+16:36 < ddnet-commits> [ddnet] ChillerDragon opened pull request #1054: removed unused teams function (master...master) https://git.io/vAiWC
+16:37 <+bridge_> [ddnet] <Im 'corneum> i have 2 buttons bound to super and unsuper.
+16:37 <+bridge_> [ddnet] <ChillerDragon> ah
+16:37 <+bridge_> [ddnet] <ChillerDragon> i bound unusper on fore
+16:37 <+bridge_> [ddnet] <ChillerDragon> fire*
+16:37 <+bridge_> [ddnet] <ChillerDragon> so its like 1 key
+16:37 <+bridge_> [ddnet] <heinrich5991> @ChillerDragon "Remove unused team function"
+16:37 <+bridge_> [ddnet] <ChillerDragon> ye?
+16:37 <+bridge_> [ddnet] <ChillerDragon> teams sucks
+16:37 <+bridge_> [ddnet] <ChillerDragon> remove em
+16:38 <+bridge_> [ddnet] <heinrich5991> and capital letter at the start
+16:38 <+bridge_> [ddnet] <ChillerDragon> is there a problem with my big R ? .-.
+16:38 <+bridge_> [ddnet] <ChillerDragon> ah
+16:38 <+bridge_> [ddnet] <ChillerDragon> well i made a small one
+16:38 <+bridge_> [ddnet] <heinrich5991> do you know how to edit a commit message?
+16:39 <+bridge_> [ddnet] <ChillerDragon> no
+16:39 <+bridge_> [ddnet] <heinrich5991> `git commit --amend`
+16:39 <+bridge_> [ddnet] <ChillerDragon> is there a problem with the small r?
+16:39 <+bridge_> [ddnet] <ChillerDragon> i mostly start my commits small
+16:39 <+bridge_> [ddnet] <heinrich5991> commit messages are formatted like this: "Add feature xyz". afterwards the summary you can add a explanation, but for this commit you probably don't need one
+16:40 <+bridge_> [ddnet] <ChillerDragon> so i have to rename i in 
+16:40 <+bridge_> [ddnet] <ChillerDragon> "Removed unused teams function" ?
+16:40 <+bridge_> [ddnet] <heinrich5991> "Remove unused teams function"
+16:40 <+bridge_> [ddnet] <heinrich5991> present tense
+16:40 <+bridge_> [ddnet] <ChillerDragon> hm
+16:40 <+bridge_> [ddnet] <ChillerDragon> but it already happend
+16:41 <+bridge_> [ddnet] <ChillerDragon> http://puu.sh/zwPNv/e1bb6e11a0.png
+16:41 <+bridge_> [ddnet] <ChillerDragon> didnt work too good
+16:42 <+bridge_> [ddnet] <heinrich5991> `git push origin +master`
+16:42 <+bridge_> [ddnet] <heinrich5991> https://chris.beams.io/posts/git-commit/
+16:42 <+bridge_> [ddnet] <ChillerDragon> duuude
+16:42 <+bridge_> [ddnet] <heinrich5991> git itself uses present-tense and capitalization as well: `Merge branch xyz into abc`
+16:42 <+bridge_> [ddnet] <ChillerDragon> ok i gonna check it out later
+16:43 <+bridge_> [ddnet] <heinrich5991> or `Revert "Foo bar"`
+16:43 <+bridge_> [ddnet] <ChillerDragon> conventions over conventions
+16:43 <+bridge_> [ddnet] <ChillerDragon> im 12yr haxx0r having fun in ze interwebz
+16:43 <+bridge_> [ddnet] <ChillerDragon> btw i didnt check for compile errors :p
+16:44 <+bridge_> [ddnet] <ChillerDragon> bcs i got confused with cmake
+16:44 <+bridge_> [ddnet] <heinrich5991> that's why I didn't tell you on the first PR
+16:44 <+bridge_> [ddnet] <ChillerDragon> bam for lyfe
+16:44 <+bridge_> [ddnet] <ChillerDragon> ye i try to improve my commit messages atleast for ddnet
+16:44 <+bridge_> [ddnet] <heinrich5991> `mkdir build;cd build;cmake ..;cmake --build .`
+16:44 <+bridge_> [ddnet] <ChillerDragon> ah ty
+16:44 <+bridge_> [ddnet] <heinrich5991> (like in the readme :P)
+16:44 <+bridge_> [ddnet] <ChillerDragon> xxxD
+16:45 <+bridge_> [ddnet] <ChillerDragon> oh true
+16:45 <+bridge_> [ddnet] <ChillerDragon> spammer :banhammer:
+16:46 <+bridge_> [ddnet] <ChillerDragon> woot u didnt wait for checks?
+16:46 <+bridge_> [ddnet] <ChillerDragon> build might fail
+16:46 <+bridge_> [ddnet] <ChillerDragon> ah bors does the checks am i right?
+16:47 <+bridge_> [ddnet] <heinrich5991> yes
+16:48 <+bridge_> [ddnet] <ChillerDragon> wait what happend to my commit message
+16:48 <+bridge_> [ddnet] <ChillerDragon> it shpuld be updated shpuldnt it be?
+16:48 <+bridge_> [ddnet] <ChillerDragon> ah it did
+16:48 <+bridge_> [ddnet] <heinrich5991> it is updated
+16:48 <+bridge_> [ddnet] <ChillerDragon> a great
+16:48 <+bridge_> [ddnet] <ChillerDragon> but not the pr name
+16:49 <+bridge_> [ddnet] <heinrich5991> you can change that too, if you want
+17:11 < ddnet-commits> [ddnet] bors[bot] merged staging into master: https://git.io/vAiBX
+17:59 <+bridge_> [ddnet] <ReiTW | Blizzard Team> @deen found out the best host for u
+18:00 <+bridge_> [ddnet] <ReiTW | Blizzard Team> @deen http://mzunguhosting.ml/
+18:00 <+bridge_> [ddnet] <ReiTW | Blizzard Team> 
+18:00 <+bridge_> [ddnet] <ReiTW | Blizzard Team> https://cdn.discordapp.com/attachments/293493549758939136/418090118574768128/unknown.png
+18:01 <+bridge_> [ddnet] <ReiTW | Blizzard Team> da best
+18:29 <+bridge_> [ddnet] <Learath2> @ChillerDragon make a habit of writing good commit messages or you end up like me, I still commit stuff like "Oops" "Shit", "Just wtf?"
+18:29 <+bridge_> [ddnet] <Learath2> much easier to do it at the beginning 😄
+18:34 <+bridge_> [freenode] <nemo> $ hg log -Tx -r 'grep(oops)'
+18:34 <+bridge_> [freenode] <nemo> xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+18:34 <+bridge_> [freenode] <nemo> hg log -Tx -r 'user(nemo) and grep(oops)'
+18:34 <+bridge_> [freenode] <nemo> xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+18:34 <+bridge_> [freenode] <nemo> apparently about half of 'em are me ☺
+18:35 <+bridge_> [freenode] <nemo> ok. 77 out of 177 to skip the entertaining bars
+18:36 <+bridge_> [freenode] <nemo> hum. not so many WTFs...
+18:36 <+bridge_> [freenode] <nemo> and I think we are too polite for "shit"
+18:37 <+bridge_> [freenode] <nemo> fail seems popular tho
+18:37 <+bridge_> [freenode] <nemo> ooooh I should mozilla since I have that checked out
+18:38 <+Learath2> shit I use in private repos mostly :P
+18:38 <+bridge_> [freenode] <nemo> haha. 28,126 revisions to pull
+18:38 <+bridge_> [freenode] <nemo> it's been a while since I updated this machine
+18:40 <+bridge_> [freenode] <nemo> s/should/should grep/
+19:19 <+bridge_> [freenode] <nemo> apparently mozilla-central is too disciplined with its commit messages
+19:19 <+bridge_> [freenode] <nemo> $ hg summary
+19:19 <+bridge_> [freenode] <nemo> parent: 405497:b184be598740 tip
+19:19 <+bridge_> [freenode] <nemo> 405 thousand commits and not a single oops
+19:20 <+bridge_> [freenode] <nemo> shit 
+19:20 <+bridge_> [freenode] <nemo> orrrr
+19:21 <+bridge_> [freenode] <nemo> oh. oops. I typed "wc -l"  stupid reflexes
+19:21 <+bridge_> [freenode] <nemo> 149 wtfs - that's more promising
+19:22 <+bridge_> [freenode] <nemo> 242 shits
+19:23 <+bridge_> [freenode] <nemo> haha
+19:23 <+bridge_> [freenode] <nemo> user:        Michael Yoshitaka Erlewine <mitcho@mitcho.com>
+19:23 <+bridge_> [freenode] <nemo> ooops
+19:24 <+bridge_> [freenode] <nemo> js/src/yarr/jswtfbridge.h
+19:24 <+bridge_> [freenode] <nemo> meh
+19:25 <+bridge_> [freenode] <nemo> js/src/assembler/wtf/Platform.h
+19:25 <+bridge_> [freenode] <nemo> boooring
+19:26 <+bridge_> [freenode] <nemo> hah. I love this commit message tho https://hg.mozilla.org/mozilla-central/rev/552bca1bc885
+19:28 <+bridge_> [freenode] <nemo> (w[h])oops seems to be real at least
+19:29 <+bridge_> [freenode] <nemo> well apart from false matches on "loops"  - guess I should toss a regex in there
+19:30 <+bridge_> [freenode] <nemo> https://hg.mozilla.org/mozilla-central/rev/15f9377ed236   that one is legit
+20:25 <+bridge_> [ddnet] <deen> @ReiTW | Blizzard Team I had a better idea. Since I have 7 ms ping at home, I'll just host "DDNet deen" running on my desktop computer
+20:25 <+bridge_> [ddnet] <ReiTW | Blizzard Team> ah x), gud idea
+20:40 <+bridge_> [ddnet] <ChillerDragon> @deen ddos alert system inclusive ...

@@ -1,0 +1,126 @@
+11:37 < Learath2> @Dune since chiller and fookonauts clients are caught up to master most of the time, people are actually indirectly playing on the nightly, is his point I guess
+11:43 < Learath2> CChat just has a lot of behaviour that's not very easy to refactor
+11:53 < bridge> [teeworlds] <Dune> It does
+13:14 < bridge> [teeworlds] <Dune> Learath2: chat commands bug, you can't use server-sided commands anymore...
+13:45 < bridge> [teeworlds] <Learath2> @Dune are you sure it isn't a bug with the server? it works fine on fokkonaut's server and on Law's server
+13:46 < bridge> [teeworlds] <Dune> @Learath2 I press return and it doesn't close the chat
+13:46 < bridge> [teeworlds] <Dune> that's not normal to me
+13:46 < bridge> [teeworlds] <Learath2> it doesn't for me either, but it working fine on other servers suggests to me that they are doing something wrong, rather then the client doing something wrong
+13:46 < bridge> [teeworlds] <Dune> that's strange
+13:47 < bridge> [teeworlds] <Dune> because again, even if the server does some shit, the command should send and the chat input should close
+13:47 < bridge> [teeworlds] <Dune> have you tested on the suggested IP?
+13:48 < bridge> [teeworlds] <Learath2> yes, they are registering the commands in a weird way
+13:49 < bridge> [teeworlds] <Learath2> `[chat_commands]: adding server chat command: name='cmdlist' args='(null)' help='show the cmd list'`
+13:49 < bridge> [teeworlds] <Learath2> Not my fault they aren't sending the arglist correctly
+13:50 < bridge> [teeworlds] <Dune> shouldn't chat input still work?
+13:50 < bridge> [teeworlds] <Dune> even though the args format is invalid
+13:51 < bridge> [teeworlds] <Learath2> I can clear the chat if you want
+13:52 < bridge> [teeworlds] <Learath2> we can't send the message as is as the command list is still up, it's conflicting requirements
+13:52 < bridge> [teeworlds] <Dune> I mean, from a user it looks strange, and shouldn't happen right?
+13:52 < bridge> [teeworlds] <Dune> I don't remember what the printed argument list was, I think it was empty?
+13:52 < bridge> [teeworlds] <Learath2> I guess I could patch it to just send it if the argument list is empty, but imho that's not great
+13:52 < bridge> [teeworlds] <Learath2> or I can treat null argument list as ""
+13:53 < bridge> [teeworlds] <Dune> I don't know what's the best solution, but the current situation is not desirable
+13:53 < bridge> [teeworlds] <Dune> You could also discard the command entirely I guess or treat it as ""
+13:53 < bridge> [teeworlds] <Learath2> Again, I don't quite get why the client needs to compensate for the mistake of the server, but as said, we have a couple of choices
+13:54 < bridge> [teeworlds] <Dune> The server doing things wrong shouldn't glitch the user interface
+13:54 < bridge> [teeworlds] <Dune> Do you disagree?
+13:56 < bridge> [teeworlds] <Learath2> Yeah sure, but at that point all our assumptions are invalid
+13:56 < bridge> [teeworlds] <Learath2> How do we know the server conforms to the protocol after it sends malformed data?
+13:57 < bridge> [teeworlds] <Dune> If the server reacts poorly to the command, I feel like that is fine
+13:57 < bridge> [teeworlds] <Dune> But it shouldn't block the GUI
+13:57 < bridge> [teeworlds] <Learath2> Okay, I'll treat nulls as an empty arglist and I'll clear out the chat even if parsing fails
+13:57 < bridge> [teeworlds] <Dune> Isn't one of the two enough?
+13:58 < bridge> [teeworlds] <Learath2> well the null fix would work for that alivefng server
+13:58 < bridge> [teeworlds] <Learath2> however if a server sends a malformed argtext, or the user just enters something wrong it still gets the interface stuck
+13:59 < bridge> [teeworlds] <Dune> wait, the fng server sends literally "null"? I thought that's something that the parser does when the arglist is malformed
+13:59 < bridge> [teeworlds] <Learath2> e.g. the same exact alivefng server sends `[chat_commands]: adding server chat command: name='help' args='<command>' help='show the cmd list or get more information to any command'`
+13:59 < bridge> [teeworlds] <Learath2> this is also wrong
+14:00 < bridge> [teeworlds] <Learath2> it should be "s" or "r" for an old server and a new server can add a description with "s[command]"
+14:00 < bridge> [teeworlds] <Learath2> @Dune that message is literally printed out as soon as we unpack the msg
+14:00 < bridge> [teeworlds] <Dune> ah, okay
+14:00 < bridge> [teeworlds] <Learath2> it sends 0x0 somehow
+14:00 < bridge> [teeworlds] <Learath2> (i don't even know how it manages to pack that)
+14:01 < bridge> [teeworlds] <Dune> so with that fix, what would happen if you do `/help rank`?
+14:01 < bridge> [teeworlds] <Learath2> it'd still get stuck
+14:02 < bridge> [teeworlds] <Learath2> well with both fixes it'd clear out the input and close chat atleast
+14:02 < bridge> [teeworlds] <Learath2> but it's just a malformed argument list, that's the best we can do
+14:02 < bridge> [teeworlds] <Dune> I see
+14:03 < bridge> [teeworlds] <Learath2> maybe an indication that a failure occured?
+14:03 < bridge> [teeworlds] <Dune> Yeah, I don't know, that's trickty
+14:03 < bridge> [teeworlds] <Learath2> small flash behind the chat after we clear?
+14:04 < bridge> [teeworlds] <Dune> This kind of broken server commands never worked right? not like we broke compatibility somewhere
+14:04 < bridge> [teeworlds] <Dune> The way to make it work in that case would be to send plain text to the server, but you don't want to set that as a fallback in case the server doesn't catch the command, right, that's dangerous
+14:10 < bridge> [teeworlds] <Learath2> well worst case it'd print it out
+14:10 < bridge> [teeworlds] <Learath2> if parsing fails for something that appears to be a command, just try sending it?
+14:10 < bridge> [teeworlds] <Learath2> well it could expose something like a login though
+14:10 < bridge> [teeworlds] <Learath2> that's a no no
+14:12 < bridge> [teeworlds] <Learath2> @Dune I'm not sure how it worked before, if it worked at all that is
+14:12 < bridge> [teeworlds] <Dune> yeah
+14:12 < bridge> [teeworlds] <Learath2> Ah, I remember, ryozuki never even parsed the arguments
+14:15 < bridge> [teeworlds] <Learath2> hm, as a fallback maybe we could just send it as is, even if parsing fails?
+14:15 < bridge> [teeworlds] <Dune> yeah, as long as it's not straight in chat
+14:15 < bridge> [teeworlds] <Learath2> I mean as a command, that wouldn't display on chat
+14:25 < bridge> [teeworlds] <Learath2> I really don't want to touch this anymore...
+14:27 < bridge> [teeworlds] <Dune> adding features tends to bring twice the work as debugging :D
+14:27 < bridge> [teeworlds] <Dune> you're doing the dirty work
+14:32 < bridge> [teeworlds] <Learath2> oh, the null fix wont help at all
+14:32 < bridge> [teeworlds] <Learath2> I thought it was my libc outputting the (null)
+14:33 < bridge> [teeworlds] <Learath2> @Dune they pack "(null)" for the arglist
+14:33 < bridge> [teeworlds] <Dune> ah, makes sense
+14:33 < bridge> [teeworlds] <Dune> was wondering how they were packing 0x0
+14:33 < bridge> [teeworlds] <Learath2> I'll just do the fallback send
+14:33 < bridge> [teeworlds] <Dune> cool, thanks <3
+14:33 < bridge> [teeworlds] <Learath2> or I can just clear and ignore it instead
+14:34 < bridge> [teeworlds] <Dune> both fine by me
+14:43 < bridge> [teeworlds] <Learath2> @Dune what is supposed to happen when you press enter with an incomplete command?
+14:44 < bridge> [teeworlds] <Dune> client side: do nothing
+14:44 < bridge> [teeworlds] <Dune> server side: I say do nothing, but you could also send that garbage to the server
+14:44 < bridge> [teeworlds] <Learath2> do nothing as in don't even clear the chat?
+14:44 < bridge> [teeworlds] <Dune> yeah
+14:45 < bridge> [teeworlds] <Dune> imo it's only a problem in the case of the fng server because there is no visible errors
+14:48 < bridge> [teeworlds] <Learath2> and for an invalid command?
+14:49 < bridge> [teeworlds] <Learath2> I'm guessing do nothing is fine for that too
+14:50 < bridge> [teeworlds] <Dune> invalid in what way?
+14:51 < bridge> [teeworlds] <Learath2> invalid is not even a substring of a command
+14:52 < bridge> [teeworlds] <Dune> so /sfjsdfslf ?
+14:52 < bridge> [teeworlds] <Learath2> yep
+14:52 < bridge> [teeworlds] <Dune> I think we send it at the moment? because the commands menu is not open
+14:52 < bridge> [teeworlds] <Learath2> fng doesn't even respond to the fallback, I guess I won't bother sending it
+14:52 < bridge> [teeworlds] <Learath2> @Dune yes, that's the current behaviour
+14:52 < bridge> [teeworlds] <Learath2> if the commands menu is not open, we send
+14:53 < bridge> [teeworlds] <Dune> this was designed to minimize friction with servers that use old-styled chat commands (directly in chat)
+14:53 < bridge> [teeworlds] <Dune> so you can open chat, type /help, and have it work regardless of how it is implemented
+14:54 < bridge> [teeworlds] <Learath2> well then I don't think we can fix this issue
+14:55 < bridge> [teeworlds] <Learath2> the (null)s mean that if we want it to work, we need to send even if parsing fails
+14:55 < bridge> [teeworlds] <Learath2> however the command menu will be open
+14:55 < bridge> [teeworlds] <Dune> yeah, but that's a special case where the server did garbage
+14:55 < bridge> [teeworlds] <Dune> some friction is unavoidable, right
+14:55 < bridge> [teeworlds] <Learath2> currently it works with servers that are up to date with the latest standard, and servers behaving correctly at 0.7.3
+14:56 < bridge> [teeworlds] <Dune> yes
+14:57 < bridge> [teeworlds] <Learath2> Okay how about this, if parsing fails, I check that the currently selected command is registered by the server, if it is, I just send the command and arguments as is in a command packet
+14:57 < bridge> [teeworlds] <Dune> I think your fix is fine?
+14:58 < bridge> [teeworlds] <Learath2> Well the way we detect a parsing fail in the command itself is no different to the way we detect a parsing fail in the arguments
+14:59 < bridge> [teeworlds] <Learath2> (so the naive fix of sending a fallback if parsing fails ends up sending incomplete commands too)
+14:59 < bridge> [teeworlds] <Dune> right, yeah
+14:59 < bridge> [teeworlds] <Dune> sounds good
+15:19 < bridge> [teeworlds] <Learath2> okay, the behaviour is sane but it won't work for that server as it doesn't even seem to accept command messages
+15:20 < bridge> [teeworlds] <Learath2> I don't think we want a fallback to a chat message either
+15:20 < bridge> [teeworlds] <Dune> yeah I agree
+15:24 < bridge> [teeworlds] <Learath2> I made a pull request with the fallback anyway, incase you want it merged
+15:25 < bridge> [teeworlds] <Learath2> well, it still fixes the weird UI glitch, so we should merge it
+15:27 < bridge> [teeworlds] <Dune> yeah the UI glitch is my biggest concern
+16:03 < bridge> [teeworlds] <heinrich5991> note that the UI glitches for quite a bit of weird server input
+16:03 < bridge> [teeworlds] <heinrich5991> (incomplete snapshots, etc.)
+16:06 < bridge> [teeworlds] <Dune> @heinrich5991 the UI itself?
+16:07 < bridge> [teeworlds] <heinrich5991> yes
+16:07 < bridge> [teeworlds] <heinrich5991> but most server modifications start from vanilla, they don't get to send weird snapshots
+16:08 < bridge> [teeworlds] <heinrich5991> founds those bugs while writing the server not based on teeworlds code
+16:13 < bridge> [teeworlds] <Dune> Some games offload responsibility of some part of the UI on mods
+16:17 < bridge> [teeworlds] <jxsl13> is there some unban command that takes an IP instead of an index as argument in vanilla?
+16:44 < bridge> [teeworlds] <Learath2> @Dune turns out 0.7.4 sends the entire command string as "arguments" do you want to keep that behaviour aswell?
+17:07 < bridge> [teeworlds] <Dune> @Learath2 that sounds useless, right?
+17:08 < bridge> [teeworlds] <Learath2> Well turns out fng2 relies on that, that's why the fallback doesn't work there
+17:08 < bridge> [teeworlds] <Learath2> that's the only mod I could find that relies on that behaviour
+17:08 < bridge> [teeworlds] <Learath2> well that is online
+23:18 < bridge> [teeworlds] <Learath2> now that I think more about it, if we are going to cave in and send a fallback, why even bother parsing the command line?

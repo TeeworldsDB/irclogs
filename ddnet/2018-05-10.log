@@ -1,0 +1,121 @@
+12:25 <+bridge> [ddnet] <heinrich5991> @Learath2 you here for a short discussion?
+12:25 <+bridge> [ddnet] <heinrich5991> nemo: do you have map download in hedgewars?
+12:25 <+bridge> [ddnet] <heinrich5991> @Learath2 (regarding stronger hashes for maps)
+15:49 <+bridge> [ddnet] <Fluni> @heinrich5991 Jeder client springt bei mausbewegung sofort in irgendeine ecke meines bildschirmes so wie hier: https://streamable.com/grqjw 
+15:49 <+bridge> [ddnet] <Fluni> Ich bewege meine maus nur minimal. Egal ob borderless, windowed oder fullscreen
+15:49 <+bridge> [ddnet] <Fluni> Bei borderless und windowed springt der cursor weniger aber trotzdem
+15:50 <+bridge> [ddnet] <heinrich5991> @Fluni can you go into the console (f1) and enter `inp_mousesens` and `ui_mousesens`?
+15:51 <+bridge> [ddnet] <Fluni> inp is  140; ui = 370
+15:52 <+bridge> [ddnet] <heinrich5991> that sounds like a lot, although not terribly much
+15:52 <+bridge> [ddnet] <heinrich5991> I have them set to 96 and 100, respectively
+15:52 <+bridge> [ddnet] <Fluni> well my dpi is on 400
+15:52 <+bridge> [ddnet] <Fluni> :p
+15:52 <+bridge> [ddnet] <heinrich5991> ah
+15:52 <+bridge> [ddnet] <heinrich5991> I don't know what causes this.
+15:52 <+bridge> [ddnet] <heinrich5991> have you tried using inp_mouseold or sth?
+15:53 <+bridge> [ddnet] <heinrich5991> I don't actually know what that does
+15:53 <+bridge> [ddnet] <heinrich5991> @Learath2 you look online. up for a short discussion about strong map hashes?
+15:54 <+bridge> [ddnet] <Fluni> so no clue?
+15:56 <+bridge> [ddnet] <heinrich5991> not from me, no 😦
+15:56 <+bridge> [ddnet] <heinrich5991> you say that this happens with every client? also for vanilla?
+15:57 <+bridge> [ddnet] <Fluni> yes
+16:02 <+bridge> [ddnet] <Learath2> @heinrich5991 am outside but we can discuss sure
+16:02 <+bridge> [ddnet] <heinrich5991> so
+16:03 <+bridge> [ddnet] <heinrich5991> let sha512 be our secure hash for this discussion
+16:03 <+bridge> [ddnet] <heinrich5991> I added a network message that tells the client which sha512 the map of the server has
+16:03 <+bridge> [ddnet] <heinrich5991> theoretically, this is as simple as switching to that map naming scheme in downloadedmaps:
+16:03 <+bridge> [ddnet] <heinrich5991> mapname_<sha512>.map
+16:04 <+bridge> [ddnet] <heinrich5991> the problems come with the backward-compatibility, obviously 😛
+16:04 <+bridge> [ddnet] <Learath2> Yeah thats what I was going to type
+16:04 <+bridge> [ddnet] <heinrich5991> so
+16:05 <+bridge> [ddnet] <heinrich5991> we receive map name and crc and sha512 from a server
+16:05 <+bridge> [ddnet] <heinrich5991> we don't have mapname_<sha512>.map, I guess we should be looking for mapname_<crc>.map and check whether that matches the sha512, if not, download from server
+16:05 <+bridge> [ddnet] <heinrich5991> easy enough
+16:05 <+bridge> [ddnet] <heinrich5991> we receive map name and crc from a server
+16:06 <+bridge> [ddnet] <heinrich5991> we can't tell which map the server wants
+16:06 <+bridge> [ddnet] <heinrich5991> my suggestion would be something like: store which IP offered which (mapname, crc) with which sha512, and only load the map from the hdd if we've seen it on the server before
+16:07 <+bridge> [ddnet] <heinrich5991> i.e. first time visiting a server without crc support *always* means downloading the map again
+16:07 <+bridge> [ddnet] <Learath2> Hmm
+16:07 <+bridge> [ddnet] <heinrich5991> *wtihout sha512 support
+16:08 <+bridge> [ddnet] <Learath2> Why do you bother with ips? Lets just store a map from crc->sha512
+16:09 <+bridge> [ddnet] <heinrich5991> but we have a server that won't tell us which sha512 it expects
+16:09 <+bridge> [ddnet] <heinrich5991> and in order to not have to download the map *every* time, I wanted to download it once and then assume that no changed crc means no changed sha512 for that particular server
+16:10 <+bridge> [ddnet] <heinrich5991> but we can have multiple servers hosting the same (mapname, crc) combination with different maps
+16:10 <+bridge> [ddnet] <Learath2> Why not just get the first crc match fkr those?
+16:10 <+bridge> [ddnet] <heinrich5991> because that might get the wrong map
+16:10 <+bridge> [ddnet] <heinrich5991> it allows people to poison other people's downloadedmaps
+16:10 <+bridge> [ddnet] <Learath2> Storing the sha might too
+16:10 <+bridge> [ddnet] <heinrich5991> how so?
+16:11 <+bridge> [ddnet] <heinrich5991> the crc → sha512 mapping is supposed to be per IP
+16:11 <+bridge> [ddnet] <heinrich5991> so a server can't manipulate other servers
+16:11 <+bridge> [ddnet] <ᶰ°Konͧsti> Salam Alaikum my muslim friends :GWqlabsFeelsGoodMan:
+16:11 <+bridge> [ddnet] <ᶰ°Konͧsti> :ww:
+16:12 <+bridge> [ddnet] <heinrich5991> don't spam, @ᶰ°Konͧsti
+16:12 <+bridge> [ddnet] <ᶰ°Konͧsti> Rude :feelsbadman:
+16:12 <+bridge> [ddnet] <Learath2> Server crafts a new map with same crc, you assume sha didnt change old map gets loaded
+16:12 <+bridge> [ddnet] <heinrich5991> the server can do that anyway
+16:13 <+bridge> [ddnet] <heinrich5991> send a crc/sha512 that doesn't match what the server has loaded
+16:13 <+bridge> [ddnet] <Learath2> True
+16:14 <+bridge> [ddnet] <Learath2> I guess an ip+crc to sha map should work
+16:14 <+bridge> [ddnet] <heinrich5991> ok
+16:14 <+bridge> [ddnet] <heinrich5991> then the next thing
+16:14 <+bridge> [ddnet] <heinrich5991> how should we name the maps?
+16:14 <+bridge> [ddnet] <heinrich5991> mapname_crc_sha512.map?
+16:14 <+bridge> [ddnet] <heinrich5991> mapname_sha512.map
+16:14 <+bridge> [ddnet] <heinrich5991> sha512.map
+16:14 <+bridge> [ddnet] <heinrich5991> I dislike the last one
+16:15 <+bridge> [ddnet] <heinrich5991> and another thing
+16:15 <+bridge> [ddnet] <heinrich5991> I guess we should still verify the CRC on the sha512'd maps?
+16:15 <+bridge> [ddnet] <heinrich5991> just for consistency?
+16:16 <+bridge> [ddnet] <Learath2> No need though right?
+16:16 <+bridge> [ddnet] <heinrich5991> the CRC is still sent by the server so the client could look for mapname_<crc>.map
+16:16 <+bridge> [ddnet] <heinrich5991> or should I also not do that?
+16:17 <+bridge> [ddnet] <Learath2> mapname_crc_sha.map should work actually
+16:17 <+bridge> [ddnet] <Learath2> How do we handle the http downloads though?
+16:18 <+bridge> [ddnet] <Learath2> Actually we could do mapname_sha_crc.map and maybe abuse the fact that the crc is appended
+16:18 <+bridge> [ddnet] <heinrich5991> I thought that this might be a bad idea
+16:19 <+bridge> [ddnet] <heinrich5991> because then you can't see that veryfunnymapname_usingonlyhexcharshere_crc.map doesn't contain a sha512
+16:19 <+bridge> [ddnet] <heinrich5991> offer both maps.ddnet.tw/mapname_crc_sha.map and maps.ddnet.tw/1.2.3.4/mapname_crc.map?
+16:19 <+bridge> [ddnet] <heinrich5991> for map downloads?
+16:19 <+bridge> [ddnet] <heinrich5991> we can do hardlinks there
+16:19 <+bridge> [ddnet] <heinrich5991> or actually
+16:20 <+bridge> [ddnet] <heinrich5991> maybe maps.ddnet.tw/1.2.3.4/mapname_crc.map redirects to maps.ddnet.tw/mapname_crc_sha.map
+17:11 <+bridge> [ddnet] <Learath2> @heinrich5991 can mapnames be that long?
+20:19 <+bridge> [ddnet] <heinrich5991> @Learath2 what do you mean?
+20:19 <+bridge> [ddnet] <Learath2> veryfunnymapname_usingonlyhexcharshere_crc.map
+20:19 <+bridge> [ddnet] <heinrich5991> ah
+22:12 <+bridge> [ddnet] <NeXus> somebody good in jquery / javascript ?
+22:14 <+Learath2> I'm pretty decent at ES7 by now
+22:15 <+Learath2> @NeXus what do you need?
+22:15 <+bridge> [ddnet] <NeXus> https://stackoverflow.com/questions/50277497/jquery-autocomplete-headline-for-results
+22:15 <+bridge> [ddnet] <NeXus> Maybe you can help me with this
+22:19 <+Learath2> Well I usually start out by laying out a non functional DOM
+22:23 <+bridge> [ddnet] <Learath2> this seems more of a jquery question though, you could do some css trickery if that's acceptable for you
+22:23 <+bridge> [ddnet] <Learath2> first-child selector to be exact
+22:25 <+bridge> [ddnet] <NeXus> ah this could work
+22:25 <+bridge> [ddnet] <Learath2> @NeXus correct way would be to extend _renderMenu btw
+22:30 <+bridge> [ddnet] <Learath2> while(items[0]){let title = items[0].option; addHeader(title); while(items[0].option === title) { addItem(items[i]); items.splice(0, 1); }}
+22:31 <+bridge> [ddnet] <Learath2> would be a pretty meh way to do it but it'd work 😛
+22:33 <+bridge> [ddnet] <NeXus> Holy xD where would I put this and I assume addHeader(title); is the function which got my header content
+22:33 <+bridge> [ddnet] <NeXus> Holy xD where would I put this and I assume addHeader(title); is the function which got my header content ?
+22:34 <+Learath2> @NeXus instead of extending _renderItem like you are doing there extend _renderMenu
+22:34 <+Learath2> addHeader and addItem are placeholder functions because idk much jQuery, you should check the docs to see how they insert items
+22:35 <+Learath2> gist of it is addHeader(title) would add a header with title and addItem(item) would add the autocomplete item item :)
+22:56 <+bridge> [ddnet] <heinrich5991> heh
+22:56 <+bridge> [ddnet] <heinrich5991> autocomplete
+22:56 <+bridge> [ddnet] <heinrich5991> that's what I'm trying to do with qt right now
+22:57 <+bridge> [ddnet] <Learath2> what's so difficult about it? it's just a strstr
+22:58 <+bridge> [ddnet] <heinrich5991> it's not that part that I'm trying right now
+22:58 <+bridge> [ddnet] <heinrich5991> it's the rendering part
+22:58 <+bridge> [ddnet] <heinrich5991> hence qt
+22:58 <+bridge> [ddnet] <Learath2> hmm, how is it any different then rendering something else?
+22:59 <+bridge> [ddnet] <heinrich5991> I'm not experienced with qt → stuff takes a while
+22:59 <+bridge> [ddnet] <heinrich5991> if you know how to do it, help would be appreciated
+22:59 <+bridge> [ddnet] <Learath2> well I never did it before so I don't see how it'd be any harder then rendering sth else
+22:59 <+bridge> [ddnet] <Learath2> I'm surely missing sth
+22:59 <+bridge> [ddnet] <heinrich5991> nah
+23:00 <+bridge> [ddnet] <heinrich5991> it's probably not harder than putting other widgets on the screen
+23:00 <+bridge> [ddnet] <heinrich5991> but I don't even know how to do that properly
+23:00 <+bridge> [ddnet] <heinrich5991> I want a window that consists of a single line edit box
+23:00 <+bridge> [ddnet] <heinrich5991> haven't managed to do this one yet
+23:00 <+bridge> [ddnet] <heinrich5991> if someone knows devs working with qt, please tell me

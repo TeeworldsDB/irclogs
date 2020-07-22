@@ -1,0 +1,136 @@
+10:54 <+bridge> [ddnet] <fokkonaut> uhm
+10:57 <+bridge> [ddnet] <Jesus Christ> dont fix it
+10:57 <+bridge> [ddnet] <Jesus Christ> its a feature l
+10:57 <+bridge> [ddnet] <Jesus Christ> its a feature
+11:39 <+bridge> [ddnet] <fokkonaut> Can anyone help with the build error?
+12:04 <+bridge> [ddnet] <fokkonaut> Can anyone check the linking error that occurs in ddnet7 for the client since the authmanager commit from me?
+12:51 <+bridge> [ddnet] <n000b> Fokkonaut spam:banhammer:
+13:05 <+bridge> [ddnet] <fokkonaut> U
+13:12 <+bridge> [ddnet] <ChillerDragon> @deen could you please deactivate all ci's for ddnet7 again 🙂
+13:12 <+bridge> [ddnet] <ChillerDragon> its now replaced by github actions
+13:44 <+bridge> [ddnet] <ChillerDragon> 🙂
+14:44 <+bridge> [ddnet] <timakro> @fokkonaut Leider geht `access_level` noch nicht wie erwartet. `access_level <cmd> 2` sollte ein cmd für spieler freischalten die sich mit dem `sv_rcon_mod_password` einloggen
+14:44 <+bridge> [ddnet] <Ryozuki> ja nein ja
+14:44 <+bridge> [ddnet] <fokkonaut> Vielleicht hat @ChillerDragon da etwas nicht richtig gemacht
+14:44 <+bridge> [ddnet] <Ryozuki> 🇩🇪
+14:45 <+bridge> [ddnet] <fokkonaut> Er hat den Pull Request erstellt
+14:46 <+bridge> [ddnet] <ChillerDragon> Hab’s getestet bei mir ging es so @timakro
+14:47 <+bridge> [ddnet] <timakro> huh
+14:48 <+bridge> [ddnet] <ChillerDragon> Could you please provide the exact commands you execute so I can try to reproduce
+14:51 <+bridge> [ddnet] <timakro> it's strange, what is used by the trashmap code is `access_level <cmd> 2`
+14:51 <+bridge> [ddnet] <timakro> but description of access_level says 2=helper
+14:52 <+bridge> [ddnet] <fokkonaut> so whats wrong now?
+14:53 <+bridge> [ddnet] <timakro> on the 0.6 ddnet servers this works:
+14:53 <+bridge> [ddnet] <timakro> 1. `sv_rcon_mod_password 123`
+14:53 <+bridge> [ddnet] <timakro> 2. `access_level up 2`
+14:53 <+bridge> [ddnet] <timakro> 3. login with password 123
+14:53 <+bridge> [ddnet] <timakro> 4. run `up`
+14:53 <+bridge> [ddnet] <timakro> on 0.7 it says access for up denied
+14:54 <+bridge> [ddnet] <fokkonaut> for me it works
+14:54 <+bridge> [ddnet] <fokkonaut> access_level up 2, allows up for helper and mod
+14:55 <+bridge> [ddnet] <timakro> you're right, must be another issue
+14:59 <+bridge> [ddnet] <timakro> https://cdn.discordapp.com/attachments/293493549758939136/668454382219558912/message.txt
+14:59 <+bridge> [ddnet] <timakro> I pass those access_level commands to the server via command line arguments
+15:00 <+bridge> [ddnet] <timakro> it seems like at the point in time they are executed the commands are not yet registered or smth
+15:00 <+bridge> [ddnet] <timakro> some of the commands at least
+15:08 <+bridge> [ddnet] <fokkonaut> sv_trst
+15:08 <+bridge> [ddnet] <fokkonaut> sv_test_cmds 1
+15:17 <+bridge> [ddnet] <ChillerDragon> There is no helper in 0.7
+15:19 <+bridge> [ddnet] <ChillerDragon> Oh wait Fokko added it
+15:19 <+bridge> [ddnet] <timakro> @fokkonaut the cmdline look smth like this
+15:19 <+bridge> [ddnet] <timakro> 
+15:19 <+bridge> [ddnet] <timakro> ```
+15:19 <+bridge> [ddnet] <timakro> ./DDNet7-Server "exec init.cfg;access_level up 2"
+15:19 <+bridge> [ddnet] <timakro> ```
+15:19 <+bridge> [ddnet] <timakro> init.cfg has sv_test_cmds 1
+15:19 <+bridge> [ddnet] <fokkonaut> well, that definitely is about test cmds
+15:19 <+bridge> [ddnet] <fokkonaut> no idea
+15:19 <+bridge> [ddnet] <fokkonaut> those commands are all marked with test
+15:20 <+bridge> [ddnet] <fokkonaut> (the ones that say no such command)
+15:20 <+bridge> [ddnet] <fokkonaut> well, i think this is my fault
+15:20 <+bridge> [ddnet] <fokkonaut> let me fix it
+15:21 <+bridge> [ddnet] <timakro> thanks, would appreciate it
+15:30 <+bridge> [ddnet] <fokkonaut> @timakro
+15:30 <+bridge> [ddnet] <fokkonaut> can you try again?
+15:53 <+bridge> [ddnet] <timakro> @fokkonaut Same problem
+15:53 <+bridge> [ddnet] <fokkonaut> mh
+15:53 <+bridge> [ddnet] <timakro> can't you reproduce?
+15:53 <+bridge> [ddnet] <fokkonaut> w8
+15:56 <+bridge> [ddnet] <fokkonaut> well
+15:57 <+bridge> [ddnet] <fokkonaut> for me it works
+15:57 <+bridge> [ddnet] <fokkonaut> pull again
+15:58 <+bridge> [ddnet] <fokkonaut> i put access_level super 2 in the autoexec.cfg, then started the server and it worked
+15:58 <+bridge> [ddnet] <fokkonaut> the output when starting shows that it got set
+17:37 <+bridge> [ddnet] <timakro> @fokkonaut It's very easy to reproduce. `sv_test_cmds` is not connected to the problem. It's just that some commands are not yet registered when the commands passed as command line arguments are executed. It's probably that some initialization order changed very lowlevel in server.cpp where the command line args are parsed. I'm not sure if it is trivial to change this to the way 0.6 ddnet works or if there are bigger architectural changes i
+17:37 <+bridge> [ddnet] <timakro> 
+17:37 <+bridge> [ddnet] <timakro> ```
+17:37 <+bridge> [ddnet] <timakro> ./DDNet7-Server "access_level up 2"
+17:37 <+bridge> [ddnet] <timakro> ```
+17:37 <+bridge> [ddnet] <timakro> results in the output
+17:37 <+bridge> [ddnet] <timakro> 
+17:37 <+bridge> [ddnet] <timakro> ```
+17:37 <+bridge> [ddnet] <timakro> [2020-01-19 17:36:27][console]: No such command: 'up'.
+17:37 <+bridge> [ddnet] <timakro> ```
+17:38 <+bridge> [ddnet] <fokkonaut> well, you are right. Maybe execute it from an autoexec.cfg gile
+17:38 <+bridge> [ddnet] <fokkonaut> well, you are right. Maybe execute it from an autoexec.cfg file
+17:38 <+bridge> [ddnet] <fokkonaut> that worked for me
+17:39 <+bridge> [ddnet] <timakro> the problem is it's dynamic in the trashmap case
+17:39 <+bridge> [ddnet] <fokkonaut> wym
+17:39 <+bridge> [ddnet] <timakro> i could write a file before i start a server and pass it that ofc
+17:42 <+bridge> [ddnet] <timakro> @fokkonaut Same for autoexec.cfg btw
+17:42 <+bridge> [ddnet] <fokkonaut> for me that worked :/
+17:42 <+bridge> [ddnet] <timakro> autoexec.cfg is executed before cmdline args even
+17:43 <+bridge> [ddnet] <fokkonaut> lol
+17:43 <+bridge> [ddnet] <fokkonaut> well, no idea, sorry
+17:43 <+bridge> [ddnet] <fokkonaut> feel free to pr
+17:57 <+bridge> [ddnet] <ChillerDragon> why is Checked even a int
+17:57 <+bridge> [ddnet] <ChillerDragon> ah do button ex takes a int nvm then
+17:58 <+bridge> [ddnet] <ChillerDragon> used like a bool tho maybe its a c artifact idk
+17:59 <+bridge> [ddnet] <ChillerDragon> xd DDNet6 looks odd
+18:00 <+bridge> [ddnet] <timakro> dunno about the vanilla cmds but i dont think it hurts to register them earlier
+18:00 <+bridge> [ddnet] <ChillerDragon> should be fine ye
+18:00 <+bridge> [ddnet] <timakro> (like this they can also be used with `access_level`, although kinda useless)
+18:01 <+bridge> [ddnet] <ChillerDragon> especially when it was like this in ddnet for years it should make no problems
+18:01 <+bridge> [ddnet] <timakro> the vanilla commands were neither in OnConsoleInit nor OnInit
+18:01 <+bridge> [ddnet] <timakro> i guess thats a vanilla 0.7 thing
+18:11 <+bridge> [ddnet] <timakro> thx, [GER trashmap](https://trashmap.ddnet.tw) now has a DDNet7 option. Maybe someone can convince @deen to update the other servers as well. Patch is [here](https://github.com/timakro/ddnet-trashmap/commit/4d19252c37b0714083ff7dff27e1ff4d9c205159), the `server_storage.json` needs to be updated with a `"version": "0.6"` field for every server.
+18:12 <+bridge> [ddnet] <timakro> i thought markdown links worked
+18:12 <+bridge> [ddnet] <timakro> thx, GER trashmap https://trashmap.ddnet.tw now has a DDNet7 option. Maybe someone can convince @deen to update the other servers as well. Patch is here https://github.com/timakro/ddnet-trashmap/commit/4d19252c37b0714083ff7dff27e1ff4d9c205159, the `server_storage.json` needs to be updated with a `"version": "0.6"` field for every server.
+18:13 <+bridge> [ddnet] <ChillerDragon> thanks a lot @timakro  ❤️
+18:14 <+bridge> [ddnet] <fokkonaut> if you edit a message it gets completely resent to irc btw
+18:16 <+bridge> [ddnet] <ChillerDragon> lol @Learath2 merged mi troll commit xd
+18:17 <+bridge> [ddnet] <fokkonaut> which?
+18:17 <+bridge> [ddnet] <fokkonaut> ah xd
+18:17 <+bridge> [ddnet] <ChillerDragon> xd
+18:17 <+bridge> [ddnet] <ChillerDragon> clickbait commit messages
+18:17 <+bridge> [ddnet] <ChillerDragon> just 2020 things
+18:17 <+bridge> [ddnet] <ChillerDragon> i need it im fulltime github influencer
+18:18 <+bridge> [ddnet] <ChillerDragon> and when i wanted just a shirt he was trollin me xd. Oh btw @Learath2 my hacktoberfest shirt didnt arrive yet :/
+18:19 <+bridge> [ddnet] <ChillerDragon> anyone else ordered a hacktoberfest shirt and got it already? .-.
+18:20 <+bridge> [ddnet] <Ryozuki> mr github
+18:21 <+bridge> [ddnet] <ChillerDragon> :party:
+18:40 <+bridge> [ddnet] <timakro> git my shirt @ChillerDragon
+18:40 <+bridge> [ddnet] <timakro> got*
+18:41 <+bridge> [ddnet] <ChillerDragon> meh :/
+18:41 <+bridge> [ddnet] <ChillerDragon> i think they did not found my flat or a neighbour stole it
+18:42 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/668510503328415791/sjs3htmk7ob41.png
+19:02 <+bridge> [ddnet] <Learath2> @ChillerDragon I got mine aswell, nice theme this year
+19:02 <+bridge> [ddnet] <Learath2> Don't they give you a tracking no? either case just ask them and I'm sure they'll give you a hand
+19:03 <+bridge> [ddnet] <ChillerDragon> "nice theme this year" fk u :/
+19:19 <+bridge> [ddnet] <ChillerDragon> is bojidar-bg here?
+20:26 <+bridge> [ddnet] <deen> @Ryozuki you should also use static analyzers like clang-tidy, sanitizers like asan
+20:27 <+bridge> [ddnet] <Ryozuki> me?
+20:27 <+bridge> [ddnet] <Ryozuki> what are we talking about?
+20:27 <+bridge> [ddnet] <Ryozuki> :pepeH:
+20:28 <+bridge> [ddnet] <heinrich5991> https://discordapp.com/channels/252358080522747904/293493549758939136/668510503756365825 this one I guess
+20:28 <+bridge> [ddnet] <Ryozuki> oh
+20:28 <+bridge> [ddnet] <Ryozuki> :lol:
+20:30 <+bridge> [ddnet] <ChillerDragon> no matter if your in trouble or dropping memes heinrich is always there and will serve some serious help 😄
+20:30 <+bridge> [ddnet] <ChillerDragon> oh wait
+20:31 <+bridge> [ddnet] <ChillerDragon> deen*
+20:36 <+bridge> [ddnet] <heinrich5991> @ChillerDragon you forgot some instances of `set_glob` in `cmake/Find*.cmake`
+20:36 <+bridge> [ddnet] <ChillerDragon> oh yikes
+20:36 <+bridge> [ddnet] <ChillerDragon> ima force push sec
+20:38 <+bridge> [ddnet] <ChillerDragon> fixed
+22:22 <+bridge> [ddnet] <ChillerDragon> @Learath2 asking for the shirt was a good idea i guess. I just wrote them a mail... then i realized i did not check my mailbox in months xxxD
+22:22 <+bridge> [ddnet] <ChillerDragon> i just assued the shirt is too big to fit in there anyways

@@ -1,0 +1,82 @@
+14:49 < o_be_one> hi all :)
+14:53 <@deen> hi
+20:49  * Pwned slaps deen around a bit with a large fishbot
+21:42 <@deen> didn't know it's that easy to get servers which can fake any ip
+21:43 <@deen> they're kicking everyone on block server by sending disconnect packets from their ips
+21:47 <@deen> at least they only do it on the block server
+21:47 <@deen> and seemingly they can only do it on non-ddnet clients
+21:51 < eeeee> deen: promote ddnet client in the broadcast?
+21:52 <@deen> i did
+21:52 < eeeee> did it work?
+21:52 <@deen> after they shut down the servers
+21:52 <@deen> using xRoThx's rcon
+21:52 < eeeee> wut
+21:52 <@deen> which is a bit weird
+21:53 <@deen> since I made multiple safeguards against that
+21:53 <@deen> he was on with ddnet client apparently
+21:53 <@deen> so his port should be randomized
+21:53 <@deen> and rcon logs out after each command
+21:53 <@deen> but if they have his ip, through skype for example
+21:53 <@deen> they can scan all his ports to try which one is correct
+21:54 <@deen> and then send the shutdown rcon command until he does something in rcon
+21:54 <@deen> and that would probably work =/
+21:54 < eeeee> yep
+21:58 < eeeee> so instead of logging into the normal rcon, maybe we can have a kind of "sudo" rcon command which doesn't require privileges (like show_others or whatever it's called)
+21:58 < eeeee> having password and the actual command you want to execute as arguments
+21:59 <@deen> yep, sounds good
+22:02 < eeeee> would be even better if we can send a signature (rotating token from server and password hashed) instead of a password
+22:03 < eeeee> that way we don't have to worry about someone accidentally sending the password to a fake server
+22:04 < eeeee> or we could go all out and instrument the client to use econ over ssh
+22:05 <@deen> haha
+22:05 < eeeee> yeah i know, at this rate we'll soon have pentagon level security in teeworlds
+22:05 < xRoThx> hahaha
+22:06 < eeeee> have to pass a retina scan to log into a server
+22:07 < eeeee> if we only had to support linux then econ over ssh isn't bad at all, we just shellexec ssh and that's it
+22:07 < eeeee> but in windows...
+22:08 <@heinrich5991> deen: is just sending the rcon password with every command an option?
+22:08 <@deen> heinrich5991: yes, i think so
+22:09 <@deen> would also be nice to prevent people from being kicked
+22:09 <@deen> but would have to roll out protocol changes for ddnet client exclusively then
+22:09 <@heinrich5991> that needs a client-side fix, so I'd call it impossible
+22:09 <@deen> the server knows who's with ddnet client and who not
+22:09 <@deen> so we could fix it in ddnet client
+22:12 < eeeee> or we can just use js client for all your rcon needs
+22:12 < eeeee> :D
+22:12 < eeeee> it's tcp so much harder to inject packets
+22:13 <@deen> Oooor add an ssh library and use ssh instead!
+22:13 < eeeee> plus it has some ridiculous stream compression
+22:14 < eeeee> in fact let's just tunnel the game traffic over ssh as well to prevent disconnects
+22:15 <@deen> yep, problem solved
+22:15 <@deen> can also have accounts as ssh accouns
+22:16 < eeeee> hmm idk
+22:16 < eeeee> feels like we'd need some LDAP for that
+22:17 < eeeee> and RADIUS to support X.509
+22:17 < eeeee> no enterprise will ever adopt teeworlds without that
+22:18 <@deen> adopt teeworlds?
+22:18 <@deen> could make it the new Second Life when we get multiplayer editor
+22:19 < eeeee> seriously though, lets extend protocol so that client recieves a 32bit token from the server on connection and then passes it back with every VITAL 
+22:19 <@deen> yep
+22:19 < eeeee> no need for rcon changes then i guess
+22:19 <@deen> that would be perfect
+22:20 <@deen> make it ddnet client only and tell everyone to use ddnet client
+22:20 < eeeee> yes please
+22:21 < eeeee> and use a secure prng for tokens
+22:21 <@heinrich5991> such as? :)
+22:21 <@heinrich5991> on linux you could probably read some bytes from /dev/urandom
+22:22 < eeeee> could just keep some stats on server
+22:24 < eeeee> like every client latency reading probably has at least half a bit of entropy
+22:27 < eeeee> or we could get sth like http://www.burtleburtle.net/bob/rand/isaacafa.html
+22:27 < eeeee> and seed it with server rcon password :)
+22:28 < eeeee> mh plus timestamp ofc
+22:28 <@heinrich5991> eeeee: rolling your own crypto, classy :)
+22:28 < eeeee> well do you have a better suggestion?
+22:29 <@heinrich5991> read some bytes from /dev/urandom on non-windows or call an appropiate API on windows
+22:31 < eeeee> that would block though
+22:31 <@heinrich5991> urandom doesn't block
+22:32 < eeeee> it's not a syscall?
+22:32 < eeeee> it has to read from /dev/random from time to time iirc
+22:32 < eeeee> also windows api prolly blocks just for the lulz
+22:33 < eeeee> checks windows update for updated certified list of random numbers
+22:38 < eeeee> heinrich5991: by blocking i meant not the /dev/random kind of block, but just high read latency
+22:38 < eeeee> like this http://drsnyder.us/2014/04/16/linux-dev-urandom-and-concurrency.html
+23:00 <@heinrich5991> eeeee: just read once then?

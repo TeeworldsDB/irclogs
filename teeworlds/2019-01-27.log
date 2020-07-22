@@ -1,0 +1,98 @@
+13:25 < Teeworlds> [teeworlds] oy closed pull request #1996: Remove the no longer used info.png from cmake (master...patch-1) https://git.io/fhrQm
+13:28 < Teeworlds> [teeworlds] oy closed pull request #1987: Add fade effect to join friend button (master...fix-join-hover) https://git.io/fhR34
+13:29 < Teeworlds> [teeworlds] oy closed pull request #1997: No longer incorrectly show bot servers when 'Has people playing' and 'Hide bots' are ticked (master...fix-nonemptyfilter) https://git.io/fho2V
+13:32 < Teeworlds> [teeworlds] oy closed pull request #2001: Add check before resetting the local rcon map list (master...fix-maplist-crash) https://git.io/fh6t3
+20:13 < TeeSlayer> soo... zcatch is almost ported. the general idea works ^_^
+20:15 < TeeSlayer> I have no idea how to change colors though
+20:15 < TeeSlayer> it's quite different now I think
+20:29 < bridge> [teeworlds] <ChillerDragon> is it even possible?
+20:41 < TeeSlayer> dunno.. I also found a way to crash the client while porting :D
+20:46 < TeeSlayer> it happens if you whisper somebody with SendChat, but the first parameter is -1
+20:46 < TeeSlayer> apparently
+21:02 < rand> oO
+21:03 < rand> the server makes the client crashes ?
+21:03 < TeeSlayer> yup
+21:04 < TeeSlayer> The client doesn't check whether ChatterClientID really exists if it receives a whisper
+21:05 < TeeSlayer> that's my guess, haven't looked into the client code yet
+21:05 < TeeSlayer> it was a segfault
+21:05 < TeeSlayer> so probably^^
+21:30 < koomi> oh boy
+21:30 < koomi> I spent some time fuzzing the masterserver a while back but didn't find anything
+21:31 < koomi> sounds like someone(tm) should try the client and maybe regular server too
+21:39 < minus> rewrite it in rust
+21:51 < rand> indeed
+21:52 < koomi> fwiw I used afl and adapted net_udp_recv to read input from stdin
+21:53 <@heinrich5991> ddnet fuzzed it a bit as well
+21:53 <@heinrich5991> you might want to disable compression
+21:53 <@heinrich5991> (and fuzz that separately if you want)
+21:54 <@heinrich5991> the reading of datafiles (maps) is completely broken in that respect. no checks whatsoever and all offsets read from the file are trusted
+21:54 < minus> =D
+21:55 <@heinrich5991> (I read through that code thoroughly while writing the rust datafile & map library)
+21:55 < koomi> right, good point, but I don't think I'll spend time on it anytime soon
+21:56 < minus> can we get a RCE via map download PoC?
+21:58 <@heinrich5991> unlikely
+21:58 <@heinrich5991> I tried to estimate the impact back then
+21:58 <@heinrich5991> it looked like DoS only
+21:58 <@heinrich5991> you only get arbitrary reads, and since the only thing the client sends to the server is the input, you can't even extract useful data
+22:04 < koomi> maybe you can figure out the rcon password
+22:05 <@heinrich5991> the server sends maps to the client, so the only information you could possibly extract is information the client has
+22:06 < koomi> oh right, wrong way
+22:06 < koomi> the server doesn't parse maps that it serves?
+22:06 <@heinrich5991> it does
+22:06 <@heinrich5991> but only the server admin can put maps there
+22:07 <@heinrich5991> hmmmm
+22:07 < koomi> yeah, race servers have lots of maps from various people though
+22:07 <@heinrich5991> yeah
+22:07 < TeeSlayer> who wants to try zcatch on 0.7? :)
+22:07 <@heinrich5991> ok, the only way the server uses the map data is via the game layer
+22:08 <@heinrich5991> so one could theoretically try to carefully craft a map which uses the game layer to transport information to the client
+22:08 <@heinrich5991> (while at the same time looking legitimate, that part might be hard)
+22:09 <@heinrich5991> well, there are probably services that allow you to upload arbitrary maps, so that part might be optional
+22:09 < TeeSlayer> yeah, I've seen that
+22:09 < TeeSlayer> but only for 0.6
+22:09 < TeeSlayer> I thought about doing sth like that, but not anymore :D
+22:10 < koomi> TeeSlayer: laser zcatch?
+22:10 < TeeSlayer> ofc
+22:10 < TeeSlayer> ctf4_old
+22:10 < koomi> let me search for a mouse
+22:12 < TeeSlayer> the only problem is that the old zcatch converted players to spectator, so it might confuse people in the server browser
+22:12 < TeeSlayer> I need to change that, but not today^^
+22:13 <@heinrich5991> you could theoretically still change them to spectators but report something different
+22:13 <@heinrich5991> actually, this sounds like it might be a good application for the client's support for the survival mode
+22:14 < koomi> found a mouse, now making space on the desk...
+22:14 < TeeSlayer> nice
+22:15 <@heinrich5991> I guess I'll get a mouse as well
+22:16 < TeeSlayer> I hope there won't be any bugs :D
+22:17 < koomi> ugh I need to install 0.7 first
+22:17 < koomi> oh it's in backports
+22:17 < TeeSlayer> that's the point
+22:17 < koomi> done
+22:17 < koomi> ok I'm all set up
+22:18 < TeeSlayer> just search for zcatch
+22:20 < koomi> wtf, client freezes for a few seconds as soon as I move my mouse...
+22:20 < koomi> but only with the usb mouse, not the laptops built in
+22:22 < Teeworlds> [teeworlds] nheir opened pull request #2002: check if whisper message has a valid target (master...fix_whisper) https://git.io/fh6Nv
+22:42 < day> how is the score in dm calculated? it's a bit odd that score != kills like it used to be
+22:42 <@heinrich5991> kill - suicides is what it used to be
+22:42 < day> yeah
+22:43 < day> now its just some odd value that means nothing
+22:44 < day> i mean https://i.imgur.com/EBKomc2.png that is just lol
+22:45 < day> almost like you get score points for spending time in the game :D
+22:51 <@heinrich5991> day: ah, I think the issue is that you only see the kills and deaths reflected in the scoreboard that happened while you were on the server
+22:51 <@heinrich5991> there is an issue about that
+22:51 < day> ah
+22:51 <@heinrich5991> (but the total score is still calculated the same as far as I could gather from the source)
+22:51 < day> yeah looks about right. im sure i killed myself a few times
+23:01 < koomi> is teeworlds supposed to call clone(2) a gazillion times a second?
+23:03 < koomi> my pids wrapped...
+23:03 < koomi> seems to be in sdl
+23:06 < koomi> http://sprunge.us/Gx0jf5
+23:12 < koomi> and for god knows what reasons this happens even more often when I move my usb mouse
+23:22 < koomi> is this forking buisness only happening on my system or can someone else confirm?
+23:22 < koomi> strace -eprocess -p $(pgrep teeworlds)
+23:23 < koomi> should show a lot of clone & wait4
+23:31 <@heinrich5991> koomi: no, I only get a constant amount of clone's and no wait4
+23:34 < koomi> do you have a dbus process running as your user?
+23:35 < koomi> it's trying to exec dbus-launch which is not installed on my system
+23:36 < koomi> so seems like an sdl issue
+23:37 < koomi> everything works fine when I install dbus-x11, which contains dbus-launch

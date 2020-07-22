@@ -1,0 +1,54 @@
+13:00 < magneticduck> is there some sort of limit to how fast you can move in a solo course with grenades?
+13:22 < MrPrizrak91> Who here from MWG
+13:36 < magneticduck> hehe, the new client looks pretty funky
+13:50 < magneticduck> um. configure.lua:97: there is no configuration option named 'minmacosxsdk'
+13:50 < magneticduck> upon building 0.5 endofline teeworlds with bam v 0.4
+13:50 < magneticduck> uh I mean, 0.6 endofline
+13:55 < magneticduck> so, 0.6 teeworlds doesn't build with 0.5 bam
+13:56 < magneticduck> this page https://www.teeworlds.com/?page=docs&wiki=CompilingEverything says I should use bam 0.4.0, but this causes this minmacosxsdk issue
+14:04 < magneticduck> what the heck...
+14:04 < magneticduck> I'm using bam from http://github.com/downloads/matricks/bam/bam-0.4.0.tar.bz2 and teeworlds from commit 44a47d4253a829abcf50dac5586fd9a351f0c66b
+14:05 < magneticduck> which corresponds to the 0.6-endofline release
+14:17 <@minus> possible that noone compiled it on os x
+14:19 < magneticduck> I'm not compiling it on osx
+14:19 <@minus> hm
+14:19 < magneticduck> what version of bam and teeworlds do you use when you want to play with the current production client?
+14:20 <@minus> make sure you wipe bam configs when checking out a different version
+14:20 < magneticduck> I'm using nix, so everything's sandboxed
+14:20 <@minus> rm -r .bam config.lua
+14:20 <@minus> ah ok
+14:20 <@minus> bam 0.4 and teeworlds 0.6.3
+14:21 < magneticduck> the bam is presumably from the URL I linked?
+14:21 < magneticduck> and the teeworlds is the 0.6.3-release or 0.6-endofline tag?
+14:24 < magneticduck> oh nice, it works now
+14:25 < magneticduck> it works on 0.6.3-release but not on 0.6-endofline
+14:26 < magneticduck> and now I get a compile-time error
+14:28 < magneticduck> http://hastebin.com/emunutayud.avrasm
+14:28 < magneticduck> __declspec is a MSVC thing, apparently platform flags aren't being set correctly
+14:39 < magneticduck> uh I'm just totally confused
+14:40 < magneticduck> other/freetype/include/freetype/config/ftoption.h seems to be a series of option definitions
+14:40 < magneticduck> one of the customizable macros was commented out and replaced with an expression using __declspec
+14:41 < magneticduck> which is then promptly used in the main freetype header
+14:41 < magneticduck> and it simply doesn't work on any linux toolchains
+14:41 < magneticduck> is this whole library only supposed to be compiled on windows?
+14:42 < magneticduck> hm, that is the case
+14:44 < magneticduck> I'm just lost
+14:44 < magneticduck> s/compiled/linked and included
+14:45 < Henningstone> 1. Delete config.lua, 2. do "bam -c all;bam config", 3. Compile.
+14:45 < Henningstone> Worked for me on Ubuntu 15.10
+14:46 < Henningstone> I also used the commit you mentioned and first faced the minmacosxsdk-error
+14:47 < magneticduck> same error
+14:48 < Henningstone> "configure.lua:97: there is no configuration option named 'minmacosxsdk'" ?
+14:48 < magneticduck> http://hastebin.com/exacazobat.bash
+14:48 < magneticduck> no, the one I just mentioned
+14:49 < magneticduck> full build output, wrapped by nix http://hastebin.com/zefopihefo.rb
+14:50 < magneticduck> using commit 7345985878cf0210cb757315bd1be27d14becce6, tag 0.6.3-release
+14:52 < magneticduck> even if you don't use nix, the build file I linked presents all the information about how the build works
+14:52 < magneticduck> ${bam} is replaced with a path to the bam executable before it reaches the shell
+14:53 < magneticduck> $src is equilivent to the teeworlds working directory, the working directory of the buildPhase script is a sandbox
+14:54  * magneticduck back in a little while
+17:37 < magneticduck> I'm back, still with my teeworlds building issues
+17:38 < magneticduck> I'm able to fix the problem by editing lines 255 through 258 of other/freetype/include/freetype/config/ftoption.h to not use __declspec
+17:39 < magneticduck> I don't understand why this bit of code was being pulled in on my linux system, __declspec is strictly a msvc feature
+20:35 < fstd_> ew
+20:47 < magneticduck> shush, it works

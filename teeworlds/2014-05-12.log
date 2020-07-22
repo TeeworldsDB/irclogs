@@ -1,0 +1,112 @@
+08:31 <@minus> matricks: wörk wörk!
+13:43  * nameless_tee19 slaps BotoX around a bit with a large fishbot
+17:54 < SlayerGV> hi
+17:56 < SlayerGV> matricks: do you know if paypal has a minimum amount (EUR) for donations, if the donator can choose the amount himself?
+17:57 <@matricks> anything less then about 3-5 euro is a waste almost
+18:00 < SlayerGV> yes it is
+18:00 < SlayerGV> but i want to know, that if i let the donator choose, if there is a minimum limit for him
+18:00 < SlayerGV> or a possibility to set it manually
+18:01 < SlayerGV> coz if he would donate 1ct
+18:01 < SlayerGV> and i would have to charge 35ct
+18:01 < SlayerGV> ..
+18:01 <@matricks> don't remember
+18:02 < SlayerGV> i couldnt find anything on the internet :(
+18:57 < heinrich5991> matricks: do you happen to know how font rendering in TW works (roughly)?
+18:58 <@matricks> yes, I wrote it
+18:58 < heinrich5991> that's great if you still know it :) - you might have forgotten what you wrote
+18:59 <@matricks> I know roughly how it works
+19:00 < heinrich5991> could you describe it?
+19:00 <@matricks> it uses one texture per font per size
+19:01 <@matricks> the texture splitted into X slots
+19:01 <@matricks> when a glyph is requested, it gets rendered to the texture
+19:01 <@matricks> if it already exists, it uses the data that is already there
+19:01 <@matricks> and then it uses that texture to render the text
+19:02 <@matricks> if the texture runs out of space, it destroys it and creates a new larger one
+19:04 < heinrich5991> and in the TextEx function it renders character by character from said texture to the screen?
+19:04 <@matricks> could be that function yes
+19:04 <@matricks> yes it is
+19:05 <@matricks> that function first figures you the actual size in final pixels
+19:05 <@matricks> chooses the data to use for that size
+19:05 <@matricks> GetSize+RenderSetup
+19:06 <@matricks> GetSize creates a new font-size none exist
+19:06 <@matricks> by calling InitIndex
+19:07 <@matricks> aFontSizes has the valid font sizes that the engine will use
+19:11 < heinrich5991> it seems to cache the glyphs in a LRU cache
+19:11 <@matricks> LRU?
+19:12 < heinrich5991> last recently used
+19:12 < heinrich5991> or something like that
+19:12 <@matricks> it keeps everything
+19:12 <@matricks> until it can't fit more, then it tosses everything and creates a bigger texture
+19:13 < heinrich5991> oh right
+19:13 < heinrich5991> it only kicks out stuff if it hasn't been used for >1 second
+19:14 <@matricks> you could make a client spend loads of gpu memory buy chatting with loads of different characters :)
+19:14 < heinrich5991> ^^
+19:14 < heinrich5991> the actual rendering is in these lines, right?
+19:14 < heinrich5991> 703 Graphics()->QuadsSetSubset(pChr->m_aUvs[0], pChr->m_aUvs[1], pChr->m_aUvs[2], pChr->m_aUvs[3]);
+19:14 < heinrich5991> 704 IGraphics::CQuadItem QuadItem(DrawX+pChr->m_OffsetX*Size, DrawY+pChr->m_OffsetY*Size, pChr->m_Width*Size, pChr->m_Height*Size);
+19:14 < heinrich5991> 705 Graphics()->QuadsDrawTL(&QuadItem, 1);
+19:15 <@matricks> ya
+19:15 <@matricks> it picks the character out of the texture, and renders the quad
+19:15 < heinrich5991> the Uvs is the position in the prerendered tile layer?
+19:15 <@matricks> in the font texture yes
+19:15 < heinrich5991> and the QuadItem determines the position on the screen?
+19:15 <@matricks> yes
+19:16 < heinrich5991> where is freetype used then? I thought we'd be using it for text rendering
+19:16 <@matricks> line 306
+19:17 < heinrich5991> ah
+19:17 < heinrich5991> when rendering on the font texture
+19:17 <@matricks> FT renders the glyph into a buffer, that buffer gets converted into something usefull and then uploaded
+19:17 <@matricks> yah
+19:18 <@matricks> RenderGlyph() renders a glyph X of size Y and uploads to the font texture by calling UploadGlyph
+19:18 <@matricks> whole thing is quite simpel and gives quite a good result when it comes to text quality
+19:19 <@matricks> tradeoff in speed and memory is reasonable
+19:19 <@matricks> you can reduce the memory footprint by being smarter on how you position the glyphs in the font texture
+19:20 <@matricks> right now it just splits everything up into equal chunks
+19:21 <@matricks> there is actually a maximum size that the font texture can be
+19:21 <@matricks> hmm...
+19:21 <@matricks> it can only hold 4k of glyphs...
+19:22 <@matricks> should be a bug here some where
+19:22 < heinrich5991> that should be enough, actually
+19:22 <@matricks> oh, I've actually thought of it :D
+19:23 <@matricks> if it can't increase the texture size due to the 4k limit, it will start reusing slots
+19:23 <@matricks> kicking out old ones
+19:23 <@matricks> so it will start behave like a LRU cache you talked about
+19:24 < heinrich5991> I guess that would perform badly if all these >4k characters are on the screen at the same time
+19:24 <@matricks> yeah
+19:26 <@minus> what's this LRU cache talk
+19:27  * minus np: Dream Theater - Octavarium
+19:27 <@matricks> minus: font system kicks out the least used glyph if the cache is full
+19:27 <@minus> not good
+19:27 <@matricks> minus: and the cache will be full if you use 4k glyphs
+19:27 <@matricks> which.. I don't think has ever ahppend
+19:27 <@minus> 4k should be more than enough for everyone
+19:28 <@matricks> yeah, it's just a fail-safe more or less
+19:28 <@matricks> if you are using that many, you are going to have other problems as well
+19:28 <@minus> glyphs should be rendered in the background
+19:28 <@minus> like?
+19:28 <@matricks> it got 99 problems but the font ain't one of em
+19:28 <@matricks> 4k glyphs means 4k worth of text on the screen with unique glyphs
+19:29 <@matricks> doesn't sound reasonable
+19:30 < heinrich5991> I think font *is* indeed a problem
+19:30 < heinrich5991> when a lot of text is on the screen, the FPS drop
+19:30 <@matricks> whats the problem?
+19:30 < heinrich5991> a little, that is
+19:30 <@matricks> yeah
+19:31 <@matricks> that is a optimization issue
+19:31 <@matricks> the gfx API is a bit bad, and some refactoring that was made didn't help it out
+19:31 < heinrich5991> thanks for the information so far!
+19:31 < heinrich5991> the gfx API is the bottleneck?
+19:32 < heinrich5991> there is one virtual call per character
+19:32 < heinrich5991> is it that?
+19:32 <@matricks> yeah, that isn't nice
+19:32 <@matricks> and it causes loads of batches for the gfx card as well
+19:32 <@matricks> should be easy to make that much faster
+19:32 < heinrich5991> batches?
+19:32 <@matricks> batch == draw call
+19:33 <@minus> glNewList
+19:33 < heinrich5991> well, since the threading is rendered, I think that shouldn't be much of a problem
+19:33 <@minus> actually that is deprecated
+19:33 <@matricks> heinrich5991: yes and no
+19:33 < heinrich5991> oh
+19:33 <@matricks> depends on where the bottleneck actually is
+19:34 <@matricks> I would do some micro benchmarks to figure out the actual performance of it

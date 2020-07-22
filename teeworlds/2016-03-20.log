@@ -1,0 +1,59 @@
+09:50 < nameless_tee67> hi
+09:52 < nameless_tee88> hi!?)
+10:47 < Teectac> damn, this memory leak in teeworlds is hard to find
+11:08 <@heinrich5991> Teectac: tried valgrind? :)
+11:09 < Teectac> yes, but it's only showing a few bytes « probably lost » in the jobs class
+11:10 < Teectac> yet the process goes to 20mb and above
+11:11 <@minus> vanilla teeworlds?
+11:12 < Teectac> i suspect the memory gets freed once the program stops yet still leaks while running
+11:12 < Teectac> i'm checking, but it looks like its due to my modifications
+11:14 < Teectac> yep, vanilla looks fine, idk what i've done to leak stuff
+11:15 <@minus> well, everything gets freed once you kill the program
+11:15 <@minus> big changes?
+11:15 < Teectac> i removed sound, graphics, demo recording from the client
+11:16 <@minus> aye, so not recognizable by a simple look at the diff
+11:19 < Teectac> not unless i knew teeworlds memory allocation patterns, which i don't
+11:20 <@minus> but if you're making what i think you're making then it's just wasted effort anyway
+11:20 < Teectac> but i mainly removed lots of stuff, lets give it a shot. i guess i'm looking for missing free()s
+11:22 < Teectac> maybe, i'm having fun for now but i expect this won't be a long lived project yea
+11:22 <@minus> nothing wrong with that :)
+11:59 < Teectac> found the leak
+12:00 < Teectac> its libpqxx, the lib that connects to postgresql
+12:01 < EastByte> stupid sql libs always leaking memory
+12:01 < Teectac> EastByte: rly ? other ones also leak ?
+12:02 < EastByte> I think we have a similar problem on ddnet with the mysql lib
+12:05 < Teectac> well, i'm not debugging libpqxx, lets just mitigate that
+12:27 < Teectac> even global variables won't do the trick, well these sql libs really need devs
+18:29 < Teectac> waw, that cpu_throttle thing might work for a single client but launch twenty of them and you are toast
+18:38 < rand> you want to connect only to get scoreboard (with teams) ?
+18:39 < Teectac> yep
+18:39 < rand> waiting for the final scoreboard ?
+18:39 < Teectac> indeed
+18:39 < rand> :c
+18:41 < Teectac> ?
+18:43 < rand> I still don't like your project :)
+18:44 < rand> but, for some object in teeworlds, memory is allocated with pools
+18:45 < Teectac> what abt them ?
+18:45 < rand> so, it's allocated when teeworlds starts, and the code gives some pointer to free area in this memory space
+18:46 < rand> the classes have a macro header that define operator new/delete
+18:46 < Teectac> i've seen them, looks very strange to me
+18:48 < Teectac> like trying to hide c++ features to look like c
+19:00 < Teectac> looks like i won't be collecting scoreboards after all
+19:09 <@heinrich5991> trying to understand the resend code
+19:10 <@heinrich5991> suppose we have sent the chunks 1,2 in the past, but they didn't arrive, so the peer realized that when 3,4 arrived
+19:10 <@heinrich5991> we try to resend, but in the meantime, more packets (5,6) are in the queue
+19:12 <@heinrich5991> from what I understand, the packets sent will be 5,6,1,2,3,4
+19:13 <@heinrich5991> the client will drop 5,6 because they're too new, and then complain about missing 5,6 later
+19:23 <@heinrich5991> ah wait
+19:23 <@heinrich5991> it'll send 5,6,1,2,3,4,5,6, so no more chunks will get lost, only some traffic will be wasted
+20:31 < F1rSt_> :|
+20:42 <@minus> sup
+20:45 < Teectac> minus: any idea to lower tw client cpu ?
+20:46 <@minus> nope
+20:46 < Teectac> how's cpu_throttle 2 ?
+20:46 <@minus> i don't think that does anything
+20:47 < Teectac> that does thread_sleep(2)
+20:48 <@minus> then i suggest putting a high value there
+20:48 <@minus> it's probably microseconds or so
+20:49 < Teectac> its also used for stress test so i don't know what to try
+21:17 <@heinrich5991> also, should the resend action trigger an instant flush?

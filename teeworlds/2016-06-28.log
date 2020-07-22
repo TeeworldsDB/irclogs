@@ -1,0 +1,32 @@
+01:55 < deen> I have 40 fps in Teeworlds after suspend instead of 500 fps on Internet tab, other tabs have higher fps. It seems to be because of font rendering and Internet tab has lots of fonts. Has anyone noticed this before?
+01:59 < Henningstone> I noticed that the TW font rendering is apparently not as optimal as it ?should be... also had some trouble already :/ E.g, if you render much text with uneven font sizes (like 12.7f) the whole thing gets somewhen stuck in an endless loop
+02:06 < deen> From what I can tell all the glyphs are rendered and cached already.
+02:06 < deen> Oooh
+02:06 < deen> It's the call to time_get that gets slowed down on my system, hah!
+02:06 < deen> and time_get is called a lot when rendering text
+02:07 < deen> luckily I have time_get caching in DDNet for the server, gotta use that for client as well. And probably report to Linux kernel about broken gettimeofday after suspend
+09:53 < EastBite> deen: what exactly is the problem about gettimeofday?
+10:11 < koomi> deen: is your browser slow aswell?
+10:12 < koomi> they rely heavily on gettimeofday being fast
+10:12 < koomi> and not flushing the tlb etc.
+11:52 < deen> EastByte: my problem or the general problem?
+11:52 < EastByte> both I guess
+11:53 < deen> my problem was that after suspend/resume the CPU's TSC was reset and that caused Linux to disable TSC and use HPET instead, much slower
+11:54 < deen> so I force-enabled TSC and now it seems fine
+11:54 < deen> gettimeofday in general is not great because when you adjust time on server every player gets a timeout
+19:33 < eeeee> and why time_get is called a lot when rendering text? is that a freetype thing?
+20:08 <@heinrich5991> eeeee: it was for caching the character glyphs AFAIK
+20:09 <@heinrich5991> storing when they were last used
+20:12 <@minus> maybe the cache size is too small and it keeps evicting stuff?
+20:13 <@heinrich5991> time_get is called every time a character is rendered onto the screen
+20:14 <@heinrich5991> doesn't have to do with eviction
+20:35 < deen> i believe you could just use a monotone counter instead of remembering the exact time a glyph was last rendered. Or at least store the time once per frame and use that
+20:37 <@minus> many calls to getTimeOfDay?
+20:38 < deen> yes
+20:38 < deen> and apparently hpet on linux is slow enough to slow that down to 40 fps
+20:39 <@minus> wow
+20:39 <@minus> i thought linux cached gettimeofday syscalls
+20:39 < deen> it should, i still have to investigate why vdso didn't run
+20:42 < deen> apparently linux removed that feature 2 months ago because it was buggy
+20:42 < deen> vdso + hpet
+20:42 <@minus> mh

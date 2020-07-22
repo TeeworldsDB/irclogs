@@ -1,0 +1,128 @@
+00:00 <@matricks> and each time you get a snapshot from the server, you repredict parts of the game to the predicted time
+00:01 < needs1> game_time + latency implies latency is in fact (curent_time - game_time), no?
+00:01 <@matricks> what is current time?
+00:01 < needs1> "now"
+00:01 <@matricks> what is now? :)
+00:01 < needs1> client local time
+00:02 <@matricks> what is the client local time?
+00:02 < needs1> I must warn you, I'm totally opque to philosophical question ^^
+00:02 <@matricks> this isn't philosophical
+00:03 < needs1> the client local tick, something like a time()
+00:03 <@matricks> client side only has two times, game time and predicted time
+00:04 <@matricks> game time is synced with the server and when tick 50 starts, the snapshot for tick 50 should have just arrived
+00:04 <@minus> if config.lua exists i get: config.lua:1: attempt to index a nil value (upvalue '_ENV')
+00:04 <@minus> delete it, then it works once
+00:04 <@matricks> yes
+00:05 <@matricks> and predicted time is game time + latency to the server
+00:05 <@minus> should that file not be created? or has something in it to be fix?
+00:05 <@matricks> minus: does it work once, and then stops working?
+00:06 <@minus> yes, on the second run it fails with said error
+00:06 < needs1> Okay, I think I've nailed it, so here, "time" is in fact in "tick" units.  We are not talking of time in "seconds"?
+00:07 <@matricks> needs1: no, we are talking seconds because you need higher resolution to adjust it
+00:07 <@matricks> needs1: you can think of it as floating ticks
+00:07 <@matricks> needs1: so you can be on tick 50.2
+00:07 <@matricks> minus: https://gist.github.com/anonymous/b38761c05120cab33475428575055fde
+00:08 <@matricks> minus: changes I did
+00:08 <@minus> yeah, works now after not being stupid
+00:09 <@minus> i had options_table defined after the loadfile call
+00:10 < needs1> To finish your sentence, "so you can be on tick 50.2" ... "when you want to start prediction"?
+00:11 < needs1> Hence you have to predict for let say 7.2 ticks if the game time is 43
+00:11 < needs1> game_time in that regards is always an integer
+00:11 < needs1> no?
+00:11 <@matricks> if game time is as 50.2, you have to predict to 57.4 if the latency is 7.2
+00:13 < needs1> But what is latency then?
+00:13 <@matricks> latency is the time it takes for a packet to go from the client to the server
+00:13 < needs1> Of course, my question should rather be "how do we compute it"?
+00:14 <@matricks> with trickery :)
+00:14 <@matricks> if I remember correcty
+00:14 <@matricks> it goes something like this
+00:15 <@matricks> client sends input intended for tick 50
+00:15 <@matricks> then it gets a replay later that says input for tick 50 was 93ms early before tick 50 was executed
+00:16 <@matricks> then the client knows that the predicted time it had for tick 50 was 93ms too much
+00:16 <@matricks> so then it can reduce the amount of prediction it uses
+00:17 <@matricks> https://github.com/teeworlds/teeworlds/blob/master/src/engine/client/client.cpp#L1188
+00:17 <@matricks> the code that adjusts the predition time
+00:18 <@heinrich5991> I was about to ask where I can find the corresponding code
+00:18 <@heinrich5991> thanks!
+00:18 <@minus> okay, PR is out, thanks matricks
+00:19 < needs1> I still don't get why we must predict for "latency" ticks instead of "time betwen now and gametime"
+00:19 <@matricks> because what is now?
+00:19 < needs1> Hummm ^^
+00:20 <@minus> i bet you have a link to an article about that prediction stuff handy, matricks
+00:20 <@matricks> nope
+00:21 < needs1> maybe I'm confusing everything...  But isn't prediction only used for rendering?  Hence now can be the time() in seconds at wich the current frame is rendered
+00:21 <@minus> mh
+00:21 <@matricks> needs1: but that doesn't give anything...
+00:21 <@matricks> needs1: you need to syncronize the time between two machines
+00:22 <@matricks> needs1: and machines internal timers drift, so you can't just sync once
+00:22 <@matricks> also, latency from the server to client can increase, which shifts the time as well
+00:23 <@minus> https://www.reddit.com/r/programming/comments/k4m3q/the_quake_3_networking_model/ that should contain some good stuff, right?
+00:23 <@matricks> what the local time is on the client machine is completly irrelevant
+00:23 <@matricks> minus: yeah
+00:29 <@matricks> the prediction and timing of that whole thing is hard to wrap your head around
+00:29 <@minus> do pen and paper help?
+00:29 <@minus> or a sequence diagram?
+00:31 <@matricks> yap
+00:31 < needs1> matricks: Ys it is, I'm actualy more confused now than before asking
+00:31 <@matricks> :D
+00:32 < needs1> I'm going to read the linked articles to try to undertsand better
+00:32 <@minus> at least you're more informed and less wrong in your assumptions
+00:32 <@matricks> I've thought up a new way of doing it to reduce latency even more
+00:32 <@minus> is it a three-letter acronym?
+00:33 <@matricks> I can make it one
+00:33 <@minus> LAN?
+00:33 <@minus> :P
+00:33 <@heinrich5991> TLA!
+00:33 <@matricks> remove the ticks from the gamecore more os less
+00:33 <@matricks> more or less
+00:34 <@minus> TLA?
+00:34 <@minus> not sampling input at fixed 50Hz should help too, right?
+00:34 < needs1> matricks: How would that works?
+00:35 <@matricks> needs1: not gonna explain it how :)
+00:35 <@matricks> you could look at it as updating the server at 10000hz instead of 50hz
+00:35 < needs1> something like a "real time" data processing
+00:36 < needs1> But at the end you still need to have a time unit shared between client adn server, no?
+00:36 <@matricks> yes, time still needs to be synced
+00:38 < needs1> Is it something like doing a poll(), once a packet is received process it immediately and update world, then sync that world with every clients, repeat?
+00:39 <@matricks> yes and no, that doesn't really work because stuff in the world can happen even tho you don't get anything from the clients
+00:40 <@matricks> but yes, it's more of an event based game system then tick based
+00:40 < needs1> Ah yes indeed ^^
+00:41 <@minus> alrighty nighty
+00:51 < needs1> Arg, I think I got most of the prediction thing, except, game_time + latency ^^  The fact that latency is computed via some trickery, makes things worse.  If latency is not an exact value of the lantency between client and server, then on the client side sometime things are going too much ahead of time, and sometime they are too much behind time, meaning your tee sometime run fast and sometime run slow, no?
+00:52 <@matricks> latency is a exact value that changes over time
+00:52 <@matricks> it's adjusted as the latency to the server changes
+00:54 < needs1> Well I guess I have to figure out what is really a time shared between a client and a server, so that game_time, latency will all make sens
+00:55 < needs1> I also was reading how source engine does handle lag, and they also does some kind of server side prediction "lag compensation"
+00:56 < needs1> Something that predict teh client prediction
+00:56 < needs1> ^^!
+00:56 <@matricks> no, they do the reverse on the server
+00:56 < needs1> Ah yes indeed, they goes back in time
+00:57 < needs1> Where preditciton go further in time
+00:57 <@matricks> yap, and thay can't be done in teeworlds
+00:57 < needs1> Why not?
+00:58 <@matricks> because of the perspective
+00:58 <@matricks> it only works with direct hit weapons and from third person it can look really weird
+00:59 < needs1> So it can actually works for laser, at least?
+01:00 < needs1> From what I read its "just" about making aiming more accurate, for direct hit weapons, indeed
+01:00 < needs1> So you don't have to aim ahead of a moving player
+01:02 <@matricks> yeah, but then it can start to look like you are shooting trough corners and stuff
+01:05 < needs1> For hammer too I guess
+01:05 < needs1> I'm not sure if its a good idea for close range weapon, that's how you get facestabbed in TF2 ^^
+01:06 < needs1> But I prefer I really accurate shotgun aiming and sometime die through wall than just always aiming ahead
+01:06 <@matricks> yap
+01:07 <@matricks> but it's a lie that doesn't really work for tw however
+01:08 <@matricks> well, sleepy time
+01:08 < needs1> Thank for your time, good night
+12:46 <@heinrich5991> a teeworlds server can run ~1.4 years until the game tick overflows
+12:48 <@minus> that's not very long
+12:48 <@heinrich5991> map changes (and round ends?) reset the game timer
+12:49 <@minus> that's long enough
+12:49 < BotoX> a srcds server can run for a month until a random bug will cause it to crash :^)
+12:51 <@matricks> srcds?
+12:51 <@heinrich5991> source engine server
+12:51 <@heinrich5991> not sure what the abbreviation stands for
+12:51 <@minus> dedicated server probably
+12:51 <@matricks> source dedicated server
+12:51 < BotoX> ye ^
+12:53 <@heinrich5991> not sure how often multiple-part snapshots occur
+12:53 <@heinrich5991> but if they do occur, then I found an actual bug :) if the last part of the snapshot isn't received last, then the client gets a wrong size for the total length of the snapshot

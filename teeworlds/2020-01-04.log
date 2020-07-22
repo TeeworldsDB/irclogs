@@ -1,0 +1,211 @@
+00:00 < bridge> [teeworlds] <fokkonaut> Yo, I need some help... I tried to apply my own input to another player, its all working pretty fine, but the mouse target position very, very often "resets" to somewhere bottom-right. Does anyone know why?
+00:00 < bridge> [teeworlds] <fokkonaut> I noticed that it happens less on a LAN server
+00:01 < bridge> [teeworlds] <ChillerDragon> @jxsl13 where? How do you define „in game“ for me in game sounds like being in the game and even spectators could be excluded from that definition. Or are you talking about slots in the master or what exactly?
+00:01 < bridge> [teeworlds] <fokkonaut> To my msg: I tried basically everything to fix it, but couldnt get it..
+00:04 < bridge> [teeworlds] <jxsl13> non spectator team
+00:05 < bridge> [teeworlds] <jxsl13> is for me considered ingame
+00:09 < rand> econ clients are almost invisible from anyone (that is, except admin)
+00:12 < rand> the maximum number of econ clients is defined by the constant NET_MAX_CONSOLE_CLIENTS as 4
+00:12 < bridge> [teeworlds] <jxsl13> hm, ok
+00:12 < rand> you may have 64 players plus 4 econ clients
+00:12 < bridge> [teeworlds] <jxsl13> thx
+00:15 < rand> @fokkonaut: bottom right looks like infinite positive values as mouse input
+00:15 < rand> I think I got this issue because of wrong computations
+00:20 < bridge> [teeworlds] <fokkonaut> mh? 11
+00:20 < bridge> [teeworlds] <fokkonaut> mh? ^^
+00:20 < bridge> [teeworlds] <fokkonaut> > I think I got this issue because of wrong computations
+00:20 < bridge> [teeworlds] <fokkonaut> > wym
+00:20 < bridge> [teeworlds] <fokkonaut> > I think I got this issue because of wrong computations
+00:21 < bridge> [teeworlds] <fokkonaut> wym
+00:21 < bridge> [teeworlds] <fokkonaut> well, it is not always the same positon, just around bottom right somewhere
+00:21 < bridge> [teeworlds] <fokkonaut> there is also a small range where it wouldnt reset, if i manually put the target near bottom right
+00:21 < bridge> [teeworlds] <fokkonaut> its very weird
+00:22 < bridge> [teeworlds] <fokkonaut> wait, new diagnosis xd
+00:22 < bridge> [teeworlds] <fokkonaut> jusst tested something
+00:24 < bridge> [teeworlds] <fokkonaut> yea no its like that^ but when i put the mouse too close to my tee it will always reset to the same position again, not completely bottom right, a bit more to the tee, but still on the diagonal. but if i put the target somewhere else it will just go kinda to bottom right
+00:25 < bridge> [teeworlds] <fokkonaut> if you want you can test it out, my server is running
+02:02 < day> Chillerdragon: you may wanna put this z7 bot on a ban list idk
+03:24 < bridge> [teeworlds] <fokkonaut> okay so i have found it, the cause of this weird "resetting" is, that i send the CNetObj_SpectatorInfo, to properly update the viewpos.
+03:25 < bridge> [teeworlds] <fokkonaut> if i dont send spectatorinfo, the target doesnt reset. but if i dont send it it doesnt make sense since the camera doesnt follow the other tee
+03:25 < bridge> [teeworlds] <fokkonaut> But still weird that the target resets
+03:50 < bridge> [teeworlds] <fokkonaut> doesnt make sense, client is okay too. i cant find where this behavior comes from yet
+03:51 < bridge> [teeworlds] <fokkonaut> i know in which function now, but still
+03:54 < bridge> [teeworlds] <fokkonaut> `if(length(m_MousePos) > MouseMax)
+03:54 < bridge> [teeworlds] <fokkonaut>             m_MousePos = normalize(m_MousePos)*MouseMax;`
+03:54 < bridge> [teeworlds] <fokkonaut> 
+03:54 < bridge> [teeworlds] <fokkonaut> client/components/controls.cpp#241
+03:54 < bridge> [teeworlds] <fokkonaut> there the error comes from.
+03:54 < bridge> [teeworlds] <fokkonaut> no, sorry xd
+03:54 < bridge> [teeworlds] <Fudgy> xd
+03:58 < bridge> [teeworlds] <fokkonaut> okay cool, if i comment out client/controls.cpp#L142 `ClampMousePos();`, then the bug doesnt appear anymore AND the mosuepos is still clamped, because `ClampMousePos();` gets called in CControls::OnRender() too, every tick.
+04:01 < bridge> [teeworlds] <fokkonaut> so that means, since the mouse pos is still clamped BUT this reset bug doesnt happen, that between the clampmousepos call in onrender and the sending of the mousepos somthing happens with the mosuepos
+04:01 < bridge> [teeworlds] <fokkonaut> because after the call of clampmousepos from the snapinput function, the input is instantly applied
+04:02 < bridge> [teeworlds] <fokkonaut> I doubt we need the ClmapMousePos call in SnapInput
+04:06 < bridge> [teeworlds] <fokkonaut> https://github.com/teeworlds/teeworlds/commit/055685406afc7b726f0126f0efc96bc6302da7b6#diff-c41ff3a713742e1dae8932366f246bc9
+04:06 < bridge> [teeworlds] <fokkonaut> 
+04:06 < bridge> [teeworlds] <fokkonaut> this commit adds it. I tested the dynamic camera on spec player, and it works fine without that line. gonna PR
+05:23 < bridge> [teeworlds] <fokkonaut> cant this be closed? https://github.com/teeworlds/teeworlds/issues/158
+09:39 < bridge> [teeworlds] <ChillerDragon> I don’t like bans day :/ you can write !disconnect in chat and he will disconnect and also z7 leaves the server when there are more than 3 players online. It is there to keep nameless tees busy and bring live to the game.
+10:00 < rand> who/what is z7 ?
+11:41 < bridge> [teeworlds] <ChillerDragon> my bot that walks around randomly and has a crappy aimbot
+12:00 < bridge> [teeworlds] <Dune> @fokkonaut read the last comments of the issue
+12:49 < Learath2> Dune: do you happen to be here per chance?
+13:01 < bridge> [teeworlds] <Dune> Learath2:
+13:02 < Learath2> Do you happen to be familiar with the stl containers?
+13:03 < Learath2> I have a container that I'm retro-fitting to behave like an stl one but section 23 of the standard isn't exactly easy to read
+13:10 < bridge> [teeworlds] <Dune> I'm not familiar with the standard, sorry :/
+14:36 < rand> @ChillerDragon I'll be whatching it closely, (beware of master rule, keep it dumb enough)
+15:10 < bridge> [teeworlds] <ChillerDragon> which master rule exactly rand?
+15:11 < bridge> [teeworlds] <heinrich5991> around player counts resembling actual players, probably
+15:12 < bridge> [teeworlds] <ChillerDragon> and how is a actual player defined?
+15:12 < bridge> [teeworlds] <heinrich5991> human being
+15:12 < bridge> [teeworlds] <ChillerDragon> uff
+15:13 < bridge> [teeworlds] <ChillerDragon> then i am breaking the rule :/
+15:13 < bridge> [teeworlds] <heinrich5991> I don't know what your bot does
+15:13 < bridge> [teeworlds] <ChillerDragon> it connects
+15:13 < bridge> [teeworlds] <ChillerDragon> and plays
+15:13 < bridge> [teeworlds] <ChillerDragon> and is non human
+15:14 < bridge> [teeworlds] <heinrich5991> what servers does it join?
+15:14 < bridge> [teeworlds] <heinrich5991> servers with active players?
+15:15 < bridge> [teeworlds] <ChillerDragon> it joins and leaves if player count exceeds 3 or 4 or someone writes !disconnect in chat and then it reconnects after 60 minutes to check again
+15:15 < bridge> [teeworlds] <ChillerDragon> it joins a vanilla server
+15:15 < bridge> [teeworlds] <heinrich5991> sounds okayish
+15:17 < Dune_> @ChillerDragon "The player count shown must resemble the amount of human players."
+15:17 < Dune_> Wanted to touch a word about this
+15:18 < Dune_> The bot tag is made for this
+15:18 < Dune_> But of course, there is the issue that you cannot set the bot tag without modifying the source, and then you cannot use the CTF gametype string :/
+15:18 < bridge> [teeworlds] <heinrich5991> you cannot set it from the client, I think intentionally so
+15:19 < Dune_> Yes heinrich5991
+15:20 < Dune_> I don't see a good solution, maybe you do?
+15:21 <@heinrich5991> I don't, short of doing something global
+15:22 < Dune_> So keep the status quo
+15:22 < Dune_> It is abusable though
+15:22 <@heinrich5991> yes
+15:31 < bridge> [teeworlds] <fokkonaut> @Dune which?
+15:31 < Dune_> after https://github.com/teeworlds/teeworlds/issues/158#issuecomment-488256976
+15:33 < bridge> [teeworlds] <fokkonaut> ah, yes
+15:38 < Dune_> when there is a usability issue, it is good to list the desirable use cases
+15:38 < Dune_> we want 
+15:38 < Dune_> - no user ids
+15:38 < Dune_> - user ids with no nameplates
+15:38 < Dune_> is there a benefit to "user ids with nameplates"?
+15:38 < bridge> [teeworlds] <fokkonaut> no
+15:38 < bridge> [teeworlds] <fokkonaut> Well
+15:39 < bridge> [teeworlds] <fokkonaut> for vanilla servers maybe because people can have the same name
+15:39 < bridge> [teeworlds] <fokkonaut> But i could (if wanted) add the ddnet auto rename to (x)name
+15:39 < bridge> [teeworlds] <fokkonaut> i applied it on my server too, it also checks for confusables, such as small L and big i
+15:40 < Dune_> Maybe there is a pretty way to go about it, yeah
+15:40 < Dune_> should be discussed 
+15:40 < bridge> [teeworlds] <fokkonaut> yes
+15:52 < bridge> [teeworlds] <ChillerDragon> i activate ids only in debug mode and only look at the ids in the nameplates like in the old days 🙂
+15:53 < bridge> [teeworlds] <ChillerDragon> btw i challange you guys to reproduce this log on a vanilla server hehe
+15:53 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/490150878934990850/663032192791871498/unknown.png
+16:05 < bridge> [teeworlds] <jxsl13> the usability of ids in nicknames is for administrative purposes and so that I can spot enemies faster, as their nicknames are wider.
+16:05 < bridge> [teeworlds] <jxsl13> or rather nameplates
+16:11 < bridge> [teeworlds] <heinrich5991> @ChillerDragon my guess is `force_vote no"`
+16:11 < bridge> [teeworlds] <heinrich5991> eh
+16:11 < bridge> [teeworlds] <heinrich5991> `vote no"`
+16:11 < bridge> [teeworlds] <heinrich5991> https://www.xkcd.com/859/
+16:28 < bridge> [teeworlds] <fokkonaut> @oy, can you merge https://github.com/teeworlds/teeworlds/pull/2361?
+16:28 < bridge> [teeworlds] <fokkonaut> @oy, can you merge https://github.com/teeworlds/teeworlds/pull/2361 ?
+16:28 < bridge> [teeworlds] <fokkonaut> @oy, can you merge https://github.com/teeworlds/teeworlds/pull/2361 ?
+16:32 < Oy> fokkonaut, hm, dunno if that other clamp is needed, probably have to test
+16:35 < rand> @ChillerDragon player count or vanilla gameplay, depending of the complainer feelings, I did shutdown angelina()/bot() because of this :c 
+16:35 < bridge> [teeworlds] <fokkonaut> @oy i tested it and it is not required.
+16:36 < rand> server bots might be implemented nicely one day and pushed to upstream for vanilla gameplay
+16:36 < bridge> [teeworlds] <fokkonaut> if you'd like i can show you what the bug is, and you can test that this doesnt affect the other fix but will help my problem
+16:39 < bridge> [teeworlds] <fokkonaut> xdd new achievement, i just closed an issue thats about 5.5 years old with this tee stuck pr xd
+16:40 < bridge> [teeworlds] <ChillerDragon> idk probably @heinrich5991 xd
+16:40 < bridge> [teeworlds] <fokkonaut> yes
+16:40 < bridge> [teeworlds] <fokkonaut> he made that issue
+16:40 < bridge> [teeworlds] <fokkonaut> xd
+16:41 < bridge> [teeworlds] <ChillerDragon> rand i did not understand what you wanted to say when talking about player count and feelings
+16:41 < Oy> @fokkonaut the commit i did might have been not just about the issue it closed. there used to be camera bugs in survival gametypes too
+16:42 < bridge> [teeworlds] <fokkonaut> But this can't affect it
+16:42 < bridge> [teeworlds] <fokkonaut> Well, you can test I guess?
+16:42 < bridge> [teeworlds] <fokkonaut> because i dont know which one you are talking about
+16:45 < rand> @ChillerDragon about player report ^^ servers are banned whenever sby reports it with a valid reason
+16:45 < bridge> [teeworlds] <ChillerDragon> hm i see
+16:45 < bridge> [teeworlds] <ChillerDragon> i guess day just did?
+16:51 < rand> no, you should know by staying here ^^
+16:51 < Dune_> > rand:server bots might be implemented nicely one day and pushed to upstream for vanilla gameplay
+16:51 < Dune_> that would be the best solution
+16:52 < Dune_> to allow somehow servers to implement bots and report them as such
+16:53 < bridge> [teeworlds] <fokkonaut> i have serverside bots
+16:53 < rand> your bot is far more discreet than mine and I shutdown mine as a safety measure
+16:53 < bridge> [teeworlds] <fokkonaut> they can also move, but they dont have an AI they have hardcoded ways based on coords xd
+16:53 < rand> @fokkonaut nice, do they move smoothly ?
+16:53 < Dune_> @fokkonaut but you don't run vanilla servers so you don't have the issue
+16:53 < bridge> [teeworlds] <fokkonaut> yes, you can check them out
+16:54 < bridge> [teeworlds] <fokkonaut> true
+16:54 < rand> iirc, bot|royal moved with hard coded path and some waypoints
+16:54 < Dune_> iirc they did yeah
+16:54 < Dune_> zomb bots don't but they cheat :p
+16:55 < rand> what do you mean ?
+16:55 < Dune_> they get extra double jumps when they struggle
+16:55 < Dune_> wink @LordSk
+16:56 < bridge> [teeworlds] <LordSk> wink wink
+16:56 < bridge> [teeworlds] <fokkonaut> wink wink
+16:57 < rand> xD
+16:57 < rand> that explains a lot
+17:04 < bridge> [teeworlds] <LordSk> they don't hook so when they need to go up, they fly
+17:04 < bridge> [teeworlds] <fokkonaut> @oy when will you be able to make a decision on that pr? if possible id like to have a fix for this before the next rls :) _(dont wanna push too much, sorry ^^)_
+17:20 < Oy> definitely before next release :)
+17:25 < bridge> [teeworlds] <fokkonaut> ^^
+17:31 < Oy> any opinions about https://github.com/teeworlds/teeworlds/pull/2359 ?
+17:32 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> 1- why
+17:32 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> 2-... why
+17:34 < bridge> [teeworlds] <LordSk> ^
+17:34 < bridge> [teeworlds] <LordSk> is there a gameplay reason to add these?
+17:35 < bridge> [teeworlds] <fokkonaut> for my side, yes
+17:35 < bridge> [teeworlds] <fokkonaut> Check the conversation
+17:35 < bridge> [teeworlds] <fokkonaut> (in the issue)
+17:35 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> There should be a workaround
+17:36 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> To add them in a mod
+17:36 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> But on vanilla its pretty useless
+17:36 < bridge> [teeworlds] <fokkonaut> of course, but this is required to display them
+17:36 < bridge> [teeworlds] <fokkonaut> otherwise client doesnt know about them
+17:36 < bridge> [teeworlds] <fokkonaut> so this is the base thats required to ever use them
+17:38 < bridge> [teeworlds] <LordSk> honestly why not, it does not hurt the game and is consistent with the other weapons
+17:38 < bridge> [teeworlds] <fokkonaut> yes
+17:38 < bridge> [teeworlds] <fokkonaut> !
+17:48 < Oy> anyone wants to fight some zombies?
+17:51 < bridge> [teeworlds] <fokkonaut> ?
+17:52 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> Yes but i only play 0.6
+17:53 < Dune_> the new zombs are only on 0.7 :p
+17:53 < bridge> [teeworlds] <Ryozuki> im in favour of those pickups
+17:53 < Dune_> I'd come but we need @Sonix to win a round :D
+17:53 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> Fine i will join
+17:53 < bridge> [teeworlds] <Ryozuki> @fokkonaut doesnt it need a tile on the map editor?
+17:54 < bridge> [teeworlds] <fokkonaut> yes, but since that isnt used in vanilla in any way the modded server can add it themselves i guess?
+17:54 < bridge> [teeworlds] <fokkonaut> in v anilla it wouldnt make sense to have those tiles
+17:54 < bridge> [teeworlds] <Ryozuki> i think we should add them
+17:55 < bridge> [teeworlds] <fokkonaut> i dont think so. this is only to let the client show them again. i have added those tiles for myself, but dont use them, just use the pickups for dropped weapons
+17:55 < bridge> [teeworlds] <fokkonaut> tiles are not needed, if someone really needs them they have an easy possibilty to add them. But this right here is needed to make that
+19:18 < bridge> [teeworlds] <Assa> )
+19:18 < bridge> [teeworlds] <fokkonaut> (
+20:43 < bridge> [teeworlds] <Assa> teeworlds race is missing a finish sound ^^
+20:49 < bridge> [teeworlds] <Dune> yes :)
+20:51 < bridge> [teeworlds] <Assa> maybe a start sound, too
+20:51 < bridge> [teeworlds] <Assa> but nothing sounds weird
+21:07 < bridge> [teeworlds] <jxsl13> teeworlds race is missing a server side implementation in vanilla
+21:07 < bridge> [teeworlds] <jxsl13> lol
+21:08 < bridge> [teeworlds] <jxsl13> vanilla now basically supports mods
+21:09 < bridge> [teeworlds] <Dune> a full official server mode would be a lot of work
+21:09 < bridge> [teeworlds] <Dune> mods already do that well so it's not very useful imo
+21:10 < bridge> [teeworlds] <jxsl13> can we have other mods supported in vanilla
+21:10 < bridge> [teeworlds] <jxsl13> that's basically the next question that follows
+21:10 < bridge> [teeworlds] <Assa> we just need checkpoints, start and finish
+21:11 < bridge> [teeworlds] <Assa> what's so hard about doing this?
+21:11 < bridge> [teeworlds] <jxsl13> clean code maybe?
+21:11 < bridge> [teeworlds] <Assa> you could even do some real race with rounds
+21:11 < bridge> [teeworlds] <Assa> *laps
+21:12 < bridge> [teeworlds] <Dune> there's an open issue to do this
+21:15 < bridge> [teeworlds] <jxsl13> las question qould be, can we have the ddnet client instead of vanilla 😮
+21:15 < bridge> [teeworlds] <jxsl13> *evil*
+21:20 < bridge> [teeworlds] <Sonix> booring
+22:38 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> no
+22:38 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> ddnet / ddrace destroyed teeworlds on 0.6
+22:39 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> there is like 200 ddrace servers, we need more mod diversity
+22:46 < bridge> [teeworlds] <Dune> unfortunately, teeworlds pvp is a bit of a lonely experience
+22:47 < bridge> [teeworlds] <Dune> people who stick around in a game tend to be those who can have a social experience

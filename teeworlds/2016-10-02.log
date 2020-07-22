@@ -1,0 +1,50 @@
+00:47 < needs1> Humm, is there really no way to pass to teeworlds client a server adress in the command line to autoconnect?
+00:47 <@minus> teeworlds "connect 1.2.3.4:8303"
+00:48 <@minus> needs1: ^
+00:49 < needs1> That's neat, thank you :)
+00:49 < needs1> Oh, by reading the source code it seems you can pass any console command 
+00:50 <@minus> yup
+01:09 < needs1> What do you think about adding a little program "teeworldsurl" or something like that open teeworlds and connect to a server when an URL like "teeworlds:1.2.3.4:8300" is given as an argument
+01:10 < needs1> So that links in browser like teeworlds:1.2.3.4:8300 will open teeworlds and connect
+01:11 < needs1> I tested it with this hacky script and it works on linux: $(dirname $0)/teeworlds_d "connect $(echo "$1" | cut -d':' -f2-)"
+01:13 < needs1> In any case, when a user will click on the first time on such link, the browser will ask him to choose an application, he will then choose teeworldsurl
+01:14 < needs1> I put it in a separate program, but we can make the client directly parse and understand such links
+01:15 < needs1> Tell me if it worth giving a try and I will work on a pull request
+01:16 < needs1> (If merged, it will be used in teerank at least)
+01:17 <@heinrich5991> personally, I wouldn't like it
+01:18 < needs1> Why?
+01:22 < needs1> It the exact same mechanism than mailto:foo@bar.org links by the way :)
+01:26 <@heinrich5991> dunno, teeworlds currently doesn't hook into the os
+01:26 <@heinrich5991> you can easily have 5 teeworlds versions on your computer without weird interactions
+01:29 < needs1> I think it will still work: user can choose every time he open the link wich application he want
+01:29 < needs1> Shouldn't be intrusive in any way, as far as I can tell
+01:56 < needs1> (And that *will* require the user to setup his browser or OS to open such links http://kb.mozillazine.org/Register_protocol)
+02:23 < needs1> I've done it in less than 30 lines in the client as well, works like a charm :)
+02:25 < needs1> Well the code is horrible but its a poc
+02:29 < needs1> http://pastebin.com/GBSBQB8M
+08:07 < Stitch626> last night (its 8 am in germany) i had fun, viewing videos, where phones got destroyed. i tried one of my nokia ones against the metal case of a netgear fvs318. the nokia won. no chance for netgear xD
+08:10 < Stitch626> its funny how incredible strong nokia phones were, in the past 90's...
+08:11 <@matricks> there is some truth to that meme :)
+08:13 <@matricks> Stitch626: http://i1.kym-cdn.com/photos/images/original/000/232/768/e84.jpg
+08:40 < Stitch626> ^^
+09:02 < Stitch626> in one of the videos were a 3310, which got dropped by 900 feet. one comment was like "if that nokia hits u, that will be ur end." i personally think its possible to get hit by a nokia 3310, then dying because of it, and the phone still works great.. ^^ (i'm sry for my not very well english.)
+10:05 <@heinrich5991> needs1: you shouldn't modify the strings pointed to by argv
+11:05 <@minus> why'd you even change it from const, needs1. seems unnecessary
+11:05 <@minus> heinrich5991: i thought you can modify argv[0] to change the process title
+11:06 <@heinrich5991> it might work on Linux
+11:08 <@minus> should probably be char const * const * const argv, right?
+11:08 < EastByte> ^
+11:09 <@minus> or does a const on a higher layer imply constness on a lower one, i.e. char ** const is the same?
+11:09 <@minus> i guess not
+11:18 <@heinrich5991> no, it does not
+11:18 <@heinrich5991> the last const is unnecessary though
+11:18 <@heinrich5991> you're allowe to point argv somewhere else
+11:19 <@minus> oh, true
+11:27 <@minus> heinrich5991: https://github.com/dvarrazzo/py-setproctitle/blob/master/src/spt_status.c#L78
+13:19 < needs1> It was just to finish the quick proof of concept before I go to bed, Of course changing argv[] is not the way to go ;)
+13:25 < needs1> It's probably better to handle it in the console code, or even before calling pConsole->ParseArgument(), so that if the ifrst and only argument is a teeworlds connect link, we skip pConsole->ParseArgument() to make sure malicious connect link cannot execute commands.
+13:27 < needs1> something like if(argc == 1 && str_starts_with(argv[1], "teeworlds:")) ...
+13:28 < needs1> Well, more like argc == 2
+15:27 < needs1> A proper patch http://pastebin.com/TdUf71Cc
+15:27 < needs1> Smaller then the previous hacky one
+16:01 < needs1> The pull request, if you have any comments: https://github.com/teeworlds/teeworlds/pull/1478

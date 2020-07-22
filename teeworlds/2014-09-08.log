@@ -1,0 +1,101 @@
+06:59 < guest__> floreo:
+06:59 < guest__> There is no problem with your command. You dont see anything because of stdout buffering.
+06:59 < guest__> So play a little on your server to fill/flush the buffer. S'amuser en travaillant ;)
+06:59 < guest__> Or, you can use "unbuffer" command from "expect" package (IMO: just for tests, not in script).
+06:59 < guest__> Regarding your awk command:
+06:59 < guest__> You should use the beginning of line (^) in regular expression to be less expensive (stop as soon as possible).
+06:59 < guest__> And for readability (IMO), you should replace the "if" by this kind of organization:
+07:00 < guest__>  /regExp/ { date treatment; next record }
+07:00 < guest__>           { no date treatment }
+07:01 < guest__> So I'd use something like that (split into 3 lines or more) :
+07:01 < guest__> gawk 'BEGIN { FS="]"; OFS="]" } /^\http://en.wikipedia.org/wiki/Special:Search?go=Go&search=[:xdigit:+\]/ { _ts=substr($1,2); $1="[" strftime("%F %T", strtonum("0x"_ts)); print; next } { print }' &>>/var/tmp/tee_srv.log < <(./teeworlds_srv -f test.conf) &
+07:01 < guest__> You can replace /regExpWithoutField/ by  $1~/^\http://en.wikipedia.org/wiki/Special:Search?go=Go&search=[:xdigit:+$/ 
+07:01 < guest__> And if you check before calling "awk" that logs comes from Vanilla servers, awk become:
+07:02 < guest__> gawk 'BEGIN { FS="]"; OFS="]" } { _ts=substr($1,2); $1="[" strftime("%F %T", strtonum("0x"_ts)); print }'
+07:02 < guest__> In case of problem, there is no crash, but the date is wrong.
+07:02 < guest__> Grr the bots :(
+07:03 < guest__> gawk 'BEGIN { FS="]"; OFS="]" } /^\http://en.wikipedia.org/wiki/Special:Search?go=Go&search=[:XXXX:+\]/ { _ts=substr($1,2); $1="[" strftime("%F %T", strtonum("0x"_ts)); print; next } { print }' &>>/var/tmp/tee_srv.log < <(./teeworlds_srv -f test.conf) &
+07:04 < guest__> gawk 'BEGIN { FS="]"; OFS="]" } /^\[[XXXXX]+\]/ { _ts=substr($1,2); $1="[" strftime("%F %T", strtonum("0x"_ts)); print; next } { print }' &>>/var/tmp/tee_srv.log < <(./teeworlds_srv -f test.conf) &
+07:05 < guest__> where XXXXX == [  :  xdigit  :  ]   (without space)
+07:06 < guest__> So, regExp are:
+07:07 < guest__>   /^\[[  [  :  xdigit  :  ] ]+\]/
+07:07 < guest__> or:
+07:08 < guest__>  $1~/^\[[ [ :  xdigit : ] ]+$/
+07:08 < guest__> without space
+13:33 < nameless_tee00> hey, guys
+13:33 <@matricks> hai!
+13:33 < nameless_tee00> which version of SDL is used for building teeworlds?
+13:33 <@matricks> depending on which one
+13:33 < nameless_tee00> trunk
+13:33 < nameless_tee00> can't build with 1.2 and 2.0.3
+13:34 <@matricks> sdl2
+13:34 < nameless_tee00> getting stuff like this with sdl 2.0.3: http://paste.org.ru/?b7c22z
+13:35 <@matricks> these can't be the first error messages
+13:37 <@matricks> after installing the sdl2 dev packages, you might need to remove the config.lua that is generated
+13:37 <@matricks> can't remember the exact name of it
+13:37 < nameless_tee00> full rebild: http://paste.org.ru/?ew3fnc
+13:37 <@matricks> also, you need the glu packages
+13:38 <@matricks> nameless_tee00: that is just weird
+13:38 <@matricks> looks like wrong version of sdl
+13:39 <@matricks> oh.. the master branch perhaps doesn't run sdl2 yet...
+13:40 <@matricks> doesn't look like it
+13:40 <@matricks> so sdl 1.2 is the way to go
+13:40 < nameless_tee00> with sdl 1.2 I got errors after compiling, on the linking
+13:40 < nameless_tee00> ok, I'll try to install glu packages
+13:41 < nameless_tee00> glu is http://www.opengl.org/resources/libraries/?
+14:10 < nameless_tee00> with default config.lua I got this: http://paste.org.ru/?lu9j7l
+14:10 < nameless_tee00> and with sdl.use_winlib = 32 and freetype.use_winlib = 32 I got this: http://paste.org.ru/?ac37yz
+14:11 <@matricks> dunno, ever compile under windows
+14:12 < nameless_tee00> I have no problems with compiling when played with teeworlds code in 2011
+14:13 < nameless_tee00> what have you done with project? ((
+14:13 <@matricks> I havn't fiddled with teeworlds for ages
+14:13 <@matricks> so I dunno
+14:13 <@matricks> and I havn't touch it for windows for even longer
+14:14 < nameless_tee00> @matricks: I know, that was a ritorical question for another guys
+14:22 <@minus> matricks: did you evaluate other CI systems before using buildbot?
+14:22 <@matricks> nope
+14:22 <@matricks> not looked into any CI
+14:22 <@minus> do you use it at work?
+14:23 <@matricks> no, we got custom stuff here
+14:23 <@minus> a bunch of shell scripts? :D
+14:24 <@matricks> no :)
+14:27 <@minus> then it must build on bam :D
+14:27 <@matricks> we build with bam yes :)
+15:43 <@minus> we build with gradle
+17:19 < pielover88888> Aha, I got the right server!
+17:39  * pielover88888 slaps Dune around a bit with a large fishbot
+17:43 < pielover88888> Anybody here?
+17:43 < BotoX> nope
+17:43 < pielover88888> k then ;)
+17:45 < pielover88888> I really want slopes o.o I wonder if DDR's force-player-up-a-block would suffice for most gameplay.
+17:45 < BotoX> lag
+17:45 < pielover88888> what?
+17:46 < BotoX> you need a modded client
+17:46 < BotoX> or it'd look like the player is falling through the block
+17:46 < BotoX> it'd be unplayable
+17:46 < pielover88888> ah, right.
+17:46 < pielover88888> But it'd only look like that with lag.
+17:46 < BotoX> with latency higher than 1ms
+17:47 < BotoX> it'd get worse the higher your latency is
+17:47 < pielover88888> I've used the vanilla client with that tile, and it seemed to work fine. During lagspikes, I fell through, but I do that on vanilla tiles if I was already falling toward it during the lagspike
+17:47 < BotoX> I'm simply talking about any latency, it'll look like you're falling through it or teleporting into it
+17:48 < pielover88888> Never looked like that to me and I had 60 ms ping on that server.
+17:48 < pielover88888> Afk.
+17:48 < BotoX> try it out on a non-lan server
+17:48 < BotoX> I'd like to see for myself then
+17:48 < BotoX> can you give me an IP?
+17:53 < pielover88888> I had 60ms ping and you think that's LAN lol!
+17:53 < pielover88888> Actually I can't, I have to go.
+18:38 < floreo> guest__: thanks a lot, I happened to be a bit busy so I'll check it a bit later, i really appreciate :)
+18:40 < floreo> guest__: though do you mean that the output of the command is buffered? is it possible to cancel that buffering (without the unbuffer thingy I mean) ?
+18:54 < floreo> guest__: thanks I saw your point open awk, nice advises :)
+18:56 < floreo> guest__: found out about stdbuf to cancel the buffering, I'll see what it gives
+19:26 < guest__> floreo: yes and no: a lot of tools but nothing nice nor portable.
+19:26 < guest__> floreo: http://unix.stackexchange.com/questions/11946/how-big-is-the-pipe-buffer
+19:38 < floreo> guest__: for gawk using stdbuf -eL -oL did the trick, it seems that gawk does not recognize the -W interactive flag that could make it flush :/
+19:39 < floreo> guest__: didn't check its portability though
+20:21 < guest__> floreo: gawk '{ print; fflush() }'
+20:31 < pielover88888> Anybody want to play a 1v1 OpenFNG match with me?
+20:32 < pielover88888> Hi fisted_ 
+20:41 < floreo> guest__: I wasn't sure about it, I saw the system("") trick, but it looked quite dirty
+20:43 < floreo> guest__: the fflush works well, i prefer your solution rather than the stdbuf, thanks :)

@@ -1,0 +1,101 @@
+15:26 < Devile> How to play teewrolds 7.2 on freebsd?
+17:08 < verdre> Hi everyone, any devs in here?
+17:15 <@Dune> hi verdre
+17:15 <@Dune> most are asleep
+17:15 <@Dune> it's IRC, just ask your question :)
+17:16 < verdre> Hi Dune :)
+17:17 < verdre>  I'm checking in from the gnome community, we found that Teeworlds has a pretty weird behaviour with its window
+17:17 <@Dune> does it? it uses SDL2
+17:17 < verdre> It always uses an override redirect window
+17:18 < verdre> Which is a pretty bad idea for general windows
+17:19 < verdre> This makes the shell unable to display any popups or important dialogs above the window
+17:20 <@Dune> that might be somewhere around here https://github.com/teeworlds/teeworlds/blob/f0ebc6272bd64dc0dced77c7e2ad78553f106d20/src/engine/client/backend_sdl.cpp#L674-L704
+17:21 <@Dune> hmm, I'm not really competent to comment on that
+17:21  * Dune pokes Oy
+17:22 < verdre> Thanks, it's probably an sdl bug if teeworlds doesn't do more to initialize the window
+17:22 < verdre> I'll try out another SDL based game
+17:22 < Oy> hm, maybe there's a sdl hint that could help here
+17:26 < Oy> doesn't seem that way
+17:26 < verdre> Maybe SDL_WINDOW_ALWAYS_ON_TOP?
+17:28 < verdre> Ahh, it's the borderless hint: https://github.com/spurious/SDL-mirror/blob/master/src/video/windows/SDL_windowswindow.c#L77
+17:32 < Oy> we don't use SDL_WINDOW_ALWAYS_ON_TOP
+17:32 < verdre> Hmm, that file was the code for windows
+17:34 < verdre> Ahh, here's the problem, it always uses override_redirect if it's a fullscreen window:https://github.com/spurious/SDL-mirror/blob/master/src/video/x11/SDL_x11window.c#L1260
+17:36 < Oy> :(
+17:36 <@Dune> so all SDL applications have that issue? huh
+17:37 < verdre> I just downloaded tried out TRINE, and it doesn't have the bug
+17:37 < verdre> might be because it uses the wayland window: https://github.com/spurious/SDL-mirror/blob/master/src/video/wayland/SDL_waylandwindow.c
+17:38 < verdre> You can easily reproduce the bug by pressing Alt+F2 while you're in the game (with GNOME at least)
+17:39 <@Dune> alt+f2 works for me in fullscreen
+17:40 < verdre> Does it show the dialog?
+17:40 <@Dune> yes
+17:41 < verdre> That's interesting, X11 or Wayland session?
+17:41 <@Dune> huh, should be X11 (linux mint)
+17:41 < verdre> Not sure you're using GNOME when you have Mint
+17:41 <@Dune> but alt+f2 works somehow
+17:42 < verdre> Yeah, there's a possible workaround for this which we discussed earlier today, that workaround would be quite a hack though and might add other bugs
+17:43 < verdre> We agreed that it's better to fix the applications since there seems to be such a small amount of apps behaving like this
+17:43 <@Dune> ah, I see. didn't imagine there'd be a workaround
+17:45 < verdre> Workaround would be checking if any override redirect windows occupy the whole screen, and then set the monitors fullscreen state
+17:45 < verdre> The problem is that the window manager shouldn't care about override redirect windows at all
+17:49 <@Dune> not sure if there is a workaround for Teeworlds then
+17:59 < verdre> Found a 10-year old bug in libsdl about this: https://bugzilla.libsdl.org/show_bug.cgi?id=515
+18:04 <@Dune> almost as old as Teeworlds :)
+18:04 < Oy> :)
+18:04 < Oy> too bad they didn't fix it yet
+18:04 < Oy> if they would add some flag/hint we would add it
+18:05 < verdre> I'm kind of expecting them to answer they'd gladly merge a patch... :)
+18:06 <@Dune> we should use this line more in our issue tracker :D
+18:06 < Oy> :)
+18:06 < Oy> https://github.com/spurious/SDL-mirror/blob/master/include/SDL_hints.h#L578
+18:22 < verdre> Oy: What's that hint about?
+18:23 < verdre> Seems like sdl only sets the override redirect flag when using the legacy path, which it shouldn't
+18:32 < verdre> Oy: Could you try finding out why the flag is set? I'm starting to think it's  a teeworlds issue after all...
+18:36 <@Dune> good question, why is it legacy
+18:36 <@Dune> https://github.com/spurious/SDL-mirror/blob/2d3b9ae6a6eac425fcd24c1f46c2033d66e1d6c6/src/video/x11/SDL_x11window.c#L1384-L1387
+18:37 < Oy> sets it during creation too https://github.com/spurious/SDL-mirror/blob/master/src/video/x11/SDL_x11window.c#L514
+18:37 < Oy> verdre: what flag?
+18:39 <@Dune> https://forums.libsdl.org/viewtopic.php?p=34362
+18:39 <@Dune> "The legacy fullscreen support is used if the window manager doesn't support the _NET_WM protocol, the XVidTune extension is enabled, or the SDL_VIDEO_X11_LEGACY_FULLSCREEN environment variable is set to 1. "
+18:42 < verdre> Oy: The override redirect flag :)
+18:43 < verdre> Dune: We do support the protocol, but no idea what xvidtune is
+18:44 < verdre> Let me check if the flag is set somewhere in my package
+18:46 < verdre> Nope, can't find the environment variable
+18:46 < Oy> sdl always sets the override flag when creating a x11 window
+18:47 <@Dune> where do you see that?
+18:48 <@Dune> ah, the previous link
+18:48 <@Dune> is that for non-fullscreen windows only?
+18:48 <@Dune> I'm not sure if that means it always sets the flag
+18:52 < Oy> yeah, looks like always
+18:53 <@Dune> it sends a &xattr parameter that is set there: https://github.com/spurious/SDL-mirror/blob/2d3b9ae6a6eac425fcd24c1f46c2033d66e1d6c6/src/video/x11/SDL_x11window.c#L428
+18:53 < verdre> Oy: Right, that looks like always
+18:53 <@Dune> does it?
+18:54 <@Dune> this line would be useless if it was the case (?)
+18:54 < verdre> https://tronche.com/gui/x/xlib/window/XCreateWindow.html
+18:54 <@Dune> it's a mask
+18:54 < verdre> > attributes 	Specifies the structure from which the values (as specified by the value mask) are to be taken
+18:54 < verdre> > valuemask 	Specifies which window attributes are defined in the attributes argument.
+18:55 <@Dune> so it's not always, right?
+18:55 < verdre> yeah
+18:55 <@Dune> it depends on xatt.override_redirect, which is ((window->flags & SDL_WINDOW_TOOLTIP) || (window->flags & SDL_WINDOW_POPUP_MENU))
+18:56 <@Dune> verdre: I might be missing something obvious, but is alt+f2 broken in windowed mode as well?
+18:57 < verdre> Dune: no, in the windowed mode the window doesn't use the flag
+19:10 < Oy> both aren't set
+19:11 < Oy> so just the legacy one then
+19:15 < verdre> Oy: So teeworlds must be using the legacy path, right?
+19:17 < Oy> verdre: it's not specified by teeworlds, can't do sth there. sdl uses what it's supported by the user
+19:20 < verdre> Hmm, could you guys try reproducing the issue on a distro with gnome?
+19:29 <@Dune> I don't have any :|
+19:30 < verdre> Dune: Time to try it out then :D
+19:32 <@Dune> what is the end goal?
+19:32 < verdre> Finding out if my setup is the problem and causes sdl to set this flag
+19:32 < verdre> I'm pretty sure that's not the case though
+19:34 <@Dune> well one of these `if` must be true, right? https://github.com/spurious/SDL-mirror/blob/2d3b9ae6a6eac425fcd24c1f46c2033d66e1d6c6/src/video/x11/SDL_x11window.c#L1390-L1394
+19:37 < verdre> well, that's not the case though
+19:43 < Oy> hm
+19:45 < Oy> always the case https://github.com/spurious/SDL-mirror/blob/master/include/SDL_hints.h#L174
+19:47 < verdre> it should check if the mode is actually available later: https://github.com/spurious/SDL-mirror/blob/17af4584cb28cdb3c2feba17e7d989a806007d9f/src/video/x11/SDL_x11modes.c#L507
+20:07 < Oy> yeah, if it is u end up with a legacy window
+20:14 < verdre> well, xvidmode has been replaced with xrandr a long time ago, check this out: https://i.imgur.com/Spb8pO4.png
+20:34 < minus> shit, an original X11 GUI
+20:39 <@Dune> damn

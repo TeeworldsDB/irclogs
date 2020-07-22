@@ -1,0 +1,81 @@
+12:34 <+ZillyHuhn> https://zillyhuhn.com/cs/.1591698785.png why do always the things i need disappear from my history o.O ?
+12:40 <+bridge> [ddnet] <Soreu> In my case they disappear also from the future 😅
+12:51 <+bridge> [ddnet] <Learath2> `["2020-06-04","�| øø�~D�","status"s"]"[020-06-04","�| øø�~D�","dump_antibot"]` this is one interesting entry in teehistorian 😄
+12:53 <+bridge> [ddnet] <heinrich5991> is this straight from the file or with some decoding applied?
+12:54 <+bridge> [ddnet] <Learath2> I'm checking whether the original file has this or it's my script messing up
+12:57 <+bridge> [ddnet] <Learath2> hm somehow the users name is not known at this point
+12:58 <+bridge> [ddnet] <heinrich5991> rcon commands can be entered before the client enters the game
+12:58 <+bridge> [ddnet] <Learath2> but not before an auth, can it?
+12:59 <+bridge> [ddnet] <heinrich5991> no, not before auth
+12:59 <+bridge> [ddnet] <Learath2> well actually it could happen before login
+12:59 <+bridge> [ddnet] <heinrich5991> well, they can be sent ofc, but should not end up in teehistorian
+12:59 <+bridge> [ddnet] <Learath2> not sure if th would log yeah
+12:59 <+bridge> [ddnet] <heinrich5991> because it only logs actually executed commands
+12:59 <+bridge> [ddnet] <Learath2> can you take a look at `0357754a-e7b4-46d0-a042-ce496e896709.teehistorian`?
+13:02 <+bridge> [ddnet] <Learath2> I keep an array strings for each client, on auth init or auth login I set it to `t.identity`
+13:02 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/7D
+13:03 <+bridge> [ddnet] <Learath2> I don't see how a client possibly wouldn't have a name by then, but I guess I should be initializing that vec
+13:04 <+bridge> [ddnet] <Learath2> Actually String::new() should take care of it, I thought that'd get me an empty string
+13:06 <+bridge> [ddnet] <heinrich5991> `String::new` gives you an empty string indeed
+13:06 <+bridge> [ddnet] <Learath2> Uhm I don't get what happened here actually
+13:06 <+bridge> [ddnet] <Learath2> this tool does decode this properly
+13:07 <+bridge> [ddnet] <Learath2> `Šøø™` just breaks this
+13:07 <+bridge> [ddnet] <heinrich5991> oh, my fake json isn't jsony enough?
+13:08 <+bridge> [ddnet] <Learath2> I don't get it, outputting to the terminal it looks fine
+13:09 <+bridge> [ddnet] <Learath2> outputting to a file it's broken when I open in vim
+13:09 <+bridge> [ddnet] <Learath2> if I reload it utf8 vim says there is a conversion error
+13:10 <+bridge> [ddnet] <Learath2> Is that string not utf8?
+13:10 <+bridge> [ddnet] <heinrich5991> string is always utf-8
+13:10 <+bridge> [ddnet] <Learath2> If it was not utf8 how would teeworlds even handle it?
+13:10 <+bridge> [ddnet] <heinrich5991> `String`
+13:10 <+bridge> [ddnet] <heinrich5991> ddnet rejects non-utf8 strings
+13:10 <+bridge> [ddnet] <heinrich5991> not sure what it does about cut-off utf8 though
+13:10 <+bridge> [ddnet] <heinrich5991> perhaps there's a gap
+13:10 <+bridge> [ddnet] <Learath2> well vim atleast recognizes it's 3 characters when I open with utf-8
+13:12 <+bridge> [ddnet] <Learath2> I thought maybe it's my terminal not having the characters but it does output fine if I cat it to the terminal
+13:13 <+bridge> [ddnet] <Learath2> what an odd issue, I guess it won't cause issues in the final parser as it'll be js
+13:26 <+bridge> [ddnet] <Ryozuki> > The String type, which is provided by Rust’s standard library rather than coded into the core language, is a growable, mutable, owned, UTF-8 encoded string type. When Rustaceans refer to “strings” in Rust, they usually mean the String and the string slice &str types, not just one of those types. Although this section is largely about String, both types are used heavily in Rust’s standard library, and both String and string slices 
+13:27 <+bridge> [ddnet] <Ryozuki> :poggers:
+13:33 <+bridge> [ddnet] <Learath2> it's weird that when a mod enforces a vote it seems the commands are executed with their client id but elevated privileges
+13:35 <+bridge> [ddnet] <noby> > this is one interesting entry in teehistorian 😄
+13:35 <+bridge> [ddnet] <noby> 
+13:35 <+bridge> [ddnet] <noby> could it be related to my bind that does "rcon_auth ....; rcon dump_antibot; rcon logout" all in one
+13:35 <+bridge> [ddnet] <Patiga> > ....
+13:35 <+bridge> [ddnet] <Patiga> :feelsamazingman:
+13:36 <+bridge> [ddnet] <noby> thats my real pw btw
+13:36 <+bridge> [ddnet] <Learath2> nah it was `Šøø™`s name breaking my vim
+13:36 <+bridge> [ddnet] <noby> ooh lol
+14:04 <+bridge> [ddnet] <Learath2> now that I think about it we really should have went for bcrypt for our rcon auth system
+14:05 <+bridge> [ddnet] <Learath2> I mean it's still not trivial to bruteforce salted md5 but with gpus you can probably generate rather large rainbow tables
+14:08 <+bridge> [ddnet] <heinrich5991> yes. there was a problem with using an actual password hashing function though, potential DoS by trying to log in
+14:09 <+bridge> [ddnet] <heinrich5991> also, the checking would have to happen in a background thread
+14:10 <+bridge> [ddnet] <Learath2> we could have rate limited the logins
+14:11 <+bridge> [ddnet] <Learath2> Yeah it'd probably be expensive enough not to do in the main thread though
+14:11 <+bridge> [ddnet] <Learath2> but luckily the login wouldn't be too hard to move to another thread
+14:14 <+bridge> [ddnet] <Ryozuki> @Learath2 instead of bcrypt, argon2 is better
+14:14 <+bridge> [ddnet] <Ryozuki> https://en.wikipedia.org/wiki/Argon2
+14:17 <+bridge> [ddnet] <Learath2> still probably too slow to be ran on the main thread
+14:18 <+bridge> [ddnet] <Learath2> (the point of a password hashing function is to be slow)
+14:19 <+bridge> [ddnet] <Ryozuki> so put it in a thread
+14:19 <+bridge> [ddnet] <Ryozuki> rate limiting seems good
+14:20 <+bridge> [ddnet] <Learath2> I guess we can wait until it breaks 😄
+15:35 <+bridge> [ddnet] <Learath2> todays question, why are C++ compilers and linkers so bad at devirtualisation?
+15:36 <+bridge> [ddnet] <Learath2> runtime polymorphism is so expensive without devirtualisation
+16:01 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/719914028935151626/dd0.png
+16:27 <+bridge> [ddnet] <deen> @Learath2 because you didn't mark your methods as final and you can't know if another shared lib will overwrite. i guess
+16:37 <+bridge> [ddnet] <deen> or you use pointers and anyone could redirect them to an object of another subtype
+17:09 <+bridge> [ddnet] <Learath2> hm, I guess I need to help the optimiser reason about my pointers, it seems it only catches the most trivial cases. After a dynamic_cast it should be safe to assume the type
+18:13 <+bridge> [ddnet] <Learath2> does using namespace override things in the global scope?
+18:21 <+bridge> [ddnet] <Learath2> @heinrich5991 Q: How would teehistorian handle 0.7 messages on a 0.6 server?
+18:21 <+bridge> [ddnet] <Learath2> The complete data doesn't seem to be enough anymore because Sixup is stateful
+19:09 <+bridge> [ddnet] <heinrich5991> record the version on client join, I'd say
+19:53 <+bridge> [ddnet] <bubbacio> @Learath2 ddnet use's LUA?
+20:06 <+bridge> [ddnet] <Learath2> Nope
+20:06 <+bridge> [ddnet] <Learath2> ATH does
+20:09 <+bridge> [ddnet] <𝕀𝕠𝕟𝕦𝕥> Hey can someone help me setup a ddnet server?
+20:23 <+bridge> [ddnet] <Learath2> sure
+20:25 <+bridge> [ddnet] <!     ZombieToad> double click DDNet-Server.exe
+23:01 <+bridge> [ddnet] <Fearzy> DDNet is coded in lenguaje c & c++ right?
+23:10 <+bridge> [ddnet] <TortiLeq> c++
+23:12 <+bridge> [ddnet] <!     ZombieToad> & c
+23:37 <+bridge> [ddnet] <Ryozuki> lenguaje

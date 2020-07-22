@@ -1,0 +1,59 @@
+06:47 < ddnet-commits> [ddnet] def- closed pull request #619: Remove flags in language list (master...pr-flaglang) https://git.io/vDGXM
+07:13 <@deen> Learath2: sometimes
+09:39 < Learath2> deen: figured it out. it was a simple nim question that i didnt know how to google :P
+11:29 <@deen> Learath2: alright. i don't have internet at my new home thanks to DTAG, so I might reply even more slowly than usual
+11:31 < Learath2> deen: i have a sha256 hash in a string. is there a nice function you know of to get a hex representation?
+11:33 <@deen> not sure what you're trying
+11:33 <@deen> hex representation of a string? of an int?
+11:34 < Learath2> i have a raw SHA256 hash in a string. Like one the raw bytes
+11:35 < Learath2> s/one//
+11:35 <@deen> ah
+11:35 <@deen> well, seems like a string is the wrong format for that
+11:36 < Learath2> well libssl returns a cstring which i just stringify with $. seems the libsodium wrapper also uses strings to return unsigned char arrays so i didnt think twice
+11:38 < Learath2> and it seems to hold unsigned char arrays just fine too
+11:38 <@deen> for c in "foo": stdout.write c.int.toHex(2)
+11:38 <@deen> sure, you just have to convert the char to something int-like
+11:38 <@deen> import strutils
+11:41 <@deen> and I'll make a PR for Nim so that c.uint8.toHex will also work
+11:44 < Learath2> deen: when iterating through a sequence can you know the member index you are on? or should i keep track of it meself/go through it by index?
+11:46 < Learath2> found it in the manual nvm.
+11:46 < Learath2> its not that easy to find things in the manual
+12:26 < Learath2> deen: what is the correct type to carry around public keys and hashes in raw form while they can have null bytes?
+12:28 <@EastByte> afaik null bytes have no special meaning in nim strings
+12:31 < Learath2> EastByte: thats why i assumed it was fine to carry them around in nim strings
+12:31 < Learath2> the $ for cstring chokes on them tho, need to fix that
+12:33 < Learath2> the string "ddnet.tw" has one 00 in its sha256, incredibly lucky that i found that bug
+13:00 <@deen> no, 0 bytes DO have special meaning in strings, that's exactly why I said it's the wrong format
+13:00 <@deen> array[uint8] or seq[uint8]
+13:05 <@EastByte> but weren't strings internally used for binary data, aswell?
+13:05 <@EastByte> well, good to know
+13:06 <@deen> EastByte: they shouldn't. they have a size and a \0 byte limitation
+13:06 <@deen> which is pretty inconvenient sometimes
+13:06 <@deen> but at least that means you can just pass them to C functions and it works
+13:13 < Learath2> im still 2bad at nim to go through and fix this properly
+13:15 <@deen> fix what?
+13:15 < Learath2> fix the usage of strings for binary data
+13:15 <@deen> just use a fixed size array instead of string?
+13:16 <@deen> if you get passed a cstring, cast it or copy it into a nim data structure
+13:16 < Learath2> im thinking its not as simple as s/string/seq[uint8]
+13:16 <@deen> why?
+13:16 <@deen> other than that you can use array[correctSize, uint8]
+13:16 <@deen> that would be even nicer, then the length is correct
+13:17 < Learath2> http://paste.pr0.tips/1Y this is what it looks like now
+13:17 <@deen> type SHA256 = array[32, uint8]
+13:18 <@deen> cool, a ddnet tool in Nim
+13:18 < Learath2> i probably should fix it but i also want to get to the part in the C code
+13:20 < Learath2> well it works for now, ill go over it and use fixed size arrays instead
+13:21 <@deen> sure, sounds good
+13:29 < Learath2> deen: how would one initialize that SHA256 array?
+13:30 <@deen> memcopy or what it's called, or each element 1 by 1
+13:31 <@deen> or an assignment with a casted thing
+13:32 < Learath2> oh these are the things that were bothering me when i didnt want to do the switch :P
+13:32 < Learath2> now i can no longer use .add
+13:32 <@deen> right
+13:32 <@deen> then use a seq
+13:32 <@deen> if you want to add
+13:32 <@deen> but then you can forget to add a part and bam, wrong length
+13:33 < Learath2> fixed len would be the proper way, as it will ensure proper lengths
+13:33 <@deen> yeah
+14:18 < ddnet-commits> [ddnet] heinrich5991 opened pull request #630: Add overly simple CMakeLists.txt (master...pr_ddnet_cmake_basic) https://git.io/vyeza

@@ -1,0 +1,96 @@
+10:44 < xandaros> ISPs really should check against spoofing. It's not that difficult for a router to go "That source address in a packet on that link? Wait, that's not in one of our address pools... DROP"
+10:45 < xandaros> As a nice bonus, you can help prevent ADOS attacks, as well
+10:53 <@minus> ADOS?
+11:04 < BotoX> amplified dos I guess
+11:10 < xandaros> indeed
+11:59  * daey amplifies BotoX 
+12:04 < EastByte> yep, any hosting-provider that does not prevent spoofing is pretty much supporting crime
+12:11 <@minus> xandaros: i think that's more commonly known as DRDoS
+12:23 < koomi> http://www.senki.org/everyone-should-be-deploying-bcp-38-wait-they-are/
+12:29 < EastByte> well, and I know atleast 2 providers in Germany that apparently don't stick to bcp-38
+12:32 < koomi> that article is from 2012, maybe adoption has declined
+12:32 < koomi> anyway, write them an email? :-P
+12:33 < EastByte> I did that a few weeks ago, no response
+12:33 < EastByte> I guess I should just post them on one of these 'underground' scriptkiddie forums, that should cause an inrush of scriptkiddies
+12:36 <@heinrich5991> we could need a master server that can spoof udp packets :)
+12:36 < EastByte> haha, right
+12:37 < EastByte> oh wait, how does that help?
+12:37 <@heinrich5991> for the proposed master protocol
+12:37 < EastByte> so the fwcheck is done via ip spoofing?
+12:37 <@heinrich5991> yes
+12:37 <@heinrich5991> (not necessary, but a nice touch)
+12:38 <@heinrich5991> otherwise, we need a separate fwcheck server that "is allowed to be ddosed"
+12:39 < EastByte> in case of unknown udp-protocols and udp based ddos-attacks, always use nfoservers
+12:40 < koomi> here is some up-to-date data: https://spoofer.caida.org/summary.php
+12:45 <@heinrich5991> EastByte: the idea is that we don't need to disclose the actual master server's IP address, so we're only ddosed through a reverse-proxy
+12:48 < EastByte> I understand, although I think the fw checker is a bit unecessary for server registration, if you want to put a server into the list you can just search for it instead of having a shiny 'server registered' message in the server console
+12:49 < EastByte> I mean, it's user-friendly  but otherwise...
+13:04 <@heinrich5991> user-friendliness is a goal to strive for
+13:04 <@heinrich5991> (not only because it might reduce the number of forum posts asking for help)
+13:05 <@heinrich5991> (also, you often cannot see your own server in the server list, because of weird router NATs)
+15:43 < BotoX> I'd just like to interject for a moment
+15:43 < BotoX> What you're referring to as DRDoS is [insert rest of quote here]
+15:44 < BotoX> heinrich5991: the fwchecker can also be a server with UDP inbound blocked on the hosts firewall
+15:44 < BotoX> something my cheap OVH firewall should do :D
+15:46 <@heinrich5991> or it can just be hidden, so no one actually gets the IP address :)
+15:47 <@heinrich5991> it's actually GNU/DRDoS?
+15:47 < BotoX> or as I've recently taken to calling it GNU plus DRDoS
+15:50 < EastByte> BotoX: ovh firewall?
+15:50 <@heinrich5991> well, block all udp works
+15:52 < EastByte> on ddos ovh blocks most ingoing udp traffic anyways, so I agree (I haven't though about that)
+16:51 <@minus> heinrich5991: /register could be blocking until the registration is complete/confirmed
+16:52 <@heinrich5991> a) probably not nicely supported b) what does that help?
+16:56 <@minus> a) supported where? b) the response would indicate success/failure directly
+16:57 <@minus> also, what about TLS for the http master?
+17:04 < Stitch626> what about simply shutting down the masters in case of ddos, and let them down for about 1-2 days, to tell those kiddy people "we" have enough?
+17:26 < BotoX> now what's that gonna do LOL
+17:26 < BotoX> So he can pause his booter and save some bucks or what
+17:28 < Stitch626> ehm.. no.
+17:41 <@heinrich5991> minus: if you implement it in the client, yes
+17:41 <@minus> bundle openssl!
+17:42 <@heinrich5991> that's not the only thing, we also need to code against openssl then..
+17:43 <@minus> …right
+17:44 < BotoX> what's the point of SSL though
+17:44 < BotoX> And if you're gonna go that way just use libcurl.....
+17:45 < BotoX> no need to re-invent the weel
+17:45 <@heinrich5991> right
+18:11 < guenstig_werben> I am writing a custom application to get infos of a server. If I receive the serverbrowse_info packet, it's firstly a bunch of infos like version, name, map, and such and afterwards dynamically player info. Now, my question is, what does CUnpacker really do, like how many bits/bytes are reserved for which value (this is probably sizeof(info.m_aVersion) and similar. Can anyone answer this?
+18:28 < EastByte> guenstig_werben: the serverinfo mainly consists out of dynamically length null-terminated strings
+18:32 <@minus> curl is actually not a bad idea
+18:33 < EastByte> I don't like curl
+18:33 < EastByte> we had a few issues with it at ddnet
+18:34 < guenstig_werben> Ah ok.... So i can just use to string and split at 0?
+18:34 <@minus> guenstig_werben: split with \x00, then https://git.mnus.de/minus/teeworlds_srvbrowse/blob/master/teeworlds/server.py#L73
+18:34 < EastByte> guenstig_werben: yes, but first you need to step over the header
+18:35 <@minus> header being https://git.mnus.de/minus/teeworlds_srvbrowse/blob/master/teeworlds/server.py#L14
+18:35 < EastByte> well and there is a token
+18:35 < guenstig_werben> Wait, firstly convert it to a string, and then split at the 0 character right? I know there is a header and the token ;)
+18:36 < guenstig_werben> What exactly is m_Flags?
+18:37 < guenstig_werben> And where is the difference between players and clients?
+18:37 <@heinrich5991> spectators aren't players
+18:37 <@heinrich5991> the only flag defined is 1, server has a password
+18:38 <@heinrich5991> flags are usually or'ed together
+18:38 < guenstig_werben> Ah ok, I don't need to care about them ;)
+18:48 < guenstig_werben> I'm sorry if this is off topic here, but what exactly is the difference between ddnet 64 packet and vanilla's one? Just the packet? Any sizes
+18:48 < guenstig_werben> Do I have to parse something differently?
+18:49 <@heinrich5991> yes, there's an extra field, offset
+18:49 <@heinrich5991> also, it has a different header
+18:49 < guenstig_werben> I know the header
+18:50 < guenstig_werben> Ah and offset means what?
+18:50 < guenstig_werben> If I don't care about the player list, just the player count I'm fine right?
+18:51 <@heinrich5991> yes
+18:51 <@heinrich5991> you might get multiple responses though
+18:52 < guenstig_werben> Yeah, is it safe enough as long as I send the normal packet a second later and ignore the normal response when I got a 64 response?
+18:54 <@heinrich5991> well, the 64p packet might get lost
+19:08 <@minus> god damn why is cmake so god damn awful
+19:13 <@heinrich5991> minus: can we contact oy somehow on what he thinks about the http master thing?
+19:20 <@minus> make a PR, mark it WIP, ping him on github
+19:28 < guenstig_werben> Heinrich, then what should I do? Is there a way to know a server accepts 64 packets?
+19:28 <@heinrich5991> no
+19:29 <@heinrich5991> try multiple times, cache the result
+19:29 < guenstig_werben> -.- or rely on unsafe player counts
+21:05 <@heinrich5991> guenstig_werben: what's wrong with caching which server supports what?
+23:49 < MoOoRice> Hello
+23:49 < MoOoRice> where can I find the latest (development) source of teeworlds ?
+23:54 <@minus> https://github.com/teeworlds/teeworlds
+23:59 < MoOoRice> oh thanks

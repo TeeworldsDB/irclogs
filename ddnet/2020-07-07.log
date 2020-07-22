@@ -1,0 +1,247 @@
+00:04 <+bridge> [ddnet] <Learath2> __int128 seems to optimize even worse
+00:07 <+bridge> [ddnet] <heinrich5991> https://godbolt.org/z/iL8fVm
+00:08 <+bridge> [ddnet] <heinrich5991> dunno what you're talking about, unsigned __int128 optimizes slightly better for `check_flag` and is the same optimum for `add`
+00:11 <+bridge> [ddnet] <Learath2> it's been a while since I checked it, I think it was optimized less consistently across compilers
+00:11 <+bridge> [ddnet] <Learath2> (and isn't supported at all in MSVC)
+00:14 <+bridge> [ddnet] <Learath2> besides https://godbolt.org/z/BSAXzu std::bitset optimizes better in all compilers, if all you want is checking and setting bits
+00:15 <+bridge> [ddnet] <heinrich5991> oops
+00:15 <+bridge> [ddnet] <heinrich5991> hm
+00:17 <+bridge> [ddnet] <Learath2> (atleast it optimizes to less instructions, I know that doesn't always mean better performance and it'd probably be impossible to predict with the insane pipelines of new cpus)
+00:17 <+bridge> [ddnet] <Learath2> s\/optimizes/generates/
+00:17 <+bridge> [ddnet] <heinrich5991> nah, should be better
+00:17 <+bridge> [ddnet] <heinrich5991> no branches
+00:19 <+bridge> [ddnet] <Learath2> If you want to do arithmetic though, _int128 does work if it exists
+00:19 <+bridge> [ddnet] <heinrich5991> arithmetic optimized fine in my own impl too
+00:20 <+bridge> [ddnet] <Learath2> + and - are trivial, / and * are the ones that are hard to get right
+00:20 <+bridge> [ddnet] <ᶰ°Konͧsti> Most important DDNet dev change my mind
+00:20 <+bridge> [ddnet] <ᶰ°Konͧsti> https://cdn.discordapp.com/attachments/293493549758939136/729824133499846727/robot.png
+00:21 <+bridge> [ddnet] <abcqwerty> most important ddnet bug tester*
+00:24 <+bridge> [ddnet] <ᶰ°Konͧsti> :troll:
+00:24 <+bridge> [ddnet] <heinrich5991> Most important DDNet dev**,** change my mind
+00:24 <+bridge> [ddnet] <heinrich5991> the comma really helps
+00:24 <+bridge> [ddnet] <heinrich5991> > Most important DDNet dev**,** change my mind
+00:24 <+bridge> [ddnet] <Learath2> @heinrich5991 and funnily enough, clang optimizes both your add and the native add to the exact same instructions, which is shorter than the gcc one
+00:25 <+bridge> [ddnet] <heinrich5991> hum
+00:27 <+bridge> [ddnet] <Learath2> and without using compiler intrinsics, the msvc one just looks abysmal 😄
+00:30 <+bridge> [ddnet] <Learath2> https://godbolt.org/z/EgMHWm
+00:30 <+bridge> [ddnet] <Learath2> even with the intrinsics the code generated is just not as clean as clang and gcc, but atleast it's readable
+00:30 <+bridge> [ddnet] <heinrich5991> it sets up a stack
+00:31 <+bridge> [ddnet] <heinrich5991> ah
+00:31 <+bridge> [ddnet] <heinrich5991> maybe you need that due to SSEH
+00:31 <+bridge> [ddnet] <heinrich5991> SEH*
+00:31 <+bridge> [ddnet] <Learath2> It also actually calls the constructor
+00:32 <+bridge> [ddnet] <Learath2> it should be a trivial constructor to inline, I wonder why it won't
+00:35 <+bridge> [ddnet] <Learath2> lol there is no /O3 in msvc that's why
+00:37 <+bridge> [ddnet] <Learath2> at /O2 it looks better, still not as cute as clang or gcc
+01:58 <+bridge> [ddnet] <abcqwerty> found a bug where the score hud at the bottom right corner doesnt show
+01:58 <+bridge> [ddnet] <abcqwerty> i downloaded ddnet source with `git clone --recursive https://github.com/ddnet/ddnet` and ran it with the cmake gui for windows on visual studio 2017
+10:44 <+bridge> [ddnet] <heinrich5991> https://sqlite.org/testing.html#coverage_testing_of_defensive_code
+10:45 <+bridge> [ddnet] <heinrich5991> interesting
+10:46 <+bridge> [ddnet] <heinrich5991> https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks?view=vs-2019 could enable /RTC1 on ci
+11:07 <+ChillerDragon> yea sqlite is crazy well tested
+11:07 <+ChillerDragon> the lite name might be confusing its acually very pro imo :D
+11:10 <+bridge> [ddnet] <heinrich5991> sqlpro? 😉
+11:45 <+bridge> [ddnet] <Learath2> Should we get rid of the very meh file score backend for an sqlite one?
+11:52 <+bridge> [freenode] <Zwelf> I actually did that over the weekend. I'll try to make the PR today.
+11:57 <+bridge> [ddnet] <Learath2> \o/
+12:00 <+bridge> [ddnet] <Trafalgar Law> https://github.com/teeworlds/teeworlds/pull/2671
+12:00 <+bridge> [ddnet] <Trafalgar Law> Can we add smth like that in ddnet 😂
+12:02 <+bridge> [ddnet] <Learath2> Would require quite a lot of work to get into an acceptable form
+12:06 <+bridge> [ddnet] <Learath2> @Trafalgar Law didn't you say you tested #2433 and it worked mostly fine?
+12:06 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2433
+12:06 <+bridge> [ddnet] <Learath2> deen seems to have had a very different experience 😄
+12:07 <+bridge> [ddnet] <deen> Zwelf: Very cool!
+12:07 <+bridge> [ddnet] <Trafalgar Law> @Learath2 I tested it yea, as I said the most problem was the double msges
+12:09 <+bridge> [ddnet] <Learath2> @deen you sure the same ip check wasn't messing with you?
+12:09 <+bridge> [ddnet] <Trafalgar Law> And the vote was not abored, after the vote caller left the srv
+12:09 <+bridge> [ddnet] <deen> they were connected with 3 different ips, checked in `status`
+12:13 <+bridge> [ddnet] <Learath2> Ah I know what went wrong there
+12:15 <+bridge> [ddnet] <deen> Talking about code testing in SQL databases, I just got my first patent in that area. Should be granted in about a week. But I should really write a paper about it because patents in lawyer-speak are hard to understand.
+12:16 <+bridge> [ddnet] <Learath2> Are there lawyers that specialize in software patents? I'd be surprised if most lawyers could really adequately put this stuff in legalese
+12:17 <+bridge> [ddnet] <Learath2> @deen the last commit should fix the voting issue
+12:27 <+bridge> [ddnet] <fokkonaut> @Learath2 maybe ddnet has the same problem with 0.7 register as the normal 0.7 server
+12:28 <+bridge> [ddnet] <Learath2> does it? I didn't notice losing master connection
+12:28 <+bridge> [ddnet] <fokkonaut> i have no idea, you said something about not registering
+12:28 <+bridge> [ddnet] <fokkonaut> some messages up
+12:28 <+bridge> [ddnet] <Trafalgar Law> Votes
+12:28 <+bridge> [ddnet] <fokkonaut> no
+12:28 <+bridge> [ddnet] <Trafalgar Law> He mean votes
+12:29 <+bridge> [ddnet] <Trafalgar Law> Look up :P
+12:29 <+bridge> [ddnet] <fokkonaut> no
+12:29 <+bridge> [ddnet] <fokkonaut> ok
+12:29 <+bridge> [ddnet] <Learath2> lol
+12:41 <+bridge> [ddnet] <deen> @Learath2 yeah, the one we had was a former engineer who then became a lawyer on top, so he's really good at understanding the technical descriptions we gave him
+12:44 <+bridge> [ddnet] <deen> @Learath2 just tried, the vote for 0.7 player still doesn't register on kick vote
+12:45 <+bridge> [ddnet] <deen> it also shows 50% voted already, so I think the 0.7 player is totally getting ignored there
+12:45 <+bridge> [ddnet] <deen> but for map votes it works
+12:45 <+bridge> [ddnet] <Learath2> Okay, I fixed what I saw by looking at the code, I'll take a better look tonight
+12:46 <+bridge> [ddnet] <Learath2> It'd be nice if you could take a look where the vote disappears, but if you don't have the time I'll fix it sooner or later
+13:28 <+bridge> [ddnet] <NeXus> when RTX support :3Head:
+15:20 <+bridge> [ddnet] <TortiLeq> :tee_thinking:
+15:37 <+bridge> [ddnet] <Marcell_HUN> Teeworlds RTX :kek:
+15:37 <+bridge> [ddnet] <timakro> I'm having trouble building with `cmake -DCLIENT=OFF -DMYSQL=ON ..`
+15:37 <+bridge> [ddnet] <timakro> ```
+15:37 <+bridge> [ddnet] <timakro> -- Could NOT find Notify (missing: NOTIFY_LIBRARIES NOTIFY_INCLUDE_DIRS) 
+15:38 <+bridge> [ddnet] <timakro> -- Could NOT find OpenGL (missing: OPENGL_opengl_LIBRARY OPENGL_glx_LIBRARY OPENGL_INCLUDE_DIR) 
+15:38 <+bridge> [ddnet] <timakro> 
+15:38 <+bridge> [ddnet] <timakro> ```
+15:39 <+bridge> [ddnet] <timakro> Shouldn't depend on opengl with `-DCLIENT=OFF`, right?
+15:46 <+bridge> [ddnet] <heinrich5991> @timakro does it not build as a result of that or does it just report that those are not found?
+15:46 <+bridge> [ddnet] <timakro> Doesn't build
+15:46 <+bridge> [ddnet] <heinrich5991> error message?
+15:46 <+bridge> [ddnet] <timakro> that
+15:46 <+bridge> [ddnet] <Learath2> That's not an error message
+15:47 <+bridge> [ddnet] <heinrich5991> can you give the complete output pelase?
+15:47 <+bridge> [ddnet] <Learath2> It wouldn't stop it from building
+15:47 <+bridge> [ddnet] <heinrich5991> can you give the complete output please?
+15:47 <+bridge> [ddnet] <timakro> oh the real error is above sry
+15:47 <+bridge> [ddnet] <timakro> says
+15:47 <+bridge> [ddnet] <timakro> ```
+15:47 <+bridge> [ddnet] <timakro> CMake Error at CMakeLists.txt:433 (message):
+15:47 <+bridge> [ddnet] <timakro>   You must install Python to compile DDNet
+15:48 <+bridge> [ddnet] <timakro> ```
+15:48 <+bridge> [ddnet] <heinrich5991> is the problem fixed?
+15:48 <+bridge> [ddnet] <heinrich5991> or do you already have python installed?
+15:48 <+bridge> [ddnet] <timakro> i have python installed xD
+15:49 <+bridge> [ddnet] <heinrich5991> can you give us the complete output then? ^^
+15:49 <+bridge> [ddnet] <timakro> ```
+15:49 <+bridge> [ddnet] <timakro> $ cmake -DCLIENT=OFF -DMYSQL=ON ..                                                                                                  ~/src/ddnet/build
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find Freetype (missing: FREETYPE_LIBRARY FREETYPE_INCLUDEDIR) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find GLEW (missing: GLEW_INCLUDE_DIR GLEW_LIBRARY) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find GTest (missing: GTEST_LIBRARY GTEST_INCLUDE_DIR GTEST_MAIN_LIBRARY) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find Ogg (missing: OGG_INCLUDEDIR) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find Opus (missing: OPUS_INCLUDEDIR) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find Opusfile (missing: OPUSFILE_LIBRARY OPUSFILE_INCLUDEDIR) 
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find PythonInterp: Found unsuitable version "2.7.16", but required is at least "3" (found /usr/bin/python)
+15:49 <+bridge> [ddnet] <timakro> -- Could NOT find SDL2 (missing: SDL2_LIBRARY SDL2_INCLUDEDIR) 
+15:49 <+bridge> [ddnet] <timakro> -- ******** DDNet ********
+15:49 <+bridge> [ddnet] <timakro> -- Target OS: linux 64bit
+15:50 <+bridge> [ddnet] <timakro> -- Compiler: /usr/bin/c++
+15:50 <+bridge> [ddnet] <timakro> -- Build type: Release
+15:50 <+bridge> [ddnet] <timakro> -- Dependencies:
+15:50 <+bridge> [ddnet] <timakro> --  * Curl found
+15:50 <+bridge> [ddnet] <timakro> --  * Freetype not found
+15:50 <+bridge> [ddnet] <timakro> --  * Glew not found (using bundled version)
+15:50 <+bridge> [ddnet] <timakro> --  * GTest not found
+15:50 <+bridge> [ddnet] <timakro> --  * MySQL found
+15:50 <+bridge> [ddnet] <timakro> --  * Ogg not found
+15:50 <+bridge> [ddnet] <timakro> --  * OpenSSL Crypto found
+15:50 <+bridge> [ddnet] <timakro> --  * Opus not found
+15:50 <+bridge> [ddnet] <timakro> --  * Opusfile not found
+15:50 <+bridge> [ddnet] <timakro> --  * Pnglite not found (using bundled version)
+15:50 <+bridge> [ddnet] <timakro> --  * PythonInterp not found
+15:50 <+bridge> [ddnet] <timakro> --  * SDL2 not found
+15:50 <+bridge> [ddnet] <timakro> --  * Wavpack not found (using bundled version)
+15:50 <+bridge> [ddnet] <timakro> --  * Zlib found
+15:50 <+bridge> [ddnet] <timakro> CMake Error at CMakeLists.txt:433 (message):
+15:50 <+bridge> [ddnet] <timakro> On debian /usr/bin/python is python 2.7 i guess it expects python 3 there
+15:50 <+bridge> [ddnet] <heinrich5991> `python3 --version` please?
+15:50 <+bridge> [ddnet] <heinrich5991> should look for py3 first, I think
+15:50 <+bridge> [ddnet] <timakro> ```
+15:50 <+bridge> [ddnet] <timakro> $ python3 --version
+15:50 <+bridge> [ddnet] <timakro> Python 3.7.3
+15:50 <+bridge> [ddnet] <timakro> ```
+15:50 <+bridge> [ddnet] <heinrich5991> hm
+15:51 <+bridge> [ddnet] <heinrich5991> I think I got a report that you have to delete the build directory and try again after some recent change
+15:51 <+bridge> [ddnet] <heinrich5991> can you try that (or create a new build directory)
+15:51 <+bridge> [ddnet] <timakro> sure
+15:52 <+bridge> [ddnet] <timakro> Works, thx
+15:52 <+bridge> [ddnet] <heinrich5991> np 🙂
+15:52 <+bridge> [ddnet] <timakro> Why isn't the error message at the bottom -.-
+15:53 <+bridge> [ddnet] <Learath2> I wonder why the error doesn't immediately stop cmake
+15:53 <+bridge> [ddnet] <Learath2> It's not a warning
+15:53 <+bridge> [ddnet] <heinrich5991> we can do that (FATAL_ERROR), but then it won't report all errors
+15:54 <+bridge> [ddnet] <Learath2> Hm, true
+16:00 <+bridge> [ddnet] <timakro> @Learath2 How do I get started with the 0.7 support? Is there a setting I need to enable? Do I need to convert maps myself and where to put them?
+16:00 <+bridge> [ddnet] <timakro> I'm adding it to trashmap
+16:02 <+bridge> [ddnet] <Learath2> You only need maps in the maps7 folder
+16:02 <+bridge> [ddnet] <Learath2> That's it, it's enabled by default
+16:02 <+bridge> [ddnet] <timakro> Okay great
+17:45 <+bridge> [ddnet] <TortiLeq> So when ddnet rtx in vr?
+17:46 <+bridge> [ddnet] <TortiLeq> :kek:
+18:04 <+bridge> [ddnet] <Trafalgar Law> @deen vacotion already over 🤔 ?
+18:13 <+bridge> [ddnet] <Chumtoad> when teeworlds on nintendo ds
+18:14 <+bridge> [ddnet] <Learath2> I tried to compile it for switch but the reverse engineered libraries just weren't far enough along
+18:14 <+bridge> [ddnet] <Chumtoad> oh lol
+18:18 <+bridge> [ddnet] <deen> @timakro and for the conversion map_convert_07 is what we use
+18:44 <+bridge> [ddnet] <FeaRZ> https://cdn.discordapp.com/attachments/293493549758939136/730101906277662748/IMG_20200707_123934.jpg
+18:44 <+bridge> [ddnet] <FeaRZ> That is okay?
+19:07 <+bridge> [ddnet] <FeaRZ> Is that okay?
+19:28 <+bridge> [ddnet] <deen> ok in what sense?
+19:34 <+bridge> [ddnet] <ᶰ°Konͧsti> I think how he placed translation
+19:38 <+bridge> [ddnet] <TearlessAbyss46> https://cdn.discordapp.com/attachments/293493549758939136/730115509864890428/Untitled.png
+19:38 <+bridge> [ddnet] <TearlessAbyss46> did hook collision always work like this on solo servers?
+19:42 <+bridge> [ddnet] <deen> I don't think it should
+19:42 <+bridge> [ddnet] <deen> what client version?
+19:42 <+bridge> [ddnet] <deen> works for me on current client
+19:54 <+bridge> [ddnet] <ᶰ°Konͧsti> Wasnt there a bug too where hookcolls colored when they crossed at their ends?
+19:56 <+bridge> [ddnet] <TearlessAbyss46> newest ddnet
+19:56 <+bridge> [ddnet] <TearlessAbyss46> 14.1
+19:56 <+bridge> [ddnet] <TearlessAbyss46> I think it was cause by the unsolo tiles that are in the solo map xD
+19:58 <+bridge> [ddnet] <Trafalgar Law> Is it possible to reconnect with the master srv?
+19:58 <+bridge> [ddnet] <Trafalgar Law> Because my server lost the connection to the master srv from 0.7
+20:01 <+bridge> [ddnet] <FeaRZ> @deen Ok in the sense that if it is well written to translate it
+20:04 <+ChillerDragon> restart server @Trafalgar Law
+20:04 <+ChillerDragon> btw check wire
+20:05 <+ChillerDragon> maybe you have a similar issue like @fokkonaut has see #teeworlds for details
+20:05 <+bridge> [ddnet] <Trafalgar Law> After the restart the srv has still no connection to the master srv?
+20:05 <+bridge> [ddnet] <Trafalgar Law> I can't see the srv
+20:05 <+bridge> [ddnet] <deen> @TearlessAbyss46 yeah, unsolo tiles shouldn't even exist in solo map. do they work?
+20:06 <+bridge> [ddnet] <Patiga> maybe the mapper thought it would be cool to be able to play the map without the solo map setting
+20:22 <+bridge> [ddnet] <ᶰ°Konͧsti> but u dont need unsolo tiles for that because u dont even need solotiles
+20:26 <+bridge> [ddnet] <ᶰ°Konͧsti> @deen they work like they should but by server setting sv_soloserver 1 everx interacting with other tees is impossible so u cant hook them but the hookcoll thinks u can because its not like a "u cant hook other tees" tile
+20:40 <+bridge> [ddnet] <!gerdoe> cool bug
+21:41 <+bridge> [ddnet] <fokkonaut> @Learath2 works, can you take a look at the code? https://github.com/fokkonaut/F-DDrace/commit/4e0abd5e430781e0f206a934fbee6b40e88fd96f
+22:35 <+bridge> [ddnet] <nils> hi, the new smooth zoom is annoying me and for some reason the config flag is not working for me. am i doing something wrong?
+22:35 <+bridge> [ddnet] <nils> https://cdn.discordapp.com/attachments/293493549758939136/730160030988369931/ddnet_zoom.png
+22:35 <+bridge> [ddnet] <nils> https://cdn.discordapp.com/attachments/293493549758939136/730160069957648515/ddnet_zoom2.png
+22:48 <+bridge> [ddnet] <deen> @nils there is no flag to disable the smooth zoom
+22:50 <+bridge> [ddnet] <nils> but the second picture is from the commit the smooth zoom was added. it shows the flag
+22:50 <+bridge> [ddnet] <Patiga> in which way is it annoying you?
+22:52 <+bridge> [ddnet] <deen> @nils no, that screenshot is from https://github.com/ddnet/ddnet/pull/2420/files, which we did *not* merge. Instead we took https://github.com/ddnet/ddnet/pull/2429/files
+22:52 <+bridge> [ddnet] <nils> @Patiga i am zooming quite alot while playing and the animation is just braking my focus
+22:52 <+bridge> [ddnet] <fokkonaut> @deen he is right, it annoys me too
+22:52 <+bridge> [ddnet] <fokkonaut> thats why i was against the removal of a config option by @heinrich5991
+22:53 <+bridge> [ddnet] <nils> oh i'm sorry @deen didn't see that it wasn't merged. but the setting would be a blessing
+22:55 <+bridge> [ddnet] <Learath2> @fokkonaut if that was why, why didn't you say sth? smh
+22:56 <+bridge> [ddnet] <Learath2> We should add the config option back, and add a special case for 0
+22:59 <+bridge> [ddnet] <deen> done
+22:59 <+bridge> [ddnet] <deen> @Learath2 ^
+23:02 <+bridge> [ddnet] <nils> but i need a setting to turn it off, not to tweak the time. or should i set cl_smooth_zoom_time to 0 now?
+23:04 <+bridge> [ddnet] <snail> i heavily agree with nils
+23:04 <+bridge> [ddnet] <snail> i dont undersand u can implement such stuff with no off option
+23:04 <+bridge> [ddnet] <deen> 0 is the same as off
+23:04 <+bridge> [ddnet] <deen> no need to have two options imo
+23:05 <+bridge> [ddnet] <nils> well ok, thanks alot :)
+23:05 <+bridge> [ddnet] <snail> fair enough then
+23:05 <+bridge> [ddnet] <deen> @snail our combination of options grows exponentially with each added options, we can't possible test all, thus we end up having more bugs
+23:05 <+bridge> [ddnet] <snail> yeah ik
+23:05 <+bridge> [ddnet] <deen> so I can understand the motivation not to introduce more options
+23:06 <+bridge> [ddnet] <snail> but that option literally changes the gameplay when using zoom
+23:06 <+bridge> [ddnet] <snail> :justatest:
+23:07 <+bridge> [ddnet] <nils> @Patiga i am zooming quite alot while playing and the animation is just breaking my focus
+23:18 <+bridge> [ddnet] <Learath2> @deen doesn't this cause a SIGFPE?
+23:19 <+bridge> [ddnet] <Learath2> `return (CurrentTime - m_ZoomSmoothingStart) / (m_ZoomSmoothingEnd - m_ZoomSmoothingStart);` would be `(Now - Now) / (Now - Now)` which is not only division by 0 but also 0/0 😄
+23:22 <+bridge> [ddnet] <deen> locally it worked, I didn't even look at the calculation 😄
+23:22 <+bridge> [ddnet] <deen> maybe I got lucky and the floats are not exact enough?
+23:29 <+bridge> [ddnet] <louis> hi can someone fact check some facts for a video im making
+23:29 <+bridge> [ddnet] <louis> 1. strong and week hook existed from the beginning of tw
+23:29 <+bridge> [ddnet] <louis> 2. whoever was spawned first gets strong
+23:29 <+bridge> [ddnet] <deen> @Learath2 ZoomProgress is never called since line 71 checks that Time >= m_ZoomSmoothingEnd
+23:30 <+bridge> [ddnet] <deen> 2 is correct
+23:30 <+bridge> [ddnet] <deen> for 1 you should grab an old teewars build
+23:30 <+bridge> [ddnet] <abcqwerty> @louis stop using incorrect skin
+23:31 <+bridge> [ddnet] <Learath2> @deen oh, that makes sense
+23:32 <+bridge> [ddnet] <louis> @deen do you know anywhere i can find them?
+23:33 <+bridge> [ddnet] <abcqwerty> ask zombietoad he has them
+23:33 <+bridge> [ddnet] <Marcell_HUN> Teewars :kek:
+23:33 <+bridge> [ddnet] <!     ZombieToad> sry i dont have anything for louisers
+23:34 <+bridge> [ddnet] <abcqwerty> trol
+23:34 <+bridge> [ddnet] <Marcell_HUN> Zombietroll
+23:35 <+bridge> [ddnet] <!     ZombieToad> who is marcell
+23:35 <+bridge> [ddnet] <deen> https://www.teeworlds.com/forum/viewtopic.php?id=8016 for example
+23:36 <+bridge> [ddnet] <Marcell_HUN> I am your father
+23:40 <+bridge> [ddnet] <Learath2> heh funny how the server and the client was just one executable
+23:49 <+bridge> [ddnet] <louis> seems like strong and weak does not exist or appear to exist on teewars 0.1.1
+23:49 <+bridge> [ddnet] <louis> the hook physics are also really crazy

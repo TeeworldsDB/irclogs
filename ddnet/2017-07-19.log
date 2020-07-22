@@ -1,0 +1,120 @@
+13:54 < laxa> Build doesn't work on windows anymore, what changed ?
+13:54 < laxa> configure.lua:109: there is no configuration option named 'opus'
+13:56 <@heinrich5991> laxa: try bam -c config
+13:57 < laxa> ah nice heinrich5991, thanks, it's compiling
+13:58 < laxa> [205/207] #1 link DDNet.exe
+13:58 < laxa> LINK : fatal error LNK1181: cannot open input file 'curl-4.lib'
+14:00 < laxa> I have no idea why it's trying to static link the libcurl :(
+14:07 < ddnet-discord> <Savander> https://github.com/ddnet/ddnet/commit/97fdc8313a918d99f49abb817eab19fd3e931a6d
+14:07 < ddnet-discord> <Savander> maybe cause of it
+14:08 < laxa> the directory has only .dll and no .lib. .lib is for static while .dll is shared library, so it shouldn't be related to this commit
+14:13 < laxa> That's interesting, if you look into other/curl
+14:13 < laxa> linux,osx have static libraries but windows folder has shared libraries
+16:59 <@deen> Visual Studio needs .lib files for linking dll files I think. But not sure
+17:00 <@deen> Would be nice if you can tell me what I need to generate to fix it. I don't want to accept libraries other people built, better to build them myself on my existing build infrastructure: https://github.com/ddnet/ddnet-scripts/blob/master/ddnet-lib-update.sh
+17:12 <@deen> Looks like I need to use dlltool
+17:14 <@deen> But anyway, I'm really happy when I can automatically build updated libs
+17:32 <@deen> laxa: want to try again?
+17:32 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vQjzj
+17:32 < ddnet-commits> ddnet/master b89295c def: Let's try to create libcurl-4.lib files for MSVC linking
+17:32 < laxa> deen: sure
+17:35 < laxa> LINK : fatal error LNK1181: cannot open input file 'curl-4.lib'
+17:36 <@deen> huh
+17:36 <@deen> try renaming libcurl-4.lib to curl-4.lib
+17:36 <@deen> my bad, missed the name in your error before
+17:37 < laxa> works
+17:38 <@deen> compiles and binary runs fine?
+17:38 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vQjgh
+17:38 < ddnet-commits> ddnet/master d57ffaf def: Correct name
+17:38 < laxa> ah no, it doesn't run
+17:38 <@deen> haha
+17:38 < laxa> The code execution cannot proceed because (null).DLL was not found.
+17:38 <@deen> would have been too easy!
+17:40 <@deen> new try
+17:41 <@deen> laxa: 
+17:41 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vQj20
+17:41 < ddnet-commits> ddnet/master fed747b def: curl-4.lib needs to reference libcurl-4.dll
+17:43 < laxa> seem to work, I rebuild entirely just to be sure
+17:43 <@deen> Thanks, great
+17:43 < laxa> Well, thanks to you :)
+17:43 <@deen> So now I know how to use mingw to make dlls that build with MSVC
+17:43 <@deen> x86_64-w64-mingw32-dlltool -v -D libcurl-4.dll -l curl-4.lib lib/.libs/*.o
+17:44 < laxa> Perfect !
+18:10 <@Nimda_9885> SkipIt2 by =xPeke= just released on Solo at 2017-07-19 18:05
+18:10 < ddnet-discord> <jao> https://ddnet.tw/releases/
+18:10 < ddnet-discord> <jao> screenshot for im corneums new map is broken
+18:11 < ddnet-discord> <deen> thanks, fixed
+18:13 < ddnet-discord> <deen> Fucking libogg
+18:13 < ddnet-discord> <deen> If you touch their timestamps, e.g. by copying the directory, they use autotools to rebuild everything
+18:13 < ddnet-discord> <deen> Took me a few days to figure out why that keeps happening to me...
+18:30 <@heinrich5991> deen: please don't put more libs into the repo
+18:31 <@deen> heinrich5991: why?
+18:31 <@heinrich5991> repo isze
+18:31 <@heinrich5991> size
+18:31 <@heinrich5991> it's already horrible
+18:31 <@deen> So I shouldn't update libs with security vulnerabilities because of repo size?
+18:31 <@heinrich5991> no
+18:31 <@heinrich5991> we should rather download it from a http server or maybe a third-party repository
+18:32 <@deen> yes, I asked for that feature once
+18:32 <@heinrich5991> k
+18:32 <@deen> but now we have the chaos with cmake and bam
+18:32 <@deen> so it's much more difficult
+18:32 <@heinrich5991> but the solution to permanently increase the size of the repo isn't very nice either
+18:33 <@deen> heinrich5991: talking about bad solutions, would you mind finally giving us your source code for the rust tool so that I can fix it?
+18:33 <@heinrich5991> I mean the simplest thing you could do is put a script into the repo that downloads the libs
+18:34 <@deen> downloads from where?
+18:34 <@deen> downloads how?
+18:35 <@heinrich5991> e.g. github – http and python
+18:35 <@deen> or you could fix it yourself, but I'm not comfortable running random binaries on DDNet servers
+18:35 <@heinrich5991> I see
+18:36 <@deen> See, I made an issue for exactly what you're describing 2 years ago: https://github.com/ddnet/ddnet/issues/256
+18:37 <@heinrich5991> no, that describes doing it automatically
+18:37 <@heinrich5991> that might be a bit harder
+18:37 <@deen> of course our build should be automatic
+18:37 <@heinrich5991> execute this script and then call your build tool isn't automatic enough?
+18:40 <@deen> I could just make the ddnet repo private like your ddnet stuff
+18:40 <@deen> then no problem anymore
+18:40 <@heinrich5991> I can give you a tarball of the source code if you want, or even host it
+18:42 <@deen> and I'm also not planning to keep maintaining the bam and cmake build systems
+18:42 <@deen> so since no one has managed to make cmake work properly so far, we should remove that
+18:51 <@deen> @HMH django script moves screenshot to wrong location with umlauts
+18:51 < laxa> Also, if you don't care about the history, I guess it's possible to purge the git repo from commit involving only libraries
+18:52 < laxa> it would lower the size quite a bit
+18:52 <@deen> and breaks compiling any older version
+18:52 < laxa> but it's quite painfull and manual process
+18:53 < laxa> haven't of thought about that indeed
+18:53 <@deen> I'd probably move the old history to another repo
+18:53 <@deen> like ddnet-old
+18:53 <@heinrich5991> removing "just" the recently added version might be possible
+18:53 < laxa> heinrich5991 has a point, but even big repo still keeps their history
+18:53 < laxa> it's just painfull when cloning
+18:56 <@heinrich5991> deen: https://heinrich5991.de/temp/libtw2.tar
+18:57 <@heinrich5991> you need rust and cargo installed, then you can "cd libtw2/tools", "cargo build --release --bin=ddnet_properties" and the executable ends up in libtw2/tools/target/release/ddnet_properties
+21:12 < Switcher_> Helo :D
+21:52 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7esd
+21:52 < ddnet-commits> ddnet/master a72910b def: Move external libraries to ddnet/ddnet-libs repo
+21:53 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7eGT
+21:53 < ddnet-commits> ddnet/master e3191bd def: Update readme
+22:23 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7elf
+22:23 < ddnet-commits> ddnet/master 7d2eb42 def: Further build fixes
+22:31 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7e8q
+22:31 < ddnet-commits> ddnet/master d024643 def: Try to fix travis too
+22:56 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7e0i
+22:56 < ddnet-commits> ddnet/master 31c8047 def: Add missing libs
+22:58 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7e0F
+22:58 < ddnet-commits> ddnet/master 9f8cffe def: travis
+23:06 < ddnet-commits> [ddnet] def- force-pushed master from 9f8cffe to f038c2f: https://git.io/vsyfY
+23:06 < ddnet-commits> ddnet/master f038c2f def: Initial commit to cleaned up repo...
+23:07 < ddnet-commits> [ddnet] def- force-pushed master from f038c2f to ba0f5b8: https://git.io/vsyfY
+23:07 < ddnet-commits> ddnet/master ba0f5b8 def: Initial commit to cleaned up repo...
+23:31 <@deen> 37M	ddnet
+23:31 <@deen> 216M	ddnet-old
+23:31 <@deen> heinrich5991: ^ there you go
+23:35 <@heinrich5991> nice :)
+23:35 <@heinrich5991> deen: what was the bug you were speaking of in the script?
+23:37 <@deen> heinrich5991: snail reported some map couldn't be parsed
+23:37 <@deen> check the admin channel
+23:37 <@heinrich5991> k, I think HMH forwarded that to me
+23:37 <@heinrich5991> should already be fixed
+23:41 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v7er7
+23:41 < ddnet-commits> ddnet/master a4752e7 def: Travis

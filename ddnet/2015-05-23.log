@@ -1,0 +1,137 @@
+00:41 < eeeee> i have some ideas
+00:47 < eeeee> in short, i see it as a http service which stores multiple json blobs for each client
+00:48 < eeeee> you can make it very extensible (usable by other mods)
+00:49 < eeeee> the data structure might look like accounts['Learath2'].ddnet.maps['koule2'].best_time = 123.00;
+00:50 < eeeee> when you finish a map faster than that and server wants to update your score, server would first have to pass auth check for ddnet mod (meaning it would need some secret or private key that only official ddnet servers have) and also the player would have to be authenticated at the particular server
+00:52 < eeeee> so you'd have ACLs for each top-level "mod" key (like ".ddnet"), typically allowing anyone to read json blobs but only authorized mods to update them
+00:53 < eeeee> in addition there would be some kind of a special .local key which is only accessible to the client himself (for storing binds and other local settings for example or could host a public key there for chat message signing or sth) 
+00:55 < eeeee> or misc information like current server or last online time so that it's easier to see where do your friends currently play
+00:57 < eeeee> i think this way the account server logic can be kept very thin, so we can easily switch the actual underlying database if it breaks
+09:54 <@EastByte> eeeee: these json files would be pretty huge
+09:54 <@EastByte> it's not like json files are nice to access/modify like a sql database
+09:56 <@EastByte> though I do not really understand how many json files there will be
+11:15 < laxa> guys
+11:16 < laxa> do you know a simple way to check for memory problem with SDL2 on OS X Mavericks ?
+11:16 < laxa> my game is crashing randomly in SDL2 dynamic lib, but not always, and not always at the same place.
+11:17 < laxa> I am pretty sure it's a problem inside the memory, something like a pointer pointing at a local address
+11:17 < laxa> any way to check that ? Valgrind & gdb doesn't work well on Mac Os X Mavericks with SDL2 apparently...
+11:25 < eeeee> EastByte: it would be a file per user, so not that big at all
+11:27 < eeeee> also it's only logically a file, and doesn't actually have to be json
+11:27 < eeeee> most today's hip "nosql" databases call themselves "document store" and have this model
+11:29 < eeeee> laxa: i valgrinded sdl1 client on yosemite recently, was terribly slow but still worked
+11:29 < laxa> eeeee: I am on mavericks
+11:29 < laxa> with SDL2
+11:29 < eeeee> do you have a problem with sdl2 specifically?
+11:30 < eeeee> what happens when you valgrind
+11:30 < laxa> I am playing, will give you crash report asap
+11:30 < laxa> valgrind crash with SDL2
+11:30 < eeeee> hmm weird. well i'm not a mac os expert or anything
+11:30 < laxa> here is my crash report : pastebin.com/5WT2RYqU
+11:40 < laxa> as I said, my crashes are completely random
+11:40 < laxa> not always happening, not always at same place
+11:40 <@EastByte> kinda typical when using system languages as a beginner :P
+11:41 < laxa> well, it's a school project, I haven't made all the code
+11:41 < laxa> I don't think I would do such mistakes, but maybe my school colleagues did !
+11:42 < laxa> maybe I can give you the sources ?
+11:43 <@EastByte> yep, you can
+11:44 < laxa> wait, I am playing, it's private repo so far :p
+11:45 <@EastByte> and I'm afk a short time
+11:56 < laxa> https://ddracepro.net/files/spaceinvader.tar.gz
+11:56 < laxa> here are the sources
+13:12 < Learath2> eeeee: well how would one authenticate with vanilla client
+15:25 < dev_> hi
+15:33 < Edible> hello
+15:35 < savander> ho
+15:37 < laxa> EastByte: you are back ?
+18:47 < laxa> EastByte: you there ?
+18:56 <@EastByte> laxa: back now, I was kinda away
+18:56 < laxa> ok :D
+18:56 < laxa> you said "short afk" ^^
+18:57 <@EastByte> ooohh I said short?
+18:58 < laxa> [11:45:19] <@EastByte> and I'm afk a short time
+18:58 < laxa> ^^
+18:58 < laxa> But Np !
+19:08 <@EastByte> the sourcecode is quite huge
+19:09 <@EastByte> and I can't compile it because of strndup() which should be declared in string.h
+19:15 < laxa> hmm
+19:15 < laxa> just try to launch -> espace button a while
+19:16 < laxa> to see if it crashes
+19:16 < laxa> or see if valgrind is working on your OS EastByte
+19:16 <@EastByte> I removed -ansi from the cflags and now it compiles
+19:16 < laxa> I'll install debian 8 in VM tonight to try to see if it's a problem of Mac OS X
+19:16 < laxa> ah
+19:17 <@EastByte> free(): invalid next size (normal): 0x0000000000935ad0
+19:17 < laxa> hm
+19:18 < laxa> we free memory only when the game exit
+19:18 < laxa> my problematic crash is at startup
+19:19 <@EastByte> the backtrace shows it's caused by /usr/lib/libSDL2_mixer-2.0.so
+19:19 <@EastByte> Mix_CloseAudio
+19:19 < laxa> -_-
+19:19 < laxa> I made the audio of the game
+19:19 < laxa> I am checking every pointer, even if I should not cause it's not supposed to be null
+19:19 < laxa> still crashing
+19:20 <@EastByte> so when you remove the audio part of the game it dosn't crash?
+19:20 < laxa> not always
+19:20 <@EastByte> ...
+19:20 <@EastByte> better remove every part of the game until no crash appears
+19:20 < laxa> hm
+19:20 <@EastByte> and then step by step implementing things
+19:21 < laxa> valgrind is working ?
+19:21 <@EastByte> no, I never tried valgrind
+19:22 < laxa> cause it aint working on Maverick with SDL 2
+19:22 < laxa> crashing directly
+19:22 <@EastByte> valgrind wont give you the exact problem anyway :P
+19:23 < laxa> Yes I iknow, but I expert those crashes to be memory problem
+19:23 < laxa> so valgrind would greatly help me
+19:23 < laxa> and we have nothing complex in our game
+19:23 < laxa> SDL 2 use is pretty basic
+19:30 <@EastByte> for (i = 0; i < ENUM_AUDIO_SIZE; i++)
+19:30 <@EastByte>     if (&(game->audio->sound[i]) != NULL)
+19:30 <@EastByte>         Mix_FreeChunk(game->audio->sound[i]);
+19:30 <@EastByte> this looks kinda wrong
+19:31 <@EastByte> &(game->audio->sound[i]) will never be NULL
+19:34 < laxa> Hu ?
+19:35 <@EastByte> &game->audio->sound[i] is the address location of sound[i]
+19:36 <@EastByte> but you basically just want check the pointer sound[i] itself
+19:36 < laxa> ah
+19:36 < laxa> right
+19:37 <@EastByte> but Mix_CloseAudio still crashes
+19:38 <@EastByte> and removing mixer unloading there are even more memory corruptions
+19:40 < laxa> hmmmmmmmmmmm
+19:44 < laxa> you see that with valgrind ?
+19:45 <@EastByte> gdb
+19:48 < laxa> just by running with gdb ?
+19:49 <@EastByte> actually glibc detects the memory corruption and logs some information about it
+19:53 < laxa> well
+19:53 < laxa> fuck my school, asking us to buy a Mac, when no tool is correctly working...
+19:53 < Learath2> did they actually force you to use a mac ?
+19:53 < laxa> yes
+19:53 < laxa> we are the "last" where we had to buy one
+19:54 < laxa> the newest students had more choices
+19:54 < Learath2> well install debian on it and tell them they never specified an OS
+19:54 < laxa> :D
+19:54 < Learath2> if its one of the newer macs you shouldnt have any problem using a vm 
+19:55 < laxa> Yes it is
+19:55 < laxa> we installed debian VM and windows already on it
+19:57 < laxa> thing is, I am really bad at using gdb :x
+21:07 < laxa> EastByte: still there ?
+22:17 < laxa> EastByte: I think I found the big problem in audio ^^
+22:17 < laxa> I was mallocing the wrong size xD
+23:11 < eeeee> Learath2: no wai to auth with vanilla
+23:12 < Learath2> and how would we update records for vanilla client users ?
+23:12 < Learath2> their finishes would be just ignored ?
+23:13 < eeeee> the old way i guess?
+23:21 < eeeee> existing finishes would be hard to deal with too :/
+23:21 < eeeee> so maybe we dont
+23:22 < eeeee> Learath2: can keep all finishes under the old logic (nickname based), and use accounts for other stuff like achievements/friends/settings etc..
+23:23 < eeeee> would log finishes under account somewhere too ofc but not really expose them, so that maybe some day they can be switched over
+23:24 < Learath2> another thing i'd like to prevent is nick spoofing 
+23:25 < eeeee> impossibru
+23:26 < eeeee> how would you let people register nicks? i bet some troll would just go ahead and register all nicks from the ranks to himself
+23:27 < Learath2> i have no idea how we would handle the registers but after that why is it even impossibru ?
+23:28 < eeeee> after that it's possibru
+23:28 < eeeee> but the problem is that registers is impossibru, thus rendering the whole thing impossibru as well :P
+23:31 < Learath2> it really is impossible without deleting all records
+23:58 < laxa> put ddnet on steam
+23:58 < laxa> use their nick system -> done
+23:58 < laxa> account system

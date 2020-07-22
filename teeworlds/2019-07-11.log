@@ -1,0 +1,72 @@
+13:25 < bridge_> [teeworlds] <ChillerDragon> Can we end to end encrypt whisper? To make sure the server owner can’t read it even on a modded server?
+13:26 < bridge_> [teeworlds] <Dune> I don't see why not
+13:27 < bridge_> [teeworlds] <Dune> You could prototype that with a client mod actually
+13:39 < bridge_> [teeworlds] <ChillerDragon> It should be possible to fallback to clear text with a warning on failed encryption I guess . For older clients.
+13:56 < deen> So how do you know which key to encrypt with if you don't trust the server? You'll exchange it out of band?
+14:14 < bridge_> [teeworlds] <＃6909> Im not much into coding, but if you dont send they key trough the server and instead send directly to the other player, could that lead to player ip leaks?
+15:00 < bridge_> [teeworlds] <ChillerDragon> im no crypto exper what so ever. How do other systems do it where they advertise end to end encryption without trusting the server. Like whatsapp.
+15:01 < bridge_> [teeworlds] <ChillerDragon> I thought of exchanging public keys over whisper before sending the messages.
+15:01 < koomi> trust on first use, usually
+15:02 < bridge_> [teeworlds] <ChillerDragon> Yea i guess send a test message and see if it was encrypted with the correct public key. To make sure the server didnt send his own public key,
+15:02 < koomi> i.e. you store someones pubkey the first time you talk to them and then make sure it's the same one for future messages
+15:03 < bridge_> [teeworlds] <ChillerDragon> sounds possible to me
+15:05 < koomi> you could just use OTR
+15:05 < koomi> https://en.wikipedia.org/wiki/Off-the-Record_Messaging
+15:06 < koomi> it's designed to add a layer of encryption to existing IM protocols
+16:33 < Dune> Sounds like the server could send a false pubkey and forward cleartext to the sendee
+16:34 < Dune> But players could find out it is a malicious server I guess by noticing the unencrypted warning
+16:35 < bridge_> [teeworlds] <ChillerDragon> y
+16:35 < koomi> yes, on the first message, anything else requires exchanging keys out-of-band or some web of trust or whatever model
+16:36 < koomi> a problem might be that players use different clients and then have different keys under the same name
+16:37 < bridge_> [teeworlds] <ChillerDragon> what do you mean?
+16:38 < koomi> if you play on your laptop and desktop pc using the same name, you will have changing pubkeys
+16:38 < bridge_> [teeworlds] <ChillerDragon> the encryption should only make sure that if you send a message to another tee that this tee recives it and nobody else. No sort of authentication of proof that this tee is the tee you think it is.
+16:38 < bridge_> [teeworlds] <ChillerDragon> This shoulnd t be used as signature or something just to make messageing private.
+16:39 < bridge_> [teeworlds] <ChillerDragon> All other stuff would involve some sort of accounts or what ever something complicated and unteeish i guess
+16:39 < koomi> and how would you do that without allowing the server to intercept messages?
+16:40 < koomi> there doesn't have to be any central account registry, just clients exchanging pubkeys
+16:40 < koomi> (via servers)
+16:46 < bridge_> [teeworlds] <ChillerDragon> yes? i dont see the problem
+16:48 < koomi> you receive the pubkey from the server, so encrypting with that is useless for the most part
+16:53 < koomi> unless you have some way to verify that it indeed belongs to whoever you are talking to
+16:55 < bridge_> [teeworlds] <ChillerDragon> I thought the clients wishper pubkeys to each other and then send a sample message first. So if the sample message can be encrypted correctly with the private keys the clients know the server didnt manipulate the pub keys.
+16:57 < koomi> so you want clients to talk directly to each other? how would they do that?
+16:57 < bridge_> [teeworlds] <ChillerDragon> no
+16:57 < bridge_> [teeworlds] <ChillerDragon> they use normal wispher over the server
+16:58 < bridge_> [teeworlds] <ChillerDragon> and they verifiy the publickeys with a sampel message to check if the server manipulated them
+16:58 < bridge_> [teeworlds] <ChillerDragon> Oh wait the server can still man in the middle right?
+16:59 < koomi> yes, the first message (containing the pubkey) would have to be unencrypted, so the server can intercept the pubkey and send a different one to the other player
+16:59 < koomi> then reencrypt each message
+16:59 < bridge_> [teeworlds] <ChillerDragon> sen dhis own key and then recrypt with the other key ftwards ye si see
+16:59 < koomi> exactly
+17:00 < bridge_> [teeworlds] <ChillerDragon> but how does encryption then work usually? Idk
+17:00 < bridge_> [teeworlds] <ChillerDragon> you can never start encrypted
+17:00 < bridge_> [teeworlds] <ChillerDragon> it is always sending a message out in the untrusted internet
+17:01 < koomi> depends, but for stuff like whatsapp they store the first pubkey the receive for a new contact and then scream if a message from that contact uses a different key
+17:01 < koomi> so the server can still interfere on first contact, but after that it would be noticed
+17:02 < koomi> and the server also doesn't know if two clients have talked to each other before, so it might be noticed
+17:03 < koomi> they also have a way to explicitly verify that a key belongs to a person with qr codes
+17:03 < bridge_> [teeworlds] <ChillerDragon> so i should never start a whatsapp chat from public wifi?
+17:04 < koomi> no the communication with the server is also encrypted and verified
+17:04 < bridge_> [teeworlds] <ChillerDragon> ah tru
+17:04 < bridge_> [teeworlds] <ChillerDragon> so downloading whatsapp in public wifi is dangerous?
+17:04 < koomi> you can't ever trust the internet anyway, public wifi or not
+17:04 < bridge_> [teeworlds] <ChillerDragon> ye thats the thing
+17:05 < bridge_> [teeworlds] <ChillerDragon> so there is no gurantee for encryption?
+17:05 < koomi> well play store uses encryption and also explicit signatures for authentication
+17:06 < bridge_> [teeworlds] <ChillerDragon> so all the encryption is based on some prior encryption huh?
+17:07 < koomi> more or less, yes
+17:07 < koomi> except for stuff that was verified in person
+17:09 < koomi> and newish approaches like certificate transparency that don't provide authentication but a way to prove someone else was using an identity
+17:10 < bridge_> [teeworlds] <ChillerDragon> men this stuff is complicated thats why i just threw the idea in the room i have no clue how this can be implemented secure actually
+17:11 < koomi> and that's just the high-level view, there's tons of details to get wrong too
+17:11 < koomi> not easy at all
+20:20 < bridge_> [teeworlds] <ChillerDragon> Uhm can we get the old names system back? with no duplicated and empty names. It felt less weird. And easier to use. The chat became pretty confusing and also future modding that allows commands based on player names is no longer possible.
+20:22 < bridge_> [teeworlds] <ChillerDragon> Also it makes porting external scripts to 0.7 harder that parse the logs and only see player names.
+20:23 < bridge_> [teeworlds] <Dune> The log should include player ids
+20:23 < bridge_> [teeworlds] <ChillerDragon> yes sure i didnt say impossilbe but harder
+20:24 < bridge_> [teeworlds] <ChillerDragon> everything coding wise still works. But the players are not robots. It makes disucssions much harder who is who when both have the same name.
+20:24 < bridge_> [teeworlds] <ChillerDragon> And the default showing ids or having users to turn on this option isnt a solution
+20:25 < bridge_> [teeworlds] <ChillerDragon> i dont see a flaw in the old system nor a benefit in the new.
+20:48 < bridge_> [teeworlds] <WsY[FU]?> If u plan on modding a server with a system that relies on players' names, you should prob force unique non-empty nicknames
+20:51 < bridge_> [teeworlds] <WsY[FU]?> Does vote menu show ids though? I never had problems with people having identical nicknames, but if votemenu/vote box do not show ids that can be very confusing

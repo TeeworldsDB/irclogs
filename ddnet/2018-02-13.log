@@ -1,0 +1,220 @@
+02:56 <+Learath2> aah the good old days when I didn't know how to even code and still tried my best
+03:05 < ddnet-commits> [ddnet] heinrich5991 closed pull request #1027: Move to new-style CMake, allow external GLEW, pnglite, wavpack  (master...pr_ddnet_cmake_deps) https://git.io/vAv5i
+03:12 < ddnet-commits> [ddnet] bors[bot] merged staging into master: https://git.io/vAY9v
+03:46 < ddnet-commits> [ddnet] Learath2 opened pull request #1035: Fix #1031 (master...dd_pr_flagbox) https://git.io/vAYHp
+13:03 <@heinrich5991> deen: I altered tables on ddnet.tw but it hasn't replicated to ger
+13:09 <@heinrich5991> I don't find logs or antything, maybe I should have checked first
+13:09 <+Learath2> there should be binlogs somewhere
+13:10 <@heinrich5991> nothing in systemd logs if you mean that
+13:10 <+Learath2> no actual relay ogs in mysql bin format
+13:10 <@heinrich5991> Learath2: how to check that?
+13:12 <+Learath2> they should be in /var/lib/mysql
+13:13 <@heinrich5991> Learath2: do you know the replication strategy?
+13:13 <@heinrich5991> i.e. where do I have to look? ddnet.tw or ger.ddnet.tw?
+13:13 <@heinrich5991> or is it on both?
+13:13 <+Learath2> not really
+13:17 <+Learath2> the ALTER TABLE shows up on neither
+13:18 <@heinrich5991> Learath2: not even on ddnet.tw?
+13:18 <+Learath2> not on the relay logs n
+13:18 <@heinrich5991> so what do I do?
+13:19 <@heinrich5991> and how do I access the relay logs?
+13:19 <@heinrich5991> and do you know more credentials?
+13:19 <@heinrich5991> > SHOW SLAVE STATUS;
+13:19 <@heinrich5991> ERROR 1227 (42000): Access denied; you need (at least one of) the SUPER, REPLICATION CLIENT privilege(s) for this operation
+13:20 <+Learath2> mysqlbinlog --no-defaults file
+13:20 <+Learath2> use root
+13:22 <@heinrich5991> Learath2: shall I just issue the ALTER TABLE on all machines?
+13:22 <@heinrich5991> would that fix stuff?
+13:22 <@heinrich5991> or would it make things worse :P
+13:24 <+Learath2> I don't get our replication strategy
+13:24 <+Learath2> it looks more like a chain then a tree :P
+13:24 <+Learath2> Last_Error: Error 'Got error 64 'Temp file write failure' from InnoDB' on query. Default database: 'teeworlds'. Query: 'ALTER TABLE record_race ADD COLUMN GameID VARCHAR(64) AFTER cp25
+13:25 <+Learath2> that's on CAN
+13:25 <+bridge> [ddnet] <heinrich5991> hm
+13:25 <+Learath2> actually on USA
+13:25 <+bridge> [ddnet] <heinrich5991> I'm applying it manually to GER now, let's see if I can replicate a record from GER to ddnet.tw then
+13:28 <+Learath2> inb4 it adds 2 columns
+13:34 <+bridge> [ddnet] <timakro> Does somebody know who created the web map rendering feature (e.g. https://ddnet.tw/maps/?map=Quick), where to download the sourcecode and what license it is under?
+13:35 <+Learath2> timakro something tells me it was eastbyte but not sure
+13:36 <+bridge> [ddnet] <timakro> do you know how i can contact him?
+13:38 <+Learath2> heinrich5991: it's a chain yeah, @ > usa > can > ger > @
+13:38 <+Learath2> it propagated fine to usa
+13:38 <+Learath2> can gave an error so it couldn't go further
+13:38 <+Learath2> how to fix it I have no idea
+13:38 <+Learath2> :D
+13:39 <+timakro> oh EastByte is here in irc -.-
+13:40 <+Learath2> heinrich5991: might need to restart slave on can and see if it fixes itself, it said couldn't write to temp maybe it was full on diskspace
+13:47 <+bridge> [ddnet] <Sonix> @timakro  https://github.com/east/tw-webgl ?
+13:50 <+bridge> [ddnet] <timakro> @Sonix danke!
+13:50 <+bridge> [ddnet] <sen pa'> Gerne
+15:03 <+bridge> [ddnet] <deen> Probably disk full on CAN
+15:04 <+bridge> [ddnet] <heinrich5991> @deen can disk size be increased on CAN? what's the hosting provider?
+15:19 <+Learath2> heinrich5991: did you manage to get it to propagate all the way?
+15:20 <@heinrich5991> Learath2: dunno. can you retry propagation to CAN?
+15:20 <@heinrich5991> restart didn't seem to trigger it (?)
+15:21 <+Learath2> it errored again
+15:21 <+Learath2> we don't have much diskspace available at CAN at all :/
+15:22 <@heinrich5991> yea, I tried optimizing it a bit
+15:23 <@heinrich5991> but it only freed around 500MB
+15:25 <+Learath2> heinrich5991: can we maybe take a dump from ddnet.tw and just drop table and reimport on CAN?
+15:25 <@heinrich5991> that sounds super easy to get wrong
+15:25 <@heinrich5991> :D
+15:26 <+Learath2> it's better then replication being stuck right here
+15:26 <+Learath2> god knows how big that dump is going to be :P
+15:27 <@heinrich5991> probably bigger than the DB
+15:27 <@heinrich5991> which is 5GB in itself
+15:34 <+Learath2> oh you did add the column on GER didn't you? :D
+15:35 <+Learath2> it propagated back to ddnet.tw and caused a duplicate column error
+15:36 <+bridge> [ddnet] <deen> @heinrich5991 it's OVH. Let's just remove the DB there instead
+15:37 <@heinrich5991> sometimes re-ordering a server can increase its specs
+15:37 <+Learath2> skipped the bad queries on ddnet.tw
+15:37 <+bridge> [ddnet] <deen> throw out CAN db from all servers, connect the other ones directly
+15:37 <+bridge> [ddnet] <deen> and shut down CAN db
+15:37 <+bridge> [ddnet] <deen> enough space
+15:39 <+Learath2> deen: CAN should dump records to USA, stop slave on CAN, make GER master USA instead, done?
+15:41 <+bridge> [ddnet] <deen> something like that
+15:42 <+bridge> [ddnet] <deen> why dump to USA?
+15:42 <+bridge> [ddnet] <deen> why not just connect GER <-> USA directly
+15:43 <+Learath2> well CAN needs somewhere to send it's records, USA sounds closer then GER
+15:43 <+bridge> [ddnet] <deen> yes
+15:43 <+bridge> [ddnet] <deen> they always have multiple
+15:43 <+bridge> [ddnet] <deen> so you can add USA and GER as fallback
+15:43 <+Learath2> and don't we want to keep the loop GER->USA->ddnet.tw->GER?
+15:43 <+bridge> [ddnet] <deen> yes, keep loop
+15:43 <+bridge> [ddnet] <deen> I shut down GER2 in a week?
+15:44 <+Learath2> do you happen to know how to remove CAN from the loop? idk what master_log_pos and master_log_file should be tbh
+15:45 <+bridge> [ddnet] <deen> I can do that when I'm home
+15:45 <+bridge> [ddnet] <deen> I don't know either, but I guess I'll figure it out along the way
+15:45 <+bridge> [ddnet] <deen> you can get the master log values from CAN
+15:45 <+Learath2> I'll replace GER2 with a kimisufi node, see if that holds up btw
+15:46 <+bridge> [ddnet] <deen> on CAN: stop slave;
+15:46 <+bridge> [ddnet] <deen> on USA: stop slave; CHANGE MASTER TO MASTER_HOST='ger.ddnet.tw', MASTER_USER='repl', MASTER_PASSWORD='SECRETREPL', MASTER_LOG_FILE='mysql-bin.000010', MASTER_LOG_POS=37941939; start slave;
+15:46 <+bridge> [ddnet] <deen> something like that
+15:47 <+Learath2> I'll do it as soon as I figure out how master_log_file and master_log_pos are supposed to work
+15:47 <@heinrich5991> thanks
+15:47 <@heinrich5991> sorry for destroying everything :(
+15:48 <+Learath2> my shower is dripping... I'm about to go insane
+15:49 <+bridge> [ddnet] <deen> Replace the rubber circle thingy inside, they get brittle with time
+15:49 <+bridge> [ddnet] <deen> heinrich5991: np ,i remember having the same problem with CAN^^
+15:50 <+Learath2> heinrich5991: you didn't break anything, just CAN
+16:02 <+Learath2> should be fine now \o/
+16:06 <@heinrich5991> you fixed everything™?
+16:08 <+Learath2> just need to let CAN connect to USA instead
+16:08 <@heinrich5991> Learath2: shall I disable the mysqld service on CAN?
+16:08 <@heinrich5991> so it doesn't start on next boot?
+16:08 <+Learath2> yeah
+16:09 <+Learath2> and could you check the log for why CAN cannot connect to usa mysql?
+16:09 <@heinrich5991> which log?
+16:09 <@heinrich5991> CAN's ddnet server logs?
+16:10 <+Learath2> nvm, old pw on CAN
+16:10 <+Learath2> yeah all should be fine (tm)
+16:12 <+Learath2> should try to propagate sth around to see if it actually works fine
+16:13 <+Learath2> removing one point from myself
+16:14 <@heinrich5991> and re-adding 10 points afterwards?
+16:14 <@heinrich5991> classic
+16:14 <+Learath2> :D
+16:15 <@heinrich5991> Learath2: the DB is still on CAN btw
+16:15 <+Learath2> yeah just stopped it while working on it
+16:15 <@heinrich5991> ok
+16:17 <+Learath2> yay it works(tm)
+16:18 <+Learath2> CAN still messes up my terminal...
+16:20 <+Learath2> DROP DATABASE teeworlds; inbound :P
+16:23 <@heinrich5991> sounds safe
+16:23 <+Learath2> very
+16:23 <@heinrich5991> de*en has backups ;)
+16:30 <@deen> what's the state?
+16:30 <@deen> tell me if you need help
+16:31 <+Learath2> can is no longer in the loop
+16:31 <+Learath2> deen: the blocker pw in the db doesn't match the one in mysqlblock.cfg do we no longer use mysql for block?
+16:31 <@deen> dunno
+16:31 <@deen> no one cares about ranks on block
+16:32 <@deen> but fix them please
+16:32 <+Learath2> it must have been broken for quite some time on all servers
+16:32 <@heinrich5991> playing on the blocker servers, I thought that was by design :D
+16:33 <@heinrich5991> that there are no permanent scores ^^
+16:33 <+Learath2> and whoever changed the pw scrubbed the .mysql_history :D
+16:33 <+Learath2> guess we need a new pw for them
+16:34 <@deen> or just keep them without ranks
+16:34 <@deen> i don't mind
+16:34 <@deen> and no one complained
+16:38 <@heinrich5991> I don't care either, was just my experience :D
+16:40 <+Learath2> do any of you know whether zcatch sql implementation would accept a domain instead of an ip?
+16:44 <+Learath2> well I went with ip just incase
+16:44 <+Learath2> anyways done with all the mysql stuff, everything I can think of is fixed now
+16:44 <@deen> i think so, but I prefer ip too
+16:45 <@deen> since dns sometimes breaks
+16:45 <@deen> especially with dns amplification attacks hitting us
+16:46 <+Learath2> deen: do you happen to remember what fixes the weird TERM issue I kept having with zaf?
+16:46 <+Learath2> it happens with can now
+16:48 <+Learath2> heinrich5991: guess you can merge #1025 now if you don't see any issues with it
+16:48 <@deen> what's the issue?
+16:48 <+Learath2> deen: backspace doesn't seem to work, colors don't work
+16:49 <+Learath2> if I do TERM="xterm-256color" it does work tho
+16:49 <@deen> what's your normal TERM?
+16:50 <+Learath2> rxvt-unicode-256color
+16:50 <@deen> weird
+16:51 <@deen> i also use rxvt-unicode with 256 colors and for me TERM=xterm-256colo
+16:51 <@deen> r
+16:52 <@deen> either terminfo or ~/.zkbd
+16:53 <@heinrich5991> y'all should just fish with default options
+16:54 <@heinrich5991> :P
+16:55 <@heinrich5991> Learath2: CAN's hdd is now at 42%. good work. thanks ;)
+16:55 <+Learath2> can store so much teehistorian data
+16:55 <@heinrich5991> ^^
+17:13 < ddnet-commits> [ddnet] bors[bot] merged staging into master: https://git.io/vAOp3
+17:33 <+bridge> [ddnet] <heinrich5991> ```
+17:33 <+bridge> [ddnet] <heinrich5991> +----------+--------------+------+---------------------+--------------------------------------+
+17:33 <+bridge> [ddnet] <heinrich5991> | map      | name         | time | timestamp           | gameid                               |
+17:33 <+bridge> [ddnet] <heinrich5991> +----------+--------------+------+---------------------+--------------------------------------+
+17:33 <+bridge> [ddnet] <heinrich5991> | run_blue | heinrich5991 | 8.36 | 2017-01-28 20:28:37 | NULL                                 |
+17:33 <+bridge> [ddnet] <heinrich5991> | run_blue | heinrich5991 | 8.36 | 2017-01-28 20:30:19 | NULL                                 |
+17:33 <+bridge> [ddnet] <heinrich5991> | run_blue | heinrich5991 | 7.74 | 2017-01-28 20:31:05 | NULL                                 |
+17:33 <+bridge> [ddnet] <heinrich5991> | run_blue | heinrich5991 |  7.5 | 2017-01-28 20:31:31 | NULL                                 |
+17:33 <+bridge> [ddnet] <heinrich5991> | run_blue | heinrich5991 | 16.7 | 2018-02-13 17:26:01 | 84663ce1-12cf-4871-9651-643120960dc1 |
+17:33 <+bridge> [ddnet] <heinrich5991> +----------+--------------+------+---------------------+--------------------------------------+
+17:33 <+bridge> [ddnet] <heinrich5991> ```
+17:33 <@heinrich5991> Learath2: it worx :)
+17:34 <+Learath2> yay
+17:35 <+Learath2> we should probably populate the null ones in reverse btw
+17:35 <+Learath2> after we have better tools of analyzing teehistorian files that is
+17:35 <@heinrich5991> :)
+17:39 <+bridge> [ddnet] <cinaera> gameid? an uuid for runs?
+17:40 <@heinrich5991> nah, for server runs
+17:40 <@heinrich5991> it's the file name of the teehistorian file that corresponds to the run
+17:40 <@heinrich5991> i.e. we can replay the race with that id
+17:41 <+bridge> [ddnet] <cinaera> I see thanks
+17:48 <+bridge> [ddnet] <Ryozuki> what is the gameid for?
+17:50 <+Learath2> 17:40 <@heinrich5991> it's the file name of the teehistorian file that corresponds to the run
+17:51 <+Learath2> heinrich5991: uhm there seems to be a cmake problem on circleci
+17:51 <+Learath2> circle didn't like the wavpack update maybe?
+18:05 <+bridge> [ddnet] <Ryozuki> 
+18:05 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/413017837041352725/unknown.png
+18:05 <+bridge> [ddnet] <Ryozuki> .git/info/exclude doesn't work anymore?
+18:05 <+bridge> [ddnet] <Ryozuki> is this due to the new .gitignore changes?
+18:05 <+bridge> [ddnet] <Ryozuki> or i am blind?
+18:07 <+Learath2> well it works just fine for autoexec_server.cfg no?
+18:07 <+bridge> [ddnet] <Ryozuki> it isnt edited
+18:07 <+bridge> [ddnet] <Ryozuki> thats why it isnt shown
+18:09 <+Learath2> hmm, doubt gitignore overrides .git/info/exclude anyways, idk
+18:12 <+bridge> [ddnet] <Ryozuki> this is weird
+18:12 <+bridge> [ddnet] <Ryozuki> it might have relation to 
+18:12 <+bridge> [ddnet] <Ryozuki> *
+18:12 <+bridge> [ddnet] <Ryozuki> !**/
+18:12 <+bridge> [ddnet] <Ryozuki> !*.*
+18:13 <+bridge> [ddnet] <Ryozuki> it might have relation to 
+18:13 <+bridge> [ddnet] <Ryozuki> ```*
+18:13 <+bridge> [ddnet] <Ryozuki> !**/
+18:13 <+bridge> [ddnet] <Ryozuki> !*.*```
+20:35 <+bridge> [ddnet] <Ryozuki> any thoughts on this?
+20:36 <+bridge> [ddnet] <heinrich5991> check the doc of gitignore. it should tell you the preferences
+20:40 <+bridge> [ddnet] <Ryozuki> level of precedence is `command line > .gitignore > .git/info/exclude > core.excludesFile`
+20:40 <+bridge> [ddnet] <Ryozuki> so yeah, gitignore is killing my exclude file :c
+20:40 <+bridge> [ddnet] <Ryozuki> https://git-scm.com/docs/gitignore
+20:41 <+bridge> [ddnet] <Ryozuki> oh
+20:41 <+bridge> [ddnet] <Ryozuki> "the last patter decides the outcome"
+20:41 <+bridge> [ddnet] <Ryozuki> "the last pattern decides the outcome"
+21:04 <+bridge> [ddnet] <texnonik> Creating part , creating new idea thinkind yes cool , making , but not possible , fixing part , fixed nice , start part not possible , fixing ( maked harder a bit ) , becamed more better part then i intendet to make !
+21:18 <+bridge> [ddnet] <Ryozuki> hard to understand
+21:41 <+bridge> [ddnet] <texnonik> 😃
+21:45 <+bridge> [ddnet] <n000b> @texnonik this is #developer  not #off-topic. I am interested in your map tho.
+21:46 <+bridge> [ddnet] <sen pa'> 😀

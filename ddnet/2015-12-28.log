@@ -1,0 +1,89 @@
+07:40 < gwerben> hey!
+07:40 <@EastByte> hello
+07:41 < gwerben> yesterday ive implemented a simple (and dirty) authentification with OTP (one time passwords)
+07:41 < gwerben> the problem is (afaik) the spoof protection
+07:42 <@EastByte> how so?
+07:42 < gwerben> the easiest solution is to allow multiple valid rcon passwords and add the OTP the client authentificated with to a list of multiple rcon passwords
+07:43 < gwerben> because the one time password is neither in the config, nor can be validated later on via server
+07:43 < gwerben> AND: please make a fix to allow more than 32 chacter rcon passwords (2 or 3 lines in client source). i was struggling to insert a password like this one: cccccceegkngbkbflchfubvruhgelkbudftlvkdbdhdu
+07:44 <@EastByte> max rcon length 32 is default in any source
+07:45 < gwerben> yes. but please change that for ddnet :D
+07:46 < gwerben> http://pastebin.ubuntu.com/14239342/
+07:46 < gwerben> should be enough :D
+07:46 <@EastByte> what do you want to implement OTP for?
+07:47 < gwerben> security, coolness factor and portability. if i just bind a long password to one button, i cant use it on multiple ppcs
+07:49 <@EastByte> ppcs?
+07:54 < gwerben> pcs
+07:55 < gwerben> you dont have to impleement yubikey OTP but please change the password size :D (also wrote in #teeworlds).
+07:57 < gwerben> im off (thats my bouncer :D)
+07:57 < gwerben> bb
+08:51 <+eeeee> yubikey sounds cool but i don't see where do security and portability come from
+13:31 < WolfAlex> eeeee: noone can 'steal' the rcon, if he uses it accidentally on a fake server, it would be only valid for one use or until he uses the next OTP on his server
+13:50 <+Learath2> that actually sounds cute would buy
+15:57 < uchar> hi!
+16:15 < Stitch626> @guenstigwerben: maybe this is still a good solution for rcon passwords? https://github.com/teeworlds/teeworlds/issues/1209
+16:25 < Stitch626> i've created a newer version with sha512, there is a server and client implementation, if anyone want it, i can give it out.
+18:09 < ddnet-commits> [ddnet] Schwertspize opened pull request #393: Added initial yubikey support (master...yubikey) http://git.io/vED7c
+18:53 <@deen> guenstigwerben: can't you just use the first 32 characters?
+18:53 <@deen> should be good enough
+18:53 <@deen> !ddnetpeak
+18:53 <+Nimda> Current players on DDNet : 546
+18:53 <+Nimda> Current DDNet peak : 810 users online at 2015-04-26 20:11:01
+19:40 <+eeeee> a hacker could create a fake server and immediately login into your real server once you pass OTP to the fake server
+19:41 <@heinrich5991> yea
+19:41 <@heinrich5991> or just reverse-proxy the rcon and keep it open afterwards
+19:41 <+eeeee> could reverse-proxy the entire thing, yes
+19:42 <@heinrich5991> (that would make it less obvious)
+19:42 <+eeeee> although that kind of requires of knowing which real server is yours beforehand (but i guess you can assume that attacker knows since they've already tricked you into attempting to login)
+19:43 <+eeeee> anyway, would be way more secure to invent some kind of server pubkey certs instead of OTP
+19:44 <@heinrich5991> how would you implement that though?
+19:44 < WolfAlex> no one is going to use actual crypto in such a small game ... i guess? xd
+19:44 <@heinrich5991> tls over udp?
+19:45 <+eeeee> WolfAlex: that's what we though at first. but look, now we already kind of have secure packet signing :D
+19:47 <@heinrich5991> do you talk about the rcon password thing or the token stuff?
+19:47 <+eeeee> token stuff
+19:47 <@heinrich5991> (because the token stuff is also in tcp)
+19:47 <@heinrich5991> guenstigwerben: shouldn't 32 chars be enough for a OTP btw?
+19:48 < WolfAlex> heinrich5991: the otp is nothing random
+19:48 < WolfAlex> it contais a counter and a secret (iirc)
+19:48 <@heinrich5991> really?
+19:48 < WolfAlex> the counter is there so that old OTPs can not be used anymore
+19:49 <@heinrich5991> if you have a counter, why can't you just increase it as an attacker?
+19:49 < WolfAlex> its encrypted xd
+19:50 <@heinrich5991> I think it's a list of randomly generated passwords that only work once
+19:50 < WolfAlex>  list of randomly generated passwords < how to verify xd
+19:50 <@heinrich5991> you generate them on the server?
+19:51 <@heinrich5991> anyway, gtg :/
+19:51 <+eeeee> there are solutions with both counters and time-based. but they don't actually store lists of passwords. you can read RFC 6238 or RFC 4226
+19:51 <@heinrich5991> ah
+19:53 <+eeeee> it's easy to buy a hardware token conforming to those, which guarantees extent of tamper evidence should someone try to extract the private key
+19:59 < WolfAlex> eeeee: best would be something like Stitch626 mentioned, but the hash should also contain the servers address
+19:59 < WolfAlex> eeeee: no pub/priv keys (to much for users)
+20:00 < WolfAlex> eeeee: and does protect from proxy-servers
+20:01 < WolfAlex> also 'nothing new for the user' just more secure
+20:01 <+eeeee> yeah it wouldn't work without including server address
+20:03 < WolfAlex> does the server know its own address?
+20:03 <+eeeee> most of the time
+20:05 <+eeeee> not sure how it works behind nat
+20:07 <@deen> !ddnetpeak
+20:07 <+Nimda> Current players on DDNet : 570
+20:07 <+Nimda> Current DDNet peak : 810 users online at 2015-04-26 20:11:01
+20:07 <@deen> RUS is having problems and ddos attacks elsewhere
+20:09 < WolfAlex> guenstigwerben: how about fakeing to the client that he is authed so he sends not the RCON_AUTH but normal rcon commands? (that way you could use the yubikey)
+20:18 < Ryozuki> hi
+20:25 < Stitch626> in my code (revision 4.1) i have a little thing against fake commands... there is a smaller token that will be generated from the long original, just to "verify" the commands. its just include in every command, and auth's the client against the server (and server against client)
+20:26 < Stitch626> and i agree WolfAlex, pubkey/privkey or ssl may be too much for the users, and for a game like teeworlds. thats the reason why i created these "small" system.
+20:28 <+eeeee> ideally you would also rotate the smaller token somehow to make it impossible to replay
+20:36 < guenstigwerben> Wolfalex don't understand that fully. OTP are first 12 chars the identifier and then I think a counter, maybe timestamp, and encrypted and the key is in the yubicloud
+20:36 < guenstigwerben> And tokens are 45 chars
+20:38 < WolfAlex> not 44?
+20:39 < guenstigwerben> I did a echo <token> | wc and it told me 45
+20:39 <+eeeee> try echo -n next time :P
+20:40 < guenstigwerben> I think the cloud verifies it through knowing the public key, the identifier and generates the valid token on its own
+20:40 < guenstigwerben> Yes I forgot the count option of echo
+22:36 < o_be_one> [M#??hello
+22:37 < WolfAlex> hi
+22:39 < fstd> guenstigwerben: what count option of echo?
+22:55 <+eeeee> didn't you know -n makes echo print number of chars in string* instead of the actual string
+22:55 <+eeeee> *free version only supports string "1"
+23:32 < fstd> :D

@@ -1,0 +1,128 @@
+00:16 < ***> Buffer Playback...
+00:16 <@Dune> [00:09:36] I will never cease to be amazed at how inefficient scp is to transfer a bunch of files
+00:16 <@heinrich5991> [00:09:58] use rsync
+00:16 <@heinrich5991> [00:09:59] :)
+00:16 < day> [00:10:11] or copy paste :p
+00:16 <@Dune> [00:10:19] or tar | scp | tar :p
+00:16 <@heinrich5991> [00:10:22] true
+00:16 <@heinrich5991> [00:10:27] tar | ssh tar :P
+00:16 <@Dune> [00:11:07] the good old tar czf - cap_* | ssh user@host tar xvzfC - dir
+00:16 <@Dune> [00:11:10] thanks, stackoverflow
+00:16 <@heinrich5991> [00:11:47] `tar c files | ssh user@host tar x` should work
+00:16 <@heinrich5991> [00:11:53] c - create, x - extract
+00:16 <@heinrich5991> [00:12:18] bit redundant to specify `f -` if not handing the f flag yields the same behavior
+00:16 <@Dune> [00:13:23] tar is the tiniest possible increment of user-friendliness from setting a bit array of flags by yourself
+00:16 < ***> Playback Complete.
+03:43 < the2048> So how do I save binds set in the console?
+09:22 < bridge> [teeworlds] <Dune> They automatically do when you shut down, the2048
+13:43 < the2048> K
+17:11 <@Dune> hey
+17:11 <@Dune> just updated transifex, announcement inc
+17:11 < Oy> hey
+17:11 < Oy> great :)
+17:13 < Oy> that temp post looks good :)
+17:14 <@Dune> alright, good to go then :)
+17:17 <@Dune> welp, the encoding charset of the blog and of the forum are different
+17:18 < Oy> oh
+17:25 <@Dune> anyway, spring is here! https://www.teeworlds.com/?page=journal&id=12774
+17:26 < bridge> [teeworlds] <Dune> thanks for the help, @＃6909
+17:40 < bridge> [teeworlds] <＃6909> You mean the translation? I dont even remember what i did :D
+17:48 <@Dune> Oy: is there no way to figure if the server allows changing skins? the wrong warning is shown on 0.7.2 servers, could lead people to think they can change skin anywhere
+17:48 <@Dune> can't we check > 0.7.3
+17:48 <@Dune> >=
+17:49 < Oy> yeah, possible
+18:26 <@Dune> cool, thanks :)
+18:28 < Oy> :)
+18:29 < Oy> you will get the wrong warning on servers with latest source for now. will work correctly when changing the the version string for 0.7.3 release :)
+18:29 <@Dune> ah, right
+18:36 < Oy> that overflow check isn't correct. values that pass could still create one ;)
+18:37 <@Dune> oh shit, it's a +, not a *
+18:37 <@Dune> I should check that ceil(log2(x)) + ceil(log2(y)) < 31 I guess
+18:38 <@Dune> or do it like in the stackoverflow thing I guess
+18:40 <@Dune> or scrap the PR :D
+18:40 < Oy> f.e.: SizeA = width*height; SizeB = INT_MAX / sizeof(CTile); if(SizeA/width != height || SizeB < SizeA) then fail
+18:42 < Oy> or without int_max: SizeA = width*height; SizeB = SizeA* sizeof(CTile); if(SizeA/width != height || SizeB/sizeof(CTile) != SizeA) then fail
+19:02 <@Dune> my head hurts :p
+19:04 < Oy> :P
+19:04 <@Dune> that looks hard to prove
+19:04 <@Dune> can't we use long int?
+19:04 <@Dune> if(long int x = a * b > INT_MAX) fail
+19:05 <@Dune> `if((long int)a * (long int)b > INT_MAX)` rather
+19:05 <@Dune> I tried to write something there: https://github.com/teeworlds/teeworlds/issues/1827 it's subjective though
+19:06 <@Dune> `MACRO_CONFIG_INT(ClMenuAlpha, cl_menu_alpha, 25, 0, 100, CFGFLAG_CLIENT|CFGFLAG_SAVE, "Transparency of the menu background")`
+19:06 <@Dune> huh
+19:06 <@Dune> 0 for those who don't like menu backgrounds :D
+19:06 < Oy> u still can see it :P
+19:07 < Oy> u could use the long int one. but there're 3 values ;)
+19:07 < Oy> long text @1827 :D
+19:07 <@Dune> ahhh.. ugh
+19:07 <@Dune> making the "Screen" thing a slider was a terrible thing
+19:07 <@Dune> my second screen is on the right
+19:08 <@Dune> so when I slide left all of a sudden my mouse is on the right and the screen on the left
+19:08 <@Dune> and it blinks across both windows 
+19:08 <@Dune> i have to do it until it randomly stops at the right window
+19:08 <@Dune> it should probably be a button like anti-aliasing, I'll make an issue I guess
+19:10 <@Dune> it's strange how the menus are completely black when 100% solid :/
+19:10 <@Dune> but probably the best that could be done :)
+19:12 <@Dune> doesn't look good though. should we allow such bad settings at all? :/
+19:12 < Oy> well, yeah looks kinda odd :)
+19:12 < Oy> could max it at 75%
+19:13 <@Dune> yeah, sounds more sound
+19:26 < rand> is it me or the SendSkinChange sent to each client its skin ?
+19:26 < rand> *to the specified client
+19:27 < Oy> to each yeah
+19:30 < rand> Msg.m_ClientID = ClientID;
+19:30 < rand> Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, ClientID);
+19:30 < rand> and
+19:31 < rand> if(MsgID == NETMSGTYPE_CL_SKINCHANGE) for(int i = 0; i < MAX_CLIENTS; ++i) SendSkinChange(i);
+19:32 < rand> in CGameContext::OnMessage, the skin change is sent back to the client that sent a skinchange
+19:33 < rand> but the skin of each client is sent to its client, thus, the new skin of (say 0) is not updated whit this
+19:33 < rand> (on client 1)
+19:33 < rand> did I miss sth ?
+19:34 < rand> I expected either a loop this loop in CGameContext:SendSkinChange(ClientID) : for(int i = 0; i < MAX_CLIENTS; ++i) Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, i);
+19:35 < rand> or CGameContext:SendSkinChange(ClientID,TargetID) : Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, TargetID);
+19:36  * Dune regrets composed binds
+19:41 < Oy> rand right :)
+19:45 < rand> ays :3
+19:52 < Oy> Dune: that summary looks good
+19:52 <@Dune> maybe your solution checks all the boxes, Oy
+19:52 <@Dune> maybe no solution can check them all. not sure
+19:58 < Oy> what i suggested to your proposal should check all of them
+20:00 < Oy> "Doesn't that mean that bind lshift +emote disables ALL shift+x binds?" yeah, but that would still be the case. no good way around it i think
+20:02 < Oy> well we could check if there's no bind for x and when x is already down and u press shift it could trigger the composed one
+20:10 <@Dune> Alright then, should try your proposal then
+20:25 < TeeSlayer> lol
+20:25 < TeeSlayer> I think there are bots on my run guy server
+20:27 < TeeSlayer> 61/64 "players"
+20:28 < TeeSlayer> Hm... But their behavior is very human-like
+20:30 < TeeSlayer> maybe a streamer is playing teeworlds or something
+20:34 < TeeSlayer> now the master server doesn't broadcast it anymore, wtf
+20:37 < Oy> 8409?
+20:38 < TeeSlayer> yes
+20:38 < Oy> still in the master server list
+20:38 < Oy> don't get a server info from the server
+20:39 < Oy> on connect it states it's full
+20:39 < TeeSlayer> hm, I even have all filters off
+20:39 < TeeSlayer> I just left
+20:39 < Oy> uncheck compatible version. u just see the ip then
+20:40 < TeeSlayer> I've unchecked everything
+20:40 < Oy> refresh?
+20:41 < TeeSlayer> yes, I've done that a couple of times, too
+20:42 < TeeSlayer> okay, apparently it's just me
+20:42 < TeeSlayer> well
+20:42 < TeeSlayer> the people on the server are all French xD
+20:43 < Oy> :D
+20:43 < Oy> don't look like bots
+20:43 < Oy> 4 free slots now
+20:45 < Oy> they also speak french, but my french is too bad to understand :D
+20:48 < Oy> now i see the info in the list again
+20:49 < Oy> most of them have the clan tag minichibre
+20:52 < TeeSlayer> In reality it's AlphaTee, the newest creation from DeepMind.
+20:59 < TeeSlayer> https://www.twitch.tv/fekah_
+20:59 < TeeSlayer> ah
+22:13 < rand> han
+22:13 < rand> are you serious ?
+22:24 < rand> ok, just an event of some streamer
+22:24 < rand> i am disapointed
+23:38 <@Dune> day, who's the guy on ctf5 rn?
+23:42 <@Dune> got a bsod right when I alt+f4 teeworlds

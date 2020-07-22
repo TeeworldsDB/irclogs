@@ -1,0 +1,130 @@
+01:28 < bridge> [teeworlds] <fokkonaut> I decided to remove 128 players now again from my server. The reason why is because it is just too laggy to always send those connect/disconnect packets :/ otherwise it was working very well, also with the players with same IP having the same IDs (for dummy hammerfly and correct pings in chat). Whispers were also working. There was nothing bad about excpet the laggs coming from the (i guess) connect/disconnect packets. When I did 
+01:28 < bridge> [teeworlds] <fokkonaut> @Dune could we move the playerinfo back to snaps for 0.8?
+01:28 < bridge> [teeworlds] <jxsl13> move it to another branch
+01:28 < bridge> [teeworlds] <Dune> The player info is fat because of skin names, @fokkonaut
+01:28 < bridge> [teeworlds] <jxsl13> people might wanna use it as reference
+01:29 < bridge> [teeworlds] <fokkonaut> @jxsl13 why would they, it doesnt matter anyways
+01:29 < bridge> [teeworlds] <fokkonaut> It is just too laggy
+01:29 < bridge> [teeworlds] <jxsl13> as reference that can be improved with threads
+01:29 < bridge> [teeworlds] <fokkonaut> I asked @Learath2, it seems this cant be threaded in an easy way+
+01:29 < bridge> [teeworlds] <fokkonaut> its a function that gets called every tick
+01:30 < bridge> [teeworlds] <fokkonaut> or basically every 5th, in ddnet
+01:30 < bridge> [teeworlds] <fokkonaut> for me every 50th, due to the packets :/
+01:32 < bridge> [teeworlds] <fokkonaut> Also, @jxsl13 what would a thread do better? The packets still need to go out
+01:32 < bridge> [teeworlds] <fokkonaut> Its not just the algorithm, that should still be fine for 128 players
+01:33 < bridge> [teeworlds] <fokkonaut> @Dune is the playerinfo *soo* much bigger that we cant handle it anymore?
+01:33 < bridge> [teeworlds] <Dune> Well, it would take a significant amount of bandwidth
+01:33 < bridge> [teeworlds] <fokkonaut> snaps are deltashots so they only send new stuff, dont they?
+01:33 < bridge> [teeworlds] <Dune> At least that was the reasoning behind this change as far as I know (and according to @heinrich5991 )
+01:34 < bridge> [teeworlds] <jxsl13> I'm not sayi g I have a solution, but saying to leave your hours of work for someone that might have one. dumping that rather big project into tue trash bin is just a waste.
+01:34 < bridge> [teeworlds] <heinrich5991> the first three or so aren't deltashots
+01:34 < bridge> [teeworlds] <fokkonaut> I would love to give those 20-30 extra players per day the chance to play, but with these laggs it is just not possible
+01:35 < bridge> [teeworlds] <fokkonaut> Also its a damn nice feeling if you know your server got 94 players at once, for 0.7 and 0.6
+01:36 < bridge> [teeworlds] <Dune> well it's not like they can't play. two 64p servers sounds reasonable to me
+01:37 < bridge> [teeworlds] <fokkonaut> But the map is so big that it is just awesome to have that many players at one server, not spread apart
+01:39 < bridge> [teeworlds] <Dune> I understand, it sounds like there is a difficult compromise and I don't have the technical knowledge of the Teeworlds network stuff to weight benefits and inconvenients
+01:49 < bridge> [teeworlds] <heinrich5991> hm
+01:49 < bridge> [teeworlds] <heinrich5991> I don't know how exactly the player messages work
+01:49 < bridge> [teeworlds] <heinrich5991> you say it's join/leave
+01:50 < bridge> [teeworlds] <heinrich5991> that should cause less traffic than changing snapshots
+01:50 < bridge> [teeworlds] <fokkonaut> definitely not, it sends a whole packet of the tee: name, clan, skinparts, country
+01:50 < bridge> [teeworlds] <fokkonaut> also the cid of course, whether its local
+01:50 < bridge> [teeworlds] <heinrich5991> that would also be in the snapshot, at least if we'd do it as you propose
+01:51 < bridge> [teeworlds] <heinrich5991> and it would cause more traffic than the join/leave packets
+01:51 < bridge> [teeworlds] <fokkonaut> why?
+01:51 < bridge> [teeworlds] <heinrich5991> because when you move that information into the snapshot (like it was before), then it would have to be sent multiple times if the client has a ping >40ms
+01:52 < bridge> [teeworlds] <heinrich5991> the server sends the difference to the last acked snapshot
+01:52 < bridge> [teeworlds] <heinrich5991> so if the client can't ack within 40ms (time difference between two snaps), then you're going to send the player changes twice
+01:54 < bridge> [teeworlds] <fokkonaut> so is there a good solution to this?
+01:55 < bridge> [teeworlds] <heinrich5991> you say that the players are far away from each other?
+01:55 < bridge> [teeworlds] <heinrich5991> perhaps you could send less player changes
+01:55 < bridge> [teeworlds] <fokkonaut> i already send them each 50 ticks
+01:55 < bridge> [teeworlds] <fokkonaut> ddnet does it each 5th tick
+01:55 < bridge> [teeworlds] <heinrich5991> well, maybe one could get away with not sending them at all unless one needs a change
+01:56 < bridge> [teeworlds] <heinrich5991> i.e. only send them if a player comes into view that the client doesn't currently have
+01:57 < bridge> [teeworlds] <fokkonaut> mh
+08:18 < bridge> [teeworlds] <Learath2> The algorithm already tries to keep the player list stable, your really shouldnt be getting this many connect disconnects tbh
+08:21 < bridge> [teeworlds] <Learath2> @heinrich5991 it is possible that the handling for the snaps is more efficient then handling the packets, even chunks bunched together will have to go through some unpacking of the headers
+08:22 < bridge> [teeworlds] <Learath2> Vital packets mean that there will be resends
+11:06 < ChillerDragon> @fokkonaut why don't you give it a try to clear the weapon drops up a bit. The whole map is flooded with weapons that collide and can be collected etc sounds to me like a half tee. Imo its worth a try to decrease the amount.
+13:29 < bridge> [teeworlds] <redix> How many packets per second does the server send, how high is the cpu load? Are the clients experiencing packet loss or even disconnects?
+13:29 < bridge> [teeworlds] <redix> The resend mechanism in tw is really simple. It might just not be sufficient for sending packets periodically.
+13:30 < bridge> [teeworlds] <redix> When a resend is necessary the server needs to resend all packets. This amount of data might lead to packet loss again, so the queue builds up...
+13:33 < ChillerDragon> cpu load is at 80% avg redix 
+13:33 < ChillerDragon> no disconnects
+13:34 < bridge> [teeworlds] <redix> Problem with the size of the player data is not only that the server needs additional bandwidth.
+13:34 < bridge> [teeworlds] <redix> The size of the snapshots is limited (64k as far as I remember). With 64 players the player data requires about 15k in the snap. There is still enough space but it's just waisting a huge amount of the snap size.
+13:37 < bridge> [teeworlds] <redix> Hmm okay. Regular resending might still lead to lags due to high packet output =\
+13:42 < bridge> [teeworlds] <fokkonaut> @Learath2 the map has teleporters and the spawn is pretty far away from the rest of the map, also /pause of course, those lead to many connects and disconnects
+14:05 < Oy> yeah, snapshot size is 64k
+14:05 < Oy> putting the player data in the snap would in the worst case take about 32k
+14:05 < Oy> just for that
+14:17 <@Dune> hey Oy
+14:17 <@Dune> not sure what you mean with filling with whitespaces
+14:17 <@Dune> shouldn't we just use a aBuf[4] ?
+14:19 < Oy> Dune: if the word has to be at least 3 chars in lengh, fill the missing one with a space
+14:19 <@Dune> minimum size is not a problem, maximum is
+14:20 <@Dune> it's okay if they translate by "NE", not by "NETT"
+14:20 < Oy> ah, then i misread it :)
+14:20 <@Dune> (would overflow)
+14:20 < Oy> yeah, then just clamp it
+14:20 <@Dune> alright
+14:21 < Oy> though wouldn't use a buf[4]
+14:21 < Oy> keep utf8 in mind
+14:21 <@Dune> ah
+14:21 < Oy> cut it after 3 chars
+14:21 < bridge> [teeworlds] <Assa> buf4 -> buffour -> buffer lol
+14:21 <@Dune> with str_format size param?
+14:21 <@Dune> i think this is in bytes too
+14:22 < Oy> yeah
+14:22 < Oy> ptobably have to write sth
+14:22 <@Dune> okay
+14:24 < Oy> https://github.com/teeworlds/teeworlds/blob/master/src/base/system.c#L2421
+14:24 < Oy> for loop
+14:25 < Oy> maybe add a function in base/system.c for it?
+14:25 <@Dune> it's a bit of a hacky solution anyway
+14:25 <@Dune> character width not a constant etc
+14:26 <@Dune> Uploaded file: https://uploads.kiwiirc.com/files/ff8efb6a4a84a5b085fd9cd3adb6d6e2/image.png
+14:27 <@Dune> Transifex lets us set a hard character limit
+14:59 < bridge> [teeworlds] <redix> @fokkonaut by default the client only sends snapshots in every second tick. Try to send the connect/disconnect stuff in a tick where no snap is sent. Are you flushing the connection?
+14:59 < bridge> [teeworlds] <redix> When you are only sending the players that actually changed I think the whole thing should work somehow. When you are sending more than that, there are probably too many packets
+15:01 < bridge> [teeworlds] <fokkonaut> of course it works somehow, but it is just too laggy sometimes
+15:03 < bridge> [teeworlds] <redix> Yeah, maybe because of too many packets at once
+15:03 < bridge> [teeworlds] <Assa> when joining `176.9.114.238:9303` my client keeps crashing
+15:04 < bridge> [teeworlds] <Assa> (0.7)
+15:07 < gerdoe> ddnet lol
+15:08 < bridge> [teeworlds] <Assa> oh yeah its a ddnet server
+15:13 < bridge> [teeworlds] <redix> Map seems broken. The client is stuck in a loop because of a broken envelope item.
+15:14 < bridge> [teeworlds] <Assa> nice, new method for client crasher
+15:14 <@Dune> corrupt maps tend to crash the client
+15:15 < bridge> [teeworlds] <Assa> shouldn't the client be more stable concerning this?
+15:15 <@Dune> shoulds are many, dos are rarer
+15:15 < bridge> [teeworlds] <Assa> I think this is the one time where a try-catch clause is a good use
+15:16 <@Dune> ew
+15:17 <@Dune> that wouldn't solve out of bound accesses etc.
+15:19 < bridge> [teeworlds] <Assa> Does teeworlds has any kind of error logs?
+15:19 <@Dune> the console
+15:20 < bridge> [teeworlds] <Assa> I mean some kind of post client crash logging, with an unhandled exception handler
+15:21 <@Dune> no
+15:22 < bridge> [teeworlds] <redix> Crashing the client is really easy. There is hardly any validation when loading maps and even the snapshot code still has some issues
+15:28 < bridge> [teeworlds] <Assa> I always thought you want the client to be as stable as possible ^^ but okay
+15:29 < bridge> [teeworlds] <Assa> ^I should clarify this
+15:30 < bridge> [teeworlds] <Assa> I thought you want the client fully stable, so every error case is handled
+15:32 <@Dune> that would be good, yes
+15:36 < bridge> [teeworlds] <redix> Yeah that would definitely be good, but nobody really looked into this so far
+15:46 < bridge> [teeworlds] <Learath2> please no exceptions in teeworlds
+15:47 < bridge> [teeworlds] <Learath2> A lot of the datafile code needs checks though, if someone cba to go through it
+15:47 <@Dune> yeah
+16:23 < bridge> [teeworlds] <redix> in case someone wants to fix the map: `NUT_hardcore_best` (on the ddner server @Assa mentioned) has a `CMapItemEnvelope` with `m_Channels = 8`. The value should be clamped to 1-3. DDNet does not really use it when loading a map but 0.7 gets stuck in this loop due to a buffer overflow:
+16:23 < bridge> [teeworlds] <redix> https://github.com/teeworlds/teeworlds/blob/60bfb5615e26d07afa294e8af1e44808a036068d/src/game/client/components/maplayers.cpp#L257-L264
+16:55 < bridge> [teeworlds] <Learath2> there is an issue with the asynchronous rendering in macOS and this time I don't know how to fix it
+16:57 < bridge> [teeworlds] <Learath2> The main dispatch queue is running in our initial thread, when we call swap it causes a dispatch in sdl, however right after that we waitforidle
+16:57 < bridge> [teeworlds] <Learath2> thus the dispatch queue never runs again
+16:57 < bridge> [teeworlds] <Learath2> thus the dispatch from sdl never goes through, thus the graphics thread is stuck
+17:03 < bridge> [teeworlds] <Learath2> on macOS we can't afford to not SDL_PollEvent for a while
+17:13 < bridge> [teeworlds] <Learath2> hm, I guess they could be doing an async dispatch instead
+17:17 < Learath2> Well I’ll commit it and hope icculus doesn’t be an ass
+17:17 < Learath2> That doesn’t sound right
+23:30 < bridge> [teeworlds] <fokkonaut> should we maybe remove cust om colors setting? its not a custom color anymore since it is turned on for default colors too
+23:31 < bridge> [teeworlds] <fokkonaut> should we maybe remove custom colors setting? its not a custom color anymore since it is turned on for default colors too
+23:31 < bridge> [teeworlds] <Dune> what colors are you talking about?

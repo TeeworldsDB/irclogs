@@ -1,0 +1,127 @@
+00:40 < eeeee> is ddnet server valgrind-clean atm?
+00:44 < Savander> goood night
+00:44 < Savander> ;)
+00:54 < Spyker> deen, here is a nuub called teeworlds admin who spam and change ip all time, he is insulting artkis dyslate france etc.... can you block him? impossible to play... too much spam
+00:54 < Spyker> now like 10 teeworlds admin in the server
+00:55 < Spyker> teeworlds admin in nickname
+00:56 <@deen> Spyker: hi
+00:56 < eeeee> if somebody there has rcon you can just password the server for like 10 minutes, he'll likely get bored and not come back
+00:58 <@deen> looks like that guy has a lot of ips
+00:59 < Spyker> thanks deen, nice admin... i have to go now bb!
+01:00 <@deen> eeeee: ehm, good question. last time i checked was long ago, and I only checked for memory leaks I think. what do you have in mind?
+01:00 < eeeee> deen: can you look up some of that guy's ip in http://www.spamhaus.org/lookup/ ?
+01:01 < eeeee> i'm interested in how often such people use proxies as opposed to just reconnecting and getting different address from the isp
+01:01 <@deen> he's just reconnecting
+01:01 < eeeee> how long does it take him to reconnect?
+01:02 <@deen> just a second
+01:03 < eeeee> about valgrind, it reports some still reachable stuff on mac os (but most of it from *Mach* libs), i was wondering if it's a mac os thing or a known tw issue
+01:06 <@deen> how do you run it?
+01:06 < eeeee> just valgrind --leak-check=full ./DDNet-Server_x86_64_d
+01:07 <@deen> I get a few "Conditional jump or move depends on uninitialised value(s)"
+01:08 < eeeee> yeah that thing has been in tw forever
+01:08 <@deen> and "Use of uninitialised value of size 8"
+01:08 <@deen> in SendPacket
+01:08 <@deen> nothing else
+01:09 < eeeee> when you stop the server it will report the blocks that weren't freed
+01:09 <@deen> oh, right^^
+01:09 <@deen> getaddrinfo losing a lot^^
+01:10 <@deen> only getaddrinfo
+01:10 < eeeee> okay good to know
+01:10 <@deen> wait, do they actually get lost or was that a misreport by valgrind?
+01:10 <@deen> because leaking 6 KB in a few minutes already would be bad
+01:10 < eeeee> i can take a look
+01:11 < eeeee> but have to filter out all this macos crap
+01:11 <@deen> I remember that I took a look before, just don't remember my conclusion^^
+01:11 <@deen> net_host_lookup (system.c:922)
+01:12 <@deen> http://ddnet.tw/valgrind.txt
+01:13 <@deen> should probably call freeaddrinfo() earlier if result != 0
+01:13 < eeeee> yep
+01:15 <@deen> nope, doesn't change anything
+01:16 <@deen> https://bugzilla.redhat.com/show_bug.cgi?id=116526
+01:17 <@deen> hm no, looks fixed^^
+01:17 <@deen> it also leaks on mac osx or is it my weird compile of glibc?
+01:17 < eeeee> would hope so, it's been >10 years :D
+01:17 < eeeee> i also found that in my mac os report 
+01:17 <@deen> this looks more recent: https://bugs.launchpad.net/ubuntu/+source/eglibc/+bug/1364584
+01:17 < eeeee> will try the freeaddrinfo thing
+01:21 < eeeee> yeah doesn't help on mac os as well
+01:21 < eeeee> still leaking
+01:26 <@deen> it's weird
+01:26 <@deen> we use getaddrinfo and freeaddrinfo in the exact same way as in the example in the man page
+01:26 <@deen> and the example from the man page does NOT leak according to valgrind
+01:26 < eeeee> huh
+01:27 < eeeee> maybe it leaks only on specific types of addr
+01:27 <@deen> or valgrind is misreporting?
+01:28 < eeeee> that's easy to check
+01:28 < Learath2> remove all addr related stuff check if it sill leaks ?
+01:29 < eeeee> call getaddrinfo and freeaddrinfo over 9000 times and watch the mem usage :P
+01:29 < Learath2> or that :D
+01:30 < Learath2> for(;;){getaddrinfo(); freeaddrinfo();} 
+01:30 <@deen> it couldn't have to do with being C code inside of C++?
+01:31 <@deen> I don't know how valgrind works and if it could have problems with that
+01:31 < Learath2> YAY autoupdate works finally
+01:31 < eeeee> can't you compile your manpage example with c++ and check it?
+01:32 <@deen> I did, works as well
+01:32 <@deen> Learath2: great!
+01:32 < Learath2> deen: needs some tidying up and removing of weird debug messages
+01:33 <@deen> getaddrinfo is really weird
+01:33 < Learath2> dbg_msg("FUCK", "THIS SHIT %s", aVersion);
+01:33 <@deen> if I do "while(1) e = getaddrinfo(host, NULL, &hints, &result);"
+01:33 <@deen> it actually leaks memory
+01:34 <@deen> if I also call freeaddrinfo it seems to leak as well, for about 30 seconds, and then stops leaking
+01:35 < Learath2> thats really weird
+01:35 < eeeee> yeah whatever. doesn't sound like something worth wasting time on
+01:36 <@deen> I guess that was my old result as well :P
+01:37 < eeeee> here's what it looks like on mac os http://pastie.org/private/kzcvgl90henpxuv80unaa
+01:40 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/vxnggw
+01:40 < ddnet-commits> ddnet/DDRace64 55bfd2c def: Always call freeaddrinfo
+10:55 < eeeee> got websocket protocol working in tw server \m/ 
+10:56 < eeeee> still has to figure out the net_socket_read_wait part, otherwise ping to localhost is around 35ms :S
+11:03 < eeeee> haha also serverbrowser is kinda useless because it takes like a second to negotiate websockets session
+13:07 < Nimda> Generic World by Loop just released on Brutal at 2014-12-28 13:07
+13:15 <@deen> eeeee: definitely need a cached serverbrowser of ddnet servers :P
+17:23 < Learath2> deen: should i restart the client automatically ?
+17:23 < Learath2> after an update
+17:23 <@deen> Learath2: yes, but give a warning before, as it happens now
+17:23 < Learath2> Do you want to restart now ? (Yes) (No) 
+17:23 < Learath2> good enough ?
+17:24 <@deen> No, before the update even, I think
+17:25 <@deen> "An update to DDNet client is available. Do you want to update now? This will restart the client."
+17:25 < Learath2> I do already ask before the update deen
+17:26 <@deen> ok, good
+17:26 <@deen> that should be good enough i think
+17:56 <@deen> I made http://ddnet.tw/stats a bit faster
+18:00 <@deen> hm, and less accurate^^
+18:12 < Nimda> #wontfix by Waschlappen & Broken just released on Moderate at 2014-12-28 18:08
+18:54 < Savander> maybe, you should add possibility to choose the date ( e.g. from 2014-12-25 t o 2014-12-28 ) with more accurate stats :P?
+19:38 < Muttley> Deen, any interrest for a DDNet NL addition ?
+22:43 <@deen> Muttley: hm, ping from Netherland to GER should be pretty good I guess
+22:45 < Muttley>  deen i know, but just as an extra ;-)
+22:45 <@deen> can you guarantee good ddos protection?
+22:45 <@deen> otherwise it would be more of a pain than help
+22:45 <@deen> european ddnet servers get ddos attacked a lot
+22:49 <@deen> So, 2 people have their computer beeping at random times in DDNet client
+22:49 <@deen> anyone know what that is?
+22:53 < Savander> keyboard failure?
+22:55 < eeeee> bell character in console?
+23:06 <@deen> eeeee: aaaah, that would be fun!
+23:07 <@deen> eeeee: Maybe someone is running around and spamming bell character on all servers!
+23:07 <@deen> should probably just filter that out 
+23:27 <@deen> Savander: ideally ddnet.tw/stats would use highstock with dynamically loaded data. not sure if that's worth all the work though^^
+23:27 < Savander> in counter-strike 1.6 you was able to open cdrom
+23:27 <@deen> Savander: haha
+23:27 < Savander> rlt
+23:27 < Savander> rly
+23:27 < Savander> via server
+23:27 < Savander> :P
+23:28 <@deen> something like this: http://www.highcharts.com/stock/demo/lazy-loading
+23:28 <@deen> you can zoom in and it loads more data
+23:28 < Savander> yeee
+23:28 < Savander> in google stats it looks simillar ;d
+23:29 <@deen> if you can translate ddnet.tw/stats to work like that I'd be glad^^
+23:30 < eeeee> bell character might not be malicious, maybe unicode support is just broken in terminal and it sees 0x07 (or whatever the BEL code is) which is actually part of some unicode character
+23:30 <@deen> sigh, right
+23:30 <@deen> we *did* change the unicode stuff in windows recently
+23:30 <@deen> there was a pull request by bear
+23:31 <@deen> ah no, by heinrich5991 
+23:31 <@deen> https://github.com/def-/ddnet/commit/92cdb156794496b27a709face5df28f7090ee0fc

@@ -1,0 +1,249 @@
+00:09 <@deen> same attack happened again
+00:12 <@deen> looks like it affects the server badly
+00:13 <@deen> lots of timeouts happened
+00:19 < Learath2> deen: you didnt push the update on the servers yet ?
+00:20 <@deen> i did, but I don't restart servers with players on them
+00:20 <@deen> the restarting happens automatically as soon as they're empty
+00:20 < eeeee> nice
+00:20 <@deen> (and they don't empty for a few days sometimes)
+00:21 < eeeee> i wonder if you could somehow persist the timeout protection information, restart the servers and let all the players reconnect without losing their progress
+00:22 <@deen> timeout protection doesn't even work properly in normal cases
+00:22 <@deen> and I can't find the bug =/
+00:22 <@deen> and only people with ddnet client have timeout protection
+00:22 <@deen> so not even 50% of players
+00:22 < eeeee> oh right
+00:23 < eeeee> but idk if you actually need such a secure timeout protection
+00:23 < eeeee> i'd just restore anyone with same nick and ip
+00:23 <@deen> then timeout protection is useless
+00:23 <@deen> most timeouts happen when ip changes
+00:24 < eeeee> yeah in that case you'd need some passkey or something
+00:24 <@deen> which is exactly what we have
+00:24 < eeeee> but for other types of timeouts you could handle it like that for 100% of players
+00:24 <@deen> but that's not the problem anyway
+00:25 <@deen> that part seems to work
+00:25 <@deen> somehow the player sometimes doesn't get connected properly
+00:25 <@deen> player doesn't receive chat
+00:25 <@deen> joining game doesn't work
+00:25 <@deen> and they get another timeout after a few minutes even though they're still on the server and see everything
+00:25 < eeeee> sounds familiar, i think i had same issues when doing that for ddwar
+00:27 < eeeee> does your protection work like pause, or is the ccharacter actually in game all the time?
+00:27 <@deen> in game
+00:27 <@deen> otherwise it would allow cheats
+00:27 <@deen> the problem is, I can't reproduce the bug
+00:28 <@deen> it just sometimes happens on real server, but not once on localhost for me
+00:35 < Learath2> dont really like json for an update manifest 
+00:35 <@deen> ok
+00:38 <@deen> maybe it's a problem with the seq and ack numbers?
+00:38 <@deen> can I just copy them from old connection to new one?
+00:38 < Learath2> do you have in mind what a json update manifest would look like ? 
+00:38 <@deen> Learath2: nope, it was just an idea. let me try it out
+00:39 < Learath2> And about the timeout thing why not just let the client do the reconnection and assign the old CCharacter to it ?
+00:39 <@deen> can you swap a CCharacter that easily?
+00:42 <@deen> Learath2: something like this?: http://update.ddnet.tw/update.json
+00:43 <@deen> I'll try swapping the CCharacter
+00:43 < Learath2> hmm that does look nice indeed 
+00:43 < Learath2> no idea how closely the CCharacter object is tied with  the Player tho
+00:43 <@deen> similar to our serverlist: http://update.ddnet.tw/ddnet-servers.json
+00:44 <@deen> ah yeah
+00:44 <@deen> that's a problem with the player
+00:44 <@deen> I think I tried that initially and ran into problems
+00:44 < Learath2> btw what do you think about crc32 hashing all files and putting up a manifest of all hashes of the latest update ?
+00:45 <@deen> Learath2: with what motivation?
+00:45 < Learath2> its not like people will be able to update to middle versions
+00:45 < Learath2> to not rely on us keeping ddnet.upd safe 
+00:45 < Learath2> if we somehow lose it autoupdate from some versions older wouldnt work
+00:46 <@deen> I don't understand
+00:46 <@deen> what's a "manifest of all hashes of the latest update"?
+00:47 < Learath2> All hashes of all files from the current version
+00:47 <@deen> but anyone who can manipulate ddnet.upd can manipulate that file as well
+00:48 <@deen> aaaah
+00:48 <@deen> you mean so that we don't need ddnet.upd at all
+00:48 < Learath2> yeah
+00:48 <@deen> how does the client determine which files to update?
+00:48 < Learath2> hashes dont match
+00:49 <@deen> so the client needs to hash all files to check for updates?
+00:49 <@deen> every time?
+00:49 < Learath2> once should be enough
+00:49 <@deen> what if people change files themselves?
+00:49 <@deen> they would be updated as well
+00:49 < Learath2> uhh never thought about that one
+00:49 <@deen> (they do it all the time)
+00:50 < Learath2> hashing the files each startup really doesnt sound nice
+00:50 <@deen> maybe hash them after update
+00:50 <@deen> and on initial start
+00:50 < Learath2> maybe if version server doesnt match
+00:50 < Learath2> and after the player clicks update
+00:50 <@deen> and then, if version server doesn't match, check the new hash file with the local hash file (from last update)
+00:50 <@deen> and only update those files
+00:51 <@deen> that would not destroy local changes, except if we actually have changed something. and then they should be overwritten
+00:51 <@deen> I like that solution
+00:51 <@deen> then i don't need to update ddnet.upd by hand anymore
+00:51 < Learath2> or actually the client doesnt even need to hash anything 
+00:52 <@deen> yeah, just download new hashes and compare to last downloaded hashes
+00:52 < Learath2> yep
+00:52 < Learath2> we just need a script to create the current.json 
+00:52 <@deen> what about files that need to be deleted?
+00:53 < Learath2> could put a -------- in their hash spot
+00:53 <@deen> I guess that's a good solution
+00:53 <@deen> simple to code, easier to maintain, smaller file to download
+00:54 <@deen> sounds great
+00:54 <@deen> ah
+00:54 <@deen> What if we delete a file, then the user readds it because he wants it after all
+00:54 <@deen> in every update the file would get deleted again
+00:55 < Learath2> uhh dont see a way around that except user adding it with a different name
+00:55 <@deen> i'm thinking about skins
+00:55 <@deen> so adding with a different name would not work
+00:56 <@deen> actually users should just store their own files in config_directory
+00:56 <@deen> but that's global for all clients
+00:56 < Learath2> tbh skins need a different solution but can just put that in config dir
+00:56 <@deen> and I don't think we should make it impossible to add own files to ddnet client
+00:56 <@deen> some people use vanilla client to play vanilla and ddnet client for everything else
+00:57 <@deen> they don't want distracting skins in vanilla, so they put all their skins in ddnet/data/skins
+00:57 < Learath2> could let the user edit the manifest file
+00:57 <@deen> too complicated
+00:57 < Learath2> adding a # at the beginning makes it ignored
+00:58 <@deen> we recently deleted a large number of skins
+00:58 <@deen> comparing your own skins with that list and writing a hash in front of them doesn'T seem user friendly
+00:58 <@deen> they shouldn't have to edit any files at all
+00:58 < Learath2> well then skins_ddnet folder inside config
+00:58 <@deen> I really liked the solution, but I think this would not be ideal =/
+00:59 <@deen> it's not just about skins, mapres and other stuff could also turn into a problem
+00:59 <@deen> basically we'd remove the ability to customize the client
+00:59 < Learath2> well all personal stuff goes to config normally
+01:01 < Learath2> anyways ill think about something less destructive 
+01:01 < Learath2> need to sleep for a bit
+01:02 <@deen> alright, good night
+01:20 <@deen> ah, the timeout issue only happens with dummy!
+01:20 <@deen> so it's a client issue!
+01:20 <@deen> (server doesn't know about dummies
+01:21 <@deen> the dummy connection process is really hacky =/
+01:22 <@deen> it just sends all the packets at once
+02:00 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/viOtWA
+02:00 < ddnet-commits> ddnet/DDRace64 f3ba2e8 def: Send timeout code later (fixes timeout code entering issues, fixes timeout protection not working realiably with dummy)
+02:00 <@deen> phew, i hope that was it
+02:00 <@deen> I found a way to reproduce the timeout issues, and now with this change they disappeared
+02:01 <@deen> apparently dummy sent timeout code before even being connected properly
+02:23 < Nimda> DDNet CHN went down!
+02:24 < Nimda> DDNet CHN went back online!
+12:36 <@deen> Map testing really isn't working =/
+12:37 <@deen> so many brand-new maps lying around for weeks or even months
+12:41 < Nimda> likeOldschool by Chill [TD] just released on Brutal at 2014-11-27 12:41
+12:50 <@EastByte> meh :/
+12:50 <@deen> hm?
+12:51 <@EastByte> meh to bad map testing
+12:51 < Nimda> Weapons by Juandissimo & DoNe just released on Moderate at 2014-11-27 12:47
+13:13 <@deen> I don't know much about race maps, so here's a vote/discussion: http://forum.ddnet.tw/viewtopic.php?f=3&t=707
+13:17 <@deen> any suggestions on how to test a 256/512 player server?
+13:18 < laxadedi> what do you mean by testing ?
+13:18 <@deen> I want 256 tees moving around on it
+13:18 < BeaR> what do you want to test?
+13:18 <@deen> so I can see server load, client load, if there are any problems
+13:19 < BeaR> add some dummys
+13:19 < BeaR> pretty easy as far as I can remember
+13:19 <@deen> add dummies in client?
+13:19 < BeaR> server sided
+13:19 <@deen> that would be a bad test case
+13:19 <@deen> because server only has to receive/send network packets to 1 player
+13:20 <@deen> not the 255 dummies
+13:20 < BeaR> depends, for clients it doesnt matter
+13:20 < BeaR> adding it client sided, is a bad test for clients (:
+13:20 <@deen> No, I could make one client have 254 dummies and then test the other client with 0 dummies
+14:06 < ddnet-commits> [ddnet] cinaera opened pull request #108: Fix sound cutoff for looped sounds and make sound offset threshold depen... (DDRace64...pr_cutoff) http://git.io/SHNNBw
+14:13 < BeaR> f = (.).(.)  -- haskell so much fun ._.
+14:45 < o_be_one> hi :)
+14:45 < o_be_one> deen, make an event "stress test"
+14:46 < o_be_one> you warn about instability but you give points for who finish the map
+14:48 <@deen> o_be_one: no, i want to test locally
+14:48 < o_be_one> locally ?
+14:49 <@deen> on my local computer, not on a ddnet server
+14:49 < o_be_one> oh ok
+14:49 < o_be_one> so what you can do instead of using dummy ?
+14:49 <@deen> nothing
+14:50 < ddnet-commits> [ddnet] def- pushed 2 new commits to DDRace64: https://github.com/def-/ddnet/compare/f3ba2e86cab3...7b4111749a67
+14:50 < ddnet-commits> ddnet/DDRace64 80c06ae BeaR: Fix sound cutoff for looped sounds and make sound offset threshold dependent on the size of the audio buffer
+14:50 < ddnet-commits> ddnet/DDRace64 7b41117 Dennis Felsing: Merge pull request #108 from cinaera/pr_cutoff...
+14:53 < o_be_one> if i play in team with dummy, it doenst count as team rank ?
+14:53 <@deen> it does
+14:53 < o_be_one> oh, my last try with that hasnt given me points :/
+14:54 <@deen> maybe you had finished the map already
+14:54 < o_be_one> you cant finish the map, alone and after in team ?
+14:55 <@deen> you can, but you only get points for your first map finish
+14:56 < o_be_one> oh :(
+14:57 < o_be_one> in comparison i see team rank Oo
+14:57 <@deen> I don't understand what you're saying
+14:58 < o_be_one> ok i understand more
+14:58 < o_be_one> for the ranking its only points
+15:06 < laxadedi> cs:go is at 7 euros for 28 more hours if you wanna buy it
+15:49 <@deen> welcome back, BeaR. thanks for the fix
+15:49 < BeaR> thanks (:
+15:53 < BeaR> "DDNet solo in an 'oldschool / race' category" - what does this mean ?
+15:56 <@deen> ehm, it means the server is called "DDNet solo"
+15:56 <@deen> and they're just separete from the others in votes
+15:57 < BeaR> ah well lol
+16:20 < BeaR> deen: started with shaped audio sources: https://github.com/cinaera/ddnet/commit/d1327742e7ae13b6ae39952928a6899453a57542
+16:24 <@deen> cool
+16:24 < BeaR> good like this?
+16:25 <@deen> Yes, looks good so far
+17:56 < Learath2> deen: launch 255 headless clients which sends random input
+18:01 <@deen> Learath2: yeah, need headless clients
+18:01 <@deen> doesn't exist anywhere?
+19:03 < Learath2> deen: ask eeeee he has everything he prolly made a headless client again
+19:03 < Learath2> s/again/sometime
+21:41 < eeeee> we had some a couple approaches for headless clients but none of them were moving
+21:42 < eeeee> but you can try that thing the kids used before max_clients_per_ip got introduced
+21:43 < eeeee> namely creating a udp proxy which just copies each input packet 256 times and sends it to the server from different ports
+21:43 <@deen> eeeee: nice idea, you know of a udp proxy like that?
+21:44 < eeeee> so you sort of control 256 characters from your one client process
+21:44 <@deen> yeah, that would be perfect
+21:44 < eeeee> uh for my tests i just quickly built one in c#
+21:45 < eeeee> but i imagine someone familiar with c++ networking could quickly do that in c++ as well
+21:45 < eeeee> it's like a dozen lines of code
+21:45 < eeeee> could probably even do it with bash and netcat
+21:46 <@deen> thanks, i'll try it later
+21:59 <@deen> that's really cool
+22:05 <@deen> testing it on regular server^^
+22:05 <@deen> 30% cpu with 64 players all moving =/
+22:11 < BeaR> oha :D
+22:11 <@deen> and it looked great
+22:11 <@deen> when they all move synchronously
+22:11 < BeaR> haha
+22:16 <@deen> oh, bam compiles with -O2...
+22:19 <@deen> great, down from 30% to 15% with -Ofast
+22:23 <@deen> really useful trick with the udp proxy already, eeeee
+22:23 <@deen> didn't even start profiling yet
+22:24 < BeaR> udp proxy?
+22:24 <@deen> yeah, I'm using a simple udp relay and cloning my packets 64 times
+22:24 <@deen> to simulate 64 active clients on server
+22:24 < BeaR> lol
+22:24 <@deen> now i'll try to optimize code, then go to more than 64 players
+22:26 < Learath2> how will you go about optimizing it ? profiling ?
+22:26 <@deen> yeah valgrind for now
+22:27 <@deen> http://ddnet.tw/callgrind.png
+22:27 < BeaR> hasn't fisted done some network optimization some time ago?
+22:29 <@deen> not in the branch eeeee showed me
+22:37 < eeeee> we didn't really care much about optimizing the server
+22:37 < eeeee> as we only ran a couple servers and perf was just good enough
+22:38 <@deen> didn't find any obvious optimizations yet
+22:49 <@deen> hm, client gets laggy at about 200 players on one spot
+22:50 <@deen> server is also at 100%
+22:57 < eeeee> yeah there's just too much n^2 stuff
+22:58 < eeeee> can do some trivial heuristics for collisions, but not sure how to solve the hook
+22:59 < eeeee> also if your characters get packed in some cramped place make sure you're getting sensible values in https://github.com/def-/ddnet/blob/e67acc7d5c325d79d35ba69497231e41c8384006/src/game/gamecore.cpp#L617
+23:01 < eeeee> i think that's the place which was causing problems in our case
+23:11 <@deen> looks good to me
+23:11 <@deen> collision looks like the main problem for now
+23:12 <@deen> 30% of the time spent there
+23:14 <@deen> eeeee: any idea for the heuristic?
+23:20 <@deen> i don't even understand some of the code
+23:23 < BeaR> collision already broadphase, need to get rid of this distance stuff
+23:23 <@deen> what?
+23:24 < BeaR> n^2  collision is fine
+23:24 < BeaR> just this continous collision should be done nicer with some math
+23:30 <@deen> no idea how to do that
+23:31 < ddnet-commits> [ddnet] def- fast-forwarded DDRace64 from 7b41117 to 1d4ac3b: http://git.io/ufRftg
+23:39 <@deen> 128 or 256 players should work fine as it is with GER
+23:39 <@deen> i guess that's good enough for now
+23:39 <@deen> so, should I switch over to 256 players in client as well?
+23:50 < BeaR> hm teeworlds are basically spheres for collision?
+23:51 < BeaR> tees*
+23:51 <@deen> i think so

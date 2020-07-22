@@ -1,0 +1,144 @@
+18:22 < drewtee> hello
+18:23 <@minus> good evening
+18:24 <@matricks> eeeeevning :)
+18:32 < drewtee> does anyone know how to help me? i hope you will understand what i need: I want to add in "network.py" to the NetObject "PlayerInfo" a new Variable. Perfect would be something like "NetStruct", so that I can sent a complete struct to client. If you understand, can you tell me how I can realize that if its possible?
+18:33 <@matricks> you want a netstruct inside another netstruct?
+18:35 < drewtee> I want to send a struct (defined in player.h) to my client and use it then
+18:35 <@matricks> can't do that
+18:35 < drewtee> No way?
+18:35 <@matricks> no
+18:36 < drewtee> Is there are a better way, to send a quantitative of variables to client without much work? xd
+18:36 <@matricks> depends on what it is you want to send over
+18:36 < drewtee> just integers at the moment
+18:36 <@matricks> but what does the integers contain
+18:36 < drewtee> btw i think i found a way, that should works
+18:37 < drewtee> a value from 0 to any higher value
+18:37 <@matricks> ...
+18:37 <@matricks> but what does the value mean? what is it?
+18:37 < drewtee> im working on a clientmod ._. as example it contains a playerlevel
+18:38 <@matricks> okey, then it should go into the snapshot I guess
+18:38 <@matricks> can the playerlevel increase etc during gameplay?
+18:38 < drewtee> yep
+18:38 <@matricks> then it should go into the snapshot
+18:39 < drewtee> i know how to add a variable to playerinfo, but i want add muuuuch more and the work for that is too much, i need easier way dude :D
+18:40 <@matricks> the network stuff does a lot of stuff automaticlly for you to take care of endianness and compression
+18:40 < drewtee> yup
+18:40 <@matricks> use can use the network structures in the code as well
+18:40 <@matricks> so you can setup the structs you need in network.py instead of player.h
+18:41 < drewtee> i think i already found a way, to do this what i need. just because i already have a way, to save complete structs in a file. 
+18:41 <@matricks> how do you save complete structs into a file?
+18:42 < drewtee> with fwrite and fread, pretty easy. patafix teached me how it works
+18:42 <@matricks> well, that is shit
+18:42 < drewtee> why?
+18:42 <@matricks> because the format on that file will be varied depending on the computer
+18:42 <@matricks> and compiler
+18:43 <@matricks> and you can't do stuff like that over the network, it's really really bad
+18:43 < drewtee> do you know a better way?
+18:43 <@matricks> yes, you need to write serialize functions for the structs
+18:43 <@matricks> this is what the netcode does for you automaticlly
+18:43 <@matricks> and it only uses int32 values
+18:44 <@matricks> and manually writing serialize functions is.. well. a hassle and error prone
+18:45 < drewtee> yep i asked patafix for how to serialize, but he teached me this way. i may save the values from the struct like my way and convert it to base64string, sent it to the client and "unpack" it or something like that :o
+18:46 <@matricks> can't do it like that
+18:46 <@matricks> you need to get that data into the snapshot
+18:46 <@matricks> and items in the snapshot can only use int32
+18:46 < drewtee> isnt a problem
+18:47 <@matricks> isn't?
+18:47 < drewtee> i know a way to save my struct in a readable string and sent it to the client (with a char array) and read it out. i did the same in visual basic xd
+18:47 <@matricks> thats... that is really bad..
+18:47 < drewtee> why? ._.
+18:48 <@matricks> and as I said, the information must go down in to the snapshot for everything to work like it should
+18:48 <@matricks> it's inefficent and structually wrong
+18:48 <@matricks> if it's gameplay important information, it has to go into the snapshot
+18:48 < drewtee> im not really sure what do you mean with a snapshot.
+18:49 <@matricks> it's how the server communicates with the client about the game state
+18:49 <@matricks> snapshot == game state snapshoit
+18:49 <@matricks> everything the client needs inorder to render the game more or less
+18:49 <@matricks> contains player positions, weapon info, items etc
+18:51 < drewtee> but why i shouldn't do it, when it works?
+18:51 <@matricks> how do you send it over? via a message?
+18:55 < drewtee> via a string in a (new) packet
+18:55 <@matricks> huh?
+18:56 < drewtee> i pack the struct in a string and send the string to the client, no more no less :o
+18:56 <@matricks> but how do you send the string to the client?
+18:57 < drewtee> with a packet? ._.
+18:57 <@matricks> completly outside of the tw-protocol?
+18:57 <@matricks> on a new socket?
+18:58 < drewtee> nonono
+18:58 < drewtee> in the tw-protocol
+18:58 <@matricks> so, do you send it inside the snapshot or a message?
+18:58 < drewtee> i think inside the snapshot because im not really sure what do you mean with "a message" now ._.
+18:58 < drewtee> sorry 
+18:59 <@matricks> can you show the code?
+18:59 < drewtee> give me a minute
+19:00 < drewtee> it would look like this http://pastebin.com/Jy0crF8A
+19:01 <@matricks> thats a message
+19:01 <@matricks> CNetMsg
+19:01 < drewtee> ah ok, wait
+19:01 < drewtee> ok ok ok, sorry - inside the snapshot
+19:01 <@matricks> what..
+19:02 < drewtee> i will sent it insnide the snapshot xD
+19:02 <@matricks> yeah, and not as a string
+19:02 < drewtee> as a char array
+19:02 <@matricks> no no no !
+19:02 < drewtee> what else?
+19:02 <@matricks> as int32's
+19:02 <@matricks> it's the only things that can go into the snapshot
+19:02 < drewtee> oh
+19:02 < drewtee> then by packets
+19:02 <@matricks> nooooo!!
+19:03 < drewtee> cmon xD
+19:03 <@matricks> you have to get it into the snapshots because it's game critical information
+19:03 < drewtee> you are confusing me
+19:03 < drewtee> yup
+19:03 < drewtee> thats right
+19:03 <@matricks> I know, because you don't know how the network code works
+19:04 < drewtee> could be true
+19:04 <@matricks> there is only two ways to communicate, by a message or by the snapshot
+19:04 <@matricks> and a message can be vital or not
+19:04 <@matricks> vital == in sequenced and verified
+19:04 < drewtee> ok
+19:05 <@matricks> messages are not syncronized with the gametick so game frame critical information can't be sent with messages
+19:05 <@matricks> messages are for stuff like chat etc
+19:05 < drewtee> ah ok
+19:06 <@matricks> and the snapshot is splitted into items, and an item can only hold int32s
+19:07 < drewtee> and what is, when i sent a message every tick to the client and sync the variables in client? if you know what i mean
+19:08 <@matricks> that is shit :)
+19:08 <@matricks> you shouldn't send messages everytick, specially vital messages
+19:08 < drewtee> okay
+19:08 <@matricks> it's really in efficent
+19:08 <@matricks> erh
+19:08 <@matricks> *inefficent
+19:08 < drewtee> whats about this, there was sent a string in snapshot? | NetArray(NetIntAny("m_aName"), 4),
+19:09 < drewtee> i think it works but just with a size of 32 chars?
+19:09 <@matricks> drewtee: yes, there is a way around it, but not very efficent
+19:09 < drewtee> max size*
+19:09 <@matricks> yes
+19:09 <@matricks> and only used very sparly
+19:09 < drewtee> a now i understand
+19:09 <@matricks> the snapshot is really efficent for information that is updated often, it's never resent etc
+19:10 <@matricks> resent is the wrong word..
+19:10 < drewtee> so there is no way, to make a exception?
+19:10 <@matricks> not without a lot of rework
+19:10 <@matricks> the snapshot is kept simple to reduce a lot of work
+19:11 <@matricks> the snapshot has 3 layers of compression on it to reduce the amount sent.. and then the network-layer has a compression pass as well
+19:11 <@matricks> :)
+19:11 < drewtee> hm shit :c
+19:13 < drewtee> but thank you for your education^^
+19:15 <@matricks> the reason for the snapshot only taking int32 was to keep the protocol and code really simple
+19:16 <@minus> why not use json
+19:16 <@matricks> he had it coming :)
+19:16 <@minus> tbh, i would've done the same
+19:17  * matricks gives minus a cookie :)
+19:17 <@minus> json is horrible for structured data interchange
+19:17 <@minus> because it's unstructured
+19:17 <@minus> nothing that validates your shit
+19:17 <@minus> well, you could have that, but you'd have to build it ontop again
+19:17 <@minus> which would make the whole fucking thing pointless
+19:18 <@minus> tl;dr json - sure, but in some cases it's not a good idea
+19:18 <@matricks> my flightlog is in json :)
+19:19 <@minus> wouldn't that be better as csv?
+19:19 <@matricks> hard to see and edit
+19:20 <@matricks> toml is perhaps better
+19:20 <@matricks> https://github.com/toml-lang/toml
+19:21 <@matricks> but I load and parse the json and dig out loads of information from the IGC-files (tracklogs)

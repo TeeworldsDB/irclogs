@@ -1,0 +1,199 @@
+00:06 <+ddnet-discord> <Learath2> @heinrich5991 each ASYNCIO gets it's own thread?
+00:06 <+ddnet-discord> <heinrich5991> yes
+00:07 <+ddnet-discord> <heinrich5991> did it like that because they can block for arbitrary amount of time and you can't check whether they'll block
+00:07 <+ddnet-discord> <heinrich5991> (no nonblocking mode for files)
+00:07 <+ddnet-discord> <Learath2> they?
+00:08 <+ddnet-discord> <heinrich5991> the disk IO operations
+00:08 <+ddnet-discord> <heinrich5991> or at least that's what deen told me
+00:08 <+ddnet-discord> <Learath2> can't you return if block on disk IO?
+00:08 <+ddnet-discord> <heinrich5991> no
+00:08 <+ddnet-discord> <heinrich5991> I checked that
+00:08 <+ddnet-discord> <Learath2> hmm stupid assumption they made
+00:08 <+ddnet-discord> <Learath2> all disk io doesn't have to be fast
+00:09 <+ddnet-discord> <heinrich5991> anyway, it shouldn't be a lot of overhead. the threads take up no CPU until woken up by more input
+00:10 <+ddnet-discord> <Learath2> looks like a perfect place to use condition variables 😛 shame they don't work on windows xp
+00:10 <+ddnet-discord> <heinrich5991> yes :/
+00:10 <+ddnet-discord> <HMH> just use c++11 ?
+00:11 <+ddnet-discord> <Learath2> not in system.c you don't 😛
+00:11 <+ddnet-discord> <Learath2> not in `system.c` you don't 😛
+00:11 <+ddnet-discord> <Learath2> @heinrich5991 if you feel up to it maybe a good time to start `system.cpp`
+00:12 <+ddnet-discord> <heinrich5991> mh. I was happy that I could do without 😃
+00:12 <+ddnet-discord> <Learath2> You know me I'm all for keeping to C
+00:12 <+ddnet-discord> <heinrich5991> because this makes it more likely that teehistorian is merged into other mods
+00:14 <+ddnet-discord> <heinrich5991> I could check out the condition-variable implementation of gcc or clang on windows
+00:15 <+ddnet-discord> <Learath2> I think they use semaphores
+00:15 <+ddnet-discord> <Learath2> https://www.microsoft.com/en-us/research/wp-content/uploads/2004/12/ImplementingCVs.pdf
+00:18 <+ddnet-discord> <HMH> if you refuse to switch to system.cpp what about adding CVs using c++11 here: https://github.com/ddnet/ddnet/blob/master/src/base/tl/threading.h ?
+00:18 <+ddnet-discord> <Learath2> @heinrich5991 what is the two buffers for?
+00:19 <+ddnet-discord> <heinrich5991> @HMH feel free to add system.cpp once you need it, I won't block it
+00:19 <+ddnet-discord> <heinrich5991> @Learath2 when the thread that writes to the queue needs to create a bigger buffer, it can't delete the old buffer right away
+00:19 <+ddnet-discord> <heinrich5991> because the thread reading from the queue might still have pointers into the buffer
+00:19 <+ddnet-discord> <Learath2> wait wait wait there is a thread that writes to the queue?
+00:19 <+ddnet-discord> <heinrich5991> the main thread
+00:20 <+ddnet-discord> <Learath2> oh
+00:20 <+ddnet-discord> <heinrich5991> mh?
+00:20 <+ddnet-discord> <heinrich5991> I mean there should be someone writing, right? ^^
+00:20 <+ddnet-discord> <Learath2> I thought you had another thread that was coordinating the writing threads, was like how did I miss that one
+00:21 <+ddnet-discord> <heinrich5991> nono
+00:21 <+ddnet-discord> <heinrich5991> the "writer" is the main thread that wants to output stuff into files, the "reader" is the dedicated thread that forwards the things into a file
+00:22 <+ddnet-discord> <heinrich5991> (in my terminology)
+00:22 <+ddnet-discord> <Learath2> is this even safe? you write to buf1 from one thread while the other is possibly `io_write`ing what's in buf1
+00:22 <+ddnet-discord> <heinrich5991> I'm writing disjoint areas of the same array
+00:22 <+ddnet-discord> <Learath2> shouldn't atleast the length associated to the buffer be lock protected?
+00:23 <+ddnet-discord> <heinrich5991> yes, it is
+00:23 <+ddnet-discord> <heinrich5991> well
+00:23 <+ddnet-discord> <heinrich5991> so
+00:23 <+ddnet-discord> <heinrich5991> the lock is held everytime someone does something with the array, except while `io_write`ing the stuff
+00:24 <+ddnet-discord> <heinrich5991> (because that would make the extra thread useless)
+00:25 <+ddnet-discord> <heinrich5991> the queue reader only updates its (lock-protected) read pointer when it is done `io_write`ing the contents into the file
+00:25 <+ddnet-discord> <heinrich5991> the queue writer only writes until the buffer is full, and at that point, it increases the buffer size by switchting to a new buffer
+00:25 <+ddnet-discord> <Learath2> side-line: all the extra braces makes this really hard to read for me
+00:25 <+ddnet-discord> <heinrich5991> extra braces?
+00:26 <+ddnet-discord> <Learath2> the ones in `buffer_len` e.g.
+00:26 <+ddnet-discord> <heinrich5991> ah
+00:26 <+ddnet-discord> <heinrich5991> yea, always writing braces doesn't look too well in our braces style
+00:26 <+ddnet-discord> <Learath2> so used to omiting them for oneliners it looks disjointed 😛
+00:28 <+ddnet-discord> <heinrich5991> I decided to just always write them and never look for braces errors anymore
+00:28 <+ddnet-discord> <heinrich5991> it works better in the
+00:28 <+ddnet-discord> <heinrich5991> ```
+00:28 <+ddnet-discord> <heinrich5991> if(abc) {
+00:28 <+ddnet-discord> <heinrich5991>     return 1;
+00:28 <+ddnet-discord> <heinrich5991> } else {
+00:28 <+ddnet-discord> <heinrich5991>     foobar();
+00:28 <+ddnet-discord> <heinrich5991> }
+00:28 <+ddnet-discord> <heinrich5991> ```
+00:28 <+ddnet-discord> <heinrich5991> style
+00:30 <+ddnet-discord> <Learath2> eeh, don't think I ever made a brace error
+00:31 <+ddnet-discord> <Learath2> been a while since I've seen a brace mistake in ##c either
+00:31 <+ddnet-discord> <heinrich5991> don't really want to get sidetracked into this discussion unless you really want to
+00:31 <+ddnet-discord> <Learath2> anyways, what is "Don't allow full queue to distinguish between empty and full queue." supposed to mean?
+00:31 <+ddnet-discord> <Learath2> we can get sidetracked about braces later 😄
+00:31 <+ddnet-discord> <heinrich5991> 🙂
+00:32 <+ddnet-discord> <heinrich5991> don't fill the queue completely – full queue looks the same as empty queue, read_pos == write_pos
+00:33 <+ddnet-discord> <Learath2> how does that work? write_pos wraps back?
+00:33 <+ddnet-discord> <heinrich5991> yes
+00:33 <+ddnet-discord> <heinrich5991> ```
+00:33 <+ddnet-discord> <heinrich5991> ######
+00:33 <+ddnet-discord> <heinrich5991>   W   R
+00:33 <+ddnet-discord> <heinrich5991> ```
+00:33 <+ddnet-discord> <heinrich5991> ```
+00:33 <+ddnet-discord> <heinrich5991> #########
+00:33 <+ddnet-discord> <heinrich5991>   W   R
+00:33 <+ddnet-discord> <heinrich5991> ```
+00:34 <+ddnet-discord> <heinrich5991> this means that the queue is filled from the R, wrapping around to the W
+00:34 <+ddnet-discord> <Learath2> why is it filled from R? read_pos sounds like where you are io_writing from
+00:35 <+ddnet-discord> <heinrich5991> yes
+00:35 <+ddnet-discord> <heinrich5991> I'm `io_write`ing from `R` to `W`
+00:35 <+ddnet-discord> <heinrich5991> the reader is behind the writer
+00:35 <+ddnet-discord> <heinrich5991> it still has to read all the stuff the writer has written
+00:35 <+ddnet-discord> <Learath2> In your picture about R is ahead of W, how does that happen?
+00:36 <+ddnet-discord> <heinrich5991> when the buffer has wrapped around
+00:36 <+ddnet-discord> <heinrich5991> the writer wrote 6 bytes, the reader read 6 bytes, the writer writes 6 bytes
+00:36 <+ddnet-discord> <Learath2> so you are kinda using it like a circular buffer?
+00:36 <+ddnet-discord> <heinrich5991> yes
+00:36 <+ddnet-discord> <heinrich5991> except when it gets filled, then I create a larger buffer
+00:38 <+ddnet-discord> <Learath2> do you have a max size somewhere?
+00:39 <+ddnet-discord> <heinrich5991> no
+00:39 <+ddnet-discord> <heinrich5991> I hopefully crash on allocation failure
+00:39 <+ddnet-discord> <heinrich5991> but not checked, as indicated in the comment
+00:39 <+ddnet-discord> <Learath2> Is it a good idea to crash on a logging failure?
+00:39 <+ddnet-discord> <heinrich5991> it is a good idea to crash on teehistorian failure
+00:40 <+ddnet-discord> <heinrich5991> logging -- maybe not
+00:40 <+ddnet-discord> <heinrich5991> mhh
+00:41 <+ddnet-discord> <Learath2> maybe a forced blocking flush for teehistorian and a skip for logging?
+00:41 <+ddnet-discord> <heinrich5991> crashing vs blocking probably doesn't matter too much, in any case the race is fucked up
+00:42 <+ddnet-discord> <heinrich5991> I could perhaps introduce a max size
+00:42 <+ddnet-discord> <heinrich5991> for the queue
+00:42 <+ddnet-discord> <Learath2> well would blocking kill everyones connection?
+00:43 <+ddnet-discord> <heinrich5991> you have blocked long enough to have filled the teehistorian buffer, which is probably at least multiple 10MBs
+00:43 <+ddnet-discord> <heinrich5991> that's probably as much as such a server produces in a day
+00:44 <+ddnet-discord> <heinrich5991> I'll see if I can introduce a max size
+00:44 <+ddnet-discord> <heinrich5991> (that will need another notification in the other direction, to let the reading thread wake up the writing thread)
+00:45 <+ddnet-discord> <Learath2> the buffer is somehow full, you blocking flush in tick, no more data is generated by teehistorian, how bad can io be honestly
+00:45 <+ddnet-discord> <Learath2> frozen server is better then crashed server no?
+00:46 <+ddnet-discord> <heinrich5991> yea
+00:46 <+ddnet-discord> <Learath2> actually if it never unfreezes it's worse then crashing 😄
+00:46 <+ddnet-discord> <heinrich5991> true
+00:48 <+ddnet-discord> <Learath2> is there a reason you don't do a realloc?
+00:48 <+ddnet-discord> <heinrich5991> yes. I still need the old buffer for the reader
+00:48 <+ddnet-discord> <heinrich5991> it might currently do a `io_write` with the old buffer
+00:49 <+ddnet-discord> <heinrich5991> oh, another counter-argument against checking for OOM: none of the other code does it, so that will crash when we check for it (?)
+00:49 <+ddnet-discord> <heinrich5991> we run our servers on linux with overcommit, so `malloc` failure isn't really a thing there
+00:50 <+ddnet-discord> <Learath2> true
+00:52 <+ddnet-discord> <Learath2> @heinrich5991 so buf1 and buf2 are just convenience pointers right?
+00:52 <+ddnet-discord> <heinrich5991> yes
+00:52 <+ddnet-discord> <heinrich5991> I just wrote that code to reuse it somewhere else
+00:52 <+ddnet-discord> <heinrich5991> I think I call that function in two places
+00:57 <+ddnet-discord> <Learath2> you use old_buffer to make sure the buffer doesn't get free'd while `io_write`ing right?
+00:57 <+ddnet-discord> <heinrich5991> yes
+01:01 <+ddnet-discord> <Learath2> Q:resizing the buffer "straightens out" the buffer, if `io_write` was using the `old_buffer` how do you sync up the `read_pos` and `write_pos` to the new buffer? You also don't seem to check the return of `io_write` is it right to assume the entire buffer was written?
+01:02 <+ddnet-discord> <heinrich5991> I sync the `read_pos` and `write_pos` to the new buffer by just setting `read_pos` to 0
+01:02 <+ddnet-discord> <heinrich5991> the reading thread will always just add the length of the buffer it just wrote to `read_pos` after it is done
+01:02 <+ddnet-discord> <heinrich5991> (while the stuff is locked, so the writing thread isn't interfering)
+01:04 <+ddnet-discord> <heinrich5991> unless an error occurs, I think `fwrite` always writes the full number of bytes
+01:08 <+ddnet-discord> <Learath2> what is refcount for?
+01:08 <+ddnet-discord> <heinrich5991> depending on what exits first, the reading thread or the writing thread
+01:08 <+ddnet-discord> <heinrich5991> the `aio` structure should only be freed after both exited
+01:10 <+ddnet-discord> <Learath2> you decrement refcount at only one function and only call that function once per aio no?
+01:11 <+ddnet-discord> <heinrich5991> I call that function in two places
+01:11 <+ddnet-discord> <heinrich5991> once from the reading thread, and once from the writing thread
+01:11 <+ddnet-discord> <heinrich5991> (just search for the function name)
+01:11 <+ddnet-discord> <Learath2> oh missed that one, sry gh website doesn't like my searches
+01:11 <+ddnet-discord> <Learath2> sometimes it decides not to show stuff that I can't currently see
+01:11 <+ddnet-discord> <heinrich5991> mh ~~
+01:19 <+ddnet-discord> <Learath2> you know what would be cute? a goto for cleanup in `async_new`
+01:19 <+ddnet-discord> <heinrich5991> thought so too 😄
+01:19  * ddnet-discord <Learath2> <3 goto
+01:20 <+ddnet-discord> <heinrich5991> but then I remembered our lack of gotos
+01:20 <+ddnet-discord> <Learath2> we only use it in the sql stuff and that stuff all looks horrible anyways 😛
+01:21 <+ddnet-discord> <Learath2> especially the save/load thing, awful style, weird use of return codes
+01:49 <+ddnet-discord> <heinrich5991> @Learath2 any more questions? probably going to bed soon
+01:49 <+ddnet-discord> <Learath2> nope, submitted my first review 😛
+01:51 <+ddnet-discord> <heinrich5991> ty, will check that out tomorrow
+01:51 <+ddnet-discord> <Learath2> I should also get some sleep, gn8
+01:51 <+ddnet-discord> <heinrich5991> nite
+11:30 <+ddnet-discord> <heinrich5991> @Dr. Jekyll I've installed windows 10, but the process I described in the forums works fine for me
+11:31 <+ddnet-discord> <heinrich5991> we could get back to debugging somewhen soon
+14:09 <+ddnet-discord> <Dr. Jekyll> Dangit
+14:09 <+ddnet-discord> <Dr. Jekyll> Im happy to keep using standalone git&cmake, it works at least
+14:09 <+ddnet-discord> <Dr. Jekyll> tho im still failing travis
+14:13 <+ddnet-discord> <Savander> i don't think like you did something wrong
+14:13 <+ddnet-discord> <Savander> it says, that cmake isn't working
+14:13 <+ddnet-discord> <Savander> ```Dependencies:
+14:13 <+ddnet-discord> <Savander> --  * Curl found
+14:13 <+ddnet-discord> <Savander> --  * Freetype found
+14:13 <+ddnet-discord> <Savander> --  * GTest not found
+14:13 <+ddnet-discord> <Savander> --  * Ogg not found (using bundled version)
+14:13 <+ddnet-discord> <Savander> --  * Opus not found (using bundled version)
+14:13 <+ddnet-discord> <Savander> --  * Opusfile not found (using bundled version)
+14:13 <+ddnet-discord> <Savander> --  * PythonInterp found
+14:13 <+ddnet-discord> <Savander> --  * SDL2 not found
+14:13 <+ddnet-discord> <Savander> --  * Zlib found
+14:13 <+ddnet-discord> <Savander> CMake Error at CMakeLists.txt:169 (message):
+14:13 <+ddnet-discord> <Savander>   You must install SDL2 to compile the DDNet client```
+14:13 <+ddnet-discord> <Savander> Did you change antything in travis ?
+14:13 <+ddnet-discord> <Savander> it's for macos no?
+14:14 <+ddnet-discord> <Dr. Jekyll> I changed nothing
+14:14 <+ddnet-discord> <Savander> i know, you didn't
+14:14 <+ddnet-discord> <Dr. Jekyll> and yeah, it says something about macos and packages
+14:14 <+ddnet-discord> <Savander> i asking our boss
+14:14 <+ddnet-discord> <Savander> @HMH? 😄
+16:49 <+ddnet-discord> <deen> @noby about the old discussion: I made ddnet client send input more often because people had tricks to simulate lots of direct inputs using keyboard macros, so the pros did it with any client.
+16:49 <+ddnet-discord> <deen> this was relevant when you're in freeze and press a or d
+16:50 <+ddnet-discord> <deen> https://github.com/ddnet/ddnet/commit/c4118a3878bbba1584c054bd53fccb453273af6d
+16:50 <+ddnet-discord> <deen> (but only in freeze, so with ninja)
+16:50 <+ddnet-discord> <deen> but other clients could change that of course
+18:35 <+ddnet-discord> <Ezy> im trying to compile ddnet source with bam
+18:35 <+ddnet-discord> <Ezy> i build the project
+18:36 <+ddnet-discord> <Ezy> in visual studio
+18:36 <+ddnet-discord> <Ezy> when i try to compile client_release tho
+18:36 <+ddnet-discord> <Ezy> theres an error
+18:39 <+ddnet-discord> <Ezy> "The program
+18:39 <+ddnet-discord> <Ezy> "c:\...\ddnet\client_release\ddnet.exe" cannot be started
+18:39 <+ddnet-discord> <Ezy> The system cannot find the file"
+18:43 <+ddnet-discord> <Savander> looks like there's no file called ddnet..exe
+18:44 <+ddnet-discord> <Ezy> y
+18:44 <+ddnet-discord> <Ezy> ik that
+18:45 <+ddnet-discord> <Savander> so
+18:45 <+ddnet-discord> <Savander> maybe you are trying to run ddnet.exe
+18:45 <+ddnet-discord> <Savander> instead of compile

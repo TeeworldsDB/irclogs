@@ -1,0 +1,130 @@
+07:14 <+bridge> [ddnet] <deen> @Trafalgar Law nope, that's how it was changed in code. We support both now, and the comment text was changed
+10:00 <+bridge> [ddnet] <ImJustANobody> Hi All, can someone please assist me. I've cloned ddnet ddrace github server and followed the guide https://forum.ddnet.tw/viewtopic.php?t=2730, but when I type top5points it shows correct points and names, but the order is incorrect. ex.
+10:00 <+bridge> [ddnet] <ImJustANobody> 1.  User1 Points: 7
+10:00 <+bridge> [ddnet] <ImJustANobody> 2. User2 Points: 5
+10:00 <+bridge> [ddnet] <ImJustANobody> 2. User3 Points: 3
+10:00 <+bridge> [ddnet] <ImJustANobody> 2. User4 Points: 1
+10:15 <+bridge> [ddnet] <Ryozuki> @heinrich5991 https://stackoverflow.com/questions/5844242/valgrind-yells-about-an-uninitialised-bytes
+10:15 <+bridge> [ddnet] <Ryozuki> remember the uninit bytes we thought they were false positives?
+10:16 <+bridge> [ddnet] <Ryozuki> ```
+10:16 <+bridge> [ddnet] <Ryozuki> 
+10:16 <+bridge> [ddnet] <Ryozuki> 
+10:16 <+bridge> [ddnet] <Ryozuki> This is not necessarily a problem, other than a small security issue: The previous contents of memory, which may hold sensitive information, will get written to the file.
+10:16 <+bridge> [ddnet] <Ryozuki> 
+10:16 <+bridge> [ddnet] <Ryozuki> You can memset the structure to 0 before filling its fields to avoid this error.
+10:16 <+bridge> [ddnet] <Ryozuki> ```
+10:17 <+bridge> [ddnet] <Ryozuki> "This is actually the one place where strncpy is the right solution"
+10:23 <+bridge> [ddnet] <Ryozuki> hmmmm
+10:25 <+bridge> [ddnet] <Ryozuki> i will mem_zero it for now
+10:25 <+bridge> [ddnet] <Jupstar ✪> u sure, u want to mem zero a stack variable that isn't used for anything else than this? 😄
+10:25 <+bridge> [ddnet] <Ryozuki> :justatest:
+10:26 <+bridge> [ddnet] <Ryozuki> i mean
+10:26 <+bridge> [ddnet] <Ryozuki> you can legit get sensitive info writing map data xd
+10:26 <+bridge> [ddnet] <Ryozuki> if u dont memzero
+10:26 <+bridge> [ddnet] <Ryozuki> but maybe its not worth
+10:26 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ what do you recommend
+10:27 <+bridge> [ddnet] <Jupstar ✪> what sensitive data does ddnet contain?
+10:27 <+bridge> [ddnet] <Ryozuki> not ddnet but ur memory
+10:27 <+bridge> [ddnet] <Jupstar ✪> actually i cannot really imagine how this is a security issue in our case
+10:27 <+bridge> [ddnet] <Ryozuki> iguess its a bit unrealistic
+10:27 <+bridge> [ddnet] <Jupstar ✪> let me read the stackoverflow thing
+10:28 <+bridge> [ddnet] <Ryozuki> i added the hlighted line
+10:28 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697724573759832138/unknown.png
+10:28 <+bridge> [ddnet] <Jupstar ✪> ah i see, its written into the map file?
+10:28 <+bridge> [ddnet] <Ryozuki> yea
+10:28 <+bridge> [ddnet] <Jupstar ✪> then yes, memzero is good
+10:28 <+bridge> [ddnet] <Ryozuki> :)
+10:29 <+bridge> [ddnet] <Jupstar ✪> all io stuff should be as secure as possible 😄
+10:29 <+bridge> [ddnet] <Ryozuki> xD
+10:30 <+bridge> [ddnet] <Jupstar ✪> but it only wriotes the bytes it writes to the buffer?
+10:30 <+bridge> [ddnet] <Jupstar ✪> then actually its not a problem
+10:30 <+bridge> [ddnet] <Jupstar ✪> i cannot imagine rn what the code does tbh
+10:30 <+bridge> [ddnet] <Ryozuki> int Bytes = io_read(MapFile, &aChunk, sizeof(aChunk));
+10:30 <+bridge> [ddnet] <Ryozuki> i wonder if this stops at a null byte
+10:30 <+bridge> [ddnet] <Ryozuki> or
+10:30 <+bridge> [ddnet] <Jupstar ✪> but it only writes what it reads
+10:30 <+bridge> [ddnet] <Ryozuki> reads to fill achunk
+10:30 <+bridge> [ddnet] <Ryozuki> yeah
+10:30 <+bridge> [ddnet] <Jupstar ✪> but that should be safe
+10:31 <+bridge> [ddnet] <Ryozuki> valgrind disagrees
+10:31 <+bridge> [ddnet] <Ryozuki> :justatest:
+10:31 <+bridge> [ddnet] <Jupstar ✪> thats strange actually
+10:31 <+bridge> [ddnet] <Ryozuki> do u see the valgrind error?
+10:31 <+bridge> [ddnet] <Jupstar ✪> but i think in the stackoverflow example it writes a whole struct
+10:32 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/697725513262956664/unknown.png
+10:32 <+bridge> [ddnet] <Ryozuki> Syscall param write(buf) points to uninitialised byte(s)
+10:32 <+bridge> [ddnet] <Jupstar ✪> probably bcs its a syscall, valgrind checks the whole memory
+10:32 <+bridge> [ddnet] <Ryozuki> i think we are writing uninited bytes to the map
+10:32 <+bridge> [ddnet] <Ryozuki> according to valgrind
+10:33 <+bridge> [ddnet] <Jupstar ✪> it only says it points to it, not writes it 😄
+10:33 <+bridge> [ddnet] <Ryozuki> :monkaS:
+10:39 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ if a struct has a variable char[8], calling memzero on that struct will also zero the array? i guess not right
+10:39 <+bridge> [ddnet] <Ryozuki> i may have found something then
+10:39 <+bridge> [ddnet] <Ryozuki> or not
+10:39 <+bridge> [ddnet] <Jupstar ✪> memzero a struct zeros every byte in it
+10:39 <+bridge> [ddnet] <Jupstar ✪> even padded bytes
+10:40 <+bridge> [ddnet] <Jupstar ✪> arrays in structs increase the struct size
+10:40 <+bridge> [ddnet] <Jupstar ✪> bcs they arent heap memory
+10:41 <+bridge> [ddnet] <Jupstar ✪> btw
+10:41 <+bridge> [ddnet] <Jupstar ✪> that valgrind issue
+10:41 <+bridge> [ddnet] <Jupstar ✪> it says that the memory that is uninitializes is malloced by fwrite
+10:41 <+bridge> [ddnet] <Jupstar ✪> which is the sys call already
+10:42 <+bridge> [ddnet] <Jupstar ✪> or am i getting that info wrong xD
+10:43 <+bridge> [ddnet] <Jupstar ✪> i think its really just because valgrind knows the size of that variable
+10:43 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/697728460990316584/unknown.png
+10:44 <+bridge> [ddnet] <Jupstar ✪> bcs else it wouldn't know the block was 4096bytes
+10:44 <+bridge> [ddnet] <Ryozuki> xd
+10:44 <+bridge> [ddnet] <Jupstar ✪> it says that the memory that is uninitializes is at a malloc by fwrite
+10:44 <+bridge> [ddnet] <Ryozuki> i see so its not our fault
+10:45 <+bridge> [ddnet] <Jupstar ✪> i don't see how it could be
+10:45 <+bridge> [ddnet] <Ryozuki> thanks for the help
+10:45 <+bridge> [ddnet] <Ryozuki> makes sense
+10:45 <+bridge> [ddnet] <Ryozuki> im a bit new to valgrind and stuff
+10:45 <+bridge> [ddnet] <Jupstar ✪> well, i don't garantuee it, but i doubt something that basic is wrongly implemented in tw
+10:46 <+bridge> [ddnet] <Jupstar ✪> but if the return of io_write equals the read of io_read it couldn't have gone over it
+11:00 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki have u run this code in debug mode btw?
+11:00 <+bridge> [ddnet] <ImJustANobody> @Ryozuki Do you have any idea why the top5points aren't showing correctly
+11:08 <+bridge> [ddnet] <ImJustANobody> [note]The link to download CMake for Windows on https://github.com/ddnet/ddnet readme file is redirecting to a old invalid url.
+11:10 <+bridge> [ddnet] <Ryozuki> ye its in debug mode
+11:10 <+bridge> [ddnet] <Ryozuki> i have no idea about the points
+11:11 <+bridge> [ddnet] <Jupstar ✪> do the points need to be triggered by a manual recalculation?
+11:11 <+bridge> [ddnet] <Ryozuki> i think recalculation is done when a map points is changed
+11:11 <+bridge> [ddnet] <Jupstar ✪> ok 😄
+11:11 <+bridge> [ddnet] <Ryozuki> but idk
+11:11 <+bridge> [ddnet] <Ryozuki> deen is the one who knows
+11:12 <+bridge> [ddnet] <Jupstar ✪> @ImJustANobody best is, you ask deen directly and provide him information about the sql database you are using
+11:12 <+bridge> [ddnet] <ImJustANobody> Thank you @Jupstar ✪
+11:39 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki
+11:39 <+bridge> [ddnet] <Jupstar ✪> https://valgrind.org/docs/manual/mc-manual.html#mc-manual.bad-syscall-args
+11:40 <+bridge> [ddnet] <Jupstar ✪> it checks the entire buffer
+11:49 <+bridge> [ddnet] <Ryozuki> i see
+15:08 <+bridge> [ddnet] <Crying> Hello
+15:08 <+bridge> [ddnet] <Crying> Who can help
+15:08 <+bridge> [ddnet] <Crying> Why im not have all servers in game
+15:08 <+bridge> [ddnet] <Crying> max 177 servers
+15:08 <+bridge> [ddnet] <Crying> but normal 300 +
+15:08 <+bridge> [ddnet] <Crying> who can help
+15:19 <+bridge> [ddnet] <Crying> who here
+15:19 <+bridge> [ddnet] <Crying> @Skeith
+15:19 <+bridge> [ddnet] <Skeith> No idea
+15:20 <+bridge> [ddnet] <Crying> :(
+16:00 <+bridge> [ddnet] <heinrich5991> @Ryozuki as @Jupstar ✪ said, I don't see the problem from stackoverflow in our code
+16:26 <+bridge> [ddnet] <deen> @Crying maybe one of the master servers is blocking you? I see 256 servers consistently
+16:26 <+bridge> [ddnet] <deen> oh, just jumped to 301. So some master server isn't responding properly after all
+16:45 <+bridge> [ddnet] <Crying> :I
+16:45 <+bridge> [ddnet] <Crying> Idk
+16:45 <+bridge> [ddnet] <Crying> maybe no blocked
+16:46 <+bridge> [ddnet] <Crying> me
+18:02 <+bridge> [ddnet] <Ryozuki> https://wiki.archlinux.org/index.php/Reflector
+18:02 <+bridge> [ddnet] <Ryozuki> just found out about this
+18:02 <+bridge> [ddnet] <Ryozuki> nice script
+19:20 <+bridge> [ddnet] <TcTc> How does antibot module work?
+19:21 <+bridge> [ddnet] <heinrich5991> by default, it doesn't do anything
+19:21 <+bridge> [ddnet] <Quick> xD
+19:21 <+bridge> [ddnet] <heinrich5991> you can write your own antibot module that exports the same functions that the null antibot does, and plug that into your ddnet server
+19:22 <+bridge> [ddnet] <heinrich5991> the antibot module used by the official ddnet servers is the one by noby
+22:10 <+bridge> [ddnet] <ChillerDragon> Anyone wanna share private vs public github contribs here? Im kinda interested how u all doin privatley
+22:10 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/697901303552147546/unknown.png
+22:14 <+bridge> [ddnet] <heinrich5991> I barely have private repositories
+22:15 <+bridge> [ddnet] <heinrich5991> apparently I don't have any private repositories
+22:16 <+bridge> [ddnet] <heinrich5991> I have access to two private repositories of others

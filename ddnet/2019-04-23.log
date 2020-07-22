@@ -1,0 +1,450 @@
+00:22 <+bridge> [ddnet] <fokkonaut> ooookay, there is something really weird going on ._.
+00:22 <+bridge> [ddnet] <fokkonaut> I have a function which sends its parameters through like 3 other functions to then return a chat message. if i compile in x64-release it works fine, if i compile in x64-debug it just doesnt show the message. i get the chat msg sound, but also in console is nothing. (if i place a debug message i can see its working :))
+00:24 <+bridge> [ddnet] <fokkonaut> and another thing: i have a const char* function, which will return a char array. inside of it, i recall this function which another parameter. the complete char array is working if i place a debugmsg, but when i want to return it, the other function doesnt show anything :(
+00:25 <+bridge> [ddnet] <jao> you should show code
+00:34 <+bridge> [ddnet] <fokkonaut> ddracecommands.cpp:
+00:34 <+bridge> [ddnet] <fokkonaut> `pChr->HookPower(Power, -1, false);`
+00:34 <+bridge> [ddnet] <fokkonaut> leads to character.cpp:
+00:34 <+bridge> [ddnet] <fokkonaut> `GameServer()->SendExtraMessage(HOOK_POWER, m_pPlayer->GetCID(), false, FromID, Silent, Extra);`
+00:34 <+bridge> [ddnet] <fokkonaut> leads to gamecontext:
+00:34 <+bridge> [ddnet] <fokkonaut> `SendChatTarget(ToID, CreateExtraMessage(Extra, Remove, FromID, ToID, HookPower));`
+00:34 <+bridge> [ddnet] <fokkonaut> inside of CreateExtraMessage() is this:
+00:34 <+bridge> [ddnet] <fokkonaut> `str_format(aItem, sizeof(aItem), "%s",, GetExtraName(Extra, HookPower)); return aItem;`
+00:34 <+bridge> [ddnet] <fokkonaut> in GetExtraName() is this:
+00:34 <+bridge> [ddnet] <fokkonaut> ```
+00:34 <+bridge> [ddnet] <fokkonaut> switch (Extra)
+00:34 <+bridge> [ddnet] <fokkonaut>     {
+00:34 <+bridge> [ddnet] <fokkonaut>     case HOOK_NORMAL:
+00:35 <+bridge> [ddnet] <fokkonaut>         return "Normal";
+00:35 <+bridge> [ddnet] <fokkonaut>     case RAINBOW:
+00:35 <+bridge> [ddnet] <fokkonaut>         return "RAINBOW";
+00:35 <+bridge> [ddnet] <fokkonaut>     case HOOK_POWER:
+00:35 <+bridge> [ddnet] <fokkonaut>         {
+00:35 <+bridge> [ddnet] <fokkonaut>             char Power[32];
+00:35 <+bridge> [ddnet] <fokkonaut>             str_format(Power, sizeof(Power), "%s Hook", GetExtraName(HookPower));
+00:35 <+bridge> [ddnet] <fokkonaut>             return Power;
+00:35 <+bridge> [ddnet] <fokkonaut>         }
+00:35 <+bridge> [ddnet] <fokkonaut>     }
+00:35 <+bridge> [ddnet] <fokkonaut> ```
+00:35 <+bridge> [ddnet] <fokkonaut> so, the reason why i send it through so many functions is because there are so many Extras here.
+00:35 <+bridge> [ddnet] <fokkonaut> if i place a dbg message over `return Power`, it shows the correct string but when i place it over `return aItem` it shows nothing. 
+00:35 <+bridge> [ddnet] <fokkonaut> 
+00:35 <+bridge> [ddnet] <fokkonaut> about the second thing: dbg_msg over `return aItem` shows the item string, but not in x64-debug
+00:35 <+bridge> [ddnet] <fokkonaut> SORRY IRC <3
+00:36 <+bridge> [ddnet] <jao> fokkonaut why do you not use a paste service
+00:36 <+bridge> [ddnet] <fokkonaut> i did
+00:36 <+bridge> [ddnet] <fokkonaut> lol
+00:36 <+bridge> [ddnet] <jao> you didn't
+00:39 <+bridge> [ddnet] <fokkonaut> from here: https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/ddracecommands.cpp#L408
+00:39 <+bridge> [ddnet] <fokkonaut> 
+00:39 <+bridge> [ddnet] <fokkonaut> to here:
+00:39 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/entities/character.cpp#L3359
+00:39 <+bridge> [ddnet] <fokkonaut> 
+00:39 <+bridge> [ddnet] <fokkonaut> to here:
+00:39 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/gamecontext.cpp#L4026
+00:39 <+bridge> [ddnet] <fokkonaut> 
+00:39 <+bridge> [ddnet] <fokkonaut> to here:
+00:39 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/gamecontext.cpp#L4045
+00:39 <+bridge> [ddnet] <fokkonaut> 
+00:39 <+bridge> [ddnet] <fokkonaut> to here:
+00:39 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/gamecontext.cpp#L4139
+00:41 <+bridge> [ddnet] <fokkonaut> for my 2nd thing: placing a dbg_msg here, will show the correct message, but in x64-release it wont appear in char:
+00:42 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/gamecontext.cpp#L4095
+00:42 <+bridge> [ddnet] <fokkonaut> for the 1st problem:
+00:42 <+bridge> [ddnet] <fokkonaut> placing one here shows the correct string, but after it returned it it shows nothing:
+00:42 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/BlockDDrace/blob/master/src/game/server/gamecontext.cpp#L4142
+01:17 <+bridge> [ddnet] <fokkonaut> really weird, it works like this:
+01:17 <+bridge> [ddnet] <fokkonaut> ```
+01:17 <+bridge> [ddnet] <fokkonaut> char aTemp[32];
+01:17 <+bridge> [ddnet] <fokkonaut>     str_copy(aTemp, GetExtraName(Extra, HookPower), sizeof(aItem));
+01:17 <+bridge> [ddnet] <fokkonaut>     str_format(aItem, sizeof(aItem), "%s%s", aInfinite, aTemp);
+01:17 <+bridge> [ddnet] <fokkonaut> ```
+01:17 <+bridge> [ddnet] <fokkonaut> but not like this:
+01:17 <+bridge> [ddnet] <fokkonaut> ```
+01:17 <+bridge> [ddnet] <fokkonaut> str_format(aItem, sizeof(aItem), "%s%s", aInfinite, GetExtraName(Extra, HookPower));
+01:17 <+bridge> [ddnet] <fokkonaut> ```
+13:04 <+bridge> [ddnet] <MrNoName> hello all how conFig if city  Mod linux have
+13:04 <+bridge> [ddnet] <MrNoName> ?
+13:09 <+bridge> [ddnet] <MrNoName> Somebody is config if city has it
+13:09 <+bridge> [ddnet] <MrNoName> Somebody is config if city has it
+13:09 <+bridge> [ddnet] <MrNoName> Somebody is config if city has it
+13:09 <+bridge> [ddnet] <MrNoName> Somebody is config if city has it
+13:20 <+bridge> [ddnet] <onby> if city is a closed source mod, stop spamming ddnet dev channel
+13:23 <+bridge> [ddnet] <MrNoName> can you give me ddnet dev chanel
+13:23 <+bridge> [ddnet] <MrNoName> ?
+13:23 <+bridge> [ddnet] <Brokecdx-> LOL
+13:26 <+bridge> [ddnet] <CYBFITTNER> hello all how have grmammar
+14:45 <+bridge> [ddnet] <sudo sudo -i su> AAAAAAAAAAAAAAAAAAAAAAAAA 7.3 ON FREEBSD
+14:45 <+bridge> [ddnet] <sudo sudo -i su> https://cdn.discordapp.com/attachments/293493549758939136/570228818179129344/image0.png
+14:45 <+bridge> [ddnet] <sudo sudo -i su> https://cdn.discordapp.com/attachments/293493549758939136/570228818883641344/image1.png
+15:32 <+bridge> [ddnet] <fokkonaut> Why does my lan server start to heavily lag if i connect more than 170-175 serverside dummies in x64-debug? in release mode its just fine
+15:53 <+bridge> [ddnet] <n000b> Because lan server ask more from your pc?
+15:54 <+bridge> [ddnet] <fokkonaut> lol read again
+15:54 <+bridge> [ddnet] <fokkonaut> its only in debug mode
+16:33 <+bridge> [ddnet] <Jupstar ✪> @fokkonaut you shouldnt underestimate how much optimizations can improve performance 😄
+16:34 <+bridge> [ddnet] <fokkonaut> What do you mean? :D
+16:34 <+bridge> [ddnet] <ChillerDragon> ebug mode doesnt optimize
+16:34 <+bridge> [ddnet] <ChillerDragon> release mode runs much faster
+16:34 <+bridge> [ddnet] <fokkonaut> o.o
+16:34 <+bridge> [ddnet] <fokkonaut> ok makes sense
+16:35 <+bridge> [ddnet] <ChillerDragon> but still its sad that it lags in debug mode because now you cant run the main servers in debug mode
+16:35 <+bridge> [ddnet] <ChillerDragon> im sure there must be a way to optimize it for debug as well
+16:35 <+bridge> [ddnet] <Jupstar ✪> well i doubt it laggs for 64 players, does it?
+16:36 <+bridge> [ddnet] <Jupstar ✪> the problem is probably that debug mode doesnt optimize loops and things like that where 175 entities actually means more than double of required performance
+16:37 <+bridge> [ddnet] <ChillerDragon> maybe there are some ugly nested loops whrere its qudaruples
+16:37 <+bridge> [ddnet] <ChillerDragon> im not sure if there is a nice tool too see in what parts of the code is most time spend
+16:38 <+bridge> [ddnet] <Jupstar ✪> there is, but the question is, is it worth it to optimize the code, or will the compiler optimize the code anyway
+16:40 <+bridge> [ddnet] <ChillerDragon> it probably will but as i said it is nice when debug mode runs fine to have it in production
+16:40 <+bridge> [ddnet] <Jupstar ✪> i mean for teeworlds u should always optimize the code xDD it has still so much potiencial for performance
+16:40 <+bridge> [ddnet] <Schulzer> Why can i only see them as ghosts?
+16:40 <+bridge> [ddnet] <Schulzer> https://cdn.discordapp.com/attachments/293493549758939136/570257651565592576/Teeworlds_bug.png
+16:40 <+bridge> [ddnet] <ChillerDragon> same team?
+16:40 <+bridge> [ddnet] <ChillerDragon> not solo?
+16:40 <+bridge> [ddnet] <Schulzer> no speccing
+16:40 <+bridge> [ddnet] <ChillerDragon> ah
+16:41 <+bridge> [ddnet] <Schulzer> in solo everything is fine
+16:41 <+bridge> [ddnet] <Jupstar ✪> showothers?
+16:41 <+bridge> [ddnet] <ChillerDragon> so tehy are in a team?
+16:41 <+bridge> [ddnet] <Schulzer> yes
+16:41 <+bridge> [ddnet] <ChillerDragon> ya that makes sense
+16:41 <+bridge> [ddnet] <Jupstar ✪> cl_show_others_alpha
+16:41 <+bridge> [ddnet] <ChillerDragon> y
+16:41 <+bridge> [ddnet] <ChillerDragon> u were faster @Jupstar ✪ -.-
+16:41 <+bridge> [ddnet] <fokkonaut> @Ryozuki
+16:41 <+bridge> [ddnet] <ChillerDragon> dont think so fokko
+16:41 <+bridge> [ddnet] <Jupstar ✪> im not in debug mode @ChillerDragon ;D
+16:42 <+bridge> [ddnet] <ChillerDragon> lol
+16:42 <+bridge> [ddnet] <Schulzer> i know that setting, but before i saw them clear while i was in spec
+16:42 <+bridge> [ddnet] <Jupstar ✪> so you are in spec? XD
+16:42 <+bridge> [ddnet] <ChillerDragon> try the setting
+16:42 <+bridge> [ddnet] <Schulzer> yes
+16:42 <+bridge> [ddnet] <ChillerDragon> doesnt it help?
+16:42 <+bridge> [ddnet] <ChillerDragon> then it really might be related to ryos change
+16:42 <+bridge> [ddnet] <Ryozuki> ye its a bug
+16:42 <+bridge> [ddnet] <ChillerDragon> ITS A FEATURE
+16:42 <+bridge> [ddnet] <ChillerDragon> team and spec sucks anyways :p
+16:42 <+bridge> [ddnet] <Schulzer> Feature indeed
+16:43 <+bridge> [ddnet] <Cellegen> more than double :monkaS:
+16:43 <+bridge> [ddnet] <CYBFITTNER> how do u show fps
+16:43 <+bridge> [ddnet] <Ryozuki> cl_Showfps
+16:43 <+bridge> [ddnet] <ChillerDragon> cl_showfps
+16:43 <+bridge> [ddnet] <Ryozuki> cl_showfps
+16:43 <+bridge> [ddnet] <ChillerDragon> bois try to use tab in console
+16:43 <+bridge> [ddnet] <Ryozuki> cl_showpred 1 to show ping
+16:43 <+bridge> [ddnet] <ChillerDragon> it recommends and autocompletes everythign u need
+16:43 <+bridge> [ddnet] <Cellegen> dont forget the 1
+16:43 <+bridge> [ddnet] <Ryozuki> nobody uses the console
+16:44 <+bridge> [ddnet] <ChillerDragon> lol everybody does?
+16:44 <+bridge> [ddnet] <ChillerDragon> uhm should?
+16:44 <+bridge> [ddnet] <ChillerDragon> i did it for ever
+16:44 <+bridge> [ddnet] <Ryozuki> ur not being realistic
+16:44 <+bridge> [ddnet] <Ryozuki> ppl might open it once
+16:44 <+bridge> [ddnet] <Ryozuki> to change 1 thing
+16:44 <+bridge> [ddnet] <Ryozuki> but they dont use it
+16:44 <+bridge> [ddnet] <ChillerDragon> its best
+16:44 <+bridge> [ddnet] <Ryozuki> idc
+16:44 <+bridge> [ddnet] <ChillerDragon> -.-
+16:57 <+bridge> [ddnet] <Learath2> Can one of you take a look at my color pr?
+16:58 <+bridge> [ddnet] <ChillerDragon> pushy!
+16:58 <+bridge> [ddnet] <ChillerDragon> looks liek build failed o.O
+16:59 <+bridge> [ddnet] <ChillerDragon> why is abs() overloaded -.-
+16:59 <+bridge> [ddnet] <ChillerDragon> seems like some classical maths.h double include what every thingy
+17:00 <+bridge> [ddnet] <ChillerDragon> lol GetColorV3 and V4 are both HslToRgb ?
+17:01 <+bridge> [ddnet] <ChillerDragon> ah ye one is 3 demensional vector and other one 4 i see the name makes sense xd
+17:02 <+bridge> [ddnet] <Learath2> It was all so weird
+17:02 <+bridge> [ddnet] <Learath2> some normalized, some not, there were like 3 copies of hsltorgb
+17:03 <+bridge> [ddnet] <ChillerDragon> since this color.h looks pretty excluded from the src im sure it wont be too much effort to setup tests for it
+17:03 <+bridge> [ddnet] <Learath2> I have a couple in mind, but I couldn't get HslToRgb and RgbToHsl to completely agree :/
+17:04 <+bridge> [ddnet] <Learath2> It's within 0.01% but not exact, I guess that's a result of floating point math
+17:04 <+bridge> [ddnet] <ChillerDragon> floats suck -.-
+17:04 <+bridge> [ddnet] <ChillerDragon> cant we replace it with int?
+17:04 <+bridge> [ddnet] <Learath2> yeah I'm not a huge fan either of the way they work, but they are all we have 😛
+17:05 <+bridge> [ddnet] <Learath2> HSL is bi-conical space, rgb is cartesian, the conversion is a geometric one so it involves math that needs to be quite precise
+17:06 <+bridge> [ddnet] <Learath2> you could use fixed point arithmetic I guess, but floats are good enough in this case
+17:06 <+bridge> [ddnet] <jao> https://github.com/ddnet/ddnet/pull/1654/files#diff-4767dc694becb1f7e4a07ed2b9f4cfcbR594
+17:06 <+bridge> [ddnet] <jao> there is no f
+17:06 <+bridge> [ddnet] <jao> 1.0f
+17:06 <+bridge> [ddnet] <ChillerDragon> !!!!!!!!!!!!!!
+17:06 <+bridge> [ddnet] <ChillerDragon> eagle eye jao
+17:07 <+bridge> [ddnet] <Learath2> yeah wtf jao 😛
+17:07 <+bridge> [ddnet] <ChillerDragon> any ideas regarding the abs() compile error?
+17:07 <+bridge> [ddnet] <ChillerDragon> ah nvm
+17:07 <+bridge> [ddnet] <ChillerDragon> fixed already
+17:08 <+bridge> [ddnet] <Ryozuki> the thing is
+17:08 <+bridge> [ddnet] <Ryozuki> opengl uses floating color
+17:08 <+bridge> [ddnet] <Ryozuki> maybe u can use ints with normalize but idk
+17:08 <+bridge> [ddnet] <ChillerDragon> any idea why i cant join ddnet++ (based on ddnet 9.0.2) with vanilla 0.6.5 even tho i cherry picked https://github.com/DDNetPP/DDNetPP/commit/7cbfbb01e65a8a33c7a669b4daf33d896aa1c7d2
+17:08 <+bridge> [ddnet] <Ryozuki> ddnet++ boo
+17:08 <+bridge> [ddnet] <ChillerDragon> xd
+17:09 <+bridge> [ddnet] <Ryozuki> no one cares about it xd
+17:09 <+bridge> [ddnet] <Learath2> wym?
+17:09 <+bridge> [ddnet] <ChillerDragon> i guess its related to anti spoof
+17:09 <+bridge> [ddnet] <ChillerDragon> that vanilla 0.6.5 wont join old ddnets
+17:10 <+bridge> [ddnet] <Learath2> did you merge the 0.6.5 fixes? i think heinrich changed the connect packet
+17:10 <+bridge> [ddnet] <ChillerDragon> no only the commit i sent
+17:10 <+bridge> [ddnet] <Learath2> also why is your ddnet++ not a fork of ddnet/ddnet ...?
+17:10 <+bridge> [ddnet] <ChillerDragon> which one is missing?
+17:10 <+bridge> [ddnet] <Ryozuki> they dont even use cmake
+17:11 <+bridge> [ddnet] <ChillerDragon> it was created 2015 i didnt even know what git is
+17:11 <+bridge> [ddnet] <Learath2> It's almost as infuriating as ddnet/ddnet not being a fork of teeworlds/teeworlds 😛
+17:11 <+bridge> [ddnet] <Ryozuki> lol
+17:11 <+bridge> [ddnet] <Ryozuki> no thats fine
+17:11 <+bridge> [ddnet] <Ryozuki> ddnet is ddnet
+17:11 <+bridge> [ddnet] <ChillerDragon> it has commit history tho doesnt it?
+17:11 <+bridge> [ddnet] <Learath2> yeah, but makes pull requests harder across repo
+17:11 <+bridge> [ddnet] <ChillerDragon> was ddrace a fork of vanilla`?
+17:12 <+bridge> [ddnet] <Learath2> iirc
+17:12 <+bridge> [ddnet] <Ryozuki> ddnet is a fork of ddrace64 iirc which is a fork of ddrace16
+17:12 <+bridge> [ddnet] <Ryozuki> or smth weird
+17:12 <+bridge> [ddnet] <ChillerDragon> ya i also dislike it that ddnet++ is no fork but its years too late
+17:12 <+bridge> [ddnet] <ChillerDragon> ddrace16 xd
+17:12 <+bridge> [ddnet] <ChillerDragon> wtf
+17:13 <+bridge> [ddnet] <ChillerDragon> teeworlds has even weirder forking than linux xd
+17:13 <+bridge> [ddnet] <Learath2> ddnet should be a fork of eeeee's ddraceN or ddrace64 yeah
+17:13 <+bridge> [ddnet] <ChillerDragon> iDebian64++
+17:14 <+bridge> [ddnet] <ChillerDragon> so @Learath2 do you know how i can find heinrichs commit -.-
+17:14 <+bridge> [ddnet] <ChillerDragon> any string to search for or commit hash
+17:15 <+bridge> [ddnet] <ChillerDragon> https://github.com/ddnet/ddnet/commit/16694a0d7b658841971fef29ad1aae43379c8677
+17:15 <+bridge> [ddnet] <ChillerDragon> that one?
+17:16 <+bridge> [ddnet] <Learath2> @ChillerDragon gimme a minute, I'll push this then I'll find you the commit
+17:16 <+bridge> [ddnet] <ChillerDragon> sure thanks
+17:21 <+bridge> [ddnet] <Learath2> @ChillerDragon iirc https://github.com/teeworlds/teeworlds/commit/a263185571903ead01f6b351a91ea219ac9d215f
+17:21 <+bridge> [ddnet] <ChillerDragon> yo @Learath2 where did this random FreeBSD contributor appear from?
+17:21 <+bridge> [ddnet] <ChillerDragon> is he even part of tw community?
+17:22 <+bridge> [ddnet] <Learath2> That's the main commit, but take a look at 0.6.5-release tag on teeworlds/teeworlds
+17:22 <+bridge> [ddnet] <ChillerDragon> thanks 😃
+17:22 <+bridge> [ddnet] <Learath2> @ChillerDragon I'm guessing he was packaging ddnet for freebsd ports
+17:22 <+bridge> [ddnet] <ChillerDragon> sikk
+17:22 <+bridge> [ddnet] <Learath2> .s/ddnet/teeworlds/
+17:22 <+bridge> [ddnet] <ChillerDragon> ?
+17:22 <+bridge> [ddnet] <ChillerDragon> substitute?
+17:22 <+bridge> [ddnet] <ChillerDragon> xd
+17:22 <+bridge> [ddnet] <Learath2> yes
+17:23 <+bridge> [ddnet] <ChillerDragon> nerd
+17:23 <+bridge> [ddnet] <ChillerDragon> xd
+17:23 <+bridge> [ddnet] <Learath2> it's sed syntax 😛
+17:23 <+bridge> [ddnet] <ChillerDragon> ikr
+17:23 <+bridge> [ddnet] <Learath2> discord supports it natively btw, if i don't add the "." before it would edit
+17:23 <+bridge> [ddnet] <ChillerDragon> sure
+17:24 <+bridge> [ddnet] <Learath2> they implemented it horribly though, if you write out the pattern completely, it adds the last / aswell...
+17:24 <+bridge> [ddnet] <ChillerDragon> wait r u actually not kidding? xd
+17:25 <+bridge> [ddnet] <Learath2> I actually am not kidding try
+17:25 <+bridge> [ddnet] <ChillerDragon> foo bar baz
+17:25 <+bridge> [ddnet] <ChillerDragon> 
+17:25 <+bridge> [ddnet] <ChillerDragon> s/foo/bar/
+17:25 <+bridge> [ddnet] <ChillerDragon> how where? xd
+17:25 <+bridge> [ddnet] <Learath2> separate message
+17:25 <+bridge> [ddnet] <ChillerDragon> woot=
+17:25 <+bridge> [ddnet] <ChillerDragon> yeet/=
+17:25 <+bridge> [ddnet] <ChillerDragon> xxxxxxxxxxxxD
+17:26 <+bridge> [ddnet] <ChillerDragon> omegalul
+17:26 <+bridge> [ddnet] <Learath2> see, but it takes the last slash because discord people are fake nerds
+17:26 <+bridge> [ddnet] <Learath2> they are pretendnerds
+17:26 <+bridge> [ddnet] <ChillerDragon> i see
+17:26 <+bridge> [ddnet] <ChillerDragon> xxxD
+17:26 <+bridge> [ddnet] <ChillerDragon> rofl
+17:26 <+bridge> [ddnet] <Learath2> also it doesn't support using a different seperator
+17:26 <+bridge> [ddnet] <ChillerDragon> i mean it has to be developed by a developer
+17:26 <+bridge> [ddnet] <Learath2> like s#kek#lol#
+17:26 <+bridge> [ddnet] <ChillerDragon> he should know tho
+17:27 <+bridge> [ddnet] <ChillerDragon> i guess u can be developer without being nerd
+17:27 <+bridge> [ddnet] <ChillerDragon> bad developer* :p
+17:28 <+bridge> [ddnet] <ChillerDragon> uff ehrinrichs commit is huughe it is exactly liek this in ddnet as well?
+17:29 <+bridge> [ddnet] <Learath2> no that's the vanilla patch
+17:29 <+bridge> [ddnet] <Learath2> i can look for the ddnet one if you want
+17:29 <+bridge> [ddnet] <ChillerDragon> yes pls c:
+17:29 <+bridge> [ddnet] <ChillerDragon> i sukk at searvhing the stuff
+17:30 <+bridge> [ddnet] <Learath2> https://github.com/ddnet/ddnet/commit/c7750f36
+17:31 <+bridge> [ddnet] <Learath2> why did you stray so far from ddnet/ddnet? 😦
+17:32 <+bridge> [ddnet] <ChillerDragon> wdym? why it is such a old fork?
+17:33 <+bridge> [ddnet] <Learath2> yeah
+17:33 <+bridge> [ddnet] <ChillerDragon> as i said when i started coding the mod i didnt know what a function is or what git is
+17:33 <+bridge> [ddnet] <ChillerDragon> after the years it was too late already and its not that i miss any features from newer ddnet
+17:34 <+bridge> [ddnet] <ChillerDragon> its more the opposite i prefer the old rcon system
+17:40 <+bridge> [ddnet] <ChillerDragon> oh btw thanks a lot @Learath2 vanilla 0.6.5 can now connect to ddnet++ 😃
+17:40 <+bridge> [ddnet] <Learath2> we have a new rcon system?
+17:40 <+bridge> [ddnet] <ChillerDragon> yes rcon system changed afte r9.0.2
+17:40 <+bridge> [ddnet] <ChillerDragon> with username
+17:40 <+bridge> [ddnet] <Learath2> That's disabled by default
+17:40 <+bridge> [ddnet] <ChillerDragon> that was not supported by ddnet 9.0.2 clients
+17:40 <+bridge> [ddnet] <Learath2> I think only we use it
+17:40 <+bridge> [ddnet] <ChillerDragon> broke compatbility
+17:41 <+bridge> [ddnet] <ChillerDragon> i was hardcode ddnet 0.6 user back then
+17:41 <+bridge> [ddnet] <ChillerDragon> so i wouldn update my client
+17:41 <+bridge> [ddnet] <ChillerDragon> xd
+17:41 <+bridge> [ddnet] <Learath2> old clients are completely capable of logging into rcon on new servers, as long as usernames aren't enabled 😛
+17:41 <+bridge> [ddnet] <ChillerDragon> im pretty sure i had troubles
+17:42 <+bridge> [ddnet] <ChillerDragon> or no wayof authing on my local server
+17:42 <+bridge> [ddnet] <Learath2> we had a little bit of trouble the first week but it was fixed quickly
+17:43 <+bridge> [ddnet] <ChillerDragon> i remember that after executing one command
+17:43 <+bridge> [ddnet] <ChillerDragon> rcon stopped working
+17:43 <+bridge> [ddnet] <ChillerDragon> but i can confirm u fixed it
+17:43 <+bridge> [ddnet] <ChillerDragon> tested with ddnet 6 client and ddnet 12 srv
+18:01 <+bridge> [ddnet] <ChillerDragon> dont mess up freeze xd
+18:02 <+bridge> [ddnet] <jao> learath why is it a draft pr
+18:02 <+bridge> [ddnet] <ChillerDragon> qshar style
+18:08 <+bridge> [ddnet] <Ryozuki> @Learath2 why u removed telegun?
+18:08 <+bridge> [ddnet] <Ryozuki> these flags are 1 bit
+18:08 <+bridge> [ddnet] <Ryozuki> oh nvm
+18:08 <+bridge> [ddnet] <Ryozuki> i read the diff wrong
+18:09 <+bridge> [ddnet] <Ryozuki> xd
+18:09 <+bridge> [ddnet] <Ryozuki> not my day
+18:14 <+bridge> [ddnet] <Learath2> @jao I don't want it merged before heinrich takes a look at it aswell
+18:15 <+bridge> [ddnet] <Learath2> He tends to be better at looking at the long term 😛
+18:15 <+bridge> [ddnet] <ChillerDragon> jao is the float spotter tho
+18:16 <+bridge> [ddnet] <ChillerDragon> http://puu.sh/DiLZw/b57ed1ba78.png
+18:16 <+bridge> [ddnet] <ChillerDragon> deen and heinrich4991 ddnet++ contributor confirmed
+18:16 <+bridge> [ddnet] <ChillerDragon> .s/4991/5991/
+18:22 <+bridge> [ddnet] <Tadzio> @gdin
+18:22 <+bridge> [ddnet] <Tadzio> I've found a issue ?
+18:22 <+bridge> [ddnet] <Tadzio> when you save
+18:22 <+bridge> [ddnet] <Tadzio> and go in solo
+18:22 <+bridge> [ddnet] <Tadzio> and you load
+18:23 <+bridge> [ddnet] <Tadzio> you cannot hook the person who went in solo
+18:23 <+bridge> [ddnet] <Tadzio> and you see him as ghost
+18:23 <+bridge> [ddnet] <Ryozuki> seeing someone in solo as ghost is because u have showothersalpha enabled
+18:23 <+bridge> [ddnet] <Ryozuki> ofc u cannot hook someone who went in solo
+18:23 <+bridge> [ddnet] <Ryozuki> whats wrong???
+18:24 <+bridge> [ddnet] <Ryozuki> and why gdin xd
+18:24 <+bridge> [ddnet] <gdin> :GWczeWhat:
+18:24 <+bridge> [ddnet] <Ryozuki> all u described is how it should work
+18:24 <+bridge> [ddnet] <Bumm> calm down ryozuki
+18:24 <+bridge> [ddnet] <Ryozuki> ?
+18:26 <+bridge> [ddnet] <Tadzio> i mean
+18:26 <+bridge> [ddnet] <Tadzio> he didnt have showeveryone enabled
+18:26 <+bridge> [ddnet] <Tadzio> and he still saw me as ghost
+18:26 <+bridge> [ddnet] <Tadzio> @Ryozuki
+18:26 <+bridge> [ddnet] <Bumm> one was in solo before u made /load?
+18:26 <+bridge> [ddnet] <Tadzio> yep
+18:26 <+bridge> [ddnet] <Tadzio> i mean
+18:26 <+bridge> [ddnet] <Tadzio> that's the problem
+18:26 <+bridge> [ddnet] <Tadzio> why is it like this
+18:27 <+bridge> [ddnet] <Tadzio> it shouldn't be like it
+18:27 <+bridge> [ddnet] <CYBFITTNER> /load kills you though
+18:28 <+bridge> [ddnet] <Ryozuki> alpha is independent if u have showeveryone or not, but there is a current bug where u see ppl wiht transparency if u are in spec
+18:28 <+bridge> [ddnet] <jao> fix it
+18:28 <+bridge> [ddnet] <Ryozuki> i cant rn
+18:30 <+bridge> [ddnet] <Ryozuki> ah
+18:30 <+bridge> [ddnet] <Ryozuki> i can fix it from web
+18:30 <+bridge> [ddnet] <Ryozuki> its easy fix
+18:30 <+bridge> [ddnet] <Learath2> @Ryozuki if you know what the problem is lmk and i'll commit it
+18:31 <+bridge> [ddnet] <Ryozuki> oh ok
+18:31 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/blob/master/src/game/client/components/players.cpp
+18:31 <+bridge> [ddnet] <Ryozuki> go to renderplayers and renderhook
+18:31 <+bridge> [ddnet] <Ryozuki> on the if that sets otherteam = true if solo
+18:31 <+bridge> [ddnet] <Ryozuki> set that if its on spec team
+18:31 <+bridge> [ddnet] <Ryozuki> it doesnt do it
+18:32 <+bridge> [ddnet] <Learath2> you sure thats the thing?
+18:32 <+bridge> [ddnet] <Ryozuki> yes
+18:33 <+bridge> [ddnet] <Ryozuki> or just set the if before the spec
+18:33 <+bridge> [ddnet] <Ryozuki> if
+18:33 <+bridge> [ddnet] <Ryozuki> u know what i mean
+18:33 <+bridge> [ddnet] <Ryozuki> hm
+18:33 <+bridge> [ddnet] <Ryozuki> from a quick look
+18:33 <+bridge> [ddnet] <Ryozuki> u can test is easily
+18:33 <+bridge> [ddnet] <Learath2> why can't they hook though?
+18:33 <+bridge> [ddnet] <Ryozuki> im only fixing the ghost in spec
+18:33 <+bridge> [ddnet] <Ryozuki> idk why that happens
+18:34 <+bridge> [ddnet] <Ryozuki> and if its related to my prs
+18:35 <+bridge> [ddnet] <Ryozuki> maybe this fixed it (but i would bet it doesnt) https://github.com/ddnet/ddnet/pull/1653
+18:35 <+bridge> [ddnet] <Learath2> so set OtherTeam = true if player in spec? seems that's already done though
+18:35 <+bridge> [ddnet] <Ryozuki> no
+18:35 <+bridge> [ddnet] <Ryozuki> set to false
+18:35 <+bridge> [ddnet] <Ryozuki> if its in spec
+18:35 <+bridge> [ddnet] <Ryozuki> i think
+18:36 <+bridge> [ddnet] <Ryozuki> if otherteam == true it will render like ghost
+18:36 <+bridge> [ddnet] <Ryozuki> @Learath2 maybe juyst remove the 2 ifs
+18:36 <+bridge> [ddnet] <Ryozuki> that set otherteam to true if solo
+18:36 <+bridge> [ddnet] <Ryozuki> and set a || in the if
+18:37 <+bridge> [ddnet] <Ryozuki> that sets the alpha
+18:37 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/blob/master/src/game/client/components/players.cpp#L254
+18:37 <+bridge> [ddnet] <Ryozuki> this way u can see ppl on solo
+18:37 <+bridge> [ddnet] <Ryozuki> as ghost
+18:37 <+bridge> [ddnet] <Ryozuki> on spec
+18:37 <+bridge> [ddnet] <Ryozuki> and non solo ppl normally rendered
+18:37 <+bridge> [ddnet] <Ryozuki> than to set otherteam to true if solo
+18:48 <+bridge> [ddnet] <Learath2> @deen can you take a look at #1664
+18:49 <+bridge> [ddnet] <Ryozuki> arent tuninparams needed
+18:49 <+bridge> [ddnet] <Ryozuki> for old clients
+18:49 <+bridge> [ddnet] <Learath2> The SetSolo already sends tuning
+18:49 <+bridge> [ddnet] <Ryozuki> ah
+18:50 <+bridge> [ddnet] <jao> learath on pr streak today
+18:50 <+bridge> [ddnet] <Learath2> @Ryozuki I couldn't really understand what to fix on the "ghost" thing so I didn't touch it
+18:50 <+bridge> [ddnet] <Ryozuki> ye ill do it
+18:51 <+bridge> [ddnet] <Learath2> I feel I've been remiss in my duties and had a rare completely free day 😛
+18:52 <+bridge> [ddnet] <Learath2> having multiple "Solo" variables in the code isn't exactly too nice tbh, there should be one source of truth
+18:52 <+bridge> [ddnet] <Ryozuki> yeah
+18:52 <+bridge> [ddnet] <Ryozuki> currently there is one in game core and other in either sv or client
+18:53 <+bridge> [ddnet] <Ryozuki> we should keep the gamecore one
+18:53 <+bridge> [ddnet] <Learath2> Currently if you aren't too careful you can end up with a different setting in `TeamCore`, `CharacterCore`, `Character`
+18:53 <+bridge> [ddnet] <Ryozuki> yeah
+18:53 <+bridge> [ddnet] <Ryozuki> teamcore solo thing and there is also team_super
+18:53 <+bridge> [ddnet] <Ryozuki> its no longer needed with ddnet char
+18:53 <+bridge> [ddnet] <Ryozuki> but backwards compat
+18:53 <+bridge> [ddnet] <Ryozuki> sucks a lot
+18:54 <+bridge> [ddnet] <Ryozuki> its a big mess
+18:54 <+bridge> [ddnet] <Ryozuki> i mean why teamcore handles solo too
+18:54 <+bridge> [ddnet] <Ryozuki> makes no sense
+18:55 <+bridge> [ddnet] <Ryozuki> cancollide on teamcore should return true if they are in the same team then there should be a separate check for solo players
+18:55 <+bridge> [ddnet] <Ryozuki> since no matter the team a solo player can never collide
+18:56 <+bridge> [ddnet] <Learath2> I think it's an artifact from back when we hacked everything together 😛
+18:56 <+bridge> [ddnet] <Ryozuki> its also funny cuz on character.cpp server there is accesses to m_Core through m_Core directly and GameServer().... .. m_Core
+18:57 <+bridge> [ddnet] <jao> gogo next pr learath
+18:57 <+bridge> [ddnet] <Learath2> ddnet code is most def very spaghetti, I created a graph once and every class has access to everywhere
+18:57 <+bridge> [ddnet] <Learath2> no hierarchy at all
+18:59 <+bridge> [ddnet] <Ryozuki> @Learath2 interfaces are also a mess
+18:59 <+bridge> [ddnet] <Learath2> They are a good idea, I like the structure with singletons and kernels
+19:01 <+bridge> [ddnet] <Learath2> Oop people might object though
+19:01 <+bridge> [ddnet] <Ryozuki> i dont like it
+19:01 <+bridge> [ddnet] <Ryozuki> why u need a interface of a server if its only implemented in CServer
+19:02 <+bridge> [ddnet] <Ryozuki> u dont have other implementations of server
+19:02 <+bridge> [ddnet] <Ryozuki> a projectile interface
+19:02 <+bridge> [ddnet] <Ryozuki> thats good
+19:02 <+bridge> [ddnet] <Ryozuki> but server? idk
+19:03 <+bridge> [ddnet] <Learath2> I think its an artifact of teeworlds being in C before
+19:03 <+bridge> [ddnet] <Ryozuki> ye it registers interfaces with macros and things
+19:03 <+bridge> [ddnet] <Ryozuki> never looked much at it
+19:04 <+bridge> [ddnet] <Ryozuki> server also has MaxClients() method
+19:04 <+bridge> [ddnet] <Ryozuki> while MAX_CLIENTS is used everywhere
+19:05 <+bridge> [ddnet] <Ryozuki> iirc
+19:06 <+bridge> [ddnet] <jao> does MaxClients() return MAX_CLIENTS
+19:06 <+bridge> [ddnet] <Ryozuki> yea
+19:06 <+bridge> [ddnet] <jao> lol
+19:06 <+bridge> [ddnet] <deen> 😄
+19:06 <+bridge> [ddnet] <Ryozuki> so maxclients should be used
+19:06 <+bridge> [ddnet] <Ryozuki> so if u change maxclients u change all easily
+19:06 <+bridge> [ddnet] <deen> I think MaxClients() is the max clients supported on the server
+19:06 <+bridge> [ddnet] <deen> so it's supposed to be >= 1 and >= MAX_CLIENTS
+19:06 <+bridge> [ddnet] <deen> so it's supposed to be >= 1 and <= MAX_CLIENTS
+19:07 <+bridge> [ddnet] <Ryozuki> warning: 'glewExperimental' redeclared without dllimport attribute after being referenced with dll linkage
+19:07 <+bridge> [ddnet] <Ryozuki>  GLboolean glewExperimental = GL_FALSE;
+19:07 <+bridge> [ddnet] <Ryozuki> compiling with mingw64
+19:07 <+bridge> [ddnet] <deen> Yeah, fix that please
+19:07 <+bridge> [ddnet] <deen> annoys me all the time when building releases
+19:07 <+bridge> [ddnet] <Ryozuki> that looks like its from glew code itself
+19:07 <+bridge> [ddnet] <Ryozuki> idk if thats fixable xd
+19:08 <+bridge> [ddnet] <deen> google it at least and check
+19:08 <+bridge> [ddnet] <deen> and if it's not fixable then disable that warning for the relevant c file
+19:08 <+bridge> [ddnet] <deen> in CMakeLists
+19:08 <+bridge> [ddnet] <Ryozuki> ye im looking
+19:10 <+bridge> [ddnet] <Schulzer> @Ryozuki it's still happening, while you are in solo ^^
+19:10 <+bridge> [ddnet] <Ryozuki> yeah we changed nothing
+19:10 <+bridge> [ddnet] <Ryozuki> did u see a client update? xd
+19:12 <+bridge> [ddnet] <Ryozuki> rerunning make again compiles succesfully
+19:12 <+bridge> [ddnet] <Ryozuki> thats funny
+19:12 <+bridge> [ddnet] <deen> you need a clean build of course
+19:12 <+bridge> [ddnet] <deen> the warning only shows up when compiling a single file
+19:12 <+bridge> [ddnet] <deen> or touch that file
+19:13 <+bridge> [ddnet] <Schulzer> it worked in a dummy server, so i was confused :pepeH:
+19:13 <+bridge> [ddnet] <CYBFITTNER> :monkaS: bug
+19:13 <+bridge> [ddnet] <Ryozuki> maybe we should disable warnings for external libs
+19:14 <+bridge> [ddnet] <Ryozuki> but im no cmake master
+19:14 <+bridge> [ddnet] <deen> json lib also had some I think
+20:25 <+bridge> [ddnet] <Ryozuki> rls today?
+20:37 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/pull/1653 consider this
+20:37 <+bridge> [ddnet] <Ryozuki> oh my
+20:37 <+bridge> [ddnet] <Ryozuki> conflicts
+20:37 <+bridge> [ddnet] <Ryozuki> xd
+20:51 <+bridge> [ddnet] <Ryozuki> fu
+20:51 <+bridge> [ddnet] <Ryozuki> this prediction code xd
+22:34 <+bridge> [ddnet] <fokkonaut> @Ryozuki its only 3k lines

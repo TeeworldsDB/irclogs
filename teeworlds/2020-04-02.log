@@ -1,0 +1,109 @@
+03:53 < wavi> i'm using econ, any idea why on one server log messages look like this [econ]: cid=0 authed and on another server they look like this [01:48:53][econ]: cid=0 authed
+03:53 < wavi>  (prefixed with current time)?
+03:58 < wavi> I'm trying to parse the log lines and I expected to see the same format on both servers (they are running the same server version)
+11:11 < bridge> [teeworlds] <ChillerDragon> any steps to reproduce?
+11:14 < bridge> [teeworlds] <ChillerDragon> And what log are you looking at exactly? There are multiple places where logs show up. Ingame console in the server console in stdout in the ``logfile`` and in the econ console are logs.
+12:18 < Learath2> @Dune I don't see the missing io_close for CMap either #1120
+12:19 < Learath2> The NumChunks overflow was also fixed
+12:20 < Learath2> by 64e5165ee that is
+12:27 < wavi> ChillerDragon, I
+12:28 < wavi> I'm just connecting via econ, and reading all the data sent from the server
+12:30 < wavi> then, if I just look at the stdout messages of both servers, they are different too, and not in the same way as in econ
+12:31 < wavi> on one server stdout looks like:
+12:31 < wavi> [5e85b849][game]: Teams are balanced (red=0 blue=0)
+12:31 < wavi> and on the other:
+12:31 < wavi> [2020-04-02 10:25:30][game]: Teams are balanced (red=1 blue=0)
+12:35 < Learath2> What is the point of thread_destroy if it just calls thread_join?
+12:35 < wavi> I don't have any specific steps to reproduce, I'm just connecting to two servers and reading data from econ
+12:56 < wavi> i found this: https://github.com/teeworlds/teeworlds/blame/6d2ad75959639187eda65a6b948657f25cef95a9/src/engine/shared/console.cpp#L247
+12:57 < wavi> seems like that's where the timestamp gets inserted into the beginning of the log line
+12:59 < wavi> on both servers the data in the first brackets is the current time. the first is the current unix timestamp in hex, the second is  human readable.
+13:01 < wavi> both servers have ec_output_level 999
+13:07 < wavi> Dune, do you have any idea about this?
+13:14 < wavi> I found this issue and asked about it there https://github.com/teeworlds/teeworlds/issues/245
+13:30 < wavi> this is ridiculous, both servers report the same version, but the size of the teeworlds_srv executable is different
+13:32 < Learath2> let me take a look at the code
+13:33 < bridge> [teeworlds] <Dune> wavi: how did you get the two servers? they could be different versions... e.g. one is trunk
+13:36 < wavi> one of them I setup myself, can't remember where I downloaded it from, the other one is setup by my coworker, so not sure of that either :/
+13:36 < wavi> anyway, maybe my solution is to simply check for either of the timestamp formats and strip them out before parsing the logs (?)
+13:37 < wavi> ah, the second one is from https://downloads.teeworlds.com/teeworlds-0.7.3.1-linux_x86_64.tar.gz
+13:37 < Learath2> well if they have different executable sizes they are different versions
+13:37 < wavi> yeah
+13:38 < Learath2> we should probably be embedding the git version somewhere
+13:39 < wavi> I probably have the git version on the server that I setup myself
+13:40 < wavi> but is this timestamp format thing some recent change?
+13:40 < bridge> [teeworlds] <Dune> yeah @ChillerDragon changed it iirc
+13:41 < bridge> [teeworlds] <Dune> so that's probably the thing, you are comparing 074 and trunk
+13:41 < wavi> ok cool :)
+13:42 < bridge> [teeworlds] <Dune> oh and the other one is 073 even, so yeah
+13:42 < wavi> I'll just strip the timestamp out if it's present 🤷 thanks for the help everyone!
+13:42 < wavi> and sorry for the confusion
+13:42 < Learath2> isn't it always present?
+13:42 < wavi> no
+13:42 < Learath2> weird
+13:43 < wavi> see this https://github.com/teeworlds/teeworlds/issues/245#issuecomment-607781655
+13:57 < bridge> [teeworlds] <jxsl13> that issue is from 2010.
+13:58 < Dune> Learath2, wavi: isn't it always present on the recent teeworlds versions?
+14:00 < bridge> [teeworlds] <jxsl13> Just start your regex without the timestamp, especially if you do't need the time at all :0?
+14:00 < bridge> [teeworlds] <jxsl13> don't
+14:10 < wavi> I'm not sure how to do that. I'm using /(.*)\]:\W?(.*)/ to split messages like "[econ]: cid=0 authed" into "econ", "cid=0 authed" but when the timestamp exists i the first match is "12:08:39][econ" 
+14:11 < wavi> nvm i fixed it
+14:13 < bridge> [teeworlds] <jxsl13> it's possible to share your regex with test data on regex101.com
+14:23 < wavi>  this is what I have and it seems to work the way I want https://regex101.com/r/FGulcZ/1/
+14:24 < wavi> ignores the timestamp, gets the event type between [ and ], and the event data. I then process the event data with other regexes
+15:34 < Learath2> Just noticed SDL2 has everything needed to do text input properly, I guess it's about time we fix this one
+15:39 < Dune> what do you mean, properly, Learath2?
+15:40 < Learath2> Well currently we just let the OS do whatever it pleases, on macOS you first get the letter itself, then you get a composition event, then you get the accented version you chose
+15:40 < Learath2> not to mention the accent menu is rendered on the top left, not above the text rectangle
+15:41 < Learath2> idk what happens on windows and linux but I doubt it's much better
+15:42 < wavi> I've occasionally been a bit disappointed that I cant select and copy text out of teeworlds inputs
+15:43 < Learath2> On macOS SDLTranslatorResponder implements the NSTextInput protocol, which means the candidate list is rendered in the correct place
+15:43 < Ryozuki> https://wiki.libsdl.org/Tutorials/TextInput
+15:44 < Learath2> On windows it handles even more legacy crap microsoft insists on keeping around
+15:45 < Learath2> wavi: https://github.com/teeworlds/teeworlds/pull/2521 implements copying from most text input fields
+15:47 < wavi> sweet
+15:48 < Learath2> 妹の
+15:49 < Learath2> My terminal handles IME better then teeworlds :P
+15:54 < Dune> your terminal isn't cross-platform though :P
+16:02 < Learath2> kitty is very much crossplatform
+16:03 < Learath2> it even uses OpenGL instead of the native text rendering
+16:08 < Dune> when will they make terminals in javascript
+16:09 < Learath2> I'm sure it already exists, people love making things that have no business being in javascript in javascript
+16:09 < Learath2> https://xtermjs.org/
+16:11 < Dune> :(
+16:12 < Learath2> Maybe we should just remove all the UI code from teeworlds and render a webpage over the entire screen
+16:13 < Learath2> we could embed chromium like every other hip project
+16:14 < wavi> such an accurate quote, sadly: "people love making things that have no business being in javascript in javascript"
+16:15 < Learath2> Oh oh oh, we can even implement something like the React Native Bridge to interact with OS facilities and the client itself, it'd be so cool
+16:17 < wavi> btw, text rendering with webgl by apple https://twitter.com/danlucraft/status/1225763866765905922
+16:21 < Learath2> Interesting, I wonder if they used emscripten to achieve this. AppKit already is capable of rendering with opengl
+16:30 < Ryozuki> Learath2 i used kitty in the past, then i found https://github.com/alacritty/alacritty
+18:15 < Learath2> as always it's not so simple with macOS, turns out the accent menu goes through a completely different API then the IME for CJK
+18:15 < Learath2> and SDL doesn't even handle that API, furthermore, it uses the API wrong so you always get a wrong replacementRange
+18:29 < bridge> [teeworlds] <Dune> Amazing
+18:39 < bridge> [teeworlds] <ChillerDragon> @ Learath2
+18:39 < bridge> [teeworlds] <ChillerDragon> https://github.com/teeworlds/teeworlds/issues/1659#issuecomment-607805777
+18:39 < bridge> [teeworlds] <ChillerDragon> 
+18:39 < bridge> [teeworlds] <ChillerDragon> still not able to travel to my mac but when i can get hands on it any idea how to debug that :/
+18:39 < bridge> [teeworlds] <ChillerDragon> i think @onbgy has the same issue
+18:40 < bridge> [teeworlds] <Learath2> I can let you know where to place some dbg_msgs and the output will be helpful
+18:40 < bridge> [teeworlds] <ChillerDragon> that would be great!
+18:40 < bridge> [teeworlds] <ChillerDragon> but isnt the exact line known
+18:40 < bridge> [teeworlds] <ChillerDragon> isn there oy's commit just locking the res?
+18:41 < bridge> [teeworlds] <ChillerDragon> i tried fixing it once in https://github.com/teeworlds/teeworlds/pull/2450
+18:41 < bridge> [teeworlds] <ChillerDragon> 
+18:41 < bridge> [teeworlds] <ChillerDragon> i have no ideas left
+18:41 < bridge> [teeworlds] <Learath2> I know why the resolution is locked, but it shouldn't be pixellated
+18:41 < bridge> [teeworlds] <Learath2> it's completely fine for me
+18:43 < bridge> [teeworlds] <Learath2> Idk what you mean by pixellated tbh, maybe you can show me?
+18:44 < bridge> [teeworlds] <ChillerDragon> i mean its only 1440 thats less than my native res so you have more pixel
+18:44 < bridge> [teeworlds] <ChillerDragon> nothing in particular
+18:45 < bridge> [teeworlds] <ChillerDragon> might be the wrong term
+18:53 < bridge> [teeworlds] <Learath2> at 2880 you should be getting 1920 x sth
+18:53 < bridge> [teeworlds] <Learath2> which at highdpi gives you a resolution of 2880
+19:04 < bridge> [teeworlds] <ChillerDragon> oh wait so highdpi magic gives me higher values than tw setting shows?
+19:05 < bridge> [teeworlds] <ChillerDragon> iirc i could select my actual resolution in ddnet client
+19:05 < bridge> [teeworlds] <ChillerDragon> and it looked more crisp
+19:14 < Ryozuki> cuz it was ddnet :9
+19:14 < Ryozuki> :)
+20:31 < bridge> [teeworlds] <Learath2> you select a resolution, then SDL_GL_GetDrawableSize gets you the actual resolution after highdpi

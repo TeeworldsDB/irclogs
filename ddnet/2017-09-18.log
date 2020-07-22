@@ -1,0 +1,102 @@
+00:05 < ddnet-commits> [ddnet] heinrich5991 opened pull request #871: Teehistorian (master...ddnet_teehistorian) https://git.io/v5Fu8
+00:14 <+Learath2> heinrich5991: how long did this take you?
+00:14 <@heinrich5991> mh
+00:14 <@heinrich5991> total hours of work?
+00:14 <+Learath2> yep
+00:14 <@heinrich5991> not sure, didn't measure
+00:15 <+Learath2> nice clean diff, will test as soon as i aquire more time
+00:16 <@heinrich5991> cool
+00:24 <@heinrich5991> https://github.com/ddnet/ddnet/pull/871#issuecomment-330098227 make ddnet teleporter deterministic again!
+00:25 <@heinrich5991> Learath2: deen: fstd: eeeee: if you have ideas regarding deterministic teleporters ^, please comment in the issue
+00:43 <+eeeee> can't say i care about teleporters, but teehistorian seems cool and good
+00:43 <+eeeee> is that primarily for running regression tests?
+00:45 <@heinrich5991> no, but I noticed that possible feature as well ^^
+00:45 <@heinrich5991> teehistorian came from the desire to be able to check people's races after the fact
+00:45 <@heinrich5991> whether they used a map bug or not
+00:51 <+Learath2> will also tell us whether runs are reproducible or not
+00:51 <+Learath2> will be very cool to see
+00:52 <@heinrich5991> once we fix the damn teleporters ^^
+00:52 <+Learath2> sin/cos not being guaranteed to be reproducible does concern me tho
+00:53 <@heinrich5991> we could remove all sines and cosines from the code :)
+00:53 <@heinrich5991> it's not like the server needs angles anywhere
+00:53 <+Learath2> well apparently they are pretty consistent among modern processors built in the last decade
+00:54 <+Learath2> could also apply our own polynomial approximation of sine, but i'd guess that it'd perform as good as a potato :P
+00:55 <@heinrich5991> ^^
+12:19 <@heinrich5991> https://caddy.community/t/the-realities-of-being-a-foss-maintainer/2728
+12:21 <@heinrich5991> deen: sorry, I haven't started to realize that hdds are hardware
+12:21 <@heinrich5991> so it happens that the write request stalls for several seconds (or at least too long)?
+12:26 <@deen> it's possible
+12:27 <@deen> normally there would be buffering and it gets written later
+12:27 <@deen> but I noticed these kind of stalls with the logging the servers did
+12:28 <@deen> which is why there is a thread now
+13:45 <@deen> unfortunately on cheap vms disks can get incredibly slow. I'm actually not comfortable with the current solution for logging because of that
+13:46 <@deen> maybe we should switch to aio_write instead
+14:19 <@deen> but with 50 ticks / second and 50% cpu usage on a full server you would even feel a 10 ms delay in IO, and 20 ms is pretty bad
+14:24 <@heinrich5991> I think aio_write does the same thing as we do. spawn a thread
+14:25 <@heinrich5991> what I could imagine doing would be switching to nonblocking writing and still do all logging on the main thread
+14:25 <@heinrich5991> although I'm not sure... I think maybe linux considers hdds fast devices and always blocks on them, no matter what (?)
+14:57 <@deen> does it? I thought aio would tell the kernel to write it whenever itwants
+14:58 <@deen> nonblocking doesn't help here
+14:58 <@deen> (I think)
+15:01 <@heinrich5991> nonblocking lets use select (or WaitForMultipleObjects) over the socket and output fds until we are allowed to write
+15:01 <@heinrich5991> until we're allowed to write, we put it into a growable ring buffer
+15:01 <@deen> and hten you know how much you can write?
+15:02 <@heinrich5991> nonblocking writes as much as it can, and then returns AFAIK
+15:02 <@deen> ah
+15:02 <@deen> good
+15:02 <@deen> that sounds more reasonable for us
+15:11 <@EastByte> nonblocking io on windows doesn't work with select IIRC, so there would be atleast some platform dependent code necessary
+15:12 <@EastByte> (if you consider supporting windows in teehistorian)
+15:12 <@heinrich5991> yes, I do
+15:12 <@heinrich5991> tw is cross-platform
+15:12 <@heinrich5991> is there no WaitForMultipleObjects for sockets and files alike?
+15:13 <@heinrich5991> I could check how the rust library mio does that
+15:13 <@heinrich5991> it's cross-platform
+15:13 <@EastByte> I think windows 'overlapped io' is used for that
+15:16 <@heinrich5991> EastByte: https://docs.rs/mio/0.6.10/mio/struct.Poll.html#implementation-notes
+15:16 <@EastByte> well I don't know mio, yet
+15:16 <@deen> heh, I would also have looked into Nim's asyncio lib for inspiration :D
+15:17 <@heinrich5991> ^^
+15:17 <@heinrich5991> "io completion ports" apparantly
+15:17 <@heinrich5991> (sounds complicated)
+15:19 <@heinrich5991> god damn it. *apparently
+15:19 <@heinrich5991> I always misspell this word
+15:24 <+Learath2> deen: isn't having threaded logging the best you can do? ram is pretty much instant to write to, so a queue on ram and write to disk when available on a seperate thread feels like the best we could possibly do
+15:41 <@deen> sure, but then make the thing in system.c grow the buffer and make it usable for heinrich's stuff too
+15:43 <@heinrich5991> perhaps I could build a signal-save version of that, so that we can flush the buffer in case we get a segfault or similar
+15:44 <+Learath2> deen: i meant that for "...I'm actually not comfortable with the current solution..." from you. There is no need for you to be uncomfortable if there is no better solution :P
+15:45 <@deen> we don't have a growing buffer right now
+15:45 <@deen> and people complained that there were messages about it running full in the client
+15:45 <@deen> so now when it runs full we block...
+15:46 <@heinrich5991> at some point we have to block due to sanity, but a growable buffer before that would be nice, I agree
+15:46 <@heinrich5991> I don't want to have multiple GBs of logs lingering in the RAM
+15:46 <@deen> on servers you would rather throw away the logs at some point
+15:46 <@deen> then people can keep playing
+15:47 <@deen> we had a case once where a disk died
+15:47 <@deen> so you couldn't change map anymore
+15:47 <@deen> but people kept playing just fine
+15:48 <+Learath2> i guess if we have the ram for it we could grow it a little
+15:48 <@heinrich5991> if we want reproducible races, then we have to send the data somewhere
+15:49 <@deen> sure sure, but i mean in the past it was a great approach
+15:49 <+Learath2> and also there is that, we'll be collecting a buttload more of data now, which we cant really discard :/
+15:49 <@heinrich5991> yea, I see
+16:55 <@heinrich5991> deen: An0ny on discord writes that we might have mistaken IRR for tomans, where 10 IRR = 1 toman
+17:05 <@deen> ah, right...
+17:05 <@deen> they have their weird currencies
+17:06 <@deen> anyway, not sure I trust the Iranian banks. I've had my credit card info stolen before. Maybe I need a separate credit card just for ddnet stuff
+18:47 <@heinrich5991> okay, O_NONBLOCK doesn't work for files :(
+18:47 <@deen> :)
+19:12 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/v5bdZ
+19:12 < ddnet-commits> ddnet/master 03fa475 def: Implement /pause [name] and /spec [name]
+20:31 <+eeeee> or you could make ddnet a LLC?
+20:31 <+eeeee> :D
+20:31 <@deen> what?
+20:32 <+eeeee> limited liability company
+20:32 <@deen> yes, but why?
+20:32 <+eeeee> as i understand that might allow you to have credit cards in the name of the llc instead of your personal name
+20:32 <@deen> ah
+20:33 <@deen> i thought you were talking about async io :D
+20:33 <+eeeee> you probably won't help much with async io. maybe you could sue the vps hosters for slow hdds or something though
+20:34 <@deen> not possible
+20:34 <@deen> noisy neighbours mean that disk latency can fluctuate like crazys
+20:34 <@deen> -s

@@ -1,0 +1,166 @@
+00:37 < heinrich5991> just read that http://gafferongames.com/networking-for-game-programmers/reliability-and-flow-control/
+00:38 < heinrich5991> (where "read" isn't imperative but rather first person singular)
+00:39 < heinrich5991> is congestion avoidance why there's this state (I think it's called RECOVERY or so) when the server only sends very few snapshots?
+07:39 <@matricks> heinrich5991: a bit yeah, the server only keeps a backlog of 1-2 seconds of snapshots to do delta against
+07:39 <@matricks> if it can't do a delta compression, the snapshot is "huge" to send so if you go outside that window, the server lowers the transmission rate to 2/second or something like that
+07:40 <@matricks> to compensate for the bigger payload
+17:25 < BotoX> can I bother someone in here again about assembler/reversing :v
+17:25 < BotoX> So I got this virtual function that calls another virtual function from a derived class
+17:25 < BotoX> this here: GetClientClass()->m_pNetworkName
+17:26 < BotoX> decompiled that call looks like this: *(_DWORD *)((*(int (__cdecl **)(int))(*(_DWORD *)a1 + 68))(a1) + 8);
+17:26 < BotoX> a1 being the this pointer
+17:27 < BotoX> GetClientClass() is a inherited virtual function
+17:30 < BotoX> Oh man, I didn't even ask a question. I need the value that GetClientClass() returns
+17:31 < BotoX> GetClientClass is just a return somepointer; so getting the address of that function call I can get the somepointer
+17:31 < BotoX> and the address of that function should be hidden in the long call above
+17:31 < laxa> Ever heard of OllyGDB ?
+17:31 < BotoX> doing this on linux
+17:32 < laxa> gdb then
+17:32 < BotoX> I can't modify the program
+17:32 < BotoX> umm, I guess it's still possible without it?
+17:32 < laxa> Ofc
+17:32 < BotoX> teach me, I am fairly new to RE
+17:33 < laxa> I am noob too, but it's not that hard
+17:33 < laxa> but first
+17:33 < laxa> the return is a const value ?
+17:33 < BotoX> no
+17:33 < laxa> Are you trying to debug a program of yours or just RE ?
+17:33 < BotoX> it's a game, not my program
+17:33 < laxa> Hum
+17:33 < BotoX> (counter-strike: source)
+17:34 < BotoX> let me give you more info, sec.
+17:34 < laxa> Well, if it's RE that you need, I am afraid you'll have to learn some assembly to understand what the function does
+17:34 < laxa> I play cs:go
+17:35 < BotoX> So my Object is from type C_BaseEntity, C_BaseEntity inherits from IClientNetworkable
+17:35 < BotoX> The function GetClientClass() that I am interested in is https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/public/iclientnetworkable.h#L54
+17:35 < BotoX> All it does is: ClientClass*	clientClassName::GetClientClass() {return &__g_##clientClassName##ClientClass;}
+17:36 < BotoX> so for every entitytype it returns another pointer
+17:36 < BotoX> and that pointer is what I need to find out of which type my object is
+17:38 < BotoX> A virtual function from my object I know is calling GetClientClass() here: https://github.com/ValveSoftware/source-sdk-2013/blob/master/mp/src/game/client/c_baseentity.cpp#L1989
+17:38 < laxa> You want to determine a type ?
+17:38 < BotoX> I need that pointer, it tells me which entity type my object is
+17:38 < BotoX> not a c type but a game type :p / poor wording on my side
+17:38 < laxa> oh
+17:38 < laxa> well, I guess the data it returns is in the bss section of the binary
+17:38 < laxa> or loaded at runtime
+17:39 < BotoX> I need to get the memory address of that function, basically
+17:39 < laxa> try that in gdb with cs:go binary
+17:39 < BotoX> and it is right in front of me pretty much
+17:40 < laxa> b GetClientClass()
+17:40 < BotoX> since I am looking at the function call right now
+17:40 < laxa> b GetClientClass
+17:40 < BotoX> ok
+17:40 < laxa> never debugged object on gdb, no idea what is changing with object
+17:40 < laxa> or you can try : disas funcName
+17:40 < laxa> you'll then see the assembly code
+17:41 < BotoX> (gdb) b GetClientClass
+17:41 < BotoX> Function "GetClientClass" not defined.
+17:41 < laxa> then you can use : b *instructionAdress
+17:41 < BotoX> it's a virtual from the class IClientNetworkable
+17:41 < BotoX> should I try IClientNetworkable::GetClientClass ?
+17:41 < BotoX> nope, not defined either
+17:42 < laxa> Yes I guess, as I said, never used gdb with objects
+17:42 < BotoX> https://i.botox.bz/1442245365.png
+17:43 < BotoX> that's GetClientClass()->m_pNetworkName
+17:44 < BotoX> and if I read a1(this pointer) + 68 it returns 0x00ff
+17:44 < BotoX> is that some vtable offset?
+17:44 < BotoX> or is a1 + 8 the vtable and a1 + 68 the vtable offset?
+17:44 < laxa> all adresses on i386 are 32 bits
+17:45 < BotoX> heinrich5991: are you here :v
+17:45 < BotoX> I think all I need is someone to explain to me what is happening in that function call
+17:46 < BotoX> As far as I know, since it is virtual, it needs to have the pointer to the vtable, and the offset to the function in the vtable, right?
+17:46 < laxa> 2 arguments, first is the values contained at a1 + 68
+17:46 < laxa> second argument is a1 + 8
+17:46 < laxa> or not
+17:47 < BotoX> I can post assembly too, if that is any easier lol
+17:47 < BotoX> https://i.botox.bz/1442245666.png
+17:49 < BotoX> If I knew what ebx and eax where
+17:49 < BotoX> were*
+17:49 < laxa> they are registers
+17:49 < BotoX> yeah
+17:49 < BotoX> but one of them should be this, right?
+17:52 < BotoX> okay so call dword ptr [eax+44h]
+17:52 < BotoX> this is a1 + 68
+17:53 < BotoX> is call dword ptr [eax+68] == *(eax+68)();
+17:54 < BotoX> or [eax+68] == *(eax+68)
+17:54 < BotoX> oh man, I'll just google some of this assembly
+17:55 < laxa> [] represent the value inside the adress of the register
+17:55 < laxa> otherwise that's the adress contained in the register
+17:55 < BotoX> okay
+17:56 < laxa> h is half word so 2 bytes if I am correct
+17:56 < BotoX> well that 44h is just the number 68
+17:57 < laxa> anyway, there is no return in this assembly code
+17:57 < laxa> ret is an asm instruction too
+17:58 < BotoX> first it's if(GetClientClass()->m_pNetworkName)
+17:58 < BotoX> then var = GetClientClass()->m_pNetworkName
+17:59 < laxa> Well
+17:59 < laxa> It's not that simple
+17:59 < BotoX> okay so ebx = this
+17:59 < BotoX> I figured that out
+18:00 < BotoX> and eax is [ebx]
+18:00 < laxa> if you determine a breakpoint correctly and use gdb
+18:00 < laxa> this would be done very quickly ^^
+18:01 < BotoX> haha
+18:02 < BotoX> I think I got it
+18:07 <@matricks> BotoX: what are you trying todo?
+18:08 < BotoX> hmm
+18:09 < BotoX> I got an Object of type C_BaseEntity
+18:09 < BotoX> C_BaseEntity inherits from IClientNetworkable
+18:09 < BotoX> IClientNetworkable has a virtual function that is called GetClientClass()
+18:09 < BotoX> I am looking at the assembler of a virtual function in C_BaseEntity which calls GetClientClass()
+18:10 < BotoX> GetClientClass() is implemented like this: ClientClass* clientClassName::GetClientClass() {return &__g_##clientClassName##ClientClass;}
+18:10 < BotoX> I want to be able to read the returned value from GetClientClass externally
+18:10 <@matricks> BotoX: what are you trying todo?
+18:10 < BotoX> >I want to be able to read the returned value from GetClientClass externally
+18:11 <@matricks> are you debugging something?
+18:11 < BotoX> Getting all entities externally from the source engine
+18:11 < BotoX> on my client
+18:11 <@matricks> why?
+18:12 < BotoX> so I can know where special items are on maps for example
+18:12 < BotoX> basically writing a hack again :p
+18:12 <@matricks> doesn't.. you know.. source come with modding stuff?
+18:12 < BotoX> nooo, it's clientside :V
+18:12 <@matricks> what are you trying todo?
+18:12 < BotoX> And all I do is read memory from the client
+18:13 < BotoX> Okay so I got the address to all the entities
+18:13 <@matricks> what is the intented end result?
+18:13 < BotoX> get the address that GetClientClass() returns
+18:13 <@matricks> thats not the end result
+18:13 < BotoX> Which is a struct that describes my entity
+18:13 < BotoX> I just want to have all the data for now and see what I can do with it
+18:14 < BotoX> And yeah I will probably print out positions of special weapons on maps that have them
+18:14 < BotoX> which is important in the mod I play
+18:28  * BotoX has figured it out but will not talk about his hax anymore
+18:29 < BotoX> though isn't it nice that people get interested in RE because of game hacking (at least that's what gets me going atm)
+18:29 < BotoX> I also started doing C++ because of teeworlds (game modding)
+18:32 <@matricks> well, better todo something constructive then destructive
+18:32 <@matricks> isn't it nice seeing people getting intressted in guns because of school shootings?
+18:33 < BotoX> heh, true
+18:49 < BotoX> Can I post my solution to the issue? (Maybe somebody here was curious)
+18:50 <@matricks> no
+18:50 < BotoX> ok :v
+19:49 < Digitteknohippi> i suck at getting motivated to make maps... n even find the stuff to make maps.  once i get going, i'm sure i'll come up with something worthwhile.
+20:04 < Edible> is there anyway to send 2 commands?
+20:04 < Edible> have 2 commands in a bind
+20:04 < Savander> where?
+20:04 < Edible> teeworlds?
+20:04 < Savander> semicolon
+20:04 < Savander> in quotas
+20:04 < Edible> alright thanks
+20:04 < Edible> quotas?
+20:05 < Edible> or quotes?
+20:05 < Savander> quotes*
+20:05 < Savander> :D
+20:05 < Edible> ok, thanks
+23:00 < BotoX> hmm
+23:00 < BotoX> I can't make a private function that returns a private datatype from the same class
+23:01 < BotoX> aka private struct a {}; private a func() {};
+23:10 <@minus> matricks: RE is a respectable business
+23:12 < BotoX> oh no
+23:12 < BotoX> I ended up in an include limbo
+23:12 < BotoX> a includes b and b includes a
+23:12 < BotoX> now c includes b and a is not a class anymore in b
+23:21 <@matricks> minus: yeah, but use it for constructive things instead of destructive
+23:47 < MertenNor> finished the Oculus Thing.. :D
+23:48 < MertenNor> just need to fix some small things and then I am going to put it up on the forums :)
+23:49 < MertenNor> going to bed.. Cya All tomorrow I guess.. 

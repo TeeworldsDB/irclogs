@@ -1,0 +1,551 @@
+02:42 <+bridge> [ddnet] <heinrich5991> if someone could compile ddnet in release mode on windows with msvc and with debug symbols, that'd be awesome 🙂
+02:45 <+bridge> [ddnet] <heinrich5991> I'd like to take a look at the annoying aio bug
+02:45 <+bridge> [ddnet] <heinrich5991> @Learath2 unrelated, in 0c13c8cebb09b7798309ea0317a2e85885fb5697, you only print utf16 characters that consist of one code unit to the windows console. is this intentional?
+07:12 <+bridge> [ddnet] <Learath2> @heinrich5991 that's a pretty crude hack tbh, I barely have an idea why it works
+11:15 <+bridge> [ddnet] <Tysou> @archimede67  mon son est revenu mais que lorsque j'allume mon pc avec un certain casque
+12:28 <+bridge> [ddnet] <archimede67> xd
+14:14 <+bridge> [ddnet] <Learath2> @heinrich5991 I think that commit was after hours of messing around, I didn't really want to think much after it started working
+14:15 <+bridge> [ddnet] <heinrich5991> okay
+14:15 <+bridge> [ddnet] <Learath2> also it seems to be leaking memory 😛
+14:21 <+bridge> [ddnet] <archimede67> ggwp
+14:21 <+bridge> [ddnet] <archimede67> xd
+14:26 <+bridge> [ddnet] <Learath2> imagine spending 8 hours trying to figure out why windows won't just print what you tell it to print on the console
+14:27 <+bridge> [ddnet] <Learath2> turns out the console is a special device in windows and it only accepts utf16
+14:27 <+bridge> [ddnet] <archimede67> because its windows
+14:27 <+bridge> [ddnet] <archimede67> wot
+14:27 <+bridge> [ddnet] <archimede67> utf16
+14:27 <+bridge> [ddnet] <archimede67> why xd
+14:28 <+bridge> [ddnet] <Learath2> I guess bill gates thought 16 was a nice number
+14:28 <+bridge> [ddnet] <archimede67> 😂
+14:40 <+bridge> [ddnet] <heinrich5991> @Learath2 but you don't output utf8
+14:40 <+bridge> [ddnet] <heinrich5991> *utf16
+14:40 <+bridge> [ddnet] <heinrich5991> you only output utf16 without surrogate pairs
+14:41 <+bridge> [ddnet] <heinrich5991> (have you tried characters outside the bmp?)
+14:42 <+bridge> [ddnet] <Learath2> idk what I output tbh, I just know that if you encode the codepoints in utf16, shove that in a wchar array and pass that to `WriteConsoleW` it looks correct on the console
+14:43 <+bridge> [ddnet] <Learath2> I'm pretty sure things outside the bmp won't look correctly
+14:45 <+bridge> [ddnet] <Learath2> @heinrich5991 I think I wasn't sure if the wchar can hold characters that consist of two code units
+14:46 <+bridge> [ddnet] <heinrich5991> I think wchar_t is a code unit
+14:46 <+bridge> [ddnet] <heinrich5991> so you need two wchar_ts for each code unit outside the bmp
+14:46 <+bridge> [ddnet] <Learath2> I believe wchar_t was implementation defined in size
+14:47 <+bridge> [ddnet] <Learath2> also the way i output to the console isn't complete, it fails to work with redirects
+14:48 <+bridge> [ddnet] <heinrich5991> wchar_t is probably not implementation defined in size on windows
+14:48 <+bridge> [ddnet] <Learath2> have to check `GetConsoleMode` and if it's redirected you need to use `WriteFile` instead
+14:49 <+bridge> [ddnet] <Learath2> Anyways, I think `WriteConsoleW` takes a byte array, not specifically `wchar_t` so could probably drop that
+14:49 <+bridge> [ddnet] <heinrich5991> WriteConsoleW probably takes wchar_t tbh
+14:50 <+bridge> [ddnet] <heinrich5991> ah no
+14:50 <+bridge> [ddnet] <heinrich5991> const void *
+14:50 <+bridge> [ddnet] <Learath2> well msdn doesn't say so
+14:51 <+bridge> [ddnet] <heinrich5991> https://docs.microsoft.com/en-us/windows/console/writeconsole
+14:51 <+bridge> [ddnet] <Learath2> @heinrich5991 btw are you thinking of cleaning that up?
+14:51 <+bridge> [ddnet] <heinrich5991> not right now
+14:51 <+bridge> [ddnet] <heinrich5991> no
+14:52 <+bridge> [ddnet] <heinrich5991> I wanted to fix the stupid aio thing
+14:52 <+bridge> [ddnet] <heinrich5991> but it just doesn't work 😦
+14:52 <+bridge> [ddnet] <heinrich5991> or rather, I can't find a mistake
+14:52 <+bridge> [ddnet] <Learath2> wait you can reproduce it?
+14:52 <+bridge> [ddnet] <heinrich5991> you can reproduce it with the testcases IIRC
+14:52 <+bridge> [ddnet] <heinrich5991> not sure
+14:53 <+bridge> [ddnet] <Learath2> I think I was the last person that can reproduce it reliably, and I upgraded to win10, haven't tested whether it happens still
+14:53 <+bridge> [ddnet] <Learath2> on my computer it was an instant crash with aio stdout
+14:53 <+bridge> [ddnet] <Learath2> like a 100% of the time
+14:54 <+bridge> [ddnet] <heinrich5991> really.
+14:54 <+bridge> [ddnet] <heinrich5991> also in the debugger?
+14:54 <+bridge> [ddnet] <Learath2> you even tried to debug it with teamviewer after i gave up iirc 😄
+14:54 <+bridge> [ddnet] <Learath2> yep
+14:54 <+bridge> [ddnet] <heinrich5991> argh
+14:54 <+bridge> [ddnet] <Learath2> but it crashed deep in ntdll or system32
+14:54 <+bridge> [ddnet] <heinrich5991> because of an invalid pointer I guess
+14:54 <+bridge> [ddnet] <heinrich5991> should've tried harder
+14:54 <+bridge> [ddnet] <Learath2> not one that I could see
+14:54 <+bridge> [ddnet] <heinrich5991> ok
+14:55 <+bridge> [ddnet] <heinrich5991> can you try whether you can still reproduce it?
+14:55 <+bridge> [ddnet] <Learath2> well I can install msvc and try again, maybe it still happens 😄
+14:55 <+bridge> [ddnet] <heinrich5991> 👍
+14:55 <+bridge> [ddnet] <Learath2> where does one even get msvc?  😛
+14:55 <+bridge> [ddnet] <heinrich5991> msvs it's called, these days
+14:55 <+bridge> [ddnet] <heinrich5991> https://visualstudio.microsoft.com/
+14:56 <+bridge> [ddnet] <heinrich5991> top left is msvs, rest is unrelated products :<
+14:56 <+bridge> [ddnet] <Learath2> oh, need the ide aswell right, that will take some time to download
+14:56 <+bridge> [ddnet] <heinrich5991> I currently have around 20-200KB/s. can you beat that? 😛
+14:56 <+bridge> [ddnet] <Learath2> that sounds horrible
+14:56 <+bridge> [ddnet] <Learath2> what happened to germany? 😛
+14:56 <+bridge> [ddnet] <Ryozuki> aio is async io?
+14:57 <+bridge> [ddnet] <heinrich5991> yes
+14:57 <+bridge> [ddnet] <Ryozuki> does it work on linux
+14:57 <+bridge> [ddnet] <heinrich5991> yes
+14:57 <+bridge> [ddnet] <Ryozuki> is it enabled there?
+14:57 <+bridge> [ddnet] <heinrich5991> I don't know if by chance, but probably
+14:57 <+bridge> [ddnet] <heinrich5991> yes
+14:57 <+bridge> [ddnet] <heinrich5991> @Learath2 I'm on the train, so I guess it's okayish
+14:57 <+bridge> [ddnet] <Learath2> oh, that's great for train internet
+14:57 <+bridge> [ddnet] <heinrich5991> at least they provide free internet for everyone these days
+14:57 <+bridge> [ddnet] <Learath2> I get 5 MB/s at home
+14:58 <+bridge> [ddnet] <Learath2> which is good
+14:58 <+bridge> [ddnet] <Ryozuki> :o
+14:58 <+bridge> [ddnet] <Ryozuki> :monkaS:
+14:58 <+bridge> [ddnet] <Learath2> much better then back in turkey where I got 0.8 MB/s
+14:58 <+bridge> [ddnet] <heinrich5991> at uni I got 600MB/s ^^
+14:58 <+bridge> [ddnet] <Learath2> but literally everyone else gets a 800mbps link here, just my stupid old apartment
+14:58 <+bridge> [ddnet] <Ryozuki> bytes or bits?
+14:58 <+bridge> [ddnet] <heinrich5991> (not via wifi though. bytes)
+14:58 <+bridge> [ddnet] <Ryozuki> i got 600/600 on home xd
+14:59 <+bridge> [ddnet] <Learath2> 600mbps?
+14:59 <+bridge> [ddnet] <heinrich5991> uh nice >D
+14:59 <+bridge> [ddnet] <heinrich5991> uh nice 😄
+14:59 <+bridge> [ddnet] <Ryozuki> 70mb/s
+14:59 <+bridge> [ddnet] <heinrich5991> @Ryozuki fast.com
+14:59 <+bridge> [ddnet] <heinrich5991> plz
+14:59 <+bridge> [ddnet] <archimede67> i got 75ko
+14:59 <+bridge> [ddnet] <archimede67> i got 75kb
+14:59 <+bridge> [ddnet] <heinrich5991> french detected 😛
+14:59 <+bridge> [ddnet] <Ryozuki> 
+14:59 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583640628781383701/unknown.png
+14:59 <+bridge> [ddnet] <Learath2> I wish I got 600/600 at home 😛
+14:59 <+bridge> [ddnet] <archimede67> ew
+14:59 <+bridge> [ddnet] <Ryozuki> never knew that site
+14:59 <+bridge> [ddnet] <Ryozuki> xd
+14:59 <+bridge> [ddnet] <heinrich5991> best speed test site
+14:59 <+bridge> [ddnet] <heinrich5991> no clutter
+14:59 <+bridge> [ddnet] <Learath2> I've been begging them for the last 3 years to get fibre
+15:00 <+bridge> [ddnet] <Ryozuki> barcelona got fibre everywhere and its more worth to have it than dsl nowadays xd
+15:00 <+bridge> [ddnet] <archimede67> which site
+15:00 <+bridge> [ddnet] <Learath2> the office building next to us already has it so it's not too too hard to get a couple more fibres routes
+15:00 <+bridge> [ddnet] <heinrich5991> fast.com
+15:00 <+bridge> [ddnet] <Learath2> but the guy who owns the apartment, he is so old :/
+15:00 <+bridge> [ddnet] <Ryozuki> @Learath2 I KNOW
+15:00 <+bridge> [ddnet] <Ryozuki> i was on a old building before
+15:00 <+bridge> [ddnet] <Ryozuki> and they didnt want fibre
+15:00 <+bridge> [ddnet] <archimede67> i have 46Mbps
+15:01 <+bridge> [ddnet] <Ryozuki> they were fcking 70 year old
+15:01 <+bridge> [ddnet] <Ryozuki> xddd
+15:01 <+bridge> [ddnet] <Ryozuki> lucky i moved
+15:01 <+bridge> [ddnet] <Ryozuki> and the best is that
+15:01 <+bridge> [ddnet] <Learath2> oh, visual studio seems smaller nowadays
+15:01 <+bridge> [ddnet] <Ryozuki> instalation was paid by the company
+15:01 <+bridge> [ddnet] <Ryozuki> not ourselves
+15:01 <+bridge> [ddnet] <Ryozuki> but old ppl dont understand shit
+15:02 <+bridge> [ddnet] <Ryozuki> it pissed me for lot of years
+15:02 <+bridge> [ddnet] <Ryozuki> xd
+15:02 <+bridge> [ddnet] <Learath2> to be honest I'd be okay with paying the price if it wasn't absolutely insane
+15:03 <+bridge> [ddnet] <heinrich5991> what's insane?
+15:03 <+bridge> [ddnet] <Ryozuki> (i dont pay it, but i think its 30-50 month the internet)
+15:03 <+bridge> [ddnet] <Learath2> if I want them to route one for me it's around 2000e to route it, and 300e contribution fee every month for 3 years in addition to the regular fee
+15:03 <+bridge> [ddnet] <heinrich5991> @Learath2 I think you only installed the installer 😄
+15:03 <+bridge> [ddnet] <archimede67> xd
+15:04 <+bridge> [ddnet] <Learath2> If the apartment owner gets 80% of the residents to agree, they waive the 2000e, and the 300e is split up between everyone so it's nothing
+15:04 <+bridge> [ddnet] <Ryozuki> being able to download at 70mb/s and play tw without lag is pure pleasure :danAmazing:
+15:04 <+bridge> [ddnet] <Learath2> @heinrich5991 lol I didn't mean that small 😛
+15:04 <+bridge> [ddnet] <Learath2> I thought it'd be around 5-6gb but it's only 3
+15:04 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/pull/1757
+15:05 <+bridge> [ddnet] <Ryozuki> what should i do with this
+15:06 <+bridge> [ddnet] <heinrich5991> I think: make it a message to the user to execute this command
+15:06 <+bridge> [ddnet] <Learath2> why not just execute it ourselves?
+15:06 <+bridge> [ddnet] <Ryozuki> thats what im doing rn
+15:06 <+bridge> [ddnet] <Learath2> does it get executed on a logout/login?
+15:07 <+bridge> [ddnet] <Ryozuki> wat
+15:07 <+bridge> [ddnet] <Ryozuki> ah idk
+15:07 <+bridge> [ddnet] <heinrich5991> because we're not necessarily installing into the system, but maybe just into some packaging folder
+15:07 <+bridge> [ddnet] <heinrich5991> but the tool operates on the whole system
+15:08 <+bridge> [ddnet] <Learath2> @heinrich5991 okay how do i cmake here?
+15:08 <+bridge> [ddnet] <heinrich5991> in msvs?
+15:08 <+bridge> [ddnet] <Learath2> yes
+15:08 <+bridge> [ddnet] <heinrich5991> https://forum.ddnet.tw/viewtopic.php?f=16&t=5765
+15:08 <+bridge> [ddnet] <heinrich5991> just sent this link to someone else 4 hours ago 😄
+15:09 <+bridge> [ddnet] <Learath2> hmm my copy seems to be missing cmake somehow
+15:09 <+bridge> [ddnet] <Learath2> i don't see the targets
+15:10 <+bridge> [ddnet] <Learath2> let me check if i installed all the correct components
+15:10 <+bridge> [ddnet] <heinrich5991> 😉
+15:12 <+bridge> [ddnet] <Learath2> yeah that makes more sense
+15:12 <+bridge> [ddnet] <Learath2> I clicked the wrong c++ thing
+15:12 <+bridge> [ddnet] <Learath2> an extra 1.16gb download
+15:12 <+bridge> [ddnet] <Learath2> for the worst compiler ever created by mankind 😛
+15:12 <+bridge> [ddnet] <Ryozuki> :poggers:
+15:12 <+bridge> [ddnet] <Ryozuki> @Learath2 what u prefer, gcc or clang
+15:13 <+bridge> [ddnet] <Learath2> I think I like clang more, but I'm pretty neutral really
+15:13 <+bridge> [ddnet] <Ryozuki> i think clang is smarterwith errors
+15:13 <+bridge> [ddnet] <Learath2> my position is that msvc can go to hell
+15:13 <+bridge> [ddnet] <Ryozuki> xd
+15:13 <+bridge> [ddnet] <Ryozuki> windows bad
+15:13 <+bridge> [ddnet] <Learath2> Imagine not supporting C99 in 2019
+15:13 <+bridge> [ddnet] <Learath2> let alone C11
+15:13 <+bridge> [ddnet] <Ryozuki> i think there is c18 now
+15:13 <+bridge> [ddnet] <heinrich5991> clang caused gcc to catch up with error messages
+15:13 <+bridge> [ddnet] <Ryozuki> it fixes bugs in c11
+15:13 <+bridge> [ddnet] <heinrich5991> wat?
+15:14 <+bridge> [ddnet] <Ryozuki> butdoesnt introduce anything
+15:14 <+bridge> [ddnet] <heinrich5991> ah c17
+15:14 <+bridge> [ddnet] <Ryozuki> https://en.wikipedia.org/wiki/C18_(C_standard_revision)
+15:14 <+bridge> [ddnet] <Learath2> @heinrich5991 I think c17 didn't come out in time so they named it c18
+15:14 <+bridge> [ddnet] <Learath2> caused some drama in ##C 😛
+15:14 <+bridge> [ddnet] <heinrich5991> why?
+15:14 <+bridge> [ddnet] <Ryozuki> :lol:
+15:14 <+bridge> [ddnet] <Learath2> someone changed the topic to C18
+15:14 <+bridge> [ddnet] <Learath2> because ISO changed the name to C18
+15:14 <+bridge> [ddnet] <Ryozuki> itsn ot like they are adding lot of stuff to be late lol
+15:15 <+bridge> [ddnet] <Learath2> but the working group hadn't changed the name yet
+15:15 <+bridge> [ddnet] <Ryozuki> C18 will be superseded by C2x
+15:15 <+bridge> [ddnet] <Ryozuki> i wonder if c20 or c22
+15:15 <+bridge> [ddnet] <Learath2> so we discussed for a couple hours whether we care about what ISO says or what the WG says 😛
+15:15 <+bridge> [ddnet] <Ryozuki> c21 looks bad
+15:16 <+bridge> [ddnet] <Learath2> C++ has some horrible error messages, there was discussion about that in #c++ a month or so ago
+15:16 <+bridge> [ddnet] <Ryozuki> yeah
+15:16 <+bridge> [ddnet] <Ryozuki> with templates
+15:16 <+bridge> [ddnet] <Ryozuki> and stuff
+15:16 <+bridge> [ddnet] <Ryozuki> it goes insane
+15:16 <+bridge> [ddnet] <Learath2> whether it's the standards committees job to get better error messages or is it just up to the compilers
+15:17 <+bridge> [ddnet] <heinrich5991> well, it kind of depends on the standard whether it's feasible to provide good error messages
+15:19 <+bridge> [ddnet] <Learath2> okay it compiles \o/
+15:19 <+bridge> [ddnet] <Learath2> now let me enable aio
+15:20 <+bridge> [ddnet] <Learath2> yeah sadly it works now that i upgraded
+15:21 <+bridge> [ddnet] <heinrich5991> also the tests
+15:21 <+bridge> [ddnet] <Learath2> let me figure out how to run them 😛
+15:21 <+bridge> [ddnet] <heinrich5991> select testrunner in the green run arrow menu
+15:25 <+bridge> [ddnet] <Learath2> passed all tests
+15:25 <+bridge> [ddnet] <heinrich5991> run it a couple of times
+15:25 <+bridge> [ddnet] <Learath2> passes just fine
+15:27 <+bridge> [ddnet] <Learath2> I guess that bug is lost to us forever 😛
+15:27 <+bridge> [ddnet] <Learath2> either way, aio dbg_logging in windows won't really work unless you use WriteConsole
+15:27 <+bridge> [ddnet] <heinrich5991> `build/testrunner --gtest_filter=Async.NonDivisor --gtest_repeat=-1 --gtest_break_on_failure`
+15:27 <+bridge> [ddnet] <Learath2> windows consoles are just broken
+15:27 <+bridge> [ddnet] <heinrich5991> pls
+15:28 <+bridge> [ddnet] <Learath2> where do builds go?
+15:28 <+bridge> [ddnet] <Ryozuki> uh
+15:28 <+bridge> [ddnet] <Ryozuki> in a deep folder
+15:28 <+bridge> [ddnet] <Ryozuki> its not on ur cwd
+15:28 <+bridge> [ddnet] <Ryozuki> xdd
+15:28 <+bridge> [ddnet] <Ryozuki> start ddnet sv and right click it to find the path  iguess
+15:29 <+bridge> [ddnet] <heinrich5991> CMakeBuilds in your home folder or so
+15:29 <+bridge> [ddnet] <Ryozuki> oh did they change it
+15:29 <+bridge> [ddnet] <Ryozuki> i dont use vs since years xd
+15:30 <+bridge> [ddnet] <heinrich5991> nah, it's special for cmake builds
+15:30 <+bridge> [ddnet] <Learath2> they changed it apparently
+15:31 <+bridge> [ddnet] <Learath2> it's now in, ~/source/repos/<repo-name>/out
+15:32 <+bridge> [ddnet] <Learath2> lets see if it bresks
+15:32 <+bridge> [ddnet] <Learath2> breaks*
+15:32 <+bridge> [ddnet] <Learath2> I'm on iteration 4000 😛
+15:35 <+bridge> [ddnet] <Learath2> @heinrich5991 I don't think this will fail tbh
+15:35 <+bridge> [ddnet] <Learath2> it's been fine for 20k iterations
+15:41 <+bridge> [ddnet] <Learath2> @heinrich5991 when can I stop? 😄
+15:48 <+bridge> [ddnet] <heinrich5991> you can stop
+15:48 <+bridge> [ddnet] <heinrich5991> lol. 10k iterations on linux cost 17s
+15:48 <+bridge> [ddnet] <Learath2> apparently my fix for console printing unicode wasn't correct either
+15:49 <+bridge> [ddnet] <Learath2> it doesn't work on windows 10
+15:55 <+bridge> [ddnet] <Learath2> do you know how to look at memory in vs?
+15:55 <+bridge> [ddnet] <archimede67> nop
+15:55 <+bridge> [ddnet] <Learath2> very useful debugger
+15:55 <+bridge> [ddnet] <archimede67> xd
+15:55 <+bridge> [ddnet] <archimede67> whats ur prob already?
+15:57 <+bridge> [ddnet] <Learath2> trying to get windows to render unicode correctly in the console
+15:58 <+bridge> [ddnet] <archimede67> ah
+15:58 <+bridge> [ddnet] <archimede67> does it work or not at all? xd
+16:06 <+bridge> [ddnet] <Learath2> `[2019-05-30 14:06:40][chat]: Learath2: â™«`
+16:06 <+bridge> [ddnet] <Learath2> supposed to be a music note
+16:07 <+bridge> [ddnet] <archimede67> ah
+16:07 <+bridge> [ddnet] <archimede67> xd
+16:07 <+bridge> [ddnet] <archimede67> but
+16:08 <+bridge> [ddnet] <archimede67> @Learath2 which console?
+16:08 <+bridge> [ddnet] <Learath2> the actual console
+16:08 <+bridge> [ddnet] <ChillerDragon> discord down?
+16:09 <+bridge> [ddnet] <Learath2> MSDN says "For the most consistent results, applications should use Unicode, such as UTF-8 or UTF-16, instead of a specific code page."
+16:09 <+bridge> [ddnet] <Learath2> I'm trying my very best to use utf-8 but it just doesnt work...
+16:09 <+bridge> [ddnet] <archimede67> this?
+16:10 <+bridge> [ddnet] <archimede67> omg pls discord upload
+16:10 <+bridge> [ddnet] <archimede67> 
+16:10 <+bridge> [ddnet] <archimede67> https://cdn.discordapp.com/attachments/293493549758939136/583658387921829889/unknown.png
+16:10 <+bridge> [ddnet] <ChillerDragon> @onby i think its just our private chat xd
+16:10 <+bridge> [ddnet] <Learath2> on a msvc blog, they shamelessly post this
+16:10 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/583658403772104724/5-Buffers-Bart-600x321.png
+16:10 <+bridge> [ddnet] <Learath2> I think they are the ones that need to learn how to fucking use utf-8
+16:10 <+bridge> [ddnet] <onby> discord is censoring me
+16:10 <+bridge> [ddnet] <Learath2> yes @archimede67 that one
+16:10 <+bridge> [ddnet] <archimede67> it works fine for me
+16:11 <+bridge> [ddnet] <Learath2> are you on windows 10?
+16:11 <+bridge> [ddnet] <archimede67> ye
+16:11 <+bridge> [ddnet] <Learath2> amazing, it works on some computers, doesn't on others
+16:11 <+bridge> [ddnet] <Learath2> even better
+16:12 <+bridge> [ddnet] <Learath2> @archimede67 can you join the server and send some weird character?
+16:12 <+bridge> [ddnet] <archimede67> xd ok
+16:13 <+bridge> [ddnet] <Learath2> lol
+16:13 <+bridge> [ddnet] <archimede67> xd
+16:13 <+bridge> [ddnet] <archimede67> i'm funny huh
+16:13 <+bridge> [ddnet] <Learath2> @archimede67 send a 𑀌
+16:13 <+bridge> [ddnet] <archimede67> lul
+16:13 <+bridge> [ddnet] <Learath2> I hope that didn't crash everyones client :p
+16:14 <+bridge> [ddnet] <archimede67> wait
+16:14 <+bridge> [ddnet] <archimede67> i don't have the chat line for that message xd
+16:14 <+bridge> [ddnet] <archimede67> 
+16:14 <+bridge> [ddnet] <archimede67> https://cdn.discordapp.com/attachments/293493549758939136/583659435264704512/unknown.png
+16:14 <+bridge> [ddnet] <Learath2> yeah, i told you it's very broken
+16:14 <+bridge> [ddnet] <archimede67> xd
+16:19 <+bridge> [ddnet] <Learath2> turns out the windows console can only understand ucs-2, so wchar_t seems to be the correct choice after all @heinrich5991
+16:22 <+bridge> [ddnet] <fokkonaut> @Learath2 unicode symbols work for me too, on windows 10. but this 𑀌 doesnt
+16:22 <+bridge> [ddnet] <fokkonaut> the line is just gone
+16:22 <+bridge> [ddnet] <Learath2> also @heinrich5991 I remembered why I didn't allow characters from the SMP
+16:22 <+bridge> [ddnet] <Learath2> windows console just can't handle utf16
+16:23 <+bridge> [ddnet] <Learath2> it can only handle ucs2
+16:23 <+bridge> [ddnet] <Learath2> @fokkonaut yeah that's a character from the SMP
+16:23 <+bridge> [ddnet] <Learath2> it just causes the logger to return without printing anything
+16:23 <+bridge> [ddnet] <fokkonaut> why
+16:24 <+bridge> [ddnet] <Learath2> because windows console can't handle utf16
+16:24 <+bridge> [ddnet] <Learath2> it only understands ucs2
+16:24 <+bridge> [ddnet] <fokkonaut> for real?
+16:25 <+bridge> [ddnet] <fokkonaut> embarrassing
+16:25 <+bridge> [ddnet] <Learath2> yeah, it's straight out of the 90s 😛
+16:26 <+bridge> [ddnet] <fokkonaut> is there no way to fix it#?
+16:26 <+bridge> [ddnet] <Ryozuki> windows is embarasing ye
+16:26 <+bridge> [ddnet] <fokkonaut> discord lagging ouuuuut
+16:26 <+bridge> [ddnet] <Ryozuki> yeah discord bad
+16:26 <+bridge> [ddnet] <Ryozuki> lets go to irc
+16:27 <+bridge> [ddnet] <fokkonaut> i am
+16:27 <+bridge> [ddnet] <Learath2> @fokkonaut no fixing it, the console is just the way it is
+16:30 <+bridge> [ddnet] <Ryozuki> 
+16:30 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583663424118980608/unknown.png
+16:30 <+bridge> [ddnet] <Ryozuki> lmao i can see emojis
+16:30 <+bridge> [ddnet] <Ryozuki> gg irc
+16:30 <+bridge> [ddnet] <Learath2> well it's not irc you should congratulate
+16:30 <+bridge> [ddnet] <Ryozuki> ik xD
+16:30 <+bridge> [ddnet] <Learath2> irc just passes along bytes as they are
+16:31 <+bridge> [ddnet] <Learath2> it's the wonder of proper utf8 support on most linux terminals
+16:31 <+bridge> [ddnet] <Ryozuki> maybe i installed some fonts
+16:31 <+Ryozuki> Learath2: discord works so bad rn
+16:31 <+bridge> [ddnet] <Learath2> yeah, idk what's up with it
+16:31 <+Ryozuki> Learath2: on debian i saw also the emoji but not colored
+16:31 <+Ryozuki> i guess i got some font installed
+16:32 <+bridge> [ddnet] <Learath2> depends on the terminal and the fonts
+16:32 <+Ryozuki> im using same terminal
+16:32 <+Ryozuki> termite
+16:32 <+bridge> [ddnet] <Learath2> then it's the fonts prolly
+16:33 <+bridge> [ddnet] <Ryozuki> 😡 💩
+16:33 <+Ryozuki> lmao
+16:33 <+bridge> [ddnet] <archimede67> xd
+16:33 <+bridge> [ddnet] <Ryozuki> 
+16:33 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583664245317697546/unknown.png
+16:33 <+bridge> [ddnet] <Learath2> visual studio seems convinced I'm dereferencing a NULL pointer
+16:33 <+bridge> [ddnet] <Learath2> but I'm not :/
+16:34 <+bridge> [ddnet] <Ryozuki> wdym by dereferencing a null pointer
+16:34 <+bridge> [ddnet] <Learath2> ah i see what it means
+16:34 <+bridge> [ddnet] <Ryozuki> its safe to free a null pointer if thats what u meant
+16:34 <+bridge> [ddnet] <Learath2> dereferencing is *
+16:34 <+bridge> [ddnet] <Ryozuki> ah
+16:35 <+bridge> [ddnet] <Learath2> it's trying to say I forgot a null check
+16:35 <+bridge> [ddnet] <Ryozuki> is it safe?
+16:35 <+bridge> [ddnet] <Ryozuki> ah
+16:35 <+bridge> [ddnet] <Learath2> but because it's autistic it says im dereferencing NULL
+16:35 <+bridge> [ddnet] <Ryozuki> clion best
+16:35 <+bridge> [ddnet] <Ryozuki> or
+16:35 <+bridge> [ddnet] <Ryozuki> the clang server
+16:36 <+bridge> [ddnet] <Ryozuki> https://clang.llvm.org/extra/clangd/
+16:36 <+bridge> [ddnet] <Ryozuki> lmao they got a screenshoot of vscode
+16:36 <+bridge> [ddnet] <Ryozuki> ah but u are on vs studio
+16:38 <+Ryozuki> https://github.com/Shougo/deoplete.nvim/wiki/Completion-Sources i found a nice plugin for vim
+16:40 <+bridge> [ddnet] <Learath2> apparently there is a literal macro for `IsWindowsXPOrGreater`
+16:40 <+bridge> [ddnet] <Learath2> we have a `os_is_winxp_or_lower` 😛
+16:40 <+bridge> [ddnet] <Learath2> @Ryozuki I think most people I know using vim only use the built in autocompletion
+16:41 <+bridge> [ddnet] <Learath2> it's supposed to be pretty decent when you have a ctags file
+16:42 <+bridge> [ddnet] <Ryozuki> well know u now one who doesnt
+16:42 <+bridge> [ddnet] <Ryozuki> :pepeH:
+16:53 <+bridge> [ddnet] <Ryozuki> 
+16:53 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583669442383183897/unknown.png
+16:54 <+bridge> [ddnet] <Ryozuki> :poggers:
+16:54 <+bridge> [ddnet] <archimede67> :poggers::poggers::poggers::poggers:
+16:54 <+bridge> [ddnet] <Ryozuki> @Learath2 can ur vanilla vim do this tho
+16:54 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583669662802509834/unknown.png
+16:55 <+bridge> [ddnet] <Learath2> probably not
+16:55 <+bridge> [ddnet] <archimede67> i don't use vim
+16:55 <+bridge> [ddnet] <Learath2> I'm not sure if I want to invest time in getting fluent with vim
+16:55 <+bridge> [ddnet] <Ryozuki> and all modern plugins are asynchronous nowadays
+16:55 <+bridge> [ddnet] <Learath2> it sorely needs a way to properly navigate around
+16:55 <+Ryozuki> vim even with plugins is blazing fast
+16:56 <+Ryozuki> and all modern plugins are asynchronous nowadays
+16:56 <+Ryozuki> fcking discord
+16:56 <+bridge> [ddnet] <Learath2> sublime text is already blazing fast
+16:56 <+bridge> [ddnet] <archimede67> vim is hard 😦
+16:56 <+bridge> [ddnet] <Learath2> and vscode isn't far behind even though it's an electron app
+16:56 <+bridge> [ddnet] <Ryozuki> i have fun using vim
+16:56 <+bridge> [ddnet] <Ryozuki> and learning it
+16:57 <+bridge> [ddnet] <Ryozuki> specially when u learn it
+16:57 <+bridge> [ddnet] <Ryozuki> u notice the amount of power
+16:57 <+bridge> [ddnet] <Ryozuki> in ur hands
+16:57 <+bridge> [ddnet] <Learath2> I'm pretty decent at using vim
+16:57 <+bridge> [ddnet] <Ryozuki> but it needs time to be configured to ur likings
+16:57 <+bridge> [ddnet] <Ryozuki> like ricing ur desktop
+16:57 <+bridge> [ddnet] <Ryozuki> xd
+16:57 <+bridge> [ddnet] <Learath2> still not as fast as I am with my mouse though
+16:57 <+bridge> [ddnet] <Ryozuki> u can spend all day
+16:58 <+bridge> [ddnet] <Ryozuki> i can go to defintion too
+16:58 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583670582013329409/unknown.png
+16:58 <+bridge> [ddnet] <Learath2> ooooh, haven't played nethack in a while
+16:58 <+bridge> [ddnet] <Ryozuki> 
+16:58 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/583670659045916674/unknown.png
+16:58 <+bridge> [ddnet] <Learath2> yeah I'm done coding for the day 😛
+16:59 <+bridge> [ddnet] <Ryozuki> xd
+16:59 <+bridge> [ddnet] <Learath2> @Ryozuki do you have some refactoring tool?
+17:00 <+bridge> [ddnet] <Ryozuki> it has a rename option but it needs tweaking
+17:00 <+bridge> [ddnet] <Ryozuki> cuz after it wont find the symbol
+17:00 <+bridge> [ddnet] <Ryozuki> mm
+17:00 <+bridge> [ddnet] <Ryozuki> i guess i need to rerun cmake
+17:00 <+bridge> [ddnet] <Ryozuki> to make compile_commands.jsoon again
+17:00 <+bridge> [ddnet] <Ryozuki> but im not sure
+17:01 <+bridge> [ddnet] <Ryozuki> https://github.com/uplus/vim-clang-rename
+17:01 <+bridge> [ddnet] <Ryozuki> i would try this
+17:01 <+bridge> [ddnet] <Ryozuki> but im lazy rn
+17:02 <+bridge> [ddnet] <Ryozuki> ima play nethack too
+17:07 <+bridge> [ddnet] <Learath2> @Ryozuki play on nethack.alt.org so I can watch
+17:09 <+bridge> [ddnet] <Ryozuki> i need to learn how to play tho xd
+17:09 <+bridge> [ddnet] <Learath2> oof
+17:09 <+bridge> [ddnet] <Learath2> hjkl
+17:09 <+bridge> [ddnet] <Ryozuki> ima register
+17:10 <+bridge> [ddnet] <Ryozuki> whats diferent about 3.6.2 and .1
+17:11 <+bridge> [ddnet] <Learath2> if you are just starting out just play the new one
+17:11 <+bridge> [ddnet] <Learath2> couple bug fixes, couple balance things
+17:12 <+bridge> [ddnet] <Learath2> you'll want to turn off the numberpad setting btw
+17:13 <+bridge> [ddnet] <Ryozuki> uh im completly lost xd
+17:13 <+bridge> [ddnet] <Learath2> press capital y
+17:14 <+bridge> [ddnet] <Learath2> okay
+17:14 <+bridge> [ddnet] <Learath2> shift+O
+17:14 <+bridge> [ddnet] <Learath2> space a couple times
+17:14 <+bridge> [ddnet] <Learath2> one more
+17:14 <+bridge> [ddnet] <Learath2> h
+17:14 <+bridge> [ddnet] <Learath2> enter
+17:14 <+bridge> [ddnet] <Learath2> a enter
+17:14 <+bridge> [ddnet] <Learath2> now hjkl should work to move 😛
+17:15 <+bridge> [ddnet] <Learath2> you can also use the diagonals, yubn
+17:15 <+bridge> [ddnet] <Learath2> i for inventory
+17:15 <+bridge> [ddnet] <archimede67> whats nethack
+17:16 <+bridge> [ddnet] <Ryozuki> old terminal roguelike
+17:16 <+bridge> [ddnet] <Ryozuki> how can i know what i have equipped
+17:16 <+bridge> [ddnet] <Learath2> check your inventory
+17:17 <+bridge> [ddnet] <Learath2> yeah nothing to equip rn
+17:17 <+bridge> [ddnet] <Ryozuki> im poisoned xd
+17:17 <+bridge> [ddnet] <Learath2> but that ring of conflict is very useful in a pickle 😛
+17:18 <+bridge> [ddnet] <Learath2> no you aren't, that message is just "wrong" it just means you took more damage
+17:18 <+bridge> [ddnet] <Learath2> , to pick up
+17:18 <+bridge> [ddnet] <Learath2> but wizards shouldn't really wear plate mail 😛
+17:18 <+bridge> [ddnet] <Ryozuki> y xd
+17:19 <+bridge> [ddnet] <Learath2> it's too heavy 😛
+17:19 <+bridge> [ddnet] <Ryozuki> where can i find controls
+17:19 <+bridge> [ddnet] <Ryozuki> a good website?
+17:19 <+bridge> [ddnet] <Learath2> good question, I have no idea
+17:19 <+bridge> [ddnet] <Learath2> https://nethackwiki.com/mediawiki/images/a/ac/Nethack_Keyboard_Commands.pdf maybe?
+17:20 <+bridge> [ddnet] <Learath2> https://nethackwiki.com/wiki/Commands is more complete though
+17:20 <+bridge> [ddnet] <Ryozuki> is # some path without light or smth?
+17:22 <+bridge> [ddnet] <Learath2> # is corridor
+17:22 <+bridge> [ddnet] <Learath2> you are a wizard right?
+17:22 <+bridge> [ddnet] <Ryozuki> y
+17:22 <+bridge> [ddnet] <Learath2> you can use a spell with shift Z
+17:22 <+bridge> [ddnet] <Ryozuki> #off-topic lets move there xd
+17:22 <+bridge> [ddnet] <Learath2> oh yeah true this is #developer  😛
+17:25 <+bridge> [ddnet] <archimede67> xd
+17:33 <+bridge> [ddnet] <Learath2> fstd: do you still play nethack?
+17:58 <+bridge> [ddnet] <ChillerDragon> fstd is here? i just started using pstd service 😃 it rocks
+17:58 <+bridge> [ddnet] <Learath2> you can add a ?c at the end to use c syntax highlighting 😛
+17:58 <+bridge> [ddnet] <ChillerDragon> ikr best
+17:59 <+bridge> [ddnet] <Learath2> ?lua and ?nim also works
+17:59 <+bridge> [ddnet] <ChillerDragon> doc said only c
+17:59 <+bridge> [ddnet] <ChillerDragon> nim lol
+17:59 <+bridge> [ddnet] <ChillerDragon> yo btw do we have a file naming convention? Seems like vanilla used all lowercase and together like gamecontext.cpp and some newer ddnet files use snake case like name_bans.cpp
+17:59 <+bridge> [ddnet] <Learath2> yeah possible that those are not in the doc, I think I added nim without saying anything 😛
+18:00 <+bridge> [ddnet] <Learath2> lowercase and together is more prevalent
+18:00 <+bridge> [ddnet] <ChillerDragon> src/engine/shared/network_client.cpp
+18:00 <+bridge> [ddnet] <ChillerDragon> ah thats vanilla as well huh?
+18:00 <+bridge> [ddnet] <ChillerDragon> i dont get it
+18:01 <+bridge> [ddnet] <archimede67> xd
+18:01 <+bridge> [ddnet] <archimede67> don't ask
+18:01 <+bridge> [ddnet] <ChillerDragon> xc
+18:01 <+bridge> [ddnet] <ChillerDragon> dfq does prevalent even mean
+18:02 <+bridge> [ddnet] <ChillerDragon> ye so we should kill the subvalent imo
+18:02 <+bridge> [ddnet] <ChillerDragon> (i can also invent words :p)
+18:02 <+bridge> [ddnet] <archimede67> xDD
+18:04 <+fstd> Learath2: haven't played in a long time, you?
+18:05 <+bridge> [ddnet] <Learath2> I'm starting again, but my config is gone 😦
+18:05 <+bridge> [ddnet] <ChillerDragon> lol he is actually here
+18:05 <+bridge> [ddnet] <ChillerDragon> always track configs on github hehe
+18:07 <+bridge> [ddnet] <ChillerDragon> oh its a ascii game nice
+18:07 <+bridge> [ddnet] <ChillerDragon> is it only ascii textures or is it actually cli?
+18:07 <+bridge> [ddnet] <Learath2> cli
+18:08 <+bridge> [ddnet] <ChillerDragon> awesome
+18:09 <+bridge> [ddnet] <ChillerDragon> i didnt know cli games are a thing i thought im the only person on planet who enjoys it
+18:09 <+bridge> [ddnet] <archimede67> xD
+18:10 <+fstd> Learath2: but you're not ingame are you?
+18:11 <+bridge> [ddnet] <Learath2> no i quit when i noticed my config was toast
+18:17 <+bridge> [ddnet] <ChillerDragon> rq
+18:32 <+bridge> [ddnet] <archimede67> u
+18:33 <+bridge> [ddnet] <ChillerDragon> 
+18:33 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/583694473284812811/unknown.png
+18:33 <+bridge> [ddnet] <archimede67> do it
+18:33 <+bridge> [ddnet] <ChillerDragon> 
+18:33 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/583694519988518962/unknown.png
+18:33 <+bridge> [ddnet] <ChillerDragon> didnt help
+18:33 <+bridge> [ddnet] <archimede67> xD
+18:34 <+bridge> [ddnet] <ChillerDragon> are there different types of all and alphabetical sort? xd or what am i not getting here
+18:35 <+bridge> [ddnet] <archimede67> probably
+18:35 <+bridge> [ddnet] <archimede67> or u just did shit idk
+18:35 <+bridge> [ddnet] <ChillerDragon> 
+18:35 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/583695108130734080/unknown.png
+18:36 <+bridge> [ddnet] <ChillerDragon> looks pretty all and sort to me
+18:36 <+bridge> [ddnet] <archimede67> ye
+18:40 <+bridge> [ddnet] <fokkonaut> `character_dummymodes.cpp` has to be under `character.h`
+18:41 <+bridge> [ddnet] <fokkonaut> @ChillerDragon
+18:44 <+bridge> [ddnet] <Learath2> you added a new file?
+18:45 <+bridge> [ddnet] <fokkonaut> yes he did
+18:45 <+bridge> [ddnet] <fokkonaut> but not sorted correctly
+18:46 <+bridge> [ddnet] <ChillerDragon> Hmm
+18:46 <+bridge> [ddnet] <fokkonaut> @ChillerDragon did you read my message
+18:46 <+bridge> [ddnet] <ChillerDragon> Ye
+18:46 <+bridge> [ddnet] <fokkonaut> Then do so
+18:46 <+bridge> [ddnet] <ChillerDragon> It makes sense
+18:46 <+bridge> [ddnet] <fokkonaut> Ofc it does
+18:46 <+bridge> [ddnet] <ChillerDragon> But I wonder why it looks like this
+18:46 <+bridge> [ddnet] <fokkonaut> ?
+18:47 <+bridge> [ddnet] <fokkonaut> what
+18:49 <+bridge> [ddnet] <ChillerDragon> ah nvm got confused
+18:50 <+bridge> [ddnet] <ChillerDragon> but it didnt help
+18:50 <+bridge> [ddnet] <fokkonaut> @ChillerDragon just make sure that the order in cmakelists.txt is the same as in your folder if you sort it alphabetically
+18:51 <+bridge> [ddnet] <ChillerDragon> yes i piped it through the sort command
+18:51 <+bridge> [ddnet] <ChillerDragon> i expect that to be sorted
+20:18 <+bridge> [ddnet] <heinrich5991> @ChillerDragon try piping through `LC_ALL=C sort`
+20:19 <+bridge> [ddnet] <archimede67> @heinrich5991 does my pr looks good to you or is there some bugs/things wrong?
+20:24 <+bridge> [ddnet] <ChillerDragon> awesome that worked @heinrich5991 ur a fokin wizard
+20:25 <+bridge> [ddnet] <heinrich5991> @archimede67 inline in class definition doesn't do anything btw
+20:27 <+bridge> [ddnet] <ChillerDragon> i dont understand why inline is in classes by default
+20:32 <+bridge> [ddnet] <heinrich5991> @archimede67 the first thing that would probably need to get fixed is that the thread still accesses some stuff from the main thread
+20:33 <+bridge> [ddnet] <heinrich5991> namely `pSnapshotDelta` and `pConsole`
+20:33 <+bridge> [ddnet] <heinrich5991> ah, CSnapshotDelta *might* be threadsafe, let me check
+20:33 <+bridge> [ddnet] <heinrich5991> (but `pConsole` isn't)
+20:34 <+bridge> [ddnet] <heinrich5991> (and it might be good to factor out the `CDemoEdit` out of `client.h` and `client.cpp`
+20:34 <+bridge> [ddnet] <archimede67> oh you think?
+20:34 <+bridge> [ddnet] <archimede67> so it has its own file,
+20:34 <+bridge> [ddnet] <archimede67> ?
+20:36 <+bridge> [ddnet] <heinrich5991> yes
+20:36 <+bridge> [ddnet] <heinrich5991> `CSnapshotDelta` is *not* threadsafe
+20:37 <+bridge> [ddnet] <archimede67> hmmm
+20:37 <+bridge> [ddnet] <archimede67> but i need it to init the demoeditor
+20:38 <+bridge> [ddnet] <heinrich5991> then you need to create your own instance
+20:38 <+bridge> [ddnet] <heinrich5991> for each thread
+20:38 <+bridge> [ddnet] <archimede67> of CSnapshotDelta?
+20:42 <+bridge> [ddnet] <heinrich5991> yes
+20:43 <+bridge> [ddnet] <archimede67> and for `pConsole` ?
+20:48 <+bridge> [ddnet] <heinrich5991> patch CDemoRecorder to also work with a NULL `pConsole` I guess
+20:48 <+bridge> [ddnet] <archimede67> k
+20:48 <+bridge> [ddnet] <archimede67> thx!
+21:14 <+bridge> [ddnet] <archimede67> @heinrich5991 where should I put the new file?
+21:14 <+bridge> [ddnet] <heinrich5991> src/engine/client/
+21:14 <+bridge> [ddnet] <archimede67> ok thanks
+21:30 <+bridge> [ddnet] <archimede67> uff
+21:30 <+bridge> [ddnet] <archimede67> 
+21:30 <+bridge> [ddnet] <archimede67> https://cdn.discordapp.com/attachments/293493549758939136/583738946626912285/unknown.png
+21:38 <+bridge> [ddnet] <archimede67> ok fixed xd
+21:51 <+bridge> [ddnet] <archimede67> @heinrich5991 I need the CSnapshotDelta from the client to make the demoeditor work properly
+22:43 <+bridge> [ddnet] <heinrich5991> why?
+22:43 <+bridge> [ddnet] <archimede67> idk, if not the demo is buggy
+22:45 <+bridge> [ddnet] <heinrich5991> @archimede67 I mean if there's a way the client's CSnapshotDelta becomes the way it is, then you can just put your own copy through the same process
+22:53 <+bridge> [ddnet] <archimede67> my own copy?
+22:58 <+bridge> [ddnet] <archimede67> so creating a thing exactly like the `m_SnapshotDelta` in the client that i pass in my thread?
+23:10 <+bridge> [ddnet] <Im 'corneum> is there a reason why rainbow color changing was made impossible on ddnet?
+23:11 <+bridge> [ddnet] <archimede67> maybe coz of last update with colors
+23:11 <+bridge> [ddnet] <Im 'corneum> no its been removed long ago
+23:11 <+bridge> [ddnet] <archimede67> ah
+23:11 <+bridge> [ddnet] <archimede67> idk then sry
+23:15 <+bridge> [ddnet] <heinrich5991> @Im 'corneum I for example would remove it because it looks attention-grabbing
+23:17 <+bridge> [ddnet] <Im 'corneum> then it seems to me its the same reason that emoticon spam was removed. but as it was brought back why dont you reactivate rainbow?
+23:51 <+bridge> [ddnet] <heinrich5991> I would also remove emote spams 😛

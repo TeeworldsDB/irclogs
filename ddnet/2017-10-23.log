@@ -1,0 +1,130 @@
+00:17 < ddnet-commits> [ddnet] heinrich5991 opened pull request #918: Add `CTestInfo` class, add test for create-close-remove process (master...pr_ddnet_test_info) https://git.io/vdAB8
+00:19 < ddnet-commits> [ddnet] heinrich5991 closed pull request #915: added viewers command (master...master) https://git.io/vdF2W
+01:51 <+ddnet-discord> <redix> @heinrich5991 Some words on the blockers:
+01:51 <+ddnet-discord> <redix> I will add one more commit tomorrow to fix some issues i encountered. But in general it should exactly work like the previous solution in most cases. Instead of checking the velocity each time when it is modified, it is now only checkend one time before being applied to the position. I did not explicitly check the coordinates but most of the time the prediction from the old client still works, so  <message clipped>
+01:51 <+ddnet-discord> <redix> 
+01:51 <+ddnet-discord> <redix> But there might be problems with the map that uses this enterable-behavior.
+01:51 <+ddnet-discord> <redix> Something like this will not work anyore since you cannot completely go into the tile:
+01:51 <+ddnet-discord> <redix> 
+01:51 <+ddnet-discord> <redix> https://cdn.discordapp.com/attachments/293493549758939136/371807921526407168/unknown.png
+01:53 <+ddnet-discord> <redix> But this should still work:
+01:53 <+ddnet-discord> <redix> https://cdn.discordapp.com/attachments/293493549758939136/371808204453052428/unknown.png
+01:59 <+ddnet-discord> <jao> @redix https://ddnet.tw/maps/?map=Wailand this map uses what you showed in the first screen (but it works also if you don't go fully on the ground somehow)
+02:00 <+ddnet-discord> <jao> @redix https://ddnet.tw/maps/?map=Wailand this map uses what you showed in the first screen (but it works if you don't go fully on the ground somehow)
+02:02 <+ddnet-discord> <jao> I think a tee is smaller than a gametile
+02:03 <+ddnet-discord> <redix> @Learath2 ask me anything :D
+02:03 <+ddnet-discord> <redix> Especially the if block with the code you mentioned is really not that nice... but all these checks are needed for the transition from local to serverside starting behavior. The problem is that the client does not know if the racetimer is on until it receives the first snapshot with the correspondint flag set. If there was a timer that is always on the code would be a lot cleaner.
+02:03 <+ddnet-discord> <redix> About the ddrace check: The client recoginzes the race start one tick earlier than the server. The servers just notices it one tick after the actual movement happened. So i need to correct the tick to keep in sync with old ghosts
+02:04 <+ddnet-discord> <redix> for block tiles the tee is actually larger than gametiles >.<
+02:04 <+ddnet-discord> <Learath2> okay let's see, is the one tick difference always consistent?
+02:05 <+ddnet-discord> <jao> so the map would have to be changed?
+02:05 <+ddnet-discord> <Learath2> also btw @redix I think we need physics changes to be 100% backwards compatible
+02:06 <+ddnet-discord> <redix> this will be kind of impossible since the old position check was kind of non-working at all
+02:07 <+ddnet-discord> <Learath2> Not sure how many maps would need to be fixed and quite possibly all the ranks would be invalidated on those maps aswell
+02:09 <+ddnet-discord> <redix> in general this behavior is rather random since it does also rely on the starting position and not only on the speed. so in terms of race fairness i would prefer to completely remove it...
+02:10 <+ddnet-discord> <jao> I don't think it would influence ranks on the map I posted
+02:11 <+ddnet-discord> <jao> or is it different behaviour in general, and not only special cases
+02:11 <+ddnet-discord> <redix> problem is that fixing this will break two and four direction stoppers
+02:11 <+ddnet-discord> <Learath2> regarding the ghost stuff, if `IGhostRecorder` and `IGhostLoader` are interfaces they do not need Interface pointers passed to them and they do not need helper functions in `IClient` as you can call them from anywhere in the code
+02:12 <+ddnet-discord> <redix> yes you are right... still some remains from the demo recorder code. i used it as a starting point
+02:12 <+ddnet-discord> <Learath2> also what do you mean by serverside starting behaviour and ServerControl, doesn't seem the server is actually controlling the playback and the recording either
+02:13 <+ddnet-discord> <redix> server controls means that the starting behavior relies on  the race timer instead of checking for the startline client side
+02:13 <+ddnet-discord> <Learath2> when do you need to actually check for the startline client side?
+02:14 <+ddnet-discord> <redix> when the race timer is off
+02:14 <+ddnet-discord> <redix> problem is that i only know that it is on after the local start already happened
+02:14 <+ddnet-discord> <redix> so i need all this "transition" code
+02:15 <+ddnet-discord> <Learath2> hmm we really do need some kind of `NETMSG_SUPPORTS` or an actual way of sending race events
+02:17 <+ddnet-discord> <redix> for the ghost a reliable timer is even better for the starting. for the end a new netmsg would be great
+02:20 <+ddnet-discord> <Learath2> `components/ghost.cpp:L261` what does this really check?
+02:21 <+ddnet-discord> <redix> damn... i will try it tomorrow but i'm pretty sure that the map @jao mentioned won't work anymore =\
+02:25 <+ddnet-discord> <redix> @Learath2 i should have kept the previous version of that check. was better readable i guess
+02:25 <+ddnet-discord> <redix> `if((ServerControl && !Predicted) || (!ServerControl && Predicted))`
+02:25 <+ddnet-discord> <redix> In the first case the "server side control" might have changed the RenderTick, in the second the local control might have changed it
+02:26 <+ddnet-discord> <redix> i'm not even sure if this line is still needed ^^
+02:27 <+ddnet-discord> <Learath2> tbh I don't get what most of this is doing, always thought the ghost code was a mess :/
+02:28 <+ddnet-discord> <redix> this code has been in the render method before
+02:28 <+ddnet-discord> <redix> the onsnapshot method has to deal with so many different cases =\
+02:28 <+ddnet-discord> <Learath2> OnNewSnapshot shouldn't the only thing you are checking be whether the race started or ended somehow?
+02:29 <+ddnet-discord> <redix> it is only the start 😄
+02:29 <+ddnet-discord> <Learath2> this is only checking for start? 😛
+02:30 <+ddnet-discord> <redix> yes... the rest of the code should be kind of okay... but i know that this method is horrible
+02:31 <+ddnet-discord> <Learath2> could maybe be generalized by abstracting changes in state, e.g. having an OnRaceStateChange hook
+02:34 <+ddnet-discord> <redix> this could maybe help... but the thing with the unreliable timer will still bloat the code
+02:34 <+ddnet-discord> <redix> besides the onsnapshot method... any other things you found in the code ^^
+02:35 <+ddnet-discord> <Learath2> that was my main concern, but let me go on reading
+02:36 <+ddnet-discord> <redix> okay... each time i fixed some issue with the timer the onsnapshot method got worse 😮
+02:39 <+ddnet-discord> <Learath2> ghosts don't save every tick right?
+02:41 <+ddnet-discord> <redix> no only when the buffer of the recorder if full... every 2 seconds with default snap rate
+02:41 <+ddnet-discord> <redix> no only when the buffer of the recorder is full... every 2 seconds with default snap rate
+02:44 <+ddnet-discord> <redix> about the blockers:
+02:44 <+ddnet-discord> <redix> i can bring back full entering for one direction blockers
+02:44 <+ddnet-discord> <redix> but fot 2 and 4 diretion blockers it might cause a lot of trouble
+02:45 <+ddnet-discord> <redix> about the blockers:
+02:45 <+ddnet-discord> <redix> i can bring back full entering for one direction blockers
+02:45 <+ddnet-discord> <redix> but fot 2 and 4 direction blockers it might cause a lot of trouble
+02:50 <+ddnet-discord> <Learath2> @redix CGhostLoader has only one ghost file loaded at any point, is there any reason to have GetTicks take a CGhostHeader *? GetTicks could just use m_Header as a member of CGhostLoader
+02:52 <+ddnet-discord> <redix> GetGhostInfo is used in the menu to get the header
+02:52 <+ddnet-discord> <redix> getticks is actually not used there but gettime is
+02:56 <+ddnet-discord> <Learath2> GetTicks and GetTime then actually belong to CGhostHeader as they only depend on the header
+02:56 <+ddnet-discord> <redix> yeah. makes sense
+02:56 <+ddnet-discord> <Learath2> think I'm kinda being nitpicky
+02:57 <+ddnet-discord> <redix> haha 😄
+03:05 <+ddnet-discord> <Learath2> ReadData and WriteData should take `unsigned char *` or `void *` from what I can read
+03:05 <+ddnet-discord> <redix> agree
+03:13 <+ddnet-discord> <redix> btw... while changing some things in player.cpp i stumbled across the Predict function. It seems to be part of antiping. A lot of commented out code... it says something about missprediction. some code depends on th ping value from scoreboard... i'm not sure what the guy who wrote it tried to measues... but it looks kinda weird
+03:13 <+ddnet-discord> <redix> btw... while changing some things in player.cpp i stumbled across the Predict function. It seems to be part of antiping. A lot of commented out code... it says something about missprediction. some code depends on the ping value from scoreboard... i'm not sure what the guy who wrote it tried to measues... but it looks kinda weird
+03:14 <+ddnet-discord> <Learath2> oh I'm not sure anyone really knows what that stuff does anymore 😛
+03:15 <+ddnet-discord> <Learath2> it's mostly @deen's code iirc
+03:16 <+ddnet-discord> <Learath2> I think except for the things I mentioned and OnNewSnapshot I'm okay with this
+03:16 <+ddnet-discord> <redix> https://github.com/ddnet/ddnet/commit/dc6d2305d59446eedacd93149a3efc2d1cea5d9f
+03:16 <+ddnet-discord> <redix> AntiPing from TDTW client by Psycho.God <3. & kaddy.
+03:19 <+ddnet-discord> <Learath2> why did you need to friend CGhost in CPlayers btw?
+03:20 <+ddnet-discord> <redix> okay. i'll fix these things... not sure about onnewsnapshot though. right now this function is very fragile =\
+03:20 <+ddnet-discord> <redix> maybe adding a new timer / netmsg and cleaning it up then is a better idea
+03:20 <+ddnet-discord> <redix> for calling RenderPlayer. could also have made it public
+03:22 <+ddnet-discord> <Learath2> this is what I hate about OOP... RenderPlayer doesn't even need to be a member for CPlayers...
+03:22 <+ddnet-discord> <Learath2> meh I guess it's fine like this
+03:23 <+ddnet-discord> <redix> the whole file is messed up. grabbing the predicted values inside a rendering function and stuff >.<
+03:24 <+ddnet-discord> <Learath2> well fix the small stuff, I'll merge then we can look at `OnNewSnapshot`
+03:25 <+ddnet-discord> <redix> okay. gonna do it tomorrow. time to sleep now 😄
+03:25 <+ddnet-discord> <redix> about Predict
+03:25 <+ddnet-discord> <Learath2> yeah way too late :p
+03:25 <+ddnet-discord> <Learath2> yeah way too late 😛
+03:26 <+ddnet-discord> <redix> the function depends on
+03:26 <+ddnet-discord> <redix> double d = length(PrevPredPos - Position)/s_Ping;
+03:26 <+ddnet-discord> <redix> Position depends on IntraTick
+03:26 <+ddnet-discord> <redix> So PrevPredPos - Position seems to depend on the frame time.
+03:26 <+ddnet-discord> <redix> I'm pretty sure this is wrong ^^
+03:29 <+ddnet-discord> <Learath2> one more thing before I also get some sleep
+03:31 <+ddnet-discord> <Learath2> you don't seem to be using File after `engine/shared/ghost.cpp:L355 `you could just close it
+03:31 <+ddnet-discord> <Learath2> would simplify your ifs
+03:33 <+ddnet-discord> <redix> right. thanks for that hint 😄
+03:35 <+ddnet-discord> <Learath2> I'll get some sleep, gn8
+03:36 <+ddnet-discord> <Learath2> ofc as always thank you for thy contribution 😛
+03:37 <+ddnet-discord> <redix> same here. gn8 :)
+03:38 <+ddnet-discord> <redix> i wanted to merge this code (from teerace) for a long time 😄 was too lazy until now
+09:34 <+ddnet-discord> <deen> https://github.com/ddnet/ddnet/pull/801  Anyone want to fix this up?
+09:42 < ddnet-commits> [ddnet] def- closed pull request #917: Add DPI awareness support for MSVC compiling for Win8.1 and Win10 (master...master) https://git.io/vdNzN
+09:43 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vdAyP
+09:43 < ddnet-commits> ddnet/master acb052e Dennis Felsing: Newline
+13:59 < ddnet-commits> [ddnet] heinrich5991 opened pull request #919: Drop CMake 3.4 support for MSVS (master...pr_ddnet_no_old_windows_cmake) https://git.io/vdxLF
+14:20 < ddnet-commits> [ddnet] heinrich5991 closed pull request #828: Remove bam (master...dd_pr_removebam) https://git.io/v7lWu
+14:52 < ddnet-commits> [ddnet] def- closed pull request #919: Drop CMake 3.4 support for MSVS (master...pr_ddnet_no_old_windows_cmake) https://git.io/vdxLF
+15:22 <+ddnet-discord> <Ezy> Ur discord admins r bad(jao)
+15:22 <+ddnet-discord> <ZimE> why
+15:23 <+ddnet-discord> <Ezy> He took away my rights to add reactions becuz u and mokuz were Spamming reactions
+15:25 <+ddnet-discord> <Ezy> Wheres the logic
+15:25 <+ddnet-discord> <Ezy> U can look up who added them and hes just like nope fuck it ima give this guy a reation mute instead
+15:27 <+ddnet-discord> <ZimE> haha you spam emotions and remove later
+15:27 <+ddnet-discord> <Ezy> No
+15:28 <+ddnet-discord> <jao> not the place to discuss this
+15:28 <+ddnet-discord> <ZimE> ok
+15:28 <+ddnet-discord> <Ezy> ._.
+17:30 <+ddnet-discord> <Mokuz> Hah he took mine away too XD
+18:03 <+ddnet-discord> <heinrich5991> @Ezy you can PM an admin if you want
+18:25 < ddnet-commits> [ddnet] Jupeyy opened pull request #920: VBO deletion after VAO deletion & viewport adjustment for dpi scaled displays at fullscreen (master...master) https://git.io/vdxDb
+18:47 <+ddnet-discord> <Savander> Have you seen that before?
+18:47 <+ddnet-discord> <Savander> https://cdn.discordapp.com/attachments/293493549758939136/372063411288145921/Bug.demo
+19:38 <+ddnet-discord> <Dr. Jekyll> Hooray all CI test passing now
+19:38 <+ddnet-discord> <Dr. Jekyll> nice work (whomever)
+20:12 <+ddnet-discord> <Ram> yee @Savander

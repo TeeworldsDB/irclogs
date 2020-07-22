@@ -1,0 +1,148 @@
+00:00 <+Ryozuki> nah it uses visual studio which i don't want
+00:00 <+Ryozuki> i want mingw :/
+00:01 <@Learath2> git bash should use mingw
+00:01 <@Learath2> wtf did you do to it??
+00:01 <+Ryozuki> idk
+00:01 <@Learath2> if it's in path it should take gcc first
+00:01 <+Ryozuki> wait ill force mingw
+00:01 <@Learath2> it shouldn't even find msvc in git bash
+00:04 <+Ryozuki> same error
+00:04 <@Learath2> Ryozuki: is it using the bundled libs?
+00:04 <+Ryozuki> cmake says yes, less for pythoninterp
+00:05 <@Learath2> if you can try an older gcc pls, deen might be using an older gcc to build the libs
+00:07 <+Ryozuki> gcc 4.8.2?
+00:33 <@heinrich5991> Ryozuki: do you have msvc installed?
+00:34 <+Ryozuki> yes
+00:34 <+Ryozuki> if that comes with visual studio
+00:35 <+Ryozuki> The C compiler identification is MSVC 19.0.24210.0
+00:36 <+Ryozuki> i dont like msvc 
+00:36 <@heinrich5991> could you try compiling with msvc? it's the only thing I tried so far on windows
+00:36 <@heinrich5991> do you have the cmake gui?
+00:38 <+Ryozuki> why?, compiling with msvc...
+00:39 <+Ryozuki> yes with msvc works
+00:39 <@heinrich5991> Ryozuki: and can you give me the file CMakeFiles\DDNet.dir\linklibs.rsp?
+00:41 <+Ryozuki> i dont have that folder
+00:41 <+Ryozuki> C:\Users\user\Desktop\DDNET-DEV\ddnet\build\DDNet.dir\Debug
+00:41 <+Ryozuki> tho there are only .obj files
+00:41 <+Ryozuki> DDNet_cl.res ?
+00:41 <@heinrich5991> no
+00:42 <@heinrich5991> do you have separate folders for msvc and mingw build?
+00:42 <@heinrich5991> if not, could you configure a mingw build again and let it run, and afterwards give me the file
+00:42 <+Ryozuki> sure
+00:50 <+Ryozuki> https://drive.google.com/open?id=0B5wvew6pPNDRX3BjbUJ2bm4wbW8
+00:50 <+Ryozuki> this one has the file you mentioned
+00:51 <+ddnet-discord> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/341714606462599178/linklibs.rsp
+00:54 <@heinrich5991> wait, could you run C:\MinGW\bin\g++.exe --version and g++ --version in the bam shell
+00:55 <+Ryozuki> both 5.3.0
+00:58 <@heinrich5991> Ryozuki: did you quote the error character-for-character or did you paraphrase it?
+00:58 <+Ryozuki> i added "
+00:59 <@heinrich5991> might it be "the procedure entry point could not be located"?
+00:59 <@heinrich5991> wait
+00:59 <@heinrich5991> where does the error appear?
+00:59 <@heinrich5991> in the console?
+00:59 <+ddnet-discord> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/341716494859763724/Screenshot_6.png
+00:59 <@heinrich5991> in a message box?
+00:59 <+Ryozuki> when executing it
+00:59 <+Ryozuki> see the image
+00:59 <+Ryozuki> (spanish, sry)
+00:59 <@heinrich5991> ok
+00:59 <@heinrich5991> so it's not a link-time error but a runtime error
+00:59 <+Ryozuki> looks like
+01:00 <@heinrich5991> copy all the .dlls over to the build directory
+01:00 <@heinrich5991> the ones where bam generates its executables
+01:01 <+Ryozuki> you mean copy the ddls from ddnet-libs?
+01:01 <@heinrich5991> no
+01:01 <@heinrich5991> bam automatically copies some dlls
+01:01 <+Ryozuki> from?
+01:02 <@heinrich5991> to the root directory of the ddnet stuff
+01:02 <@heinrich5991> from ddnet-libs probably
+01:02 <@heinrich5991> but just copy over the libs that bam has copied
+01:02 <+Ryozuki> so i build with bam?
+01:02 <@heinrich5991> (i.e. all the dlls in the ddnet root folder)
+01:02 <@heinrich5991> I thought you built with bam already?
+01:02 <+Ryozuki> i bam -c all to keep things clean
+01:02 <@heinrich5991> ah
+01:02 <@heinrich5991> then build with bam
+01:03 <@heinrich5991> (note that you can do a cmake build in a different folder if you want to)
+01:03 <+Ryozuki> i actually do
+01:04 <+Ryozuki> copied, same error
+01:05 <@heinrich5991> was there some libgcc*.dll?
+01:05 <+Ryozuki> libgcc_s_sjlj-1.dll
+01:06 <@heinrich5991> mh okay
+01:06 <@heinrich5991> and you copied those to the cmake build folder in which you tried to exectue the ddnet-server again?
+01:06 <+Ryozuki> yep
+01:07 <@heinrich5991> ah
+01:09 <@heinrich5991> Ryozuki: how did you generate the cmake build dir for mingw?
+01:09 <@heinrich5991> using the UI or the cli?
+01:09 <+Ryozuki> cli
+01:09 <+Ryozuki> cmake .. -G "MinGW Makefiles" -DCMAKE_SH="CMAKE_SH-NOTFOUND"
+01:10 <@heinrich5991> ok
+01:10 <@heinrich5991> can you rm CMakeCache.txt
+01:10 <+Ryozuki> yes
+01:10 <@heinrich5991> and then env LDFLAGS="-static-libgcc -static-libstdc++" cmake .. -G "MinGW Makefiles" [...] ?
+01:11 <+Ryozuki> now i build?
+01:11 <@heinrich5991> yes
+01:12 <+Ryozuki> works!
+01:13 <@heinrich5991> mh okay
+01:13 <+Ryozuki> not what you expected?
+01:13 <@heinrich5991> no no, it's fine
+01:14 <@heinrich5991> why did you do the CMAKE_SH thing?
+01:14 <+Ryozuki> CMake Error at C:/Program Files/CMake/share/cmake-3.7/Modules/CMakeMinGWFindMake.cmake:12 (message):
+01:14 <+Ryozuki>   sh.exe was found in your PATH, here:
+01:14 <+Ryozuki>   C:/Program Files/Git/usr/bin/sh.exe
+01:14 <+Ryozuki>   For MinGW make to work correctly sh.exe must NOT be in your path.
+01:14 <+Ryozuki> ^ thats why
+01:15 <@heinrich5991> mh ok
+01:15 <@heinrich5991> you can probably also use any other falsy string btw
+01:15 <@heinrich5991> OFF NO FALSE 0 etc.
+01:16 <@Learath2> heinrich5991: static libgcc and libstdc++ is what we want right?
+01:16 <@heinrich5991> on windows with mingw yes. I'm about to send a PR
+01:21 <@heinrich5991> btw, PREFER_BUNDLED_LIBS is true on Windows by default
+01:21 <+Ryozuki> nice
+01:22 < ddnet-commits> [ddnet] heinrich5991 opened pull request #832: Statically link standard libraries in MinGW for CMake (master...pr_ddnet_cmake_mingw) https://git.io/v7BWp
+01:22 <@heinrich5991> Ryozuki: can you try this?
+01:22 <+Ryozuki> yes
+01:27 <@Learath2> heinrich5991: might want a if STREQUAL "Windows" there
+01:28 <@heinrich5991> not that easy
+01:28 <@heinrich5991> you don't want it for MSVC
+01:28 <@Learath2> deen does cross compile for windows
+01:28 <@Learath2> with mingw
+01:29 <@Learath2> think that one already worked, so we shouldnt merge before he tries i guess
+01:29 <@heinrich5991> no: https://github.com/ddnet/ddnet/issues/807
+01:30 <+Ryozuki> heinrich5991, works
+01:30 <@Learath2> oh i guess we can merge then
+01:35 <@heinrich5991> CI is done as well
+01:37 <@Learath2> heinrich5991: well i don't see any reason not to merge, if you have no objections either i'll go ahead
+01:37 <@heinrich5991> go ahead
+01:38 < ddnet-commits> [ddnet] Learath2 closed pull request #832: Statically link standard libraries in MinGW for CMake (master...pr_ddnet_cmake_mingw) https://git.io/v7BWp
+03:10 < ddnet-commits> [ddnet] ACTom opened pull request #833: update simplified chinese language file (master...master) https://git.io/v7B2x
+08:11 <+Ryozuki> check this https://github.com/ddnet/ddnet/issues/834
+08:53 < ddnet-commits> [ddnet] def- pushed 2 new commits to master: https://git.io/v7B94
+08:53 < ddnet-commits> ddnet/master 549f95c Tom: update simplified chinese language file
+08:53 < ddnet-commits> ddnet/master b8db88e Dennis Felsing: Merge pull request #833 from ACTom/master...
+09:47 <@Learath2> deen: does cross compiling work now?
+10:20 <@deen> Learath2: dunno
+10:20 <@deen> Learath2: you can try yourself
+10:20 <@deen> I've spent so much time with ddnet build issues, not sure i want to dive into it again
+10:55 <@Learath2> heinrich5991: "ENGINE_SHARED does not contain every file from directory src/engine/shared"
+10:55 <@Learath2> I get many of these
+10:56 <@heinrich5991> which files does it report as missing?
+10:57 <@Learath2> heinrich5991: oh my git clean didn't quite work sry
+11:13 <@heinrich5991> fun :) so it actually helped? ^^
+11:13 <@Learath2> yep
+12:23 <@Learath2> if nimda sets everyone +v so quickly what's the point of +m
+12:24 <@Learath2> and setting up cross compiling on gentoo is quite hard apparently
+12:24 <@heinrich5991> Learath2: what +m? ^^
+12:25 <@Learath2> doesn't nimda set +m when on lockdown?
+12:25 <@heinrich5991> yes, but I unset it a couple of days ago
+12:26 <@Learath2> anyways that's besides the point, how is nimda supposed to stop anything if it +v's everyone so quickly? :P
+12:28 <@heinrich5991> maybe it has some magic to determine how fast to +v someone
+12:28 <@heinrich5991> and this channel definitely isn't under attack right now :)
+20:05 <@Nimda> Maui Wowie 2 by RayB. just released on Novice at 2017-08-01 20:01
+21:45 < ddnet-commits> [ddnet] heinrich5991 opened pull request #835: Add `install`, `package` and `package_source` targets to CMake (master...pr_ddnet_cmake_install) https://git.io/v70d9
+21:58 <@Learath2> heinrich5991: you could add make package in circle.yml
+21:58 <@Learath2> we'd even get it out at the artifacts :P
+22:00 <@Learath2> make everything seems to be broken
+22:05 <@heinrich5991> nah
+22:06 <@heinrich5991> cmakelists.txt not compatible with the old circleci version
+22:09 <@Learath2> well none of the CIs seem to be supported

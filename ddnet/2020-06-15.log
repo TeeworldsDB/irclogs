@@ -1,0 +1,349 @@
+00:20 <+bridge> [ddnet] <deen> your line has the same check in the if condition twice, fix it
+00:31 <+bridge> [ddnet] <Learath2> @deen well lmk if you come up with anything, I'll sleep on this one 😄
+00:34 <+bridge> [ddnet] <ᶰ°Konͧsti> @HamidReza585 stop using sash client
+04:20 <+bridge> [ddnet] <Arseniy Zarche> xnj
+07:18 <+bridge> [ddnet] <deen> @Learath2 specialize the override with the condition? or put the definition and declaration for the overridden method together
+09:26 <+bridge> [ddnet] <Learath2> @deen but that's an ambiguous call, no? The specialized one wouldnt be more specialized
+09:33 <+bridge> [ddnet] <Learath2> @deen I was thinking something like https://gist.github.com/Learath2/dfc2c9f51692834a5b4b43cad78e674d but this isn't allowed apparently
+11:51 <+bridge> [freenode] <Zwelf> @Learath2 I finished the thread safe SQL PR. I am also available for questions here.
+11:51 <+Learath2> \o/
+11:51 <+Learath2> As soon as I find a decent solution for my template issue I'll give it a review
+11:52 <+bridge> [freenode] <Zwelf> Thanks :)
+12:07 <+bridge> [ddnet] <Ryozuki> why use a wordlist?
+12:07 <+bridge> [ddnet] <Ryozuki> why not generate a token
+12:08 <+bridge> [ddnet] <heinrich5991> I like a wordlist better
+12:08 <+bridge> [ddnet] <heinrich5991> easier to say and remember IMO
+12:09 <+bridge> [ddnet] <Learath2> Okay a struct wrapping the function works but that's just ugly. I'll take a look at the PR instead :
+12:39 <+bridge> [ddnet] <Learath2> Zwelf: Have you considered a base class for the result types so you could handle the result generically?
+12:44 <+bridge> [ddnet] <Ryozuki> idk if im blind
+12:44 <+bridge> [ddnet] <Ryozuki> but u are not using prepared statements at all
+12:44 <+bridge> [ddnet] <Learath2> You are blind 😛
+12:44 <+bridge> [ddnet] <deen> Lots of cool and huge improvements recently, thanks Zwelf & Learath2 especially
+12:46 <+bridge> [ddnet] <Learath2> @Ryozuki e.g. https://github.com/ddnet/ddnet/blob/9f15acdbee9e73a2e460a89efbe58590a27c096d/src/game/server/score/sql_score.cpp#L1600-L1604
+12:47 <+bridge> [ddnet] <Ryozuki> sql::Statement is not sql::PreparedStatement
+12:47 <+bridge> [ddnet] <Ryozuki> just sayin
+12:48 <+bridge> [ddnet] <Learath2> Are you looking at the same part I'm looking at?
+12:48 <+bridge> [ddnet] <Ryozuki> ah yes
+12:48 <+bridge> [ddnet] <Ryozuki> why dont u catch the prepared statement tho
+12:48 <+bridge> [ddnet] <Ryozuki> and also
+12:48 <+bridge> [ddnet] <Ryozuki> other parts of code
+12:48 <+bridge> [ddnet] <Ryozuki> dont use prepared statement
+12:49 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/blob/9f15acdbee9e73a2e460a89efbe58590a27c096d/src/engine/server/sql_server.cpp#L213
+12:49 <+bridge> [ddnet] <Ryozuki> many things use this function
+12:49 <+bridge> [ddnet] <Learath2> I think wherever there is user input he is using a prepared statement, but I haven't gotten through it yet
+12:49 <+bridge> [ddnet] <Ryozuki> this is not a prepared statement
+12:49 <+bridge> [ddnet] <Ryozuki> and you can cache the prepared statements
+12:49 <+bridge> [ddnet] <Ryozuki> u dont need to delete them
+12:49 <+bridge> [ddnet] <Ryozuki> and create them
+12:49 <+bridge> [ddnet] <Ryozuki> everytime
+12:49 <+bridge> [ddnet] <Ryozuki> https://dev.mysql.com/doc/connector-cpp/1.1/en/connector-cpp-examples-prepared-statements.html
+12:49 <+bridge> [ddnet] <Learath2> Yes this is one I'm going to suggest, we could prepare all our statements at the start
+12:49 <+bridge> [ddnet] <Ryozuki> the point is to reuse it
+12:50 <+bridge> [ddnet] <Learath2> Well the point is also better sanitization
+12:50 <+bridge> [ddnet] <Learath2> One issue with preparing at the start is that the statements become invalid if we ever disconnect from the mysql server
+12:50 <+bridge> [ddnet] <Ryozuki> serialization
+12:50 <+bridge> [ddnet] <Ryozuki> would be awesome
+12:50 <+bridge> [ddnet] <Ryozuki> maybe its too much to ask c++
+12:50 <+bridge> [ddnet] <Learath2> serialization of the state of the server?
+12:50 <+bridge> [ddnet] <Ryozuki> of the results
+12:50 <+bridge> [ddnet] <Learath2> Ah serialization in general
+12:51 <+bridge> [ddnet] <Learath2> Yeah not C++s forte
+12:51 <+bridge> [ddnet] <Ryozuki> well im sure with c++11 u can do this
+12:51 <+bridge> [ddnet] <Ryozuki> but its ugly
+12:52 <+bridge> [ddnet] <Learath2> Well no reflection means that you'll have to rely on template magic to serialize
+12:52 <+bridge> [ddnet] <Learath2> and most template magic relies on SFINAE which is pretty ugly ngl
+12:53 <+bridge> [ddnet] <Ryozuki> well
+12:53 <+bridge> [ddnet] <Ryozuki> u can do the serialization manually
+12:53 <+bridge> [ddnet] <Ryozuki> like
+12:53 <+bridge> [ddnet] <Ryozuki> implement a interface
+12:53 <+bridge> [ddnet] <Ryozuki> FromResult
+12:53 <+bridge> [ddnet] <Learath2> Why do you want to serialize the result anyway?
+12:53 <+bridge> [ddnet] <Ryozuki> looks cleaner
+12:53 <+bridge> [ddnet] <Ryozuki> idk
+12:56 <+bridge> [ddnet] <deen> @Learath2 something like this? https://gist.github.com/def-/6aa3c33b3a8be409166618aa32c1e0cf
+12:57 <+bridge> [ddnet] <ᶰ°Konͧsti> @deen did u know Heidelberg is the partnercity of my city Bautzen? :kek:
+12:58 <+bridge> [ddnet] <Learath2> @deen hm, are we okay to go from C++11 to C++17?
+12:58 <+bridge> [ddnet] <Ryozuki> :poggers:
+12:58 <+bridge> [ddnet] <heinrich5991> chl has the oldest debian
+12:58 <+bridge> [ddnet] <heinrich5991> check if it supports c++17
+12:59 <+bridge> [ddnet] <Ryozuki> cant you upgrade tho
+12:59 <+bridge> [ddnet] <heinrich5991> we probably can, but someone has to do it
+12:59 <+bridge> [ddnet] <Ryozuki> :greenthing:
+13:00 <+bridge> [ddnet] <Ryozuki> what debian is it btw
+13:00 <+bridge> [ddnet] <Ryozuki> 8?
+13:00 <+bridge> [ddnet] <deen> @ᶰ°Konͧsti Yeah, I cycle through Heidelberg every 2-3 days and always see the partner city sign 🙂
+13:00 <+bridge> [ddnet] <Ryozuki> what is a partner city
+13:01 <+bridge> [ddnet] <deen> https://en.wikipedia.org/wiki/Sister_cityhttps://en.wikipedia.org/wiki/Sister_city
+13:01 <+bridge> [ddnet] <deen> https://en.wikipedia.org/wiki/Sister_city
+13:02 <+bridge> [ddnet] <deen> Chile has Debian 10.4
+13:02 <+bridge> [ddnet] <heinrich5991> @deen did you update all hosts to debian 10?
+13:02 <+bridge> [ddnet] <deen> yes
+13:02 <+bridge> [ddnet] <heinrich5991> oh nice
+13:02 <+bridge> [ddnet] <heinrich5991> we can drop the cmake hack on chl
+13:02 <+bridge> [ddnet] <deen> and will keep updating them when new debian releases come out
+13:02 <+bridge> [ddnet] <heinrich5991> chl was older than the rest for a while
+13:02 <+bridge> [ddnet] <deen> I think I couldn't upgrade because of some problem with the old kernel not supporting the upgrade
+13:02 <+bridge> [ddnet] <deen> at some point the hoster fixed it
+13:03 <+bridge> [ddnet] <heinrich5991> ah
+13:03 <+bridge> [ddnet] <deen> @ᶰ°Konͧsti Bautzen also looks pretty, but too far away for a day trip
+13:04 <+bridge> [ddnet] <Ryozuki> if anyone is using a recent kernel and it freezes: https://bugs.archlinux.org/task/66991
+13:04 <+bridge> [ddnet] <Ryozuki> first time a new kernel gave me problems
+13:04 <+bridge> [ddnet] <Ryozuki> sadge
+13:04 <+bridge> [ddnet] <ᶰ°Konͧsti> make a more days trip :feelsamazingman: :feelsamazingman: :feelsamazingman:
+13:07 <+bridge> [ddnet] <Learath2> @Ryozuki hm, we are multithreading, I don't think you can share prepared statements like that actually
+13:08 <+bridge> [ddnet] <Ryozuki> cant u just lock it
+13:08 <+bridge> [ddnet] <Ryozuki> im not an expert tho
+13:08 <+bridge> [ddnet] <Learath2> Problem is that the prepared statement is a construct of the connection
+13:09 <+bridge> [ddnet] <Ryozuki> the connection pool is safe rn?
+13:09 <+bridge> [ddnet] <Learath2> Each of our threads gets it's own connection
+13:09 <+bridge> [ddnet] <Ryozuki> ah
+13:09 <+bridge> [ddnet] <Ryozuki> well
+13:09 <+bridge> [ddnet] <Ryozuki> but in some parts u still dont use prepared statements
+13:09 <+bridge> [ddnet] <Ryozuki> even if u cant cache them
+13:09 <+bridge> [ddnet] <Learath2> Yeah, any input that comes from the user should go into a prepared statement
+13:09 <+bridge> [ddnet] <Ryozuki> i trhink its better
+13:10 <+bridge> [ddnet] <Ryozuki> u dont keep threads alive right?
+13:10 <+bridge> [ddnet] <Ryozuki> i guess its not a good option
+13:12 <+bridge> [ddnet] <Learath2> Threads aren't alive yep
+13:12 <+bridge> [ddnet] <Learath2> Each sql operation gets a thread, it completes it's job and dies
+13:12 <+bridge> [ddnet] <heinrich5991> in an optimal scenario, we'd have a thread pool
+13:13 <+bridge> [ddnet] <heinrich5991> of n worker threads
+13:13 <+bridge> [ddnet] <Learath2> Also going to ask whether he considered using the engine job pool
+13:14 <+bridge> [ddnet] <heinrich5991> > The current code doesn't use prepared statements as well. I agree that prepared statements would be better, but I want to finish the thread-safe part first.
+13:14 <+bridge> [ddnet] <heinrich5991> I guess the goal was to get rid of our longstanding thread-safety
+13:16 <+bridge> [ddnet] <Learath2> @heinrich5991 how were you checking the lowest version of cmake in distros in use?
+13:16 <+bridge> [ddnet] <heinrich5991> https://repology.org/ for all distros, debian itself also has a nice package search
+13:17 <+bridge> [ddnet] <Learath2> What is the oldest we decided to support anyway?
+13:18 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/2085
+13:18 <+bridge> [ddnet] <Learath2> `CXX_STANDARD` seems to be there since 3.1
+13:19 <+bridge> [ddnet] <Ryozuki> bumping to 3.8
+13:19 <+bridge> [ddnet] <heinrich5991> CentOS 6 or 7 seems to be the oldes we support
+13:19 <+bridge> [ddnet] <Ryozuki> would allow to use some neat stuff
+13:19 <+bridge> [ddnet] <Ryozuki> iirc
+13:19 <+bridge> [ddnet] <Ryozuki> we dicussed this time ago
+13:20 <+bridge> [ddnet] <Learath2> I wonder if we even build fine in cmake 2.8 we claim to support
+13:20 <+bridge> [ddnet] <heinrich5991> probably not if we don't have CI for it
+13:20 <+bridge> [ddnet] <Ryozuki> is there rly ppl on centos 7
+13:20 <+bridge> [ddnet] <heinrich5991> CentOS 8 is the newest CentOS 😛
+13:20 <+bridge> [ddnet] <Learath2> Centos people are odd, I wouldn't be surprised if there were people still using Centos 2
+13:20 <+bridge> [ddnet] <Ryozuki> who uses centos anyway
+13:21 <+bridge> [ddnet] <heinrich5991> people who don't want to update very often
+13:21 <+bridge> [ddnet] <Ryozuki> debian
+13:21 <+bridge> [ddnet] <Learath2> I guess if your server controls nuclear silos you might consider that level of stability
+13:21 <+bridge> [ddnet] <Learath2> debian is bleeding edge compared to centos
+13:21 <+bridge> [ddnet] <Ryozuki> but we are talking about a game
+13:21 <+bridge> [ddnet] <Ryozuki> xd
+13:21 <+bridge> [ddnet] <Ryozuki> games most of the time require up to date software
+13:21 <+bridge> [ddnet] <Ryozuki> we dont need to consider nuclear silo ppl
+13:21 <+bridge> [ddnet] <ᶰ°Konͧsti> Lets break windowssupport from DDNet
+13:22 <+bridge> [ddnet] <Learath2> Eh, with teeworlds we do really keep support for old configurations for a long time
+13:22 <+bridge> [ddnet] <Learath2> When I did the updater there actually were people still on windows XP
+13:22 <+bridge> [ddnet] <Learath2> I hadn't even tested on XP
+13:23 <+bridge> [ddnet] <Learath2> @heinrich5991 do you remember why you set `-std=gnu++11` manually on mac instead of just relying on CXX_STANDARD?
+13:23 <+bridge> [ddnet] <Soreu> @Learath2 Oh, I remember that. Every next release had to be downloaded manually for some time ^^'
+13:23 <+bridge> [ddnet] <heinrich5991> that was deen IIRC
+13:23 <+bridge> [ddnet] <heinrich5991> try git blame
+13:24 <+bridge> [ddnet] <Learath2> you seem to be the only one that touched the line
+13:25 <+bridge> [ddnet] <Learath2> maybe you moved it from somewhere after deen added it
+13:26 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/commit/7726540de11f2d507c3069a0d9d71535f43e6752
+13:27 <+bridge> [ddnet] <Learath2> Ah, I can't do CXX_STANDARD 17 until cmake 3.8
+13:28 <+bridge> [ddnet] <Learath2> 3.8 is a little high
+13:28 <+bridge> [ddnet] <heinrich5991> we could work around it
+13:28 <+bridge> [ddnet] <heinrich5991> but I'd guess compilers in these old distributions don't even support c++17
+13:37 <+bridge> [ddnet] <Learath2> Yeah, hm are we okay with not compiling without c++17 support?
+13:38 <+bridge> [ddnet] <Learath2> It's less common than I initially tought
+13:38 <+bridge> [ddnet] <Learath2> thought*
+13:41 <+bridge> [ddnet] <heinrich5991> doesn't exist on centos 7, debian oldstable, ubuntu 16.04
+13:44 <+bridge> [ddnet] <heinrich5991> also wtf why is ubuntu 14.04 still in security support
+13:44 <+bridge> [ddnet] <Learath2> is it maybe a LTS release?
+13:44 <+bridge> [ddnet] <heinrich5991> I guess enterprises really do want stable software
+13:44 <+bridge> [ddnet] <heinrich5991> yes
+13:46 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/w/index.php?title=Ubuntu_version_history&oldid=961366462#Version_timeline
+13:50 <+bridge> [ddnet] <Learath2> So do we care that we wont be able to build on those?
+13:51 <+bridge> [ddnet] <heinrich5991> I think I'd like to keep debian oldstable support
+13:51 <+bridge> [ddnet] <heinrich5991> that's a good distro to make binary releases from
+13:53 <+bridge> [ddnet] <Learath2> Okay and since the template wizards in ##c++ didn't come up with anything better either, I guess it'll have to be https://gist.github.com/Learath2/8950c79beb25f36baf152325f2f46d7f
+13:54 <+bridge> [ddnet] <Learath2> or SendPackMsg getting wrapped by a struct which I can to partial template specialisation on
+13:55 <+bridge> [ddnet] <Learath2> maybe bump to c++14 for inline template variables that'd clean it up a little bit
+13:58 <+bridge> [ddnet] <Ryozuki> @Learath2 whaty does enable_if?
+13:59 <+bridge> [ddnet] <Learath2> enable if is an interesting template, if the first argument is false, it'll fail template substitution
+13:59 <+bridge> [ddnet] <Learath2> if not it'll have a member type `::type` that's the second argument
+13:59 <+bridge> [ddnet] <Ryozuki> its like a compile time check?
+13:59 <+bridge> [ddnet] <Ryozuki> ah
+13:59 <+bridge> [ddnet] <Learath2> a compile time way to disable templates selectively
+14:01 <+bridge> [ddnet] <Ryozuki> template syntax gets rly confusing
+14:01 <+bridge> [ddnet] <Learath2> C++20 concepts really clean this up
+14:30 <+bridge> [ddnet] <Learath2> Okay it's going to be the gist I linked above, I don' like how the struct looks
+15:37 <+bridge> [ddnet] <Learath2> That's all the gameplay issues I've found
+15:37 <+bridge> [ddnet] <Learath2> now for serverinfo
+17:03 <+bridge> [ddnet] <Arseniy Zarche> hey everyone, can someone help me to add files in CMakeLists
+17:03 <+bridge> [ddnet] <Arseniy Zarche> hey everyone, can someone help me to add files in CMakeLists (DM)
+17:07 <+bridge> [ddnet] <Learath2> Uf I forgot I needed to do tokens first
+17:22 <+bridge> [ddnet] <heinrich5991> @Arseniy Zarche I initially didn't answer because you wanted it to happen in DM
+17:22 <+bridge> [ddnet] <heinrich5991> I'm generally more interested in answering questions in a public channel, it might help other people as well
+17:22 <+bridge> [ddnet] <heinrich5991> this one: check where similar files are added, and add yours as well
+17:25 <+bridge> [ddnet] <Learath2> @heinrich5991 0.7 connections start with a CTRLMSG_TOKEN right?
+17:25 <+bridge> [ddnet] <Learath2> or is it a CONNECT?
+17:26 <+bridge> [ddnet] <heinrich5991> "connections"
+17:26 <+bridge> [ddnet] <heinrich5991> the first message sent is CTRLMSG_CONNECT
+17:26 <+bridge> [ddnet] <heinrich5991> the first message sent is CTRLMSG_TOKEN
+17:26 <+bridge> [ddnet] <heinrich5991> but the server does not keep state at that point
+17:26 <+bridge> [ddnet] <heinrich5991> the next message is CTRLMSG_CONNECT, at which point it starts keeping state
+17:27 <+bridge> [ddnet] <Learath2> So I respond to the TOKEN by echoing the token enclosed in a TOKEN message of my own?
+17:27 <+bridge> [ddnet] <heinrich5991> yes
+17:28 <+bridge> [ddnet] <heinrich5991> you need to put the peer's token into the header and your own token for that peer into the payload
+17:30 <+bridge> [ddnet] <Learath2> The client sends a CONNECT with my token in the header, I reply with a CONNECTACCEPT if the token is correct?
+17:31 <+bridge> [ddnet] <Arseniy Zarche> @heinrich5991 thanks
+17:34 <+bridge> [ddnet] <Learath2> Where even is the check for the token? 😦
+17:36 <+bridge> [ddnet] <Learath2> Why is there even 4 different token protocols? 😦
+17:46 <+bridge> [ddnet] <Learath2> I'm done, I can't spend another 20 hours learning the new 0.7 connection protocol with it's 500 moving parts and pieces
+17:46 <+bridge> [ddnet] <Learath2> Maybe next week
+17:48 <+bridge> [ddnet] <Learath2> What is this even, both send tokens, no one checks shit. BAM connected
+17:57 <+bridge> [ddnet] <Learath2> @timakro as you have it, I think you can block a slot if you reply with a wrong token
+17:58 <+bridge> [ddnet] <Learath2> but god knows if it's an actual attack because I can't read any of this
+18:00 <+bridge> [ddnet] <Learath2> Yeah nvm that, funny enough we first accept the connection, then tell the client to sod off if there is no slot for them
+18:05 <+bridge> [ddnet] <Learath2> I wonder if there is a version of IOCCC for C++ code that we can apply to with teeworlds
+18:17 <+bridge> [ddnet] <timakro> Hah, good that I didn't commit my code, security through obscurity :/
+18:34 <+bridge> [ddnet] <heinrich5991> in the token manager @Learath2
+18:34 <+bridge> [ddnet] <heinrich5991> but I think the compatibility layers shouldn't be copied from @timakro or @fokkonaut, IIRC they didn't check tokens
+18:34 <+bridge> [ddnet] <heinrich5991> the compatibility layer code concerning tokens
+18:39 <+bridge> [ddnet] <Learath2> timakro seems to check it
+18:39 <+bridge> [ddnet] <heinrich5991> ok, sorry for that
+18:39 <+bridge> [ddnet] <Learath2> You are always free to improve upon it after I finish up, I don't see any elegant way to do the lower levels of networking in teeworlds
+18:40 <+bridge> [ddnet] <heinrich5991> but you don't introduce IP spoofing vulnerabilities?
+18:40 <+bridge> [ddnet] <Learath2> Especially when we are supporting 4 protocols essentially
+18:40 <+bridge> [ddnet] <Learath2> I hope I don't, at the end of the day only You, oy and maybe god himself can know that
+18:41 <+bridge> [ddnet] <Learath2> Maybe matricks but I doubt he'd even recognize most of this anymore 😛
+18:42 <+bridge> [ddnet] <heinrich5991> you could cap some packets and check that it looks sane, and modify the token and check that it doesn't connect anymore
+18:42 <+bridge> [ddnet] <Learath2> There really should be e2e tests for this stuff
+18:42 <+bridge> [ddnet] <heinrich5991> yes
+18:52 <+bridge> [ddnet] <heinrich5991> intellij-idea-community-edition-2:2020.1...   438.3 MiB
+18:52 <+bridge> [ddnet] <heinrich5991> half a gigabyte
+18:54 <+bridge> [ddnet] <Learath2> Oh btw @timakro both your calls to UnpackPacket in network_server should be using pData instead of the recvunpacker buffer
+18:54 <+bridge> [ddnet] <Learath2> Ah, but maybe you didn't merge deen's recvmmsg patch
+18:55 <+bridge> [ddnet] <Learath2> @heinrich5991 IDEs are usually quite large
+19:15 <+bridge> [ddnet] <Arseniy Zarche> @Learath2 is it bad to compile through ninja?
+19:15 <+bridge> [ddnet] <Arseniy Zarche> cmake -G "Ninja" ..?
+19:15 <+bridge> [ddnet] <Arseniy Zarche> `cmake -G "Ninja" ..`?
+19:16 <+bridge> [ddnet] <Arseniy Zarche> or someone
+19:16 <+bridge> [ddnet] <Arseniy Zarche> answer me
+19:23 <+bridge> [freenode] <Zwelf> When I address reviews, should I add commits with the changes or should I use git rebase to get it "immediately right"?
+19:24 <+bridge> [ddnet] <Learath2> If you have ninja, ninja is better than nmake
+19:24 <+bridge> [ddnet] <Learath2> I just didn't want to make you install more stuff than you needed
+19:24 <+bridge> [ddnet] <Learath2> Zwelf: don't rebase to fix past commits, you can just commit more
+19:29 <+bridge> [ddnet] <Arseniy Zarche> does someone knows how to add mysql library into cmakelists?
+19:31 <+bridge> [ddnet] <fokkonaut> @heinrich5991 i check for tokens too
+19:31 <+bridge> [ddnet] <Learath2> @Arseniy Zarche you can probably steal it from ddnets cmakelists
+19:34 <+bridge> [freenode] <Zwelf> @Learath2 I didn't look into the engines thread pool. Where is it located and does the server already use it somewhere else?
+19:39 <+bridge> [ddnet] <Learath2> Zwelf: `CJobPool` and `IJob` are the interesting ones. The only use on the server is for hostlookups but you can check out how heinrich used them for HTTP requests in the client
+19:51 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet7/blob/7abcf7b70668955e1ca6a837d8051dc1bb934b68/src/engine/shared/network_token.cpp#L13 it's still using 1 byte tokens right now
+19:51 <+bridge> [ddnet] <heinrich5991> @fokkonaut
+20:01 <+bridge> [ddnet] <fokkonaut> @heinrich5991 oh, you mean ddnet7. Yea I dont know :D
+20:59 <+bridge> [ddnet] <Arseniy Zarche> @Learath2tried to connect it the same as in ddnet but have some problems
+20:59 <+bridge> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/342558759995834369/722161104054255766/unknown.png
+21:00 <+bridge> [ddnet] <Arseniy Zarche> the server can't find the libralies
+21:00 <+bridge> [ddnet] <Arseniy Zarche> we make the submodule folder
+21:00 <+bridge> [ddnet] <Arseniy Zarche> with the libraries
+21:00 <+bridge> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/722163638906912778/unknown.png
+21:01 <+bridge> [ddnet] <Arseniy Zarche> ```[CMake]   CMakeLists.txt:249 (set_glob)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1608 (set_src)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] Call Stack (most recent call first):
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:249 (set_glob)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1693 (set_src)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] Call Stack (most recent call first):
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:249 (set_glob)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1693 (set_src)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] Call Stack (most recent call first):
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:249 (set_glob)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1694 (set_src)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] Call Stack (most recent call first):
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:249 (set_glob)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1694 (set_src)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] Call Stack (most recent call first):
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:249 (set_glob)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1710 (set_src)
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] Call Stack (most recent call first):
+21:01 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:249 (set_glob)
+21:02 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake]   CMakeLists.txt:1710 (set_src)
+21:02 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] This warning is for project developers.  Use -Wno-dev to suppress it.
+21:02 <+bridge> [ddnet] <Arseniy Zarche> 1> [CMake] -- Configuring done```
+21:02 <+bridge> [ddnet] <Arseniy Zarche> it the cmake output
+21:02 <+bridge> [ddnet] <Arseniy Zarche> the part of output
+21:02 <+bridge> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/722163935012192396/message.txt
+21:02 <+bridge> [ddnet] <Arseniy Zarche> and the cmakelists
+21:08 <+bridge> [ddnet] <deen> did you try removing CMakeCache.txt etc
+21:08 <+bridge> [ddnet] <Arseniy Zarche> yep sure
+21:08 <+bridge> [ddnet] <Arseniy Zarche> i do it after every commit
+21:08 <+bridge> [ddnet] <deen> did you change the paths in cmake files? we have ddnet-liba hardcoded
+21:09 <+bridge> [ddnet] <Arseniy Zarche> what do you mean?
+21:10 <+bridge> [ddnet] <deen> you're making a new xpanic mod based on ddnet?
+21:11 <+bridge> [ddnet] <Arseniy Zarche> no
+21:11 <+bridge> [ddnet] <Arseniy Zarche> based on vanilla teeworlds
+21:11 <+bridge> [ddnet] <Arseniy Zarche> not exactly sorr
+21:11 <+bridge> [ddnet] <Arseniy Zarche> not exactly sorry
+21:11 <+bridge> [ddnet] <deen> note that the mysql lib in ddnet-libs often doesn't work anyway
+21:12 <+bridge> [ddnet] <Arseniy Zarche> what do you mean?
+21:12 <+bridge> [ddnet] <deen> weird runtime errors
+21:12 <+bridge> [ddnet] <deen> better to use your distribution's mysql libs
+21:12 <+bridge> [ddnet] <Arseniy Zarche> how to do this?
+21:14 <+bridge> [ddnet] <heinrich5991> those messages lack the actual warning @Arseniy Zarche
+21:14 <+bridge> [ddnet] <heinrich5991> did you add the source files in alphabetical order?
+21:15 <+bridge> [ddnet] <!gerdoe> yeah but it anyway make noise xd
+21:15 <+bridge> [ddnet] <Arseniy Zarche> barsik will answer
+21:15 <+bridge> [ddnet] <!gerdoe> yeah but it anyway makes noise xd
+21:19 <+bridge> [ddnet] <Arseniy Zarche> did you add the source files in alphabetical order?
+21:19 <+bridge> [ddnet] <Arseniy Zarche> wdym?
+21:19 <+bridge> [ddnet] <Arseniy Zarche> @heinrich5991
+21:19 <+bridge> [ddnet] <Arseniy Zarche> where i need to add
+21:19 <+ChillerDragon> CMakeListst.txt?
+21:19 <+bridge> [ddnet] <!gerdoe> yep, it had sorted already @Arseniy Zarche
+21:19 <+bridge> [ddnet] <Arseniy Zarche> ok @barsik
+21:21 <+bridge> [ddnet] <!gerdoe> yeah chiller
+21:28 <+bridge> [ddnet] <!gerdoe> https://cdn.discordapp.com/attachments/293493549758939136/722170629138153603/unknown.png
+21:35 <+bridge> [ddnet] <!gerdoe> ```cmake
+21:35 <+bridge> [ddnet] <!gerdoe> CMake Error (dev) at CMakeLists.txt:218 (message):
+21:35 <+bridge> [ddnet] <!gerdoe>   GAME_SERVER does not contain every file from directory src/game/server
+21:35 <+bridge> [ddnet] <!gerdoe> Call Stack (most recent call first):
+21:35 <+bridge> [ddnet] <!gerdoe>   CMakeLists.txt:249 (set_glob)
+21:35 <+bridge> [ddnet] <!gerdoe>   CMakeLists.txt:1608 (set_src)
+21:35 <+bridge> [ddnet] <!gerdoe> ```
+21:36 <+bridge> [ddnet] <!gerdoe> interesting 🤔
+23:05 <+bridge> [ddnet] <Arseniy Zarche> ```Determining if the __i386 exist failed with the following output:```
+23:05 <+bridge> [ddnet] <Arseniy Zarche> ```Determining if the __i386 exist failed with the following output:
+23:05 <+bridge> [ddnet] <Arseniy Zarche> Change Dir: C:/Users/cen940k/source/repos/cen94ok/xpanic/build/CMakeFiles/CMakeTmp
+23:05 <+bridge> [ddnet] <Arseniy Zarche> 
+23:05 <+bridge> [ddnet] <Arseniy Zarche> Run Build Command(s):nmake /nologo cmTC_b40c9\fast &&     "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\HostX86\x86\nmake.exe" -f CMakeFiles\cmTC_b40c9.dir\build.make /nologo -L                  CMakeFiles\cmTC_b40c9.dir\build
+23:05 <+bridge> [ddnet] <Arseniy Zarche> 
+23:05 <+bridge> [ddnet] <Arseniy Zarche> Building C object CMakeFiles/cmTC_b40c9.dir/CheckSymbolExists.c.obj
+23:05 <+bridge> [ddnet] <Arseniy Zarche> 
+23:05 <+bridge> [ddnet] <Arseniy Zarche>     C:\PROGRA~2\MICROS~3\2019\COMMUN~1\VC\Tools\MSVC\1426~1.288\bin\Hostx86\x86\cl.exe @C:\Users\cen940k\AppData\Local\Temp\nm4D12.tmp
+23:06 <+bridge> [ddnet] <Arseniy Zarche> 
+23:06 <+bridge> [ddnet] <Arseniy Zarche> CheckSymbolExists.c
+23:06 <+bridge> [ddnet] <Arseniy Zarche> 
+23:06 <+bridge> [ddnet] <Arseniy Zarche> C:\Users\cen940k\source\repos\cen94ok\xpanic\build\CMakeFiles\CMakeTmp\CheckSymbolExists.c(7): error C2065: '__i386': undeclared identifier
+23:06 <+bridge> [ddnet] <Arseniy Zarche> 
+23:06 <+bridge> [ddnet] <Arseniy Zarche> NMAKE : fatal error U1077: 'C:\PROGRA~2\MICROS~3\2019\COMMUN~1\VC\Tools\MSVC\1426~1.288\bin\Hostx86\x86\cl.exe' : return code '0x2'
+23:06 <+bridge> [ddnet] <Arseniy Zarche> 
+23:06 <+bridge> [ddnet] <Arseniy Zarche> Stop.
+23:06 <+bridge> [ddnet] <Arseniy Zarche> 
+23:06 <+bridge> [ddnet] <Arseniy Zarche> NMAKE : fatal error U1077: '"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\HostX86\x86\nmake.exe"' : return code '0x2'
+23:06 <+bridge> [ddnet] <Arseniy Zarche> 
+23:06 <+bridge> [ddnet] <Arseniy Zarche> Stop.```
+23:20 <+bridge> [ddnet] <heinrich5991> that is part of normal operation
+23:33 <+bridge> [ddnet] <Arseniy Zarche> are u sure?
+23:34 <+bridge> [ddnet] <Arseniy Zarche> this is from logfile "cmakeerror"
+23:34 <+bridge> [ddnet] <heinrich5991> yes
+23:35 <+bridge> [ddnet] <heinrich5991> this is used to detect the 32bit intel architecture
+23:35 <+bridge> [ddnet] <heinrich5991> caused by this line: `check_symbol_exists(__i386 "" TARGET_ARCH_X86_i386)`
+23:36 <+bridge> [ddnet] <heinrich5991> it's also in my log of successful cmake
+23:36 <+bridge> [ddnet] <Arseniy Zarche> lol
+23:36 <+bridge> [ddnet] <Arseniy Zarche> then why i can't compile
+23:36 <+bridge> [ddnet] <Arseniy Zarche> that's not a full error log
+23:37 <+bridge> [ddnet] <Arseniy Zarche> is it normal? @heinrich5991
+23:37 <+bridge> [ddnet] <Arseniy Zarche> https://cdn.discordapp.com/attachments/293493549758939136/722203123158089848/unknown.png

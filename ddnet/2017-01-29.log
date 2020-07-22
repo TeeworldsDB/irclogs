@@ -1,0 +1,121 @@
+12:41 < Shishigami> Learath2: this is what I meant: http://i.imgur.com/nGEiiZJ.gifv
+12:41 < Shishigami> I split the scrollbar with VSplit but it seems to extend all the way
+12:42 < Learath2> hmm give me a second let me look at the code
+12:47 < Learath2> Shishigami: can you debug?
+12:47 < Learath2> dont have the dependencies for tw on this computer
+12:51 < Learath2> well im guessing you are using the same pid for both
+12:51 < Learath2> ill go get some breakfast
+12:52 < Shishigami> I am
+12:52 < Shishigami> can I not do that?
+12:53 < Learath2> show me some code i havent touched ddnet for quite some time now
+12:55 < Shishigami> Learath2: http://i.imgur.com/IL392PN.png 
+12:56 < Learath2> ofc you can use a different pID
+12:57 < Shishigami> then how do I bind both to InpMousesens?
+13:00 < Learath2> iirc pID has nothing to do with what the ui element is bounded to
+13:01 < Shishigami> oh, I think I get it now
+13:01 < Shishigami> don't think its possible to achieve this then
+13:02 < Learath2> sure it is why wouldnt it be
+13:03 < Learath2> int t = 42; and then pass (void *)&t as the pID to one of them and keep this for the other
+13:04 < Learath2> DoEditBox modifies the third argument so if you make that a pointer to inpmousesens that should make it modify mousesens but i'd probably first put it in a buffer then make sure there are no letters and suck
+13:04 < Learath2> such*
+13:04 < Learath2> you actually do need to put it in a buffer b/c inp_mousesens is a int
+13:06 < Learath2> the return value of DoEditBox also gives you whether or not the input changed
+13:08 < Learath2> the int needs to be static Shishigami 
+13:08 < Learath2> forgot about that
+13:12 < Shishigami> how come any changes in the editbox immediately revert? I think it might be better to print the actual sensitivity in the label like here: http://i.imgur.com/fQlWHNZ.png
+13:13 < Learath2> its because before every render tick you reset the buffer to inp_mousesens but you dont change inp_mousesens after DoEditBox
+13:13 < Learath2> so when the next tick comes it reverts
+13:14 < Learath2> if(DoEditbox(blablablabla)){ inpmousesens = strtol(aBuf, NULL, 10); }
+13:15 < Shishigami> ah, I didnt realize this is rendered every tick x)
+13:15 < Shishigami> executed*
+13:16 < Learath2> well its there every tick isnt it ? :)
+13:16 < Learath2> should also make that text box smaller, i'd get the render width of a test numerical string like "0000" pad it a bit and call it a day
+14:34 < Shishigami> "pad it a bit" you mean using HMargin? How come there is only ever 1.0f or 2.0f passed to it?
+14:40 < Shishigami> I found a way to do it: http://i.imgur.com/lo4j9ou.png
+14:46 < Learath2> Shishigami: I'd also center the text, pad it a lil bit more and call it a day
+14:53 < Learath2> apparently DoEditBox is too cool for alignment or inside padding just forget what i said
+14:53 < Learath2> push it and call it a day instead :P
+15:10 < Learath2> apparently ddnet wont run on my laptop "[gfx]: unable to create window: No OpenGL support in video driver"
+15:13 < Learath2> nvm forgot gentoo doesnt enable opengl in sdl by default
+15:26 < Shishigami> dude I almost have centering working
+15:27 < Shishigami> you can shove text inside DoEditBox to the right using a negative Offset
+15:27 < Shishigami> now if only I had the math skills
+15:28 < Learath2> thats just a hack, you cant center that way offset just keeps track of the cursor position
+15:28 < Learath2> it needs to be handled in DoEditBox which i intend to do later today after im done studying
+15:29 < Shishigami> oh
+15:29 < Shishigami> alright then
+15:29 < Learath2> you also need to pass a static int for offset btw if you arent doing so already
+15:30 < Shishigami> I am
+15:30 < Shishigami> I have it pretty much working, its just kinda awkward when the content is \0
+15:30 < Learath2> what happens?
+15:30 < Learath2> and how can content be \0
+15:30 < Shishigami> i mean, if I remove everything
+15:30 < Shishigami> i cant set InpMousesens = nothing after all
+15:31 < Shishigami> so I just replace it with '1'
+15:32 < Learath2> replace it with the default
+15:32 < Shishigami> ideally Id expect it to not assign the editbox content to InpMousesens until its != '\0' but Im not sure howto do that
+15:32 < Learath2> or refuse to assign
+15:32 < Shishigami> if I simply dont assign it overrides with the previous value in the next tick
+15:32 < Learath2> if(DoEditBox(blabla)) already should fix the problem
+15:33 < Learath2> noooope nvm
+15:33 < Shishigami> well, if I dont do anything it just automatically replaces it with 0
+15:34 < Shishigami> but apparently then you cant move your mouse anymore
+15:34 < Shishigami> which is interesting considering all other values dont influence mouse sensitivity in UI
+15:34 < Learath2> well check if its \0 before passing it to strtol
+15:35 < Learath2> if it is then dont assign the return of strtol
+15:35 < Learath2> also for input containing letters
+15:35 < Shishigami> I got that working
+15:35 < Shishigami> Look, this is what I mean: http://i.imgur.com/G6ewXcA.gifv
+15:36 < Shishigami> if I simply dont assign it it shows the previous value the next tick which is somewhat confusing as well
+15:36 < Learath2> forgot editbox doesnt wait for an enter
+15:37 < Shishigami> I mean, its probably not that big of a deal
+15:37 < Learath2> doesnt look nice
+15:37 < Learath2> if it goes \0 then assign the default it will give them an indication that they did sth wrong
+15:38 < Learath2> and i dont think you should be able to assign values below 5 to inpmousesens
+15:40 < Learath2> Oh or put the cursor to the last char
+15:40 < Shishigami> yeah I had that idea as well
+15:40 < Shishigami> (but not sure howto do that x))
+15:43 < Learath2> well how would one input a new one digit sens like that
+15:43 < Learath2> hmmmm
+15:43 < Shishigami> left arrow
+15:43 < Learath2> left arrow then input then delete
+15:44 < Learath2> which is convoluted aswell
+15:44 < Learath2> could have a static buffer and when one presses enter you try to assign. if invalid then put old value
+15:44 < Learath2> BOOM
+15:44 < Shishigami> that sounds genius
+15:45 < Shishigami> now if only I knew how C I might be able to do that
+15:45 < Learath2> well you got this far without knowing C
+15:45 < Learath2> which is exactly how i started learning C btw
+15:46 < Shishigami> do you happen to know Java
+15:47 < Learath2> just like the static int you have get a static char aBuf[5]; if(LastActiveblabla && Keyheldidontremember == KEY_ENTER) str_copy;
+15:48 < Learath2> i learned some java then i noticed its clearly inferior to C and its obsession with classes is clearly insane i decided not to continue on said adventure
+15:49 < Shishigami> lmao
+15:49 < Shishigami> yeah I have some long-term damage from that
+15:49 < Learath2> s/insane/unhealthy/ could also work
+15:50 < Shishigami> but it has some good points
+15:50 < Learath2> like?
+15:50 < Shishigami> but then you might as well python
+15:50 < Learath2> well python is interpreted so no way it competes in performance. in syntax sure but then might aswell use nim.
+15:51 < Shishigami> things that are simple to accomplish in Java are much more complicated in C imo but again, I dont know C
+15:51 < Shishigami> i.e. standard library
+15:51 < Learath2> yeah C doesnt do much hand holding or has much of a stdlib
+15:52 < Learath2> clearly a great language to learn how things actually work
+15:52 < Shishigami> aye
+15:53 < Learath2> but after you know C most other languages are relatively easy to code in. any facility the stdlib provides you take and if it doesnt in most cases you know how to implement it yourself for you were forced to do so in C
+15:57 < Shishigami> whats the point of casting to void*
+15:58 < Shishigami> * btw? In some parts its with that cast and in some without
+15:58 < Learath2> i simply dont remember if C++ allows implicit cast to void*
+15:59 < Learath2> in C its allowed to pass any pointer if a function wants a void*
+16:01 < Shishigami> Alright, I'll see about that static stuff sometime, for now this seems to work: https://github.com/marcelherd/ddnet/commit/4556ea4d031ac3c8a4bc61029907d21935ce1206
+17:27 < Shishigami> Learath2: thanks, Ill take a look soon. Got exams in a few days x)
+17:28 < Learath2> i have an exam tomorrow :/
+17:30 < Shishigami> feelsbadman
+17:30 < Shishigami> what exam is it
+17:38 < Learath2> math analysis 1
+17:39 < Shishigami> I wrote that on friday x)
+17:39 < Learath2> im barely done with learning and have like 8 hours i can practice before getting too tired
+20:45 < Shishigami> Learath2: in practice I find it rather confusing; I think it would be better to check every tick if input is valid and then apply it (i.e. like it is now, just without the editbox content reseting)
+21:09 < Learath2> well i made quite a few variations of it and pushed the one I liked the most
+21:09 < Learath2> ultimately we are not the ones with commit access so i guess upstream decides
+21:27 < Ryozuki> http://stackoverflow.com/a/11629682/7310722
+21:33 < Shishigami> I see

@@ -1,0 +1,217 @@
+00:00 <@matricks> 1v1 might work okey if not the server isn't advertised
+00:00 < TCT> i have more or less 80kb/s, but other things use that bandwidth at the same time
+00:01 <@matricks> :/
+00:01 <@matricks> well
+00:01 <@matricks> that is a really bad idea :)
+00:01 < TCT> like i say: damn third world connections
+00:04 <@matricks> TCT: minimum a 1v1 server can do is 3.2kb/s, and that is sending almost no data at all
+00:05 <@matricks> that is sending 42 bytes of data per packet
+00:05 <@matricks> or 46
+00:08 < TCT> maybe 3vs3
+00:08 <@matricks> no
+00:09 < TCT> 6x4=24 6x5=30 kb/s
+00:10 <@heinrich5991> why does it need "so much" though? I think warcraft 3 could be played on a modem connection (48Kb/s=8KB/s)
+00:10 <@matricks> heinrich5991: because warcraft 3 doesn't send anything :)
+00:10 <@matricks> heinrich5991: game is deterministic and you send only commands between the clients and do it in lockstep
+00:11 <@heinrich5991> ah and in teeworlds you send gamestates
+00:11 <@matricks> heinrich5991: thats why the game slows down if one client can keep up with the simulation
+00:11 <@heinrich5991> or if the connection is too slow
+00:11 <@matricks> yes
+00:11 <@matricks> wanna do that in teeworlds? :)
+00:12 <@matricks> you could actually do parts of it in teeworlds and just simulate the game using inputs from all players
+00:12 <@heinrich5991> could work for ultra-low-bandwidth LANs :)
+00:12 <@matricks> but keeping that in sync is hell
+00:12 <@matricks> and you kinda need to have all players sent at all times
+00:13 <@heinrich5991> but otherwise TW is to fast-paced I think. wc3 had a 250ms delay between user action and game reaction
+00:13 <@matricks> yes, because it's lock-stepped
+00:13 <@matricks> I need your actions for next game-step before I can execute my commands
+00:13 <@matricks> so you add a latency to get it running smooth
+00:14 <@heinrich5991> could you do it predictively and roll back if other actions come
+00:14 <@heinrich5991> ?
+00:14 <@matricks> no, you don't do that
+00:14 <@heinrich5991> maybe that's even what CS does (?)
+00:15 <@matricks> some action games keep history of hitboxes for all characters to track back to on the server to calculate hits
+00:15 <@matricks> you never actuall rewind anything, just dig in the history
+00:15 <@heinrich5991> ah
+00:15 <@matricks> the TW server keeps a complete backlog of the game state 3 seconds backwards
+00:16 <@matricks> it keeps 75 complete snapshots (or 150) or reference to
+00:16 <@matricks> but those are only used for reducing bandwidth
+00:18 <@heinrich5991> I think only the last-acked snapshot is used though
+00:19 <@matricks> yes, but it needs to keep a history inorder to know which one to use
+00:19 <@matricks> you never know which one will be acked by which client
+00:19 <@matricks> worst case, they will have acked 16 different onces
+00:22 < TCT> then I give up on running the server?
+00:23 <@heinrich5991> also, I think teeworlds keeps a copy of snapshots for all clients separately
+00:23 <@heinrich5991> because everyone sees the world differently
+00:23 <@matricks> heinrich5991: I think not
+00:23 <@matricks> or... hmm
+00:23 <@matricks> yes it does
+00:23 <@matricks> n.. ye.. n yes it does
+00:24 <@matricks> TCT: on that low bandwidth, if you have 80kb/s, you can try 1v1, you need to have extra bandwidth over because it can spike some times
+00:24 <@matricks> heinrich5991: thought I've might done something clever there for once :D
+00:25 <@matricks> heinrich5991: but you are correct, it's kept per client
+00:25 <@matricks> heinrich5991: which is an optimization that you might wanna do if you wanna start supporting more players
+00:25 <@matricks> not that it's that much data :)
+00:26 <@heinrich5991> I think it's a memory-computation trade-off
+00:26 < TCT> thanks for all, bye
+00:26 <@matricks> heinrich5991: yes and no, you can save some memory and computation
+00:26 <@heinrich5991> because if you store the whole world then you have to constantly regenerate player-specific snaphots
+00:26 <@heinrich5991> that you have to generate anyway because you send them every other tick
+00:26 < TeeUnity> heinrich5991: i have now only my level server online okay?
+00:26 <@matricks> well, right now you are generating new snaps for all players now adays anyway
+00:27 <@matricks> might be faster to snap the complete world once and then filter the snapshot according to player
+00:27 <@matricks> dunno
+00:27 <@matricks> now you are snapping it 16 times each game tick
+00:27 <@heinrich5991> TeeUnity: one server only is fine, no one can complain about number of servers there :)
+00:28 <@heinrich5991> not much work is done snapping, so I guess that's fine
+00:28 <@heinrich5991> mostly repacking
+00:28 <@matricks> yap
+00:28 <@matricks> should do all snaps in paralell :)
+00:28 <@matricks> wroom wroom
+00:28 <@matricks> I mean, the gameworld is const at that moment
+00:28 < TeeUnity> heinrich5991: u need one more Master Server?
+00:29 <@heinrich5991> teeworlds is predictable right now, don't destroy that :)
+00:29 <@heinrich5991> TeeUnity: I don't know, ask minus
+00:29 <@heinrich5991> minus: ^
+00:29 <@matricks> heinrich5991: snapping isn't order dependent or anything so
+00:29 < TeeUnity> is he online?
+00:29 <@matricks> heinrich5991: even cooler would be to do game update in paralell :D
+00:30 <@heinrich5991> no, he's offline for 1 hour now
+00:30 <@heinrich5991> but he'll come back tomorrow and read this
+00:30 <@matricks> now that would be cool
+00:30  * matricks hmms
+00:30 < TeeUnity> ohh okay, i go now sleep 
+00:31 < TeeUnity> g0od night guys
+00:31 <@matricks> would probably be quite simple todo as well
+00:32 <@heinrich5991> hand the gameworld to n worker threads, and each a separate snapshot buffer, and then wait for each of the threads to complete?
+00:32 <@heinrich5991> mh. what happens if one of the threads doesn't finish?
+00:33 <@matricks> heinrich5991: crash, game failure
+00:33 <@matricks> heinrich5991: soft hang
+00:33 <@matricks> as it would normally
+00:33 <@matricks> heinrich5991: but what I'm talking about now is multithreading the CGameWorld::Tick
+00:34 <@heinrich5991> that's order dependent right now
+00:34 <@matricks> yup
+00:34 <@matricks> which is Bad(tm)
+00:34 <@matricks> because you are playing favorites
+00:34 <@heinrich5991> because of saturating_add
+00:34 <@heinrich5991> it should be saturated at the end of the tick, not on each calculation
+00:35 <@heinrich5991> *at the end of the tick computation
+00:35 <@matricks> oh, you mean in the CharacterCore?
+00:35 <@heinrich5991> yes
+00:35 <@matricks> yap
+00:36 <@matricks> there is some determinism that could be gained by refactoring that stuff
+00:37 <@matricks> oh, puh, atleast the tick of the entities is ordered by type
+00:40 <@matricks> humf, some of the timer work should be cleaned up as well :/
+00:40 <@matricks> TickPaused is kinda.. well, useless
+00:42 <@matricks> oh well, so much stuff one could do if you had the time
+00:43 <@matricks> still like now small the actual gamecode is
+00:45 < masoudd> Why are you talking like yoda?
+00:45 <@matricks> because the force is strong with me
+00:46 <@matricks> any more stupid questions you have? :)
+00:46 < masoudd> Hmm
+00:46 <@matricks> dunno why that sentence got spewed out in that format :)
+00:46 < masoudd> I didn't really go deep in the code but is there a clear protocol for communication between server and clients?
+00:47 <@matricks> masoudd: yes
+00:47 < masoudd> I mean, is it possible to write another client that talks correctly with server?
+00:47 <@matricks> masoudd: yes
+00:47 < masoudd> Interesting
+00:47 <@matricks> it would take some effort however
+00:48 < masoudd> I don't suppose that protocol is documented anywhere
+00:48 <@matricks> well, not really, but some parts are
+00:48 <@matricks> https://github.com/teeworlds/teeworlds/blob/master/src/engine/shared/network.h
+00:49 <@matricks> base structure of the packet chucks
+00:55 <@heinrich5991> the exact protocol of game messages is only documented by the code though
+00:56 <@heinrich5991> (e.g. what messages you need to send to make the server talk to you)
+00:59 <@heinrich5991> btw
+00:59 <@heinrich5991> I thought about the arbitrary reads thing again
+01:00 <@heinrich5991> in general, it might have more effects than I assumed
+01:00 <@heinrich5991> because the code might assume that a certain value does not change
+01:00 <@heinrich5991> like in
+01:00 <@heinrich5991> decompression_buffer = malloc(data_size[i]);
+01:01 <@heinrich5991> decompress(compressed_data, compressed_len, decompression_buffer, data_size[i]);
+01:01 <@matricks> :)
+01:01 <@heinrich5991> haven't checked the TW code yet
+01:02  * matricks is optimizing
+01:02 <@heinrich5991> optimizing what? :)
+01:02 <@matricks> bam :)
+01:03 <@matricks> gotta go faster!
+01:03 <@heinrich5991> I bet the slowest parts of TW compilation aren't actually caused by bam
+01:03 <@matricks> probably not :)
+01:04 <@matricks> working on projects that well, takes some time to compile :)
+01:04 <@heinrich5991> rust? ^^
+01:04 <@matricks> hehe
+01:05 <@matricks> naa, we actually use bam at work
+01:08 <@matricks> bam takes more time to compile then tw :)
+01:09 <@heinrich5991> well, it doesn't have such a clever build system :)
+01:09 <@matricks> yup :)
+01:09 <@heinrich5991> why don't you also distribute a bam.lua with it?
+01:09 <@heinrich5991> so you can do quicker dev-builds
+01:09 <@matricks> thought about it
+01:09 <@matricks> but naa
+01:09 <@matricks> takes 5s to compile on my machine so
+01:15 <@matricks> heinrich5991: just reducing how many processes that are spawned during compile
+01:16 <@heinrich5991> what do you mean?
+01:16 <@heinrich5991> are there non-vital processes being spawned? :P
+01:16 <@matricks> heinrich5991: a sh per command done
+01:16 <@heinrich5991> oh
+01:16 <@matricks> because the job is always spawned via a shell
+01:16 <@heinrich5991> to provide shell-injection via filenames?
+01:16 <@heinrich5991> ^^
+01:16 <@heinrich5991> I wonder if that works
+01:31 <@matricks> HAH, doesn't work for teeworlds :/
+01:38 <@matricks> wtf, popen is not supported... grr
+01:40 <@heinrich5991> where?
+01:40 <@matricks> in lua
+01:40 <@matricks> io.popen
+01:44 <@matricks> sweeeeeet
+01:47 <@matricks> heh, from 4.540 down to 4.500 :)
+01:47 <@matricks> BOOYA, 40ms!
+01:47 <@matricks> more intressting for windows however where process spawning is dog slow
+01:47 <@matricks> well, thats for another day
+09:20 <@minus> matricks │ mygod the git repo for teeworlds is huge :/ ← cause there used to binaries in it
+09:20 <@minus> if you clone with --depth 1 it might be faster
+09:21 <@minus> TeeUnity: no need for master servers atm
+12:44 < nameless_tee25> Hello together, im having a quick question about the teeworlds vmath implementation. My question is, why some mathematical operations (e.g. length, distance) are defined for vector2_base<float> and some are templated vector2_base<T>.
+12:46 <@matricks> nameless_tee25: some only makes sense for float operations
+12:46 < nameless_tee25> also, when length uses float and distances uses T but distances calls length, cant it only call it when for distance T = float?
+12:47 <@matricks> it means that it is depentent on what length actually implements
+12:50 < nameless_tee25> why is distance with T = int usefull? i mean, distance sais, that it is usefull as long as length decides the same, i guess.
+12:50 <@matricks> nameless_tee25: well, it might be useful in the future
+12:50 < nameless_tee25> good answer :D
+12:50 <@matricks> nameless_tee25: or with T = double
+12:51 <@matricks> it boils down to that functions that uses sqrtf is only valid for T = float
+12:52 < nameless_tee25> but in c++ sqrt is overloaded for int, float an double
+12:52 <@matricks> an implementation for double needs to use sqrt instead, and for int or short or whatever, well, you need todo something else
+12:52 < nameless_tee25> *long double
+12:53 < nameless_tee25> oh wait, its not
+12:54 <@matricks> std::sqrt is, not ::sqrt
+12:54 <@matricks> ::sqrt is C
+12:56 < nameless_tee25> makes sense. well, thank you :)
+12:56 < nameless_tee25> i got another question though
+12:56 <@matricks> i got another answer though
+13:00 < nameless_tee25> im working on a small game and because i've learned coding thanks to teeworlds and I am not that skilled yet to come up with that many design patterns, my code may be similar to teeworlds code. actually the game is similar because its also a 2d sidescroller but the gameplay will be totally different.
+13:01 <@matricks> :)
+13:01 < nameless_tee25> so thats fine?
+13:01 <@matricks> ofcause
+13:01 <@matricks> you can actually sell the teeworlds code if you want
+13:02 < nameless_tee25> not going to, open source ftw
+13:02 < nameless_tee25> you are magnus, right?
+13:02 <@matricks> yap
+13:02 < nameless_tee25> :3
+13:02 <@matricks> you are stalker, right?
+13:03 < nameless_tee25> yap
+13:03 < nameless_tee25> my nick is "Ich"
+13:03 < nameless_tee25> well, thank you for you time
+13:03 <@matricks> :)
+13:04 < nameless_tee25> and thanks to all the developers for the great game. cya :)
+13:04 <@matricks> well, I'm no longer one of em :)
+13:54 < Kirbs> A large amount of people appear to have shut down their teeworlds servers today, but I cant tell which ones are gone from the list, oddly
+13:54 < Kirbs> I'll see if this phenomenon happens with standard or if it really is just not on my side
+13:55 < EastByte> 1049 servers online for me
+13:56 < Kirbs> Hmm, then it is on my side
+13:56 < Kirbs> I cant find any that are actually missing, so I'm not inclined to fix it
+13:57 < Kirbs> @EastByte thanks for checking to the contrary
+15:21 <@heinrich5991> Kirbs: you probably missed a server list packet
+15:25 < Kirbs> probably
+23:51 < socador> i wanna fuck today some girl
+23:54 < Kirbs> good for him

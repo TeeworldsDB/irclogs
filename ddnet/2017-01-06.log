@@ -1,0 +1,96 @@
+00:18 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vMZCU
+00:18 < ddnet-commits> ddnet/master 224b9d5 def: echo command for clients prints to chat instead of mostly useless console
+00:30 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://github.com/ddnet/ddnet/commit/1f636fe8752bef8b9cff5d59b3842800e5a7d97c
+00:30 < ddnet-commits> ddnet/master 1f636fe def: Fix team for echo
+06:31 <+askermod> hi guys , how i can send example heart.py to server ? (i know how to run a .py file) https://github.com/ddnet/ddnet-scripts/tree/master/servers/dontuse
+09:33 <+quatria> i just played on necropotame's ddnet testing server with moving freeze tiles, its cool !
+09:34 <+quatria> But that also means that it is possible to create triangle shaped freeze tiles for example right?
+09:35 <+quatria> Because right now there are only static rectangle freeze tiles, even though some of them doesnt look like rectangles
+11:20 <+askermod> hi again i got timeout from irc
+11:22 <+askermod> how i can use heart.py ? i want send broadcast to server , ( i know how i can use .py files ) : https://github.com/ddnet/ddnet-scripts/tree/master/servers/dontuse
+11:53 <+necropotame> heinrich5991, EastByte have you considered to add a dummy player in the game (reserve a slot to it), so you can use it to influence on the client prediction?
+11:53 <+necropotame> Use case 1: The world can hook you (king of grab effect) and it should predict things correctly
+11:54 <@heinrich5991> the dummy tee would have to be shown or be off-screen, right?
+11:54 <+necropotame> Use case 2: you can spectate yourself -> the prediction is disabled, but not the interpolation. And you can still play (but with strong lag). Can but good if you are frozen
+11:54 <+necropotame> Yes
+11:54 <@EastByte> hooking a player has different effects than hooking a wall
+11:54 <+necropotame> Or behinde a tile
+11:55 <+necropotame> EastByte, No, here, to wall hook you :P So it's just a way to add predicted forces on the player
+11:56 <+necropotame> Technically, a frozen tee can even go on moving curved hook/unhook tiles. The will me smooth for both player and others
+11:57 <+necropotame> It cost only a slot for vanilla players, and maybe for DDNet too if you don't want to hard code the prediction in the client
+11:57 <@heinrich5991> I'd guess that it would be too limited
+11:58 <@heinrich5991> you can only apply a certain force into any directio
+11:58 <@heinrich5991> n
+11:59 <+necropotame> For use case1, yes. But it's smoother than laser drag. Dunno if you can use it
+11:59 <@heinrich5991> only if it's coincidentally the same strength as the laser
+11:59 <@heinrich5991> also, you'd need one for each laser dragger
+12:00 <+necropotame> for each laser dragger in your screen*
+12:00 <@heinrich5991> yes
+12:01 <+necropotame> but yes, it's limited. I'm more interested by disabling prediction for frozen tees
+12:02 <+necropotame> it will be smoother, and in same time, you can apply any physics on him (like others must drag him on curved shapes, slopes, or on some moving elements)
+12:03 <+necropotame> It seems that the client only predict the local tee, so you can do whatever you want on others tee. Faking the local ID solve remove the last limitation
+12:04 <+necropotame> I'm not saying that is must replace the actual system. But some zones could enable this feature
+12:04 <+necropotame> it*
+12:04 <@heinrich5991> some stuff is predicted IIRC. if you hook someone e.g. (then their tee is predicted I think)
+12:05 <@EastByte> I don't think so
+12:05 <@EastByte> wasn't that established with antiping?
+12:07 <+necropotame> I've checked, it's not the case in 0.6.4
+12:08 <+necropotame> I don't know what does antiping, so I can't say about that.
+12:16 <+necropotame> So it's not possible to implement it because some client use antiping ?
+12:16 <@heinrich5991> not what *I* wanted to say
+12:18 <@EastByte> I guess only ddnet-based clients use antiping, which are hopefully kept up-to-date with out branch
+12:19 <+necropotame> Ok, so some sort of flag to prevent prediction could be added. Nice :)
+13:53 <+necropotame> proof of concept -> 137.74.156.196:10005 (that's the good one this time ^^)
+13:54 <+necropotame> A moon attract all frozen tees with gravity
+14:00 <+necropotame> The moon freeze also players that are too close to it. So frozen tees just spin around all the time and normal players should try to save him by hooking. Stupid, but funny :P 
+14:01 <+necropotame> It's fine with both vanilla and DDNet client
+14:20 <+necropotame> Easy way to implement compatibility with antiping: put the Local variable of Character to -1 for tee that can't be predicted. vanilla will clamp it to 0, and DDNet will not need the spectator mode (and all anti-ping clients based on DDNet must take care of this flag)
+14:27 <@heinrich5991> it's not clamped but dropped I think
+14:28 <+necropotame> ClampInt("m_Local", pObj->m_Local, 0, 1);
+14:28 <@EastByte> iirc the clamp procedures were pretty meaningless in 0.6
+14:28 <@EastByte> because the return value wasn't used
+14:29 <+necropotame> I was not aware of this clamp before playing with the warmup timer. But it works and the packet is processed
+14:30 <@heinrich5991> warmup timer is a different module though
+14:30 <@heinrich5991> that is game messages
+14:30 <@heinrich5991> m_Local is part of the snapshot
+14:30 <+necropotame> mh, true
+14:33 <@EastByte> btw. there already were attempts of implementing freeze prediction in ddnet but I think people didn't like it for some reason
+14:33 <@heinrich5991> because you couldn't see your unpredicted tee anymore, pretty much
+14:33 <@heinrich5991> i.e. you couldn't see where you'd go
+14:33 <@heinrich5991> when you'd get a 1-tick unfreeze
+14:34 <@EastByte> yea, but that's a stupid reason
+14:34 <@EastByte> you can add another indicator for that
+14:34 <@heinrich5991> necropotame: mh.. maybe the clamp does work
+14:34 <@heinrich5991> not sure
+14:34 <@heinrich5991> I can't find any reason in the source code why it wouldn't
+14:35 <@EastByte> int CNetObjHandler::ClampInt(const char *pErrorMsg, int Value, int Min, int Max)
+14:35 <@EastByte> {
+14:35 <@EastByte>   if(Value < Min) { m_pObjCorrectedOn = pErrorMsg; m_NumObjCorrections++; return Min; }
+14:35 <@EastByte>   if(Value > Max) { m_pObjCorrectedOn = pErrorMsg; m_NumObjCorrections++; return Max; }
+14:35 <@EastByte>   return Value;
+14:35 <@EastByte> }
+14:36 <@heinrich5991> yes
+14:36 <@heinrich5991> but that error doesn't seem to cause the obj to be dropped
+14:36 <+necropotame> And m_pObjCorrectedOn is only for debughud
+14:36 <@heinrich5991> at least I couldn't find it
+14:36 <@heinrich5991> ah
+14:36 <@EastByte> so vanilla doesn't clamp or drop anything?
+14:37 <+necropotame> No, it clamp
+14:37 <@EastByte> no, the return value is ignored
+14:37 <@EastByte> https://github.com/teeworlds/teeworlds/pull/1264
+14:41 <+necropotame> So m_PlayerFlags
+14:43 <@EastByte> it was only fixed in master branch not in 0.6, ddnet added a fix aswell
+17:16 <@deen> EastByte: they also didn't like it because it mispredicted in the other direction
+17:16 <@deen> EastByte: when you left the freeze you could not see your movement immediately
+17:16 <@deen> which is much worse for speedrunning than what we have right now
+18:21 <+necropotame> deen, that's why my system should be enable only when you need it
+18:22 <+necropotame> Like the gravity stuff that I've done on my server
+19:03 <@deen> necropotame: no, that's why it needs to be implemented as clientside prediction, not as a serverside hack
+19:27 <+necropotame> The first goal is to make it possible with vanilla
+19:29 <+necropotame> Then you can improve DDNet client 
+21:24 <+eeeee> i like the idea of using off-screen dummy to correct the vanilla prediction, that's a neat hack
+21:25 <+eeeee> but i'd disagree that making it possible with vanilla should be the first goal, i'd prioritize getting the perfect client-side prediction in ddnet client
+21:27 <+eeeee> the current non-predicted freeze has been around for so long that you can only replace it with a perfect thing, otherwise you'd just get drama and opt-outs
+21:31 <+eeeee> do we have stats on how many players use ddnet client these days?
+21:35 <+nuborn> hi
+21:35 <+nuborn> deen: I've made some fixes and tested the prediction stuff a bit more, and it seems to work now

@@ -1,0 +1,98 @@
+08:32 < bridge> [teeworlds] <fokkonaut> Hey, I am still struggeling with my rainbow. When about 7 players or more are online on the server and everyone has rainbow, the clients get an out of buffer disconnect. Is it possible to fix this in a good way?
+08:32 < bridge> [teeworlds] <fokkonaut> Or can I increase the Buffer?
+08:33 < bridge> [teeworlds] <fokkonaut> (rainbow means sending a skinchange msg to everyone every tick)
+08:35 < Oy> no you can't increase the buffer
+08:36 < Oy> but 7 seems odd, maybe some problem in ur code?
+08:43 < bridge> [teeworlds] <fokkonaut> ```if(m_pCharacter && m_pCharacter->m_Rainbow) {		if (!GameServer()->m_apPlayers[SnappingClient] || (!Server()->ClientIngame(SnappingClient) && !GameServer()->m_apPlayers[SnappingClient]->IsDummy()) || Server()->GetClientVersion(SnappingClient) < CGameContext::MIN_SKINCHANGE_CLIENTVERSION)			return; 		CNetMsg_Sv_SkinChange Msg;		Msg.m_ClientID = m_ClientID;	
+08:43 < bridge> [teeworlds] <fokkonaut> for (int p = 0; p < NUM_SKINPARTS; p++)		{
+08:43 < bridge> [teeworlds] <fokkonaut> Msg.m_apSkinPartNames[p] = m_TeeInfos.m_aaSkinPartNames[p];			Msg.m_aUseCustomColors[p] = 1;			Msg.m_aSkinPartColors[p] = RainbowColor;
+08:43 < bridge> [teeworlds] <fokkonaut> }		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL|MSGFLAG_NORECORD, SnappingClient);
+08:43 < bridge> [teeworlds] <fokkonaut> }```
+08:43 < bridge> [teeworlds] <fokkonaut> This is in the snap, before I had it in Tick, and it also went out of buffer
+08:43 < bridge> [teeworlds] <fokkonaut> so there is no difference
+08:49 < Oy> maybe it's called multiple times?
+08:49 < Oy> the buff should be 16k or 32k
+08:50 < bridge> [teeworlds] <fokkonaut> How can it be called multiple times
+08:50 < bridge> [teeworlds] <fokkonaut> Espeically when I put it in the Tick
+08:50 < Oy> you could check what kinda packets you get on ur client
+08:51 < bridge> [teeworlds] <fokkonaut> what would that help
+08:53 < Oy> too see why u run out of buffer
+08:54 < bridge> [teeworlds] <fokkonaut> but the server disconnects me
+08:56 < Oy> doubt it's the rainbow, unless it's called multiple times, client should handle 7 players without problem
+09:08 < bridge> [teeworlds] <fokkonaut> But there is nothing else that gets sent every tick
+09:08 < bridge> [teeworlds] <fokkonaut> I will check it in a few days
+09:09 < bridge> [teeworlds] <fokkonaut> I have an idea but that cant be it actually
+09:10 < bridge> [teeworlds] <fokkonaut> @oy, why is sndasyncloading in config vars, and not variables?
+09:10 < bridge> [teeworlds] <fokkonaut> Where is the difference
+09:10 < Oy> just checked the recv buffer should be 64k, even when a packet uses max payload of 1400bytes you can't fill the buffer with 7 packets
+09:11 < Oy> there isn't much difference
+09:11 < Oy> the other snd config were in engine/shared so i put it there to have them all together
+09:11 < bridge> [teeworlds] <fokkonaut> Ah
+09:11 < bridge> [teeworlds] <fokkonaut> I will try that when I get home
+15:25 < Oy> not sure if it's needed to keep track if a user set the default value manually
+15:25 < Oy> https://github.com/teeworlds/teeworlds/issues/2201
+16:37 < Learath2> how about a new flag in C*VariableData, m_Save. If a value is set on console it'll be set. When writing the config you check m_Save whether to save or not
+16:38 < Learath2> Now the issue would be values that are old, e.g. saved by past versions of the client and there are only 2 ways to handle that
+16:39 < Learath2> Either this is just useful for all the new config variables, or you allow users to (with a console command or a button) remove default options from their config file
+17:21 <@Dune> I think not
+17:22 <@Dune> (Oy)
+17:30 < Learath2> Or just leave it as is, it's been broken forever anyway
+17:31 < Learath2> Causes a lot of problems when you are releasing a couple versions a month, it's mostly fine for slow releases where the defaults get tested long enough to be unlikely to chang
+17:32 < Learath2> s/$/e/
+18:15 < Oy> it would be some kinda hassle: if i change a value to a default value, cause i want to use the default value and it should be updated in case
+18:15 < Oy> if we change the default value, it's probably for a reason
+18:15 < Oy> dunno how many want to stick to the old default value
+18:39 <@Dune> I think it's unnecessary
+18:39 <@Dune> 06d445a ought to be enough 
+19:08 < rand> a default flag for vars, lgtm
+19:09 < rand> restore default value with some specific command, say `unset <varname>`
+19:10 < Oy> different feature, but seems useful
+19:12 < rand> (or more explicit name, restore_default/reset/to_default etc)
+19:30 <@heinrich5991> maybe the right course of action would be to simply remove that config option
+19:30 < Learath2> heinrich5991: when you change defaults?
+19:30 <@heinrich5991> if we see no reason to not load the sounds asynchronously
+19:30 <@heinrich5991> nah, in this case
+19:30 < Learath2> oh, you are talking about that
+19:31 <@heinrich5991> there's still a problem with your solution btw, config variables are changed without involvement of the console by the UI, currently, there's no simple way to detect that
+19:31 < Learath2> oh, the ui doesn't really go through the console, yeah that'd be quite a rewrite
+19:48 < Oy> on an old single core machine the loading of the sounds was faster with the not-threaded option
+19:48 < Oy> don't think it hurts to keep the option
+19:54 <@heinrich5991> lines of code for this particular feature seem to be low (<30), so I guess it really doesn't hurt
+19:55 <@Dune> Indeed :)
+19:58 < Oy> any info on that one https://github.com/teeworlds/teeworlds/issues/2168 ?
+19:58 < Oy> otherwise it could be closed
+19:58 <@heinrich5991> no info known to me
+19:59 <@heinrich5991> I guess it can be closed (as "not enough info" or so)
+19:59 < Oy> yeah
+20:01 < Oy> heinrich5991: could you look at https://github.com/teeworlds/teeworlds/pull/2194 when you have time?
+20:03 <@heinrich5991> yea, will do
+20:06 < Oy> great
+20:16 < bridge> [teeworlds] <ChillerDragon> about #2168 @jxsl13 might have some info?
+20:18 < bridge> [teeworlds] <heinrich5991> re https://github.com/teeworlds/teeworlds/commit/32ee7c774d6e1d20323bcc8df4a500d7e1f81507: cleaning trailing whitespace for `r` might be better
+20:18 < bridge> [teeworlds] <heinrich5991> with this change, things like `sv_name Test server` don't work anymore
+20:21 < Oy> yeah, you have to use ""
+20:21 < Oy> probably too much a hassle
+20:43 < bridge> [teeworlds] <jxsl13> can be closed
+20:44 < bridge> [teeworlds] <jxsl13> it seemed to me that thta server is vulnerable to social engineering at most.
+20:56 <@Dune> Yeah don't break backwards compatibility with previous cfg syntax for that
+20:59 < bridge> [teeworlds] <jxsl13> Taking a look at github actions seems to maybe make things a lot easier. As every operating system can be covered with that.
+21:03 < bridge> [teeworlds] <ChillerDragon> How are the release tar.gzs crafted for linux?
+21:03 < bridge> [teeworlds] <heinrich5991> they can be created using cmake
+21:03 < bridge> [teeworlds] <heinrich5991> use the target "package" or "package_default"
+21:03 < bridge> [teeworlds] <ChillerDragon> awesome
+21:03 < bridge> [teeworlds] <ChillerDragon> ty
+21:03 < bridge> [teeworlds] <heinrich5991> (same for the other operating systems btw, `package_default` probably works better)
+21:04 < bridge> [teeworlds] <ChillerDragon> package_dmg said 0.7.3 tho
+21:04 < bridge> [teeworlds] <ChillerDragon> ah awit#
+21:04 < bridge> [teeworlds] <ChillerDragon> i might have messed up my version nvm
+21:05 < bridge> [teeworlds] <ChillerDragon> oh GAME_VERSIOn is 0.7.3 and GAME_RELEASE_VERSION is 0.7.3.1?
+21:05 < bridge> [teeworlds] <ChillerDragon> https://github.com/teeworlds/teeworlds/blob/master/src/game/version.h
+21:10 < bridge> [teeworlds] <Dune> Yeah?
+21:11 < bridge> [teeworlds] <Dune> I think the first one is for the server?
+21:11 < bridge> [teeworlds] <ChillerDragon> wait so server and client have different version numbers?
+21:12 < bridge> [teeworlds] <Dune> The version the client sends does I think
+21:12 < bridge> [teeworlds] <heinrich5991> quickly grepping through the source code, I think `GAME_RELEASE_VERSION` is used for the UI and `GAME_VERSION` for the network
+21:13 < bridge> [teeworlds] <ChillerDragon> so there can be no network patches?
+21:13 < bridge> [teeworlds] <ChillerDragon> well pacth versions that actually get send
+21:13 < bridge> [teeworlds] <ChillerDragon> beacuse it seems to be chopped
+21:52 < bridge> [teeworlds] <Dune> Not for fixups. Minor versions get sent just fine

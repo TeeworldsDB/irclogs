@@ -1,0 +1,203 @@
+00:04 <+bridge> [ddnet] <louis> yes
+00:04 <+bridge> [ddnet] <louis> looks supa nice
+00:12 <+bridge> [ddnet] <Soreu> :3
+00:18 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/685989791166103579/x_spec.zip
+01:47 <+bridge> [ddnet] <heinrich5991> @fokkonaut so apparently `Send` does not trigger
+01:47 <+bridge> [ddnet] <fokkonaut> yep
+01:47 <+bridge> [ddnet] <heinrich5991> `m_ClDummy` is probably 0 there
+01:48 <+bridge> [ddnet] <fokkonaut> why
+01:48 <+bridge> [ddnet] <fokkonaut> its for both
+01:48 <+bridge> [ddnet] <heinrich5991> well, you want to send input for both client and dummy, right?
+01:48 <+bridge> [ddnet] <fokkonaut> it works, but delayed
+01:48 <+bridge> [ddnet] <heinrich5991> but `m_ClDummy` only has one value
+01:48 <+bridge> [ddnet] <fokkonaut> ?
+01:49 <+bridge> [ddnet] <heinrich5991> `m_ClDummy` is either 0 or 1 (unless you switch tees), right?
+01:49 <+bridge> [ddnet] <fokkonaut> yea, i do have all the dummy input stuff from ddnet in there...
+01:49 <+bridge> [ddnet] <fokkonaut> check the commit where i added dummy
+01:49 <+bridge> [ddnet] <heinrich5991> there is a problem, right?
+01:49 <+bridge> [ddnet] <heinrich5991> something is wrong
+01:49 <+bridge> [ddnet] <heinrich5991> so we try to debug it
+01:50 <+bridge> [ddnet] <heinrich5991> you can't say "but everything is right" because something is clearly wrong
+01:50 <+bridge> [ddnet] <fokkonaut> the problem is that the when not manually setting Send = true, the hammer for the dummy is delayed
+01:50 <+bridge> [ddnet] <fokkonaut> so too slow tfor hammerfly
+01:50 <+bridge> [ddnet] <heinrich5991> do you agree with me that `m_ClDummy` is only one value there?
+01:50 <+bridge> [ddnet] <fokkonaut> ofc
+01:51 <+bridge> [ddnet] <heinrich5991> okay, so send is only true when the main client's input changes
+01:51 <+bridge> [ddnet] <heinrich5991> that's bad for dummy hammer fly
+01:52 <+bridge> [ddnet] <fokkonaut> y
+01:52 <+bridge> [ddnet] <heinrich5991> so the next step is to find out how the input is sent in the original source code
+01:52 <+bridge> [ddnet] <heinrich5991> if you have a link, I can help you step through it too
+01:52 <+bridge> [ddnet] <fokkonaut> a link to the repo?
+01:53 <+bridge> [ddnet] <heinrich5991> a link to the similar source in the ddnet 0.6 source code
+01:53 <+bridge> [ddnet] <heinrich5991> *to the similar context
+01:53 <+bridge> [ddnet] <fokkonaut> what do you mean
+01:54 <+bridge> [ddnet] <heinrich5991> where does ddnet send its dummy hammer?
+01:55 <+bridge> [ddnet] <fokkonaut> no idea
+02:09 <+bridge> [ddnet] <fokkonaut> ?
+02:18 <+bridge> [ddnet] <heinrich5991> me neither
+02:18 <+bridge> [ddnet] <heinrich5991> how I'd try to progress here: add some debug statements in the source code in ddnet to see why it gets sent there (and not only on timeout)
+11:05 <+bridge> [ddnet] <Learath2> The entirety of that code looks janky...
+11:06 <+bridge> [ddnet] <Learath2> The execution leads to `CControl::SnapInput` if we have `!Dummy` thus setting Send there shouldn't really be changing all that much
+11:41 <+bridge> [ddnet] <fokkonaut> yea
+12:46 <+bridge> [ddnet] <fokkonaut> for: https://github.com/fokkonaut/F-Client/commit/2ac7798264099eec645d3d47121dd84a3f049100
+13:15 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-Client/runs/493335941
+13:15 <+bridge> [ddnet] <fokkonaut> @heinrich5991 send help
+13:15 <+bridge> [ddnet] <fokkonaut> shall i just sue NULL?
+13:16 <+bridge> [ddnet] <redix> @fokkonaut please move the `AIM` flag to `ExPlayerFlags`. As 0.7 tends to do slight protocol changes for adding new features, having it in `PlayerFlags` might lead to collisions in the future
+13:17 <+bridge> [ddnet] <fokkonaut> thought about that too, but it would be more work. But I'll do it, sure
+13:17 <+bridge> [ddnet] <fokkonaut> how do i activate c++11?
+13:17 <+bridge> [ddnet] <redix> 👍
+13:23 <+bridge> [ddnet] <fokkonaut> @Learath2 what would be the best way to send the aimline using explayer?
+13:23 <+bridge> [ddnet] <fokkonaut> creating a new netmsg, like CL_ISDDNET?
+13:23 <+bridge> [ddnet] <fokkonaut> or somehow getting it in the input?
+13:25 <@Learath2> @fokkonaut add a new flag for it in ex playerflags? I think we already have the entire thing implemented, you just need to add the flag
+13:25 <+bridge> [ddnet] <fokkonaut> before it was a playerflag, playerflags automatically get sent to the server
+13:25 <+bridge> [ddnet] <fokkonaut> and back
+13:26 <+bridge> [ddnet] <fokkonaut> but now we dont want it in there anymore, so i need to send it to the server differently
+13:26 <+bridge> [ddnet] <fokkonaut> not using m_PlayerFlags
+13:29 <+bridge> [ddnet] <Learath2> @fokkonaut are you on dnet7?
+13:29 <+bridge> [ddnet] <fokkonaut> i am on ddnet7 and my client, yes
+13:31 <+bridge> [ddnet] <Learath2> @fokkonaut in ddnet6 we have ExPlayerFlags, didn't you port that aswell?
+13:31 <+bridge> [ddnet] <fokkonaut> i have it in, yes
+13:31 <+bridge> [ddnet] <fokkonaut> for the afk state
+13:31 <+bridge> [ddnet] <fokkonaut> but all the flags from explayer are sent by the server
+13:31 <+bridge> [ddnet] <fokkonaut> i just want a way to send the server that we press s now
+13:31 <+bridge> [ddnet] <fokkonaut> xd
+13:32 <+bridge> [ddnet] <fokkonaut> shall i do it using a netmsg, like CL_ISDDNET, or somehow get it into the Input (not sure how well that works)
+13:33 <+bridge> [ddnet] <Learath2> oh yeah we never made that two way
+13:33 <+bridge> [ddnet] <Learath2> gimme a second, let me stash my changes and take a look
+13:35 <+bridge> [ddnet] <Learath2> No you can't tack it into input
+13:35 <+bridge> [ddnet] <fokkonaut> okay
+13:38 <+bridge> [ddnet] <Learath2> Okay, you add a new extended netmsg, let the client send ExPlayerFlags aswell, but only let the server trust the ones we allow the client to send
+13:38 <+bridge> [ddnet] <Learath2> e.g. the new one
+13:38 <+bridge> [ddnet] <fokkonaut> so only aim
+13:38 <+bridge> [ddnet] <fokkonaut> because afk is sent by the server
+13:38 <+bridge> [ddnet] <Learath2> for now only aim, but we could let the client suggest AFK aswell, but that's another issue
+13:39 <+bridge> [ddnet] <fokkonaut> nah, then everybody will run around with the bubble
+13:39 <+bridge> [ddnet] <Learath2> I think we had an issue open for the client setting afk, but we never resolved it so just let it be AIM for now
+13:39 <+bridge> [ddnet] <Learath2> @fokkonaut There are ways around that, e.g. we could ban people who move with the afk bubble to discourage that
+13:40 <+bridge> [ddnet] <fokkonaut> so i need protocol_ex_msgs.h for this right?
+13:40 <+bridge> [ddnet] <Learath2> yep
+13:47 <+bridge> [ddnet] <fokkonaut> @Learath2 shall i send CL_EXPLAYERINFO at all time, or only on updates from theclient?
+13:50 <+bridge> [ddnet] <fokkonaut> just on updates i think? when we start, and stop pressing s
+13:56 <+bridge> [ddnet] <fokkonaut> where should i send it? from controls::onrender?
+13:56 <+bridge> [ddnet] <fokkonaut> or from onnewsnapshot?
+13:56 <+bridge> [ddnet] <fokkonaut> guess that one
+13:56 <+bridge> [ddnet] <fokkonaut> CGameClient::OnNewSnapshot
+13:56 <+bridge> [ddnet] <fokkonaut> thats where the ddracemsg and the showothers msg in ddnet are handled
+14:03 <+bridge> [ddnet] <fokkonaut> @Learath2 what would be the best to also handle it for the dummy? (for copy moves)
+14:08 <+bridge> [ddnet] <Learath2> @heinrich5991 could you be here by some miracle?
+14:08 <+bridge> [ddnet] <Learath2> @fokkonaut just send it when we update it, no need to bother otherwise
+14:08 <+bridge> [ddnet] <fokkonaut> ok
+14:08 <+bridge> [ddnet] <Learath2> I think you should send it after we handle input
+14:09 <+bridge> [ddnet] <fokkonaut> where would that be
+14:09 <+bridge> [ddnet] <fokkonaut> in onsnapinput it works pretty nice
+14:09 <+bridge> [ddnet] <Learath2> yep that should work
+14:09 <+bridge> [ddnet] <Learath2> Make sure it's after we consider CControls tho
+14:09 <+bridge> [ddnet] <fokkonaut> sure
+14:10 <+bridge> [ddnet] <Learath2> @fokkonaut do you happen to know about teeworlds/teeworlds #2135?
+14:10 <+bridge> [ddnet] <fokkonaut> link pls
+14:10 <+bridge> [ddnet] <Learath2> https://github.com/teeworlds/teeworlds/issues/2135
+14:10 <+bridge> [ddnet] <Learath2> I fixed it but I need to test it, not sure how to trigger it though
+14:10 <+bridge> [ddnet] <fokkonaut> you need dummies?
+14:11 <+bridge> [ddnet] <Learath2> I need to fill a server up to the brim
+14:11 <+bridge> [ddnet] <fokkonaut> sure
+14:11 <+bridge> [ddnet] <fokkonaut> come to my server
+14:11 <+bridge> [ddnet] <Learath2> It's a server and client patch
+14:11 <+bridge> [ddnet] <Learath2> so I need my server to be full
+14:11 <+bridge> [ddnet] <Learath2> do we have a debug command to fill a server?
+14:11 <+bridge> [ddnet] <fokkonaut> oh
+14:11 <+bridge> [ddnet] <fokkonaut> we have dbg_dummies
+14:12 <+bridge> [ddnet] <Learath2> on the server? and how many dummies does it add?
+14:12 <+bridge> [ddnet] <fokkonaut> you can configure it
+14:12 <+bridge> [ddnet] <fokkonaut> set it to 63
+14:12 <+bridge> [ddnet] <fokkonaut> *requires debug compiling + reload
+14:13 <+bridge> [ddnet] <onby> do those show up in server info tho
+14:13 <+bridge> [ddnet] <whis> 60% messages from fokkonaut, 39% messages from learath2 and 1% from other :monkaS:
+14:14 <+bridge> [ddnet] <Learath2> `[2020-03-08 16:13:49][assert]: ../src/engine/shared/network_server.cpp(288): errornous client id`
+14:14 <+bridge> [ddnet] <Learath2> amazing that's also broken and it's not fixed by my commit
+14:14 <+bridge> [ddnet] <fokkonaut> xd
+14:16 <+bridge> [ddnet] <Learath2> and they don't show up on serverinfo
+14:16 <+bridge> [ddnet] <Learath2> ...
+14:17 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/commit/20e80de089288621c42a7c6d443d0cd58f1ba334
+14:17 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-Client/commit/f17c6731f4599521765b75fb0a9db39ebbeae920
+14:17 <+bridge> [ddnet] <fokkonaut> can you take a look?
+14:20 <+bridge> [ddnet] <Learath2> Always add flags after old ones, or you'll break compatibility
+14:20 <+bridge> [ddnet] <fokkonaut> ?
+14:21 <+bridge> [ddnet] <Learath2> You added AIM before AFK, AFK moved to being the second flag, now old clients will use AIM for AFK
+14:21 <+bridge> [ddnet] <fokkonaut> i know, but i just added all of this 1 hour ago
+14:21 <+bridge> [ddnet] <fokkonaut> no one has one of those clients/servers yet
+14:21 <+bridge> [ddnet] <Learath2> AFK too?
+14:21 <+bridge> [ddnet] <fokkonaut> yx
+14:21 <+bridge> [ddnet] <fokkonaut> y
+14:22 <+bridge> [ddnet] <Learath2> looks good to me then
+14:22 <+bridge> [ddnet] <Learath2> if it works that is 😛
+14:22 <+bridge> [ddnet] <fokkonaut> it does work, yes
+14:24 <+bridge> [ddnet] <fokkonaut> @Learath2 how do i activate c++11? nullptr is not available in my client repo
+14:24 <+bridge> [ddnet] <fokkonaut> github actions says that
+14:24 <+bridge> [ddnet] <Learath2> check ddnets CMakeLists
+14:24 <+bridge> [ddnet] <Learath2> or d7's I think I have it there aswell
+14:24 <+bridge> [ddnet] <fokkonaut> yes
+14:24 <+bridge> [ddnet] <fokkonaut> but what do i need to look for xd
+14:29 <+bridge> [ddnet] <heinrich5991> @Learath2 I would put the aim flag into PlayerFlags
+14:29 <+bridge> [ddnet] <heinrich5991> otherwise it won't be shown on servers that don't know about it
+14:29 <+bridge> [ddnet] <fokkonaut> it wont like this too
+14:30 <+bridge> [ddnet] <fokkonaut> since vanilla disallows it
+14:30 <+bridge> [ddnet] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/master/src/game/server/player.cpp#L146
+14:30 <+bridge> [ddnet] <fokkonaut> its fine like this heinrich
+14:31 <+bridge> [ddnet] <heinrich5991> ah well
+14:31 <+bridge> [ddnet] <heinrich5991> vanilla blocked their own future-compatibility
+14:31 <+bridge> [ddnet] <fokkonaut> xd
+14:31 <+bridge> [ddnet] <heinrich5991> then put it into explayerflags I guess
+14:31 <+bridge> [ddnet] <fokkonaut> like now
+14:32 <+bridge> [ddnet] <heinrich5991> yes. sorry
+14:32 <+bridge> [ddnet] <fokkonaut> or we remove it from vanilla?
+14:33 <+bridge> [ddnet] <fokkonaut> @Learath2 can you help me with c11
+14:38 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-Client/runs/493394794
+14:41 <+bridge> [ddnet] <Learath2> it's hard to debug mine and help you with it 😛
+14:41 <+bridge> [ddnet] <fokkonaut> wym
+14:41 <+bridge> [ddnet] <Learath2> I'm trying to fix a bug
+14:43 <+bridge> [ddnet] <Learath2> @fokkonaut https://github.com/ddnet/ddnet7/commit/2c85554d30aad8fbe082e163697886a6450f8d73
+14:43 <+bridge> [ddnet] <Learath2> I told you to take a look at d7, it was even the last commit on CMakeLists...
+14:44 <+bridge> [ddnet] <fokkonaut> lol
+14:44 <+bridge> [ddnet] <fokkonaut> i looked there, well nvm, thanks
+14:52 <+bridge> [ddnet] <Learath2> amazing conditional breakpoints are broken on macOS lldb
+14:55 <+bridge> [ddnet] <Learath2> @heinrich5991 can you help me track down an uninitialized value?
+14:55 <+bridge> [ddnet] <Learath2> lldb is not up to the task and macOS can't do valgrind
+15:01 <+bridge> [ddnet] <ChillerDragon> I thought valgrind is fine?
+15:05 <+bridge> [ddnet] <Learath2> It refuses to run
+15:07 <+bridge> [ddnet] <fokkonaut> @heinrich5991 any ideas regarding the dummy hammer?
+15:53 <+bridge> [ddnet] <fokkonaut> well, i compared, ddnet and my client get through the if (!Send) return; the same amount
+15:53 <+bridge> [ddnet] <fokkonaut> no idea whythis doesnt work
+15:54 <+bridge> [ddnet] <fokkonaut> oh
+15:54 <+bridge> [ddnet] <fokkonaut> i think i have it
+15:55 <+bridge> [ddnet] <fokkonaut> yup xd
+15:56 <+bridge> [ddnet] <fokkonaut> ddnet:
+15:56 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/master/src/engine/client/client.cpp#L494-L521
+15:56 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-Client/commit/aebbc871ffbc08a1af42c184113170faa73bbebe
+16:01 <+bridge> [ddnet] <Learath2> heh
+17:26 <+bridge> [ddnet] <Boci> bump
+17:26 <+bridge> [ddnet] <Boci> https://cdn.discordapp.com/attachments/293493549758939136/686248464610623544/unknown.png
+17:32 <+bridge> [ddnet] <louis> bump yes
+17:32 <+bridge> [ddnet] <louis> might be hard to implement tho
+17:33 <+bridge> [ddnet] <louis> idk
+17:38 <+bridge> [ddnet] <Learath2> Idea acknowledged, create an issue for it and someone might get to it
+17:43 <+bridge> [ddnet] <Boci> i dont know how to create an issue @Soreu  maybe you know?
+17:46 <+bridge> [ddnet] <Soreu> @Learath2 @Boci literally doing that right now ^^
+17:53 <+bridge> [ddnet] <Soreu> ^ there u go @Boci
+17:55 <+bridge> [ddnet] <Boci> ur a god @Soreu
+17:55 <+bridge> [ddnet] <Boci> thanks for the credit u really didnt need to do that :p
+18:01 <+bridge> [ddnet] <Soreu> I had to. And by the way when I started thinking about such feature, you were already in middle of writing your message about it ^^
+20:48 <+bridge> [ddnet] <fokkonaut> @heinrich5991 i managed to add entities to my client. but not all tiles are visisble, for example FROM teleporter or delayed switch tiles are not shown, any ideas why?
+20:53 <+bridge> [ddnet] <[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r> #developer  i want help
+20:53 <+bridge> [ddnet] <[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r> how can i add VIP rank in my DDnet server
+20:53 <+bridge> [ddnet] <[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r> i saw one server have it
+20:53 <+bridge> [ddnet] <[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r> persian-ddnet had it
+20:53 <+bridge> [ddnet] <[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r> i want it for my server
+20:54 <+bridge> [ddnet] <[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r> how can  i add new useres ?
+20:54 <+bridge> [ddnet] <ChillerDragon> use ddnet++
+21:09 <+bridge> [ddnet] <Soreu> ^ by that he meant https://github.com/DDNetPP
+21:32 <+bridge> [ddnet] <whis> learn to code
+21:35 <+bridge> [ddnet] <whis> @[¯̄ ͡ ̶๖̶̶ζ͜͡ G❤✞0D_Fathૐह═─r
+21:40 <+bridge> [ddnet] <Cha> whistroll
+21:41 <+bridge> [ddnet] <whis> @Cha troll

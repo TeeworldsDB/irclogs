@@ -1,0 +1,73 @@
+00:02 <+bridge> [ddnet] <NeXus> Where is the donate button on ddnet website?
+00:55 <+bridge> [ddnet] <heinrich5991> donations have covered the full year: https://ddnet.tw/funding/
+00:55 <+bridge> [ddnet] <heinrich5991> > At this moment we don't accept further donations since the server costs for 2019 are covered.
+13:07 <+bridge> [ddnet] <ChillerDragon> http://puu.sh/Emmh5/ac2061b8e9.png
+13:07 <+bridge> [ddnet] <ChillerDragon> xd
+13:07 <+bridge> [ddnet] <ChillerDragon> cover last years
+13:15 <+bridge> [ddnet] <Learath2> https://gist.github.com/Learath2/59e510af2a3475b7863d9477f0296b25
+13:16 <+bridge> [ddnet] <Learath2> I worked a little on getting a cleanly integrating plugin system for teeworlds, kinda hit a roadblock with not knowing how to translate the macro call before it runs through the actual compiler preprocessor
+13:17 <+bridge> [ddnet] <Learath2> The script above takes in a source file, and generated the required hook variables and the required registering functions
+13:17 <+bridge> [ddnet] <Learath2> s#generated#generates#
+13:19 <+bridge> [ddnet] <Learath2> I did it like this so as to not limit developers to only c++, but I'm kinda regretting that decision and thinking of doing an abstract class based approach instead
+13:22 <+bridge> [ddnet] <Learath2> even after that @Jupstar ✪'s words kinda make me feel like not doing a plugin system at all but to make a framework to let people modify the actual source itself, but that I have no good approach for
+13:23 <+bridge> [ddnet] <Learath2> either way, libclang is fun to mess around with
+13:23 <+bridge> [ddnet] <ChillerDragon> xush had this funny approach of injecting code into the binary xD search the correct places and then it would also be version and even sourcecode independent
+13:23 <+bridge> [ddnet] <ChillerDragon> https://github.com/GutZuFusss/TW-CDXX
+13:24 <+bridge> [ddnet] <Learath2> but not architecture independent 😛
+13:24 <+bridge> [ddnet] <ChillerDragon> tru
+13:24 <+bridge> [ddnet] <Learath2> imagine doing all this work to write an aimbot injector...
+13:24 <+bridge> [ddnet] <ChillerDragon> xxD
+13:24 <+bridge> [ddnet] <archimede67> :/
+13:24 <+bridge> [ddnet] <ChillerDragon> he wanted to be able to bot instantly when he returns in a few years to 0.8
+13:25 <+bridge> [ddnet] <Learath2> If any of you have opinions about how a plugin system should work or look like, please let me know
+15:04 <+bridge> [ddnet] <fokkonaut> Can someone have a look into the DDNet file score system and debug it?! I really tried everything, but I cant find why it wouldnt save every rank...
+15:04 <+bridge> [ddnet] <fokkonaut> Also I dont get error messages like failed for reading or something like that
+16:50 <+bridge> [ddnet] <redix> Does not really explain why ranks are lost... but this line might cause horrible lags:
+16:50 <+bridge> [ddnet] <redix> https://github.com/ddnet/ddnet7/blob/cb7a6cc1a0f4f1bcfaa5d260810c472916e3f156/src/game/server/score/file_score.cpp#L93
+16:50 <+bridge> [ddnet] <redix> It's waiting 1 second instead of 1 millisecond (like in ddnet 0.6)
+16:51 <+bridge> [ddnet] <fokkonaut> no
+16:53 <+bridge> [ddnet] <fokkonaut> ah wait
+16:53 <+bridge> [ddnet] <redix> In tw 0.7 this function uses milliseconds by default
+16:53 <+bridge> [ddnet] <fokkonaut> yes
+16:53 <+bridge> [ddnet] <fokkonaut> i thought the other way round rightn ow
+16:53 <+bridge> [ddnet] <fokkonaut> but anyways, this is a problem in ddnet 0.6 too (the rank not saving always)
+16:54 <+bridge> [ddnet] <redix> Okay. The whole file scoring should be rewritten 🤔
+16:54 <+bridge> [ddnet] <fokkonaut> why?
+16:56 <+bridge> [ddnet] <redix> The whole locking there is not optimal. When the score file gets too big and multiple people finish this can cause delays
+16:56 <+bridge> [ddnet] <redix> And in general... Using a database would be better
+16:58 <+bridge> [ddnet] <fokkonaut> of course it would be
+16:58 <+bridge> [ddnet] <fokkonaut> But not everyone is able to do that
+16:58 <+bridge> [ddnet] <fokkonaut> So a file system is good, also ddnet uses this on official servers if the databse connection fails, the scores are written in a file for now
+16:58 <+bridge> [ddnet] <fokkonaut> until an admin then manually merges them
+16:58 <+bridge> [ddnet] <fokkonaut> its not always stupid to have some "old" stuff in there
+16:59 <+bridge> [ddnet] <redix> A few more tiny things
+16:59 <+bridge> [ddnet] <redix> These lines leak memory:
+16:59 <+bridge> [ddnet] <redix> https://github.com/ddnet/ddnet7/blob/cb7a6cc1a0f4f1bcfaa5d260810c472916e3f156/src/game/server/score/file_score.cpp#L138-L139
+16:59 <+bridge> [ddnet] <redix> https://github.com/ddnet/ddnet7/blob/cb7a6cc1a0f4f1bcfaa5d260810c472916e3f156/src/game/server/score/file_score.cpp#L203
+17:00 <+bridge> [ddnet] <redix> This looks useless:
+17:00 <+bridge> [ddnet] <redix> https://github.com/ddnet/ddnet7/blob/cb7a6cc1a0f4f1bcfaa5d260810c472916e3f156/src/game/server/score/file_score.cpp#L217-L222
+17:00 <+bridge> [ddnet] <fokkonaut> You dont have to tell me, better make an issue or pull requets at ddnet/ddnet
+17:00 <+bridge> [ddnet] <fokkonaut> ddnet7 uses the same system as ddnet for file scores
+17:01 <+bridge> [ddnet] <fokkonaut> and in ddnet6 its also broken
+17:01 <+bridge> [ddnet] <redix> I guess on ddnet usually MySQL is used
+17:02 <+bridge> [ddnet] <redix> And the fallback thing appends sql commands to a file and does not use the filescoring class
+17:02 <+bridge> [ddnet] <fokkonaut> might be, but there are definitely servers running the ddnet mod using file score systems
+17:02 <+bridge> [ddnet] <fokkonaut> basically every server except ddnet and maybe kog
+17:02 <+bridge> [ddnet] <fokkonaut> all small servers use file score, because why would you use MySQL for example for a single server?
+17:04 <+bridge> [ddnet] <redix> Well it does not have to be mysql... Sqlite would be perfect for something like this
+17:04 <+bridge> [ddnet] <redix> But yeah... Something as simple as the file scoring is still useful
+17:04 <+bridge> [ddnet] <redix> No config and easy to handle
+17:04 <+bridge> [ddnet] <fokkonaut> Yea
+17:04 <+Ryozuki> Learath2 i think minecraft forge is a rly good example
+17:04 <+Ryozuki> idk how would u apply to c++ tho
+17:05 <+Ryozuki> @Learath2 test
+17:13 <+bridge> [ddnet] <redix> Wouldn't webassembly be a good choice for plugins? When you use native plugins you have to take care about all platforms
+17:24 <+bridge> [ddnet] <Learath2> @redix I looked into web assembly, sadly no wasm vm has good linkage to c++
+17:24 <+bridge> [ddnet] <Learath2> Exposing host functions is a pain when there is no stable api
+17:25 <+bridge> [ddnet] <Learath2> I also looked into having a native plugin api that allows you to also run something like a lua interpreter, but the overhead seems too much
+17:26 <+bridge> [ddnet] <Learath2> Something like modlua and modperl in weechat
+17:26 <+bridge> [ddnet] <redix> Well there is a proposed standard api. Not sure how stable it is though. Wasmtime implements it I think
+17:27 <+bridge> [ddnet] <redix> https://github.com/WebAssembly/wasm-c-api
+17:28 <+bridge> [ddnet] <Learath2> C api is workable but the c++ one seems to be pretty incapable
+17:35 <+bridge> [ddnet] <ChillerDragon> Any one on debian10? @jao ? And got a fix for the graphics bug when tabbing back into ddnet after latest debian update. Resolution gets worse and it tabs in and out 3 times.
+21:43 <+bridge> [ddnet] <heinrich5991> @ChillerDragon have you tried debugging it? 😛

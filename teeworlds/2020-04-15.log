@@ -1,0 +1,117 @@
+13:01 < bridge> [teeworlds] <Learath2> @Dune what do you mean you couldn't get /w to work at all?
+13:02 < bridge> [teeworlds] <Learath2> can you check the console output, see whether the command is being called at all
+13:02 < bridge> [teeworlds] <Dune> /whisper works not /w
+13:02 < bridge> [teeworlds] <Dune> Im eating, later
+13:03 < bridge> [teeworlds] <Learath2> well, fwiw works for me
+13:28 < bridge> [teeworlds] <Dune> @Learath2 it just sends it to the server
+13:29 < bridge> [teeworlds] <Dune> `[chat-command]: calling 'w' with args ''`
+13:40 < bridge> [teeworlds] <Learath2> @Dune well /w requires arguments
+13:41 < bridge> [teeworlds] <Learath2> and that line doesn't mean it's sent to the server
+13:42 < bridge> [teeworlds] <Dune> It is though
+13:42 < bridge> [teeworlds] <Dune> It goes to the chat
+13:51 < bridge> [teeworlds] <Dune> @Learath2 I have difficulties reproducing, sorry, could have been on the wrong branch or something
+13:51 < bridge> [teeworlds] <Dune> /w does go to the chat though...
+13:51 < bridge> [teeworlds] <Dune> [2020-04-15 13:49:20][chat-command]: calling 'w' with args ''
+13:51 < bridge> [teeworlds] <Dune> [2020-04-15 13:49:20][chat]:  1: Dune: /w
+13:51 < bridge> [teeworlds] <Learath2> you just write /w and press enter?
+13:51 < bridge> [teeworlds] <Dune> yeah. that's a bug
+13:52 < bridge> [teeworlds] <Learath2> oh indeed
+13:55 < bridge> [teeworlds] <Learath2> @Dune if we are typing a command, even if parsing fails don't send it?
+13:55 < bridge> [teeworlds] <Dune> yes, anything that starts with a / must not be sent, unless escape is pressed, that's a security
+13:55 < bridge> [teeworlds] <Dune> ideally, autocompletion/validation of commands should be changed to space/tab only, to make return presses safer
+13:56 < bridge> [teeworlds] <Dune> (it's very tricky stuff I know)
+13:57 < bridge> [teeworlds] <Learath2> I don't quite get how it used to work before tbh, I don't see that behaviour there
+13:58 < bridge> [teeworlds] <Dune> you can check 0.7.3 for that
+13:58 < bridge> [teeworlds] <Dune> or you mean in the code?
+14:00 < bridge> [teeworlds] <Learath2> @Dune try the new commit
+14:01 < bridge> [teeworlds] <Learath2> Yeah I meant in the code
+14:01 < bridge> [teeworlds] <Dune> ok
+14:05 < bridge> [teeworlds] <Dune> ah, there is one difference with behaviour from previous versions there, and I see I wrote the specifications wrong: it should not send it as long as there is an active commands menus. Escape closes the menus, so it's supposed to be intuitive that you have to close menus to send the command
+14:05 < bridge> [teeworlds] <Dune> you may disagree on that though
+14:06 < bridge> [teeworlds] <Dune> otherwise works fine
+14:06 < bridge> [teeworlds] <Learath2> did I somewhere along the way break something about the commands?
+14:07 < bridge> [teeworlds] <Learath2> Is the menu supposed to be active after you hit space?
+14:07 < bridge> [teeworlds] <Dune> for example, when you type `/\ssa: hi` there should be (and there is no) menus
+14:08 < bridge> [teeworlds] <Dune> but the message still doesn't get sent before you press escape to exit from some hypothetical invisible menus: that's the thing that changed
+14:08 < bridge> [teeworlds] <Learath2> hmm, idk how to encode this behaviour in terms of the variables we have
+14:10 < bridge> [teeworlds] <Learath2> @Dune currently, there is no menu, but the code still wont send it before you esc out of the non existant menu?
+14:10 < bridge> [teeworlds] <Dune> yes
+14:11 < bridge> [teeworlds] <Dune> try to send `/\ssa: hi`
+14:11 < bridge> [teeworlds] <Learath2> however when typing a command the menu does indeed disappear after the initial part of the command
+14:11 < bridge> [teeworlds] <Dune> it's weird
+14:11 < bridge> [teeworlds] <Dune> huh, lemme test
+14:12 < bridge> [teeworlds] <Dune> this is another change in behaviour
+14:12 < bridge> [teeworlds] <Dune> this was not the case in 0.7.3
+14:12 < bridge> [teeworlds] <Learath2> ah, now it makes sense
+14:13 < bridge> [teeworlds] <Learath2> I guess we lost that behaviour along the way
+14:13 < bridge> [teeworlds] <Dune> most likely yes, it's hard to regression test this because there are a lot of cases :)
+14:14 < bridge> [teeworlds] <Learath2> Instead of filtering chat commands according to the entire input string, maybe I should do it with only the initial token
+14:39 < bridge> [teeworlds] <Learath2> so hard to replicate :/
+14:51 < bridge> [teeworlds] <Learath2> @Dune I think I got it this time
+14:52 < bridge> [teeworlds] <Learath2> it's not always so easy to put these concepts we can easily imagine into concrete logic on the variables we have access to
+15:13 < bridge> [teeworlds] <Dune> I agree @Learath2 , especially since there was very little abstraction around this feature, it's all hacked into the chat code
+15:15 < bridge> [teeworlds] <Dune> @Learath2 doesn't work, once I exit the menus once I can't seem to get commands working again
+15:17 < bridge> [teeworlds] <Learath2> ?
+15:18 < bridge> [teeworlds] <Learath2> You type a command, you exit the menu, you can never use commands again?
+15:23 < bridge> [teeworlds] <Learath2> In the subset of things I tried. It works fine, so you'll need to tell me how to reproduce this
+15:35 < bridge> [teeworlds] <Dune> 1) start to type a command
+15:35 < bridge> [teeworlds] <Dune> 2) type escape
+15:35 < bridge> [teeworlds] <Dune> 3) open chat again, try to type a command
+15:36 < bridge> [teeworlds] <Learath2> Hmm, works fine for me, do you get out of chat with escape too?
+15:37 < bridge> [teeworlds] <Dune> yes
+15:37 < bridge> [teeworlds] <Dune> wait, maybe I did not pull the last commit
+15:37 < bridge> [teeworlds] <Learath2> "start typing command, escape, escape, open chat, type /" is exactly what I'm doing
+15:38 < bridge> [teeworlds] <Dune> I can still reproduce
+15:39 < bridge> [teeworlds] <Learath2> maybe it depends on the command and how much of the command you typed?
+15:39 < bridge> [teeworlds] <Dune> yes it does
+15:39 < bridge> [teeworlds] <Dune> in order: T, /mu, escape, escape, T, /
+15:39 < bridge> [teeworlds] <Learath2> works completely fine for me, that means undefined behaviour 😦
+15:40 < bridge> [teeworlds] <Dune> same procedure with /w works fine...
+15:40 < bridge> [teeworlds] <Learath2> oh I got it to happen somehow
+15:41 < bridge> [teeworlds] <Learath2> T + /, + esc + esc + t + / works for me
+15:42 < bridge> [teeworlds] <Dune> you mean, works or reprodcues the bug?
+15:44 < bridge> [teeworlds] <Learath2> yeah, reproduces it and I fixed it
+15:45 < bridge> [teeworlds] <Learath2> I was having an issue with cirular logic
+15:45 < bridge> [teeworlds] <Learath2> `IsTypingCommand` would be stuck false because there were no commands rendered, because handle commands wouldn't run unless `IsTypingCommand`
+15:47 < bridge> [teeworlds] <Learath2> @Dune Okay this time, for sure
+15:47 < bridge> [teeworlds] <Learath2> hopefully(tm)
+15:51 < bridge> [teeworlds] <Dune> It would be good if you could test it extensively
+15:51 < bridge> [teeworlds] <Dune> Now if I try to whisper someone, and I tab, it erases it
+15:51 < bridge> [teeworlds] <Dune> `/whisper Lea`<TAB> --> `/whisper ` instead of /whisper Learath
+15:51 < bridge> [teeworlds] <Learath2> how do you even come up with these testcases?
+15:51 < bridge> [teeworlds] <Dune> I just enter a server and try random commands
+15:52 < bridge> [teeworlds] <Learath2> I try like 50 things before pushing it, you find the 1 thing that breaks it
+15:52 < bridge> [teeworlds] <Dune> ha ok, bad luck :D
+16:05 < bridge> [teeworlds] <Learath2> This was going to be a small pr, now it'll need to be squished :/
+16:29 < bridge> [teeworlds] <Learath2> Okay, I tested this commit for 10 minutes and the only thing I can come up with isn't in the scope of this PR
+16:29 < bridge> [teeworlds] <Learath2> (add a way to signify parsing failure to the user (maybe a red background flash?))
+16:42 < bridge> [teeworlds] <Dune> sounds like a nice feature to do in another PR :)
+16:43 < bridge> [teeworlds] <Dune> though I'm more concerned about signalling that the user is out of command mode (and will send a command as raw text)
+16:43 < bridge> [teeworlds] <Dune> I wanted to write a GUI where the command is part of the chat mode header (where it says "All") but that branch got stale :P
+19:40 < ChillerDragun> Did apt rename the server binary from teeworlds_srv to teeworlds-server? And why?
+19:40 < ChillerDragun> I really liked the teeworlds_srv binary name but i noticed after installing it via apt it seemed to have teeworlds-server there.
+19:41 < ChillerDragun> I wonder if there is some styleguide for linux binarys? I mean i can not think of any binary including underscores. All use dashes.
+19:53 < bridge> [teeworlds] <Skayland [identifyy host|msg me]> i always try to write teeworlds-srv because im used to - on linux
+19:55 < ChillerDragun> yea seems like its a more common style to use dashes i could not find anything about it online tho
+19:56 < ChillerDragun> im not sure about srv vs server
+19:56 < bridge> [teeworlds] <Trafalgar Law> hi chillerdragon
+19:56 < ChillerDragun> yo
+19:56 < bridge> [teeworlds] <Trafalgar Law> Are you online rn on a srv?
+19:56 < bridge> [teeworlds] <Trafalgar Law> I need you for smth :D
+19:56 < ChillerDragun> no :D
+19:56 < bridge> [teeworlds] <Trafalgar Law> Come on
+19:56 < ChillerDragun> pm me on irc or get wire
+19:57 < bridge> [teeworlds] <Trafalgar Law> I pm you to get discord
+19:57 < ChillerDragun> :troll:
+19:57 < bridge> [teeworlds] <Trafalgar Law> :troll:
+19:58 < ChillerDragun> oh btw you can use https://zillyhuhn.com/TeeStalker/ tee see when im online
+19:58 < ChillerDragun> oh well might be 0.6 only so thats probably useless
+19:59 < bridge> [teeworlds] <Trafalgar Law> Wow you troll
+19:59 < bridge> [teeworlds] <Trafalgar Law> Could you come online for few minutes?
+20:02 < ChillerDragun> ok ill join zcatch real quick but please do not use this public irc to contact me in the future :/
+20:04 < bridge> [teeworlds] <Trafalgar Law> We will see!
+20:07 < bridge> [teeworlds] <Trafalgar Law> Where are you ChillerDragon
+20:09 < ChillerDragun> sorry had a different identity im on now
+20:19 < Trafalgar_Law> I have to use now quakenet because of ChillerDragon, help
+20:37 < ChillerDragun> lol its funny when you search "multiplayer game" on rubygems there are only 19 hits and there is no quake, minecraft, roblox or any other game id expect there. But a teeworlds related gem :D nice
+20:37 < ChillerDragun> https://rubygems.org/search?utf8=%E2%9C%93&query=multiplayer+game

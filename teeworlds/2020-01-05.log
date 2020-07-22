@@ -1,0 +1,129 @@
+11:06 < bridge> [teeworlds] <fokkonaut> I am actually very happy with the 0.7 client
+11:07 < bridge> [teeworlds] <fokkonaut> when i moved away from 0.6 and started almost only playing 0.7 i disliked it but now its nice
+11:08 < bridge> [teeworlds] <Ryozuki> i dont see how ddnet destroyed 0.6, it simply got popular, if ppl enjoy playing it i dont see anything wrong, make your awesome mod and im sure ppl will play it if its good
+11:09 < bridge> [teeworlds] <Ryozuki> you could start by investigating why its so popular
+11:23 < bridge> [teeworlds] <ChillerDragon> I am not able to download maps in 0.7 :/ in 0.6 it works tho
+11:24 < bridge> [teeworlds] <ChillerDragon> it gets stuck after a few bytes
+11:38 < rand> @fokkonaut : does your code about tee collisions can be simplified as if(D < PhysSize && D >= 0.f) ?
+11:39 < bridge> [teeworlds] <fokkonaut> Thats what I thought too last night while reviewing my commits xd
+11:39 < bridge> [teeworlds] <fokkonaut> But
+11:39 < bridge> [teeworlds] <fokkonaut> I think i tried it and it didnt work iirc
+11:39 < bridge> [teeworlds] <fokkonaut> I can try again later
+11:40 < rand> ok
+11:41 < rand> “<zcatch> this is a beginner server, you are not allowed to play here” :( I'm a forever beginner !
+15:32 < bridge> [teeworlds] <fokkonaut> @oy thanks for merging the spec mouse pr! did you test everything?
+15:37 < Oy> yeah, think so
+15:48 < bridge> [teeworlds] <fokkonaut> nice
+16:43 < bridge> [teeworlds] <Assa> one day i will bring code a new client with all the features iam missing, with matchmaking, twitch support and hookers
+16:49 < bridge> [teeworlds] <Sonix> hyped
+16:53 < bridge> [teeworlds] <Assa> i think i need help with the github actions workflows
+16:53 < bridge> [teeworlds] <Assa> on my current state windows with bam and mac with cmake are not running
+16:54 < bridge> [teeworlds] <heinrich5991> there was a mac fix recently I think
+16:54 < bridge> [teeworlds] <Assa> I have a new branch (actions2) so i don't spam the tw PR
+16:54 < bridge> [teeworlds] <Assa> can you further explain?
+16:59 < bridge> [teeworlds] <redix> I have a working gh actions workflow for all 3 platforms with bam and cmake. Only the packaging is not working on mac. According to cmake the needed tools are missing. Anybody ever tried building dmg files on Travis or gh actions?
+17:01 < bridge> [teeworlds] <redix> And the sdl+freetype download often fails with bam on windows
+17:02 < bridge> [teeworlds] <Assa> can you send me a link to lookup what you did differently?
+17:02 < bridge> [teeworlds] <redix> https://github.com/axblk/teeworlds/commits/gh_actions
+17:03 < bridge> [teeworlds] <heinrich5991> @redix https://travis-ci.org/ddnet/ddnet/jobs/632954311#L754
+17:03 < bridge> [teeworlds] <Dune> Cool stuff @redix
+17:04 < bridge> [teeworlds] <redix> Gh actions has no pkg-config by default. And the findsdl module from tw is buggy when pkg config is missing
+17:04 < bridge> [teeworlds] <heinrich5991> on which os?
+17:05 < bridge> [teeworlds] <redix> The windows thing is probably due to gh actions using Powershell as default shell
+17:05 < bridge> [teeworlds] <heinrich5991> and in what way buggy?
+17:05 < bridge> [teeworlds] <Assa> how do i change that @redix because iam sure you are right
+17:05 < bridge> [teeworlds] <Assa> shell: bash
+17:05 < bridge> [teeworlds] <Assa> okay, will test
+17:06 < bridge> [teeworlds] <redix> You can't. Add python as prefix in the bam script
+17:06 < bridge> [teeworlds] <redix> https://github.com/axblk/teeworlds/commit/0466d77988102ed4e8a309317cac5ed022b6df3f
+17:06 < bridge> [teeworlds] <redix> The change in bam.lua
+17:07 < bridge> [teeworlds] <heinrich5991> that might break builds on normal windows
+17:08 < bridge> [teeworlds] <redix> @heinrich5991 when the cmake internal fing_package is used pkg-config is still called
+17:08 < bridge> [teeworlds] <Assa> big note here:
+17:08 < bridge> [teeworlds] <Assa> https://github.com/actions/setup-python
+17:08 < bridge> [teeworlds] <Assa> i already tried this (without success)
+17:08 < bridge> [teeworlds] <redix> It might overwrite the valid paths when pkg-config can't find sdl
+17:09 < bridge> [teeworlds] <redix> The problem is the file type association on windows. It will internally start a new shell so you can't pipe the output
+17:10 < bridge> [teeworlds] <heinrich5991> but the build worked on my system with this bam.lua version, I think
+17:11 < bridge> [teeworlds] <redix> It's only a problem when Powershell is used by default. I think that's not the case on usual windows systems
+17:11 < bridge> [teeworlds] <heinrich5991> ah
+17:11 < bridge> [teeworlds] <heinrich5991> I don't see where pkg-config is used on windows (has a default of `PREFER_BUNDLED_LIBS=ON`) other than a source of hints for `find_library`
+17:13 < bridge> [teeworlds] <redix> That problem occured on mac. find_package already found sdl but since pkg-config was missing it still did not work
+17:13 < bridge> [teeworlds] <redix> https://github.com/axblk/teeworlds/commit/09466c7695068b090d64fd53896f8dd5fc8cb299
+17:13 < bridge> [teeworlds] <heinrich5991> that's not a problem of pkg-config
+17:14 < bridge> [teeworlds] <heinrich5991> but of the second `find_library` call
+17:14 < bridge> [teeworlds] <heinrich5991> https://github.com/axblk/teeworlds/commit/09466c7695068b090d64fd53896f8dd5fc8cb299?w=1
+17:15 < bridge> [teeworlds] <redix> True
+17:16 < bridge> [teeworlds] <Assa> here is my latest workflow where you can see that mac doesn't find sdl2
+17:16 < bridge> [teeworlds] <Assa> https://github.com/AssassinTee/teeworlds/commit/5bd08c7804884dda911d17b2fbcad38a3ecef4b8/checks?check_suite_id=385066970
+17:17 < Oy> that bam change breaks normal windows build
+17:17 < bridge> [teeworlds] <redix> Only for systems where python is not in the path var
+17:17 < bridge> [teeworlds] <heinrich5991> unrelated: the change to `is_bundled(SDL2_BUNDLED "${SDL2_LIBRARIES}")` looks weird, `is_bundled` only takes a single path and `${SDL2_LIBRARIES}` sounds like it could contain multiple, (but with the current code it can't, so it works)
+17:18 < bridge> [teeworlds] <heinrich5991> yes, that happens with the standard python install
+17:18 < bridge> [teeworlds] <heinrich5991> that python is not in PATH
+17:18 < bridge> [teeworlds] <redix> Hmm... A solution would be to let python handle the file writing stuff
+17:18 < Oy> what probably most users do
+17:19 < bridge> [teeworlds] <redix> Then you can also use the file association on gh actions
+17:20 < bridge> [teeworlds] <redix> @heinrich5991 yeah. This change was rather unintentional
+17:23 < Oy> could also do a config check if python is in path and then use the python call, otherwise use it like it's now
+17:25 < bridge> [teeworlds] <Assa> is teeworlds careing about python2 or python3?
+17:25 < bridge> [teeworlds] <Assa> *caring
+17:26 < bridge> [teeworlds] <heinrich5991> python 2 was EOL 4 days ago, at this point we can treat a python in path as a bug 😛
+17:26 < bridge> [teeworlds] <heinrich5991> a python 2
+17:27 < bridge> [teeworlds] <Assa> and when is python 4 coming? 😛
+17:27 < Oy> could probably drop python2 now
+17:28 < bridge> [teeworlds] <heinrich5991> not at all according to the python community, Assa
+17:34 < bridge> [teeworlds] <redix> The ddnet cmakelist has no output for it but it seems like Travis has the dmgtools installed. That's not the case on gh actions 😕
+17:35 < bridge> [teeworlds] <heinrich5991> hm, `HDIUTIL` seems to be what it needs on mac
+17:36 < bridge> [teeworlds] <heinrich5991> @redix link to the output on gh actions?
+17:36 < bridge> [teeworlds] <redix> Not found according to cmake
+17:37 < bridge> [teeworlds] <redix> https://github.com/axblk/teeworlds/runs/373101847
+17:38 < bridge> [teeworlds] <redix> Packaging was deactivated for mac in this build
+17:38 < bridge> [teeworlds] <redix> But it says that dmgtools and hdiutil are not installed
+17:39 < bridge> [teeworlds] <redix> https://github.com/axblk/teeworlds/runs/373078197
+17:41 < bridge> [teeworlds] <heinrich5991> hm. stuff on internet forums implies that `hdiutil` is always installed on mac systems
+17:42 < bridge> [teeworlds] <redix> Yeah... Seems so. Not sure why cmake does not find it though
+17:42 < bridge> [teeworlds] <heinrich5991> so the question is why cmake doesn't find it or why it isn't installed on github's macs
+17:42 < bridge> [teeworlds] <heinrich5991> ye
+17:42 < bridge> [teeworlds] <redix> But ddnet log on Travis says the same
+17:44 < bridge> [teeworlds] <heinrich5991> ah
+17:44 < bridge> [teeworlds] <heinrich5991> the dependency status showing is buggy
+17:44 < bridge> [teeworlds] <heinrich5991> for `HDIUTIL`
+17:45 < bridge> [teeworlds] <heinrich5991> so we can probably assume that it is actually there
+17:45 < bridge> [teeworlds] <heinrich5991> (variable `HDIUTIL_FOUND` is checked, but it is not set anywhere)
+17:48 < bridge> [teeworlds] <heinrich5991> @redix what's the next problem?
+17:51 < bridge> [teeworlds] <redix> I'll check the Mac packaging stuff again later 👍 
+17:51 < bridge> [teeworlds] <redix> On windows I'll check whether python is in path
+17:51 < bridge> [teeworlds] <redix> Last problem is that the sdl+freetype download often fails on windows+bam
+17:52 < bridge> [teeworlds] <redix> https://github.com/axblk/teeworlds/runs/373078175
+18:12 < bridge> [teeworlds] <jxsl13> forum spam.
+18:13 < bridge> [teeworlds] <heinrich5991> down
+18:13 < bridge> [teeworlds] <heinrich5991> forum is refreshingly fast
+18:40 < bridge> [teeworlds] <Assa> @redix why not use freetpye and sdl binaries that are given?
+18:40 < bridge> [teeworlds] <Assa> at least this happens in my (failing) windows build
+18:41 < bridge> [teeworlds] <redix> There are none in the tw repo
+18:42 < bridge> [teeworlds] <redix> bam downloads them but the python script fails sometimes
+18:51 < bridge> [teeworlds] <Assa> oh yeah, true <.<
+19:59 < bridge> [teeworlds] <fokkonaut> 0.7.5 when
+19:59 < bridge> [teeworlds] <fokkonaut> xd
+20:21 < bridge> [teeworlds] <Sonix> in game server browser refresh button doesnt work apparently, or is it me?
+20:28 < bridge> [teeworlds] <fokkonaut> sometimes its bugged, yes
+20:29 < bridge> [teeworlds] <fokkonaut> had this one time too
+20:35 < bridge> [teeworlds] <fokkonaut> I find it very weird that you cant toggle dynamic camera just using f1 cl_dynamic_camera. You have to use the button in the settings or set the rest manually.
+20:35 < bridge> [teeworlds] <fokkonaut> Vanilla code:
+20:35 < bridge> [teeworlds] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/e036ee22b5021c738b766ed1c63e227e05678be4/src/game/client/components/menus_settings.cpp#L968
+20:35 < bridge> [teeworlds] <fokkonaut> 
+20:35 < bridge> [teeworlds] <fokkonaut> ddnet has changed that:
+20:35 < bridge> [teeworlds] <fokkonaut> https://github.com/ddnet/ddnet/blob/77957c00b94611c6cec697f228b98d981830ee6c/src/game/client/components/menus_settings.cpp#L93
+20:35 < bridge> [teeworlds] <fokkonaut> 
+20:35 < bridge> [teeworlds] <fokkonaut> I dont know exactly how they handle the rest, but we should do the same in vanilla
+20:38 < bridge> [teeworlds] <fokkonaut> well actually
+20:38 < bridge> [teeworlds] <fokkonaut> we can just remove them, they are all different variables
+21:53 < bridge> [teeworlds] <fokkonaut> And about scroll bars: Can we also change the small side scroll bar when the browser doesnt have the right side menu? i am talking about the slider in the player scoreboard menu
+22:28 < bridge> [teeworlds] <Dune> Go ahead :p
+22:29 < bridge> [teeworlds] <Dune> I think the corners are negative on that one
+22:39 < bridge> [teeworlds] <redix> Finally... building and packaging works on all platforms 😄
+22:42 < bridge> [teeworlds] <LordSk> noice 👍
+23:18 < bridge> [teeworlds] <fokkonaut> @redix i removed bam from my repo, to merge your pr I guess I only have to remove build-bam: and everything under it in the github file? (and ofc re-remove the bam files)?
+23:18 < bridge> [teeworlds] <redix> yes
+23:19 < bridge> [teeworlds] <fokkonaut> okay thanks

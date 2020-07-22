@@ -1,0 +1,160 @@
+00:16 < needs1> heinrich5991: So I implemented url format you suggested and it looks much better than what I had before
+00:16 < needs1> heinrich5991: However, I could even more simplify it:
+00:17 < needs1> By default players are sorted by rank, so I could make /players?p=1 be the same as /players/by-rank?p=1
+00:17 < needs1> But now I have two urls pointing to the same resource
+00:17 < needs1> Would you still go for that?
+00:19 <@minus> implementing pages like that sucks
+00:19 <@minus> if your information changes often
+00:22 < needs1> minus: So you prefer not having such shortcut and stick to the full url /players/by-rank?p=1
+00:22 < needs1> ?
+00:23 <@minus> no, i mean using page numbers is/can be bad
+00:23 < needs1> Then, how would you display just a part of the full player list?  I wan't really send the whole player list, it would be too big
+00:24 < needs1> *I can't
+00:24 <@minus> yeah, i have no solution
+00:24 <@minus> ccan't even manage to find any rants on it
+00:25 < needs1> It's seems common to use page number as url parameters
+00:25 < needs1> Google does it
+00:26 <@minus> well, it usually works well enough
+00:27 < needs1> minus: What do you find wrong with page numbers?
+00:27 < BotoX> pagination is a pretty standard thing
+00:27 <@minus> the information changes
+00:27 <@minus> maybe with ranks it's not wrong
+00:31 < needs1> You mean, the page is not static?
+00:37 <@minus> when you go from page 1 to page 2 you expect to get the info from where page 1 left off. but if the data changes meanwhile you may miss something
+00:43 < needs1> I see, it's indeed an issue.  I've already tough about it when implementing the first teerank version and came to the conclusion that maintening old database entries just for the sake of consistency between pages is not worth the complexity it will bring.
+00:45 < needs1> Well, I could have overestimated the complexity of such feature tho
+00:46 <@minus> shouldn't be too difficult but may litter your database significantly
+00:46 < needs1> It's indeed nice to have immutable page, now that I think of it
+00:50 < needs1> Actually a list of player is about 3.2 for 100k players, let's say it is now 4 time bigger with the new version I'm about to release, if I do one save per day, it means 3.2 * 4 * 365 = 4.6GB per years
+00:50 < needs1> *3.2MB
+00:51 < needs1> Ah I need to multiply it by 3, because I also have a list of servers and clans now, so 14GB per years
+00:51 <@minus> that's like
+00:51 <@minus> nothing
+00:52 < needs1> I have actually 2TB available on teerank server
+00:52 < needs1> So 142 years to fill it
+00:52 <@minus> if you cache  the latest 3 snapshots you'll not even have a performance problem with more data
+00:53 <@minus> well, except if you don't have indices and run a full table scan each time \o/
+00:53 < needs1> Actually it's a file based database so performance will not be a problem: I just have to put  snapshots in different directories or whatever
+00:55 < needs1> In fact it's still a bit more complex than just storing the list of players infos: I already have a full historic of rank and elo values for each players...
+00:55 < needs1> well whatever
+00:55 < needs1> That's something I might endup doing
+00:56 < needs1> But not for the current version for sure, too much work.
+00:59 < needs1> Still wondering if "/players?p=1" as a shorturl for "/players/by-rank?p=1" is a good choice...
+01:05 <@minus> Store historical data, that's always good to have later 
+19:35 <@minus> heinrich5991: did you implement that http master stuff?
+19:51 <@heinrich5991> mh. haven't you seen the link I posted a couple of days ago?
+19:52 <@heinrich5991> https://github.com/teeworlds/teeworlds/compare/master...heinrich5991:http_master7
+19:52 <@minus> ah, was looking through pull requests
+19:52 <@heinrich5991> minus: ^
+19:53 <@minus> https://github.com/teeworlds/teeworlds/pull/1395 obsolete?
+19:53 <@heinrich5991> if that is fine by Oy, I'd port it to 0.6
+19:53 <@heinrich5991> eh, that's an old version of the same stuff
+19:53 <@minus> close it then
+19:54 <@minus> i'd first integrate it into 0.7, wouldn't you?
+19:54 <@heinrich5991> I would integrate it into 0.6 because we have the problems there, right now
+19:55 <@minus> fair enough
+19:55 < EastByte> how do you keep support for old clients?
+19:55 < EastByte> and servers
+19:55 <@heinrich5991> keep the old master servers running, as slaves of the new ones
+19:56 <@heinrich5991> if they go down, old clients and servers have problems, but not new ones
+19:56 < EastByte> okay
+19:56 <@heinrich5991> should provide a little incentive to upgrade as well
+19:57 <@minus> backwards compat sucks
+19:57 < EastByte> well and once it's merged into ddnet it should spread pretty fast
+19:58 <@heinrich5991> we do have a lot of servers that won't be upgradeable easily
+19:58 <@heinrich5991> I haven't figured out a solution for these yet
+19:58 <@minus> 0.7 is one
+19:59 <@heinrich5991> that won't help either :)
+19:59 < EastByte> so the plan is to use a CDN, there is still the fact that it might not work with cloudflare because of browser validation
+19:59 <@heinrich5991> that's something you can disable IIRC
+20:00 <@heinrich5991> or rather, have to explicitly enable
+20:00 <@minus> lemme check on that
+20:00 < EastByte> not sure about that in the free version
+20:00 < EastByte> disabling it will increase cost on cf's side
+20:01 <@minus> oh great, my account broke cloudflare again
+20:01 < EastByte> well, but there are a few alternatives anyways
+20:02 <@minus> EastByte is right, turning the captchas off requires an enterprise plan
+20:03 <@heinrich5991> meh, I had a site under cloudflare once, need to get one again
+20:03 <@minus> >$5,000+/month
+20:03 < EastByte> 'enterprise' :p
+20:03 <@minus> >Essentially off: Challenges only the most grievous offenders
+20:04 < EastByte> ovh cdn info page seems to have problems with itself: https://www.ovh.de/cdn/
+20:04 <@heinrich5991> that sounds like off, no?
+20:08 <@minus> hah
+20:16 <@minus> seems it's possible to disable the browser verification stuff
+20:16 < EastByte> cf?
+20:17 <@minus> yeah
+20:17 < EastByte> well, try it out
+20:18 <@heinrich5991> they don't enable it by default at least
+20:18 <@heinrich5991> I was able to test their caching
+20:19 <@minus> speaking of caching
+20:19 <@minus> we should include a timestamp in the server list
+20:19 <@heinrich5991> why?
+20:20 <@minus> so we can tell how old the list is
+20:20 <@minus> helpful for debugging and if we use CF's always online
+20:21 <@matricks> can someone recommend a good movie? :P
+20:21 <@minus> the man from earth
+20:22 <@matricks> the one from 2007?
+20:22 <@minus> i think, yeah
+20:23 <@matricks> hmm, hot singles in my area
+20:23 <@minus> a word of warning: the whole movie takes place in a single room pretty much
+20:23 <@matricks> minus: no worries, Ive seen cube
+20:23 <@minus> haha
+20:24 <@matricks> good movie
+20:24 <@minus> another movie i've recently watched is limitless (2011), that was also quite enjoyable
+20:24 <@minus> dunno about cube
+20:24 <@matricks> think I've seen that one
+20:24 <@minus> been a loooong time since i've maybe seen that
+20:25 <@matricks> I can recommend Predestination
+20:25 <@minus> limitless is about a drug that makes you super intelligent pretty much
+20:25 <@matricks> yeah... might have seen it
+20:25 < Stitch626> too
+20:26 <@minus> predestination sounds interesting
+20:26 <@matricks> it's freaking awesome
+20:26 <@matricks> saw that movie over a year ago and I can't let it go
+20:27 <@minus> oh
+20:27 <@minus> i already have predestination
+20:27 <@minus> no wonder the imdb link was marked as visited
+20:28 <@minus> >// NOTE: This looks very wrong.
+20:28 <@minus> nice comment, heinrich5991
+20:29 <@minus> dualstack handling in teeworlds is a mess
+20:30 <@minus> i dare say
+20:30 <@matricks> yap
+20:31 <@matricks> I... I kinda wanna watch predestination again...
+20:31 < Stitch626> i think i will too next 1-2 days
+20:31 <@matricks> Stitch626: seen it?
+20:31 < Stitch626> mb, i always forget about movies i've seen
+20:31 <@minus> seeing how much state'y code teeworlds has, has anyone ever thought about using some thing that handles state machines and gives you a nicer interface to them? like ragel https://www.colm.net/open-source/ragel/
+20:32 < Stitch626> so i can see the same movie up to 5 times
+20:33 <@minus> i've been working on a C++ lib (i.e. looking at a possible design) with predefined states, statechanges and callbacks (mainly intended for lambdas)
+20:34 <@matricks> probably is something for it in boost ;)
+20:34 <@minus> haha
+20:35 <@minus> 2 things actually
+20:36 <@matricks> now, movie
+20:37 <@minus> predestination?
+20:37 <@matricks> limitless
+20:37 <@minus> that was fast
+20:37 <@matricks> took 3 minutes to get or someting
+20:37 <@minus> internet too slow to stream :(
+20:37 <@matricks> got 250mbit connection
+20:38 <@minus> damn you swedes
+20:38 <@matricks> :D
+20:38 <@minus> been stuck on the same shitty DSL connection for over 10 years
+20:39 <@minus> http://www.boost.org/doc/libs/1_59_0/libs/statechart/doc/tutorial.html compile-time everything, interesting
+20:40 <@minus> my approach is similar but run-time everything
+20:40 <@minus> (state transitions still predefined)
+20:50 <@minus> actually Boost's Meta State Machine library is even more compilery; huge template-based tables
+22:15 <@matricks> minus: drugs are good m'key
+22:15 <@minus> uhm, okay
+22:15 <@matricks> limitless
+22:16 <@minus> right
+22:16 <@minus> watching predestination right now
+22:17 <@minus> how'd you like the ending, matricks?
+22:17 <@matricks> meh
+23:09 <@minus> finished predestination, nice
+23:10 <@matricks> I think it's very cool
+23:10 <@matricks> really nice layout of the movie
+23:10 <@minus> at ⅔ through the title clicked and i knew how it would turn out
+23:15 <@matricks> yeah, but I think it's really beautifully done
+23:15 <@matricks> how everything ties together
+23:25 <@minus> should've tied in robertson for maximum effectiveness

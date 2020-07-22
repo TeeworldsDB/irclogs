@@ -1,0 +1,116 @@
+00:45 <+bridge> [ddnet] <ChillerDragon> I added a new cpp file under game/client/components and a responding header file and i included the header in gameclient
+00:45 <+bridge> [ddnet] <ChillerDragon> but it seems like the cpp file isnt compiled because i have a lot of code in tehre that shouldnt compile but it still successfully compiles with 0 warnings
+00:47 <+Learath2> Did you add it to CMakeLists ?
+00:48 <+bridge> [ddnet] <ChillerDragon> no
+00:48 <+bridge> [ddnet] <ChillerDragon> iu guess i should
+00:48 <+bridge> [ddnet] <ChillerDragon> lemme have a look at the file
+00:49 <+bridge> [ddnet] <ChillerDragon> ah i see evertyhign is added manually thgere
+00:51 <+bridge> [ddnet] <ChillerDragon> ok nice ty @Learath2 i have my expected errors now c:
+00:58 <+Learath2> it used to be a glob, but apparently this is a better practice
+13:10 <+bridge> [ddnet] <Learath2> I must say, banks have one of the most broken corporate structures that I've ever seen
+13:29 <+bridge> [ddnet] <deen> Why?
+13:30 <+bridge> [ddnet] <Learath2> You can complain all you want, the branch manager can be apologetic all he wants, but if he can't communicate with the internal department responsible for your problem your problem won't get fixed
+13:30 <+bridge> [ddnet] <Learath2> No way you can directly talk to the internal department either
+13:31 <+bridge> [ddnet] <Learath2> So complaining is pointless, you just submit a request and wait until the responsible person decides to read complaints
+13:44 <+bridge> [ddnet] <♪♫> be prepared to wait at least 6 months to get what you need 😃
+13:47 <+bridge> [ddnet] <Learath2> luckily I know a guy who knows a guy
+13:48 <+bridge> [ddnet] <Learath2> It's either that or you need to have a ridiculous amount of money in your account (which sadly I don't) 😛
+13:49 <+bridge> [ddnet] <♪♫> that helps 😋
+14:16 <+bridge> [ddnet] <deen> Oh well, luckily I never had problems with my bank and they even correctly detected and reimbursed me when someone stole my credit card info (might be DDNet server related, tried way too many hosters)
+14:16 <+bridge> [ddnet] <deen> Not sure if that's just your bank or all though
+14:20 <+bridge> [ddnet] <ChillerDragon> yo guiis
+14:20 <+bridge> [ddnet] <ChillerDragon> can some1 explain snapshots?
+14:20 <+bridge> [ddnet] <ChillerDragon> I wonder how ofthen the CGameClient::OnNewSnapshop() function gets called
+14:28 <+bridge> [ddnet] <♪♫> hey, no idea i'm not familiar with that, you could either ++ a static var or use  tools like hmm i don't remember is it gprof ? gcov/lcov lvoc something like that
+14:36 <+bridge> [ddnet] <Learath2> You get one snapshot per ticks that could be processed before the next ticks start time
+14:37 <+bridge> [ddnet] <Learath2> That is unless you are connecting or recovering and your snap rate is limited
+14:42 <+bridge> [ddnet] <ChillerDragon> lol all this code gets executed every tick?
+14:42 <+bridge> [ddnet] <ChillerDragon> It iterates over all skin names and compares them for evey player?
+14:42 <+bridge> [ddnet] <Learath2> No, it gets executed every couple ticks
+14:42 <+bridge> [ddnet] <Learath2> but it could potentially be executed every tick yes
+14:44 <+bridge> [ddnet] <ChillerDragon> how is the client still that fast haha
+14:44 <+bridge> [ddnet] <Learath2> In the runloop the server gets the current time, then until it's time for the next tick to start it'll keep ticking. As soon as it's time for the next tick to start, it'll snap. And unless you are a rate-limited client you'll get a snap
+14:45 <+bridge> [ddnet] <ChillerDragon> So the client should get slower the more skins you have i guess
+14:45 <+bridge> [ddnet] <Learath2> Because languages like C/C++/Rust are no joke, they have a ridiculous amount of optimisation that goes into them and they are blazingly fast
+14:45 <+bridge> [ddnet] <ChillerDragon> I thought the skin graphics are saved on join and on change
+14:46 <+bridge> [ddnet] <Learath2> A computer can do a lot more then one might imagine after using a language like Java or something interpreted like python
+14:46 <+bridge> [ddnet] <ChillerDragon> Because i want to add something similar to a skin system to my client without slowing it down :c
+14:46 <+bridge> [ddnet] <ChillerDragon> its like a second skin
+14:48 <+bridge> [ddnet] <ChillerDragon> So i am save with iterating over a big array of strings every tick and compare it agianst all the playernames
+14:48 <+bridge> [ddnet] <Learath2> Where in OnNewSnapshot do we iterate every skin?
+14:49 <+bridge> [ddnet] <ChillerDragon> m_aClients[ClientID].m_SkinID = g_GameClient.m_pSkins->Find(m_aClients[ClientID].m_aSkinName);
+14:49 <+bridge> [ddnet] <ChillerDragon> i think here
+14:49 <+bridge> [ddnet] <ChillerDragon> if i understood it correctly
+14:49 <+bridge> [ddnet] <ChillerDragon> find does stuff and then calls FindImpl
+14:49 <+bridge> [ddnet] <ChillerDragon> ```
+14:49 <+bridge> [ddnet] <ChillerDragon> int CSkins::FindImpl(const char *pName) const
+14:49 <+bridge> [ddnet] <ChillerDragon> {
+14:49 <+bridge> [ddnet] <ChillerDragon>     for(int i = 0; i < m_aSkins.size(); i++)
+14:49 <+bridge> [ddnet] <ChillerDragon>     {
+14:49 <+bridge> [ddnet] <ChillerDragon>         if(str_comp(m_aSkins[i].m_aName, pName) == 0)
+14:49 <+bridge> [ddnet] <ChillerDragon>         {
+14:49 <+bridge> [ddnet] <ChillerDragon>             return i;
+14:49 <+bridge> [ddnet] <ChillerDragon>         }
+14:49 <+bridge> [ddnet] <ChillerDragon>     }
+14:49 <+bridge> [ddnet] <ChillerDragon>     return -1;
+14:49 <+bridge> [ddnet] <ChillerDragon> }
+14:50 <+bridge> [ddnet] <ChillerDragon> ```
+14:50 <+bridge> [ddnet] <Learath2> Yeah i see
+14:50 <+bridge> [ddnet] <Learath2> It's for each snapped player mind you
+14:50 <+bridge> [ddnet] <Learath2> so only players close to you
+14:50 <+bridge> [ddnet] <ChillerDragon> oh so snapped players are only close players?
+14:50 <+bridge> [ddnet] <ChillerDragon> yea so all visible players i guess
+14:51 <+bridge> [ddnet] <ChillerDragon> i play a lot whit showall on full ddnet servers
+14:51 <+bridge> [ddnet] <Learath2> Also only for players that changed Clientinfo
+14:51 <+bridge> [ddnet] <ChillerDragon> wait only if they changed it
+14:51 <+bridge> [ddnet] <ChillerDragon> where do i see that
+14:52 <+bridge> [ddnet] <ChillerDragon> if(Item.m_Type == NETOBJTYPE_CLIENTINFO)
+14:52 <+bridge> [ddnet] <ChillerDragon> ah here?
+14:52 <+bridge> [ddnet] <Learath2> Snapshots are deltas
+14:52 <+bridge> [ddnet] <Learath2> they indicate change
+14:52 <+bridge> [ddnet] <ChillerDragon> what ever that means xd
+14:53 <+bridge> [ddnet] <Learath2> Which word do you not understand in that sentence?
+14:54 <+bridge> [ddnet] <ChillerDragon> delete but i get it now
+14:54 <+bridge> [ddnet] <ChillerDragon> delete is change i rememberd something from school
+14:54 <+bridge> [ddnet] <ChillerDragon> delta*
+14:54 <+bridge> [ddnet] <ChillerDragon> not delete xd
+15:53 <+bridge> [ddnet] <redix> The server sends delta snapshots but the client reconstructs the full snap before processing it. But well... calling this code 25 times per second isn't that much
+17:17 <+bridge> [ddnet] <ChillerDragon> k thanks @redix
+20:34 <+bridge> [ddnet] <Learath2> What the actual fuck is wrong with windows? .....
+20:48 <+bridge> [ddnet] <ReiTW | Blizzard> @Learath2 what do you mean
+20:49 <+bridge> [ddnet] <ReiTW | Blizzard> everything is fcked
+20:49 <+bridge> [ddnet] <ReiTW | Blizzard> october up,
+20:49 <+bridge> [ddnet] <ReiTW | Blizzard> edge -> chromium,
+20:49 <+bridge> [ddnet] <ReiTW | Blizzard> ....
+20:50 <+bridge> [ddnet] <Learath2> I'm trying to get the stupid utf8 output working on console
+20:58 <+bridge> [ddnet] <deen> Not possible I think
+20:59 <+bridge> [ddnet] <deen> maybe we can just create our own console-like window in sdl2?
+20:59 <+bridge> [ddnet] <♪♫> good luck, from what i saw it might be done but with big caveats like not on all win versions and so on
+20:59 <+bridge> [ddnet] <deen> or just turn off the console alltogether on windows and write to a log file
+20:59 <+bridge> [ddnet] <deen> there are editors on windows that can display utf8 just fine
+21:05 <+bridge> [ddnet] <Learath2> I thought outputting with WriteConsoleW would handle all the stupid parts but apparently even that isn't enough
+21:08 <+bridge> [ddnet] <Learath2> @jao how does one find someone on ddnet.tw when they have a utf8 name?
+21:10 <+bridge> [ddnet] <jao> uh you could copy paste from in-game or somewhere
+21:10 <+bridge> [ddnet] <jao> or navigate through favorite partners
+21:11 <+bridge> [ddnet] <jao> and if it's not all uft8 chars you might get away by searching the non utf8 ones and then have the right suggestion
+21:13 <+bridge> [ddnet] <Learath2> This is just insane, how this can even happe nis beyond me
+21:13 <+bridge> [ddnet] <Learath2> the data is completely garbled by the time it makes it into kernel32.dll
+21:13 <+bridge> [ddnet] <Learath2> It's like they rand() it
+21:19 <+bridge> [ddnet] <♪♫> does mintty uses cmd ?
+21:19 <+bridge> [ddnet] <♪♫> https://i.imgur.com/GUiy7e4.png
+21:20 <+bridge> [ddnet] <Learath2> mbrtowcs also totally destroys the pointer it gets, wtf
+21:20 <+bridge> [ddnet] <♪♫> " however, mintty is not a full replacement for the Windows Console window (by default running the Windows Command Processor / command prompt / cmd.exe)."
+21:20 <+bridge> [ddnet] <Learath2> mintty is sane
+21:20 <+bridge> [ddnet] <Learath2> mbsrtowcs I mean
+21:27 <+bridge> [ddnet] <Learath2> the data is garbled way before we hand it off to msvcrt though 🤔
+21:28 <+bridge> [ddnet] <Learath2> ```5B 32 30 31 38 2D 31 32 2D 30 37 20 32 31 3A 32 34 3A 31 38 5D 5B 63 68 61 74 5D 3A 20 4C 65 61 72 61 74 68 32 3A 20 7A D1 94 E2 84 93```
+21:28 <+bridge> [ddnet] <Learath2> This is what gets to the logger, those aren't valid code points
+21:29 <+bridge> [ddnet] <Learath2> ```5B 32 30 31 38 2D 31 32 2D 30 37 20 32 31 3A 32 34 3A 31 38 5D 5B 63 68 61 74 5D 3A 20 4C 65 61 72 61 74 68 32 3A 20 7A D1 94 E2 84 93```
+21:31 <+bridge> [ddnet] <Learath2> Actually no they are just fine...
+21:55 <+tosky> Rᥱad wһаt IRC іnvestіgatⅰ⋁e jⲟᥙrᥒalⅰѕts hɑⅴе unϲഠⅴereԁ οn the frеenode pеⅾоpһіlia sϲɑᥒԁɑl httpsː⧸/еnⅽуcⅼοреdⅰaⅾraⅿаtiϲɑ.rs/Frееnodegate
+21:55 <+tosky> А fascinɑtiᥒɡ bⅼoɡ whеrᥱ freᥱnode stɑff ⅿеⅿbеr Ϻɑttһew ⅿѕt Trοᥙt recഠᥙnts his experiences of eyᥱ−rаⲣiᥒg yoᥙᥒɡ сһiⅼⅾrᥱn httⲣs∶//MɑttSTrⲟut．ⅽഠⅿ⧸
+21:56 <+bridge> [ddnet] <♪♫> +s +r
+22:19 <+bridge> [ddnet] <Learath2> How does one encode utf16?
+23:58 <+bridge> [ddnet] <Learath2> It only took me 4 hours \o/
+23:58 <+bridge> [ddnet] <Learath2> And after all that I got told by Mithrandir that I should be focusing on other issues 🙂
+23:58 <+bridge> [ddnet] <Learath2> As always very rewarding to work on this stuff 😛

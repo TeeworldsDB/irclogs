@@ -1,0 +1,169 @@
+00:02 < minus> Dune: attached the banner and embedded it, i hope that works for everyone
+00:03 <@Dune> thanks minus
+00:03 <@Dune> works
+00:04 <@Dune> isn't the zpB5N... attachment visible for everyone though?
+00:05 <@Dune> can something be done about the "Download Teeworlds 0.6.5 for Windows" mention on the frontpage, later?
+00:05 < minus> yes
+00:06 < minus> $version = "0.6.5";
+00:06 < minus> that can be changed
+00:09 <@Dune> cool
+10:51 < Teeworlds> [teeworlds] Dune-jr opened pull request #1846: Add -msse2 flag to bam.lua for linux x86 compilation (master...fix-linux_x86) https://git.io/fp5zX
+20:11 < bridge> [teeworlds] <Fisico> hi  all
+20:12 <@Dune> hi
+20:15 < minus> o/
+20:16 < bridge> [teeworlds] <Fisico> still no release :(.... where is the problem?
+20:21 < Oy> hey
+20:21 < minus> \o
+20:39 <@Dune> hey
+20:40 <@Dune> What do you mean oy by " Could you check if it works if you remove #include <immintrin.h> //_mm_pause?"
+20:40 <@Dune> surely it doesn't wokr without the include?
+20:42 < Oy> it was just added for mingw
+20:43 <@Dune> well, I would have to remake the docker, but sure, I can test that
+20:43 <@Dune> isn't it better to not change the code though?
+20:43 <@Dune> steam is ready
+20:43 < Oy> cool
+20:43 <@Dune> we gave some beta keys away for windows linux mac to check it works
+20:44 < Oy> Lordsk build it without the line
+20:44 <@Dune> @LordSk, you did?
+20:44 <@Dune> I think he is on 64bit, that's why
+20:45 < Oy> was his pr
+20:45 < Oy> https://github.com/teeworlds/teeworlds/pull/1553
+20:48 <@Dune> hm
+20:49 <@Dune> so I'll build again without the line, sure, but isn't the bam fix better?
+20:50 < Oy> it builds without problems?
+20:50 <@Dune> yes
+20:50 <@Dune> that's what I used to build it/draft release on git&steam
+20:51 <@Dune> ah, you mean without the line
+20:51 <@Dune> haven't checked yet because I have to reinstall the environment, takes time
+20:51 < Oy> ah ok
+20:52 <@Dune> heinrich ran scripts and did some quality check in the night, he was of great help
+20:52 < Oy> dunno if that include could create other problems, when it's just supposed to be used by mingw - then i would add include restrictions for it
+20:52 < Oy> ok, good :)
+20:55 <@Dune> it's installing
+21:02 <@Dune> source zips are missing in github btw
+21:03 < Oy> they appear automatically when u publish the release
+21:04 <@Dune> oh, TIL
+21:11 < bridge> [teeworlds] <LordSk> hey did I miss something?
+21:13 < bridge> [teeworlds] <LordSk> yeah I'm on windows though, I think msvc includes intrinsics by default
+21:14 < Oy> ah ok
+21:14 < Oy> thought u were on linux
+21:14 <@Dune> I compiled again with the x86 environment Oy
+21:14 <@Dune> and when I remove immintrin.h, it doesn't compile
+21:14 < Oy> ok
+21:15 <@Dune> ah wait
+21:15 <@Dune> should I apply the bam fix too
+21:15 < Oy> no
+21:15 <@Dune> alright
+21:16 < Oy> then i'll add the bam fix
+21:16 < Oy> arm shouldn't support it, but will fix that later
+21:16 < Dune_linux> src/engine/client/client.cpp:1779:14: error: '_mm_pause' was not declared in this scope     _mm_pause();       
+21:16 < bridge> [teeworlds] <LordSk> Oy is x86 mingw working ok without -msse2?
+21:17 < Oy> yeah
+21:18 < Oy> tested ur pr with mingw and told u to include #include <immintrin.h> to make it work for mingw ;)
+21:19 < Oy> we don't use the -m32 compiler flag for mingw so it shouldn't need the -msse2 flag
+21:19 < bridge> [teeworlds] <LordSk> yeah I remember
+21:19 < minus> why _mm_pause instead of thread_yield?
+21:19 <@Dune> cool then
+21:19 < bridge> [teeworlds] <LordSk> ok yeah it makes sense then
+21:19 < minus> pthread_yield*
+21:37 < Oy> __mm_pause behaves better
+21:37 < Oy> it's used for the fps limiter
+21:37 < Oy> pthread_yield should behave like sleep on windows
+21:38 <@Dune> :)
+21:39 < Oy> https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-optimization-manual.pdf section 13.5.2
+21:39 < Oy> Each call to Sleep() experiences the expensive cost of a context switch, which can be 10000+ cycles
+21:39 < Oy> When there is no other thread waiting to take possessi on of control, this sleep loop behaves to the OS  as a highly active task demanding CPU resource, preventing the OS to put the CPU into a low-power  state.
+21:40 < Oy> By slowing down the “spin-wait” with the PAUSE in struction, the multi-threading software gains:  • Performance by facilitating the waiting tasks to ac quire resources more easily from a busy wait. • Power-savings by both using fewer parts of the pipeline while spinning. • Elimination of great majority of unnecessarily exec uted instructions caused by the overhead of a  Sleep(0) call. 
+21:40 < Oy> In one case study, this technique achieved 4.3x  of performance gain, which translated to 21% power  savings at the processor and 13% power savings at platform level
+21:43 < Oy> are we ready for the release then?
+21:44 < bridge> [teeworlds] <LordSk> Sleep() is also not very precise, Sleep(1) can take 1-15ms
+21:44 < bridge> [teeworlds] <LordSk> Dune are we ready?
+21:44 <@Dune> yes. all red buttons ready
+21:45 < Oy> then we should release :)
+21:46 < bridge> [teeworlds] <LordSk> alright hit the buttons Dune!
+21:47 <@Dune> in the night?
+21:47 <@Dune> isn't afternoon better?
+21:47 < Oy> better how?
+21:48 < bridge> [teeworlds] <LordSk> dota 2 updates always happen late at night
+21:48 <@Dune> people see it, download it, and meet on servers
+21:48 < bridge> [teeworlds] <LordSk> while millions of europeans are waiting for it
+21:48 <@Dune> now it's a bit late, but as you want
+21:48 < bridge> [teeworlds] <LordSk> I think this is fine
+21:48 < Oy>  2011-07-31 21:43:56 release of 0.6.1
+21:48 <@Dune> come on, we're better than valve, LordSk ;D
+21:49 <@Dune> alright
+21:49 < bridge> [teeworlds] <LordSk> it's always late somewhere though
+21:53 <@Dune> readying up
+21:53 <@Dune> minus: can you host downloads on teeworlds.com?
+21:53 <@Dune> https://www.teeworlds.com/forum/viewtopic.php?id=12608
+21:57 <@Dune> you have the trigger Oy - first thing is the github release
+21:59 < Oy> ok
+21:59 <@Dune> :)
+21:59 < Oy> Dune: done
+22:00 < minus> Dune: source download links are for the rc?
+22:00 <@Dune> ah, edit that
+22:00 <@Dune> https://github.com/teeworlds/teeworlds/releases
+22:00 <@Dune> use this
+22:02 <@Dune> teeworlds.com should be done
+22:03 <@Dune> minus: update $version
+22:04 < minus> Downloaded: 7 files, 60M in 6.8s (8.81 MB/s)
+22:04 < minus> done
+22:04 < Oy> updated the link within the release notes on github
+22:04 < minus> hm, 404
+22:05 <@Dune> steam build is now live
+22:05 < minus> oh, because it's .tar.gz and not .tar.xz
+22:06 <@Dune> publishing steam announcement
+22:06 < minus> how about you unfuck the download links first
+22:07 < bridge> [teeworlds] <LordSk> haha
+22:07 < bridge> [teeworlds] <LordSk> https://github.com/teeworlds/teeworlds/releases/download/0.7.1/teeworlds-0.7.1/win64.zip
+22:07 < bridge> [teeworlds] <LordSk> not found
+22:08 < Dune_linux> Steam announcement live: https://steamcommunity.com/games/380840/announcements/detail/1705073835971881922
+22:10 < Oy> LordSK before win64 should be a - instead of /
+22:10 <@Dune> fixed
+22:11 < bridge> [teeworlds] <LordSk> yeah it works now 😃
+22:12 < bridge> [teeworlds] <LordSk> steam seems fine too
+22:14 < Oy> yeah got a steam update for tw
+22:16 < Oy> don't see the image in the release post in the forum
+22:18 <@Dune> that's strange it's hosted on teeworlds.com
+22:19 < Oy> will the time of "last post" in the forum update when u edit the post?
+22:20 <@Dune> no
+22:21 < Oy> ok
+22:24 < Oy> https://www.teeworlds.com/forum/misc.php?action=pun_attachment&item=30&preview works
+22:24 <@Dune> hmm
+22:24 < Oy> now it works
+22:24 < bridge> [teeworlds] <LordSk> Oy I see the image fine
+22:25 < Oy> oh just see it when logged in
+22:25 < Oy> can't see it as guest
+22:25 <@Dune> oh
+22:25 <@Dune> damn
+22:25 <@Dune> I know why
+22:26 < bridge> [teeworlds] <Sonix> \o/
+22:26 <@Dune> did a hotfix
+22:26 < bridge> [teeworlds] <Sonix> Great job guys
+22:27 < Oy> yeah. great job everybody :)
+22:27 <@Dune> Great job from you too, @Sonix :)
+22:27 <@Dune> congratulations, oy
+22:28 < Oy> yeah that imgur link works Dune :)
+22:28 <@Dune> minus: can you rehost the banner as a file?
+22:29 < minus> what where who what
+22:29 <@Dune> https://i.imgur.com/08FSyyE.png
+22:29 < minus> did you undo the attachment?
+22:29 <@Dune> I moved the attachment in another topic
+22:30 <@Dune> but that doesn't work for non-logged in users, I'm dumb
+22:31 < minus> https://www.teeworlds.com/images/news/0.7.1-banner.png
+22:32 <@Dune> thank you minus
+22:33 <@Dune> do you find it slowly loading on https://www.teeworlds.com/ after a ctrl+F5?
+22:38 <@Dune> minus: a moment to run the version server?
+22:40 < Oy> i think it loads as fast as the other images, but it's pretty big, 400KB. so u might notice
+22:42 < minus> optipng'd it by 17%
+22:44 < Oy> good
+22:47 < Oy> Dune: do u know if it's possible to add a news for the steam library page https://www.solidfiles.com/v/M22GMAmnZaX82 like f.e. here https://www.solidfiles.com/v/6aaqz8Qr82g6x ?
+22:56 <@Dune> hmm
+22:58 <@Dune> heinrich5991 told me to not touch anything if possible
+22:58 <@Dune> I'm not very fluent in steam
+22:58 < Oy> ok. maybe he can do it later
+22:59 <@Dune> yeah, I think that is best
+23:01 < Oy> yeah, it's not a big problem, just noticed that there wasn't a news announcement and other games have it :)
+23:03 < Oy> Dune: and thx for all the work u did, mr community manager :)
+23:04 <@Dune> with pleasure. you did ten times that work :)
+23:28 < bridge> [teeworlds] <LordSk> yep thank you Mr CM 😃

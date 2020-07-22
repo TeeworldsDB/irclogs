@@ -1,0 +1,66 @@
+09:28 < bridge_> [teeworlds] <Assa> @ChillerDragon use KISS paradigm
+10:06 < bridge_> [teeworlds] <ChillerDragon> but where is defined what is simpler
+10:07 < bridge_> [teeworlds] <ChillerDragon> i have openssl as a dependency in the script that starts my tw server xd
+10:07 < bridge_> [teeworlds] <ChillerDragon> sounds pretty as simple as possilbe to me lol
+10:13 < bridge_> [teeworlds] <Assa> for me simple means "everyone can understand this"
+10:13 < bridge_> [teeworlds] <Assa> if your code looks like everyone understand it, you did a good job
+10:13 < bridge_> [teeworlds] <Assa> Teeworlds is in most parts understandable
+15:18 < bridge_> [teeworlds] <ChillerDragon> can any1 send help n fixing the warning here https://github.com/teeworlds/teeworlds/pull/2178
+15:24 < bridge_> [teeworlds] <Assa> https://stackoverflow.com/questions/32362918/error-format-string-is-not-a-string-literal
+15:25 < bridge_> [teeworlds] <ChillerDragon> i dont see how this helps :c
+15:29 < bridge_> [teeworlds] <Assa> then try this
+15:29 < bridge_> [teeworlds] <Assa> https://stackoverflow.com/questions/49946042/can-passing-a-non-string-literal-the-c-function-strftime-create-a-uncontrolled-f
+15:30 < bridge_> [teeworlds] <ChillerDragon> i think i will just enforce format nospace everywhere
+15:30 < bridge_> [teeworlds] <ChillerDragon> spaces are ugly anyways
+15:30 < bridge_> [teeworlds] <ChillerDragon> i wanted to stay as close to ddnet as possible but guess im too nobo
+15:30 < bridge_> [teeworlds] <heinrich5991> you need to add `GNUC_ATTRIBUTE((format(strftime, 3, 0)))` to the `str_timestamp_format` I guess
+15:30 < bridge_> [teeworlds] <ChillerDragon> didnt i do?
+15:31 < bridge_> [teeworlds] <ChillerDragon> oh 3 0
+15:31 < bridge_> [teeworlds] <ChillerDragon> not 4 0
+15:31 < bridge_> [teeworlds] <heinrich5991> no
+15:31 < bridge_> [teeworlds] <heinrich5991> I mean to `str_timestamp_format`, not `str_timestamp_ex`
+15:32 < bridge_> [teeworlds] <ChillerDragon> but also that would differ from ddnet code :c
+15:32 < bridge_> [teeworlds] <ChillerDragon> i wonder why its workin there
+15:32 < bridge_> [teeworlds] <heinrich5991> it has some `#pragama GCC diagnosticf ignored "-Wformat-nonliteral"`, apparently introduced by me 😦
+15:33 < bridge_> [teeworlds] <ChillerDragon> i guess its not something we desire to have in tw code?
+15:33 < bridge_> [teeworlds] <ChillerDragon> what about goign with nospace everywhere?
+15:33 < bridge_> [teeworlds] <heinrich5991> you can put these in teeworlds code as well
+15:33 < bridge_> [teeworlds] <heinrich5991> or you can try to fix the warning (which I apparently didn't manage to do :/)
+15:34 < bridge_> [teeworlds] <heinrich5991> try with GNUC_ATTRIBUTE first, please
+15:36 < bridge_> [teeworlds] <ChillerDragon> so on both of them?
+15:36 < bridge_> [teeworlds] <heinrich5991> yep
+15:36 < bridge_> [teeworlds] <ChillerDragon> k pushed lez see
+15:36 < bridge_> [teeworlds] <heinrich5991> the number tells which argument is the format parameter
+15:36 < bridge_> [teeworlds] <ChillerDragon> meh
+15:37 < bridge_> [teeworlds] <ChillerDragon> http://puu.sh/DSGqO/64c13214ef.png
+15:37 < bridge_> [teeworlds] <ChillerDragon> so that didnt work
+15:37 < bridge_> [teeworlds] <ChillerDragon> oh epic semicolon xd
+15:38 < bridge_> [teeworlds] <heinrich5991> hmm
+15:38 < bridge_> [teeworlds] <heinrich5991> seems like you need to ignore the warning for the function
+15:38 < bridge_> [teeworlds] <heinrich5991> it doesn't make a difference when you declare the parameter to be a format string
+15:40 < bridge_> [teeworlds] <heinrich5991> check the ddnet source code for how to silence the warnings for these functions
+15:40 < bridge_> [teeworlds] <heinrich5991> but the `GNUC_ATTRIBUTE` is still good to keep
+15:40 < bridge_> [teeworlds] <ChillerDragon> both?
+15:40 < bridge_> [teeworlds] <heinrich5991> yes
+15:40 < bridge_> [teeworlds] <ChillerDragon> but then we differ from ddnet :c
+15:43 < bridge_> [teeworlds] <heinrich5991> https://github.com/ddnet/ddnet/pull/1824
+15:43 < bridge_> [teeworlds] <ChillerDragon> thanks! ❤
+15:50 < bridge_> [teeworlds] <Assa> this looks like magic to me
+15:51 < bridge_> [teeworlds] <heinrich5991> the idea is that the compiler can tell you when you use the wrong format string
+15:51 < bridge_> [teeworlds] <heinrich5991> e.g.
+15:51 < bridge_> [teeworlds] <heinrich5991> dbg_msg("abc", "%s", 5);
+15:51 < bridge_> [teeworlds] <heinrich5991> for this, the compiler will tell you that you pass a number (`5`) when the format string indicates a string (`%s`)
+15:52 < bridge_> [teeworlds] <heinrich5991> it can do that, because we tell it (on `dbg_msg`):
+15:52 < bridge_> [teeworlds] <heinrich5991> ```
+15:52 < bridge_> [teeworlds] <heinrich5991> void dbg_msg(const char *sys, const char *fmt, ...)
+15:52 < bridge_> [teeworlds] <heinrich5991> GNUC_ATTRIBUTE((format(printf, 2, 3)));
+15:52 < bridge_> [teeworlds] <heinrich5991> ```
+15:52 < bridge_> [teeworlds] <heinrich5991> this means, to the compiler:
+15:53 < bridge_> [teeworlds] <heinrich5991> the function `dbg_msg` receives a format string in parameter 2, and the corresponding parameters in parameter 3 and onwards
+15:53 < bridge_> [teeworlds] <heinrich5991> the `printf` in there means that it receives a format string that looks like a format string for `printf`
+15:53 < bridge_> [teeworlds] <Assa> 👍 thanks for the explanation ^^
+15:54 < bridge_> [teeworlds] <ChillerDragon> yy i get the problem but idk how to solve it.
+15:54 < bridge_> [teeworlds] <Assa> this won't work on runtime i guess
+15:54 < bridge_> [teeworlds] <ChillerDragon> But at least ddnet and tw are now the same and it shows no warnings and after merge i can finally see times in my logs 😃
+15:54 < bridge_> [teeworlds] <heinrich5991> 🙂
+15:55 < bridge_> [teeworlds] <ChillerDragon> heinrich real mvp as always ❤

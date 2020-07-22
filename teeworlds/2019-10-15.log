@@ -1,0 +1,329 @@
+11:43 < bridge> [teeworlds] <ChillerDragon> Can we shot the flag cap time in the logs again? In 0.6 it was possible to look at the logs and see who capped the flag in what time through the chat message. But now only flag_capture player='0:ChillerDragon' team=0 is left :/
+11:44 < bridge> [teeworlds] <ChillerDragon> So the only way of getting stats about fastest tees is building a own tracking system that keep state of grab and capture.
+13:59 < day> you mean the time that pops up for each capture? or a permanent leaderboard?
+14:00 < day> the latter is pointless because ctf isnt a racemap
+15:26 < bridge> [teeworlds] <jxsl13> he means the first part. he wants to parse the logs(econ) in order to create statistics.
+16:52 < rand> just maintain  flag states
+16:55 < bridge> [teeworlds] <ChillerDragon> 0.6 used to display the server messages as chat messages so it was possible in the logs to see how fast a flag capture was if it was faster than 1 minute. Was a nice feature to then build own ladderboards and statics. Because ctf maps are actually fastcap maps and people like to speedrun them.
+16:56 < bridge> [teeworlds] <ChillerDragon> rand: what do you mean by maintaining state? I tried to calculate the flag time based on the diff between the timestamp of grab and cap but timestamps accuracy only goes down to seconds :/
+17:32 < rand> oh, right
+17:33 < rand> then, adding a field in this message could be good, like the number of millisecond, or second with 2 decimals
+17:43 < bridge> [teeworlds] <ChillerDragon> yea that would be great. I think seconds with 2 decimals like in the chat message would be consitent. Im currently working on a pr but im too stoopid xd any1 knows how to get the game tick speed on the server side? because Server()->TickSpeed() seems to be something different
+17:44 < bridge> [teeworlds] <ChillerDragon> 
+17:44 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/490150878934990850/633691699042058240/unknown.png
+17:44 < bridge> [teeworlds] <ChillerDragon> oh well xd
+17:51 < rand> tickspeed is the number of tick in 1 second iirc
+17:54 < bridge> [teeworlds] <ChillerDragon> The thing is the client does this:
+17:54 < bridge> [teeworlds] <ChillerDragon> float Time = aParaI[2] / (float)Client()->GameTickSpeed();
+17:54 < bridge> [teeworlds] <ChillerDragon> where aPara[2] is Server()->Tick()-F->GetGrabTick()
+17:54 < bridge> [teeworlds] <ChillerDragon> 
+17:54 < bridge> [teeworlds] <ChillerDragon> But on the serverside this does give me times 10 times to big:
+17:54 < bridge> [teeworlds] <ChillerDragon> float Time = Server()->Tick()-F->GetGrabTick() / (float)Server()->TickSpeed();
+17:54 < bridge> [teeworlds] <ChillerDragon> yea rand thats what i thought but following the functions both boil down to SERVER_TICK_SPEED which is fix to 50
+17:59 < rand> did use parentheses in your code ?
+18:00 < rand> (in your message, only the grab tick is divided by the speed)
+18:00 < bridge> [teeworlds] <ChillerDragon> i used the code i sent and also tried variations with parentesis castings and so on
+18:00 < bridge> [teeworlds] <ChillerDragon> yea that does not really make send to only devide the grab tick
+18:00 < bridge> [teeworlds] <ChillerDragon> thats not a time diff as far as i understand
+18:02 < bridge> [teeworlds] <ChillerDragon> But how i understand it the server just sends the grab tick here https://github.com/teeworlds/teeworlds/blob/master/src/game/server/gamemodes/ctf.cpp#L191
+18:02 < bridge> [teeworlds] <ChillerDragon> 
+18:02 < bridge> [teeworlds] <ChillerDragon> and then the client just divides the grab tick by the gametick and then uses this as the time? I miss a subtraction of the current tick.
+18:02 < bridge> [teeworlds] <ChillerDragon> https://github.com/teeworlds/teeworlds/blob/master/src/game/client/gameclient.cpp#L655
+18:03 < rand> [teeworlds] <ChillerDragon> where aPara[2] is Server()->Tick()-F->GetGrabTick()
+18:03 < rand> I see a substraction here
+18:03 < bridge> [teeworlds] <ChillerDragon> where is the sub?
+18:04 < rand> the - before the F
+18:04 < bridge> [teeworlds] <ChillerDragon> omg im blind haha
+18:04 < bridge> [teeworlds] <ChillerDragon> i read it as one llong pointer. Thanks!
+18:04  * rand gives a cookie to chillerdragon
+18:05 < bridge> [teeworlds] <ChillerDragon> can we put spaces between vars pls :/
+18:05 < rand> that would be a huge PR x)
+18:07 < bridge> [teeworlds] <ChillerDragon> im sure im not the only blind person who mixes up subtraction with pointers more easily without spaces
+18:07 < bridge> [teeworlds] <Dune> no hard rules about that - see: https://teeworlds.com/?page=docs&wiki=nomenclature
+18:08 < rand> the editor may color the - differently
+18:08 < bridge> [teeworlds] <ChillerDragon> well my editor sucks i guess
+18:08 < bridge> [teeworlds] <ChillerDragon> Dune: then lets add a hard spacing rule :p
+18:08 < rand> but one can argue that it is better with spaces anyway
+18:08 < bridge> [teeworlds] <ChillerDragon> more chacracters tho xd
+18:09 < bridge> [teeworlds] <ChillerDragon> longer lines
+18:09 < bridge> [teeworlds] <ChillerDragon> so ill use spaces in my pr 🙂
+18:09 < rand> just describe a format for clang-format and use it to ensures formating as pre-commit hook
+18:09 < bridge> [teeworlds] <Dune> I agree but @ChillerDragon imo don't make a huge diff on teeworlds just for the sake of changing nomenclature, it breaks forks that want to update etc. I've seen much worse nomenclatures, gotta adapt
+18:12 < bridge> [teeworlds] <ChillerDragon> Hmm should i also show no time at all in the logs when it was over 60 secs?
+18:12 < rand> print it anyway
+18:12 < bridge> [teeworlds] <ChillerDragon> print it clamped to 60?
+18:12 < bridge> [teeworlds] <jxsl13> no issue -> no accepted pr, beware
+18:12 < rand> my preference at least
+18:13 < rand> nah
+18:13 < bridge> [teeworlds] <ChillerDragon> because the chat messages show no time when its longer than 60
+18:13 < rand> i should be able to give an example
+18:13 < bridge> [teeworlds] <ChillerDragon> ok i would enjoy times over 60 in logs as well 🙂
+18:13 < rand> from chiller's PRs and mine
+18:13 < bridge> [teeworlds] <Dune> @jxsl13 no, simply if what you code for is a controversial feature/change, you might prefer to discuss  it in an issue first :)
+18:14 < bridge> [teeworlds] <ChillerDragon> any opinion on the 60 sec limit @Dune ?
+18:14 < bridge> [teeworlds] <Dune> hmm
+18:14 < bridge> [teeworlds] <jxsl13> we will see :D
+18:14 < bridge> [teeworlds] <ChillerDragon> i guess its not displayed to clients to avoid weird messages like "flag was captured in 1923.23 seconds"
+18:14 < bridge> [teeworlds] <Dune> be consistent
+18:14 < rand> clamp it to 86400s :p
+18:14 < bridge> [teeworlds] <Dune> agree with rand
+18:15 < bridge> [teeworlds] <Dune> clamp it to INT_MAX :p
+18:15 < bridge> [teeworlds] <ChillerDragon> but to be fully consistent with i would fully remove the time= in logs if its over 60
+18:15 < rand> should be reasonable
+18:15 < bridge> [teeworlds] <Dune> consistent with what?
+18:15 < bridge> [teeworlds] <ChillerDragon> with the chat
+18:15 < bridge> [teeworlds] <jxsl13> clamp to one day makes sense
+18:15 < bridge> [teeworlds] <Dune> oh, chat doesn't print those? didn't know :)
+18:15 < bridge> [teeworlds] <ChillerDragon> 
+18:15 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/490150878934990850/633699508575797258/unknown.png
+18:15 < bridge> [teeworlds] <ChillerDragon> yea sadly :/
+18:15 < bridge> [teeworlds] <Dune> eh well it makes sense from the chat perspective
+18:15 < bridge> [teeworlds] <ChillerDragon> thats why a million tees in my db have a cap time of exactly 60 secs xd
+18:16 < bridge> [teeworlds] <ChillerDragon> yea
+18:16 < rand> you dont need to be exactly consistant with chat
+18:16 < bridge> [teeworlds] <Dune> but in logs you don't want to be so human-readable, better not split in two cases
+18:16 < bridge> [teeworlds] <ChillerDragon> perfect
+18:16 < bridge> [teeworlds] <Dune> be friendly with stuff that parses the log
+18:16 < rand> see join/leave, pickups etc
+18:16 < bridge> [teeworlds] <ChillerDragon> ``flag_capture player='0:foo' team=0 time=123143.23``
+18:16 < bridge> [teeworlds] <ChillerDragon> lgtm
+18:16 < rand> yes
+18:17 < bridge> [teeworlds] <jxsl13> > one day :0
+18:17 < bridge> [teeworlds] <jxsl13> bigger
+18:17 < bridge> [teeworlds] <ChillerDragon> dont rush the the capper at least he did it 😄
+18:17 < rand> wonder if millisecond is better or worse
+18:17 < bridge> [teeworlds] <jxsl13> xD
+18:18 < bridge> [teeworlds] <ChillerDragon> nah id stay consitent with chat on that rand
+18:18 < bridge> [teeworlds] <jxsl13> is every flag loss case being documented in the log?
+18:18 < bridge> [teeworlds] <ChillerDragon> pretty sure
+18:18 < bridge> [teeworlds] <ChillerDragon> or my 0.6 server would have probably crashed
+18:20 < bridge> [teeworlds] <Dune> my point of view is that having as little case scenarios for log parsing is more important than consistency with chat
+18:20 < bridge> [teeworlds] <ChillerDragon> agree
+18:20 < bridge> [teeworlds] <jxsl13> do flags despawn after some time if they are not being found or would they stay forever in a different place if the flag carrier has been killed and nobody gets the flag
+18:20 < bridge> [teeworlds] <ChillerDragon> they respawn to the base
+18:20 < bridge> [teeworlds] <ChillerDragon> pretty fast
+18:20 < bridge> [teeworlds] <ChillerDragon> flag_return if im not mistaken
+18:21 < bridge> [teeworlds] <ChillerDragon> 
+18:21 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/490150878934990850/633700922903494677/unknown.png
+18:21 < bridge> [teeworlds] <jxsl13> hm
+18:22 < rand> 15s ?
+18:22 < bridge> [teeworlds] <ChillerDragon> more like 30 i think
+18:22 < bridge> [teeworlds] <ChillerDragon> if(Server()->Tick() > m_DropTick + Server()->TickSpeed()*30)
+18:23 < rand> nice guess
+18:24 < bridge> [teeworlds] <ChillerDragon> did any1 ever tested if the timers still work exactly the same since they were moved to client?
+18:24 < rand> which timers ?
+18:24 < bridge> [teeworlds] <ChillerDragon> for flags
+18:24 < bridge> [teeworlds] <ChillerDragon> if you do exactly the same run in 0.6 and 0.7 will it be the same time?
+18:25 < rand> about capture ?
+18:25 < bridge> [teeworlds] <ChillerDragon> y
+18:25 < rand> the calculus is the same
+18:26 < bridge> [teeworlds] <ChillerDragon> yea i guess. But maybe it is calculated after/before some other calculations and thus ofsetted. Probably too few difference to be seen in the last two decimals
+18:26 < bridge> [teeworlds] <ChillerDragon> i was just wondering if any1 ever tested it. I like testing instead of using brain haha
+18:28 < rand> the part you show that the calculus uses the exact same values
+18:30 < bridge> [teeworlds] <ChillerDragon> yea but i mean if it position in code changes where the time calc happens it doesnt matter if it is the same.
+18:30 < bridge> [teeworlds] <ChillerDragon> 
+18:30 < bridge> [teeworlds] <ChillerDragon> a = time.now()
+18:30 < bridge> [teeworlds] <ChillerDragon> b = time.now()
+18:30 < bridge> [teeworlds] <ChillerDragon> 
+18:30 < bridge> [teeworlds] <ChillerDragon> foo() // diff will change when u call bar here instead
+18:30 < bridge> [teeworlds] <ChillerDragon> 
+18:30 < bridge> [teeworlds] <ChillerDragon> diff = b - a
+18:30 < bridge> [teeworlds] <ChillerDragon> rip irc
+18:32 < rand> the only thing the client does is dividing the value sent by the server by SPEEDTICK
+18:32 < bridge> [teeworlds] <ChillerDragon> well nvm i cant explain what i mean but it probably is not having any effect anyways 🙂
+18:32 < rand> it does not care of its tick 
+18:33 < rand> and only the server knows/decides who captures and when
+18:33 < rand> so it controls the truth
+18:33 < rand> the server is everything
+18:33 < rand> praise the server
+18:33 < rand> ...
+18:35 < rand> ChillerDragon, if I do : a = time.now(); b = time.now(); stuff(); diff = b-a, whatever the duration of stuff(), diff will hold the same value
+18:37 < bridge> [teeworlds] <ChillerDragon> ah ye thats true xd
+18:37 < bridge> [teeworlds] <ChillerDragon> move stuff() between a and b
+18:46 < bridge> [teeworlds] <jxsl13> travis ci rip
+18:46 < bridge> [teeworlds] <jxsl13> github actions > rest
+18:47 < rand> ChillerDragon: and this case does not happens for capture timer, since the server send the diff :)
+18:52 < bridge> [teeworlds] <ChillerDragon> this is getting weird.. sorry for everyone who gets spammed with this useless conversation but rand seems interested xd
+18:52 < bridge> [teeworlds] <ChillerDragon> https://github.com/teeworlds/teeworlds/commit/6c530b2926b256342ffa63e03a3e399722410d0d#diff-084568a27829d83965cba5518d9178abL193
+18:53 < bridge> [teeworlds] <ChillerDragon> but the diff used to be in a float init now it is in the 3rd parameter of a function call so it is in a different position in code so i was thinking if this could affect the diff being different but the offset is so little it most likley has no effect at all
+18:54 < bridge> [teeworlds] <ChillerDragon> diff = a -b
+18:54 < bridge> [teeworlds] <ChillerDragon> foo(x, y, a - b) // different than foo(x, y, diff)
+18:55 < bridge> [teeworlds] <ChillerDragon> but lets end this useless conversation now xd i am 99% sure that the change has no effect at all on the time.
+18:57 < bridge> [teeworlds] <ChillerDragon> i just tested it and all worked fine. It probably doesnt even make a difference at the 100st decimal
+18:57 < bridge> [teeworlds] <ChillerDragon> (sorry)
+19:00 < bridge> [teeworlds] <ChillerDragon> oh travis seems to be broken?
+19:15 < rand> ChillerDragon: Server()->Tick() is a integer constant between two tick 
+19:16 < rand> so, it does not matter, it is not changed before the every thing is resolved (like tee/projectile movements, pickups etc)
+19:18 < bridge> [teeworlds] <ChillerDragon> oh true
+19:18 < rand> btw, prefer int as the type of "diff" (since it holds an integer) (imo)
+19:19 < bridge> [teeworlds] <ChillerDragon> oh good catch 🙂 but now u understood my concerns right?
+19:19 < bridge> [teeworlds] <ChillerDragon> yea that the tick doesnt change during one tick makes sense xxxd i could have thought about that
+19:32 < Learath2> why do we now have NETMSG_RCON_AUTH_ON and _OFF instead of just _STATUS?
+19:35 < Learath2> oh, ofc you also removed the name from NETMSG_RCON_AUTH, not like anyone was using it...
+19:44 < bridge> [teeworlds] <ChillerDragon> rude Learath2
+19:45 < Learath2> oh cmon, I've stated my displeasure in quite a benign way, it's not rude at all
+19:46 < bridge> [teeworlds] <ChillerDragon> i feel like heinrich xd but you sound lill agressive. Not very motivating to help you. (im just tryiin to spread some love here)
+19:52 < Dune> Learath2: git blame says last modif is oy             2012-07-21 20:00:01
+19:52 < Dune> try git show 9ae4479dad48d09b38dfd142d9a40fc14a3dd335
+19:52 < Dune> looks like a very old cleanup
+19:54 < Learath2> Just wanted to ask whether there was a reason for the extra message
+19:56 < Dune> yeah, my point is that it's unlikely you find an answer 7 years later from anyone but Oy :/
+19:59 < bridge> [teeworlds] <ChillerDragon> 
+19:59 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/490150878934990850/633725712544694272/unknown.png
+19:59 < bridge> [teeworlds] <ChillerDragon> wtf ci hates me today
+20:08 < Learath2> oh just noticed oy merged my list maps thing
+20:08 < Learath2> after 6 years :D
+20:09 < Learath2> \o/
+20:10 < bridge> [teeworlds] <jxsl13> nice one (Y) keep up the great work.
+20:13 < Dune> there was an effort to adapt PRs and merge what was desirable to clear the backlog after 0.7.2. see also https://github.com/teeworlds/teeworlds/pull/1989
+20:37 < bridge> [teeworlds] <jxsl13> wait, what.. oy used a c++ stl function?
+20:37 < bridge> [teeworlds] <jxsl13> aren't those stl functions like the nemesis of the teeworlds code base?
+20:38 < minus> :D
+20:39 < bridge> [teeworlds] <jxsl13> *quickly looks into the code base tonsee, if it's thill there*
+20:39 < bridge> [teeworlds] <jxsl13> still
+20:41 < bridge> [teeworlds] <jxsl13> holy moly look at this.. my eyes xD https://github.com/teeworlds/teeworlds/blob/master/src/base/tl/algorithm.h
+20:42 < bridge> [teeworlds] <jxsl13> std everywhere :0000
+20:42 < Dune> My personal opinion is that STL is a shithole of overly abstract tools and poorly optimized stuff
+20:42 < Dune> But sometimes it does the job
+20:43 < bridge> [teeworlds] <jxsl13> "poorly optimized" :D
+20:43 < Dune> Some people get wet over using the maximum level of abstractions, template and c++17 stuff, definitely not me
+20:43 < Dune> Modern =/= good
+20:44 < Learath2> Some of the STL is quite decent to use
+20:44 < Learath2> e.g. sorts look nice with lambdas
+20:45 < bridge> [teeworlds] <jxsl13> my problem with the tw code base is, that it should slowly transition to using some tested ages old (not modern) containers like vector and not implement containers everywhere yourself.
+20:46 < Dune> Learath2: problems with lamdas to me is that the syntax is dreadfully unreadable in c++. Would be nice in a proper functional language 
+20:47 < bridge> [teeworlds] <jxsl13> one could use auto selfexplainingvariablename = lambda; and then put the labda comparator into those sorts.
+20:47 < Learath2> Huh, syntax is definitely subjective, but I find [](){]
+20:47 < Learath2> [](){} fits quite well to C++
+20:48 < bridge> [teeworlds] <jxsl13> instead of having infinitly long nested lambda expressions.
+20:48 < Dune> I don't know, def subjective
+20:48 < bridge> [teeworlds] <jxsl13> to make it more readable
+20:48 < Dune> When I read Haskell or caml lambdas i know what it does, not c++
+20:52 < bridge> [teeworlds] <heinrich5991> "why don't we rewrite teeworlds in my favorite language™"
+20:53 < bridge> [teeworlds] <jxsl13> python?
+20:53 < bridge> [teeworlds] <jxsl13> agreed
+20:53 < bridge> [teeworlds] <jxsl13> xD
+20:54 < bridge> [teeworlds] <jxsl13> hm, rust?
+20:56 < bridge> [teeworlds] <Dune> Heinrich did that already
+20:57 < bridge> [teeworlds] <heinrich5991> nah, just a poc server
+20:57 < bridge> [teeworlds] <heinrich5991> gotta port that to 0.7 someday
+20:59 < bridge> [freenode] <ChillerDragon> please port fstd's wireshark dissector to 0.7 first :/
+20:59 < bridge> [freenode] <ChillerDragon> fstd: yo here? send help xd
+21:00 < fstd> i think before porting it to 0.7 you'd have to port it to 0.6 ;)
+21:00 < bridge> [teeworlds] <jxsl13> urgh, freenode
+21:00 < fstd> and wireshark itself changed a ton too
+21:00 < bridge> [freenode] <ChillerDragon> 0.6 works fine
+21:00 < fstd> oh really
+21:00 < bridge> [freenode] <ChillerDragon> i ported it to newest wireshark base
+21:00 < fstd> i must ahve forgotten
+21:00 < fstd> great
+21:00 < bridge> [freenode] <ChillerDragon> compiled and works ok enough
+21:00 < bridge> [freenode] <ChillerDragon> i messed ur code up a bit tho xd
+21:00 < fstd> heh
+21:01 < bridge> [freenode] <ChillerDragon> i have no clue how wireshark works :/ in 0.7 it crashes
+21:01 < bridge> [freenode] <ChillerDragon> any chance youll work on a 0.7 version? <3
+21:02 < fstd> today is literally my last day off, so i'm not sure i find the time
+21:02 < fstd> but if so i'll have a look
+21:02 < bridge> [freenode] <ChillerDragon> well in case my crap helps here it is... https://github.com/ChillerDragon/wireshark
+21:02 < fstd> aight
+21:02 < bridge> [teeworlds] <jxsl13> what are you using that dissector for?
+21:02 < fstd> is this why you hi'ed me the other day in PM?
+21:03 < bridge> [freenode] <ChillerDragon> depends on when im usually lost using your old awesome projects might be pstd related as well
+21:03 < bridge> [freenode] <ChillerDragon> my quakenet is broken so i can't pm you :c
+21:03 < bridge> [freenode] <ChillerDragon> join freenode hehe
+21:05 < bridge> [teeworlds] <jxsl13> is it intentional, that skins cannot be completely black, just some kinda light grey or is that a bug?
+21:05 < bridge> [freenode] <fstd> sup
+21:06 < bridge> [freenode] <fstd> bbl playing some dead by daylight tho
+21:07 < bridge> [teeworlds] <heinrich5991> @jxsl13 intentional
+21:07 < bridge> [teeworlds] <heinrich5991> we had black tees running around in 0.5, that looked unaesthetical
+21:07 < bridge> [teeworlds] <jxsl13> wowo
+21:07 < bridge> [teeworlds] <jxsl13> xD
+21:07 < bridge> [teeworlds] <jxsl13> thin ice
+21:08 < bridge> [freenode] <ChillerDragon> xd
+21:08 < bridge> [teeworlds] <jxsl13> is it client side or server side?
+21:08 < bridge> [teeworlds] <jxsl13> or bith=
+21:08 < bridge> [teeworlds] <jxsl13> both?
+21:08 < bridge> [teeworlds] <heinrich5991> both
+21:08 < bridge> [teeworlds] <heinrich5991> in 0.5 it was only clientside
+21:08 < bridge> [teeworlds] <heinrich5991> ^^
+21:09 < bridge> [freenode] <ChillerDragon> i remember a yt video for black skin tut in 0.5 o.O
+21:09 < bridge> [teeworlds] <jxsl13> should be server side only :'/
+21:09 < bridge> [teeworlds] <jxsl13> so ppl can decide themselves if they want black tees
+21:09 < bridge> [teeworlds] <jxsl13> in their mods*
+21:09 < bridge> [freenode] <ChillerDragon> haha true server dev
+21:10 < bridge> [teeworlds] <jxsl13> gib modifications power pls!
+21:10 < bridge> [teeworlds] <heinrich5991> yes
+21:10 < bridge> [freenode] <ChillerDragon> agree tho. Put as much as possible in server.
+21:10 < bridge> [teeworlds] <heinrich5991> hm
+21:10 < bridge> [teeworlds] <heinrich5991> I think the check might only be in the client for setting your own skin color
+21:10 < bridge> [teeworlds] <heinrich5991> not sure, try it out
+21:10 < bridge> [teeworlds] <jxsl13> is the hue to rgb calculation altered or i the range of the hue values altered Oo
+21:11 < bridge> [teeworlds] <jxsl13> is
+21:11 < bridge> [teeworlds] <jxsl13> so might it be possible to manipulate the settings files to bypass the checks in the color picker
+21:11 < Learath2> https://github.com/ddnet/ddnet/blob/master/src/base/color.h ^^
+21:12 < Learath2> All vanilla teeworlds colors go through ColorHSLA::Lighten
+21:12 < bridge> [teeworlds] <jxsl13> ok, so a calculation, no real check
+21:12 < bridge> [freenode] <ChillerDragon> haha Learath2 the color pro
+21:13 < bridge> [teeworlds] <jxsl13> hm, negative hue xD?
+21:13 < Learath2> I don't think in vanilla it's possible to bypass
+21:13 < Learath2> As vanilla doesn't even know how to read non altered colors :P
+21:13 < Learath2> Whatever it reads, it clamps the L
+21:13 < bridge> [teeworlds] <jxsl13> rip :'/
+21:13 < bridge> [teeworlds] <jxsl13> gib server the powers!
+21:14 < bridge> [freenode] <ChillerDragon> gib xd
+21:14 < bridge> [freenode] <ChillerDragon> beerlang detected
+21:16 < bridge> [teeworlds] <jxsl13> well, the vanilla code looks more cryptic in that regard :c
+21:17 < bridge> [teeworlds] <jxsl13> float v2 = HSL.l < 0.5f ? HSL.l * (1.0f + HSL.s) : (HSL.l+HSL.s) - (HSL.s*HSL.l);
+21:18 < Learath2> jxsl13 took me a couple days to clean all of that up
+21:18 < Learath2> and keep the old colors the same, it'd be easier to break but all the players would behead me
+21:19 < bridge> [teeworlds] <jxsl13> so basically that 0.5 check seems only to exust in hsl to rgb
+21:19 < bridge> [teeworlds] <jxsl13> and looking for that function name only results in me getting a menu source file to show that it's being used there
+21:20 < bridge> [teeworlds] <jxsl13> damn, skins
+21:20 < bridge> [teeworlds] <jxsl13> skins.cpp as well ..
+21:22 < bridge> [teeworlds] <jxsl13> DARKEST_COLOR_LGT=61,
+21:22 < bridge> [teeworlds] <jxsl13> make this 0 xD
+21:23 < bridge> [teeworlds] <Dune> Then people will set black color client side and think it works
+21:24 < bridge> [teeworlds] <jxsl13> this whole color stuff seems to be completely handled by the clients
+21:24 < bridge> [teeworlds] <Dune> Server too
+21:24 < bridge> [teeworlds] <jxsl13> so for oneself one could set this to 0
+21:25 < bridge> [teeworlds] <jxsl13> where does the server check and apply those lightening operations :o?
+21:25 < bridge> [teeworlds] <jxsl13> the server seems only to pass the color to the clients and the clients force the lighening stuff on the received colors?
+21:25 < bridge> [teeworlds] <jxsl13> src/game/client/components/menus_settings.cpp
+21:26 < bridge> [teeworlds] <jxsl13> src/game/client/components/skins.h
+21:35 < bridge> [teeworlds] <jxsl13> hm, I don't see any server side checks..
+21:42 < bridge> [teeworlds] <jxsl13> @Dune you online?
+21:43 < bridge> [teeworlds] <jxsl13> @heinrich5991  online?
+21:43 < bridge> [teeworlds] <jxsl13> forum pls
+21:43 < bridge> [teeworlds] <ChillerDragon> Heinrich busy 0.0
+21:44 < bridge> [teeworlds] <jxsl13> :O?
+21:44 < bridge> [teeworlds] <ChillerDragon> Ddnet Client release struggle
+21:45 < bridge> [teeworlds] <heinrich5991> fixed forum
+21:46 < bridge> [teeworlds] <Dune> Hm?
+21:48 < bridge> [teeworlds] <jxsl13> ddnet still alive Oo
+21:49 < bridge> [teeworlds] <jxsl13> ty for killing off the tw forum activity :'/
+21:52 < minus> <jxsl13> holy moly look at this.. my eyes xD https://github.com/teeworlds/teeworlds/blob/master/src/base/tl/algorithm.h ← huh, concepts in 2009
+21:53 < bridge> [teeworlds] <Dune> the file is that old?
+22:02 < bridge> [teeworlds] <fokkonaut> @jxsl13 the lighten happens clientside
+22:06 < bridge> [teeworlds] <jxsl13> huh, that's blasphemy
+22:06 < bridge> [teeworlds] <jxsl13> @ minus
+22:07 < minus> did a blame, says 11 years ago
+22:07 < bridge> [teeworlds] <jxsl13> cpp consortium noobs
+22:07 < bridge> [teeworlds] <jxsl13> xD
+22:08 < bridge> [teeworlds] <jxsl13> must have not looked properly, but including the whole algo header for one sort algorithm Oo
+22:08 < bridge> [teeworlds] <jxsl13> were the pros and cons weighted against each other there
+22:10 < bridge> [teeworlds] <jxsl13> hm, the range.h looks interesting
+22:11 < bridge> [teeworlds] <jxsl13> cool stuff
+22:11 < bridge> [teeworlds] <jxsl13> compile time checks
+22:13 < bridge> [teeworlds] <jxsl13> I wonder if those checks are being optimized away, as the code is being never entered
+22:17 < bridge> [teeworlds] <Dune> It's called dymamically dead code
+22:17 < bridge> [teeworlds] <Dune> Compilers are not *that* bad
+22:18 < bridge> [teeworlds] <jxsl13> I heard compilers are rather amazing at optimizing code
+22:18 < bridge> [teeworlds] <jxsl13> it's not like imma disassemble the binaries to check what's gotten optimized away ._.
+22:19 < bridge> [teeworlds] <jxsl13> was just wondering and you hd the answer
+22:19 < bridge> [teeworlds] <jxsl13> had
+23:14 < Learath2> jxsl3 the server sends the color data as it receives it from the client, however when rendering the color is converted to rgb, during which it gets lit up
+23:14 < Learath2> heinrich5991 broke the ddnet client and went into hiding :P
+23:21 < bridge> [teeworlds] <jxsl13> yeah, client lightens ip in receiving and on sending
+23:21 < bridge> [teeworlds] <jxsl13> it
+23:21 < bridge> [teeworlds] <jxsl13> up
+23:21 < bridge> [teeworlds] <jxsl13> why not make this server handled 😢

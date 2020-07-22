@@ -1,0 +1,64 @@
+11:29 <+bridge> [ddnet] <Learath2> I love installing gentoo, you just partition, mount, unpack a tar and the package manager finishes it up for you
+16:17 <+bridge> [ddnet] <DaRealFreak> ok wat
+16:17 <+bridge> [ddnet] <DaRealFreak> https://github.com/ddnet/ddnet-scripts/blob/203fcb4241261ae8f006362303723e4546e0e7f7/servers/scripts/ddnet.py#L177
+16:18 <+bridge> [ddnet] <DaRealFreak> the deslugify2 function wtf
+16:18 <+bridge> [ddnet] <DaRealFreak> ```    for special_char in re.findall('(-([\d]+)-)', name):
+16:18 <+bridge> [ddnet] <DaRealFreak>         name = name.replace(special_char[0], chr(int(special_char[1])))
+16:18 <+bridge> [ddnet] <DaRealFreak>     return name.encode('utf-8')```
+16:19 <+bridge> [ddnet] <DaRealFreak> why easy if you can do it in a hard way
+16:28 <+bridge> [ddnet] <DaRealFreak> ```    for special_char in re.findall('(-([\d]+)-)', name):
+16:28 <+bridge> [ddnet] <DaRealFreak>         name = name.replace(special_char[0], chr(int(special_char[1])))
+16:28 <+bridge> [ddnet] <DaRealFreak>     return name``` (is python 3 but doesn't differ much to python 2 code)
+17:45 <+bridge> [ddnet] <deen> @DaRealFreak that might be a port of my C implementation 😄
+17:52 <+bridge> [ddnet] <deen> hm, yours ends up making lots of copies of name, doesn't it?
+17:52 <+bridge> [ddnet] <deen> I'd prefer a way where only one string is built
+17:54 <+bridge> [ddnet] <DaRealFreak> you mean from the generated opcode?
+17:55 <+bridge> [ddnet] <deen> I just mean that each time you call name.replace it makes a copy, doesn't it?
+17:55 <+bridge> [ddnet] <DaRealFreak> sec checking
+17:58 <+bridge> [ddnet] <DaRealFreak> mine:
+17:58 <+bridge> [ddnet] <DaRealFreak> https://pastebin.com/PqS4Ei1m
+17:58 <+bridge> [ddnet] <DaRealFreak> 
+17:58 <+bridge> [ddnet] <DaRealFreak> yours:
+17:58 <+bridge> [ddnet] <DaRealFreak> https://pastebin.com/Ef7eCvVW
+17:59 <+bridge> [ddnet] <DaRealFreak> not really a copy but just load_fast and store_fast
+17:59 <+bridge> [ddnet] <DaRealFreak> same as modifying a variable
+18:01 <+bridge> [ddnet] <DaRealFreak> and less than half the amount of instructions in general
+18:01 <+bridge> [ddnet] <deen> sure, because your logic is hidden in the CALL_FUNCTION to findall and isn't STORE_FAST doing the copy then?
+18:02 <+bridge> [ddnet] <DaRealFreak> store_fast is used when you use f.e. n += c,  n += unichr(i), i = i * 10 + int(c), i = 0 in your code too
+18:02 <+bridge> [ddnet] <deen> actually the replace_char is going to do the copy internally of course
+18:02 <+bridge> [ddnet] <deen> and the returned object just replaces the old one
+18:06 <+bridge> [ddnet] <deen> well, yours is faster anyway @DaRealFreak 😃
+18:07 <+bridge> [ddnet] <deen> what about encoding though, will it be correct?
+18:07 <+bridge> [ddnet] <deen> I believe you need to do unichr and later encode('utf-8') and then it's not faster anymore
+18:07 <+bridge> [ddnet] <deen> otherwise some strange characters will fail
+18:09 <+bridge> [ddnet] <DaRealFreak> wrote below the code that the code was python 3
+18:09 <+bridge> [ddnet] <DaRealFreak> python 3 has no unichr anymore, only chr since unicode is default
+18:09 <+bridge> [ddnet] <deen> ah, but we use py2
+18:09 <+bridge> [ddnet] <DaRealFreak> yeah was just an example what would be better in my opinion
+18:10 <+bridge> [ddnet] <DaRealFreak> at least it's 3 times faster
+18:10 <+bridge> [ddnet] <DaRealFreak> https://i.imgur.com/h4PgyhX.png
+18:11 <+bridge> [ddnet] <deen> Not with py2
+18:11 <+bridge> [ddnet] <DaRealFreak> which comes from less conditions and only updating one variable instead of 3
+18:11 <+bridge> [ddnet] <DaRealFreak> sec I'll check
+18:13 <+bridge> [ddnet] <deen> anyway, yours is clearer so I'll add it, time difference is small
+18:14 <+bridge> [ddnet] <deen> thanks
+18:14 <+bridge> [ddnet] <DaRealFreak> https://i.imgur.com/FqnObLh.png
+18:14 <+bridge> [ddnet] <DaRealFreak> well only twice as fast in python 2
+18:15 <+bridge> [ddnet] <DaRealFreak> ```    for special_char in re.findall('(-([\d]+)-)', name):
+18:15 <+bridge> [ddnet] <DaRealFreak>         name = name.replace(special_char[0], unichr(int(special_char[1])))
+18:15 <+bridge> [ddnet] <DaRealFreak>     return name.decode('utf-8')```
+18:15 <+bridge> [ddnet] <DaRealFreak> with the utf-8 decoding
+18:15 <+bridge> [ddnet] <DaRealFreak> oops ok encode instead of decode
+18:16 <+bridge> [ddnet] <DaRealFreak> ```    for special_char in re.findall('(-([\d]+)-)', name):
+18:16 <+bridge> [ddnet] <DaRealFreak>         name = name.replace(special_char[0], unichr(int(special_char[1])))
+18:16 <+bridge> [ddnet] <DaRealFreak>     return name.encode('utf-8')````
+18:16 <+bridge> [ddnet] <DaRealFreak> ```    for special_char in re.findall('(-([\d]+)-)', name):
+18:16 <+bridge> [ddnet] <DaRealFreak>         name = name.replace(special_char[0], unichr(int(special_char[1])))
+18:16 <+bridge> [ddnet] <DaRealFreak>     return name.encode('utf-8')```
+18:16 <+bridge> [ddnet] <deen> https://gist.github.com/def-/192e7bbdff4e68f599605d20603ece9f
+18:16 <+bridge> [ddnet] <deen> 3.09382104874
+18:16 <+bridge> [ddnet] <deen> 2.9903190136
+18:18 <+bridge> [ddnet] <DaRealFreak> https://pastebin.com/UZBPgft3
+18:19 <+bridge> [ddnet] <DaRealFreak> but I'm getting close results in favour of your function with your passed string too
+18:21 <+bridge> [ddnet] <DaRealFreak> ok for 0,1,2 special characters replace is faster for me, 3 is kinda equal, 4+ favours your implementation
+18:21 <+bridge> [ddnet] <DaRealFreak> ok for 0,1,2 special characters replace is faster for me, 3 is kinda equal, 4+ clearly favours your implementation

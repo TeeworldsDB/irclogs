@@ -1,0 +1,113 @@
+00:03 < ddnet-discord> <Learath2> @deen do we have a python library or a cli tool to do a serverinfo request?
+00:18 < ddnet-discord> <deen> twping?
+00:19 < ddnet-discord> <deen> https://github.com/ddnet/ddnet-scripts/blob/master/servers/scripts/teeworlds.py
+02:37 < eeeee> what if instead of extending the protocol to allow servers to provide http map urls we started crawling and hosting all maps from public servers?
+03:11 < Edible> what if you used the browser to launch teeworlds!?
+03:13 < Edible> what if im losing my hair because there is a mini runway construction going on in my head?
+04:43 < ddnet-discord> <TPA> 😮
+04:43 < ddnet-discord> <TPA> where is itc
+06:39 < ddnet-discord> <deen> eeeee: That would be fine for me. Providing the entire map downloads from TW would not be a large amount of bandwidth.  We might need a bit more storage. heinrich5991 already has all the maps: https://heinrich5991.de/teeworlds/maps/maps/
+06:54 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vQFUT
+06:54 < ddnet-commits> ddnet/master a736a27 def: No need for writing to tmp config file anymore
+07:03 <@deen> eeeee: But it might be a bit dangerous to provide maps like that. Someone can fake the CRC relatively easily I assume and end we end up with duplicates
+09:49 < eeeee> i'd mitigate that with the (unpopular) measure of manually whitelisting ips (or domain names) which would get crawled
+09:50 < eeeee> rationale being what you said and other attack vectors (spamming the crawler with lots of huge maps) which we don't have time to deal with
+09:51 < eeeee> apart from not being decentralized and hipster enough, i think whitelisting would work nicely because honestly not many servers release new maps these day
+09:51 <@deen> yeah, we'd need something like that I guess. For a start it's probably good enough to check if a map with same name and same crc is uploaded and instead of replacing the old one send me a mail
+09:51 <@deen> well, but someone has to maintain the whitelist, that's a bit annoying
+09:52 < eeeee> works for banning on masters in #teeworlds
+09:53 < eeeee> how much traffic do http map downloads generate currently?
+09:53 <@deen> 3 GB / day
+09:54 < eeeee> do you expect it to be more if we deployed tw-wide?
+09:54 <@deen> So with support for all maps I'd guess 6 GB / day
+09:54 <@deen> and I even added a few common maps to our maps server manually
+09:54 <@deen> the ones that appeared in logs of often being requested
+09:55 <@deen> Usually block and gores
+09:55 <@deen> I guess we could just use heinrich5991's script
+09:55 <@deen> Or we just make ddnet client download from his server directly :D
+09:58 < eeeee> he'll probably start injecting ads into the maps to recover the hosting costs :>
+09:58 <@deen> hahaha
+09:59 <@deen> oh, and right now our maps are transferred over http instead of https
+10:00 <@deen> updates over https seemed more important, not sure if we want to rethink that. I'll try adding regular ssl cert support for now
+10:02 <@deen> because right now only allow my custom ca since i didn't want to trust the hundreds of default CAs
+10:05 <@deen> heinrich5991: fix your permissions please, i can't download new files on your maps server
+10:05 <@deen> Example: https://heinrich5991.de/teeworlds/maps/maps/Epix_f7c5b6db.map
+10:06 <@deen> from April 2017, but the one from January works
+10:15 <@deen> or should we just use letsencrypt for updates as well?
+10:16 < eeeee> i think we should use whatever is more convenient
+10:17 < eeeee> if someone can fake certs it's unlikely ddnet autoupdate would be their first choice to attack
+10:17 <@deen> all of our high profile players though!
+10:17 <@deen> prime nsa targets
+10:17 < eeeee> some of them really should be, with all the hundreds of gbits of ddos they're generating 
+10:19 <@deen> switching over to regular certs is possible, but some work
+10:20 <@deen> and then we have the problem that we depend on what CAs our users' systems trust
+10:20 < eeeee> i forgot, why isn't map download server using cloudflare?
+10:20 <@deen> We could do that
+10:21 < eeeee> and i thought letencrypt is trusted pretty much everywhere now
+10:21 <@deen> I don't like cloudflare personally
+10:21 < eeeee> or is it trusted because browser vendors use their own ca lists instead of the system ones?
+10:21 <@deen> on winxp I'm not sure
+10:22 <@deen> and on old debian versions letsencrypt will probably also not work
+10:31 < eeeee> can you bundle a cert for letsencrypt root ca then?
+10:32 < eeeee> that doesnt make sense though, does it
+10:32 <@deen> for the updater or map download?
+10:32 < eeeee> you can have your cert signed by letsencrypt and still bundle that with the client
+10:35 < eeeee> for both? it seems like they don't expect much changes in their chain of trust: https://letsencrypt.org/certificates/
+10:38 < eeeee> and you could still keep your own ca, so in case letsencrypt implodes would be able to autoupdate clients to another ca.
+10:38 <@deen> that sounds complicated
+10:39 <@deen> I'll just stay with my own CA for updates
+10:39 <@deen> for map download I will enable using https:// with system CAs for now, but by default keep using the http://maps.ddnet.tw
+10:40 < eeeee> sure, should be fine
+10:45 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vQFqM
+10:45 < ddnet-commits> ddnet/master c7c9c3c def: Possible to use https:// for map downloads, but still use http:// by default
+10:54 < Learath2> well bundling the LE root would mean that we trust the initial download was secure no?
+10:54 < Learath2> think that's a no go
+10:59 <@deen> Learath2: can we use the system CAs and additionally add another CA?
+11:00 < Learath2> i'll have a check at the API
+11:04 <@deen> what happens when a root ca becomes compromised? all OSes and browsers manually remove it from their CA list and add the new one?
+11:04 < Learath2> deen: nope, you can either change the path that holds all the certs or give a path to the ca bundle
+11:04 <@deen> well, that's bad
+11:05 <@deen> So we're going to vendor-lock ourselves into LetsEncrypt?
+11:05 < Learath2> deen: if a root ca becomes compromised i think its a horror show
+11:06 < Learath2> that's why they only issue intermediary certs with the root iirc
+11:07 <@deen> and about cloudflare, any opinions?
+11:09 < Learath2> well i don't have anything against it but i'd love to hear why you don't like it
+11:09 <@deen> I don't like the internet becing only usable if you're under the supervision of google, amazon, facebook, cloudflare. but we could try enabling it and check how the map download times change
+11:09 <@deen> since I have quite some stats now for map download times
+11:10 <@deen> So I will lock us into letsencrypt + my custom ca
+11:12 <@deen> can curl tell us what server we're connecting to?
+11:13 <@deen> or I have to str_comp_nocase_num against (https?://)?maps.ddnet.tw?
+11:14 <@deen> oh, and a / at the end or someone will use maps.ddnet.tw.myserver.com
+11:31 <@deen> We have to switch to our 3rd update subdomain for compatibility now
+11:31 <@deen> I'm curious if you can update super-old client versions all the way to the most recent one
+11:41 < Learath2> deen: i'll try it after i grab breakfast :)
+11:42 < Learath2> we could do a gettaddrinfo to get the server we are connecting to, if that's what you mean
+11:47 <@deen> We have > 5 GB of ddnet versions lying around on the server and that's after I removed most of the old subversions already
+11:49 <@deen> I downloaded DDNet 3.6, the first with auto-updater. It just downloads the same files over and over and crashes finally, haha
+11:50 <@deen> ah, that works correctly, but the old DDNet version links against libssl.so.0.9.8, that's why it can't start
+11:53 <@deen> we can't update libwinpthread-1.dll properly since we had no dll update support on old versions
+11:53 <@deen> and we need a different one for 32/64bit of course
+12:13 < ddnet-commits> [ddnet] def- pushed 5 new commits to master: https://git.io/vQF3G
+12:13 < ddnet-commits> ddnet/master c9b8711 def: Also trust Let's Encrypt Root CA
+12:13 < ddnet-commits> ddnet/master 191eefb def: Only trust our own custom-selected CAs for our maps download server
+12:13 < ddnet-commits> ddnet/master e436498 def: Use https for map downloads by default
+12:30 <@deen> Learath2: oh, and with cloudflare you lose e2e encryption
+12:36 <@deen> Ah shit, and Cloudflare would use their own cert, so now that we're locked into letsencrypt we can't do that, haha
+12:36 <@deen> "Cloudflare's free Universal SSL, which does not work with Windows XP (sp3) systems"
+12:42 < ddnet-discord1> <deen> Anyone have heinrich's script to scan for new maps?
+13:14 < ddnet-discord1> <deen> Map download statistics in ms: count:    349627 min:      0.0 max:      255.632 mean:     1.221531861097683 variance: 24.18211954962241 stddev:   4.91753185547612 skewness: 13.87720594085525 median:   0.277 20th perc:0.09 40th perc:0.191 60th perc:0.422 80th perc:0.97 90th perc:1.951 95th perc:4.305
+13:15 < ddnet-discord> <deen> Someone needed 4 minutes to download a map once, average is 1 second and 80% get their map in < 1 sec, 90% in < 2 sec, 95% in 4 sec
+17:15 <@Nimda_9885> Intercepter by Konsti just released on Brutal at 2017-07-16 17:10
+19:07 < Learath2> !ping
+19:07 <@Nimda_9885> Pong!
+19:14 < Learath2> my ISP remotely updates my modem, eveytime they do that something breaks...
+19:18 < Learath2> !ping
+19:18 <@Nimda_9885> Pong!
+19:45 < eeeee> i think that statement about cloudflare not working in winxp probably only applies to system libs and IE (because they don't support SNI). if we use our own openssl and bundle the root cert it should be fine.
+19:46 < eeeee> we don't have to though, average 1 second seems fine
+21:28 < ddnet-commits> [ddnet] def- pushed 1 new commit to master: https://git.io/vQF68
+21:28 < ddnet-commits> ddnet/master a30323d def: oops
+23:54 < ddnet-commits> [ddnet] def- pushed 5 new commits to master: https://git.io/vQF9N
+23:54 < ddnet-commits> ddnet/master 22c3c13 def: Turns out we also need Intermediate Certificates...
+23:54 < ddnet-commits> ddnet/master f94f567 def: New curl and openssl versions
+23:54 < ddnet-commits> ddnet/master b2d86d1 def: Add missing mysql include files

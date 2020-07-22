@@ -1,0 +1,89 @@
+17:54 < ParANormaL_> hi! can somebody help me with a mysql connection problem?
+18:13 <@deen> ParANormaL_: there are a few forum threads, do they help?
+18:13 <@deen> and it's better if you write the problem and then see if someone can help
+18:14 < ParANormaL_> i run into a problem someone else already had.. my sql server runs fine, but everytime the ddnet server want to connect i get the error: " MySQL Error: Access denied for user 'root'@'localhost' (using password: NO)"
+18:15 <@deen> then set the correct username, password etc?
+18:15 <@deen> maybe instead of localhost use 127.0.0.1
+18:15 <@deen> (sometimes the socket can't be found or whatever)
+18:15 < fstd> wouldn't see the message if the connection itself didn't succeed tho
+18:16 < ParANormaL_> i did. the username in the config file is not "root", but the message says it's trying to connect as root
+18:17 < ParANormaL_> changing localhost to 127.0.0.1 has no effect
+18:17 <@deen> that's either weird or maybe just a bug in the mysql client library
+18:17 <@deen> are you sure the username and password are correct?
+18:17 <@deen> have you tried the root password?
+18:18 < ParANormaL_> yes, i also connected to the tw server and logged in to see if the sql_username and password are loaded correctly
+18:18 < ParANormaL_> havent tried the root password.. as it shouldnt use root to login
+18:19 <@deen> yeah, but you could try
+18:19 <@deen> afk
+18:19 < ParANormaL_> using root password doesn't work eithr
+18:24 < fstd> what ddnet branch/release is it?
+18:26 < ParANormaL_> lastest version 9.1 - master branch
+18:29 < fstd> the username setting is called sv_sql_user, not sql_username, password is sv_sql_pw
+18:29 < fstd> just in case you actually got that wrong instead of being sloppy here
+18:30 < ParANormaL_> i've been sloppy, my config uses the right variables
+18:31 < EastByte> ^^
+18:31 < fstd> do you know how to use a debugger?
+18:32 < ParANormaL_> i know how to use them on windows, but not on an external linux server
+18:33 < fstd> it's fairly straightforward but come to think of it again, maybe a dbg_msg would be even simpler.  one sec
+18:34 < fstd> ParANormaL_: what comes after your "MySQL Error" line, in the server output?
+18:34 < ParANormaL_> [16-02-12 18:32:38][SQL]: MySQL Error: Access denied for user 'root'@'localhost' (using password: NO) [16-02-12 18:32:38][SQL]: ERROR: SQL connection failed
+18:34 < fstd> no, i mean what's the next line
+18:34 < fstd> ah nvm
+18:38 < fstd> mhh it doesn't seem to initialize m_pConnection, unless i'm missing something
+18:39 < fstd> ParANormaL_: please add a (any) dbg_msg above the 'try' in src/game/server/score/sql_score.cpp line 58, just to see whether we're actually hitting that block
+18:39 < fstd> (and while you're at it, also add one inside the next 'try')
+18:43 < ParANormaL_> ok i did it
+18:43 < fstd> (then recompile, run and paste output, obv:))
+18:51 < ParANormaL_> http://pastebin.com/661EKn0j
+18:51 < ParANormaL_> thats the result
+18:55 < fstd> heh uhm, that way you can't really know which number refers to which dbg_msg
+18:55 < fstd> because the dbg_msg's which aren't reached don't increment DebugNum
+18:56 < ParANormaL_> ah right.. did it with constants now. Result is: 0 -> 4 -> 5
+19:00 < ParANormaL_> ok, after some more debugging: it gets stuck on "m_pConnection = m_pDriver->connect(connection_properties);"
+19:00 < fstd> hmmm okay, then i'm not sure what's going on either:(.  that is, other than verifying with yet another dbg_msg that m_pUser and m_pPass are set correctly around line 56-ish
+19:01 < ParANormaL_> user and password are correct
+19:02 < fstd> could run tcpdump to sniff the conversation with the database (although you might not get to see it when using localhost/127.0.0.1, might have to use your public or at least link-local address instead)
+19:03 < fstd> in order to see what tw ends up trying to authenticate as when doing the handshake with the sql server
+19:04 < EastByte> tcpdump -i lo <- for sniffing on loopback
+19:04 < fstd> oh, didn't know that was possible
+19:05 < fstd> (since it might use AF_UNIX sockets behind the scenes)
+19:05 <@deen> fstd: it uses sockets with localhost and tcp with 127.0.0.1
+19:05 < fstd> interesting
+19:05 < EastByte> wow
+19:07 < ParANormaL_> ok, where do i find the dump afterwards?
+19:07 < fstd> you need to -w <output file>
+19:08 < fstd> (the result can be opened in wireshark for easier analysis)
+19:13 <@deen> ParANormaL_: are you using your system's sql libs or the bundled ones? in any case, I'd try the other one
+19:14 < ParANormaL_> as im not very experienced with linux i don't know how to change them
+19:15 < ParANormaL_> thats the result of the tcpdump http://pastebin.com/49RLcaCL
+19:15 < ParANormaL_> looks like it's trying to authenticate the wrong user
+19:18 < ParANormaL_> thank you up to this point, but im going to eat.. if you have any idea or suggestion what else i can try: write it, im going to read it later
+19:19 <@deen> ParANormaL_: mostly just installing them on your system and removing the config.lua so bam rescans your system
+19:19 <@deen> because if the right user name is set, but the wrong one gets sent, it sounds like a problem with the mysql client lib
+21:08 < fstd> ParANormaL_: got it to work?
+21:10 <@heinrich5991> bam -c config deletes the config btw
+22:13 < o_be_one> Oh shit i've to migrate DDNet CAN, deen EastByte
+22:13 < o_be_one> 5 days to do it
+22:14 < o_be_one> (i forget it everytime -_-)
+22:21 < ParANormaL_> i didn't get it to work. maybe i misunderstood what deen meant with switching the mysql client libs, because when i remove the client libs i got with the mysql server then the server cant even send a mysql request
+22:21 < o_be_one> hey hello ParANormaL_ :)
+22:22 < ParANormaL_> hola o_be_one!
+22:58 <+Learath2> ParANormaL_, that Access denied msg is generated by the server so you must be trying to connect as root. did you check that the username is set right with a dbg_msg ?
+23:02 <+Learath2> i'd try printing out g_Config.m_SvSqlUser m_pUser right before they are passed to the mysql driver
+23:07 < fstd> Learath2: read moar scrollback
+23:07 <+Learath2> dont have more scrollback :P
+23:07 < fstd> oh, okay.  he did that already
+23:11 <+Learath2> well that proves its the sqldriver case closed :P
+23:14 < ParANormaL_> even though its the driver and not ddnet, has someone a solution i could try?
+23:17 <+Learath2> well i guess you could try asking deen or EastByte which exact version of mysql they are compiling with
+23:52 < fstd> ParANormaL_: one suggestion was to install the mysql client lib that is provided in the package repositories of your distribution
+23:53 < ParANormaL_> yes, but i dont know how and obviously i was googeling the wrong things
+23:54 < fstd> do you know what linux distribution your server is running?
+23:54 < ParANormaL_> its not my server, so give me a second
+23:55 < Gabeee> o_be_one: I got one server suspended because I forgot to pay the invoice for.. february first :D
+23:56 < o_be_one> yau Gabeee
+23:56 < o_be_one> too bad
+23:57 < ParANormaL_> the dist isUbuntu 15.10
+23:57 < o_be_one> Pay and it will be unsuspended :p
+23:57 < Gabeee> Well, I called the support and it's all fixed now
+23:57 < Gabeee> But I was really scared :P

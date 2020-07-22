@@ -1,0 +1,88 @@
+08:20 <@Nimda> SimplePlay 4 by SBL just released on Moderate at 2017-01-04 08:18
+10:30 < ddnet-commits> [ddnet] necropotame opened pull request #601: Implementation of Portable TeeUniverse Maps (master...master) https://github.com/ddnet/ddnet/pull/601
+10:30 <+necropotame> Same as yesterday, but this time with moving freeze zones -> 137.74.156.196:10005
+10:39 <@heinrich5991> necropotame: the server doesn't seem to have freeze zones or even run ddnet
+10:39 <@heinrich5991> hearts don't freeze and the moving tiles kill
+10:40 <+necropotame>  137.74.156.196:10004 !!!!!
+10:40 <+necropotame> Sorry
+11:12 <@EastByte> necropotame: one thing that's problematic about ddnet and quads is that ddnet uses the roundstarttick to indicate the current racing time
+11:14 <+necropotame> so, two players that start at a different moment the race but are now together will face a different situation in game due to this?
+11:14 <@EastByte> pretty sure, yes
+11:15 <+necropotame> This is something that can't be fixed. I suggest to keep the commit as it is, so you can't use moving quads, but you can at least use static quads
+11:16 <@EastByte> well, ddnet somehow supports "synchronised" quads which might fix it but I don't know how exactly they work
+11:16 <+necropotame> Or you can add a countdown when the race start to force the player to start on a specific moment (like every 10 sec) and make sure that all animations use a cycle of 1, 2, 5 or 10 sec
+11:17 <+necropotame> It's not the "Sync" option in envelopes ?
+11:19 <@EastByte> ah, yes
+11:19 <@EastByte> well, probably not what we need
+11:19 <+necropotame> Yes, it's to switch the time between round and something related only to the client
+11:20 <+necropotame> It must be checked to works with PTU maps
+11:20 <@EastByte> I see
+11:22 <+necropotame> Alternative solution: create challenge room. You must escape the zoom in a limited amount of time (it can be view as an obstacle). In this room, the time is displayed as a countdown, to we can fake it. Animation should be use only there
+11:24 <+necropotame> Like I said, it's only one of many features of the commit (but the most epic one :P). I'm just trying to see if it can be used somehow ^^
+11:24 <+necropotame> Keep in mind also that quads can create great things: https://s30.postimg.org/91ewa7k2p/Screenshot_from_2016_12_13_18_08_33.png
+11:25 <@EastByte> we could also stop using the gametick as racing timer and implement an actual race timer for the ddnet client and use broadcast for vanilla
+11:25 <+necropotame> This image is only made a quads, using only vanilla mapres
+11:25 <+necropotame> Oh yes, you can also ^^
+11:25 <@EastByte> haha, weird
+11:26 <+necropotame> (my map editor to make it) https://s16.postimg.org/5gwav4rv9/teeuniverse_line_editing.png
+11:33 <@EastByte> cool, I hope a huge number of quads won't slow down vanilla too much
+11:33 <+necropotame> A tile layer display around 1200 quads
+11:34 <+necropotame> There is ~20 quads in the last image I've posted
+11:35 <@EastByte> tile layers are rendered really efficiently
+11:35 <+necropotame> They are clamped, but still, you must check 1200 tiles in the double loop
+11:37 <@EastByte> that shouldn't be necessary
+11:37 <+necropotame> I've tested this map with a bad tessellation (~800 quads for the polygonal background) and my frame rate was fine (vanilla)
+11:38 <+necropotame> https://s23.postimg.org/obaal975l/screenshot_2016_12_19_11_05_52.png
+11:40 <@EastByte> it might be fine for small maps, but there will be multiple of 800 quads in huge maps and vanilla appears to render all quads in every single frame
+11:40 <+necropotame> Sure, it must be not exagerated
+11:41 <+necropotame> But I think there is room to create cool stuff with it
+11:41 <@EastByte> yea
+11:41 <+necropotame> This infClass map is made using a lot a quad, nodoby complains with it -> https://s17.postimg.org/vfwwgy3wd/002.jpg
+11:41 <+necropotame> nobody*
+11:41 <+necropotame> (the black string is a bezier curve tesselated, so there is around 100 quads in it)
+11:45 <@EastByte> skilled players in ddnet tend to use entities mode (hiding everything except game layer) if the mapper adds too much decoration^^
+11:46 <@EastByte> but your infclass map designs look pretty unique and fun
+11:46 <+necropotame> Did you try them?
+11:46 <+necropotame> infc_bamboo is also kind of different
+11:46 <@EastByte> nah, I played only a few times
+11:47 <+necropotame> I guess the DDNet client should be modified to display PTUM zones in the entity layer
+11:47 <@EastByte> entity layer?
+11:48 <+necropotame>  entities mode*
+11:49 <@EastByte> would be necessary for proper gameplay in entities mode, yes
+11:49 <+necropotame> In fact, the client should not try to render things in the group #Zones and #Entities, and instead force to render them in the entities mode (without take care of the clipping that is used to hide them)
+11:50 <+necropotame> Should this to be added in the commit to be accepted?
+11:51 <@EastByte> shouldn't matter right now since there are issues regarding gametick
+11:53 <+necropotame> We can just disable animations in the code.
+11:55 <@EastByte> I'm not sure whether static freeze/unfreeze zones are beneficial to be added into ddnet
+11:56 <+necropotame> ok
+11:57 <@EastByte> another issue would be that platyers can "skip" these zones with proper speed (if they are thin)
+11:57 <@EastByte> oh wait that's the case for ddnet entities aswell, nvm
+11:59 <+necropotame> I agree. This can be solved by improving the collision function. But that's an another story :)
+13:05 <+necropotame> EastByte, DDNet can use m_WarmupTimer in the GameObject to carry the racetime, and set a game flag like GAMESTATEFLAG_RACETIME to tell DDNet client to interpret it like race time. Or it's a bad solution ? I don't know if it can collide with true warmup.
+13:05 <+necropotame> I've tested it, if you set the WarmupTimer with -pChr->m_StartTime, nothing is shown in the client
+13:06 <+necropotame> becuase it's negative. Then the DDNet client can make it positive again and use it
+13:06 <+necropotame> Drawback: old clients will not be able to see the race time except using /timer broadcast
+13:07 <+necropotame> But maybe we can detect the version (I don't know if this update deserves a version number)
+13:10 <@EastByte> the ddnet client is not a problem here since we always could change/extend the protocol however we like
+13:10 <@EastByte> it's about vanilla
+13:11 <@EastByte> well and backward compatibility obviously :p
+13:14 <+necropotame> Should I commit a version with the warmup timer ? Because otherwise, I don't know the best solution. Extending the GameObject seems a bit dangerous
+13:16 <+necropotame> The advantage is that the cost is the same as before in term of quantity of data (before compression). Dunno if it's interesting or not ^^ It's hacky, but DDNet is hacky in all its aspects, so :P
+13:42 <@EastByte> no idea, changing the way of how racetime is transferred sounds pretty huge
+13:42 <@EastByte> we should discuss that on github
+14:21 < ddnet-commits> [ddnet] necropotame opened pull request #602: Send the race time using warmup timer (master...gametick) https://github.com/ddnet/ddnet/pull/602
+14:32 <+godwhoa> what does ddrace/teeworlds use for spatial partitioning?(quadtrees, spatial hashing etc.)
+14:34 <+necropotame> for quads-> brute force linear search. The rest is based on grids
+14:35 <+necropotame> (at least for teeworlds)
+14:36 <+godwhoa> thank you
+18:20 < ddnet-commits> [ddnet] heinrich5991 opened pull request #603: Fix a crash with semicolon handling and timeout codes (master...pr_fix_semicolon_timeoutcode) https://github.com/ddnet/ddnet/pull/603
+18:36 < ddnet-commits> [ddnet] east pushed 2 new commits to master: https://git.io/vM3Bl
+18:36 < ddnet-commits> ddnet/master b42a59f heinrich5991: Fix a crash with semicolon handling and timeout codes...
+18:36 < ddnet-commits> ddnet/master a19023c east: Merge pull request #603 from heinrich5991/pr_fix_semicolon_timeoutcode...
+21:26 <+necropotame> After thinking more about the game tick question, make it not related to the race time and dedicated to animations can be very useful to implement more features.
+21:26 <+necropotame> The game tick can be faked to choose different time segment in animation and then create triggers, doors, ...
+21:27 <+necropotame> That's how InfClass menu is made for example
+21:44 <@heinrich5991> yes
+21:44 <@heinrich5991> I also thought about that :D
+21:59 <+necropotame>  :)
+21:59 <+necropotame> The question is how to make it not horrible to use in the map editor :P

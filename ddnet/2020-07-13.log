@@ -1,0 +1,203 @@
+07:48 <+bridge> [ddnet] <Learath2> @nexus can you try the build in #2502?
+07:48 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2502
+11:12 <+bridge> [ddnet] <Learath2> @heinrich5991 can we add to the tail of netobjects without breakage or do we need to add a new object and backwards compatibility code?
+11:14 <+bridge> [ddnet] <nexusrf> @Learath2 i never used this channel, where is #2502
+11:14 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2502
+11:14 <+bridge> [ddnet] <Learath2> The bot even links it for you 😄
+11:15 <+bridge> [ddnet] <Learath2> Go to the checks tab, there is artifacts towards top right, you can download from there
+11:16 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/732163517607575602/Screenshot_2020-07-13_at_12.15.52.png
+11:23 <+bridge> [ddnet] <Ryozuki> @Learath2 this is only for authorized users
+11:28 <+bridge> [ddnet] <Learath2> sure? I thought they changed that
+11:30 <+bridge> [ddnet] <nexusrf> i dont see a difference either
+11:30 <+bridge> [ddnet] <Ryozuki> oh
+11:30 <+bridge> [ddnet] <Ryozuki> wel
+11:31 <+bridge> [ddnet] <nexusrf> neither one takes effect in my game
+11:31 <+bridge> [ddnet] <nexusrf> https://cdn.discordapp.com/attachments/293493549758939136/732167182565244938/unknown.png
+11:31 <+bridge> [ddnet] <nexusrf> i did download the file, do i have to do some sort of preparation first? maybe download a further build or something
+11:32 <+bridge> [ddnet] <nexusrf> i mean an earlier build
+11:32 <+bridge> [ddnet] <Learath2> Nope, if that artifact doesn't change your dummy gameplay that's fine
+12:18 <+bridge> [ddnet] <Fireball> > neither one takes effect in my game
+12:18 <+bridge> [ddnet] <Fireball> @nexusrf here's what I meant by phantom hook: https://youtu.be/mxVT4pdyGnU.
+12:19 <+bridge> [ddnet] <!gerdoe> xd, never did see it
+12:32 <+bridge> [ddnet] <heinrich5991> @Learath2 not really, not without extra checks
+12:32 <+bridge> [ddnet] <heinrich5991> the trouble is that the unpacking fails if the object is too small
+12:35 <+bridge> [ddnet] <Learath2> @heinrich5991 so if I were to introduce a new field to `player@netobj.ddnet.tw` I'd need to instead add a new netobj called player2 AND keep the code for the old netobj too?
+12:36 <+bridge> [ddnet] <heinrich5991> short of improving the general problem, yes
+12:36 <+bridge> [ddnet] <heinrich5991> the only problematic combination is new client <-> old server
+12:36 <+bridge> [ddnet] <heinrich5991> i.e. we can fix it
+12:37 <+bridge> [ddnet] <Learath2> Uf, I hadn't noticed this rather problematic limitation of the protocol yet
+12:40 <+bridge> [ddnet] <Learath2> @heinrich5991 could we even improve the general problem now?
+12:40 <+bridge> [ddnet] <heinrich5991> yes
+12:41 <+bridge> [ddnet] <heinrich5991> since the only problem is new client <-> old server: the new client expects the netobj to be longer
+12:41 <+bridge> [ddnet] <heinrich5991> so we can make the new client add default values for short netobjs
+12:42 <+bridge> [ddnet] <Learath2> something similar to your get or default thing on vanilla?
+12:42 <+bridge> [ddnet] <heinrich5991> don't remember what you're referring to, possibly
+12:42 <+bridge> [ddnet] <Learath2> You made it to fix the race record thing iirc
+12:42 <+bridge> [ddnet] <heinrich5991> ah yea
+12:43 <+bridge> [ddnet] <heinrich5991> something similar to that, just for netobjs
+12:43 <+bridge> [ddnet] <Learath2> Problem is that netobjs aren't "unpacked"
+12:46 <+bridge> [ddnet] <heinrich5991> hm yes
+12:46 <+bridge> [ddnet] <heinrich5991> can add that ofc
+12:46 <+bridge> [ddnet] <Learath2> Yeah, there is no good way to handle this problem
+12:47 <+bridge> [ddnet] <Learath2> We only have a Size, no way to figure out how many fields are missing
+12:47 <+bridge> [ddnet] <Learath2> honestly, just that cast even if it has the correct size is unsafe
+12:47 <+bridge> [ddnet] <heinrich5991> yes @ unsafe
+12:47 <+bridge> [ddnet] <heinrich5991> why not? we know the size, we should be good
+12:48 <+bridge> [ddnet] <Learath2> Ah but everything is ints
+12:48 <+bridge> [ddnet] <Learath2> and we already assume sizeof(int) == 4
+12:49 <+bridge> [ddnet] <Learath2> maybe a "default" instance of each netobj that we can chop up and append to the end of the small one?
+12:50 <+bridge> [ddnet] <fokkonaut> if you are talking about anything with 0.7: I will just break compability since there arent any ddnet7 servers anymore and i will just replace my player object with the current one
+12:50 <+bridge> [ddnet] <Learath2> I'm more concerned about the new field we want to add causing some ugly compatibility code
+12:51 <+bridge> [ddnet] <heinrich5991> you could make the snap code support not only invalidating objs but also replacing them
+12:51 <+bridge> [ddnet] <heinrich5991> in a different buffer maybe
+12:51 <+bridge> [ddnet] <Learath2> can you elaborate further?
+12:54 <+bridge> [ddnet] <heinrich5991> in addition to the other functions like `SnapInvalidateItem(int SnapID, int Index)`, the client interface gets a new function `SnapReplaceItem(int SnapID, int Index, void *pItem, int ItemSize);`. in the snap sanity check loop, this function is called at the appropriate places when a old netobj is detected
+12:55 <+bridge> [ddnet] <heinrich5991> this requires support code in `datasrc/{network,datatypes}.py`
+12:56 <+bridge> [ddnet] <Learath2> That'd imply we need to keep all the older versions in the code still, no?
+12:56 <+bridge> [ddnet] <heinrich5991> we only need to add a default value to new fields in `datasrc/network.py`
+12:56 <+bridge> [ddnet] <Learath2> I'm not sure ItemSize > ObjSize is a good enough way to detect an old message though
+12:57 <+bridge> [ddnet] <heinrich5991> why not? we theoretically have unique IDs?
+12:57 <+bridge> [ddnet] <heinrich5991> why not? we theoretically have unique IDs
+12:57 <+bridge> [ddnet] <Learath2> I guess it is as long as we only append at the tail
+12:58 <+bridge> [ddnet] <Learath2> This sounds like a good plan
+13:00 <+bridge> [ddnet] <Learath2> @heinrich5991 or maybe keep all this transparent to the client?
+13:01 <+bridge> [ddnet] <heinrich5991> cannot do that
+13:01 <+bridge> [ddnet] <heinrich5991> the old server is the problem
+13:01 <+bridge> [ddnet] <Learath2> I meant as in CClient, I was thinking of fixing it while validating, but noticed that'd be quite ugly now that I checked how we store the snaps
+13:02 <+bridge> [ddnet] <Learath2> so yeah, `SnapReplaceItem` sounds about right
+13:04 <+bridge> [ddnet] <Learath2> @heim
+13:04 <+bridge> [ddnet] <Learath2> @heinrich5991 doesn't look trivial to replace it either actually
+13:04 <+bridge> [ddnet] <heinrich5991> yep, needs a side buffer
+13:05 <+bridge> [ddnet] <Learath2> I guess the cache is efficient enough at shifting data over unless the snap is larger than the cache line
+13:05 <+bridge> [ddnet] <heinrich5991> ehm what?
+13:05 <+bridge> [ddnet] <heinrich5991> I wouldn't try to modify a snap in place
+13:06 <+bridge> [ddnet] <Learath2> Rebuild it?
+13:06 <+bridge> [ddnet] <heinrich5991> no, keep a side buffer with all the replaced objects
+13:07 <+bridge> [ddnet] <Learath2> And when the client tries to reference them, redirect it?
+13:07 <+bridge> [ddnet] <heinrich5991> yes
+13:07 <+bridge> [ddnet] <heinrich5991> if we had actual data structures, this wouldn't pose such a problem.. :/
+13:07 <+bridge> [ddnet] <Learath2> which data structure would you use to solve this problem?
+13:08 <+bridge> [ddnet] <heinrich5991> I would have the snap as a key-value mapping, probably a hashmap
+13:08 <+bridge> [ddnet] <heinrich5991> they support modifying items
+13:08 <+bridge> [ddnet] <heinrich5991> (in fact that's how I implemented it in libtw2)
+13:09 <+bridge> [ddnet] <Learath2> Hashmaps have good theoretical performance, but I wonder how they'd compare to the array of ints approach right now?
+13:09 <+bridge> [ddnet] <Learath2> Arrays have great cache behaviour and they play really well with prefetching
+13:09 <+bridge> [ddnet] <heinrich5991> our array of ints approach has a linear search for ddnet and a binary search for teeworlds 0.7
+13:10 <+bridge> [ddnet] <Learath2> Do we lookup enough for the O(1) lookup to be a good optimization?
+13:10 <+bridge> [ddnet] <heinrich5991> dunno, typical snap size?
+13:11 <+bridge> [ddnet] <Learath2> Don't we traverse snaps more often?
+13:11 <+bridge> [ddnet] <heinrich5991> let's say 128 items
+13:11 <+bridge> [ddnet] <heinrich5991> so finding the entry in the hash map must not be 64 times slower than the comparison we do for our linear search
+13:12 <+bridge> [ddnet] <heinrich5991> in order for the hash map to be more effective
+13:15 <+bridge> [ddnet] <Learath2> and we'd have to be doing the lookup often enough for it to be worth it, just traversing through an array has much better performance than traversing through a hashmap
+13:17 <+bridge> [ddnet] <Learath2> Traversing a hashmap has the overhead of going through the empty buckets and worse cache performance
+13:18 <+bridge> [ddnet] <Learath2> I think the unordered_map in c++ even uses linked lists, which are even worse
+13:19 <+bridge> [ddnet] <heinrich5991> yes. rust hashmaps are fine
+13:20 <+bridge> [ddnet] <heinrich5991> unordered_map has to have bad performance according to the standard
+13:21 <+bridge> [ddnet] <Learath2> @heinrich5991 do they use open addressing?
+13:21 <+bridge> [ddnet] <heinrich5991> it changed a couple of times
+13:21 <+bridge> [ddnet] <heinrich5991> the algorithm used
+13:22 <+bridge> [ddnet] <Learath2> Well even with open addressing, you have a layer of indirection and a prefetch unfriendly data structure
+13:23 <+bridge> [ddnet] <heinrich5991> > The hash table implementation is a Rust port of Google's SwissTable. The original C++ version of SwissTable can be found here, and this CppCon talk gives an overview of how the algorithm works.
+13:23 <+bridge> [ddnet] <heinrich5991> https://abseil.io/blog/20180927-swisstables
+13:24 <+bridge> [ddnet] <Learath2> I've been watching a couple different talks on data structures and performance, I've been very surprised at some of the benchmarks I've seen
+13:24 <+bridge> [ddnet] <heinrich5991> so no indirection if I see this blog post correctly
+13:25 <+bridge> [ddnet] <Learath2> Well with a catch, if you don't have indirection, you can only store one type of thing (or a union) and the buckets then get rather large
+13:26 <+bridge> [ddnet] <Learath2> > We generally recommend that you use `absl::flat_hash_map<K, std::unique_ptr<V>>` instead of `absl::node_hash_map<K, V>`.
+13:26 <+bridge> [ddnet] <Learath2> Ah, that's not saying what I thought it's saying
+13:27 <+bridge> [ddnet] <Learath2> That's rather odd, I'd have thought the library would be smarter than the programmer at handling the indirection
+13:27 <+bridge> [ddnet] <heinrich5991> we want fixed size buckets here, though
+13:27 <+bridge> [ddnet] <Learath2> Do we? Items have varying size
+13:27 <+bridge> [ddnet] <heinrich5991> pointer, len
+13:27 <+bridge> [ddnet] <heinrich5991> (like we currently have with the array btw)
+13:27 <+bridge> [ddnet] <Ryozuki> whats this hash map talk about?
+13:28 <+bridge> [ddnet] <Ryozuki> related to ddnet
+13:28 <+bridge> [ddnet] <heinrich5991> yes, kinda
+13:28 <+bridge> [ddnet] <Learath2> Considering whether a hash map would be a good choice to store snaps as
+13:28 <+bridge> [ddnet] <heinrich5991> I was lamenting the fact that we don't have data structures
+13:28 <+bridge> [ddnet] <Learath2> instead of a large rather flat array of ints
+13:28 <+bridge> [ddnet] <Ryozuki> do we iterate snaps a lot?
+13:29 <+bridge> [ddnet] <Ryozuki> well i dont know much :)
+13:29 <+bridge> [ddnet] <Learath2> Once every time we receive a snapshot
+13:30 <+bridge> [ddnet] <Ryozuki> whats the advantage of the hash map then?
+13:30 <+bridge> [ddnet] <Learath2> Then once more for the events
+13:30 <+bridge> [ddnet] <heinrich5991> and in the game code as well
+13:30 <+bridge> [ddnet] <Learath2> @Ryozuki we do linear lookups for specific times
+13:30 <+bridge> [ddnet] <Learath2> s\/times/types/
+13:30 <+bridge> [ddnet] <Ryozuki> ah
+13:31 <+bridge> [ddnet] <Ryozuki> maybe we can index by type or smth
+13:31 <+bridge> [ddnet] <Ryozuki> if i got this right
+13:31 <+bridge> [ddnet] <Learath2> We traverse it as many times as we do a linear lookup
+13:33 <+bridge> [ddnet] <Learath2> Ah I see what you mean @heinrich5991 you want the snaps themselves to stay as is, but we reference into it using a hashmap?
+13:33 <+bridge> [ddnet] <heinrich5991> I want the snap data to be stored in an array
+13:33 <+bridge> [ddnet] <heinrich5991> but I want an index
+13:34 <+bridge> [ddnet] <heinrich5991> so yes
+13:34 <+bridge> [ddnet] <Learath2> That would probably have better performance
+13:35 <+bridge> [ddnet] <Learath2> With a flat hashmap, the next item would probably fit into the cache rather nicely
+13:35 <+bridge> [ddnet] <Ryozuki> by snap types u mean CNetObjs?
+13:35 <+bridge> [ddnet] <Learath2> not very prefetch friendly but it happens
+13:35 <+bridge> [ddnet] <Learath2> Well types of netobjs
+13:39 <+bridge> [ddnet] <Ryozuki> anymore
+13:39 <+bridge> [ddnet] <Ryozuki> they made discord not gamer
+13:39 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/732199433369813022/unknown.png
+13:39 <+bridge> [ddnet] <Ryozuki> :justatest:
+15:50 <+bridge> [ddnet] <deen> What does "invite-only place" mean? I always see invites on public websites, like on DDNet.tw
+15:57 <+bridge> [ddnet] <heinrich5991> that you get to decide who joins I guess
+16:20 <+bridge> [ddnet] <Soreu> There are also communities that don't create permanent invites posted publicly - instead they create expiring ones or even one-use-only
+16:20 <+bridge> [ddnet] <Soreu> let's say community of specific paid course
+17:22 <+bridge> [ddnet] <nexusrf> pls fix this no sound hook
+17:22 <+bridge> [ddnet] <nexusrf> some players have it, i will add an example in a bit
+17:25 <+bridge> [ddnet] <nexusrf> sound is on, everyone's hook is normal except for his. his hook has no sound
+17:25 <+bridge> [ddnet] <nexusrf> https://cdn.discordapp.com/attachments/293493549758939136/732256451606872074/Base_Profile_2020.07.13_-_17.23.24.04.DVR_Trim.mp4
+17:26 <+bridge> [ddnet] <noby> was the double hook sound in 0.7 just fixed
+17:26 <+bridge> [ddnet] <nexusrf> and if he hits an unhookable tile you still hear the usual sound
+17:33 <+bridge> [ddnet] <Cellegen> @onby so you did make a 0.6 - 0.7 compatible server right? Can we make a window compile out of it?
+17:34 <+bridge> [ddnet] <noby> i didnt make it, i applied the fixes timakro made to <https://github.com/unique-clan/unique-race> this server
+17:35 <+bridge> [ddnet] <Cellegen> but can i compile it to windows? since according to the instruction, not even git bash can recognize 2cmake" or "make" commands
+17:35 <+bridge> [ddnet] <Cellegen> but can i compile it to windows? since according to the instruction, not even git bash can recognize "cmake" or "make" commands
+17:35 <+bridge> [ddnet] <Cellegen> is it linux related?
+17:36 <+bridge> [ddnet] <noby> that server should work on windows but i dont know / dont have windows to test it on
+17:36 <+bridge> [ddnet] <noby> u probably have to install cmake
+17:36 <+bridge> [ddnet] <Cellegen> right
+17:36 <+bridge> [ddnet] <noby> actually no
+17:36 <+bridge> [ddnet] <noby> <https://github.com/ddnet/ddnet>
+17:36 <+bridge> [ddnet] <noby> use the instructions here
+18:09 <+bridge> [ddnet] <Cellegen> the fuck?
+18:09 <+bridge> [ddnet] <Cellegen> https://cdn.discordapp.com/attachments/293493549758939136/732267513764642867/unknown.png
+18:10 <+bridge> [ddnet] <Cellegen> im not sure if this is intended xd
+18:14 <+bridge> [ddnet] <Cellegen> maybe programming isn't for me :lol:
+18:14 <+bridge> [ddnet] <!gerdoe> im always using cmake gui before start compiling huh
+18:15 <+bridge> [ddnet] <Cellegen> cmake gui generation cannot detect visual studio on my computer
+18:15 <+bridge> [ddnet] <Cellegen> so i tried visual studio itself :kekk
+18:15 <+bridge> [ddnet] <Cellegen> so i tried visual studio itself :kek:
+18:17 <+bridge> [ddnet] <!gerdoe> :kek:
+18:18 <+bridge> [ddnet] <!gerdoe> reinstall/check your VS Installer
+19:54 <+bridge> [ddnet] <nexusrf> @Learath2 sorry but i dont see any difference at all with that build and my current ddnet version
+19:54 <+bridge> [ddnet] <Learath2> That's great
+19:55 <+bridge> [ddnet] <Learath2> I was worried it'd break something like the dummy triple fly u do
+19:56 <+bridge> [ddnet] <nexusrf> u mean this thing?
+19:56 <+bridge> [ddnet] <nexusrf> https://cdn.discordapp.com/attachments/293493549758939136/732294385307353168/Base_Profile_2020.07.13_-_19.54.47.05.DVR_Trim.mp4
+19:56 <+bridge> [ddnet] <nexusrf> i didnt try playing with it yet
+19:56 <+bridge> [ddnet] <nexusrf> i will do some 3flies with dummy and see
+20:02 <+bridge> [ddnet] <nexusrf> i dont see any major difference @Learath2 my triplefly has not been cucked
+20:03 <+bridge> [ddnet] <Learath2> Perfect
+20:13 <+bridge> [ddnet] <ᶰ°Konͧsti> Cucked
+20:30 <+bridge> [ddnet] <louis> does hook have a hitbox or is it just a straight line
+20:46 <+bridge> [ddnet] <fokkonaut> Is it possible I can add the AntiBot in my own mod @Learath2 ?
+20:46 <+bridge> [ddnet] <fokkonaut> Its a library, right?
+20:46 <+bridge> [ddnet] <fokkonaut> not open source but free to use?
+20:46 <+bridge> [ddnet] <Learath2> It's not my library to share
+20:47 <+bridge> [ddnet] <Learath2> You should ask @noby he wrote it
+20:47 <+bridge> [ddnet] <fokkonaut> DDNet has it, is it possible to have it for local testing?
+20:47 <+bridge> [ddnet] <fokkonaut> Or isnt it public?
+20:47 <+bridge> [ddnet] <Learath2> It isnt public
+20:47 <+bridge> [ddnet] <fokkonaut> Oh, ok
+20:48 <+bridge> [ddnet] <Learath2> If it was really public people can reverse engineer it
+20:48 <+bridge> [ddnet] <fokkonaut> True
+20:48 <+bridge> [ddnet] <fokkonaut> thanks
+21:54 <+bridge> [ddnet] <Fireball> > sound is on, everyone's hook is normal except for his. his hook has no sound
+21:54 <+bridge> [ddnet] <Fireball> @nexusrf I've encountered this too! I've created an issue (see above)
+22:33 <+bridge> [ddnet] <fokkonaut> does ddnet not use cl_isddnet anymore?
+22:33 <+bridge> [ddnet] <fokkonaut> instead NETMSG_CLIENTVER now?
+22:40 <+bridge> [ddnet] <fokkonaut> oh, it is sending both
+22:43 <+bridge> [ddnet] <heinrich5991> yes

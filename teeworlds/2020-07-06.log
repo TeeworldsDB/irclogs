@@ -1,0 +1,27 @@
+09:38 < ChillerDragon> Learath2: is the master response interesting tho? Oh yea maybe :D
+09:39 < ChillerDragon> @heinrich5991 rcon passswords can be changed but users will log in to their accounts
+10:05 < bridge> [teeworlds] <heinrich5991> ah
+10:05 < bridge> [teeworlds] <heinrich5991> well then only master communication would be good
+10:18 < ChillerDragon> so this is fine 'src port 7303 and dst master1.teeworlds.com or dst master2.teeworlds.com or dst master3.teeworlds.com' ?
+10:18 < ChillerDragon> or do you need src as well?
+10:18 < ChillerDragon> @fokkonaut pls let me know when the server is broken and ill record sum traffic
+10:19 < bridge> [teeworlds] <fokkonaut> break it
+10:19 < ChillerDragon> lol but .. :/
+10:19 < bridge> [teeworlds] <fokkonaut> xd
+10:27 < bridge> [teeworlds] <heinrich5991> if you can break it, do it while no one is online and just record all traffic
+10:27 < bridge> [teeworlds] <heinrich5991> or open another private server and break it there
+10:32 < bridge> [teeworlds] <fokkonaut> true
+12:46 < bridge> [teeworlds] <Learath2> ChillerDragon, the response is also important imho
+19:20 < ChillerDragon> @heinrich5991 full cap with 20ish sec of working master then auth and then a few master errors https://zillyhuhn.com/tmp/fddr.cap
+20:24 < bridge> [teeworlds] <redix> server requests token, master server sends a token back but the server does not do a heartbeat, instead it requests a token again and again
+20:25 < bridge> [teeworlds] <redix> so far i did not find any issues in the rest. packets seem okay, no packet loss
+20:25 < bridge> [teeworlds] <redix> seems like something breaks the token handling
+20:25 < bridge> [teeworlds] <heinrich5991> ah, sounds similar to what happened last time
+20:25 < bridge> [teeworlds] <heinrich5991> can you start it in a debugger and give us a coredump?
+20:25 < bridge> [teeworlds] <heinrich5991> after it breaks
+22:51 < ChillerDragon> Yea I can do that tomorrow btw you could also do it if you feel extra motivated https://github.com/fokkonaut/F-DDrace/tree/F-DDrace
+22:51 < ChillerDragon> patch engine/server/server.h MAX_RCONCMD_SEND to 16 and build in release mode (ah ye the bug is rls only i think) and auth in rcon
+23:06 < bridge> [teeworlds] <Learath2> While the server is trying to register, it should be queueing up the heartbeat packet until it gets a token message
+23:07 < bridge> [teeworlds] <Learath2> When it gets the token message, it should go through the queue, find the packets that have their destination set to the addr that sent it, and send the packets
+23:09 < bridge> [teeworlds] <Learath2> Where i'd add my dbg_msgs would be after `network_token.cpp:L264` see if there is anything in the queue, if there isn't anything, then I'd start looking at `CNetTokenCache::SendPacketConnless` see whether it's even queueing these up properly
+23:15 < bridge> [teeworlds] <Learath2> If it's getting queued up properly but it's gone by the time we get the token message, a watchpoint would be useful

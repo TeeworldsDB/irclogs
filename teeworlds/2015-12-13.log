@@ -1,0 +1,127 @@
+15:06 < MoOoRice> Hi
+15:07 < MoOoRice> How can I compile teeworlds with another compiler than gcc/g++ under Unix ?
+15:08 < MoOoRice> With makefiles it's easy but with bam and .lua files i'm getting lost
+15:09 < nameless_tee58> Hello
+15:19 < MoOoRice> huum
+15:19 <@matricks> MoOoRice: what compiler?
+15:20 < MoOoRice> afl-gcc ^^
+15:20 <@matricks> so its a gcc compiler
+15:20 < MoOoRice> (gcc compatible)
+15:20 < MoOoRice> yep
+15:21 <@matricks> which branch of tw?
+15:21 < MoOoRice> server_release / server_debug
+15:21 <@matricks> master or 0.6?
+15:21 < MoOoRice> I don't know, 0.6.3 or development
+15:22 < MoOoRice> Is the latest dev version much different from 0.6.3 ?
+15:23 <@matricks> well, I know that the buildscripts were redone a bit for the master branch
+15:24 < MoOoRice> I have tried updating config.lua and properties compiler.c_compiler / compiler.cxx_compiler
+15:24 <@matricks> no, those are not used it seems
+15:24 < MoOoRice> but I got the error [string "src/base.lua"]:203: trying to create key 'cxx_compiler' on a locked table
+15:24 <@matricks> you have to fiddle with bam.lua and change the settings.cc.cpp_exe
+15:25 <@matricks> sorry, settings.cc.exe_c and exe_cxx
+15:27 < MoOoRice> I don't find those strings in bam.lua
+15:28 < MoOoRice> Should I try the latest development version ?
+15:28 <@matricks> no, because they are never set
+15:28 < MoOoRice> ah okay
+15:28 <@matricks> they are defaulted to gcc/g++/cl and other things
+15:28 <@matricks> are you trying with 0.6.3 right now?
+15:29 < MoOoRice> yep
+15:29 <@matricks> after debug_settings = NewSettings()
+15:30 <@matricks> debug_settings.cc.exe_c = "sadkjfaslkdf"
+15:30 <@matricks> and same for exe_cxx
+15:31 < MoOoRice> looks like the compilation worked
+15:32 < MoOoRice> I need to check if the right compiler were used lol
+15:32 <@matricks> bam -v will show all the commands thats are being runned
+15:32 <@matricks> erh, that variable will be over written I think :D
+15:33 <@matricks> do it after config.compiler:Apply(settings)
+15:33 <@matricks> settings.cc.exe_c etc
+15:40 < MoOoRice> O_o looks like it worked :D
+15:41 < MoOoRice> thanks matricks
+15:41 < nameless_tee07> hi
+15:50 <@matricks> MoOoRice: what are you doing?
+15:51 <@heinrich5991> afl-gcc sounds like he's fuzzing with afl
+15:51 < MoOoRice> https://en.wikipedia.org/wiki/American_fuzzy_lop_%28fuzzer%29
+15:51 <@matricks> oh
+15:52 < MoOoRice> but well, I don't really expect some results because the code looks of a very good quality
+15:52 <@heinrich5991> try to fuzz some maps :D
+15:52 <@heinrich5991> you'll instantly get crashes
+15:53 < MoOoRice> really ? :O
+15:53 <@heinrich5991> yes
+15:53 <@minus> isn't that dangerous?
+15:53 <@heinrich5991> but only DoS-crashes as far as I can tell
+15:54 <@heinrich5991> minus: out-of-bounds read that isn't sent anywhere isn't that dangerous I suppose
+15:54 <@matricks> still, shouldn't crash :)
+15:54 <@heinrich5991> there's virtually no bounds checks in the datafile parsing code
+15:55 <@matricks> I was lazy, sue me
+15:55 <@matricks> :)
+15:55 < MoOoRice> when a program has some undefined behaviour, security experts always consider the worst case
+15:55 <@matricks> yup
+15:55 < MoOoRice> often when a program crashes experts say that it is a nasty security issue
+15:56 <@heinrich5991> the compiler won't be able to see through this undefined behavior
+15:56 <@heinrich5991> because it depends on file input
+15:56 < MoOoRice> ofc a nooby hacker like me won't be able to do anything, but professional people could do very nasty things x)
+15:56 <@matricks> MoOoRice: could potentially do very nasty things
+15:56 <@heinrich5991> you can't write with that exploit, so it should work finetm
+15:56 <@heinrich5991> ™
+15:56 < MoOoRice> what ?
+15:58 <@heinrich5991> the worst thing that can happen with an out-of-bounds read is information leak
+15:59 <@heinrich5991> so e.g. you could try to give someone a manipulated map, get them to resave it and obtain their password
+15:59 <@heinrich5991> (the password saved in the TW client)
+15:59 <@heinrich5991> you need some out-of-bounds write to do anything else
+16:00 < MoOoRice> lol
+16:00 <@matricks> heinrich5991: you remember the resource system stuff I wrote?
+16:00 <@heinrich5991> yes
+16:00 < MoOoRice> well... you are engaging a complex discussion x)
+16:00 <@matricks> I kinda got scared of it :D
+16:00 <@heinrich5991> libpng did have a vulnerability recently btw :)
+16:01 < MoOoRice> if you link several minor bugs together, you can obtain some hardcore bug :P
+16:01 <@matricks> just because of the amount of new protocols that are established between the server and client >.<
+16:01 < MoOoRice> and you are wrong heinrich5991
+16:01 <@heinrich5991> some standard way of doing that might be http :)
+16:01 <@heinrich5991> MoOoRice: how? :)
+16:01 < MoOoRice> out of bounds read means you read the wrong data at a time
+16:01 <@matricks> heinrich5991: with protocol, I also mean the new dataformats that are being sent
+16:02 <@matricks> heinrich5991: like png and wv
+16:02 <@heinrich5991> ah yea
+16:02 <@heinrich5991> but png is sent anyway
+16:02 <@heinrich5991> embedded in maps
+16:02 <@matricks> yeah
+16:02 < MoOoRice> the consequences may be information leak could also be more severe DEPENDING on WHAT the code does with this information
+16:03 <@heinrich5991> MoOoRice: this is datafile loading code. things will be displayed depending on what you load from the map. you don't need an out-of-bounds read to decide what gets put onto the screen
+16:03 <@matricks> heinrich5991: out-of-bounds read here might lead to an out-of-bounds write somewhere else etc etc
+16:04 <@heinrich5991> how? if you read a value from an invalid position, that value might as well just be at the valid position
+16:04 < MoOoRice> yep, but are you sure for example that any temporary buffers aren't written with this data after the incorrect read ?
+16:04 < MoOoRice> +1 matricks
+16:04 <@matricks> heinrich5991: took me 1 second after I wrote that to realise that :D
+16:04 <@matricks> MoOoRice: -1 me, +1 heinrich5991 
+16:06 <@heinrich5991> MoOoRice: e.g. in your example. if bad things can happen if you write arbitrary data to that temporary buffer, you can just place the arbitrary data you want  there in the normal position in the datafile
+16:07 < MoOoRice> I see what you are saying x)
+16:08 < MoOoRice> you look to be thinking of a specific bug
+16:08 <@heinrich5991> I'm thinking about out-of-bounds reads in parsing of a protocol/file format
+16:08 <@heinrich5991> in general
+16:09 < MoOoRice> Maybe in the case of teeworlds you can only read the wrong data and then it's just a bug and not a security bug
+16:09 < MoOoRice> but if you talk in theory, then an out of bounds read may be more severe than just dos
+16:09 <@heinrich5991> +information leak
+16:10 < MoOoRice> yes
+16:11 <@matricks> eitherway, it's bad
+16:13 <@heinrich5991> use my rust datafile decoder!
+16:13 <@heinrich5991> it does do bound checks :)
+16:14 < WolfAlex> is it in 0.7 possible to record demos with the server?
+16:14 <@matricks> heinrich5991: :)
+16:14 < WolfAlex> or will it be possible*
+16:14 <@heinrich5991> I think that's possible with 0.6, so it should be possible there too (?)
+16:14 <@matricks> WolfAlex: pre 0.7 can do that
+16:14 <@matricks> serverside demos
+16:14 < WolfAlex> nice!
+16:14 <@matricks> they record everything
+16:15 <@matricks> heinrich5991: can you plug it into teeworlds?
+16:15 < WolfAlex> and they can be played with the client?
+16:15 <@heinrich5991> matricks: I planned that, but didn't do it yet
+16:15 <@heinrich5991> WolfAlex: I think so
+16:17 <@matricks> heinrich5991: ok
+16:26 < nheir> You can record demo in 0.6 on server side and play it with a client. The main difference is that you can navigate in the whole map instead of following one player/cursor
+16:26 < nheir> I love it
+16:26 <@matricks> yes, because the server actually can see everything
+16:27 <@matricks> a client recording only has the info for that perticular client
+16:31 < nheir> ofc, it's a really nice way to send info to players, is it mostly the case in other mltiplayer games ? (network clip)
+16:38 <@matricks> nheir: you only send what a client needs for the moment, this conserves bandwidth, keeps ping down, and makes it harder for cheaters

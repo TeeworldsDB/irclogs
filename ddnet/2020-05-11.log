@@ -1,0 +1,185 @@
+15:22 <+bridge> [ddnet] <Learath2> @heinrich5991 Can you think of a good way to refcount entities? I'm trying to avoid >c++03 because I'm hoping maybe I can get some of this in vanilla
+15:25 <+bridge> [ddnet] <heinrich5991> can you give an example of refcounting entities?
+15:27 <+bridge> [ddnet] <Learath2> Currently when a world is destructed all of it's entities are deleted, however now I have multiple worlds and it's possible now for an entity to not be part of a world. So I want to delete the entity only when no pointers to it remain
+15:28 <+bridge> [ddnet] <heinrich5991> ah
+15:28 <+bridge> [ddnet] <heinrich5991> you could put the refcount into the `CEntity` itself
+15:28 <+bridge> [ddnet] <heinrich5991> as long as you don't start threading stuff, that should work out fine
+15:29 <+bridge> [ddnet] <Learath2> Hm, so a member function in CEntity to get a reference?
+15:30 <+bridge> [ddnet] <Learath2> `CEntity::reference` with a constructor that increases the refcount and a destructor that decreases it is what I was thinking
+15:31 <+bridge> [ddnet] <Learath2> Or maybe I should just use a shared_ptr, not likely that vanilla will accept my patch to allow multiple worlds anyway
+15:34 <+bridge> [ddnet] <Learath2> Or even a unique_ptr, other functions can just use a weak reference to the entity
+15:37 <+bridge> [ddnet] <heinrich5991> unique_ptr doesn't really have weak references
+15:40 <+bridge> [ddnet] <Learath2> yeah, but I can just get a raw pointer to the thing it's controlling
+15:41 <+bridge> [ddnet] <Learath2> actually that is just asking for trouble
+15:45 <+bridge> [ddnet] <Learath2> Hm, moving a unique_ptr is supposed to be cheap, but it doesn't sound right to transfer ownership when just giving out a reference
+15:46 <+bridge> [ddnet] <heinrich5991> moving a unique_ptr invalidates the source
+15:47 <+bridge> [ddnet] <Learath2> @heinrich5991 I'm not good with the newfangled smart pointers, do you think a shared_ptr is more suitable here, even though only one world should own the entity at any point
+15:48 <+bridge> [ddnet] <heinrich5991> the pointer graph of entities is pretty complicated with all these intrusive linked lists
+15:48 <+bridge> [ddnet] <heinrich5991> I don't know where to put the smart pointer
+15:49 <+bridge> [ddnet] <Learath2> I was thinking the gameworld should have a list of unique_ptrs to the entities it owns
+15:49 <+bridge> [ddnet] <heinrich5991> yea, that would work
+15:50 <+bridge> [ddnet] <Learath2> but there are functions like `CGameWorld::ClosestEntity` that hands out pointers to entities
+15:50 <+bridge> [ddnet] <Learath2> how am I supposed to handle that?
+15:51 <+bridge> [ddnet] <Learath2> It doesn't sound right for the caller of ClosestEntity to take ownership of the entities but returning a raw pointer to the entities also sound like asking for trouble
+15:56 <+bridge> [ddnet] <heinrich5991> you can't give ownership on stuff like `ClosestEntity`
+15:56 <+bridge> [ddnet] <heinrich5991> you should probably hand out a raw pointer in that case, for c++
+16:01 <+bridge> [ddnet] <Learath2> Oh, now that I think about it, does the world really own the entity alone? In a sense the player owns the character entity
+16:04 <+bridge> [ddnet] <Learath2> And the player owns it's `CProjectile`s (we don't maintain this pointer anyway, but still it could be useful, like when moving a character from one world to another move all it's projectiles too)
+16:05 <+bridge> [ddnet] <Learath2> .s/player/character/
+16:07 <+bridge> [ddnet] <heinrich5991> depends on the business logic there
+16:07 <+bridge> [ddnet] <heinrich5991> if you teleport between worlds, you probably wouldn't wnat to teleport your projectiles as well
+16:07 <+bridge> [ddnet] <Learath2> it was just an example
+16:08 <+bridge> [ddnet] <Learath2> but the player -> character is a relationship we do use, not sure how to handle that one
+16:14 <+bridge> [ddnet] <heinrich5991> short: I have no experience mapping complex pointer graph into an ownership model in c++
+16:15 <+bridge> [ddnet] <Learath2> well I don't like ownership models to begin with
+16:15 <+bridge> [ddnet] <Learath2> I'm just fine with my raw pointers
+16:16 <+bridge> [ddnet] <Learath2> the more I try to step into the future, the more I see the future isn't all that bright 😛
+16:16 <+bridge> [ddnet] <heinrich5991> well, you're not asking c++ experts right now 😛
+16:17 <+bridge> [ddnet] <Learath2> ##c++ would tell me to just fork teeworlds and use boost
+16:17 <+bridge> [ddnet] <heinrich5991> very helpful
+16:17 <+bridge> [ddnet] <Learath2> that channel is like an ad agency for boost
+16:17 <+bridge> [ddnet] <heinrich5991> have you tried showing the factorio blog post to them?
+16:17 <+bridge> [ddnet] <heinrich5991> the one where they say why they got rid of boost
+16:18 <+bridge> [ddnet] <Learath2> haven't even read the blog post
+16:18 <+bridge> [ddnet] <Learath2> finally an actual example I can show people
+16:19 <+bridge> [ddnet] <heinrich5991> https://factorio.com/blog/post/fff-206
+16:19 <+bridge> [ddnet] <Learath2> when I say I don't want to use boost I'm just asking for trouble and I should just use boost
+16:20 <+bridge> [ddnet] <heinrich5991> removed two boost headers, halved compile times of a large project
+16:20 <+bridge> [ddnet] <Learath2> YES, this plagues all of C++
+16:20 <+bridge> [ddnet] <Learath2> no one gives a shit about compile times
+16:21 <+bridge> [ddnet] <Learath2> I don't remember the talk but one google engineer described how they spent a couple weeks implementing something like modules in clang to stop the exponential growth of the 99% percentile compile times
+16:21 <+bridge> [ddnet] <Learath2> exponential growth...
+16:22 <+bridge> [ddnet] <heinrich5991> nice
+16:24 <+bridge> [ddnet] <Learath2> Hm, I wonder if there is an adapter that is able to store both unique or shared_ptr
+16:24 <+bridge> [ddnet] <heinrich5991> that sounds like asking the wrong question
+16:24 <+bridge> [ddnet] <heinrich5991> or programming more generically than you need it
+16:25 <+bridge> [ddnet] <Learath2> Well there are some entities that I want multiple ownership semantics for, and some entities that I want unique ownership semantics for
+16:26 <+bridge> [ddnet] <heinrich5991> just go for `shared_ptr` everywhere? it incurs paying for non-existing threads unfortunately…
+16:30 <+bridge> [ddnet] <Learath2> well `shared_ptr` has an atomic refcount which is more expensive then `unique_ptr`
+16:30 <+bridge> [ddnet] <Learath2> I guess `std::move` can help with the atomic refcount
+16:30 <+bridge> [ddnet] <heinrich5991> yes, there's no non-atomic refcounted pointer in c++
+16:31 <+bridge> [ddnet] <Learath2> As long as I use `std::move` to move between the worlds that should be plenty optimized
+16:31 <+bridge> [ddnet] <Ryozuki> have you heard about c++20 modules? i think they reduce dramatically compile times
+16:31 <+bridge> [ddnet] <Learath2> @Ryozuki that's exactly what google tried to emulate
+16:32 <+bridge> [ddnet] <Learath2> They managed to get the 99% percentile compile times down drastically indeed
+16:35 <+bridge> [ddnet] <Learath2> oh, I forgot entities are allocated in a weird way
+19:42 <+bridge> [ddnet] <fokkonaut> Is there any url encoder and decoder function that doesnt use curl? I dont wanna include curl just for that. ChillerDragon and me tried something but couldnt achive anything good
+19:42 <+bridge> [ddnet] <heinrich5991> I also had that problem, the best I could figure out was to parse the URL myself
+19:47 <+bridge> [ddnet] <fokkonaut> I dont want to use it for URLs, just for saving special characters in a txt file
+19:48 <+bridge> [ddnet] <Learath2> You can save special characters in a txt file without urlencoding them
+19:48 <+bridge> [ddnet] <Learath2> txt files don't have a set encoding, you can just use utf8
+19:51 <+ChillerDragon> @Learath2 you sure unfiltered strings can cause no problems? Because i noticed some inconviences. There are some characters that seem to make trouble.
+19:52 <+bridge> [ddnet] <heinrich5991> yes, files can contain arbitrary bytes on all platforms
+19:52 <+bridge> [ddnet] <heinrich5991> e.g. map files also contain all these bytes
+19:52 <+ChillerDragon> yes but thats binary
+19:52 <+ChillerDragon> i mean a txt file and reading it as txt used to cause problems for me. When parsing it with bash or displaying it in web.
+19:53 <+ChillerDragon> It fails to count lines for example.
+19:53 <+bridge> [ddnet] <heinrich5991> bash has a hard time with 0 bytes, I think
+19:53 <+ChillerDragon> yea i want to avoid hard times and possible bugs when using a different parser
+19:54 <+ChillerDragon> doubt it was a 0 byte tho wouldnt that also terminate the string in teeworlds?
+19:55 <+bridge> [ddnet] <Learath2> utf8 avoids null bytes for a reason
+19:55 <+bridge> [ddnet] <heinrich5991> utf8 encodes the null character as a null byte
+19:56 <+bridge> [ddnet] <heinrich5991> and as it's a char < 128, no other representation may match it
+19:56 <+bridge> [ddnet] <heinrich5991> there's a modified utf-8 which avoids the null byte there
+19:57 <+ChillerDragon> how would a nullbyte not be a string terminator?
+19:57 <+bridge> [ddnet] <heinrich5991> C terminates strings with null bytes
+19:58 <+bridge> [ddnet] <heinrich5991> other languages do not, and have no problems with internal null bytes
+19:58 <+bridge> [ddnet] <Learath2> I guess if you want to save all possible binary strings AND be human readable you could use QP encoding
+19:59 <+bridge> [ddnet] <heinrich5991> or you could use JSON's string encoding
+19:59 <+bridge> [ddnet] <heinrich5991> ah no, that doesn't match well with binary strings
+19:59 <+bridge> [ddnet] <heinrich5991> only utf-8
+19:59 <+ChillerDragon> I just want to save teeworlds user strings coming from nicknames or chat next to normal text without causing any possible problems. And teeworlds chat or nicknames can not contain a string terminator as far as i know.
+20:00 <+bridge> [ddnet] <Learath2> text in teeworlds should be all fine to store as utf8
+20:00 <+bridge> [ddnet] <heinrich5991> no, vanilla doesn't sanitize strings to utf8
+20:01 <+bridge> [ddnet] <heinrich5991> only ddnet does, by droppign all non-utf8 messages with strings
+20:01 <+bridge> [ddnet] <Learath2> really? vanilla allows arbitrary binary sequences?
+20:01 <+bridge> [ddnet] <heinrich5991> no, it drops some bytes
+20:01 <+bridge> [ddnet] <heinrich5991> e.g. <0x20
+20:01 <+bridge> [ddnet] <heinrich5991> but it doesn't drop non-utf8 stirngs
+20:01 <+bridge> [ddnet] <Learath2> There are some decisions taken by vanilla that baffle me
+20:02 <+bridge> [ddnet] <heinrich5991> it wasn't an explicit decision *so far*, but I can imagine them taking it
+20:02 <+bridge> [ddnet] <Learath2> I guess it is simpler to drop <0x20 but that's just so janky
+20:03 <+ChillerDragon> Also I have seen clan names with line breaks in my teeworlds scoreboard so I assume that to be problematic when parsing line by line
+20:03 <+bridge> [ddnet] <heinrich5991> line breaks should be stripped out
+20:04 <+ChillerDragon> not like '\n' but the nasty ones
+20:04 <+bridge> [ddnet] <Learath2> \r?
+20:04 <+ChillerDragon> nah
+20:04 <+ChillerDragon> arent there also characters in other languages that change the direction of the text
+20:04 <+ChillerDragon> or delete or what ever
+20:04 <+bridge> [ddnet] <Learath2> oh the weird utf8 stuff that abuses positioning?
+20:04 <+ChillerDragon> yea something like that
+20:04 <+bridge> [ddnet] <heinrich5991> we don't implement that
+20:04 <+ChillerDragon> idk about this topic i just have seen some things
+20:05 <+bridge> [ddnet] <Learath2> it could probably confuse the font renderer though, it's not very smart
+20:05 <+bridge> [ddnet] <heinrich5991> but if you parse line by line, it should be fine
+20:05 <+bridge> [ddnet] <heinrich5991> splitting by `\n`
+20:05 <+bridge> [ddnet] <heinrich5991> because that character is not legal in teeworlds nicknames/clans
+20:05 <+bridge> [ddnet] <Learath2> Ṃ̸̛̺ḛ̵̡̼m̷̧̯ē̵͙͎ț̷̛̪ę̴̢̛x̸̛̺t̷̢̡
+20:06 <+bridge> [ddnet] <Learath2> Heh, discord sanitizes it too
+20:06 <+bridge> [ddnet] <heinrich5991> zalgo
+20:06 <+bridge> [ddnet] <Learath2> w̵̨̢ţ̷̨̨f̵̢̢
+20:06 <+bridge> [ddnet] <Learath2> How does the tw font renderer react to zalgo?
+20:07 <+bridge> [ddnet] <heinrich5991> I doubt we support it
+20:07 <+ChillerDragon> https://zillyhuhn.com/cs/.1589220415.png
+20:07 <+bridge> [ddnet] <heinrich5991> probably by just putting the accents after the letters
+20:07 <+bridge> [ddnet] <Learath2> looks like you opened the file with the wrong encoding
+20:07 <+bridge> [ddnet] <heinrich5991> yup
+20:07 <+bridge> [ddnet] <heinrich5991> post the file pls
+20:08 <+ChillerDragon> https://paste.zillyhuhn.com/eD
+20:09 <+ChillerDragon> I usually dont manually chose a encoding on opening a txt file
+20:09 <+bridge> [ddnet] <fokkonaut> chillerdragon thinks that some of these weird characters cause the issue with my server not finding 0.7 masters after rcon login. I cant see how it should be related, but without accounts on his VPS it works... On my local server with all these accounts it works too, I am lost
+20:14 <+bridge> [ddnet] <Learath2> this looks messed up as utf8 aswell, what is this even encoded as?
+20:15 <+bridge> [ddnet] <fokkonaut> This account seems to be old, as there is a `'` missing at the end of the lines, I had this bug because my buffer was too small for that message. Its fixed long ago, but I guess this is just a cut off character?
+20:15 <+bridge> [ddnet] <heinrich5991> ```
+20:15 <+bridge> [ddnet] <heinrich5991> >>> ftfy.ftfy("Â»Ä¸Î±zo")
+20:15 <+bridge> [ddnet] <heinrich5991> '»ĸαzo'
+20:15 <+bridge> [ddnet] <heinrich5991> ```
+20:17 <+bridge> [ddnet] <Learath2> @heinrich5991 so what is the encoding?
+20:18 <+ChillerDragon> I have the feeling you guys are suggesting not to encode and just save unfiltered tw input in a text file?
+20:19 <+bridge> [ddnet] <heinrich5991> ```
+20:19 <+bridge> [ddnet] <heinrich5991> "Â»Ä¸Î±zo".encode("windows-1252").decode()
+20:19 <+bridge> [ddnet] <heinrich5991> ```
+20:19 <+bridge> [ddnet] <heinrich5991> so it's utf-8, read as windows-1252 again, and encoded as utf-8 again
+20:20 <+bridge> [ddnet] <heinrich5991> also known as "double utf-8" I think
+20:20 <+bridge> [ddnet] <Learath2> Ah forgot windows-1252 is even a thing
+20:21 <+bridge> [ddnet] <Learath2> I wonder how that happens
+20:21 <+bridge> [ddnet] <heinrich5991> you treat bytes as unicode characters and encode them as utf-8 again, I'd guess
+20:22 <+bridge> [ddnet] <Learath2> must be simpler than that, I doubt @ChillerDragon would do that on purpose
+20:28 <+ChillerDragon> i do nothing its @fokkonaut's server i am just hosting it idk he probably edited the account file on a windows machine 
+20:34 <+bridge> [ddnet] <heinrich5991> I guess one could restrict oneself to ascii to make sure that all editors round-trip the data
+20:35 <+ChillerDragon> thats what I am trying to say
+20:35 <+ChillerDragon> But to support special characters in names there has to be some encoding
+20:35 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/wiki/UTF-7
+20:35 <+bridge> [ddnet] <heinrich5991> is probably what you want, then
+20:37 <+ChillerDragon> do you have a c implementation of that?
+20:37 <+ChillerDragon> and whats wrong with url encode i really like that one
+20:41 <+bridge> [ddnet] <heinrich5991> well, but urlencode can also be written in C very easily
+20:45 <+ChillerDragon> https://paste.zillyhuhn.com/jw
+20:45 <+ChillerDragon> then fix my code pls ;D
+20:46 <+ChillerDragon> I mean it encodes correctly but it does not feel good also the source gets changed.
+20:46 <+ChillerDragon> How can I do ``pSrc++`` without chaning the src.
+20:47 <+bridge> [ddnet] <heinrich5991> wdym, changing the source?
+20:47 <+bridge> [ddnet] <heinrich5991> `pSrc + 1`?
+20:47 <+ChillerDragon> at the bottom u can see the output 
+20:47 <+ChillerDragon> i expect "buf '♪ x x'" but get "buf 'x'"
+20:49 <+bridge> [ddnet] <heinrich5991> ```
+20:49 <+bridge> [ddnet] <heinrich5991> int char_allowed(char c)
+20:49 <+bridge> [ddnet] <heinrich5991> {
+20:49 <+bridge> [ddnet] <heinrich5991>   return ('0' <= c && c <= '9') || ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || c == '-' || c == '.' || c == '_' || c == '~';
+20:49 <+bridge> [ddnet] <heinrich5991> }
+20:49 <+bridge> [ddnet] <heinrich5991> ```
+20:50 <+ChillerDragon> yea go pr that to curl but that part works fine
+20:50 <+ChillerDragon> i tried to rewrite the thing from curl https://github.com/curl/curl/blob/dae126ff12655fdad0dc0b7b808ace5963d1bd40/lib/escape.c#L79-L118
+20:51 <+bridge> [ddnet] <heinrich5991> if you copy that from curl, you have to credit them btw 😉
+20:51 <+ChillerDragon> in my experimental snippet?
+20:51 <+bridge> [ddnet] <heinrich5991> in the experimental snippet that is likely to get into some of your code bases
+20:51 <+ChillerDragon> I guess you know i credit all code i publish
+20:52 <+bridge> [ddnet] <heinrich5991> (not in not in https://paste.zillyhuhn.com/jw)
+20:52 <+ChillerDragon> i feel like you keep doding my questions today ;D you come up with solutions for problems i never had
+20:52 <+bridge> [ddnet] <heinrich5991> anyway
+20:53 <+ChillerDragon> yea thats my test playground and the paste is not published
+20:54 <+bridge> [ddnet] <heinrich5991> now I'll dodge you some more, have to go away from the computer for a sec
+20:56 <+ChillerDragon> yea its fine ill just close irc now thanks for the input anyways @fokkonaut the code works but there is no warranty
+20:56 <+ChillerDragon> make sure to credit curl if you put that in ur mod ;D
+21:19 <+bridge> [ddnet] <heinrich5991> ah back
+21:19 <+bridge> [ddnet] <heinrich5991> ChillerDragon gone?

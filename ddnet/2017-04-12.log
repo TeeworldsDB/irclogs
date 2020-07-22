@@ -1,0 +1,89 @@
+01:37 < ddnet-commits> [ddnet] Learath2 opened pull request #728: Allow arbitrary length binds (master...dd_pr_bindlen) https://git.io/vS1DZ
+01:38 < Ryozuki> haha, you did it
+01:41 < Learath2> really prefer not to leave work undone
+02:03 < Learath2> or half done rather
+02:03 < Ryozuki> im learning nim
+07:59 < ddnet-commits> [ddnet] def- closed pull request #727: Take a blind stab at #718 (master...dd_pr_mapdownload) https://git.io/vS1mp
+10:12 < ddnet-commits> [ddnet] def- closed pull request #728: Allow arbitrary length binds (master...dd_pr_bindlen) https://git.io/vS1DZ
+11:06 < ddnet-commits> [ddnet] Learath2 opened pull request #729: Strict checking for friends (master...dd_pr_friendcoll) https://git.io/vSMZ2
+11:16 < ddnet-commits> [ddnet] def- pushed 3 new commits to master: https://git.io/vSMcT
+11:16 < ddnet-commits> ddnet/master ec1581f Learath: Strict checking for friends. Fixes #539
+11:16 < ddnet-commits> ddnet/master 9d2fb7d Learath: Missed one check
+11:16 < ddnet-commits> ddnet/master 40d3b40 Dennis Felsing: Merge pull request #729 from Learath2/dd_pr_friendcoll...
+11:20 <@deen> heinrich5991: want to review the load-invite stuff?
+11:21 < Learath2> don't merge that stuff just yet :D
+11:27 < Learath2> oh and heinrich5991 appveyor seems to be toast :/
+11:28 < Learath2> i think i'll take a break and get a pizza or sth
+12:46 <@deen> yeah, i noticed that neither EastByte nor Learath2 tested their  code^^
+12:47 <@deen> maybe i should write you a tutorial for setting up a ddnet mysql server
+13:31 < Shishigami> I'm having a problem with my DDNet server and I'm wondering if this issue sounds familiar to anyone. After a map change, certain players timeout after a random amount of time. Some players get a timeout and some don't, but always synchronously. I'm running a stock DDNet 10.4.3 server with ddnet-maps installed, but I don't have the same issue on official DDNet servers.
+13:32 <@heinrich5991> with synchronously you mean that they time out at the same time?
+13:32 <@deen> yeah, I've seen that before
+13:32 < Shishigami> yes
+13:32 <@deen> and I could never figure out what caused it
+13:32 <@heinrich5991> (the issue doesn't seem familiar to me)
+13:32 <@deen> I had that issue on official servers
+13:32 < Shishigami> how did you fix it?
+13:32 <@deen> and at some point it just stopped happening
+13:32 < Shishigami> XD
+13:32 <@deen> i did nothing (that I'm aware of)
+13:32 <@deen> maybe we updated all servers to debian 8 or something
+13:33 <@deen> or it's a bug in some client version
+13:33 < Shishigami> my server is on debian 8, too
+13:34 < Shishigami> also, I didn't have this issue in the past (around december), but when I set it up again recently it started happening
+16:55 <@heinrich5991> Learath2: ok, so what are the upsides and downsides of the solutions?
+16:56 <@heinrich5991> EastByte's solution seems to introduce additional complexity, both in code and from player's side
+16:57 <@heinrich5991> Learath2's solution seems to require locked teams to escape annoying people
+16:57 <@heinrich5991> heinrich5991's solution sends the password to everyone who would otherwise load
+16:59 <@EastByte> I think your solution would also require a complexity similar to mine
+16:59 <@EastByte> Learath2's probably is the best option
+17:00 <@EastByte> I actually wanted to do a full rewrite on all the loading stuff (which I didn't do in the end)
+17:00 < Learath2> yeah me2 it doesn't look too good :P
+17:02 < Learath2> well mine doesn't introduce any new commands but heinrich5991's also seem to fulfill that criterion
+17:02 <@EastByte> also yours' doesn't require an additional sql query
+17:03 <@heinrich5991> EastByte: you probably mean in code, not for the player, right?
+17:03 <@EastByte> complexity in code, yes
+17:03 <@heinrich5991> although I don't value this that much, I don't think code complexity happens for me
+17:03 <@heinrich5991> I'd just save the last entered password for the user
+17:04 <@heinrich5991> and if everyone in the team matches, then I load the save
+17:04 <@EastByte> what is a 'team' in this case?
+17:04 <@heinrich5991> in the save
+17:04 <@EastByte> well you need to request that info first
+17:05 <@EastByte> one player types in password, server requests and caches save information
+17:05 <@EastByte> -> waits for others to type in password
+17:05 <@heinrich5991> nah
+17:05 <@heinrich5991> one player types the password, server stores the password for the user
+17:05 <@heinrich5991> when the stuff comes from the db, server notes that it can't load it just yet
+17:06 <@heinrich5991> cause not everyone agreed to load
+17:06 <@heinrich5991> this also helps the common case, saving and loading somewhat after
+17:08 <@EastByte> okay that works, I don't understand the common case, though
+17:13 <@heinrich5991> I mean if you save and load again. you can just give everyone the password the just /saved
+17:13 <@EastByte> ah, yes
+17:40 < Socialdarwinist> Wow, and people say InfClass is complex. I only understand vaguely what you all are trying to achieve. So, as I see from the brief command description on the website, one can save and load games. The command description could surely be clarified with respect to the use by more than one player, particularly if the decision between the lying in front of us models has been taken. What vexes you about the current implementation? 
+17:40 < Socialdarwinist> History might be grateful for an outlining.
+17:57 <@heinrich5991> the problem of the current implementation is that you can force another player into your team, by loading a save with their name, a save which you have prepared beforehand
+18:11 < Learath2> well any one of the solutions would work but I like mine the best (obv biased) :P
+18:17 < Learath2> heinrich5991: mine wouldn't need locked teams tho
+18:18 < Learath2> actually all of our solutions might benefit from some locking, i'm not a huge fan of the threaded approach, something is bound to go south
+18:19 <@heinrich5991> Learath2: locking as in mutex or as in team?
+18:19 <@heinrich5991> (the latter statement)
+18:20 < Learath2> as in team
+18:20 < Learath2> i'm not sure what would happen if someone joins the team while the loading is happening
+18:20 < Learath2> in any of the cases
+18:20 <@EastByte> well, theoretically you can abuse that aswell
+18:20 <@heinrich5991> for my solution, you don't need locking
+18:21 < Learath2> for any solution you need locking, how would you prevent someone from joining while CSaveTeam::load is doing its magic
+18:22 <@heinrich5991> be in team 0 until it loads?
+18:22 < Learath2> ?
+18:22 < Learath2> oh yeah yours didn't need them to be in team
+18:24 < Learath2> heinrich5991: ddracechat.cpp:L775, where do you think the rate limiting belongs?
+19:01 <@heinrich5991> Learath2: maybe the same as chat messages?
+19:35 < Learath2> i'm not exactly sure what to limit :/
+19:53 < Learath2> heinrich5991: i could limit invite but that would slow down inviting a big team
+19:53 < Learath2> i could try limiting after the uninvite but that compilcates the logic alog
+19:53 < Learath2> alot*
+23:06 < Someone_> i think teams should be locked by default
+23:06 < Someone_> prvents anoying people joining your team
+23:07 < Henningstone> now that we have invites that is not a too silly idea, actually
+23:08 <@heinrich5991> mh
+23:08 <@heinrich5991> I disagree

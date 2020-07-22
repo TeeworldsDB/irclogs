@@ -1,0 +1,57 @@
+02:11 < bridge> [teeworlds] <fokkonaut> I am experiencing a weird bug, I want to make some kind of portal teleportation, works fine but if there is a freeze inbetween the portal positions the tee arrives frozen, if theres a teleporter between, tee will use that teleporter
+02:11 < bridge> [teeworlds] <fokkonaut> I am just setting the core position, which always worked and also still works for teleporters
+02:12 < bridge> [teeworlds] <fokkonaut> it gets set from inside another entitiy class, that one has its own ENTTYPE_, maybe its because its enttype is larger than the character ones?
+02:12 < bridge> [teeworlds] <fokkonaut> nope its not, mh i have no idea
+02:14 < bridge> [teeworlds] <heinrich5991> you could make a test map and make a breakpoint to the freeze effect. then inspect the call stack when you hit the freeze
+02:17 < bridge> [teeworlds] <fokkonaut> i did a dbg_break now
+02:17 < bridge> [teeworlds] <fokkonaut> well, i see that the handletines is in post core tick
+02:17 < bridge> [teeworlds] <fokkonaut> but i dont know why it should get frozen
+02:18 < bridge> [teeworlds] <fokkonaut> i know its some kind of order, but i dont know whcih (?), because from the ConTeleport command it also just sets the position
+02:18 < bridge> [teeworlds] <heinrich5991> the freeze effect comes from handletiles in postcoretick?
+02:18 < bridge> [teeworlds] <fokkonaut> yes
+02:19 < bridge> [teeworlds] <heinrich5991> (ConTeleport does its stuff between two ticks)
+02:19 < bridge> [teeworlds] <fokkonaut> öh
+02:19 < bridge> [teeworlds] <fokkonaut> wym
+02:19 < bridge> [teeworlds] <heinrich5991> `ConTeleport` sounds like a console command
+02:19 < bridge> [teeworlds] <fokkonaut> yea, its the rcon tele cmd
+02:20 < bridge> [teeworlds] <heinrich5991> the server lets the world tick every 20ms. during that tick handling, your tile code happens and after that postcoretick is called
+02:20 < bridge> [teeworlds] <heinrich5991> conteleport only gets called while the server is not ticking the world
+02:21 < bridge> [teeworlds] <fokkonaut> no, postcoretick is called in chr::tick, but after the charactercoretick happened
+02:21 < bridge> [teeworlds] <heinrich5991> (the server is singlethreaded, while it's trying to tick the world it can't do anything else like handle rcon commands)
+02:22 < bridge> [teeworlds] <fokkonaut> whats the right approach now? like whats the plan?
+02:22 < bridge> [teeworlds] <fokkonaut> do i need to set the pos from inside the character? so i need to mark it so it can teleport itself?
+02:23 < bridge> [teeworlds] <heinrich5991> I'm currently looking at how teleporting by tiles is handled
+02:23 < bridge> [teeworlds] <fokkonaut> probably AFTER the core tick happened
+02:23 < bridge> [teeworlds] <fokkonaut> well not probabaly, it is
+02:23 < bridge> [teeworlds] <heinrich5991> good. so make it happen for your teleport as well, I guess
+02:24 < bridge> [teeworlds] <heinrich5991> e.g. by having a `bool m_Tele` and `vec2 m_TeleTo`
+02:24 < bridge> [teeworlds] <heinrich5991> which gets checked after the character tick has happened
+02:24 < bridge> [teeworlds] <fokkonaut> it should already, because the ENTTYPE of my portal is > then ENTTYPE_CHARACTER, which means the whole portal entitie should be ticked after the character, so also after the character tick
+02:24 < bridge> [teeworlds] <fokkonaut> I also tried setting position from portal::tickdefered, but that also didnt work
+02:25 < bridge> [teeworlds] <fokkonaut> *also fter the character CORE tick
+02:25 < bridge> [teeworlds] <heinrich5991> log the current world ticks in the respective tick functions and check whether you're actually called after the core tick
+02:26 < bridge> [teeworlds] <heinrich5991> I'm off for tonight, good night
+02:27 < bridge> [teeworlds] <heinrich5991> the rule to debugging things that should not happen: try to confirm/reject the things you believe to be true
+02:27 < bridge> [teeworlds] <heinrich5991> if you think you're getting called after the character, verify it
+02:32 < bridge> [teeworlds] <fokkonaut> ```
+02:32 < bridge> [teeworlds] <fokkonaut> character, Tick: 487
+02:32 < bridge> [teeworlds] <fokkonaut> [2020-05-22 02:31:47][hi]: portal, Tick: 487
+02:32 < bridge> [teeworlds] <fokkonaut> [2020-05-22 02:31:47][hi]: character, Tick: 488
+02:32 < bridge> [teeworlds] <fokkonaut> [2020-05-22 02:31:47][hi]: portal, Tick: 488
+02:32 < bridge> [teeworlds] <fokkonaut> [2020-05-22 02:31:47][hi]: character, Tick: 489
+02:32 < bridge> [teeworlds] <fokkonaut> [2020-05-22 02:31:47][hi]: portal, Tick: 489```
+02:32 < bridge> [teeworlds] <fokkonaut> portal happens after character, as i thought
+09:30 < bridge> [teeworlds] <Learath2> Why is your portal ticking at all? This sounds like you are asking for trouble, there is a reason we handle all the tiles in the character entity
+11:57 < bridge> [teeworlds] <heinrich5991> @fokkonaut then also check at what point the freeze detection ticks
+13:38 < bridge> [teeworlds] <fokkonaut> @Learath2 portal is not a tile, its an entitiy xd
+13:38 < bridge> [teeworlds] <fokkonaut> and its not placed by a tile from editor
+13:47 < bridge> [teeworlds] <Learath2> not placed from editor is an interesting constraint
+14:03 < bridge> [teeworlds] <redix> Handle tiles captures all movements since the last tick. 
+14:03 < bridge> [teeworlds] <redix> `m_PrevPos` is saved in `Tick()`, `m_Core.Move()` happens in `TickDefered()` and `HandleTiles()` is called in the next `Tick()` (so everything in HandleTiles is delayed by one tick).
+14:03 < bridge> [teeworlds] <redix> You might try also setting m_PrevPos to the new position
+14:04 < bridge> [teeworlds] <redix> One of the many ugly physics things...
+14:23 < bridge> [teeworlds] <fokkonaut> that sounds like it should work, let me try that
+14:27 < bridge> [teeworlds] <fokkonaut> and yes, it actually does, thanks alot
+14:31 < bridge> [teeworlds] <redix> nice :)
+22:18 < ZillyHuhn> https://paste.zillyhuhn.com/MG a player was able to join using the name "(connecting)" and then continue playing with a different name (see id=1)
+22:58 < bridge> [teeworlds] <fokkonaut> Your name is connecting until you are `Server()->ClientIngame()`

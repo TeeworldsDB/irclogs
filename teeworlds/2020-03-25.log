@@ -1,0 +1,137 @@
+11:13 < Learath2> Ryozuki: go for curve25519
+11:15 < Ryozuki> what
+11:16 < Learath2> ecdsa uses curves crafted by NIST, ed25519 uses curve25519 which is not crafted by people with ties to the NSA and is performant
+11:16 < Ryozuki> im using ecdsa with NIST P-521 aka secp521r1
+11:16 < Ryozuki> is it bad?
+11:18 < Learath2> well it doesn't have any glaring security issues that people found, but there were concerns raised about constants used by NIST to craft the curve
+11:19 < Ryozuki> well its not to encrypt anything ilegal
+11:19 < Ryozuki> tbh im just working on the https masterserver in go
+11:20 < Learath2> Ah, yeah isn't really important, any elliptic curve is fine really
+11:22 < Ryozuki> does tw have a json lib already in?
+11:22 < Ryozuki> or curl?
+11:22 < Ryozuki> i guess not
+11:27 < Learath2> no curl, yes json, no improved engine jobs
+11:27 < Learath2> I think heinrich5991 has curl linked and working with the old engine jobs
+11:54 < Ryozuki> Learath2 if a server registered using a ipv6 should it be allowed to register using a ipv4 afterwards?
+11:55 < Learath2> yeah, I think my PoC server allowed servers to register with both in any order
+11:55 < Learath2> iirc I used a token to identify the server, and made the server contact the master alternatingly on ipv4 and ipv6
+11:56 < Ryozuki> wdym by identify
+11:56 < Ryozuki> ah
+11:56 < Learath2> e.g. if a server first registers on ipv4, how do you make sure it's the same server on ipv6?
+11:57 < Ryozuki> i see
+11:57 < Learath2> I'm not sure if I ever completed that part though, you register, you get a token, you use it in all further requests
+11:57 < Ryozuki> but the server may fake the token
+11:57 < Ryozuki> and get listed 2 times?
+11:57 < Learath2> we hand out the tokens
+11:58 < Learath2> hmm 1 ipv4 1 registration is what i enforced, but there usually being thousands of ipv6s in one allocation makes that a bad criteria
+12:02 < Learath2> Maybe one /64 one registration? But even that has issues, some ISPs are particularly retarded and don't understand the point of ipv6 so they give you only a /67
+12:04 < Learath2> some ISPs give out entire /56s, that's 256 /64s you'd be able to register 256 times :D
+12:04 < Learath2> heinrich5991: I bet you investigated this problem, did you come up with a scheme?
+12:09 < Learath2> (they really should be assigning at the very least a /56 and IETF recommends an entire /48)
+12:17 < bridge> [teeworlds] <Assa> there are things implemented in teeworlds for parallel jobs
+12:17 < bridge> [teeworlds] <Assa> but I think it's barely used
+12:26 < Learath2> IEngine jobs handle threaded tasks, vanilla doesn't use them much indeed, iirc only for host lookups and loading sounds
+12:43 < day> Assa: just like vanilla
+13:59 < bridge> [teeworlds] <Assa> I used it for my map generator
+13:59 < bridge> [teeworlds] <Assa> works great 🙂
+14:52 < Ryozuki> tests in https://github.com/teeworlds/teeworlds/pull/2513 failed due to a invalid gpg signature when preparing linux...
+14:53 < Ryozuki> azure.archive.ubuntu.com is down i think
+15:29 < Learath2> Ryozuki: MSs shitty mirror occasionally breaks because their admins are inept
+16:38 < Ryozuki> Learath2 r u in quarantine?
+16:38 < Ryozuki> so much free time but even then im lazy af
+16:44 < Learath2> yeah
+16:44 < Learath2> I'm so unmotivated study that I'm using my time for tw so atleast I don't feel completely useless
+16:51 < Learath2> I seem to have trouble making things fit in the boxes given :P
+16:53 < bridge> [teeworlds] <Dune> Don't sweat the UI stuff too much, as long as the backend is there :P
+16:53 < bridge> [teeworlds] <Dune> > so unmotivated study that I'm using my time for tw so atleast I don't feel completely useless
+16:53 < bridge> [teeworlds] <Dune> I can relate
+16:57 < Ryozuki> i think my master server will have a admin shell via ssh
+16:57 < Ryozuki> sounds cool
+17:02 < Learath2> don't we already have econ?
+17:04 < bridge> [teeworlds] <heinrich5991> Learath2: we don't have any enforced registration limits right now on the masters
+17:08 < Learath2> heinrich5991: well worst case you can register a server on every port of your ipv4 address, with ipv6 a single /64 contains sextillions of addresses * 65536 ports
+17:09 < bridge> [teeworlds] <heinrich5991> even the first would DoS the masterserver
+17:12 < Learath2> Either way, it'd be nice if we could fix that attack vector while upgrading to http masters
+17:14 < bridge> [teeworlds] <jxsl13> 100 servers per IP
+17:15 < Ryozuki> i think ddnet is not even 30 on GER
+17:16 < bridge> [teeworlds] <heinrich5991> 100 server per ipv4/32 and ipv6/48?
+17:17 < bridge> [teeworlds] <jxsl13> who would need more? if there is a need, what I doubt, just request the master to increase that limit.
+17:17 < bridge> [teeworlds] <jxsl13> to 110.
+17:17 < bridge> [teeworlds] <jxsl13> etc.
+17:20 < bridge> [teeworlds] <heinrich5991> it was a question whether the /x seems reasonable
+17:30 < Learath2> Well a /48 is the suggested allocation per end-site as per IETF, and they also suggest that if they allocate a /56 they should still reserve the /48 if the end-site would require more
+17:31 < Learath2> However, as I said there are ISPs that ignore the reccomendation and allocate a /64 instead and I'm not sure those people would be responsible enough to reserve atleast a /56 along with it
+17:32 < bridge> [teeworlds] <heinrich5991> hm. 100 still feels like a conservative limit that could be applied
+17:32 < bridge> [teeworlds] <heinrich5991> /64 in the server world is probably rare and I'd guess we don't even have 100 servers that are hosted from home
+17:33 < Learath2> Well hetzner allocates a /64
+17:33 < Learath2> We can go with 100 and users can argue with their degenerate isps about it
+17:35 < bridge> [teeworlds] <heinrich5991> or we just give them an exception
+17:35 < bridge> [teeworlds] <heinrich5991> hetzner. really.
+17:35 < bridge> [teeworlds] <heinrich5991> I thought they generally reasonable
+17:43 < Learath2> They are a budget company, I'm guessing their CEO probably doesn't know anything about networking and told the engineers a /64 would be more then enough for anyone
+17:52 < Learath2> winapi is so fun to work with
+17:54 < bridge> [teeworlds] <heinrich5991> even though this message does not contain indicators; given your history I'd say this line was sarcastic
+17:54 < Learath2> I love how they reinvented everything from scratch AND split the api up between ascii and wide-chars
+17:55 < bridge> [teeworlds] <heinrich5991> and their wide chars ("UTF-16") is a fuckup, too
+17:55 < bridge> [teeworlds] <heinrich5991> but you should exclusively use the W versions in modern software, IMO
+17:55 < Learath2> The best part is that they use UCS2 wide characters everywhere but the entire api is supposed to be utf8 compatible
+17:55 < bridge> [teeworlds] <heinrich5991> wdym? utf8 compatible, yes
+17:56 < bridge> [teeworlds] <heinrich5991> you need to convert it to utf-16
+17:56 < Learath2> why couldn't they stick to utf8 like everyone else? :(
+17:57 < bridge> [teeworlds] <heinrich5991> there are three huge users of sorta utf16: java, javascript, windows(.net)
+17:57 < bridge> [teeworlds] <heinrich5991> thank god we have emojis nowadays so that these languages can no longer pretend that utf-16 is a fixed-width encoding
+17:58 < Learath2> The only reason to like emojis :)
+17:59 < Learath2> I still don't get the appeal of utf16 though, utf8 is perfectly capable of representing any character without requiring an extra byte for the most common character set and breaking legacy software
+18:00 < Ryozuki> ugh winapi
+18:00 < bridge> [teeworlds] <heinrich5991> in the beginning windows etc. used ucs-2
+18:00 < bridge> [teeworlds] <heinrich5991> when unicode said that this was *the* unicode encoding for characters in common use
+18:01 < bridge> [teeworlds] <heinrich5991> later they realized 65536 aren't going to cut it
+18:01 < bridge> [teeworlds] <heinrich5991> later they realized that 65536 characters weren't going to cut it
+18:01 < bridge> [teeworlds] <heinrich5991> preaching to the choir: https://utf8everywhere.org/
+18:02 < bridge> [teeworlds] <heinrich5991> (and then they "backwards-compatibly" fixed it by using utf16)
+18:02 < Learath2> I don't see the appeal of utf16 today either, it's only slightly easier to decode at the cost of breaking compatibility
+18:03 < Learath2> I'd probably feel the same way about ucs-2 back in the day
+18:05 < bridge> [teeworlds] <heinrich5991> argh, apparently even qt uses utf16
+18:07 < Learath2> eh, some research reveals that utf-8 wasn't available in 1990 when ucs-2 was defined, so I'll only forgive the windowsfolk if they jumped on the ucs2 ship before 1993 when utf8 was released
+18:08 < Learath2> I guess there was already utf1 but it was apparently too inefficient
+18:08 < Ryozuki> Learath2 are u fiddling with sdl?
+18:08 < Ryozuki> thats why u are with winapi?
+18:08 < Learath2> nah, was messing with winapi while getting the modified/created times of files
+18:09 < Ryozuki> i only used winapi to capture keyboard input secretly cuz i was rly bored
+18:09 < Ryozuki> and that was the last time
+18:09 < Ryozuki> i hate it
+18:10 < bridge> [teeworlds] <fokkonaut> https://cdn.discordapp.com/attachments/620064767788318720/692197146975535114/unknown.png
+18:10 < bridge> [teeworlds] <fokkonaut> 
+18:10 < bridge> [teeworlds] <fokkonaut> https://cdn.discordapp.com/attachments/620064767788318720/692197380518576138/unknown.png
+18:10 < bridge> [teeworlds] <fokkonaut> 
+18:10 < bridge> [teeworlds] <fokkonaut> Hi,
+18:10 < bridge> [teeworlds] <fokkonaut> the one image shows the UI I took from ddnet client and put into my client, the other one is my reworked one in 0.7 style. Is there anything I can do to make the sliders start from the same x value? Its the 0.7 slider option function, but as it seems the beginning is based on the text length, in this case Hue, Lgt and Sat.
+18:11 < bridge> [teeworlds] <fokkonaut> The length of Hue is a bit longer than the others, so you see it starts more right than the others
+18:11 < bridge> [teeworlds] <heinrich5991> I don't know anything about the UI code
+18:12 < Ryozuki> i dont like tw UI code
+18:12 < Ryozuki> as of now i only copy pasted stuff when adding new things
+18:12 < bridge> [teeworlds] <fokkonaut> Its quite simple once you understood it
+18:12 < bridge> [teeworlds] <fokkonaut> but still, its not nice yes
+19:14 < Learath2> @fokkonaut what do you use for the sliders?
+19:15 < bridge> [teeworlds] <fokkonaut> DoScrollbarOption
+19:16 < bridge> [teeworlds] <fokkonaut> i mean technically they work correct, but i want to have all 3 sliders starting at the same point
+19:16 < bridge> [teeworlds] <fokkonaut> which isnt possible with using this function
+19:16 < bridge> [teeworlds] <fokkonaut> It doesnt really matter, would just be the extra point to make it even nicer
+19:17 < bridge> [teeworlds] <fokkonaut> https://github.com/fokkonaut/F-Client/commits/F-Client
+19:17 < Learath2> That won't work, there is another HSL slider in the code you can steal from
+19:17 < bridge> [teeworlds] <fokkonaut> ? wjere
+19:17 < bridge> [teeworlds] <fokkonaut> where*
+19:17 < bridge> [teeworlds] <fokkonaut> well it works as i said
+19:18 < bridge> [teeworlds] <fokkonaut> I want it to be seperated in 3 sliders tho
+19:19 < Learath2> Tee customization has a hsl slider
+19:20 < Learath2> You can also add a MinLabelWidth argument to DoScrollbarOption and pass the width of the longest one
+20:18 < bridge> [teeworlds] <jxsl13> hm, discord sucks, I don't know about ipv6, as I have not come across is enough to know whether servers are even given a whole subrange of ipv6 ips, currently hav enot seen this, so don't know ._.
+20:21 < bridge> [teeworlds] <heinrich5991> servers are usually given at a /64
+20:21 < bridge> [teeworlds] <heinrich5991> servers are usually given at least a /64
+21:41 < bridge> [teeworlds] <fokkonaut> https://cdn.discordapp.com/attachments/490150878934990850/692473347388211231/unknown.png
+21:42 < bridge> [teeworlds] <fokkonaut> Decoration tab has Alpha, this is bugged
+21:43 < bridge> [teeworlds] <Assa> invisible skin pog
+21:55 < bridge> [teeworlds] <Dune> @fokkonaut resolution?
+21:55 < bridge> [teeworlds] <fokkonaut> 1920x1080
+21:55 < bridge> [teeworlds] <fokkonaut> sorry, its marking tab, not decoration
+23:13 < Learath2> heinrich5991: I think allocations smaller then /64 isn't even considered by the IETF

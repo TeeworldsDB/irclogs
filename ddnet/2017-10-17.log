@@ -1,0 +1,109 @@
+01:33 < ddnet-commits> [ddnet] heinrich5991 opened pull request #902: Fix victim handling (master...pr_ddnet_fix_victim) https://git.io/vdyos
+01:41 <+ddnet-discord> <Learath2> @heinrich5991 only travis seems to run on push, why?
+01:47 <+ddnet-discord> <heinrich5991> not sure why it looks like that
+01:48 <+ddnet-discord> <heinrich5991> @Learath2 does the bors icon look broken to you as well? https://github.com/ddnet/ddnet/pull/902
+01:48 <+Learath2> no looks normal
+01:50 <@heinrich5991> hm
+01:50 <@heinrich5991> can you send me the image link?
+01:52 <+Learath2> https://avatars1.githubusercontent.com/u/24979321?s=40&v=4
+02:32 < ddnet-commits> [ddnet] bors[bot] merged staging into master: https://git.io/vdyPp
+12:46 <+ddnet-discord> <Savander> what actually boris does?
+13:02 <+Learath2> boris makes sure the CI tests pass before merging, also it checks whether merging pr A breaks the tests for merging pr B
+13:04 <+ddnet-discord> <Savander> lol
+14:28 < ddnet-commits> [ddnet] Learath2 opened pull request #903: Fix a heap-use-after-free (master...dd_pr_fetcherfree) https://git.io/vdSzt
+15:40 < ddnet-commits> [ddnet] Learath2 closed pull request #903: Fix a heap-use-after-free (master...dd_pr_fetcherfree) https://git.io/vdSzt
+16:03 <+ddnet-discord> <Ryozuki> ```ddnet\src\engine\client\backend_sdl.cpp:561:41: error: 'putenv' was not declared in this scope
+16:03 <+ddnet-discord> <Ryozuki> putenv("SDL_VIDEO_WINDOW_POS=center"); // ignore_convention```
+16:03 <+ddnet-discord> <Ryozuki> mingw :/
+16:03 <+ddnet-discord> <heinrich5991> try _putenv
+16:04 <+ddnet-discord> <Ryozuki> error: '_putenv' was not declared in this scope
+16:05 <+ddnet-discord> <heinrich5991> is stdlib.h included?
+16:05 <+ddnet-discord> <heinrich5991> if not, try that
+16:06 <+ddnet-discord> <Ryozuki> added it, not wokring
+16:06 <+ddnet-discord> <Ryozuki> my ide tells me that include is not being used also
+16:07 <+ddnet-discord> <Ryozuki> same with cstdlib
+16:13 <+ddnet-discord> <Ryozuki> i wonder why it even uses getenv and putenv for sdl flags
+16:13 <+ddnet-discord> <Ryozuki> oh, i just noticed they modernized the sdl documentation, neat http://sdl.beuc.net/sdl.wiki/FrontPage
+16:14 <+ddnet-discord> <Ryozuki> (oh nvm, this is not the oficial docs..)
+16:15 <+ddnet-discord> <Ryozuki> i guess for some reason mingw decided not to include putenv in the headers??
+16:16 <+ddnet-discord> <heinrich5991> `putenv` is not a standard C function
+16:16 <+ddnet-discord> <Ryozuki> yeah, i meant stdlib.h and cstdlib
+16:16 <+ddnet-discord> <heinrich5991> yes. but it's not a standard C function, so they aren't obliged to put it in there
+16:17 <+ddnet-discord> <Ryozuki> so what can i do?
+16:17 <+ddnet-discord> <heinrich5991> I'm looking for a soltuion
+16:17 <+ddnet-discord> <Ryozuki> and why would they define `_CRTIMP __cdecl __MINGW_NOTHROW  char *getenv (const char *);` and not putenv
+16:17 <+ddnet-discord> <Ryozuki> makes no sense to me
+16:17 <+ddnet-discord> <heinrich5991> (you could also google it)
+16:18 <+ddnet-discord> <heinrich5991> to just hackily compile it, you could put a `int putenv(char *string);` above the function that uses it
+16:19 <+ddnet-discord> <Ryozuki> i found why
+16:19 <+ddnet-discord> <Ryozuki> the _putenv declaration is inside #if !defined (__STRICT_ANSI__)
+16:19 <+ddnet-discord> <Ryozuki> `#if !defined (__STRICT_ANSI__)`
+16:19 <+ddnet-discord> <Ryozuki> and it looks like its defined for some reason (in mingw?)
+16:22 <+ddnet-discord> <Ryozuki> your fix doesnt work, `int putenv(const char*);` undefined reference to `putenv(char const*)'
+16:23 <+ddnet-discord> <heinrich5991> ok
+16:23 <+ddnet-discord> <heinrich5991> maybe try
+16:23 <+ddnet-discord> <heinrich5991> ```
+16:23 <+ddnet-discord> <heinrich5991> int _putenv(const char *);
+16:23 <+ddnet-discord> <heinrich5991> #define putenv _putenv
+16:23 <+ddnet-discord> <heinrich5991> ```
+16:24 <+ddnet-discord> <Ryozuki> undefined reference to `_putenv(char const*)'
+16:24 <+ddnet-discord> <heinrich5991> mhhh
+16:24 <+ddnet-discord> <Ryozuki> xD
+16:28 <+ddnet-discord> <Ryozuki> tried `extern int putenv(const char *);` but also doesnt work
+16:28 <+ddnet-discord> <heinrich5991> `extern` is the same as without for function prototypes
+16:29 <+ddnet-discord> <heinrich5991> I don't know. were you able to compile it with mingw in the past?
+16:29 <+ddnet-discord> <Ryozuki> ah, never used extern before, i found it on internet
+16:29 <+ddnet-discord> <Ryozuki> i think yes
+16:29 <+ddnet-discord> <Ryozuki> its weird..
+16:29 <+ddnet-discord> <Ryozuki> https://stackoverflow.com/questions/21826649/boost-test-on-windows-with-mingw-compiler-error-putenv-not-declared
+16:29 <+ddnet-discord> <Ryozuki> in this answer they say mingw doesnt define putenv
+16:30 <+ddnet-discord> <Ryozuki> ```
+16:30 <+ddnet-discord> <Ryozuki> #ifdef __MINGW32__
+16:30 <+ddnet-discord> <Ryozuki> // Mingw doesn't define putenv() needed by Boost.Test
+16:30 <+ddnet-discord> <Ryozuki> extern int putenv(char*);
+16:30 <+ddnet-discord> <Ryozuki> #endif```
+16:30 <+ddnet-discord> <heinrich5991> wait
+16:30 <+ddnet-discord> <heinrich5991> you wrote `const char *`. can you try `char *`?
+16:30 <+ddnet-discord> <Ryozuki> k
+16:30 <+ddnet-discord> <heinrich5991> or even
+16:31 <+ddnet-discord> <heinrich5991> ```
+16:31 <+ddnet-discord> <heinrich5991> extern "C"
+16:31 <+ddnet-discord> <heinrich5991> {
+16:31 <+ddnet-discord> <heinrich5991>     int putenv(char *);
+16:31 <+ddnet-discord> <heinrich5991> }
+16:31 <+ddnet-discord> <heinrich5991> ```
+16:31 <+ddnet-discord> <Ryozuki> i tried also extern int _putenv(char *);
+16:31 <+ddnet-discord> <Ryozuki> with _
+16:31 <+ddnet-discord> <Ryozuki> warning: ISO C++ forbids converting a string constant to 'char*'
+16:31 <+ddnet-discord> <Ryozuki> this means it could work?
+16:31 <+ddnet-discord> <heinrich5991> yes
+16:32 <+ddnet-discord> <Ryozuki> but adding const makes it undefined reference
+16:32 <+ddnet-discord> <heinrich5991> have you done the `extern "C"` version? maybe with `const` to get rid of the warning?
+16:33 <+ddnet-discord> <Ryozuki> ```
+16:33 <+ddnet-discord> <Ryozuki> extern "C"
+16:33 <+ddnet-discord> <Ryozuki> {
+16:33 <+ddnet-discord> <Ryozuki>     int putenv(const char *);
+16:33 <+ddnet-discord> <Ryozuki> }```
+16:33 <+ddnet-discord> <Ryozuki> this worked
+16:34 <+ddnet-discord> <heinrich5991> cool 🙂
+16:34 <+ddnet-discord> <Ryozuki> ```#ifdef __MINGW32__
+16:34 <+ddnet-discord> <Ryozuki> extern "C"
+16:34 <+ddnet-discord> <Ryozuki> {
+16:34 <+ddnet-discord> <Ryozuki>     int putenv(const char *);
+16:34 <+ddnet-discord> <Ryozuki> }
+16:34 <+ddnet-discord> <Ryozuki> #endif``` i guess this is how it shold be
+16:34 <+ddnet-discord> <heinrich5991> this is a workaround, hopefully, there's a better fix
+16:34 <+ddnet-discord> <Ryozuki> ```cpp
+16:34 <+ddnet-discord> <Ryozuki> #ifdef __MINGW32__
+16:34 <+ddnet-discord> <Ryozuki> extern "C"
+16:34 <+ddnet-discord> <Ryozuki> {
+16:34 <+ddnet-discord> <Ryozuki>     int putenv(const char *);
+16:35 <+ddnet-discord> <Ryozuki> }
+16:35 <+ddnet-discord> <Ryozuki> #endif``` i guess this is how it shold be
+16:35 <+ddnet-discord> <Ryozuki> i pr?
+16:35 <+ddnet-discord> <heinrich5991> I'd prefer a better version tbh
+16:35 <+ddnet-discord> <Ryozuki> if u know it ^^
+16:35 <+ddnet-discord> <heinrich5991> no, I don't
+16:35 <+ddnet-discord> <heinrich5991> and I'm gone now
+16:35 <+ddnet-discord> <Ryozuki> cya then
+16:42 < ddnet-commits> [ddnet] Ryozuki opened pull request #905: MinGW putenv workaround (master...pr_mingw_workaround) https://git.io/vdSMa

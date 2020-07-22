@@ -1,0 +1,86 @@
+00:13 <+bridge> [ddnet] <heinrich5991> sounds good to me tbh
+00:13 <+bridge> [ddnet] <heinrich5991> super as a team
+00:13 <+bridge> [ddnet] <heinrich5991> at least in its current form
+00:14 <+bridge> [ddnet] <heinrich5991> where you can interact with all teams
+00:15 <+bridge> [ddnet] <jao> but u still have the normal team
+00:16 <+bridge> [ddnet] <heinrich5991> do you? huh
+00:17 <+bridge> [ddnet] <heinrich5991> oh, apparently
+00:38 <+bridge> [ddnet] <Learath2> @heinrich5991 I thought you could interact with all teams aswell, but that doesn't appear to be the case
+00:38 <+bridge> [ddnet] <Learath2> (or I'm just not reading this correct, been to lazy to test it)
+00:40 <+bridge> [ddnet] <fokkonaut> it is the case
+00:40 <+bridge> [ddnet] <heinrich5991> @Learath2 src/game/server/ddracecommands.cpp:111 set character team
+00:40 <+bridge> [ddnet] <heinrich5991> to `TEAM_SUPER`
+00:41 <+bridge> [ddnet] <heinrich5991> `CTeamsCore::CanCollide` checks for either tee having `TEAM_SUPER`
+00:41 <+bridge> [ddnet] <Learath2> I stand corrected
+00:41 <+bridge> [ddnet] <Learath2> Still, it's not a team, might aswell just check the character
+00:42 <+bridge> [ddnet] <Learath2> I thought I was the one who loved to mix concepts just for ease of coding 😛
+00:42 <+bridge> [ddnet] <heinrich5991> if we want super to interact with all teams, I find this better than keeping the character in the old team
+00:43 <+bridge> [ddnet] <heinrich5991> I dislike the concept of super complicating all our code between otherwise separate worlds though, so I'd be happy to drop that feature
+00:43 <+bridge> [ddnet] <Learath2> We are pretty much handling TEAM_SUPER everywhere, no?
+00:43 <+bridge> [ddnet] <Ryozuki> ye
+00:43 <+bridge> [ddnet] <Ryozuki> super makes every code ugly
+00:44 <+bridge> [ddnet] <Ryozuki> not everywhere
+00:44 <+bridge> [ddnet] <Ryozuki> iirc
+00:44 <+bridge> [ddnet] <Ryozuki> it makes no sense super for testing
+00:44 <+bridge> [ddnet] <Ryozuki> only for trolling
+00:45 <+bridge> [ddnet] <fokkonaut> falae
+00:45 <+bridge> [ddnet] <fokkonaut> false*
+00:45 <+bridge> [ddnet] <Ryozuki> with infinite jump and no freeze
+00:45 <+bridge> [ddnet] <Ryozuki> its enough
+00:45 <+bridge> [ddnet] <Ryozuki> true
+00:45 <+bridge> [ddnet] <Ryozuki> *
+00:45 <+bridge> [ddnet] <Learath2> @heinrich5991 It could probably be neatly wrapped into `if(CanCollide(cid1, cid2))` that abstracts away most if not all the complexity though, no?
+00:45 <+bridge> [ddnet] <heinrich5991> not really
+00:45 <+bridge> [ddnet] <heinrich5991> you'd want to not have physics core have to concern itself with something like teams
+00:45 <+bridge> [ddnet] <heinrich5991> at least I'd want that
+00:46 <+bridge> [ddnet] <heinrich5991> i.e. having separate gameworlds with separate lists of characters, so that characters from a different team aren't even returned from the relevant functions
+00:46 <+bridge> [ddnet] <Ryozuki> we must check for super, teams, solo, collision on, nocollision, hook on/off and if colision is globaly enabled iirc
+00:46 <+bridge> [ddnet] <Learath2> @heinrich5991 Huh, isn't the physics core actually the most concerned part? Teams manipulate the physics of the game more then anything
+00:46 <+bridge> [ddnet] <heinrich5991> see above
+00:46 <+bridge> [ddnet] <Learath2> Having separate gameworlds while possible would complicate a couple things a whole lot
+00:47 <+bridge> [ddnet] <Ryozuki> u sure
+00:47 <+bridge> [ddnet] <Learath2> like spectators seeing everything and showothers
+00:47 <+bridge> [ddnet] <Ryozuki> i think it makes sense for a team to have its own "world"
+00:47 <+bridge> [ddnet] <heinrich5991> I see it complicating SUPER (maybe makign it impossible) and snapping a bit
+00:47 <+bridge> [ddnet] <Learath2> Ofc it makes sense, but I don't think we have the tools to "merge" worlds to get the combined views
+00:48 <+bridge> [ddnet] <heinrich5991> why not? except for deduplicated static objects like draggers etc?
+00:48 <+bridge> [ddnet] <heinrich5991> just dump everything into the snap, as before
+00:48 <+bridge> [ddnet] <Learath2> I mean it'd all need to be handled in snap with fairly ugly code, no?
+00:48 <+bridge> [ddnet] <heinrich5991> no
+00:49 <+bridge> [ddnet] <Learath2> Something like `for(auto t: m_pTeamsCore->m_pTeams->m_pWorld` would need to be in a lot of places
+00:49 <+bridge> [ddnet] <heinrich5991> why go through teams?
+00:49 <+bridge> [ddnet] <heinrich5991> just your m_pWorld
+00:49 <+bridge> [ddnet] <heinrich5991> just use your m_pWorld
+00:49 <+bridge> [ddnet] <Learath2> The teams will have the CGameWorlds, it makes sense that they own the worlds
+00:50 <+bridge> [ddnet] <Learath2> For spectators I mean, for you it's obv just m_pWorld of your own character
+00:50 <+bridge> [ddnet] <Ryozuki> why teamscore
+00:50 <+bridge> [ddnet] <Ryozuki> drop teamscore
+00:50 <+bridge> [ddnet] <Ryozuki> there are worlds
+00:50 <+bridge> [ddnet] <Ryozuki> and players in it
+00:50 <+bridge> [ddnet] <Ryozuki> no teams as is
+00:50 <+bridge> [ddnet] <Learath2> Some other class name that will hold the teams stuff 😛
+00:50 <+bridge> [ddnet] <Ryozuki> m_apWorlds
+00:50 <+bridge> [ddnet] <Learath2> The team glue logic needs to go somewhere
+00:51 <+bridge> [ddnet] <heinrich5991> @Learath2 in the `CGameContext::OnSnap` function, you could iterate through the game worlds
+00:51 <+bridge> [ddnet] <Learath2> Hmm, I might try a rewrite like that tomorrow
+00:52 <+bridge> [ddnet] <Learath2> Having an empty slate with 0.7 is nice as I get to try more 😛
+00:52 <+bridge> [ddnet] <Ryozuki> :cammostripes:
+00:52 <+bridge> [ddnet] <heinrich5991> no uni?
+00:52 <+bridge> [ddnet] <Learath2> I can't convince myself to go, too much social anxiety
+00:52 <+bridge> [ddnet] <Learath2> might aswell be useful to ddnet
+00:53 <+bridge> [ddnet] <heinrich5991> isn't it start of semester?
+00:53 <+bridge> [ddnet] <Learath2> It already started
+00:53 <+bridge> [ddnet] <heinrich5991> yes, a week or two ago?
+00:53 <+bridge> [ddnet] <Learath2> Well exactly 3 weeks ago
+00:53 <+bridge> [ddnet] <heinrich5991> then maybe go to uni ^^
+00:53 <+bridge> [ddnet] <Learath2> Interesting that this month started on a Monday, heh
+00:54 <+bridge> [ddnet] <heinrich5991> october the 0th was a monday, indeed 😛
+00:54 <+bridge> [ddnet] <Learath2> Oh no it's past midnight, I missed that
+00:54 <+bridge> [ddnet] <Learath2> So close to a perfect month start
+00:54 <+bridge> [ddnet] <Ryozuki> the 0th?
+00:54 <+bridge> [ddnet] <fokkonaut> 1st was tuesda,
+00:54 <+bridge> [ddnet] <fokkonaut> y
+00:55 <+bridge> [ddnet] <Learath2> @heinrich5991 I tried going last tuesday, just couldn't get myself to, even had butterflies in my stomach 😛
+00:55 <+bridge> [ddnet] <heinrich5991> mh 😦
+00:55 <+bridge> [ddnet] <Learath2> Such a weird illogical feeling, even though I know no one gives two shits who comes and goes to a class, I still feel very anxious
+00:57 <+bridge> [ddnet] <Learath2> Anyway, I have to go to milan for some bureaucracy anyway, it's a lost day, might aswell do some ddnet at the end to atleast feel better about myself 😄

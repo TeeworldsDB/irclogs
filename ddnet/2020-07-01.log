@@ -1,0 +1,537 @@
+00:06 <+bridge> [ddnet] <Learath2> Zwelf: (if you are still around in freenode) I had an idea yesterday, do you think maybe we could pause teams while saving, instead of killing them and reloading them?
+00:07 <+bridge> [ddnet] <Learath2> The reloading seems to be a great place for our resident pentesters to find "features" in
+00:10 <+bridge> [ddnet] <deen> pause as in /spec where the tees disappear? or what kind of pause?
+00:11 <+bridge> [ddnet] <Learath2> the old kind, as in when pause was first developed
+00:11 <+bridge> [ddnet] <Learath2> freeze in place, no hooks no jumps
+00:16 <+bridge> [ddnet] <Learath2> @deen how did we handle the case when someone used an old save code?
+00:17 <+bridge> [ddnet] <deen> right now?
+00:17 <+bridge> [ddnet] <deen> or before all my reverts?
+00:17 <+bridge> [ddnet] <deen> right now you get a new random save code
+00:17 <+bridge> [ddnet] <Learath2> before
+00:17 <+bridge> [ddnet] <deen> you get saved and instantly reloaded?
+00:17 <+bridge> [ddnet] <Learath2> I mean before the entire rework
+00:17 <+bridge> [ddnet] <deen> ah
+00:18 <+bridge> [ddnet] <deen> You were in an inbetween-state until the save gets written
+00:18 <+bridge> [ddnet] <deen> I think you could even get a finish and a save from just before the finish
+00:18 <+bridge> [ddnet] <deen> and if the code exists nothing happened
+00:19 <+bridge> [ddnet] <Learath2> ah we didn't handle the asynchronous nature of the query at all
+00:19 <+bridge> [ddnet] <Learath2> hm, I guess reloading should work as long as we reload everything correctly
+00:21 <+bridge> [ddnet] <heinrich5991> @Ryozuki ^
+00:23 <+bridge> [ddnet] <heinrich5991> @Learath2 the thing is, the other bug could also be abused before
+00:24 <+bridge> [ddnet] <Learath2> @heinrich5991 is this performant?
+00:24 <+bridge> [ddnet] <heinrich5991> what is performant?
+00:24 <+bridge> [ddnet] <heinrich5991> evaluating a cubic polynomial?
+00:24 <+bridge> [ddnet] <Learath2> yep
+00:24 <+bridge> [ddnet] <heinrich5991> more performant than evaluating an exponential function I guess
+00:25 <+bridge> [ddnet] <heinrich5991> but yes
+00:25 <+bridge> [ddnet] <heinrich5991> it's like 32 floating point operations that happen on each render while the smooth zoom is in progress
+00:26 <+bridge> [ddnet] <Learath2> that's some beautiful code 🙂
+00:27 <+bridge> [ddnet] <heinrich5991> thanks
+00:28 <+bridge> [ddnet] <Learath2> 32 floating point ops doesn't sound bad
+00:35 <+bridge> [ddnet] <Ryozuki> :O
+00:37 <+bridge> [ddnet] <Learath2> I like how cubic beziers connect so nicely
+00:38 <+bridge> [ddnet] <Patiga> https://ddnet.tw/ranks/moderate/3/ the map "Silk Touch" is incorrectly labeled as a 3-player-map
+00:41 <+bridge> [ddnet] <deen> thanks, fixing
+00:57 <+bridge> [ddnet] <Learath2> @heinrich5991 you could overload () instead of Evaluate if you want to be a cool hip C++man
+00:59 <+bridge> [ddnet] <heinrich5991> I think I'm good without syntax 😛
+01:04 <+bridge> [ddnet] <Learath2> @heinrich5991 what controls the curves timescale?
+01:04 <+bridge> [ddnet] <heinrich5991> it's always between 0 and 1
+01:04 <+bridge> [ddnet] <heinrich5991> we calculate the float between 0 and 1 in progress
+01:05 <+bridge> [ddnet] <Learath2> Why? I remember that only being the case because CSS fixed 2 points of the curve
+01:05 <+bridge> [ddnet] <Learath2> did you also fix those?
+01:05 <+bridge> [ddnet] <heinrich5991> ah
+01:05 <+bridge> [ddnet] <heinrich5991> no, I use a "bezier curve" in R, not R²
+01:06 <+bridge> [ddnet] <heinrich5991> i.e. I don't have a separate time scale
+01:06 <+bridge> [ddnet] <heinrich5991> I just fit a cubic polynomial in a way that matches the current zooming speed, current zoom level, target zoom level and target zoom speed=0
+01:07 <+bridge> [ddnet] <Learath2> huh, I should read more about bezier curves
+01:08 <+bridge> [ddnet] <Learath2> I didn't see any definition on wikipedia for cubic bezier curves other than the one that defined the curve using 4 points
+01:08 <+bridge> [ddnet] <heinrich5991> yea, I use that
+01:08 <+bridge> [ddnet] <heinrich5991> but the four points lie in R, not R^2 for me
+01:10 <+bridge> [ddnet] <Learath2> I sometimes have trouble visualising these, if the 4 points lie on a line (R) how does it still define a curve?
+01:10 <+bridge> [ddnet] <heinrich5991> in R^2, they are also parametrized using a time
+01:13 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/w/index.php?title=Bernstein_polynomial&oldid=965314973 @Learath2
+01:13 <+bridge> [ddnet] <heinrich5991> do you see the four basis vectors b_03, b_13, b_23, b_33?
+01:14 <+bridge> [ddnet] <Learath2> basis vectors of what?
+01:15 <+bridge> [ddnet] <Learath2> When did we get to 4 dimensions? 😕
+01:17 <+bridge> [ddnet] <heinrich5991> basis vectors of polynomials of degree at most 4
+01:17 <+bridge> [ddnet] <heinrich5991> four other basis vectors would e.g. be 1, x, x², x³
+01:18 <+bridge> [ddnet] <Learath2> Hm, didn't know those were called basis vectors
+01:18 <+bridge> [ddnet] <heinrich5991> hm
+01:18 <+bridge> [ddnet] <Learath2> Okay sure, we have 1, x, x^2 and x^3 in our cubic
+01:18 <+bridge> [ddnet] <heinrich5991> but we use the bernstein polynomial basis instead
+01:19 <+bridge> [ddnet] <Learath2> Ah I see what you mean
+01:19 <+bridge> [ddnet] <Learath2> So what property does bernstein polynomial bases have that help us?
+01:20 <+bridge> [ddnet] <heinrich5991> b_03 is 1 at 0 and 0 at 1
+01:20 <+bridge> [ddnet] <heinrich5991> b_33 is 0 at 0 and 1 at 1
+01:21 <+bridge> [ddnet] <heinrich5991> so by doing `a * b_03 + d * b_33`
+01:21 <+bridge> [ddnet] <heinrich5991> we get a polynomial that is a at 0 and b at 1
+01:22 <+bridge> [ddnet] <Learath2> Oh, so we don't care what happens outside [0,1]?
+01:22 <+bridge> [ddnet] <heinrich5991> ah yes
+01:23 <+bridge> [ddnet] <Learath2> but you seem to have used more than b_03 and b_33
+01:23 <+bridge> [ddnet] <heinrich5991> yes
+01:24 <+bridge> [ddnet] <heinrich5991> for influencing the derivatives at 0 and 1
+01:24 <+bridge> [ddnet] <heinrich5991> there's probably a better basis for this than the bernstein basis and I probably even learned about it in numerics
+01:24 <+bridge> [ddnet] <heinrich5991> but I don't remember its name
+01:25 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/w/index.php?title=B%C3%A9zier_curve&oldid=962470172#Cubic_B%C3%A9zier_curves
+01:25 <+bridge> [ddnet] <heinrich5991> here you can see that B is precisely a linear combination of that bernstein basis
+01:26 <+bridge> [ddnet] <heinrich5991> and then you can see the derivative below that
+01:26 <+bridge> [ddnet] <heinrich5991> plug in 0 and 1 to see how you have to manipulate b and c to get the derivatives yo uwant
+01:26 <+bridge> [ddnet] <Learath2> Yep, I see that now, is it a property of bernstein bases to have nice values at 0 and 1?
+01:26 <+bridge> [ddnet] <heinrich5991> yes
+01:27 <+bridge> [ddnet] <heinrich5991> there's definitely a basis for even nicer values at 0 and 1
+01:27 <+bridge> [ddnet] <Learath2> honestly I don't see what else you could want
+01:28 <+bridge> [ddnet] <Learath2> I'll read up on bernstein polynomials, I wonder what the intent was when coming up with them and how they are generated
+01:29 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/wiki/Polynomial_interpolation
+01:30 <+bridge> [ddnet] <heinrich5991> this is better I guess
+01:30 <+bridge> [ddnet] <Learath2> oh we are in a sense fitting a polynomial to data
+01:30 <+bridge> [ddnet] <heinrich5991> yes
+10:59 <+bridge> [freenode] <Zwelf> @Learath2 Freezing the tees during the /save operation sounds good (apart from the risk in introducing other bugs). Currently in-air weapon projectiles and laser aren't saved and disappear when loading. I doubt that it can be abused, as it is the same as not firing the weapon at all, but maybe a cheat can be constructed with this mechanic.
+11:01 <+bridge> [freenode] <Zwelf> Maybe we should add a penalty of ~10sec (or even 60sec) for each failed save to reduce the benefit of instant reloading.
+11:02 <+bridge> [freenode] <Zwelf> And allow saving only every 10 or 60 sec.
+11:08 <+bridge> [freenode] <Zwelf> I am building a tool to filter out ranks, which abused the "Switches don't reset on solo server"-bug (with my Teehistorian parser and Patiga's Map parser). Maybe we can delete just ranks which abused this bug afterwards.
+11:10 <+bridge> [ddnet] <Brokecdx-> What color code is teeworlds using for skins?
+11:20 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/pull/2430 destroyed builds on pul requests @heinrich5991
+11:20 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/727815913449062451/unknown.png
+11:20 <+bridge> [ddnet] <fokkonaut> (i believe)
+11:58 <+bridge> [ddnet] <heinrich5991> @fokkonaut check the times, it was broken before
+11:59 <+bridge> [ddnet] <fokkonaut> tru
+11:59 <+bridge> [ddnet] <heinrich5991> this was an attempt to fix it
+12:15 <+bridge> [ddnet] <Learath2> Did it fix it?
+12:20 <+bridge> [ddnet] <heinrich5991> it seems so but there's still a lot of stuff in our queue
+12:20 <+bridge> [ddnet] <heinrich5991> which is stuck
+12:21 <+bridge> [ddnet] <heinrich5991> I contacted github support
+12:28 <+bridge> [ddnet] <Synonym' | Val> is it possible to add variable for mouse sens or other settings (like "mousesens")
+12:29 <+bridge> [ddnet] <Synonym' | Val> is it possible to add variable for mouse sensibility or other settings (like "mousesens")
+12:32 <+bridge> [ddnet] <Mikan> hi guys,
+12:32 <+bridge> [ddnet] <Mikan> i want to compile zCatch from Savander (zCatch/TeeVi)
+12:32 <+bridge> [ddnet] <Mikan> 
+12:32 <+bridge> [ddnet] <Mikan> i have all programms that i need but i cant create .exe (i test it first on windows than on linux ^^)
+12:33 <+bridge> [ddnet] <Mikan> can who help o_O? i try it more hours now ^^
+12:33 <+bridge> [ddnet] <Mikan> 
+12:33 <+bridge> [ddnet] <Mikan> 
+12:33 <+bridge> [ddnet] <Mikan> best regards,
+12:33 <+bridge> [ddnet] <Mikan> Yami :p
+12:33 <+bridge> [ddnet] <Mikan> hi guys,
+12:33 <+bridge> [ddnet] <Mikan> i want to compile zCatch from Savander (zCatch/TeeVi)
+12:33 <+bridge> [ddnet] <Mikan> 
+12:33 <+bridge> [ddnet] <Mikan> i have all programms that i need but i cant create .exe (i have to try it first on windows than for linux ^^)
+12:33 <+bridge> [ddnet] <Mikan> can who help o_O? i try it more hours now ^^
+12:33 <+bridge> [ddnet] <Mikan> 
+12:33 <+bridge> [ddnet] <Mikan> 
+12:33 <+bridge> [ddnet] <Mikan> best regards,
+12:33 <+bridge> [ddnet] <Mikan> Yami :p
+12:34 <+bridge> [ddnet] <Mikan> hi guys,
+12:34 <+bridge> [ddnet] <Mikan> i want to compile zCatch from Savander (zCatch/TeeVi)
+12:34 <+bridge> [ddnet] <Mikan> 
+12:34 <+bridge> [ddnet] <Mikan> i have all programms that i need but i cant create the server startup file (i have to try it first on windows than for linux ^^)
+12:34 <+bridge> [ddnet] <Mikan> can who help o_O? i try it more hours now ^^
+12:34 <+bridge> [ddnet] <Mikan> 
+12:34 <+bridge> [ddnet] <Mikan> 
+12:34 <+bridge> [ddnet] <Mikan> best regards,
+12:34 <+bridge> [ddnet] <Mikan> Yami :p
+12:45 <+bridge> [ddnet] <Trafalgar Law> Which OS do you want?
+12:46 <+bridge> [ddnet] <Learath2> I'll be much more busy starting tomorrow until probably the end of September
+12:47 <+bridge> [ddnet] <Learath2> I'll still stick around and keep an eye out for questions and bugs but likely not much more than an hour a day
+12:47 <+bridge> [ddnet] <Trafalgar Law> :o
+12:48 <+bridge> [ddnet] <Learath2> @Synonym' | Val We already have `inp_mousesens`
+12:50 <+bridge> [ddnet] <Synonym' | Val> @Learath2 can i use it in binds ?
+12:50 <+bridge> [ddnet] <Learath2> Definitely
+12:50 <+bridge> [ddnet] <Synonym' | Val> ok thx
+13:12 <+bridge> [ddnet] <Mikan> i want Windows first for test it local on my PC ^^
+13:12 <+bridge> [ddnet] <Mikan> @Trafalgar Law i want Windows first for test it local on my PC ^^ | But for the Server i need it for Linux
+13:18 <+bridge> [ddnet] <Trafalgar Law> Well, I dont know how it works on windows
+13:18 <+bridge> [ddnet] <Trafalgar Law> But on linux download cmake and build it with that
+13:24 <+bridge> [ddnet] <Learath2> @Mikan I can try to walk you through building it on windows
+13:25 <+bridge> [ddnet] <Learath2> You'll have to be a little patient with me though as I don't have access to a windows computer and thus I'd be doing it blind
+13:37 <+bridge> [ddnet] <Mikan> o_
+13:37 <+bridge> [ddnet] <Mikan> o_O by windows i used Virtual Studios 😮
+13:37 <+bridge> [ddnet] <Mikan> u want to try it? via remote o_O?
+13:43 <+bridge> [ddnet] <Learath2> oh it should be trivial with Visual Studio
+13:44 <+bridge> [ddnet] <Learath2> @Mikan https://forum.ddnet.tw/viewtopic.php?f=16&t=5765 this should still be working
+13:44 <+bridge> [ddnet] <Learath2> though I'm not sure if savanders zcatch is based on ddnet
+13:46 <+bridge> [ddnet] <Mikan> ich wollte zCatch kompilieren this dosnt work or X'D?
+13:46 <+bridge> [ddnet] <Mikan> I wanted to compile zCatch, it doesn't work
+13:47 <+bridge> [ddnet] <Mikan> I wanted to compile zCatch, it doesn't work or X'D?
+13:48 <+bridge> [ddnet] <Mikan> i can ddnet copile but how can i import the zCatch gamemode ? the folders and files replace? from the zCatch 'Script'? ^^
+13:48 <+bridge> [ddnet] <Mikan> i can ddnet compile but how can i import the zCatch gamemode ? the folders and files replace? from the zCatch 'Script'? ^^
+13:51 <+bridge> [ddnet] <Learath2> can you send me a link to what you are trying to compile, so I can check how it's compiled?
+13:51 <+bridge> [ddnet] <Mikan> sure via pm?
+13:51 <+bridge> [ddnet] <Mikan> https://github.com/savander/teeworlds/tree/zCatch
+13:59 <+bridge> [ddnet] <Learath2> yeah as I suspected this compiles with bam
+14:00 <+bridge> [ddnet] <Learath2> You can't compile in visual studio like that, try https://www.teeworlds.com/?page=docs&wiki=compiling_everything_windows
+14:13 <+bridge> [ddnet] <Mikan> ok i use x64 native tools command promp from visual studio now ^^ it works and now o_O?
+15:36 <+bridge> [ddnet] <!gerdoe> @Mikan now compile it on linux with the same instruction > https://www.teeworlds.com/?page=docs&wiki=compiling_everything_windows
+15:41 <+bridge> [ddnet] <Mikan> but i cant run the server idk what i do :c
+15:41 <+bridge> [ddnet] <Mikan> 
+15:41 <+bridge> [ddnet] <Mikan> Changes to the teeworlds source directory
+15:41 <+bridge> [ddnet] <Mikan> .\bam\bam release
+15:41 <+bridge> [ddnet] <Mikan> Compiles teeworlds (Client and Server)
+15:41 <+bridge> [ddnet] <Mikan> 
+15:41 <+bridge> [ddnet] <Mikan> 
+15:41 <+bridge> [ddnet] <Mikan> idk this
+15:42 <+bridge> [ddnet] <!gerdoe> its compiles server
+15:43 <+bridge> [ddnet] <!gerdoe> then u can run by command prompt or whatever else
+15:43 <+bridge> [ddnet] <!gerdoe> https://cdn.discordapp.com/attachments/293493549758939136/727881987200778240/unknown.png
+15:43 <+bridge> [ddnet] <Mikan> oh nooo
+15:43 <+bridge> [ddnet] <Mikan> i see X'D i have to make a new folder in the directory of teeworlds O_O
+15:43 <+bridge> [ddnet] <Mikan> i put all in the main folder of teeworlds X'D
+15:44 <+bridge> [ddnet] <!gerdoe> so you can cd <path> and then run ./bam server_release
+15:45 <+bridge> [ddnet] <!gerdoe> or ./bam conf=release server if first doesnt work
+15:45 <+bridge> [ddnet] <Mikan> with server rls is mean: DDNet-14.0.2-win64
+15:46 <+bridge> [ddnet] <!gerdoe> wut
+15:47 <+bridge> [ddnet] <Mikan> only serve_release? or i have to replace this?
+15:47 <+bridge> [ddnet] <Mikan> only server_release? or i have to replace this?
+15:47 <+bridge> [ddnet] <!gerdoe> no
+15:47 <+bridge> [ddnet] <!gerdoe> only server_release
+15:48 <+bridge> [ddnet] <Mikan> oki i try my best ^-^ thanks for helping me my english skills are very bad -.-' x'D
+15:48 <+bridge> [ddnet] <!gerdoe> if you are compilin 0.6 sources you are running it by "./bam server_release"
+15:48 <+bridge> [ddnet] <!gerdoe> if 0.7 then run by "./bam conf=release server"
+15:56 <+bridge> [ddnet] <Mikan> [string "src/base.lua"]:62: this file for version 0.4.x of bam. you are running 0.5.x.
+15:56 <+bridge> [ddnet] <Mikan> bam: script error (-t for more detail) o_O
+15:58 <+bridge> [ddnet] <heinrich5991> you'll need bam 0.4
+15:58 <+bridge> [ddnet] <!gerdoe> download bam 0.4.0 huh
+16:01 <+bridge> [ddnet] <Mikan> can who send a URL? google find only ground construction on my langauge x'D
+16:01 <+bridge> [ddnet] <!gerdoe> os?
+16:01 <+bridge> [ddnet] <Soreu> @Mikan https://matricks.github.io/bam/
+16:01 <+bridge> [ddnet] <!gerdoe> fast @Soreu xd
+16:02 <+bridge> [ddnet] <Mikan> lovely thanks ❤️
+16:03 <+bridge> [ddnet] <Soreu> @Mikan Actually, there https://github.com/matricks/bam/releases are more recent versions.
+16:04 <+bridge> [ddnet] <Soreu> ^ that profile pic tho
+16:04 <+bridge> [ddnet] <Mikan> X'D
+16:09 <+bridge> [ddnet] <Mikan> it works thanks ❤️ next step: Compiles teeworlds (Client and Server) huh?
+16:13 <+bridge> [ddnet] <Learath2> @heinrich5991 do you happen to know whether an stl container can pretend to store it's value_type?
+16:18 <+bridge> [ddnet] <heinrich5991> wdym, pretend to store its value type?
+16:18 <+bridge> [ddnet] <!gerdoe> @Mikan if it works so you compiled it lol
+16:18 <+bridge> [ddnet] <heinrich5991> you can access the value type(?)
+16:19 <+bridge> [ddnet] <Mikan> but i havent svr or client XD
+16:19 <+bridge> [ddnet] <!gerdoe> wtf
+16:20 <+bridge> [ddnet] <Learath2> @heinrich5991 say I have a specialization for vector when storing `std::pair`s. `myvector::value_type` would be `std::pair` but can I instead store `pair::first` in one vector and `pair::second` in another vector and have my iterators combine them back?
+16:21 <+bridge> [ddnet] <heinrich5991> ah
+16:21 <+bridge> [ddnet] <heinrich5991> vector can't do that
+16:21 <+bridge> [ddnet] <heinrich5991> because you can get references to elements within
+16:21 <+bridge> [ddnet] <Learath2> This is such an X, Y question, what I'm really doing is storing the address of a `std::pair` that I got from an `std::unordered_map`
+16:22 <+bridge> [ddnet] <Learath2> I was wondering the lifetime of the pair the iterator returns
+16:22 <+bridge> [ddnet] <Learath2> If the container has to store it's value_type and can't break it up, it's implied that the pair has the same lifetime as the map itself
+16:23 <+bridge> [ddnet] <Learath2> I'm scared that on some implementations the iterator is crafting the pair in some internal memory and returning that, which would be invalidated when I increment the iterator
+16:26 <+bridge> [ddnet] <heinrich5991> https://en.cppreference.com/w/cpp/container/unordered_map
+16:26 <+bridge> [ddnet] <heinrich5991> see iterator invalidation
+16:27 <+bridge> [ddnet] <heinrich5991> i.e. no, should not be invalidated
+16:27 <+bridge> [ddnet] <heinrich5991> yes, your question was slightly different
+16:28 <+bridge> [ddnet] <heinrich5991> but no, I don't think they can be invalidated, the pairs gotten from iterators
+16:28 <+bridge> [ddnet] <Learath2> Hm, I've looked at this, but wasn't sure if the rules for the iterators getting invalidated applied to what they point to
+16:41 <+bridge> [ddnet] <Mikan> i see by try again, it dont work ;/ | bam: error: a build step failed
+17:16 <+bridge> [ddnet] <Learath2> @heinrich5991 I'm cancelling all the github actions on the staging.tmp branch
+17:16 <+bridge> [ddnet] <heinrich5991> that's very laborious
+17:16 <+bridge> [ddnet] <heinrich5991> you can do it if you want
+17:16 <+bridge> [ddnet] <Learath2> Not with a script
+17:16 <+bridge> [ddnet] <heinrich5991> nice
+17:16 <+bridge> [ddnet] <heinrich5991> you can cancel all builds if that's easier
+17:16 <+bridge> [ddnet] <Learath2> Not particularly
+17:16 <+bridge> [ddnet] <heinrich5991> and tell me how you did it
+17:16 <+bridge> [ddnet] <heinrich5991> (I contacted github support to do that, but they didn't answer yet)
+17:16 <+bridge> [ddnet] <Learath2> We probably should add check for [ci skip] in our workflow
+17:17 <+bridge> [ddnet] <heinrich5991> not really supported by github, but I blacklisted staging.tmp now
+17:17 <+bridge> [ddnet] <Learath2> `curl -s -H "Authorization: token  OAUTH_TOKEN" "https://api.github.com/repos/ddnet/ddnet/actions/workflows/430159/runs?status=queued&branch=staging.tmp" | jq ".workflow_runs[] | .cancel_url" | xargs -I{} curl -s -X POST -H "Authorization: token  OAUTH_TOKEN" {} > /dev/null`
+17:17 <+bridge> [ddnet] <heinrich5991> nice
+17:23 <+bridge> [ddnet] <heinrich5991> @Learath2 in progress?
+17:26 <+bridge> [ddnet] <Learath2> Done, also cancelled the in_progress ones
+17:30 <+bridge> [ddnet] <Learath2> @heinrich5991 how did this happen in the firs place anyway?
+17:30 <+bridge> [ddnet] <heinrich5991> I have no clue
+17:30 <+bridge> [ddnet] <heinrich5991> I think bors was buggy(?)
+17:30 <+bridge> [ddnet] <Learath2> staging.tmp has never been an issue and [ci skip] was never respected by github actions
+17:30 <+bridge> [ddnet] <Learath2> were we just building those for no reason at all all this time?
+17:31 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/actions?page=20&query=branch%3Astaging.tmp
+17:31 <+bridge> [ddnet] <heinrich5991> seems so
+17:32 <+bridge> [ddnet] <Learath2> 😄 I love how we both went for page 20
+17:32 <+bridge> [ddnet] <Learath2> I was also checking the same tihng
+17:32 <+bridge> [ddnet] <Learath2> thing*
+17:32 <+bridge> [ddnet] <heinrich5991> page 10 was too early
+17:32 <+bridge> [ddnet] <heinrich5991> but I remembered the queued stuff being approximately 10 pages long
+17:32 <+bridge> [ddnet] <heinrich5991> hence 20
+17:32 <+bridge> [ddnet] <Learath2> We should probably add a check for `[ci skip]` in the workflow instead
+17:32 <+bridge> [ddnet] <heinrich5991> bors faq tells us to ignore the branches
+17:33 <+bridge> [ddnet] <Learath2> oh, that's fine then
+17:33 <+bridge> [ddnet] <heinrich5991> https://bors.tech/documentation/getting-started/
+17:33 <+bridge> [ddnet] <heinrich5991> > Your CI system should build the “staging” and “trying” branches, but should not build the “staging.tmp”, “trying.tmp”, or “staging-squash-merge.tmp” branches.
+17:33 <+bridge> [ddnet] <Learath2> oh that might be why our merges always take so long
+17:35 <+bridge> [ddnet] <heinrich5991> but for some reason the builds got stuck
+17:35 <+bridge> [ddnet] <heinrich5991> in "testing debug"
+17:35 <+bridge> [ddnet] <Learath2> I think it was slowly making it's way through
+17:37 <+bridge> [ddnet] <heinrich5991> I mean before
+17:37 <+bridge> [ddnet] <heinrich5991> uhm
+17:37 <+bridge> [ddnet] <heinrich5991> I think someone broke it 😄
+17:37 <+bridge> [ddnet] <heinrich5991> I see masterserver output
+17:37 <+bridge> [ddnet] <Learath2> hm all these builds are stuck in debug test
+17:37 <+bridge> [ddnet] <heinrich5991> I think the shutdown of the server isn't coming through
+17:37 <+bridge> [ddnet] <heinrich5991> I remember someone "fixing" some console stuff 😄
+17:37 <+bridge> [ddnet] <Learath2> deen touched something about the early startup
+17:39 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/2422 ah here
+17:39 <+bridge> [ddnet] <Learath2> 😄 when it failed to build, it got merged by hand
+17:39 <+bridge> [ddnet] <heinrich5991> seems problematic that our CI is so bad that we think it's the CI and not the commit ^^
+17:40 <+bridge> [ddnet] <heinrich5991> yea, I can see how this breaks it
+17:40 <+bridge> [ddnet] <Learath2> wait how?
+17:40 <+bridge> [ddnet] <Learath2> I don't 😄
+17:40 <+bridge> [ddnet] <heinrich5991> sets m_Running to true in the beginning of CServer::Run
+17:41 <+bridge> [ddnet] <heinrich5991> shutdown probably sets it to false before that
+17:41 <+bridge> [ddnet] <Learath2> oh, uhm
+17:42 <+bridge> [ddnet] <Learath2> you can have this one, if you have any idea how to fix it 😄
+17:42 <+bridge> [ddnet] <heinrich5991> I guess I'll revert it for now so we fix CI & `shutdown`
+17:43 <+bridge> [ddnet] <Learath2> I'll cancel all the builds
+17:50 <+bridge> [ddnet] <heinrich5991> @Learath2 could you "review" that? ^
+17:54 <+bridge> [ddnet] <Learath2> this also reintroduces the uninitialized use btw
+17:54 <+bridge> [ddnet] <heinrich5991> yes, I'm aware
+17:54 <+bridge> [ddnet] <heinrich5991> that UB sounded less bad for the moment than CI pipeline not workign
+17:55 <+bridge> [ddnet] <Learath2> Yeah, especially since most sane implementations wouldn't completely break
+17:57 <+bridge> [ddnet] <heinrich5991> @Learath2 can you explain what the issue was?
+17:58 <+bridge> [ddnet] <Learath2> Well it was deen who debugged it, but I think it was that CacheServerInfo happened before max client being initialized
+17:59 <+bridge> [ddnet] <heinrich5991> okay
+18:00 <+bridge> [ddnet] <Learath2> `m_NetServer.MaxClients()` isn't set before `m_NetServer.Open()`
+18:14 <+bridge> [ddnet] <murpi> What's with the GER servers? :justatest:
+18:15 <+bridge> [ddnet] <murpi> and RUS
+18:15 <+bridge> [ddnet] <jao> try $ddos in #bot-cmds
+18:16 <+bridge> [ddnet] <louis> idk, is it lagging for anyone else
+18:20 <+bridge> [ddnet] <Learath2> @heinrich5991 can you re r+ #2434 ? I missed the `-DANTIBOT=OFF` case
+18:20 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2434
+18:20 <+bridge> [ddnet] <Moon> Videorecorder crash while rim rendering
+18:20 <+bridge> [ddnet] <heinrich5991> CI catched a mistake 🙂
+18:20 <+bridge> [ddnet] <Moon> 14.1 ver
+18:21 <+bridge> [ddnet] <Moon> Videorecorder crash while im rendering
+18:35 <+bridge> [ddnet] <heinrich5991> @Learath2 know a good hex editor?
+18:35 <+bridge> [ddnet] <Learath2> on linux?\
+18:36 <+bridge> [ddnet] <heinrich5991> yes
+18:37 <+bridge> [ddnet] <Learath2> I don't think I've used any tbh
+18:38 <+bridge> [ddnet] <Learath2> The one time I needed it, I used vim and xxd
+18:58 <+bridge> [ddnet] <Learath2> @heinrich5991 I want to run a script as some other user, how2?
+18:59 <+bridge> [ddnet] <heinrich5991> sudo -u user script
+18:59 <+bridge> [ddnet] <Learath2> no sudo on the server and I'm running it from php
+19:00 <+bridge> [ddnet] <Learath2> (the www-data user can't `sudo -u teeworlds` even if there was sudo)
+19:00 <+bridge> [ddnet] <heinrich5991> what is the goal?
+19:00 <+bridge> [ddnet] <heinrich5991> you could still use sudo if you have root
+19:01 <+bridge> [ddnet] <heinrich5991> then you can specify that the www-data can only execute that particular script
+19:01 <+bridge> [ddnet] <Learath2> I have a script `~/servers/execute-all.sh` and `~/servers/git-update-files-only.sh` both need to be run as `teeworlds` because that user has access to the ssh key
+19:01 <+bridge> [ddnet] <heinrich5991> sounds like a perfect case for sudo
+19:02 <+bridge> [ddnet] <Learath2> oh that's how django does it aswell
+19:02 <+bridge> [ddnet] <Learath2> (and apparently there is sudo on ddnet.tw)
+19:02 <+bridge> [ddnet] <Learath2> TIL
+19:33 <+bridge> [ddnet] <Learath2> Okay, these are all the bugs I'm aware of in sixup. I wont be here much starting tomorrow, so if anyone has anything they want fixed, submit ur request before midnight
+19:34 <+bridge> [ddnet] <heinrich5991> ❤️
+19:51 <+bridge> [ddnet] <murpi> Theres a weird bug with the automated messages, everytime you connect a dummy you get the"Do you know someone who uses a bot?...." sent to you. 
+19:51 <+bridge> [ddnet] <murpi> only happens on some servers
+19:51 <+bridge> [ddnet] <jao> known
+19:51 <+bridge> [ddnet] <murpi> ok
+19:54 <+ChillerDragon> @Learath2 how is the skin support progressing? :)
+19:55 <+bridge> [ddnet] <Mikan> thanks for helping me ❤️ it worked now, special thanks to @Learath2  and @barsik ❤️
+19:57 <+bridge> [ddnet] <ᶰ°Konͧsti> This bug is super old kek
+19:57 <+bridge> [ddnet] <ᶰ°Konͧsti> Would he funnier if everyone could see it
+20:04 <+bridge> [ddnet] <louis> yeah why is that evne a bu
+20:04 <+bridge> [ddnet] <louis> even a bug*
+20:07 <+bridge> [ddnet] <ᶰ°Konͧsti> Some dev asked for botter and accidently pasted it in the code
+20:07 <+bridge> [ddnet] <Learath2> ChillerDragon: #2435
+20:07 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2435
+20:10 <+bridge> [ddnet] <Learath2> @heinrich5991 can I get another r+ on #2434? 🤦‍♂️
+20:10 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2434
+20:12 <+bridge> [ddnet] <!gerdoe> wtf with languages
+20:12 <+bridge> [ddnet] <!gerdoe> all words just shuffled
+20:12 <+bridge> [ddnet] <!gerdoe> now cant to merge translation huh
+20:29 <+bridge> [ddnet] <Learath2> why is it so hard to get a non springform cake tin?
+20:38 <+bridge> [ddnet] <ᶰ°Konͧsti> We should make kill immunity an actual gametile
+21:12 <+bridge> [ddnet] <n000b> @vNikyu / murpi only player id 16 gets this message:troll:
+21:17 <+bridge> [ddnet] <murpi> @n000b hm, no id 15 sends it. but I get this message even on low pop servers with like 5 or 6 players in it
+21:18 <+bridge> [ddnet] <n000b> Ah yeah that is what i meant:pepeH:
+21:18 <+bridge> [ddnet] <n000b> Well that is possible of course
+21:18 <+bridge> [ddnet] <n000b> Well that is possible ofcourse
+21:19 <+bridge> [ddnet] <murpi> not a big deal 😄 people reported it to me and I just redirected it here
+21:26 <+bridge> [ddnet] <!     ZombieToad> because the ddnet server always sends the message from id 15 everytime you connect but before sending players info so your client doesnt render it
+21:26 <+bridge> [ddnet] <!     ZombieToad> unless its a dummy and ur client has playerinfos for id 15
+21:30 <+bridge> [ddnet] <heinrich5991> @murpi does that also appear with newest ddnet?
+21:34 <+bridge> [ddnet] <ᶰ°Konͧsti> @heinrich5991 yes it appears since the big replay bot abuse
+21:34 <+bridge> [ddnet] <heinrich5991> the messages appearing might have been fixed with some recent ddnet release (less than a week ago)
+21:34 <+bridge> [ddnet] <!     ZombieToad> what client even renders messages with no player info
+21:35 <+bridge> [ddnet] <!     ZombieToad> is the message still relevant
+21:36 <+bridge> [ddnet] <ᶰ°Konͧsti> @heinrich5991 just randomly did with latest client
+21:36 <+bridge> [ddnet] <ᶰ°Konͧsti> https://cdn.discordapp.com/attachments/293493549758939136/727970892595855420/screenshot_2020-07-01_21-35-52.png
+21:37 <+bridge> [ddnet] <ᶰ°Konͧsti> and as always he has id 15
+22:07 <+bridge> [ddnet] <murpi> time/rank requests can be spammed without penalty :feelsbadman:
+22:16 <+bridge> [ddnet] <murpi> you can't even mute them with muteid
+22:21 <+bridge> [ddnet] <ᶰ°Konͧsti> :Trollet:
+22:24 <+bridge> [ddnet] <fokkonaut> @vNikyu / murpi probably because of Zwelfs threadsafe SQL interaction
+22:25 <+bridge> [ddnet] <fokkonaut> @deen @Learath2 you might want to fix it? Just pass the caller client id to SendChatTarget for /rank and /time (and the others like /rankteam etc)
+22:28 <+bridge> [ddnet] <ᶰ°Konͧsti> https://cdn.discordapp.com/attachments/293493549758939136/727984114027724850/image0-5.jpg
+22:41 <+bridge> [ddnet] <Learath2> @fokkonaut if you even know the fix, why not just commit it lmeo
+22:42 <+bridge> [ddnet] <fokkonaut> not on the pc
+22:42 <+bridge> [ddnet] <Learath2> Wait, isn't /rank supposed to go out to everyone?
+22:43 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/21c338ad4ae46e7f35d12f38f18a76b2d9e442fa/src/game/server/gamecontext.cpp#L2146
+22:43 <+bridge> [ddnet] <fokkonaut> 
+22:43 <+bridge> [ddnet] <fokkonaut> `if (i != ClientID && Server()->IsSixup(ClientID))`
+22:43 <+bridge> [ddnet] <murpi> yes, you can flood the entire chat without penalty
+22:43 <+bridge> [ddnet] <fokkonaut> IsSixup(i) i mean*
+22:44 <+bridge> [ddnet] <Learath2> Doesn't matter @fokkonaut it's a protocol7 message, template magic makes sure it only goes to sixup clients
+22:44 <+bridge> [ddnet] <fokkonaut> really?
+22:44 <+bridge> [ddnet] <fokkonaut> lol
+22:44 <+bridge> [ddnet] <fokkonaut> then please remove all other checks for protocol7 msgs xd
+22:45 <+bridge> [ddnet] <Learath2> I removed all the ones I could find that were simple to remove
+22:45 <+bridge> [ddnet] <fokkonaut> ok
+22:45 <+bridge> [ddnet] <Learath2> @murpi but before the changes Zwelf made, wasn't /rank going out to everyone?
+22:46 <+bridge> [ddnet] <heinrich5991> @jao I think we should require all maps to be licensed under CC-BY-SA or similar going forward
+22:46 <+bridge> [ddnet] <fokkonaut> @Learath2 it always went to everyone
+22:46 <+bridge> [ddnet] <Learath2> CC-BY should also be fine for us, no?
+22:46 <+bridge> [ddnet] <Ryozuki> @jao yes jao we should
+22:46 <+bridge> [ddnet] <heinrich5991> or similar
+22:46 <+bridge> [ddnet] <Learath2> also CC0
+22:46 <+bridge> [ddnet] <Ryozuki> yes CC0 public domain best
+22:47 <+bridge> [ddnet] <heinrich5991> but CC-BY-SA would also be fine by DDNet
+22:47 <+bridge> [ddnet] <heinrich5991> IMO
+22:47 <+bridge> [ddnet] <Learath2> @fokkonaut so what's missing is a rate limit, not the target being wrong
+22:47 <+bridge> [ddnet] <Learath2> @heinrich5991 yeah definitely, if the author wants it to be sharealike, it's his decision
+22:47 <+bridge> [ddnet] <fokkonaut> i did not talk about the target
+22:48 <+bridge> [ddnet] <fokkonaut> @Learath2 the last arg for SendChat is SpamprotectionClientID
+22:48 <+bridge> [ddnet] <fokkonaut> which is -1 by default
+22:48 <+bridge> [ddnet] <Learath2> You said `SendChatTarget` which has no SpamProtection 😄
+22:48 <+bridge> [ddnet] <Learath2> I was confused
+22:48 <+bridge> [ddnet] <fokkonaut> Sorry :D
+22:48 <+bridge> [ddnet] <Ryozuki> Under German law, if there is any kind of creativity involved, however minimal, then the photograph produced enjoys protection as a "Lichtbildwerk" -- literally, a "light image work" -- and is not in the public domain.
+22:49 <+bridge> [ddnet] <Ryozuki> https://www.techdirt.com/articles/20170612/09194237572/multiple-german-courts-rule-photos-public-domain-works-are-not-public-domain.shtml
+22:49 <+bridge> [ddnet] <Ryozuki> germany dislikes public domain
+22:49 <+bridge> [ddnet] <Ryozuki> haha
+22:49 <+bridge> [ddnet] <Learath2> Hm, can't you give up your rights on it?
+22:51 <+bridge> [ddnet] <heinrich5991> you can license as CC0
+22:51 <+bridge> [ddnet] <heinrich5991> you just can't claim that you didn't make it
+22:51 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/727989754913882162/unknown.png
+22:51 <+bridge> [ddnet] <Ryozuki> this is so stupid
+22:51 <+bridge> [ddnet] <Ryozuki> german law
+22:51 <+bridge> [ddnet] <Ryozuki> :lol:
+22:52 <+bridge> [ddnet] <Ryozuki> "you just can't claim that you didn't make it"
+22:52 <+bridge> [ddnet] <Ryozuki> why not
+22:52 <+bridge> [ddnet] <Ryozuki> why i dont have the right to claim its not made by me
+22:53 <+bridge> [ddnet] <Ryozuki> kinda defeats the purpose of public domain
+22:56 <+bridge> [ddnet] <Learath2> or @heinrich5991 ^^, you can also approve it 😛
+22:58 <+bridge> [ddnet] <Learath2> @Ryozuki hm, I think the photograph thing makes sense.
+23:10 <+bridge> [ddnet] <ᶰ°Konͧsti> HMM
+23:10 <+bridge> [ddnet] <ᶰ°Konͧsti> https://cdn.discordapp.com/attachments/293493549758939136/727994618863681546/screenshot_2020-07-01_23-10-06.png
+23:10 <+bridge> [ddnet] <Learath2> Like if I take a cool photograph of a public domain statue in the sunset, just because the statue is public it shouldn't make my photograph the property of the public
+23:11 <+bridge> [ddnet] <Learath2> I have an idea, lets ban the people who abuse it
+23:11 <+bridge> [ddnet] <Learath2> That should stop the spam
+23:11 <+bridge> [ddnet] <ᶰ°Konͧsti> U
+23:11 <+bridge> [ddnet] <ᶰ°Konͧsti> it was a test
+23:11 <+bridge> [ddnet] <abcqwerty> just a test :troll:
+23:11 <+bridge> [ddnet] <abcqwerty> its ok as long as your name is "test"
+23:11 <+bridge> [ddnet] <ImJustANobody> Teeworlds is opening in resolution too big so can't see settings, is there anyway someone could help me please ?
+23:12 <+bridge> [ddnet] <Learath2> @ImJustANobody wait what? 😄
+23:12 <+bridge> [ddnet] <noby> how is this any differnt than people just spamming chat normally without commands
+23:12 <+bridge> [ddnet] <abcqwerty> u get muted for spamming normally
+23:12 <+bridge> [ddnet] <Learath2> @onby you can't spam fast enough without getting muted
+23:12 <+bridge> [ddnet] <ᶰ°Konͧsti> normally u get mute for too many sql commands with chatprint
+23:12 <+bridge> [ddnet] <noby> ddnet mutes u for spamming commands too fast too?
+23:12 <+bridge> [ddnet] <ᶰ°Konͧsti> ofc
+23:12 <+bridge> [ddnet] <Learath2> @onby only for commands that output to all
+23:12 <+bridge> [ddnet] <Learath2> and for some reason, /lock
+23:12 <+bridge> [ddnet] <ᶰ°Konͧsti> no it doesnt
+23:13 <+bridge> [ddnet] <ᶰ°Konͧsti> see screen
+23:13 <+bridge> [ddnet] <ᶰ°Konͧsti> :troll:
+23:13 <+bridge> [ddnet] <Learath2> never understood that one
+23:13 <+bridge> [ddnet] <noby> oh
+23:13 <+bridge> [ddnet] <Learath2> ah I guess it goes out to your whole team
+23:13 <+bridge> [ddnet] <ᶰ°Konͧsti> @Learath2 cuz SP Zombietroll used to use /lock to spam people somehow
+23:13 <+bridge> [ddnet] <Learath2> ZombieTurtle ruining the fun for everyone
+23:13 <+bridge> [ddnet] <ᶰ°Konͧsti> no hes making big fun
+23:13 <+bridge> [ddnet] <!     ZombieToad> wasnt me
+23:14 <+bridge> [ddnet] <murpi> @ImJustANobody remove your settings_ddnet.cfg or copy paste gfx_screen_width 800 & gfx_screen_height 600 in f1
+23:14 <+bridge> [ddnet] <ᶰ°Konͧsti> for everyone that isnt athe one whos been annoyed
+23:14 <+bridge> [ddnet] <noby> it works lol
+23:14 <+bridge> [ddnet] <noby> https://cdn.discordapp.com/attachments/293493549758939136/727995526712262776/Screen_Shot_2020-07-01_at_4.13.50_PM.png
+23:14 <+bridge> [ddnet] <Learath2> How many different troll emojis do you even
+23:14 <+bridge> [ddnet] <abcqwerty> zombieturtle
+23:14 <+bridge> [ddnet] <!     ZombieToad> did i spam /lock
+23:14 <+bridge> [ddnet] <!     ZombieToad> i cant remember
+23:15 <+bridge> [ddnet] <!     ZombieToad> i remember /invite
+23:15 <+bridge> [ddnet] <Learath2> you can always spam if you are not ranked, "not ranked" only goes out to you
+23:15 <+bridge> [ddnet] <ᶰ°Konͧsti> too much :feelsbad:
+23:15 <+bridge> [ddnet] <abcqwerty> @onby if they have no rank it doesnt get sent to everyone
+23:15 <+bridge> [ddnet] <noby> oh xd
+23:15 <+bridge> [ddnet] <!     ZombieToad> ive helped find so many bugs i cant remember them all :pepe:
+23:15 <+bridge> [ddnet] <ᶰ°Konͧsti> troll
+23:15 <+bridge> [ddnet] <Learath2> If someone could give #2437 a quick review I can deploy it before I fall asleep 😄
+23:15 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2437
+23:16 <+bridge> [ddnet] <ᶰ°Konͧsti> zombietroll reported the ; abuse in forum and ddnet didnt care
+23:16 <+bridge> [ddnet] <ᶰ°Konͧsti> then he started to make people suicide with 200 minutes and it was fixed quick
+23:16 <+bridge> [ddnet] <murpi> not just /rank
+23:16 <+bridge> [ddnet] <murpi> also other commands like /points
+23:16 <+bridge> [ddnet] <!     ZombieToad> no proof that was me
+23:16 <+bridge> [ddnet] <noby> can confirm zombietroll is the reason why various bugs are fixed on fng too
+23:16 <+bridge> [ddnet] <!     ZombieToad> i would never kill people on purpose
+23:16 <+bridge> [ddnet] <ᶰ°Konͧsti> big proof
+23:16 <+bridge> [ddnet] <ᶰ°Konͧsti> u didnt
+23:16 <+bridge> [ddnet] <ᶰ°Konͧsti> they killed themsleves
+23:16 <+bridge> [ddnet] <ᶰ°Konͧsti> :troll:
+23:17 <+bridge> [ddnet] <abcqwerty> why is one of the trolls blank
+23:17 <+bridge> [ddnet] <ᶰ°Konͧsti> which server is whistroll i dont have it
+23:17 <+bridge> [ddnet] <abcqwerty> wtf it took so long to load
+23:17 <+bridge> [ddnet] <!     ZombieToad> why is ddnet so hard to compile now
+23:17 <+bridge> [ddnet] <!     ZombieToad> remove cmake and bring back bam thnx
+23:17 <+bridge> [ddnet] <murpi> what are rules am I right
+23:17 <+bridge> [ddnet] <murpi> https://i.imgur.com/KcBRhXk.png
+23:18 <+bridge> [ddnet] <noby> i thought reaction spam is when u add a reaction to every message
+23:18 <+bridge> [ddnet] <!     ZombieToad> bam client_release
+23:18 <+bridge> [ddnet] <!     ZombieToad> :pepe:
+23:19 <+bridge> [ddnet] <murpi> I mean idc, it's not like I can do anything about it :kek:
+23:19 <+bridge> [ddnet] <ᶰ°Konͧsti> u actually can
+23:19 <+bridge> [ddnet] <ᶰ°Konͧsti> remove reactions or take peoples permissions to react
+23:19 <+bridge> [ddnet] <ᶰ°Konͧsti> :feelsbadman:
+23:19 <+bridge> [ddnet] <ᶰ°Konͧsti> Welf did this to me when he was server admin
+23:19 <+bridge> [ddnet] <abcqwerty> :kek:
+23:21 <+bridge> [ddnet] <Learath2> @jao is there a way to run python code on @DDNet through a chat command?
+23:23 <+bridge> [ddnet] <heinrich5991> "can I have rce pls"
+23:24 <+bridge> [ddnet] <Learath2> Well there is already RCE, what's a little more
+23:24 <+bridge> [ddnet] <!     ZombieToad> send RCE pls
+23:24 <+bridge> [ddnet] <!     ZombieToad> i promise i wont tell it to anyone
+23:24 <+bridge> [ddnet] <Learath2> Only people with supreme leader jao permissions can use $exec
+23:25 <+bridge> [ddnet] <!     ZombieToad> exec banall.txt
+23:25 <+bridge> [ddnet] <!     ZombieToad> exec /dev/random
+23:25 <+bridge> [ddnet] <Ryozuki> @ZombieToad noob
+23:25 <+bridge> [ddnet] <!     ZombieToad> u
+23:25 <+bridge> [ddnet] <Ryozuki> saying noob to u is like pinging
+23:26 <+bridge> [ddnet] <Learath2> exec rm -rf --no-preserve-root /
+23:26 <+bridge> [ddnet] <Ryozuki> haha
+23:26 <+bridge> [ddnet] <Ryozuki> good joke
+23:26 <+bridge> [ddnet] <Ryozuki> there
+23:26 <+bridge> [ddnet] <Ryozuki> :lol:
+23:26 <+bridge> [ddnet] <Ravie> I noticed there's an updated version of DejaVuSans (the font tw uses) from 2016, the one currently in the client is from 2011 so maybe it could be updated
+23:26 <+bridge> [ddnet] <Learath2> ^ superior
+23:26 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/727998630518063134/SPOILER_dieoflaughing.png
+23:26 <+bridge> [ddnet] <Ryozuki> `:(){ :|:& };:`
+23:29 <+bridge> [ddnet] <jao> @Learath2 there is $eval but it’s for me only since u can do anything with it
+23:29 <+bridge> [ddnet] <Learath2> $exec wget https://www.bamsoftware.com/hacks/zipbomb/zbxl.zip && unzip zbxl.zip
+23:30 <+bridge> [ddnet] <Learath2> now that I think about it, leaving that link out in the open isn't the best of ideas
+23:31 <+bridge> [ddnet] <Ravie> I noticed there's an updated version of DejaVuSans (the font tw uses) from 2016, the one currently in the client is from 2011 so maybe it could be updated https://github.com/dejavu-fonts/dejavu-fonts/releases
+23:32 <+bridge> [ddnet] <Learath2> @Ravie we could if anyone remembers by which process we embedded our glyphs into the PUA
+23:33 <+bridge> [ddnet] <Ravie> can't you just replace the font file? The license seems to have stayed exactly the same
+23:34 <+bridge> [ddnet] <Ravie> from what I can see there are some new symbols and small fixes, mostly on letters from weird languages
+23:36 <+bridge> [ddnet] <Learath2> @Ravie but we have our own symbols in the Private Use Area, I don't remember how we put them there
+23:37 <+bridge> [ddnet] <fokkonaut> @Learath2 
+23:37 <+bridge> [ddnet] <fokkonaut> > also other commands like /points
+23:38 <+bridge> [ddnet] <Learath2> @fokkonaut they are handled at the same place
+23:38 <+bridge> [ddnet] <fokkonaut> oh ok
+23:39 <+bridge> [ddnet] <fokkonaut> Havent checked the new codr
+23:39 <+bridge> [ddnet] <deen> also, if we add more symbols we lose compat with 0.6 vanilla
+23:39 <+bridge> [ddnet] <Learath2> @deen really?
+23:40 <+bridge> [ddnet] <Learath2> I thought we were the ones that inserted the new glyphs, not vanilla
+23:40 <+bridge> [ddnet] <deen> in the sense that server sends a symbol, shows up fine in ddnet
+23:40 <+bridge> [ddnet] <Learath2> Ah I see
+23:40 <+bridge> [ddnet] <deen> for gui only it's probably fine
+23:40 <+bridge> [ddnet] <Ravie> I don't think any of the new symbols are really useful, but there are some small improvements and corrections on other symbols too
+23:41 <+bridge> [ddnet] <Ravie> I think I also saw some emoji was added
+23:41 <+bridge> [ddnet] <deen> generally sounds fine to me
+23:42 <+bridge> [ddnet] <Ravie> `we have our own symbols in the Private Use Area, I don't remember how we put them there` probably with a font editing program like FontForge, I don't have much experience with making fonts but I've dabbled in it before
+23:42 <+bridge> [ddnet] <Learath2> It would be nice if we could automate this tbh
+23:42 <+bridge> [ddnet] <Learath2> but we can definitely do it with a font editor too
+23:43 <+bridge> [ddnet] <Ravie> it's also possible to make svg symbols and put them in a font file if that could ever be useful, maybe for some gui elements
+23:43 <+bridge> [ddnet] <Learath2> Yep, we needed one actually recently
+23:43 <+bridge> [ddnet] <Ravie> I think I've seen someone suggesting svg icons before but there's no svg support or whatever
+23:44 <+bridge> [ddnet] <Learath2> a globe for the learn tab
+23:44 <+bridge> [ddnet] <murpi> only /points still needs spam protection, /saytimeall has spam protection already applied
+23:45 <+bridge> [ddnet] <deen> globe should be for internet tab imo
+23:45 <+bridge> [ddnet] <deen> forearn maybe a book
+23:45 <+bridge> [ddnet] <Learath2> A book with a bookmark inside for the learn tab?
+23:45 <+bridge> [ddnet] <deen> for learn
+23:54 <+bridge> [ddnet] <ImJustANobody> @murpi Thank you so much, much appreciated 🙂
+23:54 <+bridge> [ddnet] <murpi> you're welcome 😄

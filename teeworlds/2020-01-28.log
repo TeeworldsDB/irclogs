@@ -1,0 +1,87 @@
+17:33 < bridge> [teeworlds] <Assa> @heinrich5991 destructor of a member variable? Is it anywhere else mentioned? Smart Pointer?
+17:35 < bridge> [teeworlds] <Assa> Looks like a good use case for a shared pointer for me <.<
+19:28 < bridge> [teeworlds] <heinrich5991> @Assa yea, but I'm not allowed to use a shared pointer ^^
+19:29 < bridge> [teeworlds] <Assa> then write one yourself 😮
+19:30 < bridge> [teeworlds] <Assa> https://www.geeksforgeeks.org/how-to-implement-user-defined-shared-pointers-in-c/
+19:30 < bridge> [teeworlds] <Assa> this is not that hard, you prob. don#t need most of this
+19:31 < bridge> [teeworlds] <heinrich5991> yea, would be a nullable unique pointer then
+19:32 < bridge> [teeworlds] <heinrich5991> what I ended up using was a bare pointer: https://github.com/teeworlds/teeworlds/pull/2441/files#diff-afc2033986e85049284a0a67b2ca5c75R26-R28
+20:51 < bridge> [teeworlds] <heinrich5991> fastest gun in the west
+20:52 < bridge> [teeworlds] <heinrich5991> 20s from pull request to merge
+21:09 < Oy> :)
+21:10 < Oy> Dune: don't get https://github.com/teeworlds/teeworlds/issues/2445
+21:12 < Oy> ah nvm, now i do, the double confirmation
+21:16 < bridge> [freenode] <ChillerDragon> Oy: and especially people who are used to /whisper commands from 0.6 server modifications will enjoy that
+21:16 < bridge> [freenode] <ChillerDragon> why do i even bother joining irc to ping oy if im using a bridge on freenode anyways :D
+21:19 < Oy> never used whisper so far
+21:41 < bridge> [teeworlds] <ChillerDragon> Oh why not stop server if logging fails?
+21:42 < bridge> [teeworlds] <ChillerDragon> i mean this only happens if one provides the ``logfile`` option
+21:42 < Dune> logging shouldn't raise critical errors?
+21:45 < bridge> [teeworlds] <ChillerDragon> well on start it is very useful imo
+21:46 < bridge> [teeworlds] <ChillerDragon> i crafted a very and messy workaround in my scripts repo that checks if logging failed
+21:46 < bridge> [teeworlds] <ChillerDragon> but still
+21:48 < Oy> users often use a config they got from someone else, and that could have a logfile command
+21:49 < bridge> [teeworlds] <ChillerDragon> well
+21:49 < bridge> [teeworlds] <ChillerDragon> ok
+21:50 < bridge> [teeworlds] <ChillerDragon> imo this change makes it easier for server hosters updating from 0.6
+21:50 < Oy> how?
+21:50 < bridge> [teeworlds] <ChillerDragon> I was really confused the first time i cam in contact with the new system
+21:51 < bridge> [teeworlds] <ChillerDragon> even deen a high skilled admin did not understand why logging broke
+21:51 < bridge> [teeworlds] <ChillerDragon> this error would explain it in a few seconds
+22:10 < bridge> [teeworlds] <redix> the error is printed to stdout. That should be enough. For a tw server logfiles aren't that crucial that the server should shutdown because of it
+22:12 < bridge> [teeworlds] <heinrich5991> note that this is about shutdown when the server is initially started(?)
+22:12 < bridge> [teeworlds] <heinrich5991> i.e. when the admin is looking at it anyway
+22:14 < bridge> [teeworlds] <ChillerDragon> the log prints a lot of messages it can be easily overseen
+22:14 < bridge> [teeworlds] <heinrich5991> overseen is the opposite of "übersehen"
+22:14 < bridge> [teeworlds] <heinrich5991> (like overhear btw)
+22:15 < bridge> [teeworlds] <ChillerDragon> oh
+22:15 < bridge> [teeworlds] <ChillerDragon> overlook then?
+22:15 < bridge> [teeworlds] <ChillerDragon> sounds odd
+22:15 < bridge> [teeworlds] <redix> It's not like there are thousands of lines to check at the beginning =\
+22:16 < bridge> [teeworlds] <ChillerDragon> its not like any one bothers to read them all
+22:16 < bridge> [teeworlds] <heinrich5991> what do you think about the point that the admin is looking anyway, @redix
+22:19 < bridge> [teeworlds] <redix> Well I'm just not a big fan of stopping the whole server just because the logfile failed... But as the logfiles use blocking io I prefer other logging methods in general 😅
+22:20 < bridge> [teeworlds] <heinrich5991> "stopping the whole server" only means "not starting the server" in this case
+22:20 < bridge> [teeworlds] <ChillerDragon> then do not use ``logfile`` and u wont be affected
+22:20 < bridge> [teeworlds] <ChillerDragon> if u use other logging options server wont stop
+22:20 < Oy> how many people have a broken logfile? and how many average users will then show up with "my server doesn't start, just a window pops up and closes" (because of a broken logfile)
+22:20 < bridge> [teeworlds] <ChillerDragon> when restarting different servers a lot i do not bother readong every line
+22:20 < bridge> [teeworlds] <ChillerDragon> http://zillyhuhn.com:8080/q9
+22:20 < bridge> [teeworlds] <ChillerDragon> it can get get some lines
+22:21 < bridge> [teeworlds] <ChillerDragon> hmm yea the config sharing thing. Tbh i did not think about that and just assumed people who know what they are doing use the logfile setting
+22:22 < Oy> that logfile error pops right into ur eyes :P
+22:22 < bridge> [teeworlds] <ChillerDragon> yes because my logpath is hilariously long
+22:22 < Oy> the average user has no clue what he's doing and downloads some random config
+22:22 < bridge> [teeworlds] <ChillerDragon> hm
+22:23 < Dune> this warning may be very important to some server hosters, but not critical to others, and that would suck if they are unexperienced
+22:23 < Dune> so I agree with Oy here
+22:23 <@heinrich5991> an actual problem here is that we concatenate paths btw
+22:23 < bridge> [teeworlds] <ChillerDragon> no why?
+22:24 <@heinrich5991> instead of throwing an error when the user passes /abc/def
+22:24 <@heinrich5991> the intention of the user is clear, yet we pretend they mean our/path//abc/def
+22:24 < bridge> [teeworlds] <ChillerDragon> well this could also seen as absolute path starting from dumps dir but i see what u mean
+22:25 < bridge> [teeworlds] <heinrich5991> "absolute path starting from" is a relative path
+22:25 < bridge> [teeworlds] <ChillerDragon> xd
+22:25 < bridge> [teeworlds] <ChillerDragon> idk what happens when ../ i used
+22:25 < bridge> [teeworlds] <ChillerDragon> probably also fails
+22:26 < bridge> [teeworlds] <ChillerDragon> all these things used to work in 0.6
+22:26 < Oy> we should forbid it, if it works
+22:26 < bridge> [teeworlds] <heinrich5991> it's a security improvement that random server admins cannot take over your server using the teeworlds server
+22:26 < bridge> [teeworlds] <ChillerDragon> yy ik
+22:26 < bridge> [teeworlds] <redix> Restricting the file access a bit is definitely a good thing
+22:26 < Oy> yeah
+22:27 < bridge> [teeworlds] <ChillerDragon> logfile was restart only i think ``exec`` is even worse
+22:27 < bridge> [teeworlds] <redix> Maybe there should be an exception for things that are loaded at server start
+22:29 < Oy> how about showing active errors when u log in to rcon?
+22:31 < bridge> [teeworlds] <ChillerDragon> doesnt solve the issue if you never auth in rcon
+22:32 < bridge> [teeworlds] <ChillerDragon> but would be nice yes to put the master server warning there instead of in the logs :p
+22:32 < bridge> [teeworlds] <ChillerDragon> in my 0.6 mod i used to track wrong rcon attempts and showed last login and amount of failed attempts on rcon login
+22:32 < Dune> it's a pretty important error, means the server isn't running
+22:33 < Dune> should be all over the place
+22:55 < Oy> heinrich5991: on windows you have different absolute paths
+22:55 <@heinrich5991> yes, there's another kind which this doesn't detect, C:\
+22:56 <@heinrich5991> I feel this is still an improvement over every file exec (e.g. autoexec.cfg) saying that you can't have absolute paths
+22:57 <@heinrich5991> *every failed
+22:59 <@heinrich5991> anyway, off for tonight
+22:59 <@heinrich5991> good night everyone
+23:00 < Oy> gn8

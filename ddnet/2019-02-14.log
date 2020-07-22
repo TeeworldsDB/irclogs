@@ -1,0 +1,39 @@
+00:50 <+bridge> [ddnet] <ᶰ°Konͧsti> Its absolutely not related to weak/strong
+01:14 <+bridge> [ddnet] <Alexander> I really cant understand your question
+01:14 <+bridge> [ddnet] <Alexander> Can you maybe record a gif/video
+01:14 <+bridge> [ddnet] <Alexander> *i mean i probably cant help but i want to understand it*
+12:03 <+bridge> [ddnet] <Wollwolke> I wanna use a statically linked server binary to reduce the image size of my containers.
+12:03 <+bridge> [ddnet] <Wollwolke> So I tried to link the DDNet-Server executable with the options `-DBUILD_SHARED_LIBS=OFF -DCMAKE_EXE_LINKER_FLAGS="-static"`. It compiled with the following warning:
+12:03 <+bridge> [ddnet] <Wollwolke> ```
+12:03 <+bridge> [ddnet] <Wollwolke> CMakeFiles/engine-shared.dir/src/base/system.c.o: In function `net_host_lookup':
+12:03 <+bridge> [ddnet] <Wollwolke> system.c:(.text+0x3a92): warning: Using 'getaddrinfo' in statically linked applications requires at runtime the shared libraries from the glibc version used for linking
+12:03 <+bridge> [ddnet] <Wollwolke> ```
+12:03 <+bridge> [ddnet] <Wollwolke> The server crashes when trying to resolve DNS names of the masters.
+12:03 <+bridge> [ddnet] <Wollwolke> This seems to be an issue with glibc, so I tried compiling against Musl, with the following result:
+12:03 <+bridge> [ddnet] <Wollwolke> ```
+12:03 <+bridge> [ddnet] <Wollwolke> In file included from /src/src/base/hash.c:4:0:
+12:03 <+bridge> [ddnet] <Wollwolke> /src/src/base/system.h:767:17: error: array type has incomplete element type 'struct mmsghdr'
+12:03 <+bridge> [ddnet] <Wollwolke>   struct mmsghdr msgs[VLEN];
+12:03 <+bridge> [ddnet] <Wollwolke>                  ^~~~
+12:03 <+bridge> [ddnet] <Wollwolke> make[3]: *** [CMakeFiles/engine-shared.dir/build.make:558: CMakeFiles/engine-shared.dir/src/base/hash.c.o] Error 1
+12:03 <+bridge> [ddnet] <Wollwolke> make[2]: *** [CMakeFiles/Makefile2:929: CMakeFiles/engine-shared.dir/all] Error 2
+12:03 <+bridge> [ddnet] <Wollwolke> make[1]: *** [CMakeFiles/Makefile2:1254: CMakeFiles/DDNet-Server.dir/rule] Error 2
+12:03 <+bridge> [ddnet] <Wollwolke> make: *** [Makefile:589: DDNet-Server] Error 2
+12:03 <+bridge> [ddnet] <Wollwolke> ```
+12:04 <+bridge> [ddnet] <Wollwolke> 
+12:04 <+bridge> [ddnet] <Wollwolke> Any ideas on how to procede, or which error is the easier one to fix?
+13:18 <+bridge> [ddnet] <deen> Wouldn't your container still contain the shared libs?
+13:18 <+bridge> [ddnet] <deen> Why would it reduce size to link statically?
+13:18 <+bridge> [ddnet] <deen> I'd rather guess that you should link dynamically to save size
+13:19 <+bridge> [ddnet] <deen> not sure about the DNS resolving problem, run it with a Debug build in gdb and check out the backtrace
+13:20 <+bridge> [ddnet] <deen> Sounds like musl doesn't implement mmsghdr, we have them surrounded with CONF_PLATFORM_LINUX ifdefs, you could make a PR to make that #if SUPPORT_MMSG and #define SUPPORT_MMSG when CONF_PLATFORM_LINUX is defined and some MUSL define isn't
+13:20 <+bridge> [ddnet] <deen> @Wollwolke ^
+13:21 <+bridge> [ddnet] <Learath2> I don't really see linking statically helping with binary size, even if you link with musl it'd still be a bigger binary
+13:25 <+bridge> [ddnet] <Wollwolke> It doesn't help with binary size, but with the container size. You could then use a base image like `gcr.io/distroless/static` which only is a few MB in size
+13:30 <+bridge> [ddnet] <Learath2> well you'll need to disable the mmsg stuff like deen said to get it compiling with musl
+13:37 <+bridge> [ddnet] <Wollwolke> what are the drawbacks of disabling mmsg?
+15:25 <+bridge> [ddnet] <deen> lower performance when you receive a DoS attack
+15:26 <+bridge> [ddnet] <deen> it allows the kernel to pass us multiple packets per recvmmsg syscall instead of just one in the recvfrom
+15:26 <+bridge> [ddnet] <deen> but musl generally is probably not as optimized as glibc
+15:46 <+bridge> [ddnet] <Wollwolke> Ok, thank you for the explanation, I settled with Alpine Linux with glibc and dynamic linking. That results in an image size of ~14 MB.
+15:56 <+bridge> [ddnet] <deen> That sounds good enough 😃

@@ -1,0 +1,41 @@
+01:54 < bridge> [teeworlds] <jxsl13> ._. anyone wanna give some feedback on this? https://github.com/jxsl13/twapi
+01:55 < bridge> [teeworlds] <jxsl13> rand or heinrich might be the goto people to ask :)
+16:49 < bridge> [teeworlds] <heinrich5991> looked into a random file, https://github.com/jxsl13/twapi/blob/master/compression/varint.go
+16:49 < bridge> [teeworlds] <heinrich5991> size of variable-sized integers do not depend on the host machine, teeworlds assumes int is 32 bit
+16:50 < bridge> [teeworlds] <heinrich5991> for that, the variable-sized int can be between 1 and 5 bytes
+16:51 < bridge> [teeworlds] <heinrich5991> `if value < -3.6028797e16 || 3.6028797e16 < value {` this is a very weird range, should be `value < -2147483648 || 2147483647 < value`
+16:52 < bridge> [teeworlds] <heinrich5991> `intSize := unsafe.Sizeof(value)` this shouldn't happen in a network protocol. don't let network datatypes depend on the host's datatype width
+16:52 < bridge> [teeworlds] <heinrich5991> I just looked it up, `int` in go varies between 32 and 64 bits, but teeworlds integers are always 32 bit
+16:53 < bridge> [teeworlds] <jxsl13> hm k
+16:54 < bridge> [teeworlds] <jxsl13> I was kinda curious, whether go's varint is the same as teeworld's varint. it seems to be a seemingly often used format, otherwise it would not be part of the standard library
+16:54 < bridge> [teeworlds] <heinrich5991> probably not
+16:57 < bridge> [teeworlds] <heinrich5991> ```
+16:57 < bridge> [teeworlds] <heinrich5991>     a := [size]byte{}
+16:57 < bridge> [teeworlds] <heinrich5991>     b := a[:]
+16:57 < bridge> [teeworlds] <heinrich5991> ```
+16:57 < bridge> [teeworlds] <heinrich5991> what's this dance? 🙂
+16:57 < bridge> [teeworlds] <heinrich5991> (don't know go very well)
+16:57 < bridge> [teeworlds] <jxsl13> stack allocation
+16:57 < bridge> [teeworlds] <jxsl13> of fixed size array
+16:57 < bridge> [teeworlds] <jxsl13> andcreating a slice from that array
+16:58 < bridge> [teeworlds] <jxsl13> might be not needed, as the slice "escapes" the stack anyway
+16:58 < bridge> [teeworlds] <jxsl13> into the heap
+17:08 < bridge> [teeworlds] <heinrich5991> looks good, overall
+17:09 < bridge> [teeworlds] <heinrich5991> an additional possible feature would be retrying server info/list packets
+17:10 < bridge> [teeworlds] <jxsl13> current abstraction is  only on the packet level
+17:10 < bridge> [teeworlds] <jxsl13> slowly going upwards
+17:10 < bridge> [teeworlds] <jxsl13> to connections and whatnot
+17:23 < bridge> [teeworlds] <jxsl13> I must say, Assa's hint about jupyter lab supporting C++ is rather nice 😮
+17:42 < bridge> [teeworlds] <Assa> ^.^
+17:43 < bridge> [teeworlds] <Assa> https://github.com/jupyter/jupyter/wiki/Jupyter-kernels
+17:44 < bridge> [teeworlds] <Assa> jupyter is great for quick testing, it can even support conda
+17:56 < bridge> [teeworlds] <jxsl13> I installed it with conda
+17:57 < bridge> [teeworlds] <jxsl13> c++ build process is simply said: rip
+19:39 < Learath2> Do we have some padding bytes somewhere in the demo header I can utilise to upgrade demos without breaking backwards compatibility?
+19:39 < Learath2> Actually could append new chunks after the map
+19:42 < bridge> [teeworlds] <jxsl13> oof 😄 clever approach
+19:44 < Learath2> I'm going to add sha256 to the demos, would you be interested in a more extensible approach where we can extend the demo format without breaking compatibility in the feature? Or just a version bump and the sha256 after the map?
+19:57 < Dune> learath2: aren't there some bytes for the demo version?
+20:05 < bridge> [teeworlds] <heinrich5991> there are
+21:53 < Learath2> Well using the bytes for the demo version would "break" backwards compatibility
+22:14 < bridge> [teeworlds] <jxsl13> added a retrying fetch, maybe there are better approaches to this.

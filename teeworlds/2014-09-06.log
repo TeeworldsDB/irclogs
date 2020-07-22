@@ -1,0 +1,30 @@
+09:33 < SNAK3> hi !
+09:34 < Edible> hey!
+09:46 < SNAK3> Can someone explain to me how the storage.cfg file is used ?
+09:46 < SNAK3> i'd like to have multiple servers with the same maps folder 
+09:46 < SNAK3> so i guess i'll have to note that somewhere in the storage.cfg ?
+09:53 < floreo> that's what I did for a script, but I have to go wash my car, can have a look at install function here https://bitbucket.org/florianleleu/teeman/src/8087971cce78bff230aa76a017cbbf714c223855/teeman?at=master or use the tool directly, I'd need feedback
+16:05 < floreo> does anybody know why in the log the datetime is an hexa and not a human readable datetime?
+16:28 < Learath2> floreo: b/c oy wontfix
+16:28 < Learath2> https://github.com/teeworlds/teeworlds/issues/245
+17:28 < floreo> Learath2: thanks
+17:29 < floreo> actually it's really not smart to set it this way :/ it would be very practical to have it readable
+17:29 < floreo> doing some fail2ban filter and it fails cuz of that
+20:21 < guest__> @floreo : this timestamp is probably the number of seconds since 1970-01-01 00:00:00 UTC. Check it in the sources.
+20:21 < guest__> So you can convert it:
+20:21 < guest__> Actual date = date "+%s"
+20:21 < guest__> Conversion hex/dec = bc. Ex: echo -e "ibase=16\n540D47D9" | bc -l
+20:22 < guest__>  date "+%s" --> 1410027769
+20:23 < guest__> echo -e "ibase=16\n540D47D9" | bc -l  --> 1410156505
+21:15 < floreo> guest__: thanks, I already figured this out sometimes echo here => https://www.teeworlds.com/forum/viewtopic.php?id=10662
+21:15 < floreo> btw I prefer to not use bc which is not installed by default :)
+21:17 < floreo> the problem there was to do it in real time, so I did a quick and dirty like that: https://gist.github.com/floreo/6380cfe7e0d2e509cd57
+21:18 < floreo> and now my fail2ban rules work :)
+21:19 < floreo> need to do some about rcon, and i'll make a post I guess on teeworlds.com if anyone is interested
+23:52 < guest__> @floreo: your solution dont work on my computer :(
+23:52 < guest__> My locales are LANG=fr_FR.UTF-8.
+23:53 < guest__> Why a loop? If you use awk, you can cut off the loop, and the calls to bash + date.
+23:53 < guest__> Other problem: you don't escape shell caracters. So you lose " ' and so on in your result.
+23:53 < guest__> Try this :
+23:53 < guest__> teeworlds-server -f test.conf | sed -e 's@\[@ @' -e 's@\]@ - @' | awk '{ $1=strftime("%F %T", strtonum("0x"$1)); print }'
+23:54 < guest__> I dont like the "sed", but its to respect your format an to keep a readable "awk".

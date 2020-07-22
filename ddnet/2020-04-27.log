@@ -1,0 +1,174 @@
+02:13 <+bridge> [ddnet] <fokkonaut> ChillerDragon, are you there?
+09:00 <+bridge> [ddnet] <Learath2> @deen ^^ when you are around pls
+09:07 <+bridge> [ddnet] <deen> @Learath2 hi
+09:07 <+bridge> [ddnet] <Learath2> o/
+09:08 <+bridge> [ddnet] <deen> done
+09:13 <+bridge> [ddnet] <Learath2> @deen can you check error.log? I think I broke something with that
+09:14 <+bridge> [ddnet] <Learath2> Ah, that should have been an elseif not an else if
+09:15 <+bridge> [ddnet] <Learath2> hm, shouldn't need to be
+09:46 <+bridge> [ddnet] <deen> @Learath2 ^
+09:48 <+bridge> [ddnet] <Learath2> oh the stupid closing brackets, I wonder why my IDE didn't complain at all
+10:12 <+bridge> [ddnet] <Learath2> `^[0-9a-fA-F]{8}\-(?:[0-9a-fA-F]{4}\-){3}[0-9a-fA-F]{12}$` is probably a better regex for uuids
+10:16 <+bridge> [ddnet] <heinrich5991> you don't need to escape - outside of `[]` and not at the start/end of `[]`
+10:16 <+bridge> [ddnet] <heinrich5991> you don't need to escape `-` outside of `[]` and not at the start/end of `[]`
+10:17 <+bridge> [ddnet] <Learath2> `^[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}$` even better
+11:39 <+bridge> [ddnet] <Ryozuki> `[\da-fA-F]`
+11:40 <+bridge> [ddnet] <Learath2> `[[:xdigit:]]` 😛
+11:40 <+bridge> [ddnet] <Ryozuki> ew
+11:40 <+bridge> [ddnet] <Ryozuki> lucky with grep u can use -E
+11:41 <+bridge> [ddnet] <Learath2> you don't like posix character classes?
+11:41 <+bridge> [ddnet] <Ryozuki> no
+11:41 <+bridge> [ddnet] <Ryozuki> its ugly
+11:41 <+bridge> [ddnet] <Ryozuki> imo pcre is the best regex
+11:42 <+bridge> [ddnet] <Learath2> PCRE has posix character classes
+11:42 <+bridge> [ddnet] <Ryozuki> but most of time u dont need them
+11:43 <+bridge> [ddnet] <Ryozuki> ```This crate provides a library for parsing, compiling, and executing regular expressions. Its syntax is similar to Perl-style regular expressions, but lacks a few features like look around and backreferences.``` rust regex
+11:43 <+bridge> [ddnet] <Learath2> You never need them, they can make regex easier to read sometimes
+11:43 <+bridge> [ddnet] <Ryozuki> why most languages cant implement a full pcre
+11:44 <+bridge> [ddnet] <Learath2> I think php and ruby are pretty complete pcre implementations
+11:49 <+bridge> [ddnet] <heinrich5991> backreferences are bad™ because they make the expressions no longer regular in the cs sense
+11:49 <+bridge> [ddnet] <heinrich5991> that means they are no longer guranteed to run in linear time
+11:49 <+bridge> [ddnet] <heinrich5991> (PCRE backreferences have exponential worst case)
+11:53 <+bridge> [ddnet] <Learath2> hm, is it because with regexes are supposed to be equivalent to some DFA and with backreferences we can no longer map it to a DFA?
+11:53 <+bridge> [ddnet] <heinrich5991> yes
+11:53 <+bridge> [ddnet] <Learath2> `s/with//`
+11:54 <+bridge> [ddnet] <heinrich5991> the name comes from CS, "regular languages" are exactly those that can be accepted by a DFA
+11:54 <+bridge> [ddnet] <Learath2> I wonder how regex engines handle backreferences
+11:54 <+bridge> [ddnet] <heinrich5991> backtracking
+11:55 <+bridge> [ddnet] <Learath2> backtracking as in actually going back to when the match first happened?
+11:56 <+bridge> [ddnet] <heinrich5991> no, backtracking as in "brute force with backtracking"
+11:56 <+bridge> [ddnet] <heinrich5991> try to greedily match the regex, if it doesn't match, backtrack to the first position where you made a choice and make the next possible choice
+11:57 <+bridge> [ddnet] <Learath2> hm, what choice are they making?
+11:57 <+bridge> [ddnet] <heinrich5991> `(a*)*`
+11:57 <+bridge> [ddnet] <heinrich5991> `aaaaaaab`
+11:57 <+bridge> [ddnet] <Learath2> ah, how much to match
+11:58 <+bridge> [ddnet] <heinrich5991> yes
+11:58 <+bridge> [ddnet] <heinrich5991> (this is an example where PCRE chokes btw)
+11:58 <+bridge> [ddnet] <heinrich5991> yes, this one is artificial, but people have been bitten by exponential regexes before (e.g. stackoverflow)
+11:58 <+bridge> [ddnet] <Learath2> I see, I wonder if someone came up with a smart way to do non-regular expressions decently efficiently
+11:59 <+bridge> [ddnet] <heinrich5991> https://stackstatus.net/post/147710624694/outage-postmortem-july-20-2016
+12:01 <+bridge> [ddnet] <Learath2> This is what happens when you get too comfortable with features like these
+12:02 <+bridge> [ddnet] <heinrich5991> with linear-time regex engines, you don't have to worry about it
+12:02 <+bridge> [ddnet] <Learath2> I always assume a regex match is an order of magnitude more expensive then a more traditional approach
+12:03 <+bridge> [ddnet] <Learath2> Sure that means I use less regex in my code, but whatever, I'd rather have predictable performance
+12:03 <+bridge> [ddnet] <heinrich5991> linear-time regexes give you that predictable performance
+12:04 <+bridge> [ddnet] <Learath2> yes, but say we use a linear-time regex engine on ddnet, then I decide to parse something in js and copy over that regex
+12:04 <+bridge> [ddnet] <heinrich5991> yea
+12:04 <+bridge> [ddnet] <Learath2> suddenly my linear-time regex can become an exponential cost 😛
+12:05 <+bridge> [ddnet] <Learath2> impressed by the response time by SX btw
+12:05 <+bridge> [ddnet] <heinrich5991> 34 minutes is impressive, indeed
+12:05 <+bridge> [ddnet] <Learath2> They probably have some builtin profiling somewhere in the code, it'd be impossible to track it down blind
+12:06 <+bridge> [ddnet] <Learath2> or maybe some tracing of calls into the underlying engine
+12:36 <+bridge> [ddnet] <Learath2> my nginx will pass PHP_AUTH_USER just fine, the one on ddnet.tw wont
+12:39 <+bridge> [ddnet] <Learath2> now it decided it'll start to pass it along
+12:39 <+bridge> [ddnet] <Learath2> wtf?
+12:40 <+bridge> [ddnet] <heinrich5991> hmmm 😄
+12:44 <+bridge> [ddnet] <Learath2> ah another http header oddity
+12:45 <+bridge> [ddnet] <Learath2> yay to not upgrading decades old software because dinosaur forgotten servers we should still be able to connect to
+12:47 <+bridge> [ddnet] <heinrich5991> elaborat
+12:47 <+bridge> [ddnet] <heinrich5991> e
+12:49 <+bridge> [ddnet] <Learath2> hm, now that I think about it it's more of a PHP oddity
+12:49 <+bridge> [ddnet] <Learath2> as soon as you send 1 header, php will no longer touch the headers
+12:49 <+bridge> [ddnet] <Learath2> they are all your responsibility
+14:10 <+bridge> [ddnet] <Learath2> maybe we should not be sending commits to branches to github
+14:10 <+bridge> [ddnet] <Learath2> `s/github/discord/`
+15:13 <+bridge> [ddnet] <Soreu> Guys, I have weird problem / bug related with `game.png` image. With the default one, if I am in freeze, there are only two rows showing the health & shields bar. If I use custom one, done properly, dilated, without any additional images anywhere on it, I somehow have 3rd row of unknown thing
+15:13 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/704319403424088174/unknown.png
+15:16 <+bridge> [ddnet] <Vexar> is it bullet's sprite ?
+15:18 <+bridge> [ddnet] <Soreu> I have no idea, but either way, I didn't draw any additional stuff on  the game.png, so I have totally no idea why anything is appearing in there
+15:19 <+bridge> [ddnet] <Soreu> ...to make it funnier, I just realized that if I don't dilate the `game.png`, this thing is not appearing .-.
+15:21 <+bridge> [ddnet] <Soreu> ok, it's more complicated than that
+15:30 <+bridge> [ddnet] <Soreu> ok, the answer is it takes the last pixel at bottom right edge, so there has to be at least 1px space from the edge... but why?
+15:35 <+bridge> [ddnet] <Crying> @Learath2
+15:36 <+bridge> [ddnet] <Crying> U can help?
+15:38 <+bridge> [ddnet] <Soreu> @Crying write with what already
+15:38 <+bridge> [ddnet] <Crying> u can ban players in game?
+15:38 <+bridge> [ddnet] <Soreu> ask @Moderators
+15:39 <+bridge> [ddnet] <Soreu> or simply write who does what on #general including server ip & port
+16:05 <+bridge> [ddnet] <nexusrf> wrong channel
+16:05 <+bridge> [ddnet] <nexusrf> i have this one muted
+16:05 <+bridge> [ddnet] <nexusrf> dont ping mod here
+16:06 <+bridge> [ddnet] <nexusrf> general or showroom if you want to add an image to it
+16:08 <+bridge> [ddnet] <noby> @Soreu is this u lol
+16:08 <+bridge> [ddnet] <noby> https://cdn.discordapp.com/attachments/293493549758939136/704333041564123287/Screen_Shot_2020-04-27_at_9.07.09_AM.png
+16:08 <+bridge> [ddnet] <jao> only #general, not #showroom
+16:09 <+bridge> [ddnet] <Soreu> @onby umm, yep. Out of boredom checking all old DDNet clients for when that started appearing & when it changed. but older versions get banned from DDNet & KoG servers so tried on ur xD
+16:09 <+bridge> [ddnet] <noby> not 'older versions' but 708 specifically
+16:09 <+bridge> [ddnet] <noby> and a few other old ones
+16:09 <+bridge> [ddnet] <Soreu> I'm going thru every single one of old DDNet
+16:09 <+bridge> [ddnet] <Soreu> :P
+16:09 <+bridge> [ddnet] <jao> lol he wanted to bot
+16:09 <+bridge> [ddnet] <noby> :kek:
+16:10 <+bridge> [ddnet] <Soreu> If i'd want to bot, I would use better clients than DDNet 7.8.2
+16:10 <+bridge> [ddnet] <Soreu> hmm, that got me wonder for how long I might got banned on KoG now :think_bot:
+16:11 <+bridge> [ddnet] <noby> dont they autokick
+16:11 <+bridge> [ddnet] <Soreu> didn't look that closely on the info
+16:11 <+bridge> [ddnet] <Soreu> xd
+16:12 <+bridge> [ddnet] <Soreu> either way, guess I have to start checking on local server now xd
+16:12 <+bridge> [ddnet] <jao> bot on lan server :think_bot:
+16:13 <+bridge> [ddnet] <noby> shouldnt u try to test them by bisecting
+16:13 <+bridge> [ddnet] <noby> find the halfway point between version 1 and newest and test that
+16:14 <+bridge> [ddnet] <noby> then if it works try finding the halfway point between that and newest and repeat
+16:15 <+bridge> [ddnet] <Soreu> yeeaaa, but I'm seriously bored
+16:15 <+bridge> [ddnet] <noby> lol
+16:15 <+bridge> [ddnet] <jao> do something useful
+16:15 <+bridge> [ddnet] <Soreu> doing. Trying to find when that bug started appearing
+16:16 <+bridge> [ddnet] <louis> if ur gonna get banned, at least get banned while ur actually botting :zzzz:
+16:16 <+bridge> [ddnet] <jao> do it properly
+16:16 <+bridge> [ddnet] <Soreu> shh
+16:17 <+bridge> [ddnet] <Soreu> ok. shit won't work that way
+16:17 <+bridge> [ddnet] <Soreu> on local server I don't have that 3rd row
+16:17 <+bridge> [ddnet] <Soreu> wtf even
+16:17 <+bridge> [ddnet] <noby> try on vanilla server
+16:17 <+bridge> [ddnet] <Soreu> but why I have it on KoG, DDNet, but not local srv from latest version?
+16:18 <+bridge> [ddnet] <Soreu> just wtf
+16:18 <+bridge> [ddnet] <noby> local server is ddnet too?
+16:18 <+bridge> [ddnet] <Soreu> y
+16:18 <+bridge> [ddnet] <heinrich5991> @Soreu it's configurable
+16:19 <+bridge> [ddnet] <Soreu> @heinrich5991 huh?
+16:20 <+bridge> [ddnet] <heinrich5991> okay, maybe I skimmed too much
+16:20 <+bridge> [ddnet] <heinrich5991> the autoban is a configuration option
+16:20 <+bridge> [ddnet] <Soreu> ah, that part
+16:20 <+bridge> [ddnet] <Soreu> xd
+16:21 <+bridge> [ddnet] <Soreu> anyway, I still don't get how comes I have it on official servers, but not on local one
+16:21 <+bridge> [ddnet] <noby> try on ctf
+16:22 <+bridge> [ddnet] <Soreu> in latest client I have weapon bullets here (CTF3)
+16:22 <+bridge> [ddnet] <Soreu> in old af client too
+16:23 <+bridge> [ddnet] <Soreu> and they do show poperly
+16:23 <+bridge> [ddnet] <noby> for every weapon?
+16:24 <+bridge> [ddnet] <Soreu> pistol, sg, laser, rocket
+16:24 <+bridge> [ddnet] <Soreu> since that bug appears in freeze, i guess it's related to ninja
+16:24 <+bridge> [ddnet] <Soreu> and can't test this one here
+16:26 <+bridge> [ddnet] <noby> on some dm1 servers there is ninja at the top
+16:27 <+bridge> [ddnet] <Soreu> umm
+16:27 <+bridge> [ddnet] <Soreu> I think it actually might be bug related to KoG servers
+16:27 <+bridge> [ddnet] <noby> why
+16:29 <+bridge> [ddnet] <Soreu> ...because I just noticed (ye, i'm smart today) that I actually don't have it on DDNet servers
+16:29 <+bridge> [ddnet] <Soreu> only on KoG's
+16:29 <+bridge> [ddnet] <noby> ah xd
+16:29 <+bridge> [ddnet] <noby> weird
+16:29 <+bridge> [ddnet] <Soreu> second thing I noticed is that I should have made backup of client settings before lanching older ones
+16:30 <+bridge> [ddnet] <noby> does that mess up the cfg
+16:30 <+bridge> [ddnet] <Soreu> binds for sure
+16:33 <+bridge> [ddnet] <heinrich5991> I think only everything but binds
+16:34 <+bridge> [ddnet] <Soreu> but some binds also changed, especially the `kp_` ones
+16:50 <+bridge> [ddnet] <Soreu> wrote to Qshar, maybe he has idea what they messed in the code about displaying ammo xd
+16:50 <+bridge> [ddnet] <Soreu> wrote to Qshar, maybe he has idea what they messed in the server code about displaying ammo xd
+18:54 <+bridge> [ddnet] <nexusrf> general only. not a proper channel but showroom if you want to add an image to it
+20:45 <+bridge> [ddnet] <Learath2> @deen ^^ :/
+20:53 <+bridge> [ddnet] <deen> done
+20:59 <+bridge> [ddnet] <Learath2> hm, @deen how familiar are you with nginx? am I not passing the header correctly?
+22:30 <+bridge> [ddnet] <deen> what's wrong with it?
+23:04 <+bridge> [ddnet] <heinrich5991> @jao how do you generate the backups of the testing channels?
+23:18 <+bridge> [ddnet] <Learath2> @deen it won't pass the real host in X-Forwarded-Host
+23:54 <+bridge> [ddnet] <Ryozuki> ```nginx
+23:54 <+bridge> [ddnet] <Ryozuki> proxy_pass http://localhost:17175;
+23:54 <+bridge> [ddnet] <Ryozuki> proxy_http_version 1.1;
+23:54 <+bridge> [ddnet] <Ryozuki> proxy_set_header Upgrade $http_upgrade;
+23:55 <+bridge> [ddnet] <Ryozuki> proxy_set_header Connection "Upgrade";
+23:55 <+bridge> [ddnet] <Ryozuki> proxy_read_timeout 86400;
+23:55 <+bridge> [ddnet] <Ryozuki> proxy_set_header X-Real-IP $remote_addr;
+23:55 <+bridge> [ddnet] <Ryozuki> proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+23:55 <+bridge> [ddnet] <Ryozuki> ```
+23:55 <+bridge> [ddnet] <Ryozuki> @Learath2
+23:55 <+bridge> [ddnet] <Ryozuki> this is for a websocket i have

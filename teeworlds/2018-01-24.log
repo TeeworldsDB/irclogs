@@ -1,0 +1,55 @@
+15:34 < pinkieval> A few days ago, I moved my servers to a VPS with a DDoS protection that works against random UDP packets
+15:35 < pinkieval> now, the shape of the DDoS changed
+15:35 < pinkieval> now it floods with connecting clients, so the server is always full
+15:36 < pinkieval> It has been going on for two hours
+18:07 < Learath2> pinkieval: ddnet uses some token to prevent the filling up, I don't think we have a patch for it, but you could search for TKEN and use git blame to see the changes
+18:16 < pinkieval> Learath2: cool, thanks
+18:42 < pinkieval> wtf, "grep TKEN" only finds binary files
+18:44 < pinkieval> static const unsigned char SECURITY_TOKEN_MAGIC[] = {'T', 'K', 'E', 'N'};
+18:44 < pinkieval> I see
+18:54 < Learath2> pinkieval: my bad :P
+18:55 < pinkieval> Learath2: are you sure that would work?
+18:55 < pinkieval> it looks like it is designed to prevent spoofing existing clients
+18:55 < pinkieval> not to drop spoofed clients early
+18:55 < Learath2> well they can't fill up the slots on ddnet, I just assumed it was that, I can check when I'm home if you want
+18:56 < pinkieval> because the server still accepts clients that don't support the token
+18:56 < Learath2> you could check NETMSG_INFO and NETMSG_READY to see if we do anything different
+19:10 < pinkieval> I don't see any difference :/
+19:10 < pinkieval> idea: give each IP address a password, which is shown in the name of the server
+19:11 < pinkieval> this way, it's compatible with vanilla client
+19:11 < pinkieval> but it's not very user-friendly
+22:24 < ***> Buffer Playback...
+22:24 < eeeee> [22:20:26] don't remember exactly which technique are we using these days, but i'm sure it's also vanilla compatible and completely transparent to the user
+22:24 < eeeee> [22:22:13] and also iirc SECURITY_TOKEN_MAGIC is to prevent injecting spoofed packets into an established connection, the technology to prevent spoofed connections is called sth else
+22:24 < pinkieval> [22:22:35] eeeee: https://github.com/ddnet/ddnet/blob/master/src/engine/shared/network_conn.cpp#L342-L344
+22:24 < pinkieval> [22:23:06] "the technology to prevent spoofed connections is called sth else" oh
+22:24 < pinkieval> [22:23:12] do you remember its name?
+22:24 < eeeee> [22:24:18] pinkieval: https://github.com/ddnet/ddnet/blob/6247aa0c7f3ba6647db576667e190c1f87a2ea77/src/engine/shared/network_server.cpp#L371
+22:24 < ***> Playback Complete.
+22:24 < pinkieval> nice, thanks
+22:27 < eeeee> actually looks like the same TOKEN might be used for connections as well
+22:29 < eeeee> but it's passed to the client in the snapshot at first. then in case of ddnet client it's also added to each packet to "sign" them, and in case of vanilla it's just discarded after the connection is established.
+22:36 < pinkieval> oh my
+22:36 < pinkieval> so many merge conflicts
+22:36 < pinkieval> this is going to be fun
+22:38 < pinkieval> there is already another implementation of security tokens in that code -_-
+22:42 < eeeee> maybe you can invest time into rebasing your changes onto ddnet? you'll be getting other useful ddnet features and updates
+22:43 < pinkieval> these are not my changes, they are necropotame's
+22:43 < pinkieval> (I'm working on InfectionClass)
+22:43 < pinkieval> and I don't understand his coding very much
+23:09 < pinkieval> damn
+23:09 < pinkieval> I give up
+23:20 < pinkieval> oh my
+23:20 < pinkieval> I tried rebasing
+23:20 < pinkieval> but necropotame imported teeworlds/ddnet without the git history
+23:21 <@heinrich5991> eeeee: the vanilla compatibility is a PITA and not really a solution
+23:37 < eeeee> yea, but all this spoofing and stuff is the server hosters' problem, not the players' 
+23:37 < eeeee> so the players aren't eager to use more secured clients and keep playing in vanilla client
+23:46 < pinkieval> what if servers gave some kind of bonus to people with an up to date client? (or a malus to out of date ones)
+23:49 <@heinrich5991> sounds good :)
+23:53 < pinkieval> or make servers drop vanilla support if they are under attack
+23:53 < pinkieval> s/if/when/
+23:53 <@heinrich5991> linux has such an "under attack" mode :)
+23:54 < pinkieval> oh?
+23:54 < pinkieval> what is it called?
+23:55 <@heinrich5991> when some condition triggers (dunno how), it generates sequence numbers for TCP in a determinstic fashion

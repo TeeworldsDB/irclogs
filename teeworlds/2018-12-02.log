@@ -1,0 +1,575 @@
+00:01 <@Dune> dang
+00:01 <@Dune> good job Oy
+00:02 <@Dune> simplified chinese looks like a false positive too?
+00:02 <@Dune> whoops, already said
+00:02 < rand> Dune: you should retry issue #1752, the m_PlayerSlots in NETMSGTYPE_SV_SERVERSETTINGS was also clamp to 0,16
+00:03 <@Dune> aight rand
+00:04 < rand> your client dropped packet saying that there were > 16 player slots
+00:05 < rand> then, since the slots were all filled, the client did not want to change team
+00:05 < rand> maybe we should add an exception when going to spectators
+00:06 < rand> src/game/client/components/menus_ingame.cpp:CMenus::GetSwitchTeamInfo
+00:07 < rand> anyway, bedtime, gn8
+00:07 <@Dune> yeah +1
+00:12 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpoAm
+00:12 < Teeworlds> teeworlds/master c87fcb2 oy: check for valid placeholders within translation files
+11:25 < rand> Oy: about this fix, I think it's better to consume at least 2 characters instead of one when meating a %
+11:26 < rand> '%s' and '%' triggers a false positive while it is positive
+11:30 < Oy> rand: huh, that shouldn't trigger the false positive
+11:31 < rand> nvm, I'm wrong
+11:32 < rand> still, better consume 2
+11:33 < rand> '%%something' vs '%%'
+11:34 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKmB
+11:34 < Teeworlds> teeworlds/master c0efc8b oy: fixed a dependency problem with the protocol
+11:39 < Oy> well yeah it could consume all following % then
+11:43 < bridge> [teeworlds] <Dune> So gotta make a pass through locales right?
+11:44 < rand> the 64p PR add a locale "other players"
+11:45 < rand> (that could be change for "players" or another existant locale)
+11:45 < Oy> Dune the ones that are faulty should be fixed
+11:45 < Oy> rand: there are more localizations missing
+11:46 <@Dune> yeah like hide bots
+11:46 < rand> ok
+11:49 < Oy> so what's up with the team change bug?
+11:50 <@Dune> hold on
+11:50 <@Dune> seems to work just finenow
+11:51 <@Dune> on rand's server at least
+11:53 <@Dune> there seems to be a bug
+11:53 <@Dune> I can't join red team no matter how much I click on it
+11:54 <@Dune> but I get no notification of that
+11:55 < rand> the button should be locked
+11:57 < rand> what is the expected behavior ? 
+11:57 <@Dune> i'm not sure
+11:59 < Oy> you can't change a bigger team when the team difference would be bigger than 1 then
+11:59 <@Dune> yeah of course, but on the UI
+11:59 <@Dune> the game mechanics work well, it's just that nothing is displayed
+12:42 < rand> Dune,Oy: found
+12:42 <@Dune> oh nice
+12:42 < rand> one among health and armor can be 0
+12:42 <@Dune> oh
+12:43 < rand> damage are dropped if you don't loose both
+12:43 <@Dune> you're right
+12:43 <@Dune> that's because of network.py
+12:43 <@Dune> https://github.com/teeworlds/teeworlds/blob/c0efc8b3eaae10ab8053f992742168db28510e56/datasrc/network.py#L234
+12:44 <@Dune> thank you rand
+12:44 <@Dune> this isn't a 64 player thing :|
+12:44 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKOY
+12:44 < Teeworlds> teeworlds/master 2c76f33 oy: fixed events for 64 players
+12:44 < Oy> yeah, good find rand
+12:45 < Oy> yeah not 64p releated - general thing
+12:47 < Oy> rand u do a pr?
+12:47 < rand> what did you fix then ?
+12:48 < rand> oh, tricky one
+12:48 < Oy> a second problem with the masks i talked about
+12:48 < rand> only used by sound, nice
+12:49 < rand> ok for a pr
+12:49 < rand> well, 2 lines commit
+12:52 < Oy> not just sound, all events damageind, hammerhit, explosion, spawn, death ;)
+12:55 < Teeworlds> [teeworlds] nheir opened pull request #1756: fix: missing damage indicators (master...patch-1) https://git.io/fpKOu
+13:01 < Teeworlds> [teeworlds] oy pushed 3 new commits to master: https://git.io/fpKOr
+13:01 < Teeworlds> teeworlds/master 6837317 Henri D: fix: missing damage indicators
+13:01 < Teeworlds> teeworlds/master 1653d47 Henri D: ignore 0 damage
+13:01 < Teeworlds> teeworlds/master 9822fa8 oy: Merge pull request #1756 from nheir/patch-1...
+13:12 < rand> should bots be report in the NumPlayers ?
+13:12 < rand> i guess obviously yes… 
+13:12 <@Dune> my guess too
+13:17 < Oy> yeah, but set the bot flag for them
+13:17 < Oy> in the server info
+13:17 <@Dune> would be nice to have the bot countryflag ready
+13:17 < rand> does the client compute these number ?
+13:17 <@Dune> yeah rand
+13:18 < rand> oh, doesn't it use what the server send ?
+13:18 < rand> (Num/Max)(Players/Clients) 
+13:36 < Teeworlds> [teeworlds] nheir opened pull request #1757: update tw_api for 208000d1 and 75350af1 (master...tw_api) https://git.io/fpK3o
+13:42 < Oy> rand when u filter bots it will strip them
+13:43 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpK35
+13:43 < Teeworlds> teeworlds/master 2ac756c oy: fixed team change unbalance indication in the ui. #1752
+13:47 < Oy> Dune about the team colours for ids in kill messages: the names aren't coloured there either, might be ok to go with the non-coloured ones
+14:01 <@Dune> yeah Sonix made that exact point
+14:01 <@Dune> I agree :)
+15:10 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKZ0
+15:10 < Teeworlds> teeworlds/master afb5029 oy: added id's to the scoreboard. closes #1747
+15:24 <@Dune> everything seems to be working
+15:24 <@Dune> ids look good
+15:25 < bridge> [teeworlds] <LordSk> hey I'm doing the truncated chat thing btw
+15:25 < bridge> [teeworlds] <LordSk> stop me now if you're already on it 😃
+15:33 <@Dune> the script to generate localization strings doesn't work for me :c
+15:34 <@Dune> FileNotFoundError: [Errno 2] No such file or directory: 'data/languages/base.pot'
+15:34 <@Dune> (that file should be created)
+15:35 < bridge> [teeworlds] <Sonix> why does my server disappear from the server list
+15:35 < bridge> [teeworlds] <Sonix> when i put player slots to 16
+15:35 <@Dune> because it is pure probably?
+15:35 <@Dune> try sv_gametype MOD
+15:36 < bridge> [teeworlds] <Sonix> but 16 players should be pure lol
+15:36 <@Dune> ah
+15:36 <@Dune> but player slots > 16 keeps it in the server list?
+15:36 < bridge> [teeworlds] <Sonix> and i have no filters applied btw
+15:37 < rand> you still see the server "Random" ?
+15:37 < bridge> [teeworlds] <Sonix> anything above sv_players_slots 8 gets hidden
+15:38 < rand> what is MaxClients ?
+15:39 < bridge> [teeworlds] <Sonix> what does max clients do
+15:39 < rand> sv_max_clients
+15:39 < rand> it defines how many network client the server will handle
+15:40 < rand> atm sv_player_slots must be lower than sv_max_clients
+15:40 < bridge> [teeworlds] <Sonix> i've put it to 64 just now
+15:40 < bridge> [teeworlds] <Sonix> nothing changed
+15:40 < rand> it's not mutable
+15:41 < rand> you can't change this on the fly, that is a runtime constant
+15:41 < bridge> [teeworlds] <Sonix> i've reloaded
+15:41 < rand> you have to restart the server
+15:42 < Oy> LordSK go ahead :)
+15:42 < rand> then fixing this + sanitize player_slots to stay lower than max_clients 
+15:43 < bridge> [teeworlds] <Sonix> i've put player slots to 16
+15:43 < bridge> [teeworlds] <Sonix> shouldnt it display 0/16 in the server browser
+15:43 < Oy> that player_slots thing should be fixed
+15:43 < Oy> yeah
+15:43 < bridge> [teeworlds] <Sonix> instead of 0/64
+15:44 < Oy> oh do u have max_clients to 64?
+15:44 <@Dune> depends on the option you check, Sonix
+15:44 < Oy> then it's 0/64
+15:44 < Oy> check "show only player" in filters then it shows 0/16
+15:44 < bridge> [teeworlds] <Dune> @Sonix "Count players only" = 0/16
+15:44 < Oy> tfilters the 48 spectator salots
+15:44 < rand> better make a specific function or sanitize the option after the ConchainSettingUpdate ?
+15:45 < bridge> [teeworlds] <Sonix> so many new configs
+15:45 < bridge> [teeworlds] <Dune> yeah
+15:45 < Oy> it used to sv_spectator before i think
+15:46 < Oy> rand either option is good i think
+15:46 < bridge> [teeworlds] <Sonix> btw
+15:47 < bridge> [teeworlds] <Sonix> we should put a pop up notification once you join spec
+15:47 < rand> what is the difference between Chain() and Register() ?
+15:47 < bridge> [teeworlds] <Sonix> "click on a player or a flag to spectate it"
+15:48 <@Dune> well you'd have to press the spectate button first sonix
+15:48 <@Dune> right
+15:49 < bridge> [teeworlds] <Sonix> once you join spec i said
+15:49 < Oy> register - registers a command to the console with a function which is called when u execute it; chain executes the linked function when you change f.e. a config variable like sv_register
+15:49 < bridge> [teeworlds] <Sonix> most ppl dont know that u can click on players to follow them
+15:49 < bridge> [teeworlds] <Sonix> without using rshift
+15:50 < Oy> yeah Sonix good idea
+15:50 <@Dune> http://puu.sh/CbcH8/ebb011d362.png
+15:50 < bridge> [teeworlds] <Sonix> lol dune
+15:50 <@Dune> I forgot how big ingame buttons looked
+15:50 < bridge> [teeworlds] <Sonix> yeah
+15:51 < bridge> [teeworlds] <Sonix> thanks for moving the buttons top again Oy
+15:51 <@Dune> yeah thank god
+15:51 < bridge> [teeworlds] <Sonix> a lot better
+15:51 < Oy> yeah
+16:02 < Teeworlds> [teeworlds] nheir opened pull request #1758: sanitize sv_player_slots (master...patch/playerslots) https://git.io/fpKcZ
+16:07 < Teeworlds> [teeworlds] LordSk opened pull request #1759: Adapt chat size depending on scoreboard (master...fix/chat_truncated) https://git.io/fpKca
+16:19 < Oy> 0.7.1 complete \o/
+16:22 < Oy> making a list of changes in the forum, if someone wants to add sth. there's so much, can't remember everything
+16:24 < bridge> [teeworlds] <Fisico> some scoreboard feedback from zatline and myself....
+16:24 < bridge> [teeworlds] <Fisico> 1. countryflag is to big, make it the same height as the tee/font
+16:24 < bridge> [teeworlds] <Fisico> 2. switch countryflag with score
+16:24 < bridge> [teeworlds] <Fisico> 3. make scoeboard a fixed height(looks so crammed)
+16:26 < Oy> country flag has the same height as the tee
+16:26 < Oy> score should be next to kill deah - seperating them is odd
+16:27 < bridge> [teeworlds] <Fisico> country flag is bigger
+16:27 < Oy> it's wider, cause the ratio is 1x2
+16:28 < bridge> [teeworlds] <Fisico> height is also different
+16:29 < bridge> [teeworlds] <Fisico> 3 pixels is the difference
+16:30 < Oy> https://imgur.com/a/XkmBjd4
+16:31 < bridge> [teeworlds] <ChillerDragon> Meh how to compile teeworlds on windows xd
+16:31 < bridge> [teeworlds] <ChillerDragon> it somehow doesnt find SDL.h but it works find for ddnet i guess ddnet uses some cmake magic and submodules. Do i have to put the SDL.h file manually in some MinGW include folder? And if yes which version of sdl?
+16:31 < bridge> [teeworlds] <Fisico> yea with deco from the tee its the same... but i looks odd without, the flag does not need to be so big
+16:32 < bridge> [teeworlds] <Sonix> it does
+16:32 < bridge> [teeworlds] <Fisico> @Chairn  https://www.teeworlds.com/forum/viewtopic.php?id=12540
+16:32 < bridge> [teeworlds] <Fisico> dont use the sdl version that is liked there... use sdl 2.0.8 or 2.0.7
+16:32 < bridge> [teeworlds] <Sonix> else why display it
+16:33 < bridge> [teeworlds] <ChillerDragon> ty @Fisico
+16:33 < bridge> [teeworlds] <ChillerDragon> meh just downloaded 2.0.9
+16:33 < bridge> [teeworlds] <Fisico> you get weird lagspikes with it 😄
+16:33 < bridge> [teeworlds] <ChillerDragon> oh the instruction is for vs
+16:34 < bridge> [teeworlds] <Fisico> yes
+16:34 < bridge> [teeworlds] <Sonix> some flags look similar already, making them smaller (loss in detail) will make em more confusional
+16:34 < bridge> [teeworlds] <Fisico> visual studio community edition is use
+16:34 < bridge> [teeworlds] <Fisico> ah ok
+16:34 < bridge> [teeworlds] <ChillerDragon> i really dislike vs ima keep trying with mingw
+16:43 < rand> @ChillerDragon: you can try https://github.com/teeworlds/teeworlds/pull/1730
+16:44 < bridge> [teeworlds] <ChillerDragon> yea i know but i want to use the system that is designed for master. If that pr doesnt get merged it might break in the future
+16:47 < rand> as you wish
+16:48 < bridge> [teeworlds] <ChillerDragon> what freetype version should i use?
+16:48 < bridge> [teeworlds] <Fisico> you can use the one in the post 😄
+16:49 < bridge> [teeworlds] <ChillerDragon> oh ty c:
+16:50 < bridge> [teeworlds] <ChillerDragon> meh but it doesnt have a lib folder
+16:50 < bridge> [teeworlds] <Fisico> i should... got mine from that link
+16:50 < Oy> having a minimum height for the scoreboard might be a good idea
+16:51 < bridge> [teeworlds] <ChillerDragon> yea it has a win32 folder i just used the content for lib but now sdl seems to have some undefined reference errors
+16:51 < bridge> [teeworlds] <ChillerDragon> the linker fails
+16:51 < bridge> [teeworlds] <ChillerDragon> [1/1] [1] link build/x86/debug/teeworlds.exe
+16:51 < bridge> [teeworlds] <ChillerDragon> build/x86/debug/objs/engine/client/backend_sdl.o: In function `ZN29CCommandProcessorFragment_SDL8Cmd_InitEPKNS_13SCommand_InitE':
+16:51 < bridge> [teeworlds] <ChillerDragon> C:\Users\Chiller\Desktop\git\teeworlds/src/engine/client/backend_sdl.cpp:525: undefined reference to `SDL_GL_MakeCurrent'
+16:51 < bridge> [teeworlds] <ChillerDragon> build/x86/debug/objs/engine/client/backend_sdl.o: In function `ZN29CCommandProcessorFragment_SDL12Cmd_ShutdownEPKNS_17SCommand_ShutdownE':
+16:51 < bridge> [teeworlds] <ChillerDragon> C:\Users\Chiller\Desktop\git\teeworlds/src/engine/client/backend_sdl.cpp:541: undefined reference to `SDL_GL_MakeCurrent'
+16:51 < bridge> [teeworlds] <ChillerDragon> build/x86/debug/objs/engine/client/backend_sdl.o: In function `ZN29CCommandProcessorFragment_SDL8Cmd_SwapEPKN14CCommandBuffer13SCommand_SwapE':
+16:51 < bridge> [teeworlds] <ChillerDragon> C:\Users\Chiller\Desktop\git\teeworlds/src/engine/client/backend_sdl.cpp:546: undefined reference to `SDL_GL_SwapWindow'
+16:51 < bridge> [teeworlds] <ChillerDragon> build/x86/debug/objs/engine/client/backend_sdl.o: In function `ZN29CCommandProcessorFragment_SDL9Cmd_VSyncEPKN14CCommandBuffer14SCommand_VSyncE':
+16:52 < bridge> [teeworlds] <Fisico> oy, maybe set the height to the max playerslots?
+16:52 < bridge> [teeworlds] <Fisico> for example a server has 16 slots and 8 spectator slots... show 4 rows at the scoreboard
+16:53 < bridge> [teeworlds] <Fisico> then you also see, when you reached the max playerslots, cause than the scoreboard is full
+16:57 < Oy> Chillerdragon bam -c all and then try again
+16:57 < bridge> [teeworlds] <ChillerDragon> already did that
+16:57 < bridge> [teeworlds] <ChillerDragon> same result
+16:58 < Oy> sth is off with the sdl lib
+16:58 < bridge> [teeworlds] <ChillerDragon> is it maybe version 2.0.9 that makes the trouble
+16:58 < bridge> [teeworlds] <ChillerDragon> i didnt find another one on libsdl.org
+16:59 < Oy> Fisico players could also be in one team and dm - just some bigger minimum size might be enough
+17:00 < redix> setting sv_player_slots at startup does not work anymore
+17:00 < redix> https://github.com/teeworlds/teeworlds/pull/1758/files
+17:00 < Oy> https://www.libsdl.org/release/SDL2-devel-2.0.8-mingw.tar.gz
+17:00 < redix> MaxClients() is 0 at startup =\
+17:01 < Oy> oh
+17:01 < bridge> [teeworlds] <ChillerDragon> ty
+17:02 < bridge> [teeworlds] <Fisico> with deadmatch show 16 lines, all players in one team is not possible cause of teambalance
+17:02 < bridge> [teeworlds] <Fisico> Server max players 16, spectatorslots 0, gametype team… = 8 lines.
+17:02 < bridge> [teeworlds] <Fisico> Server max players 16, spectatorslots 8, gametype team.. = 4 lines.
+17:02 < bridge> [teeworlds] <Fisico> Server max players 16, spectatorslots 6, gametype noneteam = 10 lines.
+17:02 < Oy> team balance is adjustable
+17:03 < Oy> hm should add checks to rcon commands set_team and set_team_all lets you have more than 16 players
+17:03 < bridge> [teeworlds] <ChillerDragon> Oy yay that worked. It was actually the problem with 9 instead of 8. Good to know.
+17:04 < Oy> hm did they change the sdl functions?
+17:05 < bridge> [teeworlds] <ChillerDragon> looks like they changed 20+ functions
+17:05 < bridge> [teeworlds] <ChillerDragon> that were used in tw
+17:05 < bridge> [teeworlds] <Fisico> 2.0.9 also has this weird fps bugs
+17:05 < Oy> probably related
+17:06 < bridge> [teeworlds] <Fisico> yea
+17:07 < Teeworlds> [teeworlds] ChillerDragon opened pull request #1760: remove unused graphics include (master...UnusedGraphicsInclude) https://git.io/fpKl0
+17:07 < bridge> [teeworlds] <ChillerDragon> its a bit annoying to get the github messages on two channels on discord -.-
+17:10 < bridge> [teeworlds] <ChillerDragon> oh lol it compiles but the dlls are missing does someone know what step i missed or do i have to move them into a directory with the dlls manually?
+17:10 < bridge> [teeworlds] <Fisico> yep with vs you have to
+17:10 < bridge> [teeworlds] <ChillerDragon> but i dont use vs
+17:10 < bridge> [teeworlds] <Fisico> yes but i think they dont get copied 😄
+17:11 < bridge> [teeworlds] <ChillerDragon> meh the teeworlds compiling expierience is not very userfriendly :c
+17:11 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKlo
+17:11 < Teeworlds> teeworlds/master 359042f oy: fixed that set_team commands respect the available player slots
+17:11 < bridge> [teeworlds] <ChillerDragon> copied from where where are they located? guess it could be a bam task?
+17:12 < bridge> [teeworlds] <Fisico> you have to download them, or build it yourself, bam does not compile them or copy them
+17:12 < bridge> [teeworlds] <ChillerDragon> hmr
+17:13 < Oy> rand are u on the sv_player_slots thing? or shall i do it?
+17:14 < rand> I'm not
+17:14 < Oy> ok
+17:33 < Teeworlds> [teeworlds] oy pushed 2 new commits to master: https://git.io/fpK8i
+17:33 < Teeworlds> teeworlds/master 9b50815 oy: fixed problem with initializing sv_player_slots
+17:33 < Teeworlds> teeworlds/master 814c762 oy: Merge branch 'master' of https://github.com/teeworlds/teeworlds
+18:00 < rand> I like when a write outside an array creates a risk of double free
+18:02 < rand> debuging is fun but it takes time
+18:05 <@Dune> backtraces help :D
+18:07 < rand> it does not, valgrind does
+18:14 <@Dune> i use valgrind too but isn't the helpful part in that case gdb?
+18:15 < rand> gdb won't tell me where I have an overflow
+18:16 < rand> the double free is a side effect of another piece of code
+18:22 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKRJ
+18:22 < Teeworlds> teeworlds/master c5af2a7 oy: show a notification "click a player or flag to follow it" when joining spectator
+18:29 <@Dune> arrr
+18:32 < Oy> anything else that needs to be done?
+18:36 <@Dune> not that I'm aware of
+18:37 <@Dune> there's the todo list
+18:37 <@Dune> ahhh I forgot the translations
+18:37 <@Dune> crap
+18:37 <@Dune> gotta fix them
+18:37 < bridge> [teeworlds] <Fisico> and the scorebaord 😄
+18:37 <@Dune> that's not 0.7.1 milestone afaik
+18:37 <@Dune> there are 150 issues otherwise :p
+18:38 < bridge> [teeworlds] <Fisico> there was one for scoreboard.. 😄
+18:38 < Oy> yeah would leeave the scoreboard for another milestone
+18:38 < bridge> [teeworlds] <Fisico> ok
+18:38 < Oy> the 0.7.1 milestone was just about adding sushis scoreboard
+18:39 < bridge> [teeworlds] <Fisico> ok
+18:39 < bridge> [teeworlds] <Fisico> so release today?
+18:39 < Oy> that other stuff about the scoreboard probably needs a vote or sth dunno - sth that takes time... days
+18:39 < Oy> yeah why not
+18:40 < bridge> [teeworlds] <Fisico> yea you are right
+18:41 < Oy> Dune i can fix the translations if u want ;)
+18:42 < Oy> closed the 0.7.1 milestone on github
+18:43 < Oy> oh do u we add the new jungle_unhookable tileset?
+18:43 < bridge> [teeworlds] <Fisico> i would add them
+18:43 < Oy> Sonix is it ready? or is there sth that needs to be done
+18:44 < bridge> [teeworlds] <Fisico> there were a lot of changes to the maps so i thinks it is a good time to change it as well
+18:47 < bridge> [teeworlds] <Sonix> Just optimize it with pngoptimizer and u’re good
+18:48 <@Dune> cool
+18:53 <@Dune> oy: checking out translations
+18:54 <@Dune> unless you're already on it
+18:54 < Oy> Dune no didn't start with them yet
+18:55 <@Dune> :) ok
+18:55 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpK0s
+18:55 < Teeworlds> teeworlds/master 2b97080 oy: added the update jungle_unhookables by Sonix
+19:01 < bridge> [teeworlds] <Fisico> so will bot's dont get a own skin?
+19:03 < Oy> don't have a graphic yet
+19:04 < Oy> same for their flag
+19:07 <@Dune> would be nice to have the flag at least to identify them from server browser
+19:07 < Oy> yeah
+19:11 < Teeworlds> [teeworlds-translation] Dune-jr pushed 1 new commit to master: https://git.io/fpK06
+19:11 < Teeworlds> teeworlds-translation/master ca9e80e Jordy Ruiz: Fix locales causing crashes
+19:13 <@Dune> oy: might want to update submodule
+19:16 < Oy> Dune turkish has an error
+19:17 < Oy> added a comment
+19:38 < Teeworlds> [teeworlds-translation] oy pushed 1 new commit to master: https://git.io/fpKEo
+19:38 < Teeworlds> teeworlds-translation/master df24413 oy: fixed parameter
+19:39 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKE6
+19:39 < Teeworlds> teeworlds/master ad625f1 oy: updated submodule
+19:40 < Teeworlds> [teeworlds] oy pushed 1 new commit to master: https://git.io/fpKEP
+19:40 < Teeworlds> teeworlds/master a25f7e5 oy: changed version to 0.7.1
+19:47 <@Dune> whoops, thanks
+19:50 < Oy> heinrich5991: are you around?
+19:51 < bridge> [teeworlds] <ChillerDragon> ddint see him in days
+19:53 < ChillerDragon> Oy what do you need?
+19:54 < Oy> mac release :D
+19:54 < Oy> that cmake stuff looks like it needs to be updated? has a list of files
+19:55 < ChillerDragon> I can try a mac release if you want
+19:55 < ChillerDragon> Yea i made a pr on heinrichs fork some days ago with some mac fixings but he is not around :c
+19:59 <@Dune> I can reach a mac if it is necessary
+20:01 < Oy> ChillerDragon can u build a working mac app with the cmake stuff?
+20:03 < ChillerDragon> Oy i never completly build a fully woking on but i think with the new storage update you made i should be able to do it
+20:04 < ChillerDragon> if you support me a bit with git magic getting the cmake stuff from heinrich in the current master
+20:05 <@Dune> can't you just pull teeworlds upstream
+20:05 <@Dune> and build from that
+20:05 < ChillerDragon> i need the cmake stuff from heinrichs pr
+20:06 <@Dune> then just clone heinrich's stuff
+20:06 < bridge> [teeworlds] <Fisico> why not clone his repository and try it?
+20:06 <@Dune> ^
+20:06 < ChillerDragon> yea lez go
+20:07 <@Dune> git clone https://github.com/heinrich5991/teeworlds/ pr_cmake
+20:07 <@Dune> ChillerDragon:
+20:07 < ChillerDragon> ty
+20:08 <@Dune> huh not sure if that works actually
+20:08 <@Dune> you might still need "git checkout pr_cmake" afterwards
+20:08 < ChillerDragon> repo not found i think i have to do the fetch thingy i always forget to get the pr
+20:09 < ChillerDragon> but thats fine i can do my changes manually agian
+20:09 <@Dune> what
+20:09 <@Dune> just  git clone https://github.com/heinrich5991/teeworlds/
+20:09 < ChillerDragon> but how do i update heinrichs fork to upstream master
+20:09 <@Dune> that won't make a repo not found
+20:09 <@Dune> don't try to do complicated git stuff for now
+20:09 <@Dune> just clone
+20:09 < ChillerDragon> or i appended pr_cmake to the url xd nvm ye i am clonign normal now
+20:10 <@Dune> now "git checkout pr_cmake"
+20:10 < ChillerDragon> yea but this is outdated
+20:10 <@Dune> do this then apply your changes
+20:10 < ChillerDragon> and then?
+20:11 <@Dune> pull upstream like this:
+20:11 <@Dune> git pull https://github.com/teeworlds/teeworlds/ master
+20:12 < ChillerDragon> yuk conflicts
+20:12 <@Dune> blergh
+20:12 <@Dune> doesn't sound good to do this stuff for a release when you're not sure what you're doing
+20:12 <@Dune> any other way than that, oy?
+20:13 < ChillerDragon> well i can solve that conflicts
+20:13 < ChillerDragon> i assume we go with 0.7.1
+20:13 <@Dune> yeah but that's risky
+20:14 <@Dune> i'd rather not risk that
+20:14 < rand> oO
+20:14 < rand> should be ok, the conflict is on version.h
+20:14 < Learath2> What are you stuck on?
+20:14 < ChillerDragon> u can solve teh conflicts aswell
+20:15 < ChillerDragon> its only version.h
+20:16 < ChillerDragon> well i dont think we are stuck but Dune is scared i mess something up
+20:17 <@Dune> even if it works we need official binaries compiled by heinrich5991 with a script iirc
+20:17 <@Dune> eh, not sure how mac works
+20:17 <@Dune> does that cmake thing compile the whole app?
+20:17 < ChillerDragon> no the pr works fine it replaces the scripts
+20:17 < ChillerDragon> yes 
+20:17 < rand> change version in the same way in version.h
+20:18 < rand> and test the release :3
+20:18 < ChillerDragon> if you dont trust me feel free to solve the conflict your self before i do it
+20:18 <@Dune> you know what ChillerDragon, do the merge, then push that so we can check?
+20:18 < ChillerDragon> that sounds useless complicated
+20:18 <@Dune> git push origin master
+20:19 <@Dune> not too complicated
+20:19 < ChillerDragon> Oy would be awesome if you could simple solve the conflict in heinrichs pr real quick
+20:20 < rand> Dune: I don't get it, the conflict hold on one line in one file, chillerdragon will do fine ^^
+20:20 < ChillerDragon> well i tend to fuck up things im fine if some real tw dev wants to do it
+20:20 <@Dune> alright
+20:21 < Learath2> real tw dev? please
+20:21 < Oy> resolved the conflict
+20:21 < ChillerDragon> ty
+20:21 < rand> that won't work
+20:21 < ChillerDragon> what why?
+20:22 < rand> Cmake use some regex to find the version from version.h
+20:22 < ChillerDragon> Learath2 it is a fact that i am the newbie here i lack a lot of expierience
+20:22 < Oy> oh
+20:22 < ChillerDragon> ouch
+20:22 < Learath2> You are good enough to merge version.h imho :D
+20:23 < redix> What about this one
+20:23 < ChillerDragon> ty xd
+20:23 < redix> https://github.com/teeworlds/teeworlds/issues/1691
+20:23 < rand> unless it uses GAME_VERSION instead of GAME_RELEASE_VERSION
+20:23 < rand> not sure about it
+20:23 < Learath2> redix: nooo, that's way too radical
+20:24 < redix> Okay :D
+20:24 < rand> erf, it uses GAME_RELEASE_VERSION
+20:26 < ChillerDragon> so?
+20:27 < Oy> try
+20:31 < ChillerDragon> as expected couldnt parse version
+20:31 < ChillerDragon> i sux at regex but i can try
+20:32 < rand> try replace « REGEX GAME_RELEASE_VERSION » with « REGEX "GAME_VERSION " »
+20:32 < ChillerDragon> is this the new official format? SO the regex has to be updated anyways i guess?
+20:32 < Learath2> The should be fine to parse "0.7.1" you sure you pulled before trying?
+20:33 < Learath2> The regex*
+20:33 < ChillerDragon> i pulled the tw/tw upstream
+20:33 < rand> the issue is the line the regex is applied on
+20:33 < Oy> changed that in the pr
+20:34 < Learath2> ChillerDragon: check your version.h, I think you just didn't pull after oy fixed it :P
+20:34 < rand> file list is not complete
+20:34 < ChillerDragon> i pulled after oy fixed
+20:34 < rand> Learath2: no, the regex won't work
+20:35 < bridge> [teeworlds] <ChillerDragon> 
+20:35 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/490150878934990850/518872753596661760/Bildschirmfoto_2018-12-02_um_20.34.50.png
+20:35 < Oy> do u have to fix the file list manually?
+20:35 < ChillerDragon> the other regex doesnt work rand
+20:35 < Oy> there's another commit already
+20:35 < rand> it works for me
+20:35 < ChillerDragon> oh another one?
+20:35 < Learath2> Oy: you can also use a glob but cmake suggests you list them all instead
+20:35 < ChillerDragon> oh sowwy missed that
+20:35 < Oy> oh ok
+20:36 < ChillerDragon> how do i get that commit?
+20:36 < ChillerDragon> oh okay now it works
+20:36 < ChillerDragon> moment of truth im building the dmg
+20:37  * rand expecting sur1.map and some assets related messages
+20:37 < bridge> [teeworlds] <ChillerDragon> woops forgot to apply my fixes sec
+20:40 < ChillerDragon> meh ok the ressources path is still broken
+20:40 < ChillerDragon> Oy your storage fix looked so promising
+20:42 < ChillerDragon> [5c04356c][storage]: added path '$CURRENTDIR' ('/Users/chillerdragon/Desktop')
+20:42 < ChillerDragon> should be [5c04356c][storage]: added path '$CURRENTDIR' ('/Users/chillerdragon/Desktop/teeworlds.app/Contents/Resources')
+20:42 < Oy> ChillerDragon: did u mount the app and then started from that folder on the desktop?
+20:43 < ChillerDragon> ye
+20:46 < Oy> did u start the app or the executable that is within the app (teeworlds.app/Contents/MacOs/teeworlds)?
+20:46 < ChillerDragon> i started the app by double clicking and then via terminal to get the console output
+20:47 < Oy> both times no datadir?
+20:47 < ChillerDragon> i dont see the CURRENTDIR and the console dialog if i normally launch it from the gui
+20:47 < ChillerDragon> but the graphics were broken so i assume the exact same happend
+20:48 < bridge> [teeworlds] <Fisico> does someone know what it takes to be an apple zertified developer? cause i cant start tw on my mac cause of this..
+20:48 < Learath2> It takes a 100$s (source: am a apple certified (ios) developer)
+20:49 < Learath2> But you don't need a developer certificate to run software on your mac anyways :P
+20:49 < bridge> [teeworlds] <Fisico> oh ok
+20:50 < bridge> [teeworlds] <Fisico> yea but i looks bad with the error, and the user have to accept it in gatekeeper
+20:50 < bridge> [teeworlds] <Fisico> learath2 you are not able to compile it with your account?
+20:50 < bridge> [teeworlds] <LordSk> Oy: are we releasing 0.7.1 soon?
+20:51 < Learath2> I have a company account :P
+20:51 < Oy> LordSk it's ready to be released
+20:52 < bridge> [teeworlds] <LordSk> can we wait a week or so, to test thoroughly for bugs
+20:53 < bridge> [teeworlds] <LordSk> maybe release a preview version on the forums
+20:54 < Oy> what else do u want to test?
+20:54 <@Dune> it's true we found some serious bugs in the last few days, I don't see this stopping immediately
+20:55 < Oy> well, mostly caused by adding 64 player support
+20:55 <@Dune> we could freeze the code
+20:55 <@Dune> and release a bit later
+20:55 <@Dune> like, no more features or changes, idk
+20:55 < Oy> yeah, could do that
+20:55 < Oy> but i'm pretty busy starting tuesday for 2 weeks
+20:56 <@Dune> hmm :/
+20:56 < bridge> [teeworlds] <Fisico> so release after the 2weeks?
+20:57 < bridge> [teeworlds] <Fisico> for holiday season 😄
+20:57 <@Dune> maybe? sounds a bit much to me
+20:57 <@Dune> I don't know
+20:57 < ChillerDragon> i did it
+20:58 < bridge> [teeworlds] <LordSk> the things is, there are very few people who actually test the 0.7 version
+20:58 < ChillerDragon> give some time to clean up my hacky test codes and debug trash but i can provide a fully working apple release today
+20:58 < rand> ChillerDragon: \o/
+20:58 < bridge> [teeworlds] <Fisico> yea 0.7.1 will take a while to get downloaded an played
+20:59 < Oy> yeah, there aren't many people testing, but dunno if the number of testers will increase
+21:00 < bridge> [teeworlds] <Fisico> maybe release on tw.com, github and wait a few days with steam?
+21:00 < bridge> [teeworlds] <LordSk> yeah ok that could work @Fisico
+21:01 < Learath2> Well could get the release ready and it wouldn't take much time for you to release it even in a busy week
+21:01 <@Dune> there could be a release candidate on the forum
+21:01 < bridge> [teeworlds] <LordSk> we won't get people playing if we don't release anything anyway
+21:01 <@Dune> but yeah I wonder how much Oy's time it would take to perform the release
+21:02 < rand> +1 for the rc
+21:02 < Oy> don't need me to actually release it. just create the releases, add the downloads, write a forum post
+21:03 <@Dune> need minus for the version server I assume
+21:03 < Oy> yeah
+21:03 <@Dune> and masterserver (?)
+21:03 <@Dune> but yeah we only need the greenlight
+21:03 < Oy> nothing to do about them
+21:03 < bridge> [teeworlds] <Fisico> i dont think a rc will work... players will maybe download, start, see no players and leave again
+21:04 < ChillerDragon> Oy do you want me to pr the fix and then reclone from master and rebuild or just send you the working app compiled from my fix code with wrong indentation and stuff xd
+21:04 < ChillerDragon> well who cares about c++ indentations in binarys
+21:05 < Oy> does the binary work?
+21:05 < ChillerDragon> yes
+21:05 < Oy> the app i mean
+21:05 < ChillerDragon> yes
+21:05 < Oy> maybe someone else with a mac could test it
+21:05 < ChillerDragon> ah nvm i broke it agian
+21:05 < ChillerDragon> xd
+21:05 < ChillerDragon> sec
+21:05 < Oy> to make sure it doesn't just work for u
+21:06 < Learath2> I can test when you are done
+21:06 < ChillerDragon> i can test on my moms mac aswell
+21:07 < Oy> well i can to a rc on github for now
+21:07 < Oy> *do
+21:07 < ChillerDragon> nvm i broke something and cant reproduce it -.-
+21:08 < Teeworlds> [teeworlds] oy tagged 0.7.1-rc at master: https://git.io/fpKgn
+21:12 < ChillerDragon> ah now i realized what happend. Sorry i got confused after upacking the 20th app. It only worked from terminal. I keep investigating but i cant promise a working result today
+21:13 < Learath2> Only working from terminal smells a whole lot like a storage.cfg issue
+21:13 < bridge> [teeworlds] <ChillerDragon> ye sure it is a storage issue
+21:14 < bridge> [teeworlds] <ChillerDragon> i assumed that weeks ago
+21:14 < bridge> [teeworlds] <ChillerDragon> well was probably 1 week xd
+21:14 < Learath2> ChillerDragon: does the ddnet dmg work for you btw?
+21:14 < ChillerDragon> ye that one is different
+21:15 < ChillerDragon> same as tw 0.6
+21:15 < ChillerDragon> the $CURRENTDIR var is set correctly there
+21:15 < ChillerDragon> i wish i could launch a terminal in the normal app double click mode
+21:15 < ChillerDragon> like on windows
+21:20 < Learath2> ChillerDragon: well you could check how we do it and port it over to 0.7
+21:20 < Oy> currentdir isn't where it looks for data
+21:22 < bridge> [teeworlds] <Fisico> had a similar problem with my linux server...
+21:22 < bridge> [teeworlds] <Fisico> https://github.com/teeworlds/teeworlds/issues/1643
+21:25 < bridge> [teeworlds] <ChillerDragon> i think heinrich did that already
+21:25 < bridge> [teeworlds] <ChillerDragon> well i didnt run out of ideas yet im trying some stuff
+21:27 < Oy> Chillerdrogon could you try the 0.6 app and paste the paths?
+21:27 <@Dune> so we'd need a release candidate compiled for window,s linux, and if possible mac
+21:27 <@Dune> sources already there
+21:27 < Oy> added win32 and win64
+21:27 <@Dune> aight
+21:28 < Oy> for linux 64 i would need to reboot, dont wanna use the pi one - unless someone else can provide it ;)
+21:28 < bridge> [teeworlds] <ChillerDragon> Oy the problem is i cant launch a terminal if i double click the app so i have to start the binary inside the app but in 0.6 the CURRENTDIR points to the ressourcs folder if i launch it from the terminal
+21:28 < Oy> need the other paths
+21:29 < bridge> [teeworlds] <ChillerDragon> those re the same if i remmber correctly
+21:29 < Oy> then yeah do it with the terminal
+21:29 < bridge> [teeworlds] <ChillerDragon> i deleted all 0.6 but i have a screensomewhere lemme check
+21:29 < Oy> https://www.teeworlds.com/?page=downloads&id=12543
+21:29 < bridge> [teeworlds] <ChillerDragon> https://cdn.discordapp.com/attachments/356429946371047435/516721540209967105/Bildschirmfoto_2018-11-26_um_22.06.48.png
+21:29 < bridge> [teeworlds] <ChillerDragon> 0.6.5
+21:30 < Oy> ok
+21:34 < rand> https://ptpb.pw/CM-w.tar.gz for linux x86_64
+21:34 < Learath2> faster then me :P
+21:38 < rand> https://ptpb.pw/BqHV.tar.gz for linux_x86
+21:40 < rand> oh, i forgot the -rc…
+21:42 < rand> https://ptpb.pw/bCMS (x86_64) and https://ptpb.pw/T1Wn (x86) then
+21:43 < Oy> ok
+21:46 < Oy> oh
+21:47 < Oy> dunno what the mac problem is
+21:47 < Oy> that client.m is gone, can't remember why
+21:58 < Oy> linux dl's up as well
+22:03 <@Dune> nice
+22:09 < Oy> maybe should do some forum post?
+22:10 < bridge> [teeworlds] <ChillerDragon> rly without mac version :c
+22:10 < Oy> do u have a working one?
+22:11 < bridge> [teeworlds] <ChillerDragon> no that was fake news onlyone that works from terminal and i am pretty stuck currently i run out of ideas
+22:39 < ChillerDragon> ok i hacked soemthing together
+22:39 < ChillerDragon> it is very dirty but working i guess
+22:42 <@Dune> maybe as unofficial binaries for the RC
+22:42 < ChillerDragon> btw what is an RC agian?
+22:43 < rand> release candidate
+22:43 < ChillerDragon> ah ye
+22:43 < ChillerDragon> Learath2 and other mac users pls test https://ufile.io/4znjw
+22:48 < ChillerDragon> a cleaner version without my debug messages https://ufile.io/b22hk
+22:54 < bridge> [teeworlds] <ChillerDragon> Hmm seems like it is not working onmy moms imac because the library is not found
+22:54 < bridge> [teeworlds] <ChillerDragon> it is funny that it says ddnet app in the crash report
+22:55 < bridge> [teeworlds] <ChillerDragon> https://pastebin.com/d4AjchVN
+22:58 < Oy> https://github.com/teeworlds/teeworlds/pull/1730/files#diff-96388f315c8e4688f8ba2ccdc0158d2dR20
+22:58 < bridge> [teeworlds] <ChillerDragon> y that one xd
+22:58 < bridge> [teeworlds] <ChillerDragon> pro
+23:06 < ChillerDragon> Ah i think i found the issue. But i need the lib files for sdl
+23:06 < ChillerDragon> 0.6 had a different sdl version i guess so i cant use that one
+23:13 <@Dune> aight so I'll make the RC post without mac then :)
+23:14 <@Dune> blog or news?
+23:15 < minus> So, only cheese?
+23:16 <@Dune> :)
+23:17 < ChillerDragon> im slowly progressing i fixed the freetype thing now it fails on libwav -.-
+23:17 < ChillerDragon> sdl not freetype*
+23:22 < ChillerDragon> i dont get it. since when is libwav a trouble maker is this new?
+23:25 < Oy> Dune: either way is fine
+23:27 < ChillerDragon> Oy is there something new with the sound? Or is libwav related to sdl? I dont get why it is running on my laptop but not on my mothers imac.
+23:30 < Oy> no idea
+23:31 < Oy> maybe some dependency of sdl?
+23:46 < ChillerDragon> yea maybe
+23:47 < bridge> [teeworlds] <ChillerDragon> the weird thing is that the error dialog on the imac says Library not loaded: /usr/local/opt/wavpack/lib/libwavpack.1.dylib
+23:47 < ChillerDragon> but on my laptop the app works and this path doesnt exsist here either

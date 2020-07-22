@@ -1,0 +1,235 @@
+01:35 < BotoX> mates help
+01:35 < BotoX> why is this so different https://i.botox.bz/1442014494.png
+01:35 < BotoX> right one is linux, left is windows
+01:35 < BotoX> it's a virtual function call to a method
+01:36 < BotoX> the linux one makes a lot more sense, this being the parameter. on windows there is no parameter D:
+01:39 <@minus> is that IDA?
+01:41 < BotoX> yeah
+01:42 < heinrich5991> BotoX: read the assembly
+01:43 < heinrich5991> perhaps the parameter is passed via edx (?) as it's done by MSVC for the this parameter in class functions
+01:43 < BotoX> If I were able to read assembly ( ͡° ͜ʖ ͡°)
+01:43 < BotoX> gimme a sec, now I need to find the assembly again
+01:43 <@minus> it's on windows though,right? IDA doesn't work properly in wine for me
+01:43 < BotoX> I am using it in wine
+01:43 < BotoX> works fine
+01:44 <@minus> hax
+01:44 < BotoX> all plugins too
+01:44 < heinrich5991> https://msdn.microsoft.com/en-us/library/ek8tkfbw.aspx
+01:44 < BotoX> wine .wine/drive_c/Program\ Files/IDA\ 6.6/idaq.exe
+01:44 < BotoX> ¯\_(ツ)_/¯ 
+01:44 < heinrich5991> here, the __thiscall calling convention passes this in ecx
+01:44 <@minus> oh, 6.6
+01:44 < heinrich5991> (not edx though)
+01:45 < heinrich5991> BotoX: what are you doing, though?
+01:45 < BotoX> writing css hax
+01:45 < heinrich5991> ah, so that's css code?
+01:45 < BotoX> or well right now I am canceling out screenshakes
+01:45 < BotoX> yeah, decompiled
+01:46 < BotoX> It works fine on linux
+01:46 < BotoX> but not on windows, just got the same offset and hoped it works :D
+01:46 <@minus> inb4 VAC ban
+01:47 < heinrich5991> minus: he plays badly enough to compensate for the hack :P
+01:47 < BotoX> >VAC
+01:47 < BotoX> >linux
+01:47 < BotoX> ( ͡° ͜ʖ ͡°)
+01:48 < BotoX> well even on windows it doesn't matter, just manipulates some items in a linked list externally
+01:48 < BotoX> nothing that VAC detects
+01:50 < BotoX> heinrich5991: https://i.botox.bz/1442015450.png
+01:51 < heinrich5991> LEFT PARENTHESIS, SPACE, COMBINING DOUBLE INVERTED BREVE, DEGREE SIGN, SPACE, COMBINING DOUBLE BREVE BELOW, LATIN LETTER INVERTED GLOTTAL STOP, SPACE, COMBINING DOUBLE INVERTED BREVE, DEGREE SIGN, RIGHT PARENTHESIS
+01:51 < BotoX> right
+01:51 < BotoX> is that the lenny face
+01:52 < heinrich5991> oh, so that thing has a name :)
+01:52 < BotoX> wow, how do you not know it :(
+01:52 <@minus> not everyone's into memes
+01:53 < BotoX> actually damn that screenshot I took is wrong
+01:54 < BotoX> C9DCC0 should be yellow on the right
+01:55 < BotoX> https://i.botox.bz/1442015701.png
+01:55 < heinrich5991> BotoX: what are these screenshots showing?
+01:55 < BotoX> the assembler of https://i.botox.bz/1442014494.png
+01:56 < BotoX> the two yellow functioncalls, right being linux and left windows
+01:57 < heinrich5991> well, you see that ecx is probably the this pointer
+01:57 < BotoX> what does [] mean D:
+01:57 < heinrich5991> dereference
+01:58 < BotoX> so, off_522C28 get's mov'd into ecx
+01:58 < heinrich5991> yea
+01:58 < BotoX> and [ecx] is the value of the ecx pointer
+01:58 < heinrich5991> the value pointed to by the ecx pointer
+01:59 < BotoX> yeah
+01:59 < heinrich5991> which is likely the pointer to the vtable
+01:59 < BotoX> actually
+01:59 < BotoX> the same thing is happening on linux and windows
+02:00 < heinrich5991> just that on linux it's passed in eax and that's part of the standard amd64 calling convention
+02:00 < heinrich5991> so ida can detect it
+02:00 < BotoX> ah, so when the function is passed
+02:00 < BotoX> the esp ecx eax things
+02:00 < heinrich5991> ah nvm. this is 32 bit
+02:00 < BotoX> are there in the function too?
+02:00 < BotoX> yeah it's 32
+02:00 < heinrich5991> yea
+02:00 < heinrich5991> these are registers
+02:00 < heinrich5991> like global variables
+02:01 < heinrich5991> they're used to hold parameters and intermediate values
+02:01 < BotoX> actually what I am trying to figure out is following:
+02:02 < BotoX> the function that is being called looks like this in C: vieweffects->LevelInit();
+02:02 < BotoX> vieweffects is a pointer to an object
+02:02 < BotoX> which holds data that I need to access
+02:02 < BotoX> and that offset is the pointer that I am looking for, right?
+02:02 < BotoX> the pointer to vieweffects
+02:02 < heinrich5991> yes
+02:02 < BotoX> It works fine on linux
+02:03 < BotoX> yet it doesn't on windows
+02:03 < heinrich5991> that off_C9DCC0 thing
+02:03 < BotoX> yeah
+02:03 < BotoX> actually I'll try again
+02:03 < BotoX> because this seems right to me
+02:03 < heinrich5991> it might go to a different address than that though I guess
+02:04 < BotoX> well the this pointer has to point to vieweffects
+02:04 < heinrich5991> I think these addresses were local to the ... (module (?))
+02:04 < BotoX> yeah
+02:04 < BotoX> client.dll 
+02:04 < BotoX> + offset
+02:04 < heinrich5991> like when I viewed it in IDA it had a different address than when I viewed it in a debugger
+02:04 < BotoX> the module offset in IDA is 0
+02:05 < BotoX> Or I set it to 0 via manual load
+02:05 < BotoX> and when I try to access the pointer I add the client.dll offset to it in my program
+02:05 < BotoX> it worked for other stuff
+02:11 < BotoX> hmm nope doesn't work on windows :(
+02:12 < BotoX> read client.dll + offset -> vieweffects
+02:13 < BotoX> vieweffects + offset = variables stored in object ?
+02:13 < BotoX> or do I read vieweffects again maybe for windows
+02:25 < BotoX> client.dll+522C28 points to the number 3
+02:25 < BotoX> great
+02:34 < BotoX> I am lost
+02:40 < BotoX> halp heinrich5991 
+02:40 < BotoX> how can client.dll + 0x522C28 be 3
+02:40 < BotoX> you were saying something about some offset
+02:40 < heinrich5991> probably because it's not the right address :)
+02:41 < BotoX> that is an explanation
+02:41 < heinrich5991> does client.dll perhaps have multiple address spaces?
+02:41 < heinrich5991> (I really don't know)
+02:41 < BotoX> nope
+02:41 < BotoX> well it does but the base address is always the same
+02:42 < BotoX> or wait no it doesn't
+02:42 < BotoX> it only has one
+02:44 < heinrich5991> mhh. no idea. and I wanna sleep :)
+02:46 < BotoX> omg
+02:46 < BotoX> rebased to 0x0
+02:46 < BotoX> I fucking swear
+02:46 < BotoX> When I loaded this dll I set the offset to 0
+02:46 < BotoX> the address changed
+02:47 < BotoX> 512C28
+02:47 < BotoX> works...
+02:48 < heinrich5991> mh...
+02:48 < heinrich5991> what does this achieve, in the big picture?
+02:48 < BotoX> the base pointer offset was 0x100000
+02:49 < BotoX> so my address turned from 512C28 to 522C28
+02:49 < BotoX> which is wrong
+02:49 < BotoX> rebased to 0x0 and it's right
+02:49 < BotoX> I don't know why IDA does that
+02:49 < heinrich5991> ah k
+02:49 < BotoX> When I loaded the dll I used manual load and set it to 0
+02:49 < BotoX> guess that didn't work....
+02:50 < BotoX> yeah now everything works
+04:51 < fstd> matricks: pls pull https://github.com/matricks/bam/pull/84
+06:58 < needs> Pfiuuu, I finally have a working program to poll every servers and get the players list in a reliable way :D
+06:59 < needs> It even retry for servers that have not answered, so it is actually more reliable than vanilla teeworlds
+07:00 < needs> And retry doesn't cost a lot, In average it takes 6 seconds without retry, and 7 seconds with 2 retry
+07:01 < needs> And retry are actually useful, in average 95% server answer in the first round, and after two retry 99% of servers have answered :)
+07:02 < needs> So maybe vanilla client can be improved in this way?
+07:04 < needs> I have to mention that the code use the same logic as teeworlds client: no more than 25 requests at a time.
+07:05 < needs> (So comparing results are meaningful)
+07:29 <@matricks> fstd: saw that, those scripts have been due for a clean up
+07:29 <@matricks> fstd: gonna look into it when I get back home
+09:08 < [bog]> Hi there ! If I have any question about the source code, can I ask them here ? Is it the right place to ?
+09:18 < rand> Don't ask to ask, if anybody is here or alive or if anybody uses or knows something. Just ask.
+09:19 < Safa_[A_boy]> rand: XD
+09:19 < rand> (not from me ofc :) )
+09:22 < [bog]> I am looking at the source code of the 0.6.3 and I was wondering why they don't use the standard template library ? It's look like they create their own. Why ?
+13:09 < heinrich5991> needs is not here :/
+13:10 < heinrich5991> [bog] is gone too..
+13:14 <@minus> hm, why is bam compiled with -rdynamic
+13:14 <@minus> matricks: ^
+13:15 < heinrich5991> The manual says: -rdynamic: Pass the flag -export-dynamic to the ELF linker, on targets that support it. This instructs the linker to add all symbols, not only used ones, to the dynamic symbol table. This option is needed for some uses of dlopen or to allow obtaining backtraces from within a program.
+13:17 <@minus> i know what -rdynamic does, it's used with programs that load plugins, just wondering why bam uses that
+13:19 < heinrich5991> sure, the manual just says what it does, not why bam uses it :)
+13:23 <@minus> well, that's one thing we agree on then ;D
+14:41 < fstd> bam and teeworlds are about to be in https://www.pkgsrc.org/ \o/
+15:13 < fstd> and now are submitted
+17:36 < nameless_tee84> Hey guys! i was wondering, i have a demo here, of we playing in team, it was a 7 player team or so, and someone killed, i have the demo right here, but there are 2 names of tees who didnt appear on the right corner, so i was thinking if there is any killing log? or something to see who killed us :D
+17:36 < heinrich5991> perhaps the kill message box was just full (if that's possible, no idea)
+17:37 < nameless_tee84> and the game was more than 30 mins, so it was needed to write /kill to do it, 
+17:37 < heinrich5991> also, this seems to be a question about ddnet, join #ddnet for that btw
+17:37 < nameless_tee84> i was trying to see if someone typed, but one was out of sight and the other didnt type
+17:37 < nameless_tee84> it wasnt on ddnet server :D but i can go there :D thx
+17:44 < nameless_tee84> i dont think people answer there :DD
+21:06 < ***> Buffer Playback...
+21:06 < fstd> [18:36:33] yes it does, because it eliminates the mysql dependency??
+21:06 < fstd> [18:36:46] so bam need not "make a successfully reference to mysql_*" anymore
+21:06 < tyurd> [18:37:15] oh well
+21:06 < tyurd> [18:37:21] heinrich5991: you're right
+21:06 < tyurd> [18:37:37] i added all dependencies to server not to client...
+21:06 < heinrich5991> [18:37:45] (I'd still like to know what you use it for, though)
+21:06 < BotoX> [18:37:46] old bam.lua with mysql lib linked in the server https://github.com/BotoX/teeworlds/blob/saved-score-pub/bam.lua
+21:06 < heinrich5991> [18:37:56] BotoX: one moment too late :P
+21:06 < BotoX> [18:38:12] so yeah heinrich5991 
+21:06 < BotoX> [18:38:21] why did IDA bully me yesterday
+21:06 < BotoX> [18:38:32] making me spend like 3 hours looking through everything again xd
+21:06 < heinrich5991> [18:38:49] BotoX: because you pirated it
+21:06 < BotoX> [18:38:50] What is that offset good for in IDA
+21:06 < BotoX> [18:39:07] and what about you heinrich5991 
+21:06 < BotoX> [18:39:11] you bought it? :p
+21:06 < heinrich5991> [18:39:30] ...
+21:06 < tyurd> [18:39:31] well it works, thank you heinrich5991 
+21:06 < heinrich5991> [18:39:59] BotoX: ida doesn't bully me, draw your own conclusions :P
+21:06 < fstd> [18:42:59] wouldn't the obvious idea be to use IDA in order to crack IDA?
+21:06 < fstd> [18:43:08] or cannot it analyze itself?
+21:06 < BotoX> [18:43:36] I guess you could
+21:06 < heinrich5991> [18:43:43] fstd: bootstrapping problem
+21:06 < heinrich5991> [18:43:55] fstd: and the test version of ida can't analyze ida
+21:06 < BotoX> [18:44:12] hahaha
+21:06 < heinrich5991> [18:44:54] fstd: (in fact you're eplicitly allowed to RE ida, when you buy it)
+21:06 < fstd> [18:46:49] i see
+21:06 < fstd> [18:47:04] does this 'bullying' effectively prevent one from doing it?
+21:06 < heinrich5991> [18:48:03] fstd: there was no actually bullying, BotoX just complained that he overlooked something yesterday
+21:06 < BotoX> [18:48:33] I loaded some dll into IDA, used manual load to set the offset to 0
+21:06 < fstd> [18:48:54] ah okay, guess that went over my head :)
+21:06 < BotoX> [18:49:10] After a while of trying to figure out why the addresses I am getting are not working I found out that the base offset in IDA still was set to 0x100000
+21:06 < BotoX> [18:49:29] yet I remember not having to do this before
+21:06 < BotoX> [18:50:00] And, why is that offset even there, is there any use to it?
+21:06 < foxlet> [19:17:25] Hmm, PowerPC build server still works in 64-bit mode.
+21:06 < tyurd> [19:37:34] matricks: how I can add a param to gcc using bam?
+21:06 < heinrich5991> [19:38:24] tyurd: look for settings.cc.flags in bam.lua
+21:06 < tyurd> [19:38:35] thank you
+21:06 < tyurd> [19:40:04] uhm, settings.cc. don't seems to be right xd
+21:06 < tyurd> [19:42:35] better question, how i can prevent:
+21:06 < tyurd> [19:42:35] Warning: resolving _mysql_init@4 by linking to _mysql_init
+21:06 < heinrich5991> [19:45:14] well, that's probably the linker speaking
+21:06 < heinrich5991> [19:45:22] so I guess you want settings.link.flags
+21:06 < tyurd> [19:53:22] is this is a bad warning or i could say "I don't care."
+21:06 < heinrich5991> [19:53:51] well, just silencing the warning is the same as ignoring it
+21:06 < heinrich5991> [19:54:22] from what I can tell it _mysql_init@4 might have a different calling convention than _mysql_init
+21:06 < heinrich5991> [19:54:41] but if it starts up correctly, it probably has the same calling convention and everything is fine
+21:06 < tyurd> [19:55:01] ok, i'll test it then
+21:06 < tyurd> [19:57:37] works fine
+21:06 < tyurd> [19:57:39] :)
+21:06  * fstd [20:08:25] snorts
+21:06 < ***> Playback Complete.
+21:12 < fstd> 15:13:59 <      fstd > and now are submitted
+21:12 < fstd> ...and now are committed!
+21:40 <@matricks> minus: because you can do plugins to bam
+21:41 <@minus> TIL
+21:44 < BotoX> yayy https://p.botox.bz/esew
+21:57 < BotoX> hmm
+21:57 < BotoX> how do I show hex of asm instructions in ida
+21:58 < heinrich5991> tried right-clicking?
+21:58 < BotoX> yeah >_>
+21:59 < heinrich5991> there's a button somewhere
+21:59 < BotoX> ah okay just mark it
+21:59 < heinrich5991> I don't know where
+21:59 < BotoX> and then look at the hex view lol
+21:59 < heinrich5991> k
+21:59 < BotoX> it's highlighted there too
+22:02 < BotoX> is mov ebp, esp a one byte instruction
+22:02 < BotoX> like, all of it is one byte
+23:59 < heinrich5991> BotoX: I don't know
+23:59 < BotoX> nope it isn't, figured it out

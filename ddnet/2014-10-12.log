@@ -1,0 +1,712 @@
+00:00 < bear> just reclaiming what nick ive used for over 10 years hehe
+00:00 < bear> nothing personal
+00:00 < bear> there are bound to be more than two bears :)
+00:43 <+eeeee> tl;dr
+00:44 <@deen> eeeee: hi
+00:44 <+eeeee> so have heard you want accounts
+00:44 <+eeeee> ddnet client is easy but what's the plan for vanilla client?
+00:46 <@deen> no accounts for vanilla client
+00:46 <@deen> but accounts are not necessary for anything
+00:46 <@deen> just so that others know that you're really you
+00:50 <+eeeee> so you'll just show the account's "login" in scoreboard and that's it?
+00:50 <@deen> for the start, yes
+00:50 <+eeeee> or rankings will also get tied to accounts
+00:50 <@deen> those are the next steps
+00:50 <@deen> profile on the website, with all the maps you created, your ranks
+00:51 <@deen> demo upload and stuff like that
+00:51 <@deen> but preventing fakers would already be great
+00:53 <@heinrich5991> big meh from me
+00:55 <+eeeee> y
+00:55 <@deen> what else would you want?
+00:55 <+eeeee> heinrich5991: ?
+00:58 <@heinrich5991> eeeee: is that a "why"?
+00:58 <+Learath2> ./claimnick command would be nice :D
+00:59 <@deen> so far gameservers don't even know about accounts
+00:59 <@deen> so only the clients would see whether someone is logged in or not
+00:59 <+Learath2> well eeeee already has done account systems before so that should be pretty quick
+01:01 <@heinrich5991> claimnick is the worst IMO
+01:01 <@heinrich5991> as long as you only show the acc name, that's okay-ish
+01:02 <+eeeee> for ddwar we used a separate account server which was hooked up to gameserver through econ
+01:02 <+eeeee> kept gameserver changes to a bare minimum that way
+01:02 <@deen> hm, but then you need a modified gameserver
+01:02 <@deen> so it would only work with the ddnet mod
+01:03 <+eeeee> not sure you can do it 100% in ddnet client
+01:03 <@deen> we have some plans, but they're not in a nice form
+01:03 <@deen> EastByte can decide if he wants to show them to you^^
+01:03 <@deen> i think it would work
+01:03 <@deen> at least for the features we want for now
+01:08 <+eeeee> i guess it could work if e.g. your account server would accept messages like "<login> joined/dropped/playing on <ip>:<port> at <timestamp>" signed by with that login's password (via hashing for simplicity)
+01:09 <@deen> yes
+01:10 <+eeeee> wanna interface with account server via http?
+01:10 <@deen> we wanted at first
+01:11 <+eeeee> but then got an arrow in the knee?
+01:11 <@deen> but the account server should also be able to notify the client directly
+01:11 <@deen> when a new authenticated player just joined the player's current server
+01:11 <@deen> so it should be tcp + tls
+01:12 <+eeeee> why tls?
+01:12 <@deen> when you send the password hashed, then the hashed password becomes the actual password
+01:12 <@deen> so someone can just sniff it
+01:12 <+eeeee> well but you don't ever have to send the password
+01:13 <+eeeee> you just use the password to sign your messages
+01:13 <@deen> for the client to login
+01:13 <@deen> ah
+01:13 <@deen> that would also work
+01:13 <+eeeee> tls is cool but hard to port around
+01:13 <+eeeee> and hashing can be simply copypasted in C codes
+01:15 < Savander> good night
+01:15 <@deen> good night, Savander 
+01:15 <+eeeee> although iirc fisted managed to get libcurl+openssl working in both linux and windows for ddwar client
+01:16 <@deen> yeah, that's why EastByte wanted libcurl initially as well, but then we discovered that tcp would be better
+01:23 <+Learath2> he used libcurl for autoupdate to download the files
+01:24 <+eeeee> on a side note, we can make a centralized http hosting of tw maps and make ddnet client try fetching map from there whenver it connects to any server
+01:24 <@deen> eeeee: yes!
+01:25 <@deen> that would be really nice and reduce the requirements for gameservers
+01:25 <+Learath2> i can try to make that happen 
+01:25 <@deen> i don't know if we need libcurl for that
+01:26 <+Learath2> libcurl sure would be nice but could easily be done without that
+01:26 <@deen> we have some HTTP 1.0 code in autoupdate.cpp
+01:26 <@deen> but i don't know if it's a good idea to keep using that
+01:26 <+Learath2> should reimplement that with libcurl
+01:27 <+Learath2> libcurl is pretty light
+01:27 <@deen> but this would be really simple. client requests filename_hash.map. if it exists, download, otherwise from gameserver
+01:27 <+Learath2> fastdl.ddnet.tw :P
+01:28 <@deen> hmmmm
+01:28 <@deen> having just one server would probably lead to slower download for many
+01:28 <@deen> chileans can't download quickly from europe, for example
+01:28 <@deen> maybe it's fine as it is right now, after all
+01:31 <+eeeee> single server should be fine for everyone
+01:32 <+eeeee> will be much faster than udp even when downloading overseas
+01:32 <@deen> I'm not sure, i should make a test
+01:34 <+Learath2> Cloudflare pls
+01:34 <@deen> tested with our biggest map, 2.5 MB
+01:35 <@deen> 5 seconds from china, 3.5 s from chile, 7 s from south africa
+01:36 <+eeeee> sounds acceptable?
+01:36 <@deen> yes
+01:36 <@heinrich5991> with cloudflare it might be less
+01:36 <@deen> of course
+01:37 <+eeeee> and yes, we could also try to cloudflare it or even pay for CDN
+01:37 <@deen> but cloudflare costs money, right?
+01:37 <@heinrich5991> standard cloudflare doesn't
+01:38 <+Learath2> i still dont get cloudflares business model :/
+01:38 <+Learath2> how can they hand out free CDN and not bankrupt
+01:38 <+eeeee> i wonder if standard cloudflare supports http long polling
+01:38 <@deen> get people hooked on standard cloudflare, show them that it's not enough and they have to upgrade?
+01:38 <@heinrich5991> stnadard cloudflare is pretty awesome from what I've heard
+01:38 <+Learath2> yeah its pretty nice
+01:39 <@heinrich5991> works against http ddosing
+01:48 <+eeeee> deen: so what, want me to set up the infra for maps?
+01:48 <@deen> hmmmm, would probably be nice to have, yes
+01:48 <+eeeee> will buy a tiny vps in US for a couple years and cloudflare it
+01:48 <@deen> oooh
+01:48 <@deen> you mean that infra
+01:49 <@deen> i thought you wanted to write the code :P
+01:49 <+eeeee> could try wiring up existing http 
+01:49 <@deen> for now i would just use our existing infrastructure
+01:49 <+eeeee> but i prolly can't properly link to libcurl
+01:49 <@deen> i think we have more than enough servers anyway
+01:50 <@deen> dedicated server in FRA is sitting around doing nothing right now
+01:50 <+eeeee> sounds like it might go away then
+01:51 <+eeeee> and you'll have to perform extra effort to move the maps hosting from it
+01:51 <@deen> yes, it will. but moving a map server isn't difficult
+01:51 <+eeeee> okay ur the boss
+01:54 <+eeeee> i just remember how annoying it was to move around when ddwar was haunted by ddoses
+01:54 <@deen> yeah, moving the main server is very annoying for ddnet
+01:54 <+eeeee> why?
+01:55 <+eeeee> because of favorites?
+01:55 <@deen> no, because i have too much stuff setup there
+01:55 <@deen> all the weird scripts, website, dynamic website parts, email, forum, databases and so on
+01:56 <+eeeee> why not separate all of that from gameserver?
+01:56 <@deen> right now it is separated
+01:56 <@deen> and still gets ddosed
+01:56 <@deen> well, it ran fine for a year without protection
+01:56 <+eeeee> http should be much easier to protect from ddos
+01:56 <@deen> then i moved it to the "ddos protected FRA server"
+01:56 <@deen> but it wasn't that ddos protected after all
+01:57 <+eeeee> well might be because the hoster cannot filter udp
+01:58 <+eeeee> but if you only used http on that server the firewall might be smart enough to just drop all udp
+01:58 <@deen> but http also went down, so it's not like they're just blocking all udp
+01:58 <@deen> with the ovh pro firewall you can set it up like that, yes
+01:58 <+eeeee> yeah i mean if you dont filter the udp then it just saturates the link and http stops working as well
+02:07 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/eJVI5Q
+02:07 < ddnet-commits> ddnet/DDRace64 1d7d511 def: Set ed_zoom_target to 0 on default
+02:30 <+eeeee> i dont get it
+02:30 <+eeeee> does autoupdate block the client
+02:30 <@deen> what do you mean?
+02:30 <+eeeee> or is it because i'm on macos
+02:31 <+eeeee> i mean i dont see any threading or async networking
+02:31 <@deen> there is no autoupdate for mac. i don't have a mac and i have no idea how it works
+02:31 <+eeeee> yeah i removed all ifdefs to get it to work
+02:31 <@deen> where don't you see threading or async networking?
+02:32 <+eeeee> in CheckUpdates
+02:32 <@deen> aah, now i understand
+02:32 <@deen> yes, the autoupdater blocks the client
+02:44 <+eeeee> seems to kinda work, at least it downloads the file fine
+02:44 <+eeeee> the linux version though so cannot restart into it
+02:44 <@deen> cool
+02:45 <@deen> but for macos we distribute a dmg file, no idea if you can even update that
+02:45 <+eeeee> surely not auto update
+02:48 <@deen> same for the android one
+02:50 <+eeeee> so how about this: a separate component which runs in a thread and uses that blocking getfile function to fetch the http://acc.ddnet.tw/gameserverip:gameserverport/players like every 5 seconds
+02:51 <+eeeee> could pass back and forth some kind of last update timestamp to save traffic
+02:52 <+eeeee> that file would be just plaintext mapping of player slot to login name
+02:52 <@deen> hm, interesting idea, that could work
+02:52 <+eeeee> and would be synced to some memory structure which is used for rendering
+02:53 <@deen> need to see what EastByte thinks about this
+02:53 <+eeeee> so the main thread would only be blocked for the time needed to parse the file into memory
+02:58 <@deen> something like global chat messages would be difficult if we want to use http
+02:59 <+eeeee> we can use long polling
+02:59 <+eeeee> was de-facto industry standard before they invented websockets
+03:00 <+eeeee> it works great but i'm not sure how ddos resistant that is
+03:00 <@deen> yeah, would probably work
+03:00 <@deen> I guess EastByte will be happy to hear, since he wanted http from the start
+03:01 <+eeeee> http <3
+03:01 <+eeeee> although world is moving on to spdy
+03:06 <+eeeee> if our signing code is like really slow, e.g. a couple thousand rounds of salted md5
+03:06 <+eeeee> then we could auto-generate a short alpahnumeric password in the client
+03:06 <+eeeee> and store it in settings
+03:12 <@deen> good night
+03:12 <+eeeee> nite
+03:14 < DoNe> hi
+03:14 < DoNe> look at this :D http://timgame.de/files/balance.demo
+03:19 <+eeeee> html5 tw demo player anyone?
+03:22 < DoNe> xDD
+03:22 <+eeeee> you may laugh
+03:22 < DoNe> i do
+03:23 <+eeeee> but the time is nigh
+03:23 < DoNe> some1 working on a converter?
+03:23 <+eeeee> not yet, but should be super easy now that we have https://github.com/kripken/emscripten/wiki/Asyncify
+03:24 < DoNe> whats that
+03:24 <+eeeee> c++ to js compiler
+03:24 < DoNe> ahhhh
+03:24 <+eeeee> now supports "sleep" function which was the last problematic piece
+03:24 < DoNe> then its easier to make a html5 player than a converter xD
+03:25 <+eeeee> do it
+03:25 < DoNe> haha no
+03:25 <+eeeee> meh
+09:58 <@EastByte> hm
+10:52 <@EastByte> eeeee, deen, heinrich5991: I think cloudflare will be a problem, I often heard complains iirc
+10:52 <@heinrich5991> EastByte: about what?
+10:52 <@EastByte> and I'm not sure whether cloudflare allows long polling
+10:52 <@EastByte> heinrich5991: downtime and so on
+10:53 <@heinrich5991> GreYFoX was quite happy with it
+10:53 <@EastByte> cloudflare might see long polling just as a "server didn't response" and cancel
+10:54 <@heinrich5991> ah
+10:56 <+eeeee> that alone is not a problem though
+10:57 <+eeeee> as long polling connection will timeout eventually one way or another
+10:58 <+eeeee> maybe we should just try it
+10:59 <@EastByte> well, let's check out whether cloudflare does fine with polling at all
+10:59 <+eeeee> long polling isn't even necessary for the basic accounts stuff, only for cross server chat which is hypothetical atm
+10:59 <@EastByte> I think it's more directed to desktop clients visiting simple webpages
+11:00 <@EastByte> http://i.imgur.com/9uFhVzt.png
+11:00 <@EastByte> and this is what cloudflare might return on timeout :D
+11:01 <@EastByte> would be bad if they still set the http status to 200
+11:04 <+eeeee> in that case maybe we still can leverage an advanced not-so-long polling technology 
+11:04 <@EastByte> "+eeeee | you just use the password to sign your messages"
+11:04 <@EastByte> how does that work?
+11:05 <+eeeee> like 5-seconds-long polling or something
+11:05 <+eeeee> you just take the message
+11:05 <@EastByte> md5(msg+pw)?
+11:05 <+eeeee> yes
+11:05 <@EastByte> so the server needs to store the plain password
+11:05 <+eeeee> yep
+11:06 <@deen> that's bad =/
+11:06 <@EastByte> well for me it's find I guess
+11:06 <@EastByte> fine*
+11:06 <+eeeee> well you can always do md5(msg+md5(pw)) if you want
+11:06 <@deen> i don't want all these passwords!
+11:06 <@deen> eeeee: then the md5(pw) is the real pw
+11:06 <@EastByte> deen: better then the plain password
+11:06 <@deen> no
+11:06 <+eeeee> but it's never transmitted over the net
+11:06 <+eeeee> should be fine
+11:08 <@EastByte> the reason why I wanted to use tcp+ssl was because many people could help us hosting a "tcp forward" for the master server
+11:08 <@EastByte> so they only forward raw ssl
+11:08 <@EastByte> and block everything on ddos
+11:09 <@EastByte> only problem would be if the masterserver's ip gets public
+11:09 <+eeeee> uh if they block everything then what's the point 
+11:10 <@EastByte> well if one node get's attacked it will be down anyways
+11:10 <@EastByte> and if we have like a hundred nodes
+11:10 <@EastByte> no way to take everything down
+11:10 <+eeeee> cloudflare sounds easier somehow
+11:11 <@EastByte> yea let's check it out
+11:11 <@heinrich5991> cloudflare gives you automatic caching in that point
+11:11 <@heinrich5991> so it doesn'
+11:11 <@heinrich5991> t evne go down on ddos
+11:11 <@heinrich5991> (as long as the internal server is hidden)
+11:11 <+eeeee> yeah it's kinda useless for dynamic content like account server's responses tho
+11:12 <@heinrich5991> yes
+11:13 <+eeeee> well just for accounts could make it useful, but not for chat
+11:13 <+eeeee> oh hut cloudflare website says they update the content weekly, so no :D
+11:14 <@EastByte> I personally don't like to use a commercial cdn like cloudflare
+11:14 <@EastByte> rather want to be independent from nsa backdoored stuff
+11:14 <+eeeee> oh please
+11:14 <+eeeee> nsa has backdoors everywhere anyway
+11:15 <@EastByte> well that's a bad argument, yes
+11:16 <@EastByte> but cloudflare always has been used by kids who didn't know how to do distributed safe hosting
+11:16  * eeeee doesnt know as well
+11:20 <+eeeee> if all maps get loaded from cdn, how much traffic is that gonna be?
+11:20 <@deen> hmmm, i can only estimate
+11:21 <@heinrich5991> what's wrong in admitting that one doesn't really know how to do safe hosting?
+11:21 <@deen> since GER has ~2 TB traffic monthly
+11:21 <@heinrich5991> and using a well-known solution for that
+11:21 <@EastByte> eeeee: but map downloads can be cached by cloudflare?
+11:21 <@deen> eeeee: I'd say at most 1-2 TB
+11:22 <@EastByte> heinrich5991: it's not wrong but I don't like
+11:22 <@EastByte> it
+11:23 <@heinrich5991> aha
+11:23 <@heinrich5991> must be really useful to the "NSA" to see teeworlds map caching going on
+11:24 <+eeeee> why do you think the "battlefield" tw mod disappeared?
+11:25 <+eeeee> nsa took it down as they used it to train terrorists
+11:26 <@EastByte> you will stop laughing if cloudflare isn't able to pass through polling requests correctly, takes too long for response and forces cached responses :P
+11:27 <@heinrich5991> didn't say that we should use it for polling
+11:27 <@heinrich5991> (but rather for map downloads)
+11:28 <+eeeee> the cheapest non-cloudflare cdn for 2TB is $80/month
+11:28 <+eeeee> that's kinda expensive
+11:28 <@EastByte> so does anyone have a free domain name which could be used for testing cdns?
+11:28 <+eeeee> we'd better off with a couple "ddos protected" servers i guess
+11:29 <@heinrich5991> we can use a subdomain I guess
+11:29 <@EastByte> I'm not sure
+11:29 <@heinrich5991> test.ddnet.tw
+11:29 <@deen> sure
+11:29 <@deen> every subdomain directs to ddnet.tw
+11:30 <@deen> maps could already be downloaded from ddnet.tw
+11:30 <@heinrich5991> unless the CDN doesn't like it specifically, it should work
+11:30 <@deen> http://ddnet.tw/maps/Kobra.map
+11:30 <+eeeee> no crc tho
+11:30 <@deen> true
+11:30 <@deen> just for cdn testing i meant
+11:30 <@heinrich5991> eeeee: I'd use a sensible hash function and only download via hash
+11:31 <@EastByte> isn't crc32 enough?
+11:31 <@EastByte> it already is some kind of id for tw maps
+11:31 <@heinrich5991> but specifically only to differ between maps of the same name
+11:31 <@EastByte> right
+11:31 <+eeeee> heinrich5991: not necessary for ddnet and 3rd party servers only support crc
+11:32 <@heinrich5991> okay right
+11:32 <@heinrich5991> but centralized stuff might have the problem of "map poisoning"
+11:33 <@heinrich5991> (should be fairly trivial to generate a crc collision, and if anyone can upload new maps...)
+11:33 <+eeeee> plan is to start with hosting only official ddnet maps
+11:33 <@heinrich5991> right
+11:33 <+eeeee> about new maps, yeah
+11:33 <@EastByte> you can just check whether the crc already is in use and log something like "heinrich said it"
+11:34 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/MHX2IQ
+11:34 < ddnet-commits> ddnet/DDRace64 6333583 def: Display message about DDNet client to players not using it
+11:36 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/rdFmpQ
+11:36 < ddnet-commits> ddnet/DDRace64 fda12b8 def: Make sv_client_suggestion optional
+11:37 <@EastByte> eeeee: relating to html5 demo player, we already have this: https://eastbit.net/public/tw-webgl/?map=dm1.map and https://eastbit.net/public/tw-webgl-tees/
+11:39 <@deen> the second one is exactly what it looks like when OVH falsely detects me as part of a DDoS!
+11:39 <@EastByte> ^^
+11:41 <@heinrich5991> the second one =)
+11:41 <@heinrich5991> looks fun
+11:42 <+eeeee> yeah still far from a demo player though
+11:42 <@EastByte> well you talked about c++->js convert
+11:42 <@EastByte> will be easier since we already have some graphics stuff
+11:42 <+eeeee> i once just set up the recording of all opengl commands in tw client and replayed them back in html5 canvas
+11:43 <+eeeee> was kinda slow and i couldnt figure out how to use webgl
+11:43 <@EastByte> :D
+11:43 <+eeeee> coz it's opengl es
+11:43 <@EastByte> yea
+11:45 <@EastByte> really sad that you can't use 3d textures there
+11:45 <+eeeee> if someone does try c++ to js convert then the major challenge would be stripping down the client to only what's necessary to play demos and removing all the low level system stuff like threading, fs, networking, etc.
+11:46 <@EastByte> I personally find it easier to rewrite it^^
+11:46 <@EastByte> my layer rendering engine runs nearly completly on gpu
+11:46 <+eeeee> kinda hard to get exactly all the quirks of original
+11:46 <@EastByte> would be too slow otherwise
+11:46 <+eeeee> think stronger hook
+11:47 <+eeeee> not sure if that's necessary for smooth demo playback though
+11:48 <@EastByte> ^
+11:48 <@EastByte> we could strip everything down
+11:48 <@heinrich5991> stronger hook might be necessary
+11:48 <@heinrich5991> it's in the shared codebase
+11:48 <@heinrich5991> of client and sever
+11:59 <@EastByte> so using a cdn for map downloads is what we want?
+12:00 <@deen> I think a single normal server would be good enough
+12:01 <@EastByte> why do teeworlds relating discussions never end up to anything?
+12:10 <@heinrich5991> the end was IMO: "let's build a centralized map storage for ddnet-maps only, behind a cdn"
+12:14 <@EastByte> so I would say using deen's "single normal server" as http file server and put cloudflare free on top
+12:14 <@EastByte> if cloudflare doesn't work out well, fall back and rely ddos protection
+12:15 <@EastByte> on*
+12:15 <@heinrich5991> yep
+12:16 <@EastByte> and the ddnet acc system will be devloped behind the scenes
+12:22 <@EastByte> deen: you already added a motd message for non ddnet cl users
+12:22 <@EastByte> we could do the same for people who are using a really old version of ddnet cl
+12:34 <@deen> EastByte: i thought about it, but do we really want to annoy them?
+12:35 <@deen> (i actually had it in and removed it before committing)
+12:35 <@EastByte> hm
+12:36 <@deen> i guess we can do it
+12:36 <@deen> and see what happens :P
+12:36 <@EastByte> yea :)
+12:36 <@deen> but the people with old ddnet client
+12:36 <@deen> already get a message whenever they start it
+12:36 <@deen> and choose to ignore it
+12:37 <@EastByte> right
+12:37 <@EastByte> but a motd can be changed afterwards so they are going to think about it again
+12:37 <@deen> hm?
+12:38 <@EastByte> the first motd might be: please download the newest ddnet client
+12:38 <@EastByte> and later you can add reasons why they should do so
+12:38 <@EastByte> you can also make the text flashing and everything =)
+12:39 <@EastByte> at some point they well really get annoyed
+12:39 <@EastByte> or even interested :)
+12:47 <@deen> haha
+12:49 <@EastByte> is there a simple first in last out buffer class in python?
+12:49 <@EastByte> heinrich5991: ?
+12:50 <@EastByte> afk
+12:52 < ddnet-commits> [ddnet] def- pushed 2 new commits to DDRace64: http://git.io/SfXc5Q
+12:52 < ddnet-commits> ddnet/DDRace64 517f1a8 def: Add notification for old client
+12:52 < ddnet-commits> ddnet/DDRace64 3ff6b95 def: Configurable messages
+12:56 <@heinrich5991> EastByte: yes
+12:57 <@heinrich5991> e.g. there's queue
+13:43 <+laxa> deen: killstreak 1 dosn't seem to have been released properly :)
+13:49 <@deen> weird
+13:50 <+Nimda> Killstreak 1 by Tuna just released on solo at 2014-10-12 12:46
+14:16 <@EastByte> hello BeaR 
+14:16 < BeaR> hey :)
+14:16 <@deen> hi BeaR 
+14:16 <@deen> BeaR: Your sound stuff is awesome!
+14:17 < BeaR> thx :)
+14:17 <@EastByte> question: how is it being used in the future?
+14:17 <@deen> background music on maps!
+14:17 <@EastByte> where do the client get the sounds from
+14:17 <@EastByte> autoupdate?
+14:18 <@deen> from the map? they should be embedded?
+14:18 <@EastByte> ohhhhhhh
+14:18 <@EastByte> now I get it
+14:18 <@deen> well, people with vanilla client will not be happy
+14:18 <@deen> to download these sounds they can't even hear
+14:21 < Java__> Hey Guys
+14:21 < Java__> Could someone reinvite me to ddnet-priv?
+14:22 <@deen> i'm not there either
+14:23 < Java__> Thanks
+14:23 <@EastByte> invited you both
+14:24 <@EastByte> though I don't think that there is something going on in the future
+16:11 < DoNe> test
+16:12 <@deen> hi DoNe 
+16:12 < BeaR> position envelope for sounds now working (:
+16:13 <@EastByte> =)
+16:13 <@deen> so you can have a moving sound?
+16:13 < BeaR> yep
+16:13 <@deen> How do you synchronize moving sound and animation?
+16:13 <@deen> some ghost moving through the map and sound with it for example
+16:13 < DoNe> hi im testing irssi client for irc
+16:13 < BeaR> does teeworlds already as far as I see
+16:13 <@deen> BeaR: nice
+16:13 <@EastByte> DoNe: nice
+16:14 < DoNe> lol cant read your name yellow on white
+16:14 < DoNe> ah east byte
+16:14 <@EastByte> DoNe: background color of console should be black :P
+16:14 < DoNe> yeah should be
+16:14 < DoNe> u are using irssi too?
+16:14 <@EastByte> nah for me it's weechat
+16:15 <@EastByte> (similar)
+16:15 <@deen> EastByte: i always switch to white console when it's bright outside for better readability :P
+16:15 < DoNe> if i tell irssi my hostname is "jffnskfj" i can connect to quakenet
+16:15 <@EastByte> interesting
+16:15 <@deen> you can have a bind for urxvt
+16:15 <@deen> to switch
+16:15 < DoNe> but it says cant resolve hostname
+16:15 <@deen> also for font size :P
+16:16 <@deen> DoNe: because that is probably not your real hostname
+16:16 < DoNe> if i enter my real hostname it gives an error when connecting
+16:16 <@deen> DoNe: just enter no hostname?
+16:16 < DoNe> yeah but its crazy
+16:17 <@deen> EastByte: echo "\033]10;#000000\007\033]11;#ffffff\007\033]12;#000000\007\033]706;#0000ff\007\033]707;#ff0000\007"
+16:18 <@EastByte> BeaR: deen: I would love to hear some breeze/wind sounds in the background of maps :D
+16:18 <@EastByte> would also be cool for an autumn map
+16:18 <@EastByte> leafs flying around
+16:19 <@EastByte> deen: no I won't change anything :P
+16:19 < DoNe> my hostname is empty now
+16:19 <@EastByte> fortunatly the sun never gets through my window :)
+16:20 < DoNe> is there a reason quakenet wants to know my hostname?
+16:20 <@EastByte> ^ always looked up in irc
+16:20 < DoNe> but why
+16:20 <@EastByte> dunno it's on old protocol
+16:21 < DoNe> hm, ah white on black looks so basic :)
+16:21 <@EastByte> white on black and you are the uber hacker in school
+16:22 < DoNe> wtf
+16:22 <@EastByte> well green on black would be more leet
+16:22 < DoNe> u mean such a green that burns in eyes?
+16:24 < DoNe> hi
+16:24 <@deen> hi cris272 
+16:24 <@deen> cris272: are you french cris from TW?
+16:25 < DoNe> sorry for my stupidness but what does a @ and a + mean?
+16:25 <@deen> + is voice
+16:25 < DoNe> voice?
+16:25 <@deen> @ is operator
+16:25 <@deen> (or whatever it's called in ircspeak)
+16:26 < DoNe> whats voice
+16:26 < DoNe> ?
+16:26 <@deen> you can set the channel to some mode and then only people with voice can speak
+16:26 < DoNe> ah
+16:26 <@deen> we did that when ddosers would come here to talk shit
+16:26 < DoNe> wanna voice too
+16:26 <+DoNe> yeaa :D
+16:26 <@EastByte> happy?
+16:26 <@deen> don't need^^
+16:26 <+DoNe> but i have bow
+16:26 <+DoNe> now*
+16:27 <+DoNe> do i keep voice when reconnecting?
+16:27 <@EastByte> nope
+16:32 <+laxa> Has anyone ever installed & configured tomcat to run a java website behind reverse proxy ? :)
+16:33 <@deen> luckily not!
+16:33 <+laxa> Why luckily ? xD
+16:33 <@deen> I'm not a big java fan
+16:34 <@EastByte> lol I have 5 usb->mini usb cable and 4 usb->micro cable
+16:34 <+laxa> EastByte: make a necklace with them
+16:34 <+laxa> you are going to be a babe magnet
+16:34 <@EastByte> laxa: hahaha
+16:35 <@EastByte> I already webcam chatted with anqel so be quiet :P
+16:35 <+laxa> well, she had no webcam :p
+16:35 <@EastByte> when she was on her smartphone, she had
+16:35 <+laxa> Wut ? You saw her oO ?
+16:35 <@EastByte> yea
+16:35 <+laxa> Fuck me !
+16:36 <+laxa> Go out with her, then come visit me :p
+16:37 <+laxa> DoNe: you have a bouncer at least ?
+16:44 < BeaR> deen: Volume changing via envelopes also work now, anything else which I should add :) ?
+16:44 <@deen> BeaR: let me look at it and think
+16:44 < BeaR> sure :D
+16:46 <@deen> what's a global sound?
+16:46 <@deen> can't you just use para 0 to get a global sound, BeaR ?
+16:46 < BeaR> independet of position, you will hear it always
+16:47 < BeaR> hm didn't look into Parallax yet :d
+16:47 < BeaR> maybe
+16:48 <@deen> and we probably need a setting to disable map sounds
+16:50 < ddnet-commits> [ddnet] Tomew opened pull request #61: Removed InputData Array for Dummyinputs (DDRace64...DDRace64) http://git.io/ap-hfg
+16:51 <@deen> hm, i think sound doesn't work with para 0 
+16:52 <@deen> yeah, para is always 100 for sound
+16:52 <@deen> i think it would make more sense to have working para instead of global
+16:52 <@deen> then you can also put a sound on the left side, or right side
+16:53 < BeaR> gonna fix it tomorrow (probably)
+16:54 <@deen> awesome
+17:01 < ddnet-commits> [ddnet] def- closed pull request #61: Removed InputData Array for Dummyinputs (DDRace64...DDRace64) http://git.io/ap-hfg
+17:03 < BeaR> deen: Add a volume slider for the map sound and I'll try to fix the parallaxing tomorrow, if you find something else, tell me. Bye (:
+17:04 < BeaR> Added*
+17:04 <@heinrich5991> deen: it would be great if you could specify the maximum volume possible by maps, instead of scaling it
+17:05 <@deen> how would that work, heinrich5991?
+17:12 <@deen> hi TestTee96_xRoTh 
+17:12 < TestTee96_xRoTh> Yo
+17:12 < TestTee96_xRoTh> How are you doing? Still incoming attacks? 
+17:12 <@deen> no attacks
+17:12 <@deen> tournament in 2 hours
+17:12 <@deen> 3*
+17:13 <@heinrich5991> deen: not sure how that will work
+17:13 < TestTee96_xRoTh> How so tournament? 
+17:13 < TestTee96_xRoTh> Never did it :) What is the goal? 
+17:13 <@heinrich5991> finish the map first
+17:13 <@heinrich5991> afaik
+17:13 < TestTee96_xRoTh> ok
+17:13 <@deen> http://forum.ddnet.tw/viewtopic.php?f=3&t=518
+17:15 < TestTee96_xRoTh> Just found it. Nice idea
+17:15 < TestTee96_xRoTh> Since o_be_one 's servers are full again & No DDoS incoming I think I will not be needed anymore. :) 
+17:18 <@deen> We still don't have a protected server in Germany right now
+17:21 < ddnet-commits> [ddnet] Tomew opened pull request #62: Removed InputData Array (DDRace64...DDRace64) http://git.io/xnr2yg
+17:21 <@deen> we will get it at some point from the current hoster, but who knows when
+17:23 < TestTee96_xRoTh> I can host those
+17:24 < TestTee96_xRoTh> But you need linux right deen ? 
+17:25 <@deen> right
+17:25 <@deen> and i don't think you can host them
+17:25 < TestTee96_xRoTh> Because? 
+17:25 <@deen> since we need 4 cores, 2 GB of RAM
+17:26 < TestTee96_xRoTh> Okay
+17:26 <@heinrich5991> that's quite a lot
+17:26 < TestTee96_xRoTh> for just 1 server? 
+17:26 < TestTee96_xRoTh> I got 3cores, 3gb ram. Should be enough? 
+17:26 <@deen> for all of GER
+17:27 < TestTee96_xRoTh> ok, too bad :) 
+17:27 <@deen> at tournaments you have to plan for 300-400 players there
+17:27 < TestTee96_xRoTh> No problem :)
+17:51 < ddnet-commits> [ddnet] def- pushed 2 new commits to DDRace64: http://git.io/wAmD8g
+17:51 < ddnet-commits> ddnet/DDRace64 83f6fc7 Tomew: Removed InputData Array
+17:51 < ddnet-commits> ddnet/DDRace64 0cf97df Dennis Felsing: Merge pull request #62 from Tomew/DDRace64...
+17:54 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/5m3RiA
+17:54 < ddnet-commits> ddnet/DDRace64 607a277 def: Revert "Removed InputData Array"...
+17:55 <+laxa> xD
+17:56 <@deen> would be nice if we could get rid of them for easier mergability with other mods, but some nice dummy features stop working =/
+18:34 <+laxa> I gave nimda to harmony hosting and made them a plugin to announce server up/down
+18:34 <+laxa> if you wanna follow the status, you can enable it deen
+18:34 <@deen> nice^^
+18:35 < DoNe> how to simulate for example +left key is pressed?
+18:35 <@deen> simulate where?
+18:35 < DoNe> client
+18:36 < DoNe> i want to add it to client fifo
+18:36 <@deen> see controls.cpp
+18:37 <@deen> and stop making a bot writing extension :P
+18:37 <@deen> !ddnetpeak
+18:37 < Nimda> Current players on DDNet : 380
+18:37 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+18:38 <+laxa> we'll never beat the 532 without the blocker servers :x
+18:38 <+laxa> or in long time maybe
+18:38 <@deen> what?
+18:38 <+laxa> well, you removed the standart blocker servers you had in FRA right ?
+18:38 <@deen> during the last tournament there were 0 people on european blocker servers
+18:38 <+laxa> oh
+18:39 <+laxa> ok
+18:39 <@deen> and they're still running
+18:39 <@deen> just no players because r0x.fr is up
+18:39 <+laxa> I thought you removed them for vali
+18:39 <+laxa> but apparently you added them back
+18:39 < DoNe> u cant write a bot with this because you have no input
+18:50 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/p3kKAA
+18:50 < ddnet-commits> ddnet/DDRace64 5cb861c def: Disable old client display for now since it's not working with dummy
+18:54 <+laxa> Hum, got an idea, I'll advertise for teeworlds on harmony hosting :p
+18:54 <+laxa> for the tournament at least
+18:54 <@deen> haha, awesome =)
+18:54 <@deen> hope they won't see their own server go down :P
+18:56 <+laxa> xD
+19:01 <+laxa> deen: https://github.com/def-/ddnet/commit/fda12b88bfff00845e7609944841cc9ca3d03ed0
+19:01 <+laxa> not working properly
+19:01 <+laxa> message is not entire
+19:01 <+laxa> it's written "featu" then not the end of the message
+19:01 <+laxa> and I can see it even though I got latest version of the client
+19:01 <@deen> oh?
+19:02 <@deen> well, damn^^
+19:09 <@deen> !ddnetpeak
+19:09 < Nimda> Current players on DDNet : 404
+19:09 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+19:24 <@deen> great, i can't connect to the south african tournament server =/
+19:25 <@deen> packets don't go through at that port, but other ports work
+19:25 <@deen> ah, only doesn't work from one specific source port
+19:28 <+laxa> !ddnetpeak
+19:28 < Nimda> Current players on DDNet : 405
+19:28 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:01 <@deen> !ddnetpeak
+20:01 < Nimda> Current players on DDNet : 442
+20:01 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:05 <@deen> !ddnetpeak
+20:05 < Nimda> Current players on DDNet : 455
+20:05 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:05 <@deen> I guess that's good for a map that's not Kobra 3 =)
+20:05 <@EastByte> ya 
+20:09 <+o_be_one> hi :)
+20:10 <@EastByte> hi
+20:10 <+o_be_one> how are u ?
+20:12 <@EastByte> fine
+20:15 <@deen> !ddnetpeak
+20:15 < Nimda> Current players on DDNet : 460
+20:15 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:15 <@deen> reports of lags on FRA
+20:15 <@deen> don't see an attack though
+20:18 <+o_be_one> ive some lags caused by attacks on the new host in testing
+20:18 <+o_be_one> but just 1s lag one time ... no more
+20:18 <@deen> !ddnetpeak
+20:18 < Nimda> Current players on DDNet : 471
+20:18 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:18 <@deen> o_be_one: HH has a lot of downtime^^
+20:18 <@deen> it's pretty scary
+20:19 <+o_be_one> really ?
+20:19 <@deen> our server was down 4 times already
+20:19 <+o_be_one> well let me ask to move you host to an other node
+20:19 <@deen> not now!
+20:19 <@deen> and not just because of the node, all nodes have very low uptime
+20:20 <+o_be_one> maybe they had a problem ?
+20:21 <@deen> !ddnetpeak
+20:21 < Nimda> Current players on DDNet : 482
+20:21 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:25 <@EastByte> !ddnetpeak
+20:25 < Nimda> Current players on DDNet : 485
+20:25 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:29 <@deen> !ddnetpeak
+20:29 < Nimda> Current players on DDNet : 500
+20:29 < Nimda> Current DDNet peak : 532 users online at 2014-09-28 20:14:41
+20:29 <@EastByte> yay
+20:35 <@EastByte> deen: we need to do some deep profiling to find out what can cause laggs/high cpu usage
+20:36 <@EastByte> (in the client)
+20:36 <@EastByte> if people are complaining about a laggy client, let's prove that it's not the case^^
+20:38 <@EastByte> we also should speed up the rendering engine (layer+font)
+20:39 <@deen> "feel free to do that" :P
+20:40 < shahan> ohi all
+20:40 <@EastByte> hi shahan 
+20:41 <+o_be_one> ive seen all my players back on my servers <3
+20:41 <+o_be_one> what a real community :D
+20:41 <+o_be_one> nothing to do for that ^^
+20:41 <+o_be_one> hi shahan how r u ?
+20:42 < shahan> ohi o_be_one , fine, thx, and u?
+20:43 < shahan> deen: as I told, i can setup a stream on RUS server while DDNet Tournament
+20:43 <@deen> shahan: that's a bit late now^^
+20:44 < shahan> deen: yeah, mb, but next time I'll find a micro for that too. Now it's just a stream without voice www.twitch.tv/shahan78rus
+20:44 <@EastByte> deen: if hookrace is not going to be reality in near future, I'm more motivated to refactor/rework the teeworlds engine
+20:44 <+o_be_one> fine ty shahan :)
+20:44 <@EastByte> also opengl+gpu knowledge is important for my future^^
+20:45 <+o_be_one> ive an idea, soon i'll upload my banlist online so deen youll be able to check if a player is a bad player or not
+20:45 <+o_be_one> banlist on my firewall ;)
+20:45 <@EastByte> ddrace doesn't have bad players ;)
+20:46 <@EastByte> deen: I guess we'll have atleast a weak ddos attack before the finish line
+20:48 <@EastByte> okay nvm
+20:50 <@deen> maybe we had one, who knows
+20:50 <@deen> there are no notifications at HarmonyHosting
+20:51 <@EastByte> rtt min/avg/max/mdev = 0.368/0.568/4.401/0.391 ms
+20:51 <@EastByte> from eastbit.net
+20:51 <+o_be_one> EastByte, sure, no vali and no cheaters, ya :D
+20:51 <@EastByte> o_be_one: ya maybe they are gone^^
+21:20 < laxa> deen: there is a fucking bug in the tournament map :(
+21:22 <+o_be_one> EastByte, i only blacklist very bad guys (whos cheating everytime or ddosing) on firewall, for the other its just regular ban :)
+21:22 <@EastByte> o_be_one: so how many of them do not have a dynamic ip?
+21:23 <@EastByte> well atleast ddosers are behind a proxy so it's useful
+21:26 <@deen> o_be_one: i'm very much against bans
+21:26 <@deen> I'd rather try to talk to "bad players"
+21:26 < Nimda> Fried by Hake just released on moderate at 2014-10-12 19:47
+21:31 <@deen> hm
+21:31 <@deen> so it turns out only chile was 30 players lower today
+21:31 <@deen> otherwise we would have had a new ddnetpeak
+21:31 <@deen> well, and Persian was 20 emptier
+21:31 <@deen> but europe had 320 players
+21:34 <@deen> that's good, that the ddos attacks didn't kill the european community
+21:37 <+o_be_one> EastByte, easy to rangeban
+21:37 <+o_be_one> deen, me too and youve seen that the real problem is only people like nazar
+21:37 <+o_be_one> i'm alway available to engage a talk, every if banned
+21:38 <+o_be_one> but when you talk 343 times and nothing changes ...
+21:38 <@EastByte> range bans mostly aren't effective
+21:38 <@EastByte> my own ip is in a different subnet/range everyday
+21:38 <+o_be_one> what do you think ? ive tried to talk with vali and nazar since 1 year ... i know them more than you can know them ...
+21:39 <+o_be_one> EastByte, well as you like ;). But about me, ive never had problem with dyn ip, always win the "ban game" and i hate whos bypass.
+21:39 <+o_be_one> and, vali was banned and thats why he started these big ddos, just he cant bypass my bans
+21:39 <+o_be_one> and you think he cant just change ip ?
+21:39 <@EastByte> banning might stop trolls from spaming the chat
+21:40 <+o_be_one> about chat, just mute, best way
+21:40 <@EastByte> but attacks always come from somewhere else
+21:41 <+o_be_one> well just to let you know, 10 years moderating on very heavy communitys and networks ^^ i'm very experienced in that :p
+21:42 <+o_be_one> wow 57 players currently on blmapV3ROYAL :o
+21:42 < laxa> deen: is the tournament over ?
+21:42 <@deen> yes
+21:42 < laxa> team size is still 2 players
+21:42 < laxa> is that normal ?
+21:42 <@deen> yes
+21:42 < laxa> pl
+21:42 < laxa> ok
+21:42 <@deen> mappers want it to stay 2 forever!
+22:12 < laxa> Someone wanna watch with me : The good the bad and the ugly ?
+22:23 < laxa> deen: welf will fix the bug I found on tournament map
+22:44 < laxa> deen: marge down !
+22:45 <@deen> huh?
+22:45 <@deen> wow...
+22:45 <@EastByte> ...
+22:45 <@deen> this hoster is weird
+22:45 < Nimda> DDNet FRA went down!
+22:46 <@deen> o_be_one: you should have said that their servers go down every day :P
+22:47 <@EastByte> if this would have happened while tournament...
+22:47 <@deen> I really don't know what they're doing
+22:47 <+o_be_one> deen, i dont monitor my servers, but when i play never seen down, its very curious that you had these problems ...
+22:47 <@deen> all other servers run incredibly stable compared to that
+22:48 <@deen> o_be_one: their dedicated servers go down all the time
+22:48 <@deen> so all vps on them as well
+22:48 <@deen> 3rd time now
+22:48 <@deen> and at some point they destroyed the firewall so no connections came through for 5 minutes
+22:48 <@deen> and 10 min later again
+22:48 < laxa> They just have an undiagnosticed problem I guess
+22:49 < laxa> once it's fixed, should be no more downtime
+22:50 < laxa> They say the kernel has been updated
+22:50 <@deen> and they couldn't at least announce that they would update it?...
+22:50 < laxa> it was an unexpected down
+22:51 <+o_be_one> deen, the bad thing with harmonyhosting is that they only communicate on irc
+22:51 <+o_be_one> ive already told them to announce on twitter and mail
+22:51 <+o_be_one> idk why they dont do that -_-
+22:51 <@deen> that's great since they don't say anywhere on which server their irc channel even is :P
+22:52 <+o_be_one> on theyr website you have the irc support shown :p
+22:53 < laxa> yeah, but no server address, you need to use the IRC chat connection to get it
+22:54 <+o_be_one> ok
+22:54 <+o_be_one> its klat00.org
+22:54 <+o_be_one> irc.klat00.org
+22:54 <@deen> yeah, i know
+23:00 < Nimda> DDNet FRA went back online!
+23:02 <@deen> oops, connected over ipv6^^
+23:03 <@deen> 23:02 < Luna> Sorry about that, we don't often have problems but it seems that  today isn't the good day #_#'
+23:03 <@deen> today :P

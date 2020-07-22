@@ -1,0 +1,464 @@
+08:29 <+bridge> [ddnet] <Learath2> @deen a 0 return there is not a preprocessing failure actually, it just means the packet needs no further processing
+08:30 <+bridge> [ddnet] <Learath2> It should return but, no need to log
+08:58 <+bridge> [ddnet] <deen> oh, but why is the raw msg a nullptr then?
+09:41 <+bridge> [ddnet] <Learath2> @deen rawmsg being 0 is supposed to signify that there is no need for further processing
+09:41 <+bridge> [ddnet] <Learath2> I just forgot the return
+09:42 <+bridge> [ddnet] <fokkonaut> you need a check in OnMessage tho
+09:42 <+bridge> [ddnet] <fokkonaut> for pRawMsg
+09:42 <+bridge> [ddnet] <fokkonaut> just like it was before
+09:43 <+bridge> [ddnet] <fokkonaut> invalid messages are dropped there
+09:43 <+bridge> [ddnet] <Learath2> Yes, I removed it while restructuring then forgot to add it back
+09:43 <+bridge> [ddnet] <fokkonaut> when unpacked by the handler
+09:43 <+bridge> [ddnet] <fokkonaut> Yea
+09:43 <+bridge> [ddnet] <deen> ok
+10:31 <+bridge> [ddnet] <heinrich5991> @deen https://github.com/ddnet/ddnet/pull/2311/files sounds like a DoS waiting to happen
+10:33 <+bridge> [ddnet] <deen> yeah, already changed it
+10:33 <+bridge> [ddnet] <deen> i didn't really know what the preprocess was doing and we had crashes because of this
+10:35 <+bridge> [ddnet] <Ryozuki> hi @heinrich5991, if you have time, please take a look at <https://github.com/ddnet/ddnet/pull/2307>, it adds some stuff to the protocol
+10:35 <+bridge> [ddnet] <heinrich5991> currently looking into the steam release stuff
+10:35 <+bridge> [ddnet] <Ryozuki> :o
+10:56 <+bridge> [ddnet] <Ryozuki> just noticed ger 2 is quite a big server :monkaS:
+10:56 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/724548240933912596/unknown.png
+11:06 <+bridge> [ddnet] <deen> yeah, way too big for us
+11:16 <+bridge> [ddnet] <Ryozuki> `pStr[-1] = 0;` how is this even possible?
+11:16 <+bridge> [ddnet] <Ryozuki> well i guess its some pointer arithmetic
+11:17 <+bridge> [ddnet] <heinrich5991> `*(pStr - 1) = 0`
+11:17 <+bridge> [ddnet] <Ryozuki> warning: writing 1 byte into a region of size 0 [-Wstringop-overflow=]
+11:17 <+bridge> [ddnet] <Ryozuki>   117 |  pStr[-1] = 0;
+11:17 <+bridge> [ddnet] <Ryozuki> this is on inline void IntsToStr(const int *pInts, int Num, char *pStr)
+11:18 <+bridge> [ddnet] <heinrich5991> ah, I think we had false positives in that function before :/
+11:18 <+bridge> [ddnet] <Learath2> `a[b]` is just sugar for `*(a+b)`
+11:18 <+bridge> [ddnet] <Ryozuki> yeye
+11:18 <+bridge> [ddnet] <Learath2> that's it's literal definition 😛
+11:18 <+bridge> [ddnet] <Ryozuki> but that sugar reminded me of python
+11:18 <+bridge> [ddnet] <Ryozuki> xd
+11:18 <+bridge> [ddnet] <heinrich5991> in C, or in C++ with pointers
+11:19 <+bridge> [ddnet] <Learath2> has some very interesting consequences, like `5["abcdefghijkl"]` being possible 😄
+11:19 <+bridge> [ddnet] <Ryozuki> so are most warnings in https://github.com/ddnet/ddnet/issues/2235 false positives?
+11:19 <+bridge> [ddnet] <Ryozuki> i managed to fix the first one
+11:20 <+bridge> [ddnet] <Ryozuki> which is not a string overflow
+11:20 <+bridge> [ddnet] <heinrich5991> one would have to check individually
+11:20 <+bridge> [ddnet] <heinrich5991> but I do remember that this warning did have false positives in the past
+11:21 <+bridge> [ddnet] <Ryozuki> https://gcc.gnu.org/bugzilla/show_bug.cgi?id=87296
+11:43 <+bridge> [ddnet] <heinrich5991> @Ryozuki prefer feedback here or on the PR?
+11:45 <+bridge> [ddnet] <Ryozuki> pr
+11:56 <+bridge> [ddnet] <heinrich5991> @Ryozuki feedback on technicalities and the actual feature are in different replies
+11:57 <+bridge> [ddnet] <Ryozuki> the frozen tee in a ice block can be done in another pr, i dont think it matters here
+11:57 <+bridge> [ddnet] <heinrich5991> it matters to me from a game design perspective
+11:57 <+bridge> [ddnet] <heinrich5991> I don't think the proposed solution is the way to go
+11:57 <+bridge> [ddnet] <Ryozuki> also it would look weird if the ice block is square , i think i saw it sometimes in the past
+11:58 <+bridge> [ddnet] <Ryozuki> @heinrich5991 "I think we shouldn't use client capabilities but send all clients the same data. "
+11:58 <+bridge> [ddnet] <Ryozuki> i dont know how to achieve this
+11:58 <+bridge> [ddnet] <Ryozuki> this feature stops sending that the weapon you have when frozen is ninja
+11:58 <+bridge> [ddnet] <Ryozuki> and instead it makes the client use the ddnet character
+11:58 <+bridge> [ddnet] <Ryozuki> you need client capabilities to know which clients can make use of ddnet character
+11:58 <+bridge> [ddnet] <Ryozuki> and not rely on weapon ninja
+11:59 <+bridge> [ddnet] <Ryozuki> the proposed pr has nothing to do with the freeze being a ninja or not
+11:59 <+bridge> [ddnet] <Ryozuki> i think that should be handled in another pr
+11:59 <+bridge> [ddnet] <Ryozuki> / issue
+12:00 <+bridge> [ddnet] <heinrich5991> oh, it's not showing the actual skin
+12:00 <+bridge> [ddnet] <heinrich5991> sorry, have seen something like that up there in the developer chat
+12:02 <+bridge> [ddnet] <heinrich5991> <thinking>
+12:02 <+bridge> [ddnet] <Ryozuki> @heinrich5991 back to the capabilities, do you see why i dont see how to achieve what you say?
+12:02 <+bridge> [ddnet] <Ryozuki> ah
+12:02 <+bridge> [ddnet] <Ryozuki> ok sry
+12:03 <+bridge> [ddnet] <Crying🌙> Helllo
+12:03 <+bridge> [ddnet] <Crying🌙> can u help me
+12:03 <+bridge> [ddnet] <Crying🌙> please
+12:03 <+bridge> [ddnet] <Crying🌙> fast please
+12:03 <+bridge> [ddnet] <Crying🌙> me need to kick someone on map
+12:03 <+bridge> [ddnet] <Crying🌙> he want finish with my nickname
+12:03 <+bridge> [ddnet] <Crying🌙> but me dont want
+12:03 <+bridge> [ddnet] <Crying🌙> it
+12:03 <+bridge> [ddnet] <Ryozuki> #general and tag a mod
+12:03 <+bridge> [ddnet] <heinrich5991> not #developer
+12:03 <+bridge> [ddnet] <Crying🌙> kk sry
+12:04 <+bridge> [ddnet] <heinrich5991> @Ryozuki ok, I can't think of anything better than sending a client capability :/
+12:05 <+bridge> [ddnet] <heinrich5991> one could put it into a different netobj, but then we'd have redundant information
+12:05 <+bridge> [ddnet] <heinrich5991> also not nice
+12:05 <+bridge> [ddnet] <Ryozuki> @heinrich5991 then, where do you think i should place to achieve that good discoverable position?
+12:05 <+bridge> [ddnet] <heinrich5991> > I'd suggest to send it right before sending the player name etc. On the server side, only accept it before the player name. This get rids of problems where weird behavior appears when clients change it while in game.
+12:05 <+bridge> [ddnet] <Ryozuki> ah
+12:05 <+bridge> [ddnet] <heinrich5991> `Cl_StartInfo`
+12:06 <+bridge> [ddnet] <heinrich5991> is what it's called IIRC
+12:08 <+bridge> [ddnet] <Ryozuki> inside the sendinfo method i guess
+12:08 <+bridge> [ddnet] <Ryozuki> inside the start
+12:08 <+bridge> [ddnet] <heinrich5991> yep
+12:09 <+bridge> [ddnet] <heinrich5991> and apparently the `SendDummyInfo`
+12:09 <+bridge> [ddnet] <heinrich5991> I guess you should create a function to not duplicate the code
+12:12 <+bridge> [ddnet] <Ryozuki> @heinrich5991 i guess using CNetMsg_Cl_Capabilities instead of AddInt is better
+12:12 <+bridge> [ddnet] <heinrich5991> yes
+12:16 <+bridge> [ddnet] <Ryozuki> @heinrich5991 pushed
+12:16 <+bridge> [ddnet] <Ryozuki> ups
+12:16 <+bridge> [ddnet] <Ryozuki> forgot Msg.Pack(&Packer);
+12:17 <+bridge> [ddnet] <Ryozuki> ok fixed
+12:18 <+bridge> [ddnet] <fokkonaut> @deen can you notice my client too? https://fokkonaut.github.io/F-Client
+12:19 <+bridge> [ddnet] <fokkonaut> Its more spread on the 0.7 community than zillywoods
+12:21 <+bridge> [ddnet] <heinrich5991> (PRs are possible to that repo btw)
+12:21 <+bridge> [ddnet] <Ryozuki> hmm
+12:21 <+bridge> [ddnet] <Ryozuki> i think now the server doesnt get the capabilities
+12:23 <+bridge> [ddnet] <Ryozuki> @heinrich5991 were should the server receive it now?
+12:23 <+bridge> [ddnet] <Ryozuki> it seems it doesnt get it now
+12:23 <+bridge> [ddnet] <heinrich5991> near `Cl_StartInfo`
+12:24 <+bridge> [ddnet] <heinrich5991> make sure to only accept the `Cl_Capabilities` once and only before `Cl_StartInfo`
+12:25 <+bridge> [ddnet] <Ryozuki> that would happen when pPlayer->m_LastChangeInfo is 0?
+12:25 <+bridge> [ddnet] <Ryozuki> or when pPlayer->m_IsReady is false
+12:25 <+bridge> [ddnet] <Ryozuki> i guess its that
+12:26 <+bridge> [ddnet] <Ryozuki> or both
+12:28 <+bridge> [ddnet] <heinrich5991> `!m_IsReady`
+12:28 <+bridge> [ddnet] <heinrich5991> and a boolean to indicate whether you already received a `Cl_Capabilities`
+12:29 <+bridge> [ddnet] <Ryozuki> it works now
+12:29 <+bridge> [ddnet] <Ryozuki> pushed
+12:30 <+bridge> [ddnet] <Learath2> Do we really need capabilities btw? Wouldnt old clients just drop the unknown message?
+12:31 <+bridge> [ddnet] <Ryozuki> we need
+12:31 <+bridge> [ddnet] <Ryozuki> as discussed earlier
+12:31 <+bridge> [ddnet] <heinrich5991> @Learath2 the problem is that we currently clobber the weapon field
+12:31 <+bridge> [ddnet] <heinrich5991> old clients rely on that
+12:31 <+bridge> [ddnet] <heinrich5991> we could duplicate the information "real weapon" into a different snapobj
+12:31 <+bridge> [ddnet] <Ryozuki> or we can just use the capabilities
+12:32 <+bridge> [ddnet] <Ryozuki> its just 1 packet at the start
+12:32 <+bridge> [ddnet] <Ryozuki> im sure in the future we will also find its use on another thing
+12:32 <+bridge> [ddnet] <heinrich5991> that is not the rouble with it
+12:32 <+bridge> [ddnet] <heinrich5991> the trouble is that we're making the protocol more complicated
+12:33 <+bridge> [ddnet] <heinrich5991> capability messages are about the worst thing that can happen
+12:33 <+bridge> [ddnet] <heinrich5991> so many edge cases that are untested
+12:33 <+bridge> [ddnet] <Ryozuki> which ones?
+12:34 <+bridge> [ddnet] <heinrich5991> clients that turn on capabilities in a combination that we don't test
+12:34 <+bridge> [ddnet] <Ryozuki> so you will decline the pr?
+12:35 <+bridge> [ddnet] <heinrich5991> no, I explained that I didn't find any better solution
+12:35 <+bridge> [ddnet] <heinrich5991> but you pretending that the solution has no downsides is a bit meh
+12:36 <+bridge> [ddnet] <Ryozuki> well i never said that
+12:37 <+bridge> [ddnet] <deen> the old way was to remember which version of ddnet client added support for which feature
+12:37 <+bridge> [ddnet] <heinrich5991> > [12:32 PM] Ryozuki: its just 1 packet at the start
+12:37 <+bridge> [ddnet] <heinrich5991> I interpreted this message as "the worst problem with the solution is that it's a packet we send"
+12:37 <+bridge> [ddnet] <heinrich5991> ah, that would get rid of the "exponential amount of stuff to test"
+12:38 <+bridge> [ddnet] <heinrich5991> problem
+12:38 <+bridge> [ddnet] <Ryozuki> well i just mentioned that because i thought "we could duplicate the information "real weapon" into a different snapobj" would actually send that rly often
+12:38 <+bridge> [ddnet] <heinrich5991> wdyt @Ryozuki?
+12:38 <+bridge> [ddnet] <deen> yeah, then it's just a linear amount of supported features, <= the number of versions we have
+12:38 <+bridge> [ddnet] <deen> of supported combinations*
+12:39 <+bridge> [ddnet] <heinrich5991> we even made that "feature" better recently, so it's always available
+12:39 <+bridge> [ddnet] <Ryozuki> what means wdyt
+12:40 <+bridge> [ddnet] <deen> what do you think
+12:40 <+bridge> [ddnet] <Ryozuki> " to remember which version of ddnet client added support for which feature" this?
+12:41 <+bridge> [ddnet] <Ryozuki> i find it ugly, but if you like it more we can go with it, we will have the code cluttered with version checks
+12:41 <+bridge> [ddnet] <Ryozuki> i just thought about client capabilities give other clients
+12:41 <+bridge> [ddnet] <Ryozuki> the opportunity to implement those
+12:41 <+bridge> [ddnet] <Ryozuki> and not rely on ddnet version
+12:42 <+bridge> [ddnet] <Ryozuki> s / about /that
+13:04 <+bridge> [ddnet] <Fluday> Hey guys
+13:04 <+bridge> [ddnet] <Fluday> Blurry and I had a problem
+13:04 <+bridge> [ddnet] <Fluday> I mean it wasn’t that important but still
+13:05 <+bridge> [ddnet] <Fluday> We wanted to save with « /save Fluday »
+13:05 <+bridge> [ddnet] <Fluday> And it saved with another pw
+13:05 <+bridge> [ddnet] <Fluday> Such as « draw move goofy » « twins slift slul »
+13:05 <+bridge> [ddnet] <heinrich5991> @Fluday save code was already used
+13:05 <+bridge> [ddnet] <Fluday> Slum*
+13:05 <+bridge> [ddnet] <Fluday> Oh probably !
+13:05 <+bridge> [ddnet] <heinrich5991> so it picked a different one for you
+13:06 <+bridge> [ddnet] <Fluday> Didn’t know that
+13:06 <+bridge> [ddnet] <heinrich5991> you can load it again if you want to change the code
+13:06 <+bridge> [ddnet] <Fluday> But it should ´t write
+13:06 <+bridge> [ddnet] <Fluday> This password has been used no ?
+13:06 <+bridge> [ddnet] <Fluday> Instead of putting another one
+13:06 <+bridge> [ddnet] <Fluday> Or maybe you changed it recently
+13:06 <+bridge> [ddnet] <heinrich5991> it got changed recently
+13:06 <+bridge> [ddnet] <Fluday> Oh ok
+13:07 <+bridge> [ddnet] <Fluday> Thanks then !
+13:21 <+bridge> [ddnet] <ᶰ°Konͧsti> Can we enable /r on testservers always and in team 0?
+13:33 <+bridge> [ddnet] <heinrich5991> https://hot3eed.github.io/2020/06/22/snap_p2_deobfuscation.html
+13:42 <+bridge> [ddnet] <Ryozuki> cool
+14:13 <+ChillerDragon> @heinrich5991 lmao > When you have 200+ million daily users, you’ll definitely want to keep your API private from spammers and co., so you’ll have to keep a secret
+14:13 <+ChillerDragon> and then he publishes it ;D
+14:14 <+bridge> [ddnet] <deen> @ᶰ°Konͧsti enabled now
+14:14 <+bridge> [ddnet] <deen> @Learath2 can't connect with Vanilla 0.6 anymore. I'll do a bisect
+14:20 <+bridge> [ddnet] <deen> oh well, locally I can't connect with a different error
+14:20 <+bridge> [ddnet] <ᶰ°Konͧsti> Thx deen :feelsamazingman:
+14:20 <+bridge> [ddnet] <ᶰ°Konͧsti> Always so fast to fix Problems :feelsgoodman:
+14:22 <+bridge> [ddnet] <murpi> ^
+14:23 <+bridge> [ddnet] <ᶰ°Konͧsti> wait its not xd
+14:23 <+bridge> [ddnet] <ᶰ°Konͧsti> /practice worked like on any other server Already.
+14:23 <+bridge> [ddnet] <ᶰ°Konͧsti> But on test it would be nice to not write /practice and also can use it in team 0 at any time
+14:23 <+bridge> [ddnet] <ᶰ°Konͧsti> wait its not xd
+14:23 <+bridge> [ddnet] <ᶰ°Konͧsti> /practice worked like on any other server Already.
+14:23 <+bridge> [ddnet] <ᶰ°Konͧsti> But on test it would be nice to not write /practice and also can use /r at any time
+14:24 <+bridge> [ddnet] <ᶰ°Konͧsti> so u dont have to get logged in and abuse super especially because super breaks switches
+14:27 <+bridge> [ddnet] <deen> ah, can't turn on sv_rescue after server is running, hm
+14:31 <+bridge> [ddnet] <deen> now it should work
+14:39 <+bridge> [ddnet] <Learath2> How does this break when I'm outside?
+14:40 <+bridge> [ddnet] <deen> it broke before
+14:40 <+bridge> [ddnet] <deen> but the bug report was too unspecific 😄
+14:40 <+bridge> [ddnet] <Learath2> So is there any urgent issue now?
+14:40 <+bridge> [ddnet] <deen> my guess is that it's something about the character net object
+14:40 <+bridge> [ddnet] <deen> https://github.com/ddnet/ddnet/issues/2318https://github.com/ddnet/ddnet/issues/2318
+14:40 <+bridge> [ddnet] <deen> https://github.com/ddnet/ddnet/issues/2318
+14:41 <+bridge> [ddnet] <Learath2> Hm, I never checked vanilla actualy
+14:50 <+bridge> [ddnet] <heinrich5991> @deen https://github.com/ddnet/ddnet/pull/2317 the warning was real, this won't work properly on MSVS I think
+14:51 <+bridge> [ddnet] <heinrich5991> i.e. should fix the format string instead of the change you did
+14:53 <+bridge> [ddnet] <ᶰ°Konͧsti> Thx, works now
+14:53 <+bridge> [ddnet] <deen> oh, but we used this before in many places
+14:54 <+bridge> [ddnet] <heinrich5991> I only see one mention of %lld in the source, at your line @deen
+14:54 <+bridge> [ddnet] <deen> there were multiple warnings for this in mingw
+14:55 <+bridge> [ddnet] <heinrich5991> those might all be broken on MSVS
+14:55 <+bridge> [ddnet] <heinrich5991> the change mostly silenced the warnings, not fixed them
+14:55 <+bridge> [ddnet] <heinrich5991> (for MSVS)
+14:55 <+bridge> [ddnet] <heinrich5991> (the commit did fix them for mingw)
+14:56 <+bridge> [ddnet] <deen> I thought this was a bug in mingw
+14:57 <+bridge> [ddnet] <heinrich5991> %lld isn't understood in MSVS IIRC
+14:57 <+bridge> [ddnet] <heinrich5991> never mind
+14:58 <+bridge> [ddnet] <heinrich5991> stackoverflow says it works in MSVS
+14:58 <+bridge> [ddnet] <heinrich5991> then that warning was wrong(?)
+14:59 <+bridge> [ddnet] <heinrich5991> hm how does that change even fix the warning, I wonder
+14:59 <+bridge> [ddnet] <heinrich5991> the warning is produced on the `str_format`, which is marked as taking a format argument
+15:00 <+bridge> [ddnet] <heinrich5991> the body of that function should be irrelevant to that warning
+15:00 <+bridge> [ddnet] <heinrich5991> it can't even be seen from the place where the warning is emitted
+15:00 <+bridge> [ddnet] <deen> nope, gcc is smart enough and checks where the string literal came from
+15:00 <+bridge> [ddnet] <deen> (is my assumption)
+15:00 <+bridge> [ddnet] <heinrich5991> we do have an annotation on `str_format`, I thought the warning came from there
+15:01 <+bridge> [ddnet] <heinrich5991> it can't know the body when comping src/game/server/ddracecommands.cpp
+15:01 <+bridge> [ddnet] <heinrich5991> compiling*
+15:01 <+bridge> [ddnet] <heinrich5991> the compiler call doesn't see src/base/system.c
+15:01 <+bridge> [ddnet] <deen> yeah, it's a bit mysterous actually
+15:11 <+bridge> [ddnet] <murpi> @deen regarding the bug with locking/killing at the same time causing to bug teams
+15:11 <+bridge> [ddnet] <murpi> I think theres a major problem with dummy maps
+15:11 <+bridge> [ddnet] <murpi> I think I broke something there
+15:11 <+bridge> [ddnet] <murpi> I can no longer join team 15 (which I used to try the bug) with 2 tee's
+15:14 <+bridge> [ddnet] <murpi> I broke team 16 aswell, just to verify it :pepeH:
+15:38 <+bridge> [ddnet] <n000b> XD
+15:51 <+bridge> [ddnet] <heinrich5991> https://www.wietzebeukema.nl/blog/hijacking-dlls-in-windows
+16:10 <+bridge> [ddnet] <ᶰ°Konͧsti> hMM
+16:11 <+bridge> [ddnet] <ᶰ°Konͧsti> @vNikyu / murpi did u try to cross startline on a dummy map?
+16:11 <+bridge> [ddnet] <ᶰ°Konͧsti> With the bug
+16:37 <+bridge> [ddnet] <Learath2> Okay, I'm back home
+16:39 <+bridge> [ddnet] <Learath2> Let me first commit the racetimer changes, then I'll take a look at vanilla
+16:39 <+bridge> [ddnet] <Learath2> The fact that there are people still using vanilla confuses me very much
+16:45 <+bridge> [ddnet] <heinrich5991> vanilla 0.6 is indeed an odd target
+16:50 <+bridge> [ddnet] <Soreu> Does anyone know if the "katana eyes" (`+`) on skins are still used for anything? including outside of DDRace
+16:56 <+bridge> [ddnet] <murpi> @ᶰ°Konͧsti I have not
+16:57 <+bridge> [ddnet] <murpi> probably wouldnt let you pass you
+16:57 <+bridge> [ddnet] <murpi> probably wouldnt let you pass
+16:58 <+bridge> [ddnet] <murpi> @Learath2 you managed to escape turkey? 😮 pog
+16:59 <+bridge> [ddnet] <Learath2> nope still in turkey
+16:59 <+bridge> [ddnet] <Learath2> I was outside having a late lunch
+17:00 <+bridge> [ddnet] <murpi> :feelsbadman:
+17:00 <+bridge> [ddnet] <murpi> guses you can call turkey your new home :kek:
+17:01 <+bridge> [ddnet] <Learath2> funny that the C++ standard library doesn't include a signum function
+17:06 <+bridge> [ddnet] <Learath2> hm, very hard to test the finish messages without a score setup
+17:10 <+bridge> [ddnet] <Learath2> TIL 0.6.5 doesn't really work on mac
+17:15 <+bridge> [ddnet] <Learath2> uff, now I need to get 0.6.5 building to test this old mess
+17:18 <+bridge> [ddnet] <I.K.U> can u guys add twitch emotes in tw?
+17:18 <+bridge> [ddnet] <I.K.U> or is there copyright for them
+17:20 <+bridge> [ddnet] <Learath2> gr8 experience
+17:20 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/724644908908019783/Screenshot_2020-06-22_at_18.19.31.png
+17:22 <+bridge> [ddnet] <Learath2> hm, I seem to have broken the local client id detection for old vanilal
+17:23 <+bridge> [ddnet] <Learath2> I can't get it to completely break though
+17:23 <+bridge> [ddnet] <Learath2> each new vanilla client seems to control the vanilla client that joined before it 😄
+17:31 <+bridge> [ddnet] <Learath2> hm, this is pretty hard to debug
+17:34 <+bridge> [ddnet] <Learath2> huh cid 0 seems unaffected
+17:37 <+bridge> [ddnet] <Learath2> hm everyone seems to think cid 0 is their local
+17:37 <+bridge> [ddnet] <Learath2> I guess that's what I broke
+17:53 <+bridge> [ddnet] <Learath2> so all vanilla clients are supposed to think they are id 0
+17:55 <+bridge> [ddnet] <Learath2> found it, missed while refactoring again 😦
+17:55 <+bridge> [ddnet] <Soreu> @Learath2 Could we possibly make little vote in #announcements to let players choose how the players in `/spec` should be displayed like?
+17:55 <+bridge> [ddnet] <Soreu> https://github.com/ddnet/ddnet/pull/2309#issuecomment-647612108
+17:56 <+bridge> [ddnet] <Soreu> Simple black-dashed one looks simple & clean, but got a lot of suggestions to somehow make it visible on darker backgrounds, so...
+18:00 <+bridge> [ddnet] <Learath2> hm, didn't really think this through, we don't have emojis for 1 2 3 and 4 😄
+18:01 <+bridge> [ddnet] <jao> 1️⃣2️⃣3️⃣4️⃣
+18:03 <+bridge> [ddnet] <Soreu> but Discord itself does ^
+18:03 <+bridge> [ddnet] <Learath2> nvm am blind
+18:03 <+bridge> [ddnet] <Learath2> was pushing the fix for the vanillat thing at the same time
+18:04 <+bridge> [ddnet] <deen> Thanks @Learath2
+18:06 <+bridge> [ddnet] <deen> Confirmed that it works, will rebuild servers
+18:06 <+bridge> [ddnet] <Learath2> Oh can you check spec while you have a server up?
+18:06 <+bridge> [ddnet] <deen> spectating?
+18:07 <+bridge> [ddnet] <deen> seems to work
+18:07 <+bridge> [ddnet] <deen> pause too
+18:07 <+bridge> [ddnet] <Learath2> The fakesnap looked odd to me for a sec
+19:00 <+bridge> [ddnet] <fokkonaut> @Learath2 0.7 shouldnt fake ids
+19:00 <+bridge> [ddnet] <Learath2> Translate wouldnt change anything for them anyway
+19:00 <+bridge> [ddnet] <fokkonaut> why?
+19:00 <+bridge> [ddnet] <fokkonaut> they should just behave like ddnet clients
+19:01 <+bridge> [ddnet] <fokkonaut> only 0.6 clients with 16 players (like vanilla(
+19:02 <+bridge> [ddnet] <Learath2> You made me get up from my very comfortable couch to just see that translate does indeed just return true without doing anything for sixup
+19:03 <+bridge> [ddnet] <fokkonaut> xd
+19:06 <+bridge> [ddnet] <fokkonaut> are you fixing it?
+19:06 <+bridge> [ddnet] <Learath2> Nothing to fix
+19:06 <+bridge> [ddnet] <fokkonaut> oh
+20:09 <+ChillerDragon> send help teeworlds is starting on my second screen :/ but not on the primary
+20:26 <+bridge> [ddnet] <Patiga> mine always starts on my primary screen o.o
+20:26 <+bridge> [ddnet] <noby> @ChillerDragon try using 0.6 client
+20:35 <+bridge> [ddnet] <Learath2> Try using 0.5, the older the better
+20:36 <+bridge> [ddnet] <noby> download teewars client
+20:41 <+ChillerDragon> u all big trolls
+20:41 <+ChillerDragon> @Patiga mine always on secondary even if i change primary screen in my settings
+20:43 <+bridge> [ddnet] <Patiga> mine stays on the same screen when changing primary display @ChillerDragon
+20:43 <+bridge> [ddnet] <heinrich5991> @Ryozuki with the ice block, I think "no weapon" would look nicer tbh
+20:43 <+ChillerDragon> so same as mine? but better?
+20:43 <+ChillerDragon> :D
+20:43 <+bridge> [ddnet] <Ryozuki> i dont want the iceblock
+20:43 <+ChillerDragon> i blame arch :D
+20:44 <+bridge> [ddnet] <Patiga> also got arch :p
+20:44 <+bridge> [ddnet] <Ryozuki> nobody wants it imho
+20:44 <+ChillerDragon> ikr
+20:44 <+ChillerDragon> thats why i blame arch @Patriga
+20:44 <+ChillerDragon> OMG the r
+20:44 <+bridge> [ddnet] <Patiga> ouchie
+20:44 <+bridge> [ddnet] <Ryozuki> and im not implementing it
+20:44 <+ChillerDragon> ye typo
+20:44 <+ChillerDragon> sry
+20:44 <+bridge> [ddnet] <heinrich5991> that's fine @Ryozuki
+20:44 <+bridge> [ddnet] <Patiga> how do you know tho
+20:44 <+bridge> [ddnet] <Ryozuki> i just dont want to mix that discussion with this pr
+20:44 <+ChillerDragon> that u use arch?
+20:44 <+bridge> [ddnet] <heinrich5991> @Ryozuki it might be better to discuss these graphics/gameplay related issues before turning them into code, at least if you're concerned about writing code that might not get merged
+20:45 <+bridge> [ddnet] <Patiga> aye
+20:45 <+ChillerDragon> how do you know that people are vegan?
+20:45 <+ChillerDragon> they tell u
+20:45 <+bridge> [ddnet] <Patiga> when
+20:45 <+ChillerDragon> arch users 24/7
+20:45 <+bridge> [ddnet] <heinrich5991> @Ryozuki but I'm saying that I think it doesn't fit the ice block thing that we might want to do in thefuture
+20:45 <+bridge> [ddnet] <Ryozuki> that pr has an option to disable the feature
+20:45 <+ChillerDragon> u and heinrich less often
+20:45 <+ChillerDragon> also konsti not too much
+20:45 <+bridge> [ddnet] <Ryozuki> with the iceblock u would need the capabilities anyway
+20:45 <+ChillerDragon> im sure you mentioned it here and then
+20:45 <+bridge> [ddnet] <heinrich5991> @Ryozuki if it were up to me, I'd remove those options, no matter whether it's getting merged or not
+20:46 <+bridge> [ddnet] <Patiga> o.o i cant really recall announcing it ever, except like once when i first saw the player "Arch Linux" ingame
+20:46 <+bridge> [ddnet] <heinrich5991> options are no excuse
+20:46 <+bridge> [ddnet] <Ryozuki> @heinrich5991 yeah but diferent ppl want  diferent things
+20:46 <+bridge> [ddnet] <Ryozuki> i would totally fork ddnet if u only allowed an iceblock
+20:46 <+ChillerDragon> im sure ull get a hit by running "grep -i patiga.*arch" on irc logs
+20:47 <+ChillerDragon> i swear i didnt hack ur pc to find it out
+20:47 <+bridge> [ddnet] <Patiga> mom im scared
+20:47 <+ChillerDragon> maybe during some techquestions or issue reports
+20:47 <+bridge> [ddnet] <Patiga> ah
+20:47 <+bridge> [ddnet] <Patiga> fair
+20:47 <+bridge> [ddnet] <Soreu> what do you guys mean by the ice block?
+20:47 <+ChillerDragon> henlo i have this ddnet klient bromelme I USE ARCH BTW
+20:48 <+bridge> [ddnet] <heinrich5991> @Soreu https://github.com/ddnet/ddnet/pull/2307#issuecomment-647674784
+20:48 <+bridge> [ddnet] <Soreu> that maybe: https://ddnet.tw/skins/skin/frozen.png ?
+20:48 <+bridge> [ddnet] <Ryozuki> its rly ugly
+20:48 <+bridge> [ddnet] <Soreu> ah
+20:48 <+bridge> [ddnet] <Ryozuki> nobody wants that
+20:48 <+bridge> [ddnet] <heinrich5991> not true
+20:48 <+bridge> [ddnet] <Ryozuki> people will 100% say with ninja
+20:48 <+bridge> [ddnet] <heinrich5991> I'd want that
+20:48 <+bridge> [ddnet] <Ryozuki> the ice is cluttered
+20:48 <+bridge> [ddnet] <Ryozuki> ninja is rounded and shows perfectly the bounds in physics
+20:48 <+bridge> [ddnet] <heinrich5991> it'd also provide the distinguishability between tees that someone else wanted
+20:48 <+bridge> [ddnet] <Ryozuki> its also clean
+20:49 <+bridge> [ddnet] <Soreu> players were many times asking for that frozen-skin to be used, but in different scenario, where that "ice" would be put over their skin, so that you can see skins unlike ninja
+20:49 <+bridge> [ddnet] <heinrich5991> you can see that (in my link) @Soreu
+20:49 <+bridge> [ddnet] <Ryozuki> https://user-images.githubusercontent.com/367283/85317906-71401600-b4bf-11ea-97c1-50dadfef1cfd.gif
+20:49 <+bridge> [ddnet] <Soreu> @Ryozuki afaik the physics are square in some cases
+20:49 <+bridge> [ddnet] <Ryozuki> looks so bad
+20:50 <+bridge> [ddnet] <Ryozuki> im definitly against this
+20:50 <+bridge> [ddnet] <Soreu> looks quite nice, though I'd be for more into this style
+20:50 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/724697833160048660/frozen.png
+20:50 <+bridge> [ddnet] <Soreu> of the ice itself
+20:51 <+bridge> [ddnet] <Ryozuki> i dont like it
+20:52 <+bridge> [ddnet] <Patiga> i would love to see it, its horrifyingly cute
+20:53 <+bridge> [ddnet] <Soreu> Is there perhaps issue/PR already about the ice-block?
+20:53 <+bridge> [ddnet] <heinrich5991> no, not yet
+20:53 <+bridge> [ddnet] <Soreu> can't find any, but sometimes the names are quite misleading
+20:54 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/issues/121#issuecomment-68357982
+20:54 <+bridge> [ddnet] <heinrich5991> the only thing I found related to this
+21:03 <+bridge> [ddnet] <Ravie> I feel like the ice skin would mess too much with the hitboxes, also if this gets added then it needs to actually look good and not some random blue square put over your tee (and of course the possibility to keep using ninja skin)
+21:09 <+ChillerDragon> Patiga ok i solved it by setting a screen in tw graphics settings
+21:18 <+bridge> [ddnet] <Patiga> ah, thats actually good to know
+21:55 <+ChillerDragon> its a 0.7 only feature i think
+21:55 <+ChillerDragon> yea looks like
+22:05 <+ChillerDragon> is github and githubstatus down?
+22:05 <+bridge> [ddnet] <heinrich5991> github.com main page loads for me
+22:05 <+bridge> [ddnet] <heinrich5991> https://www.githubstatus.com/ tells me  Update - An update to our nameservers has been rolled back. We are monitoring recovery.
+22:05 <+bridge> [ddnet] <heinrich5991> Jun 22, 20:00 UTC
+22:05 <+bridge> [ddnet] <heinrich5991> so 5min ago
+22:05 <+ChillerDragon> yea its back now
+22:05 <+ChillerDragon> but 1 sec ago githubstatus was literaly down
+22:06 <+ChillerDragon> ah nice all back
+22:06 <+ChillerDragon> i was this close to restart my computer ;D
+22:07 <+ChillerDragon> what are these mad lads doing i cant even ping github.com
+22:07 <+bridge> [ddnet] <heinrich5991> dns is bad
+22:07 <+bridge> [ddnet] <heinrich5991> you get the wrong IP address
+22:07 <+ChillerDragon> so its me?
+22:07 <+ChillerDragon> should i switch dns?
+22:08 <+bridge> [ddnet] <heinrich5991> dns changes propagate slowly
+22:08 <+bridge> [ddnet] <heinrich5991> try again in some time
+22:08 <+ChillerDragon> i blame microsoft
+22:08 <+ChillerDragon> i cant live without github
+22:44 <+bridge> [ddnet] <Ryozuki> apple is making cpus no
+22:44 <+bridge> [ddnet] <Ryozuki> w
+22:45 <+bridge> [ddnet] <Ryozuki> "Apple has long been rumored to be developing its own in-house ARM processors to replace the Intel chips it currently uses in its Macs."
+23:05 <+bridge> [ddnet] <deen> @Ryozuki they have been making mobile cpus for ~10 years
+23:05 <+bridge> [ddnet] <Ryozuki> well this one is for mac
+23:05 <+bridge> [ddnet] <deen> in some benchmarks the ipad pro's cpu beats intel mobile chips already btw
+23:05 <+bridge> [ddnet] <Ryozuki> :poggers:
+23:05 <+bridge> [ddnet] <Ryozuki> what about amd?
+23:05 <+bridge> [ddnet] <deen> and Intel is tiny compared to Apple
+23:06 <+bridge> [ddnet] <heinrich5991> tiny in what way?
+23:06 <+bridge> [ddnet] <deen> market capitalization
+23:06 <+bridge> [ddnet] <heinrich5991> I'd guess apple's usage of CPUs is far less than intel's production
+23:06 <+bridge> [ddnet] <deen> Apple is worth 8 times Intel I think
+23:07 <+bridge> [ddnet] <heinrich5991> and the benchmarks, what were they about? performance? performance per watt?
+23:07 <+bridge> [ddnet] <heinrich5991> I heard non-intel CPUs are better at performance per watt
+23:07 <+bridge> [ddnet] <deen> @Ryozuki maybe the ice cube should be a bit smaller? It indeed looks like it increases the size of tee atm
+23:07 <+bridge> [ddnet] <deen> pure performance I think
+23:07 <+bridge> [ddnet] <deen> but mobile cpus are always power/cooling constrained
+23:08 <+bridge> [ddnet] <Ryozuki> @deen i guess, i simply like more the ninja skin, to me entering a darker area and being not able to move doesnt mean im frozen idk feels rly out of place
+23:09 <+bridge> [ddnet] <deen> hmm
+23:09 <+bridge> [ddnet] <deen> The ninja feels a bit out of place to me
+23:09 <+bridge> [ddnet] <deen> like it was just available, but has nothing to do with ddrace freeze
+23:09 <+bridge> [ddnet] <heinrich5991> new player I've seen struggled to understand that ninja = not being able to move
+23:12 <+bridge> [ddnet] <deen> exactly. We're just used to it because we've seen it for years
+23:14 <+bridge> [ddnet] <Ryozuki> i think a frozen skin but that has the same size as the ninja
+23:14 <+bridge> [ddnet] <Ryozuki> maybe just a frozen effect
+23:14 <+bridge> [ddnet] <Ryozuki> over the skin
+23:14 <+bridge> [ddnet] <Ryozuki> but without going outside the tee
+23:14 <+bridge> [ddnet] <deen> Many thinks shrink when cooled down. Maybe just make the tee smaller and put it in a round ice ball 😄
+23:15 <+bridge> [freenode] <Zwelf> @deen can you look into the ger2 8304 server crash?
+23:15 <+bridge> [ddnet] <Ryozuki> :o
+23:15 <+bridge> [ddnet] <deen> oh shit, lots of crashes
+23:15 <+bridge> [ddnet] <deen> ```
+23:15 <+bridge> [ddnet] <deen> Program terminated with signal SIGSEGV, Segmentation fault.
+23:15 <+bridge> [ddnet] <deen> #0  0x0000564005314ee7 in CPlayer::Snap (this=0x5640053efcf8 <ms_PoolDataCPlayer+10296>, SnappingClient=SnappingClient@entry=4) at /home/teeworlds/src/master/src/game/server/gamecontext.h:122
+23:15 <+bridge> [ddnet] <deen> 122             IServer *Server() const { return m_pServer; }
+23:15 <+bridge> [ddnet] <deen> [Current thread is 1 (Thread 0x7f055fe0bdc0 (LWP 1095))]
+23:15 <+bridge> [ddnet] <deen> (gdb) bt
+23:15 <+bridge> [ddnet] <deen> #0  0x0000564005314ee7 in CPlayer::Snap (this=0x5640053efcf8 <ms_PoolDataCPlayer+10296>, SnappingClient=SnappingClient@entry=4) at /home/teeworlds/src/master/src/game/server/gamecontext.h:122
+23:15 <+bridge> [ddnet] <deen> #1  0x0000564005301148 in CGameContext::OnSnap (this=0x7f055d809010, ClientID=4) at /home/teeworlds/src/master/src/game/server/gamecontext.cpp:3331
+23:15 <+bridge> [ddnet] <deen> #2  0x00005640052d90d3 in CServer::DoSnapshot (this=this@entry=0x7f055f03f010) at /home/teeworlds/src/master/src/engine/server/server.h:119
+23:15 <+bridge> [ddnet] <deen> #3  0x00005640052dfb2d in CServer::Run (this=this@entry=0x7f055f03f010) at /home/teeworlds/src/master/src/engine/server/server.cpp:2508
+23:15 <+bridge> [ddnet] <deen> #4  0x00005640052d23c6 in main (argc=3, argv=0x7ffdddd56d28) at /home/teeworlds/src/master/src/engine/server/server.cpp:3525
+23:16 <+bridge> [ddnet] <deen> ```
+23:16 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/1
+23:16 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/2
+23:16 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/3
+23:16 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/4
+23:16 <+bridge> [ddnet] <Ryozuki> well it would be nice to have a artist do some sketches
+23:16 <+bridge> [ddnet] <Ryozuki> lol
+23:16 <+bridge> [ddnet] <deen> Bad bot
+23:16 <+bridge> [ddnet] <Ryozuki> issue #1 xd
+23:16 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/1
+23:16 <+bridge> [ddnet] <Ryozuki> lol
+23:16 <+bridge> [ddnet] <Ryozuki> whats this
+23:16 <+bridge> [ddnet] <Ryozuki> @jao fix bot
+23:16 <+bridge> [ddnet] <deen> @Learath2 Crash ^
+23:16 <+bridge> [ddnet] <abcqwerty> issue #1
+23:16 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/1
+23:16 <+bridge> [ddnet] <abcqwerty> oh cool
+23:16 <+bridge> [ddnet] <heinrich5991> @jao maybe blacklist issues < 25 or so
+23:17 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/724734833368236042/unknown.png
+23:17 <+bridge> [ddnet] <Ryozuki> < 197
+23:17 <+bridge> [ddnet] <heinrich5991> first report here: https://discordapp.com/channels/252358080522747904/342454474117218334/724732138817060914
+23:18 <+bridge> [ddnet] <Ryozuki> oh look
+23:18 <+bridge> [ddnet] <Ryozuki> with a artist we could also do that issue in the pic
+23:28 <+bridge> [ddnet] <Ravie> something like a roughly tee-shaped frost effect is the only way I can see it working (not sure what about odd shaped skins tho)
+23:28 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/724737648035495957/unknown.png
+23:29 <+bridge> [ddnet] <Ryozuki> thats cute
+23:29 <+bridge> [ddnet] <heinrich5991> did you just quickly sketch that up? 😮
+23:29 <+bridge> [ddnet] <heinrich5991> looks nice
+23:29 <+bridge> [ddnet] <Ravie> yeah it's not very great, took only a minute
+23:58 <+bridge> [ddnet] <heinrich5991> @deen do you still have the coredump+executable of the crash in #general? I wonder if one could use gdb to extract the save
+23:58 <+bridge> [ddnet] <deen> sorry, no :/
+23:58 <+bridge> [ddnet] <deen> replaced the executable and removed the crashes
+23:58 <+bridge> [ddnet] <deen> there were also so many crashes and the cores overwrite each other

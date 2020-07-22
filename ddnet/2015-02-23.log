@@ -1,0 +1,199 @@
+00:05 < Muttley> damn nice eeeee
+00:06 < Muttley> works in ff
+01:39 <@deen> o_be_one: people on your server won the tournament!
+01:40 <@deen> http://youtu.be/Z6-h8tPLoKo
+01:40 < Nimda> [YouTube] Title: DDnet Quick Tournament #28 - Jvice : mB. | dinner and mB. | maple 1st Place | Rating: 5.00/5.00 | Views: 16
+10:34 < laxadedi> deen: I think it would be better to order http://ddnet.tw/tournaments/ from the latest to the oldest 
+10:57 <@EastByte> ah and I think I found a better way of playing corrupted demo files
+11:32 <@deen> EastByte: yay!
+11:32 <@deen> laxadedi: you're probably right, ok
+11:35 <@EastByte> found something interesting
+11:45 <@EastByte> deen: well, now I understood why the demo of ChillerDragon back then isn't playable
+11:45 <@EastByte> there is some unreasonable logic in tickmarkers going on
+11:45 <@deen> ok, care to explain?
+11:46 <@deen> or how did you fix it?
+11:46 <@EastByte> there are full tickmarkers (4 byte), and delta tickmarksers (delta value in chunk info byte)
+11:47 <@EastByte> the problem is a delta tickmarker is treated as fulltickmarker when the delta tick value is zero
+11:47 <@EastByte> causes read of 4 bytes
+11:47 <@EastByte> in his demo there is a delta tick of value 0
+11:48 <@EastByte> I find it strange that there is a CHUNKTICKFLAG_KEYFRAME flag but it isn't really used
+11:49 <@deen> hm
+11:50 <@EastByte> write full timemarker if "if(m_LastTickMarker == -1 || Tick-m_LastTickMarker > 63 || Keyframe)"
+11:50 <@EastByte> I have no idea why Tick-m_LastTickMarker > 63 is there
+11:51 <@EastByte> ah wait, it's because extendes size of 4 bytes is needed
+11:51 <@EastByte> extended*
+11:52 <@EastByte> deen: back then I didn't realize that there is a full tickmarker per 5 seconds
+11:52 <@EastByte> if there is a corrupted chunk we can just search for the next full tickmarker by adding 5*50 ticks
+11:53 <@EastByte> and it definitly is a good idea to reduce the delay of full tickmarkers
+11:54 <@EastByte> to one second for example
+11:54 <@EastByte> 4 bytes per second isn't a deal
+11:54 <@EastByte> and we can easily seek over corrupted data
+11:54 <@deen> sounds reasonable
+11:54 <@EastByte> finding out why the corruption appears is a different topic :D
+11:55 <@EastByte> also by reducing the delay we don't cause any compatibility problems
+11:55 <@EastByte> could be a config var
+12:02 <@EastByte> hm I need more broken demo files
+12:02 <@deen> EastByte: ask dinner
+12:02 <@deen> he said many of his files have this problem
+12:02 <@EastByte> yea I answered in his thread
+12:03 <@EastByte> but I guess he isn't online now?
+12:03 <@deen> it's about 6 am in the US so probably not
+12:03 <@EastByte> :p
+12:34 <@EastByte> deen: ah chillerdragons demo broke when he added a dummy
+12:36 <@EastByte> maybe the dummy weren't synchronized with the same gametick the normal player was
+12:37 <@EastByte> which caused a delta tick of zero on dummy switch
+12:38 < BeaR_> demoplayer of hell ):
+12:38 <@EastByte> ye :/
+12:38 <@EastByte> everything got so hacky since ddrace
+12:39 < BeaR_> may I see the file?
+12:39 <@EastByte> yep
+12:39 < BeaR_> nah demo client on the teeworlds master is also a pain ^^
+12:39 <@EastByte> http://eastbit.net/priv/broken.demo
+12:40 < BeaR_> thx
+12:40 <@EastByte> BeaR_: do you have lowlevel experience with demo play/record?
+12:40 < BeaR_> a bit, don't really want to touch it tbh :D
+12:41 <@EastByte> I'm pretty sure there is a delta tickmarker of zero in the demo
+12:41 <@EastByte> and this causes the demo player to read 4 more bytes for extended size
+12:42 <@EastByte> by checking CHUNKTICKFLAG_KEYFRAME instead of deltatick==0 the demo works
+12:44 < BeaR_> will take a look later (:
+12:44 <@EastByte> :3
+13:39 < BeaR_> hm looks like the same bug, which causes this segfault https://github.com/def-/ddnet/issues/140#
+13:41 < BeaR_> a tick delta of 0 would a possible
+13:41 < BeaR_> aChunk[0] = CHUNKTYPEFLAG_TICKMARKER | (Tick-m_LastTickMarker)
+13:41 < BeaR_> and checking for CHUNKMASK_TICK would result in tickdetla 0 for Tick-m_LastTickMarker == 0
+13:43 < BeaR_> using the keyframe flag will work but it's not how it should be solved
+13:44 < BeaR_> praise 0 documentation ):
+13:48 < BeaR_> [13:41]BeaR_: a tick delta of 0 would a possible     lol, I meant, a tick delta of 0 is a possible source of this bug
+13:56 <@EastByte> maybe we can add another flag?
+13:56 <@EastByte> or simply disallow adding of delta 0
+13:58 <@EastByte> BeaR_: do you think a delta tickmarker of >63 is even possible?
+13:59 < BeaR_> y
+14:02 <@EastByte> to play older demos affected by this bug is even more complicated
+14:03 <@EastByte> one way would be to check for invalid tickmarkers and correct them afterwards
+14:03 < BeaR_> not that easy /:
+14:04 < BeaR_> you only know that it's invalid if the resultinh tickvalue is wrong
+14:05 <@EastByte> needs some heuristic I guess
+14:06 < BeaR_> hm looks like there is no additional space for an extra flag .-.
+14:06 <@EastByte> to assume that full tickmarkers always diff by one second
+14:06 <@EastByte> 5 seconds*
+14:07 < BeaR_> that might work
+14:07 <@EastByte> for me the diff always was TICKSPEED*5 and + 2
+14:07 <@EastByte> probably because of a delta tick
+14:07 < BeaR_> well we could shave one bit from CHUNKMASK_TICK
+14:08 <@EastByte> yea shouldn't be a problem
+14:10 < BeaR_> do you want to code it^^?
+14:11 < BeaR_> or shall I?
+14:13 <@EastByte> well I'm not at home today
+14:13 <@EastByte> you can if you want :)
+14:14 < BeaR_> ok (:
+14:14 <@EastByte> btw. what do you think about reducing the delay between full tickmarkers?
+14:14 <@EastByte> we still have the problem that some chunks seem to corrupt somehow
+14:14 < BeaR_> why?
+14:14 < BeaR_> ah
+14:15 <@EastByte> if we had one full tick per second for example
+14:15 < BeaR_> not sure if it's necessary
+14:15 <@EastByte> we could binary search the next marker
+14:15 <@EastByte> easily*
+14:15 <@EastByte> because losing 5 seconds is quite a lot sometimes
+14:16 <@EastByte> although it would be the better idea to fix the corruption^^
+14:19 <@EastByte> http://eastbit.net/priv/tournament_spaceclimb.demo (a 30M demo, crashes at the beginning)
+14:19 <@EastByte> interesting is that you can seek over it
+14:25 < o_be_one> hi !
+14:26 <@EastByte> hi
+14:27 < o_be_one> how are you EastByte ?
+14:28 <@EastByte> I'm fine, how are you?
+14:31 < ddnet-commits> [ddnet] cinaera opened pull request #152: Fix bug when reading reading chunks with a tick delta of 0 (DDRace64...pr_demo) http://git.io/Aof0
+14:33 < BeaR_> EastByte: just added an additional flag to correctly detect chunks with small tickdeltas
+14:35 <@EastByte> okay I thought it wouldn't break compatibility, hm right
+14:36 < BeaR_> I don't see another way /:
+14:36 <@EastByte> sicne that's the case we should change the versionnumber
+14:37 < BeaR_> y
+14:38 <@EastByte> so playing demos made with the new version probably won't work in the old client
+14:38 <@EastByte> but vice versa it should work in most cases I guess?
+14:39 < BeaR_> probably not
+14:39 <@EastByte> since delta tickmarker rarely is above 0x1f
+14:39 < BeaR_> yeah not sure how often this happens ^^
+14:40 <@EastByte> we could introduce a new demoversion and use it to fix further things
+14:45 <@EastByte> BeaR_: looks like the vanilla client doesn't check the demo version before playing
+14:46 < BeaR_> EastByte: On 0.6.x?
+14:46 <@EastByte> yes
+14:47 <@EastByte> 0.7 does
+14:48 < BeaR_> https://github.com/teeworlds/teeworlds/blob/0.6/src/engine/shared/demo.cpp#L619 ?
+14:49 <@EastByte> < gs_OldVersion
+14:49 < BeaR_> yes
+14:50 < BeaR_> it doesn't check the netversion
+14:50 <@EastByte> map version of >=4 will be true
+14:50 <@EastByte> we could disfunction the netversion so it other client even tries to play the demo
+14:51 <@EastByte> so no other client*
+14:52 <@EastByte> "BeaR_ | it doesn't check the netversion", sorry, right
+14:52 < BeaR_> but the netversion isn't checked :D
+14:52 < BeaR_> ^^
+14:52 <@EastByte> what about a negativ map version :D
+14:52 < BeaR_> xd
+14:53 < BeaR_> it's unsigned \o/
+14:53 <@EastByte> o\
+14:55 <@EastByte> well we still can put some invalid chunk at the beginning
+14:55 <@EastByte> but is it worth it
+14:55 < BeaR_> everyday hacks :D
+14:55 <@EastByte> teeworlds^^
+14:56 <@EastByte> matricks did all that limitations on purpose
+14:56 < BeaR_> teeworlds mods* :P
+14:56 < BeaR_> hahah
+14:57 < BeaR_> he new we would want to do negative version numbers \o/
+14:57 < BeaR_> knew*
+14:57 <@EastByte> sure^^
+14:58 <@EastByte> oh I forgot the demo header^^
+15:00 <@EastByte> "HeaderMarker"
+15:00 <@EastByte> I would call it magic
+15:00 < BeaR_> {'D', 'D', 'D', 'E', 'M', 'O', 0};
+15:00 < BeaR_> \o/
+15:01 <@EastByte> +1
+15:01 < BeaR_> well let's wait what deen wants to do ^^
+15:01 <@deen> do what you think is right, i don't know much about demo stuff :P
+15:02 <@EastByte> BeaR_: okay, do it
+15:02 < BeaR_> haha
+15:02 <@EastByte> maybe we should also add an ascii string like "DDNet 7.2 demo (http://ddnet.tw)"
+15:03 <@EastByte> for the binary hackers
+15:04 < BeaR_> and where do you want to place it ^^?
+15:05 <@EastByte> into the header
+15:05 <@EastByte> static sized cstring field
+15:17 < ddnet-commits> [ddnet] cinaera opened pull request #153: Break compatibility with older demo versions (DDRace64...pr_demo_break) http://git.io/Aocb
+15:19 < BeaR_> https://github.com/teeworlds/teeworlds/commit/c3bce451200c9a6a38a99dbe486e9102b3153213 would be interesting, if could be fixed but I have low expectations /:
+15:19 <@EastByte> what's a dilate texture?
+15:21 < BeaR_> there is no dilate texture, it's about removing the need to dilate the texture ^^
+15:21 <@EastByte> is texture dilate what I think it is?
+15:21 < BeaR_> http://en.wikipedia.org/wiki/Dilation_%28morphology%29
+15:23 <@EastByte> hm hard to understand
+15:23 < BeaR_> to remove that black/white borders around the textures
+15:23 < BeaR_> actually expanding the pixels on the corners
+15:23 <@EastByte> ^ okay that's what I thought
+15:24 < BeaR_> to get a nicer result when mipmapping or blending
+15:24 <@EastByte> wasn't TEXTURE_3D the solution?
+15:25 <@EastByte> not storing the tiles next to each other
+15:25 <@EastByte> but independent from each other in a 3d texture
+15:25 < BeaR_> no that's a different issue
+15:25 <@EastByte> hm okay
+16:43 < ddnet-commits> [ddnet] cinaera closed pull request #153: Break compatibility with older demo versions (DDRace64...pr_demo_break) http://git.io/Aocb
+17:47 < Nimda> Just2Easy by [A] Awesome just released on Novice at 2015-02-23 17:43
+17:51 < Muttley> deen, cant we do something about vote restriction if people are still playing on a map
+17:52 < Learath2> I'd guess there'd be no votes then 
+17:54 <@deen> Muttley: it's difficult. every idea i can come up with would cause even more problems
+18:33 < o_be_one> can someone just take a look on the member fix and tell me if its "trustable" ?
+18:33 < o_be_one> https://www.teeworlds.com/forum/viewtopic.php?id=11295
+18:33 < o_be_one> thanks a lot
+18:33 < o_be_one> (not ddnet part, but i think you can help)
+18:54 <@EastByte> o_be_one: looks legitimate
+18:56 <@EastByte> m_Authed iirc is the rcon auth and has nothing todo the accounts I guess
+18:56 <@EastByte> so it should be UpdatePlayer(ClientID, md5(pPass).c_str(), pPlayer->m_AuthLvl); 
+18:58 < o_be_one> thanks a lot for your support !
+19:06 <@EastByte> np
+19:14 < Learath2> deen: should we let osx autoupdate ?
+19:15 <@deen> Learath2: if you can make it happen, sure. note that osx comes with a .dmg file, which is never extracted, so i don't know how that would work
+19:15 < Learath2> let me get my mac and see what i can do 
+19:16 < Learath2> how would a dmg that is never extracted work ? atleast thats not how vanilla distributes it 
+19:17 <@deen> well, i don't know
+19:17 < Learath2> no thats exactly how vanilla distributes it im sry :P
+19:17 <@deen> HMH made it work for ddnet
+19:17 < Learath2> should ask him if we can just replace the entire dmg 
+23:45 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/APuH
+23:45 < ddnet-commits> ddnet/DDRace64 7542868 def: Fix hook with super

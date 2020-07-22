@@ -1,0 +1,130 @@
+12:34 <+bridge> [ddnet] <Patiga> @Learath2 do you know what the `m_aTexcoords[4]` from the `CQuad`  struct are for?
+12:34 <+bridge> [ddnet] <Patiga> ```
+12:34 <+bridge> [ddnet] <Patiga> struct CQuad
+12:34 <+bridge> [ddnet] <Patiga> {
+12:34 <+bridge> [ddnet] <Patiga>     CPoint m_aPoints[5];
+12:34 <+bridge> [ddnet] <Patiga>     CColor m_aColors[4];
+12:34 <+bridge> [ddnet] <Patiga>     CPoint m_aTexcoords[4];
+12:34 <+bridge> [ddnet] <Patiga> 
+12:34 <+bridge> [ddnet] <Patiga>     int m_PosEnv;
+12:34 <+bridge> [ddnet] <Patiga>     int m_PosEnvOffset;
+12:34 <+bridge> [ddnet] <Patiga> 
+12:34 <+bridge> [ddnet] <Patiga>     int m_ColorEnv;
+12:34 <+bridge> [ddnet] <Patiga>     int m_ColorEnvOffset;
+12:34 <+bridge> [ddnet] <Patiga> };
+12:34 <+bridge> [ddnet] <Patiga> ```
+12:35 <+bridge> [ddnet] <Learath2> I'd guess for UV mapping
+12:35 <+bridge> [ddnet] <Patiga> whats UV?
+12:39 <@Learath2> U and V are the X and Y in the coordinate space of the texture
+12:41 <+bridge> [ddnet] <Learath2> The quads are rendered with wrapping, so whatever image you have is repeated infinitely in every direction, the first instance of which is at (u_0, v_0) = (0.0f, 0.0f)
+12:41 <+bridge> [ddnet] <Learath2> by changing the texture coordinates you can render a smaller part of the image, or multiple instances of the image
+12:42 <+bridge> [ddnet] <Learath2> first is usually what's done by mappers, second is what we do to render the checker pattern in the background of the editor
+12:44 <+bridge> [ddnet] <Learath2> (x and y are in the quads coordinate space btw, not the maps)
+12:51 <+bridge> [ddnet] <Learath2> all this network compatibility stuff is so ugly 😦
+13:40 <@Learath2> I'm seriously about to go mental, why won't cmake use SDL2.dylib even when I delete the damn bundled version
+13:44 <+bridge> [ddnet] <Learath2> @timakro can you give me a hand in getting 0.7 working when you are around?
+13:52 <+bridge> [ddnet] <fokkonaut> @Learath2 what do you need?
+13:54 <+bridge> [ddnet] <Learath2> I seem to have gotten something wrong with snapping the player, the camera isn't on the client
+13:54 <+bridge> [ddnet] <Learath2> isn't locked on the tee*
+13:54 <+bridge> [ddnet] <Learath2> I can control the tee just fine though 😛
+13:54 <+bridge> [ddnet] <fokkonaut> while paused or generally?
+13:54 <+bridge> [ddnet] <Learath2> generally
+13:55 <+bridge> [ddnet] <fokkonaut> you need to set the team correctly i guess
+13:55 <+bridge> [ddnet] <fokkonaut> does the client know its NOT spectator?
+13:55 <+bridge> [ddnet] <fokkonaut> well
+13:56 <+bridge> [ddnet] <fokkonaut> now that i think about it
+13:56 <+bridge> [ddnet] <fokkonaut> you probably forgot the m_Local = 1 for yourself
+13:56 <+bridge> [ddnet] <Learath2> the playerinfo no longer includes m_Local
+13:56 <+bridge> [ddnet] <fokkonaut> NewClientInfoMsg.m_Local = 1;
+13:56 <+bridge> [ddnet] <fokkonaut> in gamecontext.cpp::OnClientEnter
+13:56 <+bridge> [ddnet] <fokkonaut> https://github.com/teeworlds/teeworlds/blob/master/src/game/server/gamecontext.cpp#L699
+13:58 <+bridge> [ddnet] <fokkonaut> @Learath2 while adding 0.7 support for ddnet, please return true for the Translate stuff, just like for DDNet clients, so that 0.7 gets correct client ids, not the faked ones. This would break 0.7 dummies
+13:58 <+bridge> [ddnet] <Learath2> m_Local does seem to be set just fine
+13:59 <+bridge> [ddnet] <fokkonaut> do you have your code available somewhere?
+14:00 <+bridge> [ddnet] <Learath2> I can push it
+14:00 <+bridge> [ddnet] <fokkonaut> okay
+14:39 <+bridge> [ddnet] <Learath2> @heinrich5991 is it possible for me to tempt you into doing the compatibility code?
+15:15 <+bridge> [ddnet] <Patiga> aah that makes sense with the texture coordinates, i think i did it once on accident in the editor
+15:15 <+bridge> [ddnet] <Patiga> thats the stretching you can do by pressing shift and pulling on a quad
+15:15 <+bridge> [ddnet] <Patiga> thanks :)
+16:00 <+bridge> [ddnet] <heinrich5991> @Learath2 in addition to all the usual crap about me not finishing projects (do you see the showall fix/http masters anywhere?), I'm also a bit ambivalent about the compatibility code
+16:00 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/ddnet/tree/dd_pr_07 well here is what I have
+16:00 <+bridge> [ddnet] <Learath2> it works but it'll take a lot of further patching
+16:01 <+bridge> [ddnet] <Learath2> however it's not pretty
+16:01 <+bridge> [ddnet] <Learath2> this is what I'll pr and no I couldn't get it any prettier, I spent like 10 hours and did `git reset --hard HEAD` like 20 times
+16:03 <+bridge> [ddnet] <ImJustANobody> How does one become a contributer to ddnet repo?
+16:04 <+bridge> [ddnet] <Learath2> 1) Code something
+16:04 <+bridge> [ddnet] <Learath2> 2) Create a pull request
+16:04 <+bridge> [ddnet] <Learath2> 3) Profit?
+16:06 <+bridge> [ddnet] <ImJustANobody> Thank you 🙂
+16:09 <+bridge> [ddnet] <ImJustANobody> Anyone know how to list client versions in rcon cli?
+16:09 <+bridge> [ddnet] <heinrich5991> `status` I think
+16:10 <+bridge> [ddnet] <Learath2> @heinrich5991 do you happen to know how netobjtypes work?
+16:10 <+bridge> [ddnet] <heinrich5991> yes
+16:10 <+bridge> [ddnet] <heinrich5991> what do you want to know?
+16:11 <+bridge> [ddnet] <Learath2> Are they translated somehow? they seem to have moved around a bit but things still seem to work
+16:11 <+bridge> [ddnet] <heinrich5991> translated where?
+16:12 <+bridge> [ddnet] <heinrich5991> you need to translate them for compatibility
+16:12 <+bridge> [ddnet] <ImJustANobody> Thank you @heinrich5991 I used it before but I was blind
+16:12 <+bridge> [ddnet] <heinrich5991> (unless nothing changed between 0.6/0.7, I don't know)
+16:13 <+bridge> [ddnet] <Learath2> I guess what I was wondering is whether the snaps carry some mapping inside them, like between the types in the snap and all the types
+16:14 <+bridge> [ddnet] <heinrich5991> not for non-extended snap objects
+16:14 <+bridge> [ddnet] <Learath2> I see
+16:19 <+bridge> [ddnet] <ImJustANobody> Has anyone here built DDNet-Server on windows using CMake with MYSQL ON
+16:20 <+bridge> [ddnet] <heinrich5991> doubt it
+16:20 <+bridge> [ddnet] <heinrich5991> I guess it doesn't work?
+16:20 <+bridge> [ddnet] <Learath2> There was one guy trying to get it working but I think he gave up
+16:21 <+bridge> [ddnet] <ImJustANobody> xD
+16:21 <+bridge> [ddnet] <ImJustANobody> Thought it's just me
+16:21 <+bridge> [ddnet] <heinrich5991> hm. we do ship mysql libraries for windows though
+16:21 <+bridge> [ddnet] <ImJustANobody> Weird thing is it finds the mysql livbraries but throws weird error, thanks will see if I can get it working
+16:21 <+bridge> [ddnet] <heinrich5991> we should add it to CI if we want to support it
+16:23 <+bridge> [ddnet] <ImJustANobody> Cl?
+16:25 <+bridge> [ddnet] <heinrich5991> continuous integration, the tests we run on each pull request
+16:25 <+bridge> [ddnet] <heinrich5991> we use github actions currently
+16:29 <+bridge> [ddnet] <ImJustANobody> Oh nice !
+16:29 <+bridge> [ddnet] <heinrich5991> build currently failing on macOS due to broken toolchain
+16:30 <+bridge> [ddnet] <heinrich5991> normally™, we don't have that 😛
+16:31 <+bridge> [ddnet] <Learath2> the system headers should be passed with -isystem, I couldn't check that because I've been doing 3 other prs
+16:47 <+bridge> [ddnet] <ImJustANobody> Are you all currently building and compiling on linux then cross compiling to windows?
+16:47 <+bridge> [ddnet] <heinrich5991> I think yes
+16:48 <+bridge> [ddnet] <heinrich5991> but there are some developers that develop on Windows and compile on Windows as well
+16:54 <+bridge> [ddnet] <deen> @ImJustANobody i think the mysql lib we ship is broken
+16:54 <+bridge> [ddnet] <deen> try downloading a new one
+16:54 <+bridge> [ddnet] <deen> do you build with VS or mingw btw?
+16:54 <+bridge> [ddnet] <ImJustANobody> Thank you, CMake says it's using a bundled version
+16:55 <+bridge> [ddnet] <ImJustANobody> VS, will try mingw
+16:55 <+bridge> [ddnet] <deen> hm
+16:55 <+bridge> [ddnet] <deen> would try replacing the mysql libraries in ddnet-libs directory
+16:55 <+bridge> [ddnet] <deen> maybe that fixes it already
+16:56 <+bridge> [ddnet] <ImJustANobody> Is the bundled version the one you shipping?
+17:19 <+bridge> [ddnet] <heinrich5991> yes
+18:04 <+bridge> [ddnet] <Learath2> @heinrich5991 how should we handle teehistorian for 0.7 clients?
+18:04 <+bridge> [ddnet] <Learath2> not all messages are compatible
+18:06 <+bridge> [ddnet] <heinrich5991> @Learath2 if you can, record the messages before translation
+18:06 <+bridge> [ddnet] <Learath2> So just record them as is? I guess the internal structure of the message doesn't really concern teehistorian
+18:07 <+bridge> [ddnet] <heinrich5991> yes
+19:37 <+bridge> [ddnet] <Learath2> I have a coding dilemma, I want to handle some sixup messages in `CGameContext::OnMessage` I don't want to limit myself to doing only simple translations but I don't want to duplicate the handling in `OnMessage` either
+19:39 <+bridge> [ddnet] <Learath2> I even tried template specialization (doesnt look too good)
+20:24 <+bridge> [ddnet] <Learath2> no one?
+20:26 <+bridge> [ddnet] <Learath2> okay, I'll just do it in a dirty way, but if one of you complains when I make a PR, they can fix it themselves
+23:24 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/pcgaming/comments/g0gdug/riots_trusted_valorant_mods_deleted_a_thread/
+23:24 <+bridge> [ddnet] <Ryozuki> @Learath2 look, riot are using a kernel driver anticheat that runs on ring-0
+23:24 <+bridge> [ddnet] <Ryozuki> and its a shitshow
+23:25 <+bridge> [ddnet] <Ryozuki> :poggers:
+23:25 <+bridge> [ddnet] <Learath2> yeah, what an insane concept
+23:25 <+bridge> [ddnet] <Learath2> I wonder why a majority CCP owned company would want a rootkit in millions of computers
+23:26 <+bridge> [ddnet] <Ryozuki> :pepeH:
+23:26 <+bridge> [ddnet] <Ryozuki> lucky i dont play shit riot games
+23:27 <+bridge> [ddnet] <Ryozuki> dota for life
+23:27 <+bridge> [ddnet] <heinrich5991> we should play a round some time
+23:27 <+bridge> [ddnet] <Ryozuki> yea
+23:27 <+bridge> [ddnet] <Ryozuki> valve VAC is software
+23:27 <+bridge> [ddnet] <Ryozuki> and its pretty famous
+23:27 <+bridge> [ddnet] <Ryozuki> idk
+23:28 <+bridge> [ddnet] <Ryozuki> "EAC pulls it off with a service, VAC pulls it off with software integration. PunkBuster relied on a service (in earlier versions*1) There is no need for a kernel driver. This makes me think of things like SafeDisc."
+23:29 <+bridge> [ddnet] <Learath2> I do kinda understand wanting a kernel driver, because the cheaters actually do put their cheats aaaalll the way up in ring 0
+23:32 <+bridge> [ddnet] <Ryozuki> found this
+23:32 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/699371404180717718/EVf0uD2VAAc1fym.png
+23:33 <+bridge> [ddnet] <Ryozuki> also when you uninstall the game, the anticheat is not uninstalled
+23:35 <+bridge> [ddnet] <Learath2> ofc not, why would you uninstall a rootkit willingly?

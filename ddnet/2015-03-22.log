@@ -1,0 +1,274 @@
+03:46 <@heinrich5991> EastByte: what's the _104020 or the _104112?
+09:24 <@EastByte> heinrich5991: looks like some sort of unique suffix to prevent symbolname collision
+09:25 <@EastByte> (in C)
+09:54 <@deen> EastByte: yeah, yuo should write the resulting Nim code, not the C one :P
+09:55 <@EastByte> for me the resulting C code was more interesting :p
+09:58 <@deen> ok
+09:58 <@deen> I'm expecting Nim 0.10.4 soon
+09:58 <@deen> Like today
+11:08 <@deen> Chile has been down since yesterday, no idea why
+13:33 <@EastByte> hm
+13:34 <@EastByte> https://github.com/teeworlds/teeworlds/issues/1303
+13:34 <@EastByte> I don't understand what's the problem there
+13:35 <@EastByte> preventing join/leave flooding can easily be done using a proper handshake
+13:36  * EastByte takes a look into heinrich5991's protocol change
+14:10 <@heinrich5991> EastByte: that issue is about a different kind of flooding
+14:19 <@EastByte> "The join/leave flood protection can be evaded using multiple IP addresses."
+14:20 <@EastByte> so, simply join/leave flooding using multiple _valid_ ip addresses?
+14:22 <@EastByte> heinrich5991: an ip address has its financial worth, why would this be an issue?
+14:22 <@heinrich5991> because I can easily grab 10 IP addresses and flood the hell out of all teeworlds servers
+14:23 <@EastByte> each ip address gets independently banned because of flooding
+14:24 <@EastByte> or is it that the interval is too large
+14:25 <@heinrich5991> yes
+14:26 <@heinrich5991> but you can't make it smaller because that would get you false positives
+14:26 <@heinrich5991> it would be nice if the TW server could detect that it's being flooded and then dynamically increase that interval
+14:30 <@EastByte> okay, makes sense
+15:13 <@deen> Hm, DDNet client needs so much memory
+15:14 <@deen> do we really need all mipmaps in graphics memory and main memory?
+15:16 <@EastByte> does SDL handle that internally?
+15:16 <@deen> gluBuild2DMipmaps seems to do that
+15:16 <@EastByte> ah
+15:16 <@deen> But the opengl "Common Mistakes" say NEVER USE gluBulid2DMipmaps
+15:18 <@deen> If anyone wants to experiment: https://www.opengl.org/wiki/Common_Mistakes#Automatic_mipmap_generation
+15:19 <@EastByte> "OpenGL 3.0 or greater is required for this function"
+15:20 <@deen> Scroll down a bit
+15:20 <@deen> and you get the OpenGL 1.4 version
+15:21 <@EastByte> hmm
+15:22 <@deen> if this would get rid of the mipmaps in main memory, it would be great
+15:22 <@deen> currently they are 85% of the memory DDNet client uses
+15:22 <@deen> and > 300 MB is definitely too much
+15:22 <@EastByte> how do you know?
+15:22 <@deen> valgrind --tool=massif
+15:22 <@EastByte> okay
+15:23 <@EastByte> some valgrind magic
+15:23 <@deen> yeah, heap profiler
+15:24 <@EastByte> oy just merged the sdl2.0 pullrequest
+15:24 <@deen> oh, nice
+15:24 <@deen> i guess it breaks everything for me^^
+15:25 <@EastByte> probably^^
+15:28 <@deen> hm, seems to work, but doesn't reduce memory
+15:34 <@deen> I don't know why they say not to use gluBuild2DMipmaps, and they don't give an explanation
+15:34 <@deen> but gluBuild2DMipmaps has 50% more FPS for me, so not going to change that
+15:36 <@EastByte> maybe it's some non standard non-gl solution
+15:37 <@deen> well, it seems to work for everyone
+15:37 <@deen> Without explanation or benefits I'm not changing stuff :P
+15:38 <@EastByte> so where does the high memory use come from?
+15:38 <@deen> skins and textures
+15:38 <@deen> skins and other textures*
+15:39 <@deen> We can compress them, but then starting the client is slow (and probably less FPS)
+15:39 <@EastByte> that's kinda strange
+15:39 <@deen> why?
+15:39 <@EastByte> my solution would be to keep all the graphics in the gpu
+15:40 <@EastByte> or is that too much?
+15:40 <@EastByte> when creating a texture via opengl
+15:40 <@EastByte> shouldn't be the texture in graphics memory constantly?
+15:41 <@EastByte> or is it loaded on use
+15:42 <@EastByte> https://www.opengl.org/discussion_boards/showthread.php/169645-how-to-keep-textures-in-video-card-s-memory
+15:43 <@EastByte> "Typically the GL driver will keep a "backup" copy of the texture in system memory, but it will also be copied to the GPU."
+15:43 <@EastByte> so there is no way around
+15:43 <@deen> yeah
+15:48 <@deen> huh
+15:48 <@deen> I don't see anything SDL2 related merged
+15:48 <@deen> Oy just merged a single commit that fixes a header :P
+15:48 <@deen> https://github.com/teeworlds/teeworlds/commit/2232a73d37bb310bf345ba76596470af7585da40
+15:48 <@deen> this one
+15:48 < Learath2> https://github.com/teeworlds/teeworlds/commit/721739ed42581c1233b28b6d9079d83a7f5547e9
+15:49 <@deen> ah, he just pushed
+15:51 <@deen> hm yeah, unusable for me
+15:51 <@EastByte> unusable to use in which context?
+15:51 <@deen> Still these bugs: https://github.com/teeworlds/teeworlds/pull/1246#issuecomment-64905811
+15:52 <@EastByte> okay
+15:52 <@EastByte> should apply to me aswell
+15:52 <@deen> You can try to fix them :P
+15:53 <@deen> I didn't succeed last time I tried
+15:53 <@EastByte> well, atleast I have some time spare to work with sdl and gl again
+15:54 <@EastByte> using nim, yay
+15:54 <@EastByte> oh there is no sdl2 wrapper afaik
+15:54 <@deen> sure there is
+15:54 <@deen> https://github.com/nim-lang/sdl2
+15:54 <@deen> I even have write permissions to the repo :P
+15:54 <@EastByte> ah cool
+15:55 <@deen> but it's pretty low level
+15:55 <@deen> (just like SDL2 itself)
+16:07 <@deen> Damn Chile, still down
+16:07 <@deen> and no one responding
+16:35 <@deen> Yay, Chile back
+16:38 <@deen> GER 423 players
+16:56 <@EastByte> not bad
+17:35 < Nimda> Lil Jungle by SBL just released on Brutal at 2015-03-22 17:31
+18:16 < spyker> hi all
+18:17 <@EastByte> hellow
+18:17 <@EastByte> :(
+18:22 <@EastByte> hello xRoThx 
+18:22 < xRoThx> Hello
+18:22 < xRoThx> How are you? 
+18:22 <@EastByte> I'm fine, how are you?
+18:22 <@heinrich5991> hello guys :)
+18:22 <@EastByte> hello heinrich5991 
+18:23 < xRoThx> Hi heinrich5991 
+18:23 <@heinrich5991> hi :)
+18:23 < xRoThx> I m fine EastByte, very busy with other things then teeworlds.. :) 
+18:23 < xRoThx> Everything running fine for ddnet? 
+18:24 <@EastByte> deen: everything running fine?
+18:25 <@EastByte> seems so :)
+18:26 < xRoThx> Please do something about the bug I reported? 
+18:26 < xRoThx> Its really anoying
+18:26 <@EastByte> what bug
+18:26 < xRoThx> EastByte:  Can you come check the Royal Server? 
+18:29 < xRoThx> I think I know a solution. nameBan
+18:29 < xRoThx> ban a name
+18:29 < ddnet-commits> [ddnet] timgame opened pull request #175: fixed refill jumps with 1 jump (DDRace64...DDRace64) http://git.io/hH4M
+18:29 <@EastByte> xRoThx: so they need a minute to come back? for me it only takes ~3 seconods :D
+18:30 <@EastByte> xRoThx: and if they change their nick?
+18:30 < xRoThx> EastByte:  then I ban them again
+18:30 <@EastByte> and they fill change it again
+18:30 < xRoThx> But they use the same name to get known etc.. 
+18:30 < xRoThx> Some way to ban  computer? 
+18:30 <@EastByte> nope
+18:31 < xRoThx> Then that is the end of Teeworlds? No way right? 
+18:32 <@EastByte> you can't ban a player
+18:32 <@EastByte> like in any other game
+18:32 <@EastByte> except for that other games of account systems
+18:32 <@EastByte> and you have to pay for
+18:32 < xRoThx> Can you make a 10second time before they can enter the server? 
+18:33 <@EastByte> how do you want to knowm whether a playing connecting is a bad guy?
+18:33 <@EastByte> player*
+18:33 < xRoThx> Anything.. Because this isn't good.. They are able to fill my server without anything I can do? 
+18:34 <@EastByte> they are filling your server?
+18:34 <@EastByte> this probably is a different issue
+18:34 < xRoThx> They are just connecting with different Ip's & then ban do whatevery they want
+18:35 <@EastByte> be more precise
+18:35 < xRoThx> If this would be on a race server, what would be a possible fix? 
+18:36 < Gaprik> is there deen?
+18:36 <@EastByte> he seems to be afk
+18:36 < Gaprik> ok
+18:36 < Gaprik> i wait here
+18:37 < xRoThx> EastByte:  They enter in couples of 2 players. Nearly at the same time. And they are changing their names every X seconds. A->B B->A
+18:37 < xRoThx> They do that with mostly 6-8 players
+18:37 < xRoThx> 3-4 players, but with dummy
+18:37 <@EastByte> I guess 4 players are allowed per ip?
+18:38 < xRoThx> 2
+18:38 < xRoThx> I change that always
+18:38 < xRoThx> 2 players/ip
+18:42 <@EastByte> hm a solution would be to suppress name change messages
+18:42 < xRoThx> I hope.. 
+18:43 < xRoThx> Its very anoying, can't even do anything about it :P
+18:43 <@EastByte> well there are plenty ways of reducing the spam
+18:44 <@EastByte> if that's the only problem
+18:49 <@deen> Gaprik: hi
+18:52 < xRoThx> Since east logged in to check, notting happened
+19:18 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/hHKA
+19:18 < ddnet-commits> ddnet/DDRace64 a852e0d def: Fix spacing in browser menu search
+19:28 < ddnet-commits> [ddnet] def- pushed 2 new commits to DDRace64: http://git.io/hHXT
+19:28 < ddnet-commits> ddnet/DDRace64 108e462 timgame: fixed refill jumps with 1 jump
+19:28 < ddnet-commits> ddnet/DDRace64 8290f44 Dennis Felsing: Merge pull request #175 from timgame/DDRace64...
+19:52 < Pwned> Anyone with admin on royal? Someone change always name and all get laggs
+19:54  * Pwned slaps deen around a bit with a large fishbot
+19:57 <@deen> hi
+19:58 < Pwned> Hey. Someone change always his name on the Royal server. Because of this the server is lagging
+19:59 < xRoThx> Hello Pwned  
+19:59 < Pwned> Hey
+19:59 <@deen> looks like the same attack as always, don't have a solution
+19:59 < xRoThx> Pwned:  thank you for reporting. I got a lot of msges too at skype. 
+19:59 < Pwned> Ok.
+20:17 < Savander> hi ;)
+20:21 <@deen> hi Savander 
+20:27 < Paralix> who is good mapper?
+20:31 <@deen> or look at a mapping tutorial, Paralix 
+20:31 < Paralix> ok thanks :)
+20:46 < xRoThx> deen:  Just banned them again
+20:46 < xRoThx> Can't you do anything? if it changes more then 5 in 1 minute -> ban? 
+20:46 <@deen> xRoThx: that would affect all ddnet servers worldwide
+20:47 < xRoThx> Hm.. 
+20:48 < xRoThx> This should really get fixed somehow.. It will kill the servers, now its mine.. It will go to any server without a good fix
+20:49 <@deen> do they change their own names?
+20:49 <@deen> or other people's names?
+20:49 <@deen> I don't even know what's going on, so no idea how to fix it
+20:49 < Tobii> i think someones changing the name of others via ip spoofing
+20:50 <@deen> and it makes everyone lag?
+20:50 <@deen> or just the spoofed ones?
+20:50 < Tobii> server lags
+20:50 <@deen> that's weird
+20:50 < Tobii> but could be also caused by the traffic
+20:50 <@deen> I would guess traffic
+20:50 < xRoThx> Own names. 
+20:50 < xRoThx> Somebody had a suggestion
+20:50 < xRoThx> I ll send a screen
+20:50 <@deen> own names?
+20:51 <@deen> tobii just said the opposite
+20:51 < Tobii> imp thinks it's caused by score lookups
+20:51 < xRoThx> http://prntscr.com/6k2110
+20:51 <@deen> ooooh
+20:51 <@deen> it's a file based server
+20:51 <@deen> not database...
+20:51 <@deen> i totally forgot
+20:51 <@deen> so i guess I need a database for the block servers as well
+20:52 < xRoThx> :D yes! solution ^^ :D ^^
+20:52 <@deen> yeah, probably
+20:52 < Tobii> I'm not sure if it's ip spoofing or not
+20:52 <@deen> for now i can just remove the ranks
+20:52 <@deen> they're not important, are they?
+20:52 < Tobii> Could test this by just connecting a default client
+20:52 < xRoThx> No 
+20:52 < xRoThx> aslong as the lags are gone
+20:52 <@deen> so, should be fixed :P
+20:53 < xRoThx> the only thing I want is to play without lags, without admin on a royal server
+20:53 < xRoThx> thats why I pay that much lol
+20:53 < xRoThx> aslong as that is possible I m happy :)
+20:53 <@deen> i totally forgot that the file server is not threaded
+20:54 <@deen> hm, probably have to restart the servers, they still seem to have the file opened
+20:55 < xRoThx> No problem 
+20:55 < xRoThx> I will broadcast
+20:55 <@deen> so if it happens again, restart quickly
+20:55 < xRoThx> can I do it with restart command? 
+20:55 <@deen> no, shutdown
+20:55 < xRoThx> ok
+20:55 <@deen> I've never known there even is a restart command^^
+20:55 < xRoThx> when it happens -> shutdown
+20:55 < xRoThx> :P ^^ 
+20:55 < xRoThx> reload *
+20:55 < xRoThx> for the map & options I think
+20:56 <@deen> ah, maybe reload would work
+20:56 <@deen> should i try?
+20:57 < xRoThx> I will announce first
+20:58 < xRoThx> shutdown would help fo sure? 
+20:58 <@deen> lagging already?^^
+21:00 < xRoThx> Hope its fixed now
+21:01 < xRoThx> deen:  Hope this works
+21:01 <@deen> no^^
+21:02 <@deen> sorry, the file based server is really stupid
+21:02 <@deen> shouldn't have used this from the start
+21:02 < xRoThx> Can you put it into a normal database, 
+21:02 < xRoThx> Can you put it into a normal database?
+21:02 <@deen> yeah
+21:02 <@deen> i will
+21:02 < xRoThx> Ok
+21:02 <@deen> i just need to prepare a bit
+21:03 < xRoThx> Ok, I will go home again @ sea right now :)
+21:05 < xRoThx> anyway, thank you deen 
+21:05 < xRoThx> bye :)
+21:39 < Gaprik> hi... is there deen?
+21:49 < Gaprik> hi
+21:50 < Gaprik> hi
+21:50 < Gaprik> is there anyone?
+21:50 < fstd> there is fstd
+21:51 < Gaprik> fstd is there deen? i need talk with him
+21:52 < fstd> he'll probably show up sooner or later
+21:54 < Gaprik> ok... if you see him can you say to him i' m searching him? if he want he can contact me from skyple... or private message  here (skype name: mat_milan1)
+21:57 < Gaprik> bb all :)
+21:57 <@deen> yes again?
+21:57 <@deen> Gaprik: ?
+21:57 < Gaprik> deen
+21:57 < Gaprik> hahahahh
+21:58 < Gaprik> mattiasuper contacted you? (the botter)
+21:58 < Gaprik> can you transfer the points from gaprìk to Panìk?
+21:59 <@deen> no
+21:59 < Gaprik> why no?
+21:59 <@deen> Are you and your friends going to come here every hour to change names now or what?
+22:00 < Gaprik> no... i change it 1 way... when i lost my points but now i have it 
+22:01 < Gaprik> i have only asked to you if you can transfer my points from my old account to my new account
+22:02 <@deen> yes, and a few hours ago you wanted your points from one name to another
+22:02 <@deen> and then your friend came and wanted the same
+22:02 <@deen> and then he came again and wanted a new name again
+22:02 <@deen> sorry, but this is ridiculous, i'm not changing ANY names
+22:03 < Gaprik> ok :, ( sry for the time... bye bye

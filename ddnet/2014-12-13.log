@@ -1,0 +1,124 @@
+00:01 <@deen> yeah, from what I can gather it's indeed internap that does the filtering
+00:01 <@deen> and it seems pretty interesting how they do it
+00:01 <@deen> each type of attack is only reported once, then it never seems to bother us anymore
+00:03 <@deen> Savander: what are you planning to use the server for?
+00:03 < Savander> now
+00:03 < Savander> for teesting
+00:04 < Savander> later
+00:04 < Savander> for teeworlds.com.pl
+00:04 < Savander> tournaments, etc
+00:04 < Savander> and few vanilla seervers
+00:07 < Savander>  but i thing it's too bad
+00:07 < Savander> for smth like that...
+00:07 < Savander> ;/
+00:08 < nuborn> hi, have you thought about adding prediction for hook strength?
+00:09 <@deen> nuborn: hook strength?
+00:09 <@deen> ah
+00:09 <@deen> strong or weak
+00:09 < nuborn> yes
+00:10 <@deen> hm, it depends on the order of kills
+00:10 < nuborn> the order of respawns I think
+00:10 <@deen> the client is notified of kills
+00:10 <@deen> oh, that's even worse then
+00:10 <@deen> yeah, respawns
+00:10 <@deen> So how would you get that information to the client?
+00:10 < nuborn> actually, I was going to suggest creating new netobjs with info about this, and sending it
+00:11 <@deen> Well, there is no more space for new netobjs :P
+00:11 < nuborn> relly? I tested it!
+00:11 <@deen> Someone needs to make a hack to allow more
+00:11 <@deen> maybe it wasn't netobjs, but netmsgs
+00:11 <@deen> (or whatever they're called)
+00:11 <@deen> so when do you want to send it and what exactly?
+00:12 < nuborn> oh, I meant netobjs. I tried creating a new one, and it worked.
+00:12 <@deen> (still need someone to allow us more netmsgs, for stuff like server_capabilities)
+00:12 < nuborn> the same time the character info is sent, since the info belongs to the character
+00:12 <@deen> Yeah, netmessages are all filled up
+00:13 <@deen> character info? what's the name of that netobject exactly?
+00:15 < nuborn> CNetObj_CharacterCore
+00:15 < nuborn> is the normal one
+00:15 <@deen> That's sent a lot, isn't it?
+00:15 <@deen> You really want to send another one, just as often?
+00:15 < nuborn> the server only sends delta snapshots, I believe
+00:16 < nuborn> then there is CNetObj_ClientInfo
+00:18 < nuborn> I think it depends on how often they are updated
+00:19 <@deen> Not sure how SnapshotDeltas work
+00:19 <@deen> So you really want a netobject just for this 1 bit?
+00:19 <@deen> Can't you add it to the CharacterCore?
+00:20 <@deen> (and send a compatibility version to older clients)
+00:20 < nuborn> yes, that is possible
+00:20 <@deen> I think that would be cleaner, since that's where it belongs
+00:21 < nuborn> in a way, yes
+00:21 < nuborn> so, that would work then?
+00:22 <@deen> You would need to add an Int between 0 and MAX_CLIENTS-1
+00:22 <@deen> NetIntAny("m_HookStrength", 0, 'MAX_CLIENTS-1'),
+00:22 <@deen> right?
+00:23 < nuborn> yes, if creating a new netobj?
+00:23 <@deen> also if we want it in the CharacterCore
+00:24 < Learath2> deen will finish up and push autoupdate tomorrow
+00:24 <@deen> Learath2: awesome!
+00:24 < Learath2> was busy during the week 3many exams
+00:26 < nuborn> deen: in network.py I think you can only add whole 32 bit ints at a time. so one of these would have to be reused. for example: NetIntRange("m_Direction", -1, 1),
+00:26 <@deen> huh?
+00:26 <@deen> Why can't you just add from 0 to 63?
+00:27 < nuborn> adding a new value?
+00:27 <@deen> yes
+00:27 < nuborn> because expanding the netobj would make in incompatible with other servers, I think
+00:28 < nuborn> it*
+00:28 <@deen> adapt the parsing of it?
+00:28 <@deen> I think I did that somewhere
+00:29 < nuborn> oh! Im not sure how that would work
+00:29 <@deen> I did it for Sv_TeamsState
+00:29 <@deen> the netmessage
+00:29 <@deen> so it works with 16 player and 64 player servers
+00:29 < nuborn> ok
+00:29 <@deen> but I just removed everything in datasrc.py^^
+00:30 <@deen> gameclient.cpp:751
+00:31 <@deen> but hm, it's so much hacking to get it for this 1 value
+00:32 <@deen> Also, I'd prefer to get rid of strong/weak^^
+00:33 <@deen> but players didn't like that
+00:33 <@deen> And, ehm, we sometimes have something between strong and weak...: https://github.com/def-/ddnet/issues/2
+00:33 < nuborn> yes, I think that was a suggestion for 0.7 too
+00:33 <@deen> there was code for it by BeaR
+00:34 <@deen> I tried to adapt it to DDNet and we actually had the servers running with it for a day
+00:34 < nuborn> yes, I saw it at github
+00:34 <@deen> but people wanted to murder me
+00:34 < nuborn> hehe
+00:35 < laxa> can't remove strong/weak
+00:35 < laxa> hum
+00:35 < laxa> maybe you can
+00:35 < laxa> if HF is still working
+00:35 < nuborn> about that issue, I think I once saw something like it, but Im not sure if it was the prediction that was off
+00:36 < nuborn> deen: how about a netobj that gets sent at respawn?
+00:36 <@deen> nuborn: even for players you don't see?
+00:36 < nuborn> yes, since then you could just remember that value
+00:36 <@deen> that sounds like it would create a lot of traffic on maps with hard noobfilters
+00:37 <@deen> btw, i think a new teamstate is also sent when someone kills and that may create a lot of traffic
+00:37 <@deen> hm, most people don't even use prediction =/
+00:37 <@deen> i mean, antiping
+00:38 < nuborn> hmm, I guess not
+00:39 < nuborn> so maybe it would be a lot of work for not much
+00:40 <@deen> hm, actually that always annoyed me when playing with antiping
+00:40 <@deen> I'm just worried that people would have more network problems when we increase the traffic
+00:42 <@deen> please try to implement it though
+00:46 < nuborn> but Im not sure what would be the best way to implement it. in theory this info could be sent very rarely, but Im not sure where would be the right place to place it. unless the parsing way is used
+00:47 <@deen> Hm =/
+00:47 <@deen> no idea
+00:55 < Savander> good night
+01:54 <@deen> That would be really great timing if GER works without lags now, with EUR and GER2 going down in a few days
+02:44 <@deen> when we get Learath2's autoupdater, we'll have libcurl in the client. Then we could add a simple HTTP map downloader for DDNet maps. (I don't want to pay for more traffic in Chile)
+02:44 <@deen> My idea would be to start the regular map download process and at the same time ping http://maps.ddnet.tw for the map + checksum and try downloading that in parallel
+02:46 <@deen> and stop the ingame one if the HTTP one gets fast enough
+03:00 < eeeee> if Learath2 manages to support a timeout we could just try http first and then fall back to ingame if that fails instead of doing that in parallel
+03:00 < eeeee> i imagine you would want to minimize the gameserver traffic to reduce the costs and lags
+03:06 < eeeee> we can also separate out the mapres and async load them, would load any map almost instantly :>
+03:20 <@deen> and then we could add BPG support and send BPG mapres instead of PNG
+04:10 <@deen> EastByte: I've stopped the EUR servers since they're empty. Don't know at what time exactly EUR will stop, don't want anyone to get a surprise disconnect
+05:25 < eeeee> i wonder what's the BPG reference decoder performance is vs. libpng decoder
+05:26 < eeeee> maybe i could use it in js demo as well
+05:27 < eeeee> but it has better be lossless at least in alpha channel. artifacts in alpha channel would likely be super annoying
+08:51 <@EastByte> deen: okay
+22:46 <@deen> Yay, no lags on GER!
+23:01 < Nimda> DDNet CHN went down!
+23:03 < Nimda> DDNet CHN went back online!
+23:15 < Nimda> DDNet CHN went down!
+23:16 < Nimda> DDNet CHN went back online!

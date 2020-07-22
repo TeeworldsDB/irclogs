@@ -1,0 +1,50 @@
+12:17 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/master/src/game/server/gameworld.cpp#L228
+12:17 <+bridge> [ddnet] <fokkonaut> does this mean that the real client id k's fakeid is now Mapc for the current pMap?
+12:18 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/master/src/game/server/gameworld.cpp#L236
+12:18 <+bridge> [ddnet] <fokkonaut> and this, that for pMap the fake id rMap[k] gets reset to -1 now because hes too far away?
+12:18 <+bridge> [ddnet] <fokkonaut> Can anyone explain the playermap updating? :D
+13:46 <+bridge> [ddnet] <Learath2> @fokkonaut rMap is a map from real ids to ids in the players idmap
+13:47 <+bridge> [ddnet] <Learath2> Mapc iterates through the "fake" idmap to find an empty slot to put the client in
+13:47 <+bridge> [ddnet] <Learath2> if there isn't any, Demand is increased
+13:52 <+bridge> [ddnet] <Learath2> Demand signifies how many slots  we need in the fake map to fit all the closest 16 tees after fitting what we can
+13:53 <+bridge> [ddnet] <Learath2> Then we remove Demand-many clients from the idmap so that in the next iteration of updateplayermaps the required clients fit
+13:53 <+bridge> [ddnet] <Learath2> The idea with the weird algorithm is that client ids don't change while the client is in view, as that causes weird behaviour
+13:56 <+bridge> [ddnet] <fokkonaut> I am trying to port 128 player to 0.7, its working fine but there is one problem, because in 0.7 you cant just change the client ids in the player's snap, or their name. you would need to send disconnect/connect packets to client x individually. I couldnt figure out yet where to send those correctly...
+13:57 <+bridge> [ddnet] <Learath2> Huh, what do you mean you can't change client ids
+13:59 <+bridge> [ddnet] <Learath2> In the pMap, if a slot is set to -1, that means it "disconnected", if it's set to something else that means it "connected" could work
+13:59 <+bridge> [ddnet] <fokkonaut> the client receives connect/drop messages
+13:59 <+bridge> [ddnet] <fokkonaut> and there, the client id , name and other information is passed
+14:00 <+bridge> [ddnet] <fokkonaut> so you cant change the client ids anymore, or names and stuff without sending reconnect packets
+14:00 <+bridge> [ddnet] <fokkonaut> (disconnect, then connect)
+14:01 <+bridge> [ddnet] <Learath2> I see, what an ingenious idea to move all that out of the snap
+14:01 <+bridge> [ddnet] <fokkonaut> yes
+14:02 <+bridge> [ddnet] <Learath2> why bother with 128p anyway, it's hardly viable
+14:02 <+bridge> [ddnet] <fokkonaut> well, because my server is filled with 64p sometimes
+14:02 <+bridge> [ddnet] <fokkonaut> currently 45 again
+14:02 <+bridge> [ddnet] <Learath2> anyway, you can try what I said
+14:03 <+bridge> [ddnet] <fokkonaut> I tried a lot yesterday, couldnt get the info correctly. So players 0-63 were correct, but the ones with higher client ids would just apply the information from the fake id they have for you
+14:03 <+bridge> [ddnet] <fokkonaut> Because all that is not in the snap anymore :/
+14:04 <+bridge> [ddnet] <Learath2> Send a disconnect about rMap[pMap[i]] when setting pMap[i] to -1
+14:05 <+bridge> [ddnet] <fokkonaut> and a connect when it gets set?
+14:06 <+bridge> [ddnet] <fokkonaut> i tried exactly that. But then the problem was, disconnect packets have to get sent before the other connect packets can come of course. so i stored them in a vector and after both loops i just sent the disconnect ones, then connect
+14:06 <+bridge> [ddnet] <fokkonaut> but also that didnt work
+14:06 <+bridge> [ddnet] <fokkonaut> No idea why tbh
+14:06 <+bridge> [ddnet] <fokkonaut> i could push my current progress so you can take a look, if youd like
+14:06 <+bridge> [ddnet] <Learath2> well first of all verify that you get the packets in the correct order, teeworlds network stack doesn't really guarantee order iirc
+14:07 <+bridge> [ddnet] <redix> When it's a vital packet order should be the same
+14:09 <+bridge> [ddnet] <Learath2> I'm not sure, what if packet a is dropped, packet b arrives, packet a will surely be resent as it's vital
+14:09 <+bridge> [ddnet] <Learath2> but it'd arrive after packet b
+14:10 <+bridge> [ddnet] <redix> The received will ignore b and the sender will resend both. When I remember correctly 😅
+14:10 <+bridge> [ddnet] <redix> Highly inefficient but it works
+14:11 <+bridge> [ddnet] <redix> receiver*
+14:19 <+bridge> [ddnet] <Learath2> Seems that's right @redix
+17:06 <+bridge> [ddnet] <texnonik> I want to map at Nintendo switch or mobile phone , will keyboard work on mobile phone (displaying all stuff example space bar)
+17:07 <+bridge> [ddnet] <Learath2> depends on the phone
+17:07 <+bridge> [ddnet] <texnonik> Example if press space bar *
+17:07 <+bridge> [ddnet] <texnonik> Huawei
+17:07 <+bridge> [ddnet] <Learath2> and either way you'll need a  build for the device, we have an old android build
+17:08 <+bridge> [ddnet] <Learath2> I actually wanted to do a nintendo switch build but libnx is just not good enough yet in the homebrewsphere 😛
+17:08 <+bridge> [ddnet] <texnonik> Oh also its hard to publish there :( i think its costs money :(
+17:09 <+bridge> [ddnet] <texnonik> Will i have problems because of old android verision ?
+17:52 <+bridge> [ddnet] <Learath2> I don't think you can map with the older version
+18:26 <+bridge> [ddnet] <texnonik> Bruh

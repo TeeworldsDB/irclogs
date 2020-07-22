@@ -1,0 +1,504 @@
+09:45 < EastBite> deen: 6 mbyte/s down 1.2 mbyte/s up :D 
+10:16 <@deen> EastBite: nice, same as me
+10:21 < EastBite> deen: and it looks like both direction can be stressed at the same time
+10:21 < EastBite> without packetloss
+10:23 < EastBite> oh I'm such a hacker I found out that this condition can't be true: https://github.com/teeworlds/teeworlds/blob/master/src/engine/shared/huffman.cpp#L118
+10:27 < EastBite> afk
+12:36 < EastBite> deen: I have some cool idea
+12:55 < EastBite> okay not  that cool, but interesting to implement
+13:39 < Savander> meh
+13:40 < Matodor> @deen, hello
+13:42 < Savander> new idea ;o: Limited hook by time
+13:43 < Savander> something like, when you catch someone, hook will be released later or earlier
+13:43 < Savander> xd
+13:50 <@deen> EastBite: yes?
+13:50 <@deen> Matodor: hi
+13:50 <@deen> Savander: that's how it is already^^
+13:50 < Matodor> You can ask a few questions?
+13:50 < Savander> now
+13:50 < Savander> no?
+13:51 < Savander> so how
+13:51 < Savander> ?
+13:51 < Savander> to set time
+13:51 <@deen> Savander: ah, you want to set time, ok
+13:51 <@deen> Savander: but it's very unintuitive i think
+13:51 <@deen> Matodor: hm?
+13:51 < Savander> heh
+13:52 < Matodor> deen: Я добавил поддержку DDNet клиента к своему серверу, в игре количество игроков 1/64, но в списке серверов отображает как 1/16. Все проверил, вроде правильно. p.s goolge translate :D
+13:52 < Matodor> sry :D
+13:52 < Matodor>  I added support DDNet client to your server, the number of players in the game 1/64, but in the server list displays as 1/16. All checked, like correct. p.s goolge translate: D
+13:53 <@deen> Matodor: you added 64 players to your own server?
+13:53 < Savander> for hard parts, why not. With message "Your hook hold time was reduced to 2 sec, or increased to 10 sec" or smth like that
+13:53 < Matodor> yes
+13:53 < Matodor> in game snap how 64, but serverlist 16
+13:54 <@deen> Matodor: there is a 64 player serverlist package
+13:54 <@deen> Matodor: all 64 player servers use it
+13:54 < Matodor> I know
+13:54 <@deen> aaaah
+13:54 < Matodor> SendServerInfo(&Packet.m_Address, ((unsigned char *)Packet.m_pData)[sizeof(SERVERBROWSE_GETINFO64)], true);
+13:55 <@deen> ddnet client only requests 64 player info in some cases
+13:55 < Matodor> which?
+13:55 <@deen> yes, your gametype or server name have to include 64
+13:56 < Matodor> :D
+13:57 < Matodor> @deen: added to the name of the server 64, but nothing
+13:57 <@deen> Matodor: what's the server name?
+14:01 < Matodor> ?
+14:01 <@deen> Matodor: i want to see it myself
+14:01 <@deen> Matodor: is the server online?
+14:01 <@deen> are you responding correctly to the GETINFO64 packets?
+14:02 < Matodor> yes
+14:02 < Matodor> server not registered
+14:02 < Matodor> only localhost
+14:02 <@deen> ok, then i can't test
+14:02 <@deen> i would guess you don't respond correctly
+14:03 < Matodor> if i join and exit -> in serverbrowser 1/64 info
+14:03 <@deen> you're using ddnet client?
+14:03 < Matodor> yes
+14:04 <@deen> have you seen the code in server.cpp SendServerInfo()?
+14:05 < Matodor> i can send code
+14:05 < Matodor> @deen: http://pastebin.ru/ixeBpdxb
+14:06 < Matodor> checked everything, like transferred correctly
+14:08 <@deen> weird
+14:09 <@deen> does the client receive the packet?
+14:09 <@deen> you should add debug messages to see where the problem is
+14:11 < Matodor> okay, thx for help, will test
+14:11 <@deen> Matodor: ok, I'm afk for some time
+14:12 <@deen> EastBite and Savander can help :P
+14:13 < EastBite> I'm currently not here either
+14:13 < EastBite> oh wait
+16:50 < Matodor> @deen: here?
+17:58 <@deen> Matodor: hi
+18:05 < Matodor> hi, why the condition is not satisfied if (Packet.m_DataSize == sizeof (SERVERBROWSE_GETINFO64) +1 && mem_comp (Packet.m_pData, SERVERBROWSE_GETINFO64, sizeof (SERVERBROWSE_GETINFO64)) == 0) ,
+18:06 < Matodor> ?
+18:09 <@deen> hm?
+18:09 <@deen> maybe your GETINFO64 definition is wrong
+18:10 <@deen> so the size is wrong
+18:10 <@deen> Matodor: 
+19:00 < Matodor> deen: i copy from ddnet 
+20:14 < Matodor> deen: the condition if (pEntry && m_ServerBrowser.IsRefreshing())  not satisfied, why (client.cpp) ?
+20:15 <@deen> Matodor: you send normal requests too, right?
+20:15 <@deen> Matodor: first a normal request, then a 64 player one
+20:16 <@deen> not immediately the 64
+20:16 < Matodor> condition 	if (strstr(Info.m_aGameType, "64") || strstr(Info.m_aName, "64")) - work
+20:16 < Matodor> but next no
+20:16 < Matodor> pEntry = m_ServerBrowser.Find(pPacket->m_Address); 				if (pEntry && m_ServerBrowser.IsRefreshing())
+20:27 <@deen> i don't know
+20:28 < Matodor> :)
+20:39 < Matodor> @deen: problem in condition (m_ServerBrowser.IsRefreshing()), if comment it = work
+20:40 < Matodor>  maybe it's because the server tab in LAN?
+21:21 < Savander> Matador, yes in LAN Tab, it not works correctly
+21:43 <@deen> ooooh
+21:43 <@deen> damn
+21:43 <@deen> for me the entire LAN tab never worked in teeworlds^^
+21:43 <@deen> so i never tested
+21:51 < Savander> heh
+21:52 < Savander> i will try
+21:52 < Savander> fix it
+21:52 < Savander> xd
+21:52 < Savander> maybe i can
+21:52 < Savander> LOl
+21:55 <@deen> Savander: good luck =)
+21:55 < Savander> haha
+21:55 < Savander> thanksxd
+22:19 < bor> hi dean
+22:20 <@deen> hi bor
+22:20 < KinG_> hey deen
+22:20 <@deen> hi
+22:20 < bor> i hope i'm not interrupting your work do you have free time ?
+22:20 <@deen> sure
+22:20 <@deen> what's on your mind?
+22:21 < bor> so king and i wanted to run a ddnet server and he said we should speak to you about that
+22:21 <@deen> =)
+22:21 < KinG_> ?:|
+22:21 <@deen> I would love an official DDNet server in Iran
+22:21 <@deen> Do you want an official one or one of your own?
+22:22 < KinG_> wtf
+22:22 < KinG_> deen
+22:22 <@deen> yes?
+22:22 < KinG_> we want an official server
+22:22 <@deen> =)
+22:22 <@deen> then it's pretty easy
+22:22 < KinG_> but
+22:22 <@deen> you have to get a good VPS, like the Persian Pro is using
+22:22 < KinG_> we still don't have a vps
+22:22 <@deen> but with Linux, and preferrably KVM
+22:23 <@deen> 512 MB RAM are enough
+22:23 < KinG_> how much ram exactly you want?
+22:23 <@deen> traffic should be ~ 500 GB / month
+22:23 < KinG_> we got unlimited
+22:23 <@deen> 22:22 < KinG_> we want an official server
+22:23 <@deen> 22:22 <@deen> =)
+22:23 <@deen> 22:22 <@deen> then it's pretty easy
+22:23 <@deen> 22:22 < KinG_> but
+22:23 <@deen> 22:22 <@deen> you have to get a good VPS, like the Persian Pro is using
+22:23 <@deen> 22:22 < KinG_> we still don't have a vps
+22:23 <@deen> 22:22 <@deen> but with Linux, and preferrably KVM
+22:23 <@deen> 22:23 <@deen> 512 MB RAM are enough
+22:23 <@deen> 22:23 < KinG_> how much ram exactly you want?
+22:23 <@deen> 22:23 -!- bor [webchat@144.76.79.25] has joined #ddnet
+22:23 <@deen> 22:23 <@deen> traffic should be ~ 500 GB / month
+22:23 <@deen> KinG_: awesome
+22:23 < KinG_> WTF?!
+22:23 <@deen> KinG_: I want 1024 MB, but 512 would be enough probably
+22:23 < KinG_> so
+22:24 < KinG_> 1gb is enough huh?
+22:24 <@deen> yes
+22:24 <@deen> i need root access to the server, then i can set everything up
+22:24 < KinG_> bor?
+22:24 < bor> yes ?
+22:25 < KinG_> about the root access
+22:25 < KinG_> u aggree?
+22:25 < KinG_> agree*:|
+22:25 < bor> sure , just one question 
+22:25 < bor> is there an option for us to install it our self and you are offering to install it for us or is it mandatory to have you install it for us ?
+22:26 <@deen> only i can do it
+22:26 <@deen> there is no automatic installation
+22:26 <@deen> i do it all by hand, you can see what i do here: http://github.com/def-/ddnet-scripts
+22:27 <@deen> and the servers often need manual help, which i also do
+22:27 <@deen> when the databases get desynchronized, or when a new map is released, or a tournament is starting
+22:27 < bor> in case i happened to be able to do it can i do it myself ?
+22:27 < bor> i do have some experience with programming and compiling stuff on linux
+22:28 <@deen> bor: nice
+22:28 <@deen> bor: but i really like to set it up myself. most of the stuff isn't written down anywhere, i just do it from my head
+22:28 < bor> ok no problem 
+22:28 <@deen> and i need to synchronize it with the other servers anyway, and you have no access to them
+22:28 < KinG_> deen
+22:28 <@deen> KinG_: 
+22:29 < KinG_> how many servers can u run on the vps?
+22:29 <@deen> KinG_: just DDRace or what?
+22:29 < KinG_> ddrace
+22:29 < KinG_> and if there is a tornoument
+22:30 <@deen> i think with 1 GB we can run more servers than we will need
+22:30 < bor> which linux do you prefer , centos or ubuntu?
+22:30 <@deen> 10-15 servers should be no problem
+22:30 <@deen> debian, centos, ubuntu, in that order
+22:31 <@deen> What's with the Persian Pro servers?
+22:31 <@deen> Weren't you helping with them, KinG_ ?
+22:31 <@deen> will they keep running?
+22:31 < KinG_> actually
+22:31 < KinG_> deen they aren't nice guys
+22:32 < KinG_> i don't work with them
+22:32 <@deen> KinG_: ok
+22:32 < KinG_> they attacked our servers (persian gulf)
+22:32 <@deen> wtf
+22:32 <@deen> i help them defend from attacks and they attack themselves?
+22:32 < KinG_> yes
+22:32 < KinG_> but
+22:32 < KinG_> bor can protect servers
+22:33 <@deen> awesome =)
+22:33 < KinG_> he know what to do
+22:33 < bor> its more like a warzone in iran datacenters :(
+22:34 < bor> not sure when they are going to learn competing peacefully 
+22:34 < KinG_> and i'm sure that the first one that attacks our servers are these persian Pro guys
+22:34 <@deen> Well, our other servers are also getting attacked a lot recently
+22:35 < KinG_> deen u remember the tornoument for planet venus?
+22:35 <@deen> yes
+22:35 < KinG_> the attacked caused me and Chicken to fail
+22:35 < KinG_> also milk and ninja_valik failed too
+22:35 <@deen> last tournaments i had to stop completely because of attacks
+22:35 <@deen> now we have no more tournaments
+22:36 < KinG_> why?
+22:36 <@deen> i have threats from people
+22:36 < KinG_> like?
+22:36 <@deen> when we start tournaments again, they will attack us
+22:36 < bor> there is something very wrong with my internet :|
+22:36 <@deen> bor: yeah, looks like it
+22:36 < KinG_> dude u can pay a bit more to data centers so they can add a hardware protection 
+22:36 < KinG_> or
+22:37 <@deen> well, it's not just a bit more
+22:37 <@deen> i pay 60 $ / month now
+22:37 <@deen> and with protection in all countries, i can't even imagine what that would be
+22:37 < KinG_> u can add a firewall system that blocks the any incoming connections that is more than legal
+22:37 <@deen> firewalls can't handle these attacks, they are too big
+22:37 < KinG_> actually they can
+22:38 <@deen> nope!
+22:38 <@deen> maybe 10 GBit/s works, but they will just add traffic until it fails
+22:38 < KinG_> for test i attacked bor with 1gb port
+22:38 <@deen> anyway, i'm working with the german hoster on a ddos protection
+22:38 <@deen> yeah, but 1gb/s is not much
+22:38 <@deen> our server does fine with 10 gbit/s
+22:38 <@deen> but more is bad
+22:38 < KinG_> so
+22:38 < KinG_> i guess
+22:39 < KinG_> iranian servers will fall so easily
+22:39 < KinG_> 1gbit
+22:39 <@deen> i don't know if anyone will attack iranian servers
+22:39 <@deen> chile had no attacks so far
+22:39 <@deen> it's mainly the german server that gets the attacks
+22:39 < KinG_> Persian Pro will attack
+22:39 < KinG_> i know that guy
+22:39 <@deen> tell him to talk to me
+22:39 <@deen> i can talk him out of attacking
+22:39 < bor> some iranians hate competition , they can't stand there seeing some other person having a server
+22:39 < KinG_> he attacked persian gulfs servers cause no players were playing in their servers
+22:40 < KinG_> and now
+22:40 < KinG_> cause of their attacks
+22:40 <@deen> yeah, i know, we had these problems already in iranian ddnet long ago
+22:40 < KinG_> persian gulf is gone
+22:40 <@deen> =/
+22:40 <@deen> what was his name again?
+22:40 < KinG_> Persian PRo
+22:40 <@deen> i mean the admin
+22:40 < KinG_> evil saeed is the owner
+22:41 <@deen> ok, he's not online?
+22:41 < KinG_> his name is written by font
+22:41 < KinG_> but it's evil saeed
+22:41 <@deen> yeah, i know
+22:41 < KinG_> i don't know
+22:41 < KinG_> u want me to check?
+22:41 <@deen> i would like to talk to him
+22:41 < KinG_> i'll be back soon gonna check if he is online or not
+22:42 <@deen> when do you expect to get the server?
+22:42 <@deen> I'm pretty happy about it
+22:42 <@deen> Iran used to be our second largest server, right after German
+22:43 < KinG_> iran got so pro players
+22:43 < KinG_> like chicken
+22:43 < bor> we were considering it in the past week and will probably get it online by the end of next week
+22:43 <@deen> yeah, chicken hosted the first Iran server
+22:43 < KinG_> yep
+22:43 <@deen> but no more money =/
+22:43 <@deen> expensive to host in iran
+22:43 < KinG_> yes
+22:44 < KinG_> we pay 24$ for a 1gb ram server
+22:44 <@deen> mhm
+22:44 <@deen> that's pretty expensive for Iran
+22:44 < KinG_> gonan check persian servers will be back
+22:45 <@deen> Chile is even more expensive, i pay 28$ now
+22:45 < bor> i pay 52Euro for 16GB of ram in germany 
+22:45 <@deen> bor: nice, you live in germany?
+22:45 < bor> no i live in iran but have some servers in germany 
+22:45 < bor> for my website
+22:46 < bor> i am one of sponsors of this ddnet server 
+22:46 <@deen> ok, nice
+22:46 <@deen> but good ddos protection is expensive in germany
+22:47 < bor> thankfully i don't have a lot of problems in germany , my website competitors don't consider me a thread yet
+22:47 <@deen> yeah, online gaming is very ddos prone
+22:48 <@deen> everyone in teeworlds gets ddos attacks
+22:48 < bor> my website is a torrent leecher 
+22:48 <@deen> bor: oh, haha
+22:48 <@deen> bor: and you're running that in Germany of all places, hahhaha
+22:48 < bor> cheapest i could find , i get 6TB of hard for that 52Euro 
+22:48 <@deen> Germany is the country where most people get fined for torrenting in the entire world :P
+22:49 < bor> interesting , i've seeded more than 60-70TB in the past year
+22:49 < bor> not a single abuse 
+22:49 <@deen> ^^
+22:49 <@deen> nice hoster then ;)
+22:49 < KinG_> deen i suggest you to download yahoo
+22:50 < KinG_> all of iranian guys got yahoo 
+22:50 < bor> its Hetzner 
+22:50 <@deen> or they don't care because you live in Iran and not Germany
+22:50 < bor> i don't have yahoo 
+22:50 <@deen> KinG_: nah, teeworlds + irc + skype is fine for me
+22:50 <@deen> already too much^^
+22:50 < bor> yea i agree , i used to be on a lot of messenger apps , but i got tired of them all and removed all but telegram and skype 
+22:51 < KinG_> u can't contact with iranian peoples so easily without yahoo
+22:51 <@deen> KinG_: they can contact me in irc
+22:51 < KinG_> he is offline
+22:51 < KinG_> i checked all servers
+22:51 <@deen> for me it's good enough to have contact with you 2
+22:51 < bor> its 1am here , its no surprise he is offline , the question is why aren't we offline :P
+22:52 < KinG_> u can call us owl deen xD
+22:52 <@deen> Night owls =)
+22:53 < KinG_> yep
+22:53 < KinG_> always online
+22:53 <@deen> Anyway, it's awesome that you want to do DDNet Iran
+22:53 < KinG_> i'm tired of playing
+22:53 < KinG_> i just want to play in ddnet
+22:53 < KinG_> and got 200 ping in german
+22:53 <@deen> but ping to GER is too bad?
+22:53 <@deen> hm, yeah
+22:53 <@deen> Chicken sometimes has 90 on GER
+22:53 < KinG_> for me it's bad
+22:53 < KinG_> chicken got 70~90 on german
+22:53 < KinG_> and in iran he got 20
+22:54 < KinG_> ti saw a guy with ping 2 in iran
+22:54 <@deen> Yeah, we have many with ping 3-4 in Moscow
+22:54 < bor> i have 86ms in iran :|
+22:54 <@deen> and ping 4-7 in GER
+22:54 <@deen> well, only 2 with ping 4-7 in GER^^
+22:54 < KinG_> and when i asked that guy where are you buying internet from why is your ping like this he said what is ping :|
+22:54 <@deen> the situation in south america is really sad
+22:54 <@deen> KinG_: haha
+22:55 <@deen> in south america they get better ping on GER than on Chile server
+22:55 <@deen> 200 on GER, 300 on Chile
+22:55 < KinG_> so many noobs these days
+22:55 <@deen> even though Chile is much closer
+22:55 < KinG_> chile is worse than iran
+22:55 <@deen> more expensive too 
+22:56 <@deen> but noone understands english in chile, so i can't find someone to buy a server
+22:56 <@deen> and they're all about 15 years old i think
+22:56 < KinG_> lol
+22:56 < KinG_> xD
+22:56 <@deen> you know chile had 0 teeworlds players 1 year ago?
+22:57 < KinG_> well .....
+22:57 <@deen> and then a popular livestreamer discovered the game
+22:57 < Chicken_> hey
+22:57 < KinG_> lol
+22:57 < KinG_> chicken here
+22:57 <@deen> hi
+22:57 <@deen> and he played ddrace for 3 hours
+22:57 < bor> hi
+22:57 < KinG_> wattup nob?:D
+22:57 <@deen> and suddenly chile has the biggest teeworlds community after europe, but they're all kids watching his stream^^
+22:57 < KinG_> never mind chile
+22:58  * Chicken_ slaps Chicken_ around a bit with a large fishbot
+22:58 <@deen> Chicken_: we get DDNet in Iran again!
+22:58 < KinG_> hopefully we are living in iran
+22:58 < Chicken_> That's nice!
+22:58 <@deen> Chicken_: Haven't seen you around for some time. Still playing?
+22:58 < KinG_> yep
+22:58 < Chicken_> I do but less
+22:58 < KinG_> amir
+22:59 < Chicken_> ?
+22:59 < KinG_> nemiay ts?
+22:59 < Chicken_> n
+22:59 < KinG_> :|
+22:59 < KinG_> maraz dare khob :|
+22:59 <@deen> ddnet has a ts server too: ts.ddnet.tw
+22:59 < KinG_> i know
+22:59 < KinG_> but bever saw u there
+22:59 < Chicken_> Yeah, I go there for playing Wow xD
+22:59 <@deen> i don't have a microphone^^
+22:59 <@deen> and i don't like talking
+23:00 < KinG_> deen u havn'e mic?:O
+23:00 < bor> why not ?
+23:00 <@deen> i prefer to read, don't know why
+23:00 <@deen> (and write of course)
+23:00 < bor> talking is a lot easier than typing 
+23:00 < KinG_> yep
+23:00 < KinG_> so easier
+23:00 < bor> you already typed a lot of code , don't you think your hands deserve some rest ? :P
+23:00 <@deen> haha
+23:01 < Chicken_> I'd prefer typing and reading.
+23:01 < KinG_> chicken is goshad never comes to ts
+23:01 < KinG_> xD
+23:02 < Chicken_> I don't use ts until I don't need to.
+23:02 < Chicken_> I need to*
+23:02 < Chicken_> never mind.
+23:02 < KinG_> u never come to ts to play with me
+23:02 < Chicken_> who is gonna host the ddnet?
+23:02 < KinG_> ubut when u go arena u go to ts
+23:03 <@deen> Chicken_: KinG_ & bor I think
+23:03 < Chicken_> of course I do
+23:03 < KinG_> u never does that
+23:03 < Chicken_> hm, then you are gonna have full access deen?
+23:03 < KinG_> wtf
+23:03 < KinG_> who is this?
+23:03 <@deen> hi Ramyar, welcome
+23:03 <@deen> Chicken_: i need full access, otherwise it doesn't work as an official server
+23:03 < Ramyar> hi
+23:03 < KinG_> bor what is he doing here?
+23:04 < bor> whats the problem ? 
+23:04 < KinG_> nvm 
+23:04 < KinG_> well
+23:04 < KinG_> deen how can i contact you?
+23:04 < KinG_> u always in this channel?
+23:04 <@deen> KinG_: Skype, IRC?
+23:04 <@deen> yes, I'm always in the channel
+23:04 <@deen> and i even respond when I'm at the computer
+23:05 < KinG_> i got the url
+23:05 <@deen> or email deen@ddnet.tw
+23:05 <@deen> and I'm in teeworlds a lot
+23:05 < KinG_> deen
+23:05 < Chicken_> Well I have missed playing ddrace on ddnet ^-^
+23:05 < Chicken_> also I have lost my rank xD
+23:05 <@deen> Chicken_: =)
+23:05 < KinG_> if u want u can give me the source of ddnet so i can compoile it to windows
+23:05 < KinG_> compile*
+23:06 <@deen> KinG_: what's wrong with the way i compile it?
+23:06 <@deen> and the source is on http://github.com/def-/ddnet of course
+23:06 < KinG_> nothing
+23:06 < KinG_> just it's easier to host it on win
+23:06 <@deen> Chicken_: I'm only 53rd rank now =/
+23:06 <@deen> KinG_: you mean the official server stuff or what?
+23:06 < Chicken_> heh I'm 115-150 I think
+23:06 < Chicken_> I was 20 xD
+23:06 < KinG_> official
+23:07 <@deen> Chicken_: no, you're 89.!
+23:07 < Chicken_> wow!
+23:07 < KinG_> he was 20
+23:07 < Chicken_> so I can get mine back I think lol
+23:07 <@deen> KinG_: that's impossible, it's just 50 python scripts, bash scripts, crontab settings, stuff i do over ssh
+23:07 < KinG_> owkay
+23:07 <@deen> it's really linux only
+23:07 < KinG_> deen
+23:08 < KinG_> how much bandwidth will that take?
+23:08 <@deen> KinG_: ddnet iran in total?
+23:08 < KinG_> not the total in month
+23:08 <@deen> what then?
+23:08 < KinG_> the per second
+23:08 <@deen> http://ddnet.tw/status/
+23:08 <@deen> look here
+23:08 <@deen> it says the current bandwidth
+23:08 < KinG_> if we imagine there are 10 players in wach server
+23:08 <@deen> for example Chile has 80 players now and 400 KB/s
+23:08 < KinG_> how much will it take per second?
+23:08 < KinG_> oh
+23:09 < KinG_> that's good
+23:09 < KinG_> it'l handle
+23:09 <@deen> South Africa has 8 players, 40 KB/s
+23:09 < KinG_> lol
+23:09 < KinG_> got players from africa? xD
+23:09 <@deen> yes, quite a lot
+23:09 <@deen> sometimes 60 players online at the same time
+23:09 <@deen> and real pros
+23:09 < KinG_> :O
+23:09 < Chicken_> 1.4GB per hour then in Chicle !
+23:10 < Chicken_> chile*
+23:10 <@deen> Super & den for example are from South Africa
+23:10 <@deen> and they are as good as best European players i would say
+23:10 < KinG_> actually we got unlimited bandwitdh for month
+23:10 < KinG_> but we got so much usage per second
+23:10 <@deen> We also have players in China!
+23:11 < KinG_> china!
+23:11 < Chicken_> I'm going to watch something.
+23:11 < Chicken_> See you.
+23:11 < KinG_> bye noob
+23:11 < KinG_> xD
+23:11 <@deen> Bye Chicken_ =)
+23:11 < Chicken_> holy cow!
+23:12 < KinG_> Chicken_: goshad bia ts baw delam barat pokide kuni bia berim tee :|
+23:12 < KinG_> deen u got free time?
+23:12 < Chicken_> May I ask you not to speak persian in the public chanel? ^^
+23:12 <@deen> KinG_: yeah
+23:13 < KinG_> want to play?
+23:13 < KinG_> i missed tee
+23:13 <@deen> KinG_: sure
+23:13 < KinG_> which port?
+23:13 <@deen> KinG_: GER or where?
+23:13 < KinG_> ger
+23:13 <@deen> novice?
+23:13 <@deen> I mainly play novice^^
+23:13 < KinG_> i can handle moderate with the ping
+23:13 <@deen> The Shire is a cool map
+23:13 <@deen> You know it?
+23:13 < KinG_> ok novice
+23:14 < KinG_> never played
+23:14 <@deen> ip is ddnet.tw
+23:14 <@deen> no port
+23:14 < KinG_> ok
+23:14 <@deen> http://ddnet.tw/releases
+23:14 <@deen> you can see new map releases always
+23:15 < KinG_> downloading the map
+23:15 <@deen> slow?
+23:15 < KinG_> i got 2 downlaods so speed is 2kbps
+23:15 < KinG_> loads*
+23:15 <@deen> http://ddnet.tw/maps/The%20Shire.map
+23:15 < KinG_> keyboard sucks
+23:15 <@deen> all maps can be downloaded like that too^^
+23:45 < Savander> i found smth
+23:45 < Savander> ;o
+23:45 < Savander> now i lan tab i see 0/64
+23:53 <@deen> =)
+23:53 <@deen> awesome!
+23:56 <@deen> Savander: make me a pull request!
+23:56 <@deen> Savander: and you're officially a ddnet contributor!
+23:56 < Savander> no no
+23:56 < Savander> wait a second
+23:56 < Savander> i know where is the bug
+23:56 < Savander> but now i try to fix it :D
+23:56 < Savander> and maybe i will pull it tomorrow
+23:56 < Savander> ;]
+23:56 < Savander> really simple
+23:56 < Savander> lol
+23:59 <@deen> =)

@@ -1,0 +1,96 @@
+12:46 < bridge_> [teeworlds] <Assa> hey can anyone tell me what kernel()->RequestInterface does?
+12:49 < bridge_> [teeworlds] <heinrich5991> for many classes, there is only one "global" instance
+12:49 < bridge_> [teeworlds] <heinrich5991> this basically allows you to get that instance
+12:49 < bridge_> [teeworlds] <Assa> what if iam hacking something and have multiple instances?
+12:49 < bridge_> [teeworlds] <Assa> i see i need a specified name
+12:49 < bridge_> [teeworlds] <heinrich5991> not really supported by this system. what class do you duplicate?
+12:50 < bridge_> [teeworlds] <Assa> Map
+12:50 < bridge_> [teeworlds] <heinrich5991> perhaps you don't need to register it to the kernel
+12:50 < bridge_> [teeworlds] <heinrich5991> ```
+12:50 < bridge_> [teeworlds] <heinrich5991> src/game/layers.cpp:    m_pMap = pMap ? pMap : pKernel->RequestInterface<IMap>();
+12:50 < bridge_> [teeworlds] <heinrich5991> src/game/server/gamecontext.cpp:    CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
+12:50 < bridge_> [teeworlds] <heinrich5991> src/engine/server/server.cpp:    m_pMap = Kernel()->RequestInterface<IEngineMap>();
+12:50 < bridge_> [teeworlds] <heinrich5991> src/engine/client/client.cpp:    m_pMap = Kernel()->RequestInterface<IEngineMap>();
+12:50 < bridge_> [teeworlds] <heinrich5991> src/game/client/components/mapimages.cpp:    LoadMapImages(Kernel()->RequestInterface<IMap>(), Layers(), MAP_TYPE_GAME);
+12:50 < bridge_> [teeworlds] <heinrich5991> ```
+12:51 < bridge_> [teeworlds] <heinrich5991> eh
+12:51 < bridge_> [teeworlds] <Assa> yes
+12:51 < bridge_> [teeworlds] <Assa> see my problem?
+12:51 < bridge_> [teeworlds] <Assa> what happens if i call Kernel()->RequestInterface<IEngineMap>() multiple times?
+12:51 < bridge_> [teeworlds] <heinrich5991> you get the same instance every time
+12:51 < bridge_> [teeworlds] <Assa> this breaks everything 😄
+12:52 < bridge_> [teeworlds] <heinrich5991> you need a different system if you want to have more than one map
+12:52 < bridge_> [teeworlds] <Assa> i know
+12:52 < bridge_> [teeworlds] <heinrich5991> perhaps pass it via parameters instead of the interfaces requesting it from the kernel
+12:52 < bridge_> [teeworlds] <Assa> after loading dm1 my server crashes (while having loaded another map)
+12:52 < bridge_> [teeworlds] <heinrich5991> what do you want to achieve?
+12:52 < bridge_> [teeworlds] <Assa> yes, I will do this
+12:52 < bridge_> [teeworlds] <heinrich5991> loading multiple maps?
+12:52 < bridge_> [teeworlds] <Assa> multimap, like Kosmo archived
+12:53 < bridge_> [teeworlds] <Assa> should I show you?
+12:53 < bridge_> [teeworlds] <heinrich5991> yea, then do it like described above 🙂
+12:53 < bridge_> [teeworlds] <Assa> okay ^.^
+12:55 < bridge_> [teeworlds] <heinrich5991> nah, I think I saw it already
+12:55 < bridge_> [teeworlds] <Assa> this new technique has so much potential
+12:55 < bridge_> [teeworlds] <Assa> you could autogenerate maps on the fly
+12:56 < bridge_> [teeworlds] <heinrich5991> yup 🙂
+13:05 < bridge_> [teeworlds] <Assa> the class CMap is declared in a cpp file (engine/shared/map.cpp), but why? Shouldn't it have a header
+13:06 < bridge_> [teeworlds] <heinrich5991> the header (src/engine/map.h) contains the "interface", i.e. all the members of the map that are exposed on purpose
+13:07 < bridge_> [teeworlds] <heinrich5991> this way you can do whatever you like in the `class CMap` without accidentally enlarging the interface
+13:07 < bridge_> [teeworlds] <Assa> I have never seen a class declaration in a cpp, but okay, this makes sense
+13:08 < bridge_> [teeworlds] <heinrich5991> ```
+13:08 < bridge_> [teeworlds] <heinrich5991> src/engine/client/text.cpp:class CTextRender : public IEngineTextRender
+13:08 < bridge_> [teeworlds] <heinrich5991> src/engine/shared/kernel.cpp:class CKernel : public IKernel
+13:09 < bridge_> [teeworlds] <heinrich5991> src/engine/shared/masterserver.cpp:class CMasterServer : public IEngineMasterServer
+13:09 < bridge_> [teeworlds] <heinrich5991> src/engine/shared/storage.cpp:class CStorage : public IStorage
+13:09 < bridge_> [teeworlds] <heinrich5991> src/engine/shared/config.cpp:class CConfig : public IConfig
+13:09 < bridge_> [teeworlds] <heinrich5991> src/engine/shared/map.cpp:class CMap : public IEngineMap
+13:09 < bridge_> [teeworlds] <heinrich5991> src/engine/shared/engine.cpp:class CEngine : public IEngine
+13:09 < bridge_> [teeworlds] <heinrich5991> ```
+13:09 < bridge_> [teeworlds] <heinrich5991> these are the instances in teeworlds
+13:09 < bridge_> [teeworlds] <heinrich5991> this pattern is also used at the game/engine boundary
+13:09 < bridge_> [teeworlds] <heinrich5991> you'll see a few interfaces (e.g. for the gameclient/gameserver and engine client/engine server) in src/engine/*.h
+13:09 < bridge_> [teeworlds] <Assa> I normally use singletons if i want this behaviour
+13:10 < bridge_> [teeworlds] <heinrich5991> I don't see how singletons interact with this — this tries to achieve that there is one clear interface which is used for communication
+13:10 < bridge_> [teeworlds] <heinrich5991> I don't see how this is related to singletons — this tries to achieve that there is one clear interface which is used for communication
+13:10 < bridge_> [teeworlds] <Assa> now it makes sense to me
+13:11 < bridge_> [teeworlds] <Assa> a singleton provieds one global instance, too
+13:11 < bridge_> [teeworlds] <Assa> but not the clear single interface aspect
+13:11 < bridge_> [teeworlds] <heinrich5991> ah
+13:14 < bridge_> [teeworlds] <Dune> I don't see the difference with sigletons
+13:16 < bridge_> [teeworlds] <heinrich5991> as far as I understand it, "singleton" means that there exists exactly one instance of that class
+13:17 < bridge_> [teeworlds] <Assa> https://stackoverflow.com/questions/1008019/c-singleton-design-pattern
+13:17 < bridge_> [teeworlds] <heinrich5991> the pattern used in teeworlds code means that there is a separation between interface (the IMap class) and the implementation (the CMap class)
+13:19 < bridge_> [teeworlds] <heinrich5991> hum, fun. IRC displays my "the pattern used in teeworlds code" below @Assa's stackoverflow link. apparently discord doesn't synchronize order
+13:20 < bridge_> [teeworlds] <Assa> isn't that the right order? It shows me the same
+13:20 < bridge_> [teeworlds] <heinrich5991> it doesn't show the same for me in discord
+13:20 < bridge_> [teeworlds] <Assa> Discord probably has another consistency model
+13:29 < bridge_> [teeworlds] <Assa> Do i have to include the kernel for using its interfaces?
+13:30 < bridge_> [teeworlds] <heinrich5991> almost all files already include `<kernel.h>`, so realistically: no
+13:31 < bridge_> [teeworlds] <Assa> because i get a runtime crash when calling Kernel()->RequestInterface<IStorage>()
+13:31 < bridge_> [teeworlds] <heinrich5991> have you checked why?
+13:31 < bridge_> [teeworlds] <Assa> invalid write of size 8 says valgrind
+13:32 < bridge_> [teeworlds] <heinrich5991> huh write.
+13:32 < bridge_> [teeworlds] <Assa> *read
+13:32 < bridge_> [teeworlds] <heinrich5991> you can put it into gdb to get the exact function where it's crashing
+13:32 < bridge_> [teeworlds] <Assa> my mistake
+13:36 < bridge_> [teeworlds] <Assa> Segmentation fault, IStorage ist ein nullpointer oO
+13:38 < bridge_> [teeworlds] <heinrich5991> not Kernel()?
+13:39 < bridge_> [teeworlds] <Assa> doch Kernel ...
+13:41 < bridge_> [teeworlds] <heinrich5991> you have to use `RegisterInterface` on your class or stop inheriting from `IInterface`
+13:50 < bridge_> [teeworlds] <Assa> Nice, this helped a lot ❤
+13:50 < bridge_> [teeworlds] <Assa> thank you
+14:13 < bridge_> [teeworlds] <ChillerDragon> isnt autogen maps on the fly opensoruce already?
+14:15 < bridge_> [teeworlds] <ChillerDragon> there was this BuggyCrapGores repo once somewhere
+14:15 < bridge_> [teeworlds] <Assa> perhaps
+14:53 < bridge_> [teeworlds] <Assa> @heinrich5991 I did it ^.^ I just spawned in the wall outside of dm1 but thats not my business yet 😄
+14:53 < bridge_> [teeworlds] <heinrich5991> cool 🎚
+14:54 < bridge_> [teeworlds] <heinrich5991> cool 🙂
+15:05 < bridge_> [teeworlds] <＃6909> Ninslash (the game by siile based on teeworlds) has automaping, and its open source
+15:05 < bridge_> [teeworlds] <Assa> i will take a look at it, thank you ^^
+18:09 < bridge_> [teeworlds] <Assa> hey Heinrich, what would happen if i use the same storage for all maps?
+18:09 < bridge_> [teeworlds] <Assa> can you explain what the storage does?
+19:33 < bridge_> [teeworlds] <Dune> @heinrich5991 discord reorders messages a posteriori iirc
+20:56 < bridge_> [teeworlds] <heinrich5991> @Assa sharing storage is no problem
+20:56 < bridge_> [teeworlds] <heinrich5991> storage just handles the logic that teeworlds looks in the data directory next to teeworlds.exe and also in the user profile in %APPDATA%
+21:10 < bridge_> [teeworlds] <heinrich5991> @Dune doesn't seem like it, @Assa and I had different message orders in discord

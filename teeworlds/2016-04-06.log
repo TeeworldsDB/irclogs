@@ -1,0 +1,62 @@
+01:26 <@heinrich5991> two things
+01:26 <@heinrich5991> 1) serverbrowser used to be a static array IIRC
+01:27 <@heinrich5991> Henningstone: 2) by using a dynamic array, you can no longer juggle with pointers as they might be invalidated on each resize
+10:03 <@minus> well, array is static size tho, and increasing the size of CHeap may invalidate pointers too
+10:39 <@heinrich5991> minus: CHeap allocates new memory chunks if it grows instead of reallocating existing ones
+10:55 <@minus> fair nuff
+15:00 < Teetime> Does somebody knows what the bam message "bam: WARNING:'<my file>' comes from the future" means?
+15:06 < EastByte> Teetime: it means the file comes from the future
+15:07 < EastByte> the files' timestamp is ahead of the current time
+15:07 < Henningstone> Basically that the file has been created/changed after you started the build, so I guess you build external libs?
+15:08 < Teetime> hmm.. the message first appeared after I used a code generater in my bam-script, before compiling
+15:09 < Henningstone> do you always use the code generator or did you only use it once?
+15:10 < EastByte> did the system time change or did you export the sourcecode from a zip file? :p
+15:10 < Teetime> no it's the first time that I use an external code generator
+15:10 < Teetime> previously i used the preprocessor to generate code which was fine, but with the external generator I now get this warning
+15:12 < Teetime> my system time is correct I think, as I said, I never got this warning before, just after the using the code generator
+15:12 < EastByte> then what's the timestamp of the file?
+15:13 < Teetime> So if it's not harmful I ignore it for now but its kind of annoying to see many of these messages
+15:13 < Henningstone> Could it be that bam takes the current-time timestamp when starting the build, and if you change a file during the build using external tools and then include it into the build, it's timestamp is obviously higher than bam's?
+15:14 < EastByte> maybe
+15:14 < EastByte> matricks: what do you think?
+15:23 <@matricks> sounds like you are doing something fishy
+15:25 <@matricks> that warning means that there is a probability that bam wont rebuildstuff that should be rebuilt
+15:25 <@matricks> having a file on disk that comes from the future is weird
+15:26 < Henningstone> maybe somebody did invent a time machine and sent him this file? :D
+15:26 <@matricks> let me guess, you run the code generator from lua and not via job right?
+15:26 < koomi> if the files are generated during build they'll have a timestamp newer than when bam gets the current time
+15:26 <@matricks> koomi: yes, but bam tracks that
+15:26 < koomi> ah, ok
+15:27 < Teetime> matricks: yes, I don't really understand how AddJob works yet
+15:27 <@matricks> Teetime: well, thats the problem then
+15:34 < Teetime> Currently I'm invoking the generator via Execute() since AddJob() requires an output file and some dependency. The files in which there is code to be generated are specified in a separate file which the generator takes as an argument
+15:40 <@matricks> well, what is your output and what is your input? that is something you should track
+15:40 <@matricks> otherwise you have to run it everytime and rebuild a lot of things every time
+15:41 < Obani> Guys
+15:41 < Obani> I have a feature request for the teeworlds map editor
+15:41 < Obani> It shall not be too hard to make for some things
+15:41 < Obani> Keyboard shortcuts would be so much needed
+15:45 < Teetime> matricks: The code for the generator is in already existing files, the generator just checks if there is code for him in this file and inserts it, thus it's not creating new files but rather modifying existing files
+15:47 <@matricks> dirty :(((
+15:47 < Stitch626> i allso know this error message from bam, in my case it was from using virtual machine (vbox) and async-time
+15:51 < Teetime> well yes, it's a little bit dirty but also incredibly useful IMO
+15:53 < EastByte> Teetime: so you are adding some kind of macro into the source and the generate will replace it in the next build?
+15:54 < EastByte> what's the reason for running the generator on build then
+15:58 < Teetime> well using a build-script means for me that the script does all the necessary stuff so that the compiler compiles my code successfully
+16:01 < EastByte> but it modifies the source files directly, so it's a one-time generation?
+16:03 < Teetime> yes, as long as I didn't changed the genererator code
+16:03 < Teetime> but if that's necessary to compile my code it should be part of the build-process
+16:08 < EastByte> but if you change the generator code, you still have to revert the previous generation?
+16:08 < EastByte> the teeworlds build system already does code generation, why not simply doing it this way?
+16:17 < Teetime> i think the generator compares the generated code and with the code which would be generated and will then re-execute and overwrite the previous code then, furthermore i'll not commit the generated code
+16:19 < Teetime> the teeworlds build system creates files with some class definitions but I generate code inside functions, together with non-generated code, I dont think that teeworlds does this or have a way to do this
+16:19 < Teetime> *has
+16:20 < EastByte> hm, I think C++ in general is the wrong language then
+16:21 < Teetime> I don't this it's the wrong language it's just that I have to change multiple files and locations otherwise
+16:22 < EastByte> you could generate macros for that in seperated files
+16:23 < Teetime> and now I can just define my data in one single file and whenever I include my module into different systems i just need to customize a single file and the generator will create the fitting code in all files
+16:23 < Teetime> i've tried that before but using a turing-complete language makes things way easier :)
+16:24 < EastByte> unfortunatly C++ is not nim :p
+16:25 < EastByte> still, what you are doing is hard to arrange with bam and git
+16:26 < EastByte> I would rather hook the filesystem access of gcc/g++ and update the code in realtime
+16:27 < Teetime> that sounds even more complicated :P

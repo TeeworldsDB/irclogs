@@ -1,0 +1,189 @@
+15:32 < Learath2> @LordSk what do you need for #2503?
+15:33 < bridge> [teeworlds] <heinrich5991> Learath2: have you wrangled with openssl before?
+15:34 < bridge> [teeworlds] <heinrich5991> do you know how to get the error message for a connection?
+15:34 < Learath2> very little
+15:34 < bridge> [teeworlds] <heinrich5991> **on the network** I see that the client says "Unknown CA", but I was unable to even get that message locally
+15:34 < bridge> [teeworlds] <heinrich5991> I'm trying to find out why this application (writtten in python with twisted which uses pyopenssl) tells me that my certificate is invalid
+15:35 < bridge> [teeworlds] <heinrich5991> but all I get is "invalid certificate"
+15:35 < bridge> [teeworlds] <heinrich5991> (certificate works for nginx)
+15:35 < bridge> [teeworlds] <heinrich5991> (certificate works for nginx&firefox)
+15:35 < Learath2> SSL_get_error
+15:35 < bridge> [teeworlds] <heinrich5991> ty, will check
+15:36 < Learath2> call it after the call that fails
+15:37 < Learath2> does the certificate include all the intermediaries?
+15:37 < bridge> [teeworlds] <heinrich5991> except root, I think so
+15:37 < bridge> [teeworlds] <heinrich5991> can't get openssl verify to work on it, but I don't know if it's unrelated
+15:37 < bridge> [teeworlds] <heinrich5991> (firefox accepts it behind an nginx)
+15:37 < bridge> [teeworlds] <LordSk> Learath2: there is a section #if 0'd out that needs fixing
+15:38 < bridge> [teeworlds] <LordSk> Also testing old map formats
+16:03 < Learath2> @LordSk why are you using a sparse array?
+16:03 < bridge> [teeworlds] <LordSk> So IDs are not a pain to deal with
+16:23 < Learath2> okay we can save maps now
+16:31 < bridge> [teeworlds] <LordSk> wow that was quick 😄
+16:34 < bridge> [teeworlds] <LordSk> I'll look at both the PRs as soon as I can
+16:34 < Ryozuki> Learath2 what do you think about sending the server list in msgpack format instead of json
+16:36 < Ryozuki> https://github.com/Ryozuki/teeworlds-master-server
+16:36 < Ryozuki> wip
+16:37 < bridge> [teeworlds] <heinrich5991> I'd say: do json first and later add msgpack as an optimization if needed
+16:37 < bridge> [teeworlds] <heinrich5991> json is ubiquitous, msgpack is not
+16:37 < Ryozuki> well, i currently save the cached list on memcached with msgpack and i respont to http with json
+16:38 < Ryozuki> but i like msgpack :p
+16:38 < bridge> [teeworlds] <heinrich5991> ^^
+16:41 < Learath2> I vote json too, it's verypopular :)
+16:43 < Ryozuki> msgpack is more efficient tho
+16:43 < Ryozuki> "It's like JSON but fast and small."
+16:45 < Learath2> Yes, but do we need the efficiency and is it a worthwhile tradeoff (for other applications querying the masters json is easier to handle)
+16:46 < Ryozuki> msgpack is widely adopted
+16:46 < Ryozuki> nodejs has a lib for it
+16:46 < Ryozuki> c has a lib for it
+16:46 < Learath2> I thought you were all for the fancy newfangled userfriendly stuff
+16:46 < Ryozuki> any major lang has it
+16:46 < Ryozuki> im all for new stuff
+16:46 < Ryozuki> if its userfriendly or not its another thing
+16:46 < Ryozuki> but i dont think its that unfriendly
+16:46 < Ryozuki> its just not visible in the plain eye
+16:47 < Learath2> we already have one serialization library in the tw code and js clients wouldn't even need a library to read json
+16:47 < Ryozuki> well its fine http responses will be in json
+16:47 < Learath2> Well it's up to you, you are the one implementing it but I highly doubt anyone else would agree with the decision
+16:47 < Ryozuki> ye thats why im not doing it
+16:47 < Ryozuki> and why i ask here
+16:48 < Ryozuki> altho i doubt it will be adopted even if its good
+16:48 < Ryozuki> i still have little faith in tw progress
+16:49 < Learath2> well we'd definitely adopt it for ddnet
+16:49 < Ryozuki> :)
+16:49 < Ryozuki> Learath2 can you explain me how the token stuff works
+16:49 < Ryozuki> i currently only require the server to send a heartbeat
+16:49 < Ryozuki> every x seconds
+16:50 < Ryozuki> but i dont allow it to be send too early tho
+16:50 < Ryozuki> to prevent spam
+16:50 < bridge> [teeworlds] <Dune> there were already efforts for HTTP masters by heinrich5991, but he stopped working on that afaik
+16:50 < Learath2> let me check how I implemented it
+16:50 < Ryozuki> i want to know, why is a token needed
+16:51 < bridge> [teeworlds] <heinrich5991> token where? tw connect?
+16:51 < Ryozuki> im talking about master server and server relationship
+16:51 < bridge> [teeworlds] <heinrich5991> ah
+16:52 < bridge> [teeworlds] <heinrich5991> I can see two places for tokens: forward check and ipv4/v6 registration
+16:52 < bridge> [teeworlds] <heinrich5991> ipv4 and ipv6 of a server should be associated with the same server entry
+16:52 < bridge> [teeworlds] <heinrich5991> and the server could send a token to show that it's the same server
+16:52 < Learath2> oh I never pushed that half of the code
+16:52 < bridge> [teeworlds] <heinrich5991> forward check: the master server tries to send a token to the game server
+16:53 < Ryozuki> heinrich5991 why they need to show they are the same server tho?
+16:53 < Ryozuki> clients still want the 2 entries
+16:53 < Ryozuki> ipv4 and ipv6
+16:53 < bridge> [teeworlds] <heinrich5991> no, client wants one entry
+16:53 < Ryozuki> learath told me another thing
+16:53 < bridge> [teeworlds] <heinrich5991> and connect to whichever is available
+16:53 < Ryozuki> what if both are available
+16:53 < bridge> [teeworlds] <heinrich5991> then take any, probably preferring ipv6?
+16:53 < Ryozuki> what if the client doesnt have ipv6 support
+16:54 < bridge> [teeworlds] <heinrich5991> you just said that both are availabel
+16:54 < Learath2> One "serverlist entry" has an ipv4 and an ipv6 field
+16:54 < bridge> [teeworlds] <heinrich5991> the client chooses the one they can exist
+16:54 < Learath2> the client decides what to use
+16:54 < bridge> [teeworlds] <heinrich5991> the client chooses the one they can access
+16:54 < Ryozuki> ok
+16:54 < Learath2> I think the tokens I implemented with the fwcheck
+16:55 < Learath2> The server registers without a token, waits for the fwcheck, the master provides the token while doing the fwcheck, after that you have to use the token on every packet
+16:55 < Ryozuki> heinrich5991 why the master server should send anything to the server?
+16:56 < Ryozuki> shouldnt the server be the one interested in a heartbeat
+16:56 < Ryozuki> u can just timeout servers
+16:56 < Ryozuki> after x time
+16:56 < bridge> [teeworlds] <heinrich5991> to check that port forwarding works correctly
+16:56 < bridge> [teeworlds] <heinrich5991> to check that clients can connect
+16:56 < bridge> [teeworlds] <heinrich5991> otherwise people will get serverlist entries where they can't connect
+16:56 < Ryozuki> i see
+16:57 < Ryozuki> the request is udp then i guess
+16:57 < Ryozuki> to the game server
+16:57 < Learath2> I don't remember what was my contingency plan if the fwcheck never gets there though
+16:57 < Ryozuki> whats fwcheck?
+16:57 < Learath2> it's the message the master sends to the server to check connectivity
+16:57 < Ryozuki> ok
+16:58 < Ryozuki> https://github.com/Ryozuki/teeworlds-master-server#todo
+16:58 < Ryozuki> so this is the checklist i guess
+16:58 < Ryozuki> anything else to add?
+16:59 < Learath2> clients shouldn't request which ip they want, clients should get both, just let them figure out what to do with it
+17:00 < Ryozuki> ok
+17:00 < Learath2> btw I love how everyone keeps starting this project again when I have a fully working prototype we could all try cleaning up :P
+17:01 < bridge> [teeworlds] <heinrich5991> tbf I already had a couple of prototypes 😛
+17:02 < Ryozuki> i think golang is perfect for this
+17:02 < Ryozuki> it has rly good concurrency support
+17:02 < Learath2> well I guess none that you liked enough to share :)
+17:02 < bridge> [teeworlds] <heinrich5991> yes
+17:02 < bridge> [teeworlds] <heinrich5991> @ Learath2
+17:02 < Learath2> the only issue with go is that you are the only one that knows it
+17:03 < bridge> [teeworlds] <heinrich5991> my master was a flask app 😛
+17:03 < Ryozuki> Learath2 reading someone else code is always a hasle :p
+17:03 < Ryozuki> but you did it in python right?
+17:03 < Learath2> mine was in flask too
+17:03 < bridge> [teeworlds] <heinrich5991> 👍
+17:04 < Learath2> eh, it's not much trouble to reimplement it in some other language if you suddenly disappear or stop contributing :P
+17:04 < Ryozuki> what about the python GIL
+17:04 < Ryozuki> u can never achieve real threading in python
+17:06 < Learath2> Well depends on how long you hold the GIL, a long operation happening would definitely be trouble 
+17:06 < Ryozuki> Learath2 u should learn go :p its one of those langs thats its rly easy to pick up
+17:10 < Learath2> I think twisted also avoids the gil issue by holding the lock in very short intervals and doing it's processing while not holding it
+18:22 < Learath2> okay, I think I have one more in me, anyone need anything fixed?
+18:25 < bridge> [teeworlds] <Dune> @LordSk :p
+18:27 < bridge> [teeworlds] <Dune> I guess you had enough with the UI Learath2 :D
+18:27 < Learath2> Well better when I'm warmed up with the UI code then later :P
+18:28 < bridge> [teeworlds] <Dune> https://github.com/teeworlds/teeworlds/issues/1631 would be very nice to fix
+18:29 < bridge> [teeworlds] <Dune> I wanted to finish 2242 before 074 but it had bugs
+18:30 < bridge> [teeworlds] <Dune> (a simple version, # prefix means option is not votable, and displays different background and indent level)
+18:45 < Learath2> huh, that seems quite trivial to implement
+18:46 < Learath2> I mean the way you mentioned, you can ofc go veryoverboard with it
+18:47 < Learath2> I don't quite like the way votes are implemented to begin with though, why are we sending the entire thing when the id of the vote would be enough?
+18:48 < bridge> [teeworlds] <Dune> Yes those are simple issues, still need to be done ^^
+18:48 < bridge> [teeworlds] <fokkonaut> https://github.com/fokkonaut/F-DDrace/commit/a9e04b993c8472c64473c76d79703c775631827a#diff-a60948952f625787eb8b3cf54f82d047
+18:48 < bridge> [teeworlds] <fokkonaut> What about this? Patch I applied in my mod, originally introduced in ddnet in 0.6
+18:48 < bridge> [teeworlds] <Dune> What does it do?
+18:48 < bridge> [teeworlds] <fokkonaut> Fixes the stressing network thing
+18:48 < bridge> [teeworlds] <fokkonaut> I mean, solves it in a better way
+18:49 < bridge> [teeworlds] <fokkonaut> you can try it live on my server, just enter multiple times
+18:49 < bridge> [teeworlds] <Dune> The issue is about a client side fix
+18:49 < bridge> [teeworlds] <Dune> But server side is nice too
+18:50 < bridge> [teeworlds] <fokkonaut> I wouldnt do a client fix, that can always be abused by modders
+18:50 < bridge> [teeworlds] <Dune> Huh?
+18:50 < Learath2> @Dune you care about backwards compatibility right?
+18:50 < bridge> [teeworlds] <Dune> Just don't reenter servers too fast
+18:50 < bridge> [teeworlds] <Dune> Yes Learath2
+18:50 < bridge> [teeworlds] <fokkonaut> it happens often by accident @Dune
+18:51 < bridge> [teeworlds] <Dune> But displaying a # for server titles is something people already do
+18:51 < bridge> [teeworlds] <Dune> @fokkonaut hence the client side fix
+18:51 < bridge> [teeworlds] <fokkonaut> ?
+18:52 < Learath2> @Dune would you mind if I keep the old vote system in, code a new one and make the server translate the old messages to new ones if it receives it
+18:52 < Learath2> we can drop the old message god knows when though
+18:52 < bridge> [teeworlds] <Dune> That sounds overkill to me though
+18:53 < bridge> [teeworlds] <Dune> What would the benefits of this new system be?
+18:53 < Learath2> It really bugs me that I can't clean this up :D
+18:53 < Learath2> less data over the wire?
+18:54 < Learath2> This mess of string comparisons is really easy to break tbh
+18:54 < bridge> [teeworlds] <Dune> I'm not sure, is that significant?
+18:54 < bridge> [teeworlds] <Dune> I try to be careful with refactors, should poke Oy about that separate issue
+18:54 < bridge> [teeworlds] <Dune> ensures unicity of votes by design too
+18:55 < Learath2> Yeah, I'll go ahead and do it with #s for now, there is no way I get Oy to accept a vote refactor that comes with a lot of compatibility code
+19:50 < bridge> [teeworlds] <heinrich5991> what point is there for vote uniqueness?
+19:51 < bridge> [teeworlds] <heinrich5991> people formatted their votes in a certain way, with sections etc.
+19:51 < bridge> [teeworlds] <heinrich5991> vanilla purposefully broke that, only leading to people working around it
+19:51 < bridge> [teeworlds] <heinrich5991> (thankfully, I haven't seen any recent willful breakage)
+19:53 < Learath2> okay, I got it functional but I'm no ui magician
+19:53 < Learath2> @Dune how would you like the subheaders to be rendered?
+19:55 < bridge> [teeworlds] <Dune> The way you like it best :) Im not good at UI design
+19:57 < Learath2> Yeah that's what I was scared of :P
+20:06 < Learath2> eh, it kinda looks ugly on older clients
+20:11 < bridge> [teeworlds] <Dune> some servers currently use that convention though? like
+20:11 < bridge> [teeworlds] <Dune> # Scorelimits
+20:11 < bridge> [teeworlds] <Dune> 20
+20:11 < bridge> [teeworlds] <Dune> 50
+20:14 < Learath2> You'll see what I mean when I create the pr
+21:32 < Learath2> @Dune do you think #2518 is a satisfactory fix or do you still clientside foolproofing aswell?
+21:32 < Learath2> s/still/still want/
+21:32 < bridge> [teeworlds] <Dune> I'll look in a while
+21:52 < bridge> [teeworlds] <fokkonaut> @learath2, i would also add the netlimit
+22:47 < bridge> [teeworlds] <ChillerDragon> when opening chat and pressing uparrow i really expect it to even repeate last chat commands :/
+23:01 < Learath2> @ChillerDragon I opened a PR for it
+23:02 < Learath2> trying to fix a stupid SDL bug and I'm disassembling AppKit again, why must they obsecure everything?
+23:07 < bridge> [teeworlds] <ChillerDragon> ah awesome thanks Learath
+23:49 < Learath2> amazing, switching to fullscreen completely fails so SDL returns that it succeeded, because even though the transition to fullscreen never ends the application is convinced it's in fullscreen
+23:50 < Learath2> if you slow it down enough through a debugger though it does work
+23:51 < Learath2> completely breaks the mouse clicks though
+23:52 < bridge> [teeworlds] <Dune> hm :/

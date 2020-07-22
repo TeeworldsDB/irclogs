@@ -1,0 +1,58 @@
+16:00 < Dune> wonder why bam works for https://github.com/teeworlds/teeworlds/pull/2303
+20:01 < Oy> different build routine
+20:15 < Dune> what should be done with https://github.com/teeworlds/teeworlds/pull/2034 ?
+20:16 < Dune> btw https://github.com/teeworlds/teeworlds/pull/2066#issuecomment-488362158 is that just a UI task?
+20:29 < Dune> hey redix, do you have a good clue on how to merge those flags on your race branch? https://puu.sh/ENfnn/035afb6127.png seems like the bitflag is full
+20:34 < Oy> about https://github.com/teeworlds/teeworlds/pull/2034 would be better to wait till the port is closed and then use it. the way of the pr isn't that good
+20:34 < Oy> https://github.com/teeworlds/teeworlds/pull/2066#issuecomment-488362158 not just an ui task
+20:36 < redix> Using SO_REUSEPORT is not the best solution for this. It would be better to catch the signal and do a graceful shutdown
+20:40 < redix> Dune: why is it full? Is it using a char?
+20:45 < redix> Should be fine to just use 128 and 256 there
+20:58 < Dune> yeah it's an int, nvm
+21:04 < Oy> Dune: about https://github.com/teeworlds/teeworlds/pull/2303
+21:05 < Oy> could you change line 1263 in cmakelists.txt to "set(ENGINE_GENERATED_SHARED src/generated/nethash.cpp src/generated/protocol.cpp src/generated/protocol.h)"
+21:11 < Dune> ah, thanks
+21:12 < Dune> circleci passed
+21:12 < Dune> I wasn't able to reproduce the bug locally 
+21:12 < Oy> good :)
+21:13 < Oy> me neither. worked with cmake and visualstudio
+21:13 < Oy> was a guess
+21:13 < Dune> yeah same setup
+21:15 < Oy> redix: /root/project/src/game/client/components/chat.cpp:985:9: error: variable 'NameCID' set but not used [-Werror=unused-but-set-variable]      int NameCID = pLine->m_ClientID;
+21:17 < Oy> Dune: that grey looks good
+21:17 < Dune> (y)
+21:17 < Dune> committed
+21:18 < Oy> \o/
+21:22 < Dune> https://github.com/teeworlds/teeworlds/issues/2285 seems important but I'm not sure how to go about it
+21:22 < Dune> maybe delay the query to the servers some more
+21:23 < Oy> can't reproduce it
+21:23 < Dune> happens every time for me
+21:23 < Dune> windows and linux
+21:24 < redix> Oy: fixed that
+21:24 < Dune> 68 servers -> 225 servers
+21:24 < Oy> is there a difference between debug and release version?
+21:24 < Oy> redix: ok
+21:24 < Dune> hmm gotta check
+21:26 < Dune> release: 172 -> 225 -> 225
+21:27 < redix> For me some servers that are not shown have a bad ping on first load. The entries that are rendered have a good ping and when i scroll down there are entries with 200+
+21:27 < Dune> debug is consistently 60-ish servers
+21:27 < redix> When i reload it's fine
+21:29 < redix> Very strange behavior =\
+21:32 < Oy> maybe the client is still busy with initialisation while getting the server list
+21:33 < Dune> quite possible
+21:34 < Dune> on my slightly slow linux computer I sometimes get 50 servers on reload
+21:35 < Dune> I tried to move refreshaddresses() after all the init(), didn't help on that one
+21:39 < Oy> yout could try to increase https://github.com/teeworlds/teeworlds/blob/master/src/engine/shared/network.h#L93 a bit
+21:41 < Dune> doubling it fixed it for me
+21:41 < Dune> not a 100% fix though
+21:41 < Dune> 169 servers
+21:42 < Oy> https://github.com/teeworlds/teeworlds/blob/master/src/engine/client/serverbrowser.cpp#L160 could be inccreased too
+21:44 < Dune> not sure if it helped
+21:44 < Dune> it hangs at 97% thanks to that, but it's not much better
+21:45 < Dune> reloads are sometimes bad too
+21:46 < Dune> (but that might be because i'm impatient)
+21:46 < Oy> increasing the values  slows down server refreshes
+21:47 < Dune> yeah i noticed
+21:51 < Dune> it loads some 60 servers then hangs and gets none more, so a bigger timeout seems useless
+21:51 < Dune> seems like packets just get lost/not sent somehow
+21:59 < Oy> ok

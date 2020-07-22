@@ -1,0 +1,254 @@
+00:12 <+eeeee> deen: that was fast, thanks
+00:12 <+eeeee> works great
+00:33 <+eeeee> you can check out beta.teewebs.net if you want to help testing
+00:53 <+ddnet-discord> <nub> I updated from 10.8.3 to 10.8.5 and now I can see only 20 of 66 server from DDNet Ger if "compatible version" is checked.
+09:54 <@deen> eeeee: interesting. very small pointer for me in firefox and feels laggy, I see tearing as well
+09:55 <@deen> @nub thanks, should be fixed. forgot to update the servers as well
+10:43 <+Learath2> eeeee: can't seem to connect to servers
+10:58 <@deen> the new info.ddnet.tw seems to work fine: avg time per request: 8 ms, 95th percentile: 70 ms
+10:58 <@deen> (and 0 errors so far)
+12:09 <+ddnet-discord> <hmcger> hey guys I need a small project done in c++(not in teeworlds) and would pay for it. someone interested ?
+12:10 <+ddnet-discord> <ChillerDragon> If it Is an easy Project hehe
+12:10 <+ddnet-discord> <ChillerDragon> I can Build you an helloworld
+12:13 <+ddnet-discord> <Savander> I think, here are some gods of cpp
+12:16 <+ddnet-discord> <ChillerDragon> No joke i would help you. But i Need some Details If i can handle The task.
+12:54 <@deen> And 47 people are STILL downloading https://hookrace.net/time.gif . I guess some bots don't have a timeout setting
+13:49 <@heinrich5991> deen: maybe their hdd will be full eventually ^^
+13:49 <@heinrich5991> wait
+13:49 <@heinrich5991> it doesn't stop downloading after 24 hours? :)
+13:50 <@heinrich5991> I thought it would ^^
+14:04 <@deen> nope, never stops
+14:04 <@deen> it would be wrong to stop after 24 hours since there are leap seconds sometimes
+14:04 <@deen> well, at 300 B/s it takes a while to fill the disk
+14:05 <@heinrich5991> :)
+14:05 <@deen> Only 9 GB per year
+14:05 <@heinrich5991> hm, that's slower than hdds will be added to a machine
+14:06 <@heinrich5991> so it can run forever \o/
+14:06 <@heinrich5991> I was away the last couple of days
+14:06 <@deen> welcome back
+14:06 <@heinrich5991> it seems you fixed the mac semaphore hting?
+14:06 <@deen> with Learath2 
+14:06 <@heinrich5991> so we could close the PR?
+14:07 <@deen> but I'm not happy with the way semaphores are implemented in glibc
+14:07 <@deen> what pr?
+14:07 <@heinrich5991> oh, firefox loaded an old page from cache
+14:07 <@heinrich5991> nvm
+14:07 <@deen> so i wanted to use condition variables, but their semantics are weird
+14:07 <@heinrich5991> ah
+14:08 <@heinrich5991> what do you mean, semaphores in glibc?
+14:08 <@deen> the implementation of sem_wait in glibc source code
+14:08 <@heinrich5991> oh
+14:08 <@deen> too much busy waiting, syscalls all the time
+14:08 <@heinrich5991> spin lock for a bit and then wait using the os?
+14:09 <@deen> keeps syscalling futex() even when nothing happens
+14:09 <@heinrich5991> due to a timeout?
+14:09 <@deen> no timeouts either
+14:09 <@deen> try running strace DDNet and see it yourself
+14:09 <@heinrich5991> how can it call futex if there's no timeout?
+14:10 <@heinrich5991> futex should wait until it gets signalled, no?
+14:10 <@heinrich5991> k, I'll try
+14:13 <@deen> (the network can also be improved in the client I think, similar to server)
+14:13 <@deen> not to recv all the time
+14:14 <@deen> especially if you select over all the sockets we have open
+14:14 <@heinrich5991> hm
+14:14 <@deen> instead of blocking like in server
+14:14 <@heinrich5991> not much point there
+14:14 <@deen> probably
+14:14 <@heinrich5991> you have to push out a frame every 16ms anyway
+14:14 <@deen> font rendering is a lower hanging fruit
+14:14 <@heinrich5991> yes
+14:14 <@deen> and much slower
+14:15 <@deen> for the server it was a great improvement not to busy wait for network packets though
+14:15 <@deen> especially when you have 30 servers on 1 core, mostly idling
+14:15 <@heinrich5991> yep
+14:15 <@heinrich5991> most of them even empty
+14:15 <@heinrich5991> literally having nothing to do ^^
+14:15 <@deen> so strace ./DDNet-Server is much more reasonable
+14:15 <@deen> 3 syscalls per second
+14:20 <@deen> no one complained about performance problems on Windows, so I assume the semaphores work there as well
+14:21 <@deen> I switched some more code over to semaphores
+14:21 <@deen> btw, can we make CFetcher use CJobs instead of reimplementing the same thing?
+14:21 <@deen> Or is there a vital difference?
+14:25 <@deen> the threaded logger is basically the same as well
+14:25 <@heinrich5991> not that I'm aware of
+14:26 <@heinrich5991> Learath2 said that you will murder him if he implements CFetcher atop of CJobs though
+14:26 <@deen> Only if he breaks the updater during that process :)
+14:26 <@heinrich5991> ah
+14:26 <@deen> I also removed the versionsrv entirely
+14:26 <@heinrich5991> well, doesn't matter
+14:26 <@deen> Using https://info.ddnet.tw/info?name=heinrich5991 instead
+14:26 <@heinrich5991> don't we run one, though?
+14:27 <@heinrich5991> ah
+14:27 <@heinrich5991> +1
+14:27 <@deen> yeah, we still run it for old versions
+14:27 <@deen> most notably, servers is sorted by how often you finished at a location
+14:28 <@deen> oh, and I had to use /info because otherwise we will run into problems with letsencrypt
+14:29 <@heinrich5991> why?
+14:29 <@deen> if I forward everything, then certbot can't put the file into the directory
+14:29 <@heinrich5991> yes
+14:29 <@heinrich5991> it needs .well_known
+14:29 <@deen> so we have no proof that the domain is still under our control
+14:29 <@heinrich5991> location /.well-known/acme-challenge/ {
+14:29 <@heinrich5991>             alias /var/www/challenges/;
+14:29 <@heinrich5991>             try_files $uri =404;
+14:29 <@heinrich5991>         }
+14:30 <@deen> oh well, too late :D
+14:33 <+ddnet-discord> <Savander> what does "acme" means ?
+14:33 <+ddnet-discord> <Savander> i saw it a few times in different situations
+14:33 <+ddnet-discord> <Savander> it has special meanings?
+14:33 <+ddnet-discord> <Savander> or it just popular author? 😄
+14:35 <@heinrich5991> acme is the protocol that letsencrypt speaks
+14:35 <@heinrich5991> to give you ssl certificates
+14:35 <@deen> https://en.wikipedia.org/wiki/Acme
+14:36 <@heinrich5991> it's not actually in there
+14:36 <@deen> I only knew https://en.wikipedia.org/wiki/Acme_(text_editor)
+14:36 <@heinrich5991> :o
+14:36 <@heinrich5991> https://en.wikipedia.org/wiki/Let%27s_Encrypt
+14:36 <@heinrich5991> here's a reference to ACME
+14:37 <@heinrich5991> ah
+14:37 <@heinrich5991> it actually exists on the page, but I couldn't find it, despite me knowing it
+14:37 <@heinrich5991> that's a bad sign :D
+14:37 <@heinrich5991> https://en.wikipedia.org/wiki/Automated_Certificate_Management_Environment
+14:41 <@heinrich5991> deen: I think you should use POST instead of GET parameters
+14:41 <@heinrich5991> GET parameters show up in server logs
+14:42 <@deen> is that a problem?
+14:42 <+ddnet-discord> <Savander> so acme is over used naming !@
+14:43 <@heinrich5991> well, you now have a log of each ddnet player's IP address and nick name in your webserver log
+14:43 <@deen> I have the same already
+14:44 <@deen> from DDNet-Server
+14:44 <@heinrich5991> when they join the server
+14:44 <@deen> Yeah
+14:44 <@deen> So we should only log the name if there is a problem?
+14:45 <@heinrich5991> would you expect that your nick name lands on some server when you click a tab in a server browser
+14:45 <@deen> I find it useful to see if some name is especially slow for example
+14:45 <@heinrich5991> that would be better, I guess
+14:45 <+Learath2> could implement CFetcher on CJob but i'm scared it'll break that one remote ass possiblity that i didn't think about
+14:45 <+Learath2> no idea why i didn't make it a cjob at the beginning tho
+14:45 <@deen> heinrich5991: when that tab shows you your finished maps, yes
+14:46 <@heinrich5991> I don't know, I dislike it
+14:47 <@deen> The request or logging it?
+14:47 <@heinrich5991> first it was just logging it, but after thinking again, the request
+14:48 <+Learath2> class CFetchJob { CJob m_Job; allthestufffromCFetchTask; }; pass CFetchjob as userdata to the job. use CFetchjob as we used CFetchtask in the past
+14:48 <@deen> So we can add a setting "Use username to request finished maps and sort servers"
+14:48 <+Learath2> sounds sane ^^?
+14:48 <@deen> and if it's turned off, then the info is requested without name
+14:49 <+Learath2> how can you request that data without a name?
+14:49 <@heinrich5991> there's other stuff in there
+14:49 <@heinrich5991> more than just your records
+14:49 <@deen> yeah, still request it
+14:49 <@heinrich5991> it apparently replaces the versionsrv
+14:50 <@deen> but you just get empty records back
+14:50 <+Learath2> also replaces the servers json we had?
+14:50 <@deen> yes
+14:51 <@deen> and the news from versionsrv as well
+14:51 <+Learath2> well we could have a setting for "Show finished maps"
+14:51 <+Learath2> if it's not checked we don't need to request by name afterall
+14:52 <@deen> exactly what I just proposed
+14:52 <+Learath2> heinrich5991: ^^ reasonable?
+14:52 <@heinrich5991> if I added a box with information about this to the ddnet tab, would you consider making this opt-in?
+14:52 <@heinrich5991> so people will see the feature and won't request it unknowingly?
+14:52 <@deen> Well, people won't find that info
+14:53 <@heinrich5991> to the ddnet tab, near the place where the records would be showed otherwise
+14:53 <+Learath2> don't really have enough space in the serverbrowser to write an essay either, you'd only fit "Show finished maps"
+14:53 <@deen> even if you make it opt-out, they would click it by accident
+14:53 <@heinrich5991> see: vlc asks on first launch whether it can access metadata from a remote server for stuff you're currently playing
+14:53 <@heinrich5991> firefox also asks on first launch whether it can transmit data
+14:54 <@deen> https://info.ddnet.tw/info
+14:54 <@deen> there you go, no more name necessary
+14:54 <@deen> Ideally make it opt-in, but ask people at the first start
+14:55 <+Learath2> make it opt-in noone uses it, make it opt-out it's a privacy concern (a minor one imho)
+14:55 <@heinrich5991> Learath2: not if we don't hide it in the options somewhere
+14:56 <+Learath2> well i don't see anywhere to put it in the serverbrowser window so it needs to be a on startup thing like the nickname setting etc
+14:56 <@heinrich5991> yes, that would be bad
+14:56 <@heinrich5991> first launch questions are annoying
+14:56 <@heinrich5991> those that you can't skip
+14:56 <+Learath2> so POPUP_FIRST_LAUNCH or idk where to put :/
+14:58 <@deen> at least you can add it in the dialog at the start where you enter your name
+14:58 <@deen> it fits well there
+14:59 <@heinrich5991> true, it can be put into the same dialog
+15:00 <+Learath2> deen: do you want me to make CFetchTask->CFetchJob
+15:00 <@deen> but make an even bigger warning that their ip is broadcasted to every server when they open internet server browser
+15:00 <@deen> Learath2: only if it will have 0 bugs
+15:00 <@deen> becuase people still get ddosed from that
+15:00 <@heinrich5991> and if they deny that, don't show the server browser ^^
+15:00 <@heinrich5991> but actually, we could do that
+15:01 <@heinrich5991> fetch the servers ourselves and put them into your info.json
+15:01 <+Learath2> deen: you can't promise that, i can't promise that, i'm pretty sure even god would think twice before promising that
+15:02 <+Learath2> deen: eeeee has the teewebs serverlist available as json, could switch to using that instead of masters, calculating ping is not an exact science in that case but we'd get to upgrade to http masters :P
+15:03 <@heinrich5991> nah, we still need all servers
+15:03 <+Learath2> heinrich5991: i think eeeee has all the servers
+15:03 <@heinrich5991> what use would that be?
+15:03 <@heinrich5991> they don't support websockets
+15:03 <@heinrich5991> or webrtc
+15:03 <@heinrich5991> or whatever the current flavor of the day is
+15:03 <+Learath2> ask him wtf
+15:04 <@heinrich5991> or he proxies it
+15:04 <+Learath2> only supports connecting to ddnet servers but iirc he does keep a json list of all servers
+15:06 <+Learath2> deen: serverinfo amplification is still possible?
+15:08 <@heinrich5991> yes, modulo rate limiting
+16:05 <+ddnet-discord> <RockuS> why
+16:05 <+ddnet-discord> <RockuS> on monster
+16:05 <+ddnet-discord> <RockuS> there are
+16:05 <+ddnet-discord> <RockuS> 2 teamrnaks of NANAMAR
+16:05 <+ddnet-discord> <RockuS> and Saro
+16:05 <+ddnet-discord> <RockuS> Showing
+16:09 <@deen> someone might have played with moving ranks
+16:09 <@deen> or deleting ranks
+16:09 <@deen> or a bug
+16:09 <@deen> or the database link was broken for some time
+16:10 <@deen> apparently I didn't manage to fix the libfreetype on mac: https://forum.ddnet.tw/viewtopic.php?t=5654
+16:10 <@deen> it links to heinrich5991 directory, haha
+16:11 <@deen> heinrich5991: want to look into the mac library problem?
+16:11 <+ddnet-discord> <RockuS> so you will fix it?
+16:18 <@deen> ok
+16:26 <@heinrich5991> I can try
+17:17 <@deen> thanks
+17:33 <@deen> heinrich5991: should remove the user agent as well as it is leaking information about the users?
+17:36 <@heinrich5991> mh no
+17:37 <@deen> Actually I didn't introduce an option for the ranks json thing because I noticed that we have way too many settings
+17:37 <@deen> and people set stuff by accident
+17:37 <@deen> or even another client changes ddnet settings and then we run into problems
+17:37 <@deen> like baumalein client allegedly changing the update server to their own
+17:37 <@deen> in settings_ddnet.cfg
+17:42 <@heinrich5991> deen: too many options is a valid concern
+17:42 <@heinrich5991> not for this thing, but: do people also set options accidently that are not exposed through the UI?
+17:43 <@deen> rarely
+17:43 <@deen> that's also why I removed some stuff from settings
+17:44 <@deen> I also thought the next step might be making info.json a log in ;)
+17:44 <@heinrich5991> oh so you want an account system? ^^
+17:44 <@deen> not sure
+17:44 <@deen> has advantages and disadvantages
+19:28 <+eeeee> deen: Learath2: wrt teewebs can you provide more details like browser and os version, gpu model
+19:30 <+eeeee> also what is "laggy", frame drops or network drops?
+19:31 <@deen> current firefox, arch linux x86-64, intel skylake gpu
+19:32 <@deen> 3840x2160 resolution, but 1920x1080 window
+19:32 <+ddnet-discord> <Savander> eeeee: spectator mode works weird on beta.teewebs.net
+19:32 <+ddnet-discord> <Savander> its always moving, if you move cursor in whatever direction
+19:32 <+ddnet-discord> <Savander> 😄
+19:33 <@deen> frame drops
+19:33 <+ddnet-discord> <Savander> anyway, does /kill is disabled
+19:33 <+ddnet-discord> <Savander> on spawn?
+19:33 <@deen> chromium works much better
+19:34 <@deen> oh, I have multiple processes enabled in firefox
+19:34 <@deen> text loads quite slowly
+19:35 <+ddnet-discord> <Savander> anyway, cursor shouldn't be disabled ?
+19:49 <+ddnet-discord> <Learath2> eeeee: vivaldi, gentoo, intel integrated gfx
+19:50 <+ddnet-discord> <Learath2> on second thought i should have used a more common browser to test 😛
+19:50 <@deen> like qutebrowser
+19:51 <@heinrich5991> why not elinks?
+19:52 <@deen> you can only run DDNet-Server in javascript in elinks
+19:52 <@deen> client is a bit problematic
+19:53 <@deen> I'm not sure if it was elinks, but I tried editing one of links/lynx/elinks once, and the source code was full of polish comments only
+19:53 <@deen> or czech
+19:54 <+ddnet-discord> <Savander> 😮
+20:56 <+eeeee> ok yeah i did notice that high resolution is laggy on my broadwell macbook, maybe i'll dig into that
+20:57 <+eeeee> will fix the text loading once i settle on a way to get rid of freetype
+21:01 <+eeeee> Savander: specactor mode stops moving when you center your cursor. it's hard to make it work the same way as in desktop client because browsers don't let you easily switch between absolute and relative mouse positioning
+21:02 <+eeeee> Learath2: can you update your browser to the latest version and then copypaste the contents of developer tools console after it fails to connect to a server?
+21:04 <+eeeee> and what's qutebrowser, is that like konqueror?
+21:05 <+ddnet-discord> <Savander> What about disabling mouse ?
+21:06 <+ddnet-discord> <Savander> in previous teewebs you did it
+21:06 <+eeeee> yeah but if you compare the mouse pointer between the old and new teewebs you can notice new one has less latency
+21:07 <+ddnet-discord> <Savander> but its pretty hard to control i think
+21:07 <+ddnet-discord> <Savander> cause, i can click random icon
+21:07 <+ddnet-discord> <Savander> no web or close the window 😛

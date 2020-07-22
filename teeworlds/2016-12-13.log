@@ -1,0 +1,61 @@
+15:18 <+koomi> bam.lua:375: attempt to call global 'SetDriversClang' (a nil value)
+15:18 <+koomi> do I have to do something other than pass compiler=clang to compile with clang?
+15:20 <+koomi> I'm at 2ff7628 FWIW, because I don't have bam 0.5
+15:51 <@minus> no idea, sorry
+15:51 <@minus> one should probably port teeworlds to a "normal" build system
+15:52 <@minus> where "normal" means common but terrible (I'm looking at you, CMake)
+18:12 <+necropotame> I'm rising CMake for TeeUniverse if you need help
+18:12 <+necropotame> Using*
+18:34 <@minus> that's not based off of teeworlds, is it?
+18:35 <@minus> anyway, i'm somewhat familiar with CMake (i've made it call code generation tools ._.) so i'd probably be fine D:
+18:36 <@minus> and i think i also have a text document describing what stuff has to be built for teeworlds. wrote that when i rewrote the bam build file
+19:15 <+necropotame> In case... : https://github.com/teeuniverse/teeuniverse/blob/master/CMakeLists.txt
+19:17 <+necropotame> It's not based on teeworlds, but I use SDL2 and freetype too. But as you said, you probably don't need it :)
+19:21 <@minus> fuck, i hate CMake
+19:23 <+necropotame> Is that horrible to look at ? :O
+19:23 <@minus> your's is pretty fine, but it sucks in general
+19:27 <@minus> skipping through the code it looks okay, but you copied too much of teeworlds' design
+19:28 <@minus> all raw pointers, the shitty convention of prefixing classes with "C", use of custom container stuff instead of STL 
+19:28 <@minus> (i'm a proponent of modern C++, for the record)
+19:32 <@minus> oh, you just copied that container/system stuff from teeworlds, that explains that one part
+19:34 <+necropotame> Some parts are copied
+19:35 <+necropotame> But I like the C prefix because you can write "CObject Object"
+19:36 <+necropotame> Without collision between the variable name and the class name
+19:36 <+necropotame> I try to remove all raw pointers
+19:37 <+necropotame> And I'm happy to have get ride of the teeworlds kernel with all those useless interfaces
+19:37 <+necropotame> But you can check the GUI, it's full of namespace and class inheritance ^^
+19:42 < Learath2> raw pointers?
+19:43 < Henningstone> not-smart pointers so to speak
+19:44 <@minus> yep, when using smart pointers n stuff you call normal pointers raw pointers
+19:47 <+necropotame> Ho, I thought you was talking about void*
+19:54 <+necropotame> For custom containter, I've kept them because I've started a copy-function paranoia. My array can transfer or copy depending of the object and the situation. This is also the case with STL, but only in recent version.
+19:57 <@minus> oh, transfer = move
+20:13 < Learath2> how can a pointer be smart?? it just points
+20:14 < Henningstone> no xD Google smart pointers, it's a feature of modern c++ which basically takes away a lot of the memory management from you (you don't have to delete heap stuff anymore for example!)
+20:15 < Learath2> i dont like my memory management being taken away so im guessing i wont like it :)
+20:16 < Henningstone> it's not like in java... very basically spoken it automatically frees dynamically allocated memory as soon as there is no more pointer left to it (thus avoiding leakage)
+20:17 < Learath2> but then there is the overhead of keeping track of pointers
+20:17 < Learath2> i do see how they can be useful tho
+20:19 < Henningstone> that is true indeed, but it's a rather small amount. Imagine a class which hold a raw pointer as it's member variable, and has a free call in it's destructor. Of course there's more to it, but I think you'll get the idea ;)
+20:19 <@minus> it's zero overhead to normal pointers (i think, for unique_ptr)
+20:19 <+necropotame> I don't think that keeping an integer is really that bad
+20:20 <+koomi> eh, refcounting is not what smart pointers are about
+20:20 < Learath2> i mostly code in C so i dont see much point to any memory management i guess
+20:20 < Learath2> apparently they do bounds checking too
+20:21 <+koomi> the purpose is to enforce some rules you'll have to follow anyway
+20:21 <+koomi> no, they don't in general
+20:21 <+koomi> Learath2: https://en.wikipedia.org/wiki/Smart_pointer#unique_ptr
+20:21 <@minus> how would you even do bounds checking on a pointer…
+20:22 <@minus> the main thing unique_ptr does is call delete when the unique_ptr goes out of scope (e.g. the class it's a member of is destroyed)
+20:22 <@minus> i just checked and it has zero size overhead over a raw pointer
+20:22 < Henningstone> oh that's cool, didn't know that
+20:22 <@minus> (shared_ptr has overhead, but that's another story; you'd have that overhead too if you did manual ref-counting)
+20:23 <+necropotame> I've more in mind the shared pointer
+20:23 < Learath2> well if it has no overhead i guess there is no downside to using it
+20:23 <@minus> there is, you musn't call delete anymore ;P
+20:24 <+necropotame> Have forget unique_ptr. I think I will that you use them in TeeUniverse
+20:24 < Learath2> can you even call delete on a unique_ptr and why doesnt the compiler complain about it?
+20:24 < Learath2> call is the wrong word there ik
+20:25 <@minus> of course you can do `delete ptr.get();` but if you do that you're stupid and it's your own fault
+20:25 <+necropotame> Smart pointer, stupid dev :D
+20:26 < Learath2> yeah you are begging to create a problem there, either do your own memory management or let the language do it for you

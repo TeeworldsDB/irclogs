@@ -1,0 +1,66 @@
+00:25 <+bridge> [ddnet] <archimede67> @Learath2 i improved a bit the performance of the replay thing by putting the slicing operation in a separate thread, more than that i can't do xd
+07:47 <+bridge> [ddnet] <Learath2> you didn't have to, I just asked whether if it was a problem 😄
+09:52 <+bridge> [ddnet] <archimede67> It was kinda needed
+09:54 <+bridge> [ddnet] <archimede67> Because when the recorder was recording for a long time like 15 mins and then you wanna save a replay you would have a big freeze like 1-2 seconds and the longer is the recording the longer the freeze would be
+09:55 <+bridge> [ddnet] <archimede67> So I tought why not do that in a separate thread to fix that problem and its working well ^^
+10:40 <+bridge> [ddnet] <n000b> Gg
+12:34 <+bridge> [ddnet] <archimede67> @Learath2 "I highly doubt this call is safe from a thread." wym?
+12:35 <+Learath2> you call into the demoeditor from a thread
+12:35 <+Learath2> the demoeditor has no lock
+12:35 <+Learath2> so i feel you could break something if this thread ends up using the demoeditor at the same time as the main client
+12:35 <+bridge> [ddnet] <archimede67> hmmm
+12:36 <+Learath2> (i'm not sure though, for all I know `Slice` could be not using any members)
+12:37 <+bridge> [ddnet] <archimede67> what can I do to be sure that this will work without potentially breaking anything? xd
+12:38 <+bridge> [ddnet] <archimede67> Slice is creating a demorecorder and a demoplayer within the function
+12:39 <+bridge> [ddnet] <Learath2> It'd definitely be safe if you create a new demoeditor
+12:40 <+bridge> [ddnet] <archimede67> Each time i call the SaveReplay function? or a "global" demoeditor for the replays?
+12:40 <+bridge> [ddnet] <Learath2> either should work just fine
+12:41 <+bridge> [ddnet] <Learath2> I'd probably create one when spawning the thread
+12:41 <+bridge> [ddnet] <Learath2> and destroying it afterwards
+12:42 <+bridge> [ddnet] <archimede67> Alright thanks for that review ^^
+12:43 <+bridge> [ddnet] <Learath2> you can destroy it in the destructor of the CJob
+12:44 <+bridge> [ddnet] <Learath2> That Notice isn't entirely safe either, but we do that one all the time, so w/e 😛
+12:44 <+bridge> [ddnet] <Learath2> the sql code is full of calls into cgamecontext that aren't safe
+12:44 <+bridge> [ddnet] <archimede67> xd
+12:44 <+bridge> [ddnet] <Learath2> the correct way would be to have a threadsafe queue of notices
+12:45 <+bridge> [ddnet] <archimede67> hmm
+12:45 <+bridge> [ddnet] <archimede67> a queue of notices
+12:45 <+bridge> [ddnet] <Learath2> The threads append to the queue
+12:46 <+bridge> [ddnet] <archimede67> yeah
+12:46 <+bridge> [ddnet] <Learath2> And the main client just renders them out when its time
+12:47 <+bridge> [ddnet] <archimede67> so i should do another task for notifications?
+12:52 <+bridge> [ddnet] <Learath2> no
+12:52 <+bridge> [ddnet] <Learath2> I'd just leave it as is tbh
+12:52 <+bridge> [ddnet] <archimede67> yea
+12:52 <+bridge> [ddnet] <Learath2> we don't have a threadsafe queue in the codebase, so you'd also need to code one
+12:53 <+bridge> [ddnet] <archimede67> ah xd
+13:09 <+bridge> [ddnet] <texnonik> interesting idea in demo to put numbers too warp time in demo 1-9 , but this is glitch
+13:09 <+bridge> [ddnet] <texnonik> https://cdn.discordapp.com/attachments/293493549758939136/581800969860284416/unknown.png
+13:17 <+bridge> [ddnet] <archimede67> Is there any convention to create an instance of a class as there is multiple ways to do so?
+13:24 <+bridge> [ddnet] <Learath2> not really
+13:24 <+bridge> [ddnet] <Learath2> but in this case I guess you could have a unique_ptr in your CJob
+13:25 <+bridge> [ddnet] <Learath2> actually unique_ptr wasn't c++11 iirc
+13:25 <+bridge> [ddnet] <Learath2> or is it?
+13:26 <+bridge> [ddnet] <Learath2> it is c++11, make_unique isn't
+13:27 <+bridge> [ddnet] <Learath2> anyways, you can just have a unique_ptr and initialize it with new
+13:53 <+bridge> [ddnet] <archimede67> yeah but i mean for the demorecorder
+13:55 <+bridge> [ddnet] <archimede67> I did that
+13:56 <+bridge> [ddnet] <archimede67> ```cpp
+13:56 <+bridge> [ddnet] <archimede67> // Create a DemoEditor to do the job
+13:56 <+bridge> [ddnet] <archimede67> CDemoEditor *DemoEditor = new CDemoEditor();
+13:56 <+bridge> [ddnet] <archimede67> DemoEditor->Init(m_pGameClient->NetVersion(), &m_SnapshotDelta, m_pConsole, m_pStorage);
+13:56 <+bridge> [ddnet] <archimede67> ```
+15:30 <+bridge> [ddnet] <Learath2> that doesn't look like a unique_ptr, but I guess it's fine either way
+15:31 <+bridge> [ddnet] <archimede67> ^^
+16:39 <+bridge> [ddnet] <Ryozuki> rememer to free the demoeditor
+16:40 <+bridge> [ddnet] <archimede67> `delete m_pDemoEditor;` does that right?
+17:09 <+bridge> [ddnet] <fokkonaut> should, yes
+17:13 <+bridge> [ddnet] <archimede67> good
+18:46 <+bridge> [ddnet] <Ryozuki> lol no
+18:46 <+bridge> [ddnet] <Ryozuki> use free()
+18:46 <+bridge> [ddnet] <Ryozuki> xd
+18:46 <+bridge> [ddnet] <Ryozuki> ah well
+18:46 <+bridge> [ddnet] <Ryozuki> its the same
+18:48 <+bridge> [ddnet] <archimede67> yea xd
+18:48 <+bridge> [ddnet] <Ryozuki> @archimede67 do u really need a pointer there
+18:48 <+bridge> [ddnet] <archimede67> yes

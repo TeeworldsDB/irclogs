@@ -1,0 +1,265 @@
+04:22 <+bridge> [ddnet] <fokkonaut> Is anyone familiar with the algorythm in gameworld.cpp? I would like to know if its possible to force a player that has the same IP as you to a specific ID, which will never change for this guy for my own map. So he is always visible in my scoreboard no matter how far away he is
+04:29 <+bridge> [ddnet] <fokkonaut> I mean it should be possible, as its also possible to force the ID 15 out, the empty client that is for sending chat messages from the further away clients
+04:29 <+bridge> [ddnet] <fokkonaut> but I couldnt get anything to work :/
+10:15 <+bridge> [ddnet] <Learath2> you want your dummy to be always visable?
+10:17 <+bridge> [ddnet] <Learath2> These kinds of same ip queries get very expensive very quick, you might want to begin with a hashmap of ip -> client-id. After that you can force everyone in the same ip bucket as you to occupy the first couple ids
+10:17 <+bridge> [ddnet] <Learath2> the rest you can use the distance algorithm for
+10:17 <+bridge> [ddnet] <Learath2> I'm wondering how well the collision stuff is working with 128 players
+10:18 <+bridge> [ddnet] <Learath2> I'd be surprised if the server didn't start slipping with that many entities close by
+13:27 <+bridge> [ddnet] <Learath2> I want whatever the people who came up with http basic authentication is on
+13:31 <+bridge> [ddnet] <Learath2> If you send a 401 safari will still save the credentials that turned out to be wrong, chrome will just ignore the response and display a blank page, firefox will also happily save the wrong credentials
+13:32 <+bridge> [ddnet] <deen> isn't that more of a problem of the browsers?
+13:32 <+bridge> [ddnet] <deen> but yes, the experience sucks
+13:32 <+bridge> [ddnet] <Learath2> Yeah I guess it's the fault of decades of backwards compatibility trying to be kept
+13:33 <+bridge> [ddnet] <Learath2> unlike C/C++ implementation quirks, there is no reference for browser quirks, browsers don't tell you how they implement behaviour undefined by the standard
+13:35 <+bridge> [ddnet] <Patiga> can someone help me with how the automap data is packed into the datafile?
+13:35 <+bridge> [ddnet] <Learath2> I guess I wasted the time though, we really should instead let mods download demos, not th files
+13:35 <+bridge> [ddnet] <Patiga> its from `gameitems_ex.h`
+13:36 <+bridge> [ddnet] <Patiga> its supposed to have something to do with uuids, but i dont really understand how that works
+13:36 <+bridge> [ddnet] <Learath2> You mean mapitems_ex?
+13:36 <+bridge> [ddnet] <Patiga> ouch yes
+13:38 <+bridge> [ddnet] <Learath2> It's a little tough, there is a translation table within the datafile that translates itemids above OFFSET_UUID
+13:40 <+bridge> [ddnet] <Patiga> hm so its fundamentally different to the other mapitems
+13:40 <+bridge> [ddnet] <Patiga> that does sound a bit harsh
+13:40 <+bridge> [ddnet] <Patiga> could you tell me how it works?
+13:41 <+bridge> [ddnet] <Learath2> You look for items of type ITEMTYPE_EX
+13:41 <+bridge> [ddnet] <Learath2> These are the table entries
+13:42 <+bridge> [ddnet] <Learath2> you extract the UUID from these (look at `CItemEx::ToUuid`), you match it with the uuid for "mapitemtype-automapper-config@ddnet.tw"
+13:43 <+bridge> [ddnet] <Learath2> That items ID is the "Internal type ID" of the automapper config item
+13:44 <+bridge> [ddnet] <Learath2> (the item that has matching uuid that is)^^
+13:44 <+bridge> [ddnet] <Learath2> After that you can use the internal type id like any other type id
+13:46 <+bridge> [ddnet] <Patiga> okay, thanks for the leads :)
+13:46 <+bridge> [ddnet] <Patiga> ill come back once im stuck again
+13:52 <+bridge> [ddnet] <Learath2> @heinrich5991 ^^ sounds about right, right? 😛
+13:55 <+bridge> [ddnet] <heinrich5991> yea, what you said sounds about right 🙂
+14:27 <+bridge> [ddnet] <Patiga> not sure if i was able to follow those instructions completely
+14:27 <+bridge> [ddnet] <Patiga> what would make sense to me:
+14:28 <+bridge> [ddnet] <Patiga> - each item of the type `ITEMTYPE_EX` defines a included ex_itemtype
+14:28 <+bridge> [ddnet] <Patiga> - which of the types it is, can be found out by trying to match the uuid of a known type (for example the uuid for  "mapitemtype-automapper-config@ddnet.tw") with the item_data of that ex_itemtype item
+14:28 <+bridge> [ddnet] <Patiga> - then the matched itemtypes going are in id order 0xffff - n (n being the number of the itemtype_ex item it was defined in)
+14:47 <+bridge> [ddnet] <Learath2> I'm not quite sure of the very last statement
+14:49 <+bridge> [ddnet] <Learath2> The ID is part of the datafile item, it's `i->m_TypeAndID&0xffff`
+14:50 <+bridge> [ddnet] <Learath2> (which is nothing but the first 2 bytes of m_TypeAndID)
+14:52 <+bridge> [ddnet] <heinrich5991> if you want to find out the "actual type" of a type ID `typeid`
+14:52 <+bridge> [ddnet] <heinrich5991> you look up the datafile item `(0, typeid)`
+14:53 <+bridge> [ddnet] <heinrich5991> if you find a UUID item there, you'll have your type
+14:58 <+bridge> [ddnet] <Learath2> (0, typeid)?
+14:58 <+bridge> [ddnet] <heinrich5991> you find layer number 5 in (LAYERTYPE, 5)
+14:59 <+bridge> [ddnet] <Learath2> 0 isn't ITEMTYPE_EX, is it?
+14:59 <+bridge> [ddnet] <Learath2> I thought it was 65536 for ITEMTYPE_EX
+14:59 <+bridge> [ddnet] <Patiga> 65535 i think ^^
+14:59 <+bridge> [ddnet] <heinrich5991> maybe
+14:59 <+bridge> [ddnet] <heinrich5991> if 0 was already taken
+14:59 <+bridge> [ddnet] <Learath2> typeid as in the internal typeid?
+14:59 <+bridge> [ddnet] <heinrich5991> typeid as in typeid in the map on the disk
+15:00 <+bridge> [ddnet] <Learath2> I think this is only valid for typeid > a certain number though
+15:00 <+bridge> [ddnet] <heinrich5991> yes, halfway to max
+15:00 <+bridge> [ddnet] <heinrich5991> from there
+15:01 <+bridge> [ddnet] <heinrich5991> so >= 0x8000, probably
+15:02 <+bridge> [ddnet] <Learath2> I think you also have to iterate through the ITEMTYPE_EXs and look for the id, I don't see the index getting fixed or these items being ordered in the code
+15:03 <+bridge> [ddnet] <heinrich5991> there's a function for it though IIRC
+15:03 <+bridge> [ddnet] <heinrich5991> GetItem(typeid, id) IIRC
+15:04 <+bridge> [ddnet] <Learath2> GetItem takes an index, FindItem is probably what you are looking for
+15:05 <+bridge> [ddnet] <Learath2> @heinrich5991 do you remember why you didn't just subtract the offset to get to an index?
+15:06 <+bridge> [ddnet] <heinrich5991> wdym?
+15:06 <+bridge> [ddnet] <heinrich5991> offset into what?
+15:06 <+bridge> [ddnet] <Learath2> offset into the table of itemtype_exs
+15:07 <+bridge> [ddnet] <Learath2> no that didn't sound right
+15:07 <+bridge> [ddnet] <Learath2> I mean something like typeid - 0x8000 to get the index of the itemtype_ex item with the uuid
+15:07 <+bridge> [ddnet] <Learath2> that'd be better then the linear lookup into the table, no?
+15:08 <+bridge> [ddnet] <heinrich5991> hm. I don't know if anything uses the map item indices
+15:08 <+bridge> [ddnet] <heinrich5991> I hope not, because then you don't have to care about how the items are laid out in the file
+15:09 <+bridge> [ddnet] <heinrich5991> the linear lookup is a fault of the implementation, not the map format
+15:09 <+bridge> [ddnet] <Learath2> oh, the items are not in contiguous blocks?
+15:09 <+bridge> [ddnet] <heinrich5991> the items are in contiguous blocks
+15:10 <+bridge> [ddnet] <heinrich5991> in my implementation, I have a hash map from (typeid, id) -> item
+15:10 <+bridge> [ddnet] <heinrich5991> i.e. constant-time lookup
+15:10 <+bridge> [ddnet] <Learath2> in your implementation as in libtw2?
+15:10 <+bridge> [ddnet] <heinrich5991> yes
+15:11 <+bridge> [ddnet] <Learath2> I guess I don't really know the scope of the id, is id global in the datafile?
+15:11 <+bridge> [ddnet] <heinrich5991> (typeid, id) is globally unique
+15:13 <+bridge> [ddnet] <Learath2> I don't get why this is implemented like this in tw then, are items fixed size?
+15:13 <+bridge> [ddnet] <Learath2> arent*
+15:13 <+bridge> [ddnet] <heinrich5991> because tw doesn't have hashmaps, I guess
+15:13 <+bridge> [ddnet] <heinrich5991> (that's the same problem that snapshots also have)
+15:17 <+bridge> [ddnet] <Learath2> @heinrich5991 can index differ from id?
+15:17 <+bridge> [ddnet] <heinrich5991> index is unrelated to id
+15:18 <+bridge> [ddnet] <heinrich5991> index is the index of the item in the file
+15:19 <+bridge> [ddnet] <Learath2> and id?
+15:19 <+bridge> [ddnet] <heinrich5991> id is something you specify while saving an item
+15:19 <+bridge> [ddnet] <heinrich5991> you can specify a 16 bit item type and 16 bit item id when saving an item
+15:19 <+bridge> [ddnet] <heinrich5991> they're free form, not interpreted by the map format itself
+15:19 <+bridge> [ddnet] <heinrich5991> they must be unique though
+15:21 <+bridge> [ddnet] <Learath2> what is it used for? I don't see what they provide. (typeid, index) would already uniquely identify an item in a datafile
+15:23 <+bridge> [ddnet] <heinrich5991> index already uniquely identifes an item in a datafile
+16:13 <+bridge> [ddnet] <Shyzo> question for the professionals here. I am having trouble opening demos. I already downloaded tw new and deleted config etc. still i cant open them. I asked other people to open them, they are able to. Do you have any idea? I am using 0.6.4 12.7.3 version
+16:14 <+bridge> [ddnet] <Shyzo> with one demo, tw crashes, and with 99% of the other demos, i just cant open them. 1% i can open
+16:17 <+bridge> [ddnet] <heinrich5991> could you try again with the newest version of ddnet?
+16:17 <+bridge> [ddnet] <Shyzo> yes I will try
+16:17 <+bridge> [ddnet] <heinrich5991> I think we had some demo-related fixes recently
+16:18 <+bridge> [ddnet] <Shyzo> can I open demos even if I dont have the maps downlaoded?
+16:18 <+bridge> [ddnet] <noby> i think so
+16:18 <+bridge> [ddnet] <heinrich5991> yes, you should be able to
+16:19 <+bridge> [ddnet] <noby> +can confirm that i cant open demos people send me from new ddnet without also using new ddnet
+16:19 <+bridge> [ddnet] <heinrich5991> that's expected, I think
+16:19 <+bridge> [ddnet] <heinrich5991> we changed the demo format
+16:19 <+bridge> [ddnet] <Shyzo> funny thing is, most of these demos are my own. and I never used any higher version than 12.7.3
+16:19 <+bridge> [ddnet] <Shyzo> But I will try with newest client :)
+16:20 <+bridge> [ddnet] <heinrich5991> thanks
+16:20 <+bridge> [ddnet] <heinrich5991> if that doesn't work, please send me one of the demos
+16:21 <+bridge> [ddnet] <Shyzo> works clean af, thank you @heinrich5991
+16:21 <+bridge> [ddnet] <heinrich5991> nice 👍
+16:22 <+bridge> [ddnet] <heinrich5991> thank @Learath2 for that 😉
+16:23 <+bridge> [ddnet] <Learath2> you can also thank me for breaking it
+16:23 <+bridge> [ddnet] <Learath2> 50/50 😛
+17:14 <+bridge> [ddnet] <jao> @heinrich5991 what about the players-cache
+17:15 <+bridge> [ddnet] <jao> if you wont port it to py3 i will make it work with py2
+17:15 <+bridge> [ddnet] <heinrich5991> yea yea, no need to threaten 😄
+17:18 <+bridge> [ddnet] <jao> lmao
+17:22 <+bridge> [ddnet] <heinrich5991> wtf @ ddnet scripting
+17:23 <+bridge> [ddnet] <heinrich5991> a grep to extract some values from our own json
+17:27 <+bridge> [ddnet] <Patiga> i think i got it know apart from one detail
+17:27 <+bridge> [ddnet] <Patiga> > you match it with the uuid for "mapitemtype-automapper-config@ddnet.tw"
+17:28 <+bridge> [ddnet] <Patiga> did you mean by that that i can somehow get the relevant uuid from the string "mapitemtype-automapper-config@ddnet.tw"?
+17:28 <+bridge> [ddnet] <heinrich5991> yes
+17:28 <+bridge> [ddnet] <Patiga> how do i do that?
+17:29 <+bridge> [ddnet] <heinrich5991> UUID version 3, base UUID "e05ddaaa-c4e6-4cfb-b642-5d48e80c0029" https://github.com/ddnet/ddnet/blob/974df08539f2ae052725cb238be1f1620063c203/src/engine/shared/uuid_manager.cpp#L9 https://github.com/ddnet/ddnet/blob/974df08539f2ae052725cb238be1f1620063c203/src/engine/shared/uuid_manager.cpp#L27-L47
+17:32 <+bridge> [ddnet] <Patiga> hm would someone be mad at me if i just hardcode the number? :p
+17:32 <+bridge> [ddnet] <heinrich5991> the UUID? no
+17:34 <+bridge> [ddnet] <jao> me
+17:35 <+bridge> [ddnet] <heinrich5991> @Patiga hardcoding the ID however, is going to break in the future
+17:36 <+bridge> [ddnet] <heinrich5991> as we add more UUID map item
+17:36 <+bridge> [ddnet] <heinrich5991> s
+17:37 <+bridge> [ddnet] <heinrich5991> you can generate the uuid with the uuid tool in ddnet. alternatively, you can get a debug dump of uuids known to the server when you start with `debug 1`
+17:37 <+bridge> [ddnet] <Learath2> @Patiga besides, whatever highlevel language you are using probably already has a library for uuids
+17:37 <+bridge> [ddnet] <Patiga> isnt there just one so far?
+17:38 <+bridge> [ddnet] <heinrich5991> for map items, yes
+17:39 <+bridge> [ddnet] <Patiga> eh, for the sake of completeness i guess
+17:40 <+bridge> [ddnet] <heinrich5991> hm. I mean we probably are going to add more map items in the future
+17:41 <+bridge> [ddnet] <Patiga> do i actually need a uuid library? it seemed to me that i will just throw around 128 bit integers and md5
+17:41 <+bridge> [ddnet] <heinrich5991> don't need a UUID library if you don't want, you can hardcode the UUID
+17:42 <+bridge> [ddnet] <heinrich5991> just the map item type ID shouldn't be hardcoded
+17:42 <+bridge> [ddnet] <heinrich5991> UUID vs map item type ID
+17:42 <+bridge> [ddnet] <Patiga> hm how is hardcoding uuids going to break in the future?
+17:42 <+bridge> [ddnet] <heinrich5991> it's not
+17:42 <+bridge> [ddnet] <heinrich5991> this was about hardcoding map item type IDs
+17:42 <+bridge> [ddnet] <Patiga> ah
+17:43 <+bridge> [ddnet] <Patiga> then im probably going to skip that hassle
+18:14 <+bridge> [ddnet] <Learath2> @Patiga if you don't mind me asking: What are you making?
+19:08 <+bridge> [ddnet] <Patiga> im making a (hopefully sensible) map parse in rust :)
+19:08 <+bridge> [ddnet] <Patiga> im making a (hopefully sensible) map parser in rust :)
+20:03 <+bridge> [ddnet] <heinrich5991> @deen where does `maps/{mapname}.msgpack` come from?
+20:05 <+bridge> [ddnet] <Learath2> @heinrich5991 https://github.com/ddnet/ddnet-django/blob/master/scripts/map_release.py
+20:09 <+bridge> [ddnet] <heinrich5991> ty
+20:11 <+bridge> [ddnet] <heinrich5991> @Learath2 do you know where I can find that `map_properties` tool?
+20:12 <+bridge> [ddnet] <heinrich5991> `which map_properties` on ddnet.tw didn't find it
+20:13 <+bridge> [ddnet] <Learath2> @heinrich5991 ```django@ddnet:~$ which map_properties
+20:13 <+bridge> [ddnet] <Learath2> /home/django/bin/map_properties```
+20:19 <+bridge> [ddnet] <heinrich5991> ah, it's my libtw2 tool 🙂
+20:19 <+bridge> [ddnet] <Learath2> yep, I just figured it out 😛
+20:20 <+bridge> [ddnet] <heinrich5991> it has a nice `--help` 😉
+21:38 <+bridge> [ddnet] <heinrich5991> CENSORSHIP!
+21:39 <+bridge> [ddnet] <Learath2> it was just flood 😛
+21:41 <+bridge> [ddnet] <Learath2> @heinrich5991 can you also take a look at that pr?
+21:41 <+bridge> [ddnet] <heinrich5991> php 😦
+21:41 <+bridge> [ddnet] <heinrich5991> yes
+21:42 <+bridge> [ddnet] <Learath2> (it's really hard to modify this file blind, I don't have access to the server this is hosted on so can't test it)
+21:43 <+bridge> [ddnet] <heinrich5991> wdym, blind modification
+21:43 <+bridge> [ddnet] <heinrich5991> ah
+21:44 <+bridge> [ddnet] <heinrich5991> without knowing the file paths
+21:44 <+bridge> [ddnet] <Learath2> also apparently my editor decided all the indents should be tabs
+21:47 <+bridge> [ddnet] <heinrich5991> @Learath2 `if($type === "html") { ?>` that works??
+21:47 <+bridge> [ddnet] <Learath2> yep
+21:47 <+bridge> [ddnet] <heinrich5991> wtf @ php
+21:47 <+bridge> [ddnet] <Learath2> why shouldn't it work?
+21:48 <+bridge> [ddnet] <heinrich5991> because stuff out of php environment didn't belong to control flow in my mind
+21:49 <+bridge> [ddnet] <Learath2> (this is a very ugly way to do php btw)
+21:49 <+bridge> [ddnet] <heinrich5991> yes
+21:49 <+bridge> [ddnet] <Learath2> usually presentation and logic is split with a template engine
+21:50 <+bridge> [ddnet] <heinrich5991> but if you do it the right way, you might as well use a saner programming
+21:50 <+bridge> [ddnet] <Learath2> "s/$/ language/"?
+21:50 <+bridge> [ddnet] <heinrich5991> language
+21:51 <+bridge> [ddnet] <Learath2> tbh, I like php
+21:51 <+bridge> [ddnet] <heinrich5991> I think it has too many footguns
+21:51 <+bridge> [ddnet] <Learath2> not sure if it's the nostalgia but I don't really see anything better for the web
+21:52 <+bridge> [ddnet] <Learath2> I could see js for rest apis but that's about it
+21:52 <+bridge> [ddnet] <Trafalgar Law> I like too php
+21:52 <+bridge> [ddnet] <Trafalgar Law> Php is great
+21:52 <+bridge> [ddnet] <heinrich5991> what about python? @Learath2
+21:53 <+bridge> [ddnet] <Learath2> After using it for a while, I don't think I like python much at all, especially the module/package system
+21:54 <+bridge> [ddnet] <Learath2> for programming apis I think I could use something like flask or falcon, but for presentation python just doesn't integrate well into the web stack
+21:54 <+bridge> [ddnet] <heinrich5991> I also don't think it's the best (but the language is a bit old, it might be fixed eventually, there are some movements to improvements)
+21:54 <+bridge> [ddnet] <heinrich5991> does php fare better in that regard?
+21:54 <+bridge> [ddnet] <Learath2> Php has very mature templating engines and frameworks
+21:54 <+bridge> [ddnet] <heinrich5991> @ modules I meant
+21:54 <+bridge> [ddnet] <heinrich5991> but templating is also fine
+21:55 <+bridge> [ddnet] <heinrich5991> python also has templating engines, did you try some?
+21:55 <+bridge> [ddnet] <heinrich5991> it worked fine when I did a little django work
+21:55 <+bridge> [ddnet] <Learath2> eh, atleast I never quit php because I couldn't get a module included
+21:55 <+bridge> [ddnet] <Learath2> composer usually works great
+21:55 <+bridge> [ddnet] <Learath2> you just include vendor/autoload.php and composer sets things up
+21:56 <+bridge> [ddnet] <Learath2> I think django is seriously a crime against humanity
+21:57 <+bridge> [ddnet] <Learath2> I have never seen such a bloated piece of software with such horrible documentation
+21:57 <+bridge> [ddnet] <Learath2> I worked with Jinja2 and flask, it did the job, wasn't too painful
+21:58 <+bridge> [ddnet] <heinrich5991> I worked with django for a website and flask for APIs so far
+21:59 <+bridge> [ddnet] <Learath2> jinja was written by the same guy who wrote twig (the template engine usually used with symfony) so atleast the template language made me feel right at home
+22:00 <+bridge> [ddnet] <Learath2> but that's really not the point in which I think python doesn't integrate well, uwsgi itself feels like we are bolting on python to the web
+22:00 <+bridge> [ddnet] <Ryozuki> learath will never find anything he likes
+22:00 <+bridge> [ddnet] <Ryozuki> he likes to be the niche type
+22:01 <+bridge> [ddnet] <Ryozuki> hehe im c00l
+22:01 <+bridge> [ddnet] <Learath2> Not like I'm using some weird language like zig
+22:01 <+bridge> [ddnet] <heinrich5991> php is the opposite of niche
+22:02 <+bridge> [ddnet] <Learath2> If I was commissioned to do web work, I'd use php + symfony
+22:02 <+bridge> [ddnet] <Ryozuki> well i dont like server side rendering anyway
+22:02 <+bridge> [ddnet] <Ryozuki> i always go with golang backend and react frontend separated
+22:02 <+bridge> [ddnet] <Learath2> If I had to use python, I'd go for flask or falcon
+22:03 <+bridge> [ddnet] <Learath2> If I'm not doing the backend with the frontend, I'd still go for a symfony backend and a vuejs frontend
+22:03 <+bridge> [ddnet] <Ryozuki> https://tailwindcss.com/
+22:03 <+bridge> [ddnet] <Ryozuki> maybe u will like this
+22:04 <+bridge> [ddnet] <Learath2> been using pure.css a lot lately
+22:04 <+bridge> [ddnet] <Ryozuki> this is more pure
+22:05 <+bridge> [ddnet] <Learath2> but this also looks very interesting
+22:05 <+bridge> [ddnet] <Ryozuki> imo its the best
+22:05 <+bridge> [ddnet] <Ryozuki> im only using this now
+22:05 <+bridge> [ddnet] <Ryozuki> u need to know css tho
+22:05 <+bridge> [ddnet] <Ryozuki> not ur wannabe css framework
+22:07 <+bridge> [ddnet] <heinrich5991> if you have something to learn web design, I'm open
+22:07 <+bridge> [ddnet] <heinrich5991> I have no idea about htat
+22:07 <+bridge> [ddnet] <Learath2> eh, it seems this requires you to be using some packager though @Ryozuki
+22:07 <+bridge> [ddnet] <Ryozuki> only if u want to customize it
+22:07 <+bridge> [ddnet] <Learath2> it'd be much nicer if they used sass like every other customisable css framework
+22:08 <+bridge> [ddnet] <Ryozuki> wat
+22:08 <+bridge> [ddnet] <Ryozuki> no
+22:08 <+bridge> [ddnet] <Ryozuki> thats horrendous
+22:08 <+bridge> [ddnet] <Ryozuki> u dont understand how this framework works
+22:08 <+bridge> [ddnet] <Ryozuki> im in middle of dota ranked
+22:08 <+bridge> [ddnet] <Ryozuki> cant talk much
+22:09 <+bridge> [ddnet] <Learath2> @heinrich5991 turns out there are no good resources out there 😦
+22:09 <+bridge> [ddnet] <Learath2> I had to learn each piece I wanted to learn myself
+22:10 <+bridge> [ddnet] <Ryozuki> i also learn by myself
+22:10 <+bridge> [ddnet] <Ryozuki> by doing
+22:10 <+bridge> [ddnet] <Ryozuki> like everything
+22:10 <+bridge> [ddnet] <Ryozuki> i know u like ur c books
+22:12 <+bridge> [ddnet] <Learath2> I rather refer to the documentation for each piece, but to each their own
+22:13 <+bridge> [ddnet] <Ryozuki> docs != book
+22:13 <+bridge> [ddnet] <Ryozuki> ofc i look at mdn
+22:13 <+bridge> [ddnet] <heinrich5991> mdn felt like a good resource, yes
+22:13 <+bridge> [ddnet] <heinrich5991> but it's only a doc, not for learning
+22:13 <+bridge> [ddnet] <Learath2> @Ryozuki doesn't this css framework compile the css file at build time? using a node script as far as I can see
+22:14 <+bridge> [ddnet] <Ryozuki> u can use a cdn
+22:14 <+bridge> [ddnet] <Ryozuki> thats to customize it
+22:14 <+bridge> [ddnet] <Ryozuki> i said it
+22:15 <+bridge> [ddnet] <Learath2> and I'm asking why is the customisation done with a custom node script instead of sass variables like every other framework?
+22:15 <+bridge> [ddnet] <Learath2> as in what's the advantage to this approach?
+22:16 <+bridge> [ddnet] <Ryozuki> its to generate css classes
+22:17 <+bridge> [ddnet] <Ryozuki> its way better than sass at creation extensions
+22:17 <+bridge> [ddnet] <Ryozuki> u may have mt-2
+22:17 <+bridge> [ddnet] <Ryozuki> margin top 2
+22:17 <+bridge> [ddnet] <Ryozuki> u can do hover:mt-4
+22:17 <+bridge> [ddnet] <Ryozuki> etc
+22:17 <+bridge> [ddnet] <Ryozuki> i cant explain rn
+23:28 <+bridge> [ddnet] <Learath2> @heinrich5991 you should maybe migrate away from try! in libtw2 before it disappears?
+23:28 <+bridge> [ddnet] <heinrich5991> it's not going to disappear
+23:28 <+bridge> [ddnet] <Learath2> (idk the deprecation schedule of rust, maybe it'll stay forever)
+23:29 <+bridge> [ddnet] <heinrich5991> but yea, eventually I'll migrate it away from try!
+23:33 <+bridge> [ddnet] <heinrich5991> @Learath2 but rust's deprecation schedule can be roughly summarized as: if it's not a security issue, code will continue working

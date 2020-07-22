@@ -1,0 +1,75 @@
+00:14 < bridge> [teeworlds] <Dune> rand: 0 or nullptr iirc
+00:15 < rand> @jxsl13: did this bug occurs on a zcatch server recently ?
+00:19 < rand> this is trickier than I though but you can use a temporary fix by not sending KillMsg if the killer does not exist
+00:19 < rand> that doesnt solve free kill on connection
+00:20 < rand> (not sending the message, and add a test in the function Die(...)
+11:58 < bridge> [teeworlds] <jxsl13> I don't care about that rather Unverständnis n event of a free kill happening then someone fills the empty spot, while the grenade is still flying, I guess the part where a server might crash is a kittle bit more important, as people might exploit that, I guess.
+11:58 < bridge> [teeworlds] <jxsl13> -Unberständnis +uncertain
+12:02 < bridge> [teeworlds] <jxsl13> Haven't looked at the coredump yet, but I highly expect that exactly this bug crashed tue server there.
+12:15 < bridge> [teeworlds] <ChillerDragon> There is not a single nullptr in vanilla Code if I remember exactly. Probably not a single std:: feature
+12:19 < bridge> [teeworlds] <ChillerDragon> I think it would be supportive for Server modders to keep the player around. In 0.6 kills after disconnect were a thing that could crash custom mods because it is something that might happen rarely and can be forgotten by the devs.
+12:19 < bridge> [teeworlds] <ChillerDragon> 
+12:19 < bridge> [teeworlds] <ChillerDragon> So keeping the player around until all projectiles are destroyed might make all custom mods a bit more stable.
+14:45 < bridge> [teeworlds] <jxsl13> @rand() crash was sadly due to me having forgotten to check for nullptr in my debug code :'/ weird stuff happening and one bug is haunting me for the past three months.
+16:38 < rand> @ChillerDragon: what do you mean by keeping the player around ?
+16:38 < bridge> [teeworlds] <ChillerDragon> not deleting the CPlayer object
+16:38 < bridge> [teeworlds] <ChillerDragon> just keep the character death or delete it
+16:39 < bridge> [teeworlds] <ChillerDragon> so CGameServer::m_apPlayers[LEFT_PLAYER] doesnt become a nullptr
+16:40 < bridge> [teeworlds] <heinrich5991> I don't like this idea
+16:41 < bridge> [teeworlds] <heinrich5991> however if you were to go through with this idea, you'd need to communicate when the game may drop the player
+16:41 < bridge> [teeworlds] <heinrich5991> this is probably not trivial
+16:41 < bridge> [teeworlds] <ChillerDragon> yea
+16:42 < bridge> [teeworlds] <ChillerDragon> easiest would be to delete projectiles but idk it just feels wrong or weird
+16:42 < rand> I prefer to add team info into projectile data, and remove reference to a disconnected player by iterating on all projectiles
+16:42 < bridge> [teeworlds] <ChillerDragon> and the teaminfo should be updated on teamchange then?
+16:42 < rand> no
+16:42 < bridge> [teeworlds] <heinrich5991> no
+16:43 < bridge> [teeworlds] <ChillerDragon> so i can kill teammates without friendlyfire? xd
+16:43 < rand> a projectile shouldn't change team
+16:43 < rand> that's the old you
+16:43 < bridge> [teeworlds] <ChillerDragon> ya
+16:43 < bridge> [teeworlds] <ChillerDragon> but killfred shows new me right?
+16:43 < rand> like the LEFT_PLAYER you suggestes
+16:43 < bridge> [teeworlds] <ChillerDragon> killfeed*
+16:43 < rand> *ed
+16:44 < bridge> [teeworlds] <ChillerDragon> ya is probably a fine idea
+16:44 < bridge> [teeworlds] <ChillerDragon> i wonder how it will affect performance
+16:44 < bridge> [teeworlds] <heinrich5991> iterating over all projectiles on disconnect? not measurably I guess
+16:44 < rand> it adds a test on the killer ID and a arguments to some functions
+16:45 < bridge> [teeworlds] <ChillerDragon> the team id thing
+16:45 < rand> *an argument (the team id)
+16:46 < rand> but, ones could argue that team id is not enough for modding support
+16:46 < rand> like, having an arbitrary player info on a projectile might be more extensible
+16:47 < bridge> [teeworlds] <ChillerDragon> and then it becomes really similar to keeping the whole player object around.
+16:47 < rand> like: a struct CProjectile::CKillerInfo { int id, teamid... }
+16:48 < rand> yes
+16:48 < rand> but it does not need to reference an actual player 
+16:49 < rand> I do not really like the iteration on all Projectile though
+16:49 < rand> but I dont have other idea yet
+16:49 < rand> (except using some uid instead of connection ID)
+16:51 < rand> (uid's that could be use with a mapping between connection slot and player slot, allowing a disjoint management of clients and players And spectators)
+17:09 < bridge> [teeworlds] <LordSk> Deleting projectiles owned by the disconnecting player seems to be a fine solution.
+17:12 < bridge> [teeworlds] <LordSk> We don't want those to linger around anyway and cause weird behaviours.
+17:21 < bridge> [teeworlds] <Dune> Yeah, or else the server needs to remember that these projectiles have no owner
+19:43 < rand> this is weird to make a projectile on its course
+19:45 < rand> +disappear
+19:52 < bridge> [teeworlds] <jxsl13> when the projectile detonates, check if the owner still exists
+19:53 < bridge> [teeworlds] <jxsl13> and either do or do no damage
+19:53 < rand> what about teamplay ?
+19:54 < bridge> [teeworlds] <jxsl13> there the player id is the same, so it would do damage?
+19:54 < rand> team information is in the player data that are destroyed when the client disconnects
+19:57 < bridge> [teeworlds] <jxsl13> I thought you mean team change
+19:57 < bridge> [teeworlds] <jxsl13> ok
+19:58 < bridge> [teeworlds] <jxsl13> no owner no damage.
+19:59 < rand> yes, that is more elegant than make it disappear
+20:12 < rand> the current behaviour is taking account the team when the projectiles hit, right ?
+20:12 < rand> meaning changing team before hitting changed the team of the projectile
+20:15 < bridge> [teeworlds] <jxsl13> seems so
+20:17 < bridge> [teeworlds] <jxsl13> c style code, prone to errors. nheir's PR looks good.
+20:23 < rand> I wonder if it used this way
+20:23 < bridge> [teeworlds] <jxsl13> it does.
+20:24 < bridge> [teeworlds] <jxsl13> on client drop all projectiles loose their owner. and projectiles with no owner deal no damage.
+20:30 < rand> I mean, when changin team (this time)
+20:32 < bridge> [teeworlds] <jxsl13> there is nothing that conciders teams
+20:34 < rand> before taking damage, the server check if it is "friendly fire"
+20:35 < rand> so I'm blue, I fire on another blue, join red before hitting the other player, then the blue player will take damage

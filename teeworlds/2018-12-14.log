@@ -1,0 +1,220 @@
+09:20 < nameless_tee54> hi
+09:21 < nameless_tee54> anybody of developers can help me?
+09:28  * nameless_tee54 slaps minus around a bit with a large fishbot
+10:01 < bridge> [teeworlds] <Dune> ask your question, and someone can help you, nameless_tee54
+10:43 < minus> rude
+13:37 < bridge> [teeworlds] <Dune> archlinux is fast, https://twitter.com/arch_update_bot/status/1073172696148529153
+14:19 < minus> hm, i wonder how the maintainer got notified so fast
+14:23 < bridge> [teeworlds] <Dune> *cough*
+14:26 < minus> i see
+14:26 < minus> i was hoping he had some kind of notification system
+14:27 < bridge> [teeworlds] <Dune> there is one at least for debian stuff with launchpad
+14:27 < bridge> [teeworlds] <Dune> if teeworlds had a launchpad, we could notify packages downstream
+14:38 < day> Dune you are the arch maintainer?
+14:39 < Dune> lol no
+14:39 < Dune> I just click on buttons
+14:39 < day> manager dune
+14:40 < day> triggering those worker drones :^)
+14:40 < Dune> no but seriously I'm impressed how quickly they reacted
+14:40 < Dune> debian is still on like 0.6.2 with a bunch of security issues
+14:40 < day> lol
+14:41 < rand> arch is upstream, waiting implies more work later, debian is about stable version and secure build
+14:43 < day> not debian unstable
+14:43 < rand> debian unstable is about unstability and breaking changes
+14:44 < rand> giving the possibility to easily fuck up
+14:45 < Dune> didn't know about https://status.tw they have a really nice design now
+14:45 < minus> too low information density
+14:46 < day> the domain is nice
+14:46 < Dune> aka modern
+14:46 < Ryozuki> u plain wrong guys, debian stable has 0.6.5
+14:46 < Ryozuki>  stable: 0.6.5+dfsg-1~deb9u1 
+14:46 < Ryozuki> https://tracker.debian.org/pkg/teeworlds
+14:47 < Dune> huh, nvm then, guess I was looking at jessie
+15:58 < Dune> can someone investigate 37.201.117.120:35417 on 0.7?
+15:59 < Dune> it seems like a modified server broadcasting dummies as players
+15:59 < Dune> (thanks @Slayer *gV* for the report)
+16:01 < bridge> [teeworlds] <Slayer *gV*> The server is already offline. But there is a second one: 149.28.164.22:8303
+16:20 < rand> hm, this should be filtered from serverbrowser (for another reason)
+16:20 < rand> the server only reports dummies (as spectators) and not the players
+16:20 < rand> oh, i did not update my build
+16:22 < Dune> right, isn't the server browser supposed to drop 16+ players in vanilla
+16:23 < rand> no, it is supposed to drop server with more clients than max_clients
+16:23 < rand> (the issue here)
+16:23 < rand> here, max player is 12, so it is fine
+16:23 < Dune> ah, right
+16:25 < rand> hm, this is weird
+16:27 < rand> 'num_clients': 128
+16:27 < rand> wat
+16:27 < rand>  'max_players': 8
+16:27 < rand> 'max_clients': 1
+16:28 < rand> this starts becoming weird
+16:28 < rand> my tw_api is wrong
+16:32 < Dune> huh
+16:32 < retek> hi
+16:33 < Dune> hi
+16:33 < retek> can you help me in teeworlds sockets?
+16:34 < rand> han… 64 is to high and is represented on 2 bytes
+16:35 < retek> So, i use this for 0.6: \xff\xff\xff\xff\xff\xff\xff\xff\xff\xffreq2 and what i need to use for 0.7?
+16:36 < rand> 0.7.1 adds an handshake to requests
+16:36 < rand> so you have to start asking a (5s?) token from the server before requesting anything
+16:38 < retek> uhh, thats a bit high for me :D
+16:38 < rand> you can look at the scripts/tw_api.py on github
+16:39 < rand> it uses the whole mechanism for getting server list and servers info
+16:41 < retek> i check it, thanks 
+16:47 < retek> i dont't have an idea how to port it to php :/ 
+16:50 < rand> Dune: ok, the CClient::UnpackServerInfo don't check if NumClients < MaxClients
+16:51 < rand> pInfo->m_NumClients > MAX_CLIENTS should be pInfo->m_NumClients > pInfo->m_MaxClients
+16:55 < retek> I dont get it, what do you want to say by this :/
+16:56 < Dune> rand: nice find
+16:57 < rand> > '62.141.44.42:8324' seems to give a wrong server_info
+16:59 < rand> I suspect that is because changing the max_players can lead more than max_players but it's a guess
+17:00 < rand> yep, that's it
+17:02 < Dune> so it's a teeworlds bug, not a modification? huh
+17:02 < rand> for the last issue, yep
+17:03 < rand> but the reported server was lying
+17:03 < rand> two bugs, two issues
+17:07 < rand> (I will update tw_api later)
+17:08 < Dune> cool thx
+17:09 < Dune> which reported server are you talking about, the one that's online now?
+17:10 < rand> the one reported by slayer
+17:11 < rand> (that was lying in player list with 64 fake clients)
+17:11 < rand> (named "Temp. Aussie Server")
+17:11 < Dune> that should eventually be reported to minus then
+17:12 < rand> the server disappeared
+17:12 < retek> rand
+17:12 < minus> pls not me
+17:13 < rand> retek: me
+17:13 < retek> maybe you can help me in the sockets for 0.7.1 in php?
+17:14 < rand> I don't know php
+17:14 < retek> maybe you minus?
+17:14 < rand> the thing is the protocol became a bit more complex
+17:14 < retek> i know
+17:15 < retek> thats the problem 
+17:15 < rand> but the python code does the minimal to request things to servers
+17:15 < rand> this is extracted from the C source so you don't have to do this by yourself
+17:16 < rand> you only have to translate it from python to php
+17:16 < retek> i know, but i dont have too much skills in python 
+17:16 < rand> before requesting info/list, the client has to send to the server its token
+17:17 < rand> then the server sends the token back with it's own token
+17:17 < rand> then the client does the request with both tokens
+17:17 < rand> and the server answers with both tokens too
+17:18 < rand> the main part of the code is building request header containing those tokens
+17:19 < rand> building and decode
+17:19 < rand> there is also a special function that unpack an integer from the input buffer
+17:21 < rand> (only used for decoding players info and in few hours, client/player numbers from server info)
+17:22 < retek> uhh, i try to move project to python, then write a json api in django for the php :D
+17:22 < rand> why not ^^
+17:23 < rand> good luck
+17:24 < Dune> ^
+17:24 < retek> ty
+17:30 < retek> when i try to run the twapi, i get there in 0 servers: 0 servers 0 players (0 bots) and 0 spectators , do you have an idea?
+17:30 < rand> don't you have other messages ?
+17:31 < retek> no
+17:31 < retek> just this
+17:32 < rand> look for the lines #import traceback and #traceback.print_exc()
+17:32 < rand> uncomment them
+17:32 < rand> they appear twice each
+17:33 < rand> then re-run the script
+17:33 < retek> Traceback (most recent call last): Traceback (most recent call last):   File "tw_api.py", line 187, in get_list     data, addr = sock.recvfrom(1024) timeout: timed out
+17:34 < rand> hm, this should count as a OSError :c
+17:34 < rand> how many of these lines ?
+17:35 < rand> if 4, you don't have answer from master servers
+17:35 < retek> https://pastebin.com/fCtR5Gi7
+17:36 < rand> it looks like master servers don't like you
+17:36 < retek> the master servers are ping back, and the 0.6 master servers with php are give answer
+17:38 < retek> you dont have an idea?
+17:39 < rand> what version of python do you have ?
+17:40 < retek> 2
+17:40 < retek> now installing 3 for test
+17:41 < rand> the script is not tested on python 2
+17:42 < rand> python 2 will be deprecated in 1 year though
+17:42 < rand> https://pythonclock.org/ :3
+17:43 < retek> haha :D i currently not using too much python, but 2y ago i use it so much :D
+17:43 < retek> now with python 3 is something like working but only 1 master server is giving answer
+17:43 < retek>  > Master ('master2.teeworlds.com', 8283) did not answer > Master ('master4.teeworlds.com', 8283) did not answer 34 servers > Server ('137.74.129.182', 8303) did not answer 30 players (4 bots) and 1 spectators
+17:44  * rand has just tried to run the script with python 2 and it failed in 30ms
+17:44 < rand> then it works now :D
+17:44 < Ryozuki> finally
+17:44 < rand> master2 and master4 are not 0.7 ready
+17:44 < retek> in every run print an another error xD
+17:45 < retek>    File "tw_api.py", line 153, in get_server_info     player["player"], data = unpack_int(data)   File "tw_api.py", line 70, in unpack_int     Sign = (l[i]>>6)&1; IndexError: list index out of range
+17:45 < retek> then
+17:45 < retek>    File "tw_api.py", line 149, in get_server_info     player["clan"] = slots[1].decode() IndexError: list index out of range
+17:45 < rand> and I don't know why the server 137.74.129.182 is not responding
+17:46 < rand> yeah, there is a bug when a server has 64 max clients
+17:46 < rand> should be fix soon
+17:46 < retek> ok
+17:47 < rand> you can re-add the # before the traceback's lines
+17:47 < rand> (it will hide these errors)
+17:49 < retek> ok, thanks for your help :)
+17:49 < retek> i need to learn python again :D
+17:53 < retek> wow, there is a server with 64/8 players xD
+18:08 < Ryozuki> i thought 0.7 solved the bug where u fill servers, i connected to the 64/8 server and there is only 3 ppl
+18:09 < Dune> Ryozuki: look at the IRC log, we were talking about that
+18:09 < Dune> this isn't the bug anymore, this is a server lying
+18:09 < Dune> according to rand at least
+18:09 < rand> but, the 0.7 can't fix a lying server without joining it
+18:09 < Dune> minus: ban?
+18:10 < Dune> yeah that's another thing
+18:12 < rand> '95.223.185.17:27911' lying
+18:13 < rand> but, this is also a bug… well, wait for 0.7.2 :)
+18:13 < Dune> calling it a bug is a bit misleading, I mean yeah the client should do something about it, but it's the server fault
+18:13 < rand> ^^
+18:14 < Dune> minus's ban hammer was getting rusty anyway
+18:14 < rand> the client could fix part of the issue but then the server could improve its lie :]
+18:14 < Dune> yeah :)
+18:14 < rand> the guy is spawning lying server, there is another
+18:15 < rand> but, the thing is… there is a inconsistency in its server info
+18:17 < Ryozuki> it's unfair for legit servers
+18:17 < Ryozuki> and misleading to people who wants to play with ppl
+18:18 < Dune> yes, hence why they get banned, Ryozuki :)
+18:19 < Dune> report all the IPs if there are new ones that spawn
+18:20 < rand> oh, the issue on my script was that 1024 bytes is not enough anymore to get the whole serverinfo x)
+18:21 < Ryozuki> Dune: if u put "!     [" and things like that you still get first on list in case of even players?
+18:21 < Ryozuki> ppl do that on 0.6
+18:21 < Ryozuki> on servername
+18:21 < rand> I don't know why people want players to play on their own servers
+18:22 < Ryozuki> well who doesnt like it?
+18:22 < Ryozuki> its the point on making a server
+18:22 < Ryozuki> xD
+18:22 < rand> I join server when ping is good and there are player I know, using favorites
+18:22 < Ryozuki> did you host any server
+18:23 < rand> I do
+18:23 < rand> names start with Random
+18:23 < Ryozuki> well most ppl join to the sv with most people
+18:25 < Ryozuki> Dune: is it possible to create the "damage indicator" on 0.7?
+18:25 < Ryozuki> i mean those stars
+18:25 < rand> multicolored ?
+18:25 < Ryozuki> ?
+18:25 < rand> armor vs health ?
+18:25 < Ryozuki> they are always equal
+18:25 < Ryozuki> they appear when u shoot ugn and it hits
+18:25 < Ryozuki> a tee
+18:27 < rand> afaik damage inds are deduced from actual damages now
+18:27 < Ryozuki> oh nvm
+18:28 < Ryozuki> i found it
+18:29 < Ryozuki> https://i.imgur.com/nbjJrZg.png :D
+18:44 < retek> it's not a problem if somebody cast their server ip to multiple master servers?
+18:48 < Dune> 1024 bytes ought to be enough for any teeworlds server list, rand :P
+18:52 < retek> Dune
+18:55 < minus> maybe i should write a post about relinquishing all my teeworlds powers
+18:55 < minus> so that Dune stops bugging me
+19:00 < rand> Dune: server info
+19:03 < Dune> aight, sorry. I don't know anyone else around with masterserver powers.
+19:03 < Dune> I think I may have got instructions about that at some point, but lost em :/
+19:03 < Dune> rand: hm?
+19:04 < Dune> ah, the 1024 bytes aren't enough
+19:06 < Dune> someone's having strange issues https://www.teeworlds.com/forum/viewtopic.php?pid=122143#p122143
+19:24 < Dune> might want to update https://www.teeworlds.com/forum/viewtopic.php?id=3101 if anyone else has push access on https://www.teeworlds.com/master-bans.cfg
+20:00 < retek_> Dune
+20:46 < Teeworlds> [teeworlds] nheir opened pull request #1864: Fix: invalid serverinfo (master...fix/invalid-serverinfo) https://git.io/fpbCb
+20:47  * retek_ slaps Dune around a bit with a large fishbot
+20:56 <@Dune> yes?
+20:57 < retek_> it's not a problem if somebody cast their server ip to multiple master servers?
+20:58 <@Dune> Sorry, I don't know. I would guess not
+20:58 < rand> the server will be shown only once in the server browser
+20:58 < retek_> i know
+20:58 < retek_> just found some servers what listed in multiple masters 
+23:43 <@Dune> rand: someone says 64/8 happened to them out of the box
+23:47 < rand> with 64 dummies named "Name %d" and "Clan %d" ?
+23:51 < rand> like running the server from the official build makes 64/8 to happen

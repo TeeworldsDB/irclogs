@@ -1,0 +1,58 @@
+02:02 < eeeee> don't see much benefit from only partially dropping the vanilla support
+02:03 < eeeee> the biggest wins would come from dropping it completely and replacing large parts of protocol with standard solutions like dtls
+02:55 <@heinrich5991> eeeee: what kind of overhead does dtls have?
+02:55 <@heinrich5991> eeeee: I thougt about reimplementing a protocol like the one mosh has
+02:56 <@heinrich5991> it has transparent IP roaming for the client
+02:58 < eeeee> not sure about raw dtls. i had some measurements of the webrtc stack overhead (sctp/dtls/ice/udp) in tw context, but don't remember the exact numbers for that either
+03:00 < eeeee> client side roaming would be cool but doesn't seem essential. i think server side roaming could be more useful as another tool against ddos
+03:01 < eeeee> also if you're changing the protocol i think you can plug in a better compression layer to offset the dtls overhead
+03:03 <@heinrich5991> eeeee: ideas for the better compression layer?
+03:04 < eeeee> i wanted to try creating some zstd dictionaries when i have time
+03:04 < eeeee> would've been similar to the hardcoded huffman table we have rn, but better
+03:05 <@heinrich5991> I don't know zstd
+03:05 <@heinrich5991> what is it?
+03:05 < eeeee> lz family
+03:07 < eeeee> usually lz archivers encode the dictionary in the deflated stream, zstd supports pre-computing the dictionary from some sample traffic and passing it to the decompressor out of band
+03:08 < eeeee> when using pre-shared dictionary in such a way it can efficiently compress very small messages (like single tw packets)
+06:54 <@minus> It's facebookware
+11:16 < pinkieval> what do you use to debug network with teeworlds?
+11:16 < pinkieval> like, have a somewhat nicer display than tcpdump
+11:16 < pinkieval> huffman decompression would be nice too
+13:31 <@minus> i guess you do in the client/server
+13:53 <@heinrich5991> pinkieval: you can drop the hex into my `packet_decode` tool from libtw2
+13:53 <@heinrich5991> ;)
+13:53 <@heinrich5991> or you could use fstd's dissector for wireshark IIRC
+14:01 <@minus> Fancy
+14:28 < fstd_> would probably need some changes to build against non ancient versions of wireshark
+15:15 < pinkieval> damn
+15:16 < pinkieval> wireshark has a tool to convert code, but it's broken on that bissector
+15:17 <@heinrich5991> I'll write a dissector using my rust stuff :P
+15:21 < pinkieval> eww
+15:21 < pinkieval> it just generated that line of code:
+15:21  * koomi thinks all dissectors should be written in lua, wireshark security updates are way too frequent
+15:21 < pinkieval>    ti = proto_tree_add_item(tree, hf_tw_chunk_#%d", tvb, off, hlen + clen, ENC_LITTLE_ENDIAN);
+15:22 < pinkieval> I guess that's what happens when you write a refactoring tool using regexps
+15:31 < pinkieval> heinrich5991: packet_decode complains packets are too short
+15:32 < pinkieval> $ echo "8008 0128 1899 f409 269f aca5 5b50 b31f afb8 01" | cargo run --bin=packet_decode
+15:32 < pinkieval> packet
+15:32 < pinkieval>                                                        00000000
+15:32 < pinkieval> ERROR: TooShort
+15:32 <@heinrich5991> $ echo "|8008 0128 1899 f409 269f aca5 5b50 b31f afb8 01|" | cargo run --bin=packet_decode
+15:32 <@heinrich5991> try that ^
+15:32 < pinkieval> oooh
+15:32 < pinkieval> thanks
+15:33 <@heinrich5991> (sorry, I reverse my own hexdump, and that hexdump contains |s around the hex
+15:49 < pinkieval> Three people joined my server. One minute later, a DDoS started on that server
+15:49 < pinkieval> looks like whoever is DDoSing me started automating it
+15:50 < pinkieval> I wonder if I can make an honeypot
+15:51 <@heinrich5991> whose server?
+15:51 <@heinrich5991> *which server?
+15:52 < pinkieval> Official Infclass Server 5
+15:52 < pinkieval> if you look at the list of players, it's full of "(connecting)"
+15:57 <@heinrich5991> oh
+20:27 <@minus> can't disagree with koomi there; but Rust would work too; that's its prime use case after all, memory safety
+20:42 < koomi> yeah lua is going to be a breeze and rust a pain though :-P
+20:55 <@minus> cannot disagree with that one
+21:00 < pinkieval> what about performance?
+21:01 <@minus> LuaJIT beats Rust by lengths
+21:04 < pinkieval> cool

@@ -1,0 +1,391 @@
+11:45 <@heinrich5991> jxsl13: it's a header followed by a stream of messages
+11:45 <@heinrich5991> the header is a zero-terminated string containing json in a self-explanatory format
+11:46 <@heinrich5991> each message starts with a teeworlds variable-width integer, which is the message ID
+11:46 <@heinrich5991> the rest of the message depends on the message ID:
+11:49 <@heinrich5991> PLAYER_DIFF(0-63): dx(int) dy(int) records that player with the message ID as cid (client ID) has changed position in a way that adds dx to the x coordinate and y to the y coordinate
+11:49 <@heinrich5991> FINISH(-1): records the end of the teehistorian file
+11:51 <@heinrich5991> TICK_SKIP(-2): dt(int) records that there were dt ticks in which nothing happened, i.e. the next tick is the last tick + dt + 1
+11:52 <@heinrich5991> PLAYER_NEW(-3): cid(int) x(int) y(int) records that a new player character with cid appeared at (x, y)
+11:52 <@heinrich5991> PLAYER_OLD(-4): cid(int) records that the player character with cid disappeared
+11:54 <@heinrich5991> INPUT_DIFF(-5): cid(int) input(int[10]) records that a player with cid sent an input packet for the first time, containing input
+11:54 <@heinrich5991> correction
+11:55 <@heinrich5991> INPUT_DIFF(-5): cid(int) dinput(int[10]) records that a player with cid sent an input packet but has sent one before, add dinput to the previous input component-wise to obtain the new one
+11:55 <@heinrich5991> INPUT_NEW(-6): cid(int) input(int[10]) records that a player with cid sent an input packet for the first time, containing input
+11:56 <@heinrich5991> MESSAGE(-7): cid(int) msgsize(int) msg(raw[msgsize]) records that a player with cid sent a game-related packet msg
+11:57 <@heinrich5991> JOIN(-8): cid(int) records that a player with cid joined, on the engine level
+11:57 <@heinrich5991> DROP(-9): cid(int) records that a player with cid left/was kicked/was dropped, on the engine level
+11:59 <@heinrich5991> CONSOLE_COMMAND(-10): cid(int) flags(int) cmd(str) num_args(str) args(str[num_args]) records that a console command cmd was executed by client id cid (not necessarily a player, might be a vote as well), with flags (distinguishes chat commands, etc.) with parameters args
+12:00 <@heinrich5991> EX(-11): uuid(uuid) size(int) data(raw[size]) records an extension message, identified by uuid and containing data
+12:01 <@heinrich5991> the following extra messages are known right now:
+12:03 <@heinrich5991> TEST(teehistorian-test@ddnet.tw): is just a test message
+12:05 <@heinrich5991> AUTH_INIT(teehistorian-auth-init@ddnet.tw): cid(int) level(int) auth_name(str) records that a player with cid got rcon access with level under the account name auth_name since the start of the map (because they had it before the map change as well)
+12:06 <@heinrich5991> AUTH_LOGIN(teehistorian-auth-login@ddnet.tw): cid(int) level(int) auth_name(str) records that a player with cid just logged into rcon with level under the account name auth_name
+12:06 <@heinrich5991> AUTH_LOGOUT(teehistorian-auth-logout@ddnet.tw): cid(int) records that a player with cid just logged out of rcon
+12:31 <@heinrich5991> int is a teeworlds variable-width integer
+12:32 <@heinrich5991> str is a null-terminated string
+12:32 <@heinrich5991> raw[size] is simply size bytes
+12:32 <@heinrich5991> str[num_args] is num_args null-terminated strings
+12:33 <@heinrich5991> uuid is 16 bytes of a UUID
+12:35 <@heinrich5991> the UUIDs are version 3 UUIDs, with the teeworlds namespace e05ddaaa-c4e6-4cfb-b642-5d48e80c0029
+12:39 <@heinrich5991> a tick is implicit in these messages when a player with lower cid is recorded using any of PLAYER_DIFF, PLAYER_NEW, PLAYER_OLD
+12:39 <@heinrich5991> e.g.
+12:39 <@heinrich5991> PLAYER_DIFF cid=0 … PLAYER_NEW cid=5 … PLAYER_OLD cid=3 has an implicit tick between the cid=5 and the cid=3 message
+12:40 <@heinrich5991> another correction:
+12:41 <@heinrich5991> the header is the teehistorian uuid followed by a zero-terminated string containing json in a self-explanatory format
+16:33 <+bridge> [ddnet] <Gabbo> https://github.com/ddnet/ddnet/issues/1141
+16:34 <+bridge> [ddnet] <Gabbo> @Admin @Dev @Moderator sorry for the HL, please have a look at the issue & tell me your input?
+16:34 <+Gabee> https://github.com/ddnet/ddnet/issues/1141 people
+16:35 <+bridge> [ddnet] <Gabbo> I don't wanna post anything on the general channel yet I wanna know what you think of it
+16:42 <+bridge> [ddnet] <jao> don't ping mod for that
+16:42 <+bridge> [ddnet] <jao> literally the channel description and #welcome tells you to ping dev..
+16:46 <+bridge> [ddnet] <ChillerDragon> merge ddnet into vanilla? lol
+16:46 <+bridge> [ddnet] <ChillerDragon> you know there is a guy called oy @Gabbo
+16:51 <+bridge> [ddnet] <Ryozuki> oy said that ddnet is antiteeworlds
+16:52 <+bridge> [ddnet] <snail> oy blocks everything and doesnt do anything himself :thonkery:  RIP
+16:52 <+bridge> [ddnet] <snail> even vanilla community is unhappy xd
+16:52 <+bridge> [ddnet] <Ryozuki> i think he would never accept merging a mod
+16:52 <+bridge> [ddnet] <Ryozuki> he is anti modifications
+16:52 <+bridge> [ddnet] <snail> ye
+16:52 <+bridge> [ddnet] <snail> he doesnt accept any changes i think
+16:55 <+bridge> [ddnet] <Ryozuki> https://www.teeworlds.com/forum/viewtopic.php?id=12115
+16:55 <+bridge> [ddnet] <Ryozuki> look at this issue: https://github.com/teeworlds/teeworlds/issues/1489 closed without any response from oy
+16:55 <+bridge> [ddnet] <Ryozuki> thats how oy works
+16:56 <+bridge> [ddnet] <snail> censorship everywhere 👀
+16:56 <+bridge> [ddnet] <Ryozuki> :thonkery:
+16:56 <+bridge> [ddnet] <Ryozuki> its another level
+16:56 <+bridge> [ddnet] <Ryozuki> :danAmazing:
+17:02 <+bridge> [ddnet] <Gabbo> Guys
+17:02 <+bridge> [ddnet] <Gabbo> No matter what
+17:02 <+bridge> [ddnet] <Gabbo> Please let him respond
+17:02 <+bridge> [ddnet] <Gabbo> If he doesn't respond it means he's not open for dialog
+17:02 <+bridge> [ddnet] <Gabbo> And therefore you can break away from Teeworlds
+17:03 <+bridge> [ddnet] <ChillerDragon> @Gabbo no srsly first we have to change the oy situation before anything happens
+17:03 <+bridge> [ddnet] <ChillerDragon> and we need broadcasts bgack o.O
+17:03 <+bridge> [ddnet] <Ryozuki> i think ddnet already broke away from tw
+17:03 <+bridge> [ddnet] <Ryozuki> or u mean tw compatibility?
+17:04 <+bridge> [ddnet] <Ryozuki> or u mean tw backwards compatibility?
+17:04 <+bridge> [ddnet] <Gabbo> I'm just confronting the guy to the reality: he's all alone, I show a screenshot of what teeworlds is today: only mods
+17:04 <+bridge> [ddnet] <Gabbo> tw backwards compatibility
+17:04 <+bridge> [ddnet] <Gabbo> I still use the vanilla client
+17:04 <+bridge> [ddnet] <Gabbo> I tried DDNet and while it's nice, it has too many stuff in here
+17:04 <+bridge> [ddnet] <Ryozuki> 🤷
+17:04 <+bridge> [ddnet] <Ryozuki> i like ddnet client, i dont use teeworlds client since long time
+17:05 <+bridge> [ddnet] <ChillerDragon> how can u even run vanilla on mac?
+17:05 <+bridge> [ddnet] <ChillerDragon> for me it doidnt work sicn eages
+17:05 <+bridge> [ddnet] <ChillerDragon> for me it didnt work sicne ages
+17:06 <+bridge> [ddnet] <ChillerDragon> well im assuming ur using mace becauae of the screenshots in the issue
+17:06 <+bridge> [ddnet] <Ryozuki> @Gabbo "DDNet is bloated as fuck, full of useless features, ugly" ???
+17:06 <+bridge> [ddnet] <Ryozuki> i disagree
+17:07 <+bridge> [ddnet] <Ryozuki> ```
+17:07 <+bridge> [ddnet] <Ryozuki>     It is ugly (colors, in text, in the interface)
+17:07 <+bridge> [ddnet] <Ryozuki>     It has too many functions (you can change the font in game, the red laser, you have two server lists…)
+17:07 <+bridge> [ddnet] <Ryozuki>     It doesn't make sense, at all
+17:07 <+bridge> [ddnet] <Ryozuki>     And I am personally forced to play full screen, it doesn't support the small window I'm used to play with
+17:07 <+bridge> [ddnet] <Ryozuki> ```
+17:08 <+bridge> [ddnet] <Ryozuki> many functions that you can use default values, such as the laser color and wont be diferent yet you enable other people with other opinions to use the cusotmization they like more
+17:08 <+bridge> [ddnet] <Ryozuki> i dont think its bad thing
+17:08 <+bridge> [ddnet] <Ryozuki> also the colored texts i find them lot nicer
+17:09 <+bridge> [ddnet] <jao> colors are good to distinguish things, it's not like they are just there to make it look fancy
+17:09 <+bridge> [ddnet] <Ryozuki> you want to merge ddnet but kill it at same time?
+17:09 <+bridge> [ddnet] <Gabbo> 
+17:09 <+bridge> [ddnet] <Gabbo> https://cdn.discordapp.com/attachments/293493549758939136/455388001267089439/Screen_Shot_2018-06-10_at_5.07.03_PM.png
+17:09 <+bridge> [ddnet] <Gabbo> This category should not be there
+17:09 <+bridge> [ddnet] <Ryozuki> just use vanilla
+17:09 <+bridge> [ddnet] <Ryozuki> and let us have our nice customization
+17:09 <+bridge> [ddnet] <Gabbo> So what you're saying
+17:10 <+bridge> [ddnet] <Gabbo> It sucks because oy is kicking us away from the project and doesn't want to fix or try and fix things
+17:10 <+bridge> [ddnet] <Gabbo> But you just did the exact same thing @Ryozuki
+17:10 <+bridge> [ddnet] <ChillerDragon> no
+17:10 <+bridge> [ddnet] <Ryozuki> what sucks? i don't care at all about teeworlds, i like ddnet and want it to remain a mod or even be standalone
+17:10 <+bridge> [ddnet] <Gabbo> @jao Okay then but the "HUD" is just too much :/
+17:10 <+bridge> [ddnet] <jao> where do you change font btw
+17:11 <+bridge> [ddnet] <jao> never knew about that
+17:11 <+bridge> [ddnet] <Ryozuki> and why changing font is a bad thing?
+17:11 <+bridge> [ddnet] <Ryozuki> i dont understand
+17:11 <+bridge> [ddnet] <Gabbo> @jao that's what I'm talking about, the HUD
+17:11 <+bridge> [ddnet] <Ryozuki> let people customize the way they want
+17:11 <+bridge> [ddnet] <snail> @Gabbo oy already kinda answered to your problematic in ryozuki's link :
+17:11 <+bridge> [ddnet] <snail> `When I started playing Teeworlds, there were usually just 2 servers with people playing - that was fine. If it goes back to that - still fine. It was never the aim to get a lot of players, it's a niche product, even though it attracted lots of players during time. People start and stop playing games, that's life. Games die and people move on.
+17:11 <+bridge> [ddnet] <snail> 
+17:11 <+bridge> [ddnet] <snail> The current development status is a combination of things: lack of time, people become inactive, stuff Magnet mentions here and that the game is pretty much perfect the way it is.
+17:11 <+bridge> [ddnet] <snail> Teeworlds always has been about simplicity and minimalism and that's not going to change. It's not turning into an anti-Teeworlds like ddnt or become mod-friendly etc.. If someone isn't happy with what Teeworlds is. The source is open-source, use it, make your own thing, fulfil your dreams. No hard feelings, that's part of the game.`
+17:11 <+bridge> [ddnet] <snail> @Gabbo oy already kinda answered to your problematic in ryozuki's link :
+17:11 <+bridge> [ddnet] <snail> 
+17:11 <+bridge> [ddnet] <snail> `When I started playing Teeworlds, there were usually just 2 servers with people playing - that was fine. If it goes back to that - still fine. It was never the aim to get a lot of players, it's a niche product, even though it attracted lots of players during time. People start and stop playing games, that's life. Games die and people move on.
+17:11 <+bridge> [ddnet] <snail> 
+17:11 <+bridge> [ddnet] <snail> The current development status is a combination of things: lack of time, people become inactive, stuff Magnet mentions here and that the game is pretty much perfect the way it is.
+17:11 <+bridge> [ddnet] <snail> Teeworlds always has been about simplicity and minimalism and that's not going to change. It's not turning into an anti-Teeworlds like ddnt or become mod-friendly etc.. If someone isn't happy with what Teeworlds is. The source is open-source, use it, make your own thing, fulfil your dreams. No hard feelings, that's part of the game.`
+17:11 <+bridge> [ddnet] <jao> use 3 '`' @snail
+17:11 <+bridge> [ddnet] <jao> this is hard to read
+17:12 <+bridge> [ddnet] <snail> ```test```
+17:12 <+bridge> [ddnet] <Ryozuki> xD
+17:12 <+bridge> [ddnet] <snail> true
+17:12 <+bridge> [ddnet] <Ryozuki> you learn a thing every day
+17:12 <+bridge> [ddnet] <snail> @Gabbo oy already kinda answered to your problematic in ryozuki's link :
+17:12 <+bridge> [ddnet] <snail> 
+17:12 <+bridge> [ddnet] <snail> ```When I started playing Teeworlds, there were usually just 2 servers with people playing - that was fine. If it goes back to that - still fine. It was never the aim to get a lot of players, it's a niche product, even though it attracted lots of players during time. People start and stop playing games, that's life. Games die and people move on.
+17:12 <+bridge> [ddnet] <snail> 
+17:12 <+bridge> [ddnet] <snail> The current development status is a combination of things: lack of time, people become inactive, stuff Magnet mentions here and that the game is pretty much perfect the way it is.
+17:12 <+bridge> [ddnet] <snail> Teeworlds always has been about simplicity and minimalism and that's not going to change. It's not turning into an anti-Teeworlds like ddnt or become mod-friendly etc.. If someone isn't happy with what Teeworlds is. The source is open-source, use it, make your own thing, fulfil your dreams. No hard feelings, that's part of the game.```
+17:12 <+bridge> [ddnet] <snail> ``test``
+17:12 <+bridge> [ddnet] <Gabbo> @snail I was totally unaware of that
+17:12 <+bridge> [ddnet] <ChillerDragon> changing font shoulnt be a problem
+17:12 <+bridge> [ddnet] <ChillerDragon> the hud might be blown and issnt needed in offical teeworlds client thats ture
+17:13 <+bridge> [ddnet] <Gabbo> @ChillerDragon changing font is not a problem because you can't I'm talking about the colors
+17:13 <+bridge> [ddnet] <Ryozuki> `The source is open-source, use it, make your own thing, fulfil your dreams. No hard feelings, that's part of the game.` thats what ddnet did
+17:13 <+bridge> [ddnet] <Ryozuki> and our dreams are fulfilled
+17:13 <+bridge> [ddnet] <Gabbo> Yes, in the game it's white for text, yellow for server, and there should be more colors
+17:13 <+bridge> [ddnet] <Gabbo> Depending on the announcement etc
+17:14 <+bridge> [ddnet] <jao> what
+17:14 <+bridge> [ddnet] <jao> didn't you say colors are bad
+17:14 <+bridge> [ddnet] <Ryozuki> thats what i thought
+17:14 <+bridge> [ddnet] <snail> maybe he means logo etc
+17:14 <+bridge> [ddnet] <Gabbo> @jao yes because you set them
+17:14 <+bridge> [ddnet] <Gabbo> @jao the HUD is too much in the interface
+17:14 <+bridge> [ddnet] <Gabbo> and the ping color too
+17:14 <+bridge> [ddnet] <Gabbo> Not necessary imo
+17:14 <+bridge> [ddnet] <jao> why is it bad?
+17:14 <+bridge> [ddnet] <Ryozuki> ```
+17:14 <+bridge> [ddnet] <Ryozuki> My proposal for DDNet:
+17:14 <+bridge> [ddnet] <Ryozuki> 
+17:14 <+bridge> [ddnet] <Ryozuki>     Clean DDNet so it looks exactly like Teeworlds``` this is a big no from me
+17:14 <+bridge> [ddnet] <ChillerDragon> yes
+17:15 <+bridge> [ddnet] <ChillerDragon> and complete nonsense since oy will fully block it
+17:15 <+bridge> [ddnet] <snail> its really good to be able to customize everything, maybe just hide it behind an "advanced settings" button but removing it would suck
+17:15 <+bridge> [ddnet] <jao> why is ping color bad? you can see on a glance whether the server has a good ping or not instead of having to actually read the ping
+17:15 <+bridge> [ddnet] <ChillerDragon> @Gabbo what do you even mean by merge? do u want to add freeze to vanilla gametype?
+17:15 <+bridge> [ddnet] <Gabbo> @ChillerDragon yes
+17:15 <+bridge> [ddnet] <ChillerDragon> thats not going to happen
+17:15 <+bridge> [ddnet] <ChillerDragon> the vanilla communitee dislikes it
+17:15 <+bridge> [ddnet] <Gabbo> @ChillerDragon and I wanna see the DDNet admins in charge of the teeworlds project because teeworlds is stalling
+17:16 <+bridge> [ddnet] <ChillerDragon> and oy wont do that
+17:16 <+bridge> [ddnet] <Gabbo> Even if the vanilla community is 1% of the teeworlds/ddnet community?
+17:16 <+bridge> [ddnet] <ChillerDragon> so before you are going to start this wild plan you should fix the oy problem
+17:16 <+bridge> [ddnet] <Ryozuki> as oy said, games die, he wants teeworlds to die and so it will be
+17:16 <+bridge> [ddnet] <jao> ddnet admins are overwhelmed with ddnet already, how should they find time to maintain even more
+17:16 <+bridge> [ddnet] <Gabbo> @Ryozuki he wants it to die?
+17:17 <+bridge> [ddnet] <ChillerDragon> he doesnt care
+17:17 <+bridge> [ddnet] <Ryozuki> did u read snail quote
+17:17 <+bridge> [ddnet] <Gabbo> So I'm gonna remove my shitty proposal
+17:17 <+bridge> [ddnet] <Ryozuki> yes
+17:17 <+bridge> [ddnet] <snail> its not "shitty" but just unrealistic given oy's mindset
+17:17 <+bridge> [ddnet] <ChillerDragon> ur simply skipping an important step
+17:17 <+bridge> [ddnet] <snail> (and dont worry, vanilla players are also annoyed by oy)
+17:18 <+bridge> [ddnet] <Ryozuki> i wouldnt merge ddnet but rather implement things that ddnet has into teeworlds
+17:18 <+bridge> [ddnet] <Ryozuki> and keep ddnet as it is, a mod
+17:18 <+bridge> [ddnet] <Gabbo> @snail That was the point: having a teeworlds vanilla wouldn't affect the gameplay, so there would not be any "but it's ugly, but there's too many this and that" etc, it would be good looking, no excuse possible
+17:18 <+bridge> [ddnet] <Ryozuki> lot of games do thaty
+17:18 <+bridge> [ddnet] <Ryozuki> lot of games do that
+17:18 <+bridge> [ddnet] <Ryozuki> they can start by adding the N players feature
+17:19 <+bridge> [ddnet] <Gabbo> If he says no to basically DDNet being the new teeworlds looking exactly like teeworlds… well. I tried?
+17:19 <+bridge> [ddnet] <Gabbo> cuz I know he will say no
+17:19 <+bridge> [ddnet] <snail> the solution would probably be to take the code and create a teeworlds 2.0 with new master servers, active devs etc
+17:19 <+bridge> [ddnet] <snail> totally parting away with the current ones
+17:20 <+bridge> [ddnet] <snail> but that would split players anyway
+17:20 <+bridge> [ddnet] <Ryozuki> teewars.com
+17:21 <+bridge> [ddnet] <Gabbo> @snail Should I remove my issue?
+17:21 <+bridge> [ddnet] <snail> do as u wish
+17:21 <+bridge> [ddnet] <snail> but ur gonna talk to a wall anyway xd
+17:21 <+bridge> [ddnet] <snail> if he even answers
+17:22 <+bridge> [ddnet] <Gabbo> but your idea of a teeworlds 2.0
+17:22 <+bridge> [ddnet] <Gabbo> or ddnet 2.0
+17:22 <+bridge> [ddnet] <Gabbo> is a good thing
+17:23 <+bridge> [ddnet] <Gabbo> Because it will finally improve teeworlds
+17:23 <+bridge> [ddnet] <Gabbo> As in, the features, the gameplay
+17:24 <+bridge> [ddnet] <Gabbo> @ChillerDragon thanks for the answer but now I realize it was dumb to post this
+17:24 <+bridge> [ddnet] <Gabbo> @jao I know they are, that's why I'm willing to help..?
+17:25 <+bridge> [ddnet] <Gabbo> I could make some time to help the project, I have some ressources to share as well (like, if you need a good build server, or hosting website etc.
+17:27 <+bridge> [ddnet] <ChillerDragon> no a fork is bad
+17:27 <+bridge> [ddnet] <ChillerDragon> loosing all the players that go to teeworlds.com or get it on steam
+17:27 <+bridge> [ddnet] <ChillerDragon> we just have to fix the official situation
+17:28 <+bridge> [ddnet] <ChillerDragon> we have to show that the whole communitee is agianst oy then something has to happen
+17:28 <+bridge> [ddnet] <jao> but oy has to make it happen
+17:28 <+bridge> [ddnet] <ChillerDragon> sure?
+17:29 <+bridge> [ddnet] <ChillerDragon> isnt ther eany inactive magnus behind him who could do something if he sees his whole game community is agianst the guy he selected to maintain it
+17:30 <+bridge> [ddnet] <jao> I don't think so
+17:30 <+bridge> [ddnet] <Gabbo> @ChillerDragon that's exactly why I provided the second screenshot, to make him realize no one plays the official games that much
+17:30 <+bridge> [ddnet] <Gabbo> @ChillerDragon heinrich is in favor of the merge
+17:30 <+bridge> [ddnet] <ChillerDragon> then we have to show even more community power to convince oy himself
+17:30 <+bridge> [ddnet] <jao> I play more vanilla than ddrace
+17:31 <+bridge> [ddnet] <Gabbo> @jao yes but you still play ddrace or you played once
+17:31 <+bridge> [ddnet] <Gabbo> without ddnet this wouldn't be possible but now you can realize pretty easily that ddnet is huge
+17:31 <+bridge> [ddnet] <ChillerDragon> i sometimes have the feeling jao is ddnet xd
+17:32 <+bridge> [ddnet] <jao> what wouldn't be possible without ddnet?
+17:32 <+bridge> [ddnet] <Gabbo> @jao https://ddnet.tw/ranks/ all these people playing and having fun
+17:33 <+bridge> [ddnet] <Ryozuki> they have fun in the ddnet mod
+17:33 <+bridge> [ddnet] <Ryozuki> not in teeworlds
+17:33 <+bridge> [ddnet] <ChillerDragon> ddnet is part of teeworlds
+17:33 <+bridge> [ddnet] <Ryozuki> i would like it to be standalone
+17:33 <+bridge> [ddnet] <ChillerDragon> its fully based on the pure and awesome vanilla physics
+17:34 <+bridge> [ddnet] <ChillerDragon> that would be wrong
+17:34 <+bridge> [ddnet] <ChillerDragon> ddrace only added freeze
+17:34 <+bridge> [ddnet] <ChillerDragon> the most fun is pure teeworlds physics
+17:34 <+bridge> [ddnet] <Ryozuki> that freeze turned the game into a coop mode
+17:34 <+bridge> [ddnet] <Ryozuki> ddnet is diferent than teeworlds
+17:34 <+bridge> [ddnet] <ChillerDragon> yes it changed a lot
+17:34 <+bridge> [ddnet] <Ryozuki> like counter strike was a mod of half life
+17:34 <+bridge> [ddnet] <Ryozuki> and it went its own game
+17:34 <+bridge> [ddnet] <ChillerDragon> but ddnet would be shit without teeworlds
+17:35 <+bridge> [ddnet] <Ryozuki> it also had the things half life had
+17:35 <+bridge> [ddnet] <ChillerDragon> imagine a 2d game with hook and freze
+17:35 <+bridge> [ddnet] <Ryozuki> i dont think it would be shit
+17:35 <+bridge> [ddnet] <ChillerDragon> it would suck without teeworlds core
+17:35 <+bridge> [ddnet] <Gabbo> When I say teeworlds
+17:35 <+bridge> [ddnet] <Gabbo> I include everything
+17:35 <+bridge> [ddnet] <Gabbo> DDnet is teeworlds
+17:35 <+bridge> [ddnet] <ChillerDragon> yes
+17:35 <+bridge> [ddnet] <Ryozuki> @ChillerDragon i dont mean to delete teeworlds physicis lol
+17:35 <+bridge> [ddnet] <ChillerDragon> stop spllitting ddnet
+17:35 <+bridge> [ddnet] <ChillerDragon> whole teeworlds is nice
+17:35 <+bridge> [ddnet] <Ryozuki> ddnet source would stay as it is
+17:35 <+bridge> [ddnet] <Ryozuki> but it would be its own game
+17:35 <+bridge> [ddnet] <ChillerDragon> yes
+17:35 <+bridge> [ddnet] <Ryozuki> thats what  i mean with standalone
+17:35 <+bridge> [ddnet] <Gabbo> even the name "teeworlds" is better than ddnet, no offense guys
+17:36 <+bridge> [ddnet] <Ryozuki> so you can break backwards compatibility with the original game
+17:36 <+bridge> [ddnet] <ChillerDragon> and because teeworlds physics are gold the best part is stolen from teeworlds if u take it away and claim it as your own standalone work
+17:36 <+bridge> [ddnet] <Ryozuki> your opinion
+17:36 <+bridge> [ddnet] <Ryozuki> i see no problem
+17:36 <+bridge> [ddnet] <Ryozuki> teeworlds is open source
+17:36 <+bridge> [ddnet] <Ryozuki> you can do that
+17:36 <+bridge> [ddnet] <Ryozuki> even oy said to do that
+17:36 <+bridge> [ddnet] <ChillerDragon> and breaking compatibility is even worse
+17:36 <+bridge> [ddnet] <Ryozuki> thats the heart of open source
+17:36 <+bridge> [ddnet] <ChillerDragon> oh we have a oy fanboi here
+17:36 <+bridge> [ddnet] <Ryozuki> me? no
+17:36 <+bridge> [ddnet] <ChillerDragon> not only ddnet is nice
+17:36 <+bridge> [ddnet] <Ryozuki> im not saying that..
+17:37 <+bridge> [ddnet] <ChillerDragon> im necking you because im mad that you want to go away with ddnet
+17:37 <+bridge> [ddnet] <Ryozuki> fine
+17:37 <+bridge> [ddnet] <ChillerDragon> it would destroy the playerbase even more if we split into multiple games
+17:38 <+bridge> [ddnet] <Ryozuki> currently the playerbase is ddnet
+17:38 <+bridge> [ddnet] <Ryozuki> it wouldnt destroy anything
+17:38 <+bridge> [ddnet] <Ryozuki> just make it more obvius
+17:38 <+bridge> [ddnet] <ChillerDragon> no its not
+17:38 <+bridge> [ddnet] <ChillerDragon> there are other mods
+17:38 <+bridge> [ddnet] <Ryozuki> that teeworlds dont have lot ofp layers
+17:38 <+bridge> [ddnet] <Ryozuki> these mods could adapt to ddnet
+17:38 <+bridge> [ddnet] <ChillerDragon> and these other mods are pretty good too
+17:38 <+bridge> [ddnet] <Ryozuki> like they did with teeworlds
+17:38 <+bridge> [ddnet] <ChillerDragon> and alsp break compatiblity?
+17:39 <+bridge> [ddnet] <Ryozuki> these mods? idk idc
+17:39 <+bridge> [ddnet] <ChillerDragon> why is this even a feature
+17:39 <+bridge> [ddnet] <Ryozuki> they could show in the ddnet masterserver
+17:39 <+bridge> [ddnet] <ChillerDragon> breaking things
+17:39 <+bridge> [ddnet] <Ryozuki> i dont think u get what i mean
+17:39 <+bridge> [ddnet] <ChillerDragon> compatibility is nice
+17:45 <+bridge> [ddnet] <Gabbo> @Ryozuki if I play on vanilla and ddnet didn't work, I wouldn't get the ddnet client.
+17:46 <+bridge> [ddnet] <Ryozuki> fine
+17:46 <+bridge> [ddnet] <ChillerDragon> no not fine
+17:47 <+bridge> [ddnet] <ChillerDragon> we would loose a tee then
+18:14 <+bridge> [ddnet] <fokkonaut> please add multiple server dummy like in k client xD
+18:15 <+bridge> [ddnet] <Amu~Cookie> maybe make a lighter ddnet client for teeworlds merging and keep a full functionnality ddnet client. But yeah I agree on something has to be done to make teeworlds great again
+18:16  * bridge [ddnet] <Gabbo> gives a cookie to @Amu~Cookie
+18:16 <+bridge> [ddnet] <jao> double work
+18:17 <+bridge> [ddnet] <fokkonaut> i just tested out the dummy feature from k client and i think its cool, maybe only 2 tees per server so if youre on server 1 with tee 1 you can toggle dummy like always using your toggle dummy key to tee2 on server 1 xd. in esc menu you can switch to the other server and there the same
+18:17 <+bridge> [ddnet] <fokkonaut> much work i guess but would be extremely cool
+18:18 <+bridge> [ddnet] <Im 'corneum> what for
+18:18 <+bridge> [ddnet] <fokkonaut> swag
+18:18 <+bridge> [ddnet] <fokkonaut> i just like that feature^^
+18:25 <+bridge> [ddnet] <ChillerDragon> it is very usefull @Im 'corneum starting multiple clients all the time and tabbing so so annyoing if you play on multiple servers
+18:26 <+bridge> [ddnet] <fokkonaut> yes
+18:26 <+bridge> [ddnet] <fokkonaut> 2 tees per server is enough i think
+18:26 <+bridge> [ddnet] <fokkonaut> we dont need that 64p support xd
+18:26 <+bridge> [ddnet] <ChillerDragon> i would love to see the double dummy boundle
+18:26 <+bridge> [ddnet] <ChillerDragon> with 2x2 dummys on one server
+18:26 <+bridge> [ddnet] <fokkonaut> that doesnt make any sense
+18:26 <+bridge> [ddnet] <fokkonaut> xD
+18:26 <+bridge> [ddnet] <ChillerDragon> it does
+18:26 <+bridge> [ddnet] <fokkonaut> ok a bit
+18:26 <+bridge> [ddnet] <ChillerDragon> u still have the old dummytoggle bnd
+18:27 <+bridge> [ddnet] <ChillerDragon> for 2 tees
+18:27 <+bridge> [ddnet] <fokkonaut> but what about multi server and then connect to the same server again? hmm
+18:27 <+bridge> [ddnet] <ChillerDragon> and a new bind for toggeling the two dummy pairs
+18:27 <+bridge> [ddnet] <fokkonaut> then it would be like i said
+18:28 <+bridge> [ddnet] <jao> mods could moderate 2 servers at once 😮
+18:28 <+bridge> [ddnet] <fokkonaut> see
+18:28 <+bridge> [ddnet] <fokkonaut> everyone is happy with that
+18:28 <+bridge> [ddnet] <fokkonaut> devs!! 😄
+18:30 <+bridge> [ddnet] <Gabbo> @ChillerDragon on OSX you cannot open teeworlds twice
+18:30 <+bridge> [ddnet] <ChillerDragon> Gabo inc
+18:30 <+bridge> [ddnet] <ChillerDragon> blown feature xd
+18:30 <+bridge> [ddnet] <ChillerDragon> oh he is also pro this feature
+18:30 <+bridge> [ddnet] <ChillerDragon> and you can Gabbo xd
+18:30 <+bridge> [ddnet] <Gabbo> Well
+18:30 <+bridge> [ddnet] <Gabbo> I don't know how
+18:31 <+bridge> [ddnet] <ChillerDragon> you need multiple apps
+18:31 <+bridge> [ddnet] <ChillerDragon> f3 too tab between them in fullscreen
+18:31 <+bridge> [ddnet] <ChillerDragon> but this is super annoying
+18:32 <+bridge> [ddnet] <ChillerDragon> 
+18:32 <+bridge> [ddnet] <ChillerDragon> https://cdn.discordapp.com/attachments/293493549758939136/455408829547544576/image.jpg
+18:34 <+bridge> [ddnet] <fokkonaut> so is there any dev who can code that?
+18:34 <+bridge> [ddnet] <Ryozuki> i think it would be lot of work
+18:34 <+bridge> [ddnet] <Ryozuki> but idk
+18:35 <+bridge> [ddnet] <fokkonaut> you can do it ryozuki!
+18:35 <+bridge> [ddnet] <Ryozuki> i definitly wont do it
+18:35 <+bridge> [ddnet] <fokkonaut> xd
+18:35 <+bridge> [ddnet] <Ryozuki> xd
+18:36 <+bridge> [ddnet] <fokkonaut> pls
+18:36 <+bridge> [ddnet] <fokkonaut> xd
+18:58 <+bridge> [ddnet] <Ryozuki> https://arstechnica.com/tech-policy/2018/06/inventor-says-google-is-patenting-work-he-put-in-the-public-domain/
+18:58 <+bridge> [ddnet] <Ryozuki> googl evilness
+18:59 <+bridge> [ddnet] <Ryozuki> google evilness
+19:12 <+bridge> [ddnet] <Gabbo> @ChillerDragon with ddnet I can but not with teeworlds
+19:13 <+bridge> [ddnet] <ChillerDragon> as i already said how can u even run vanilla on mac
+19:13 <+bridge> [ddnet] <ChillerDragon> fpor me it doesnt work at all
+19:14 <+bridge> [ddnet] <Gabbo> @ChillerDragon well I'm sorry it works for me..
+19:14 <+bridge> [ddnet] <Gabbo> @ChillerDragon It's been installed through brew so I got all the dependencies right
+19:14 <+bridge> [ddnet] <ChillerDragon> u can install tw on bre? xd
+19:14 <+bridge> [ddnet] <ChillerDragon> sick
+19:15 <+bridge> [ddnet] <Gabbo> Gabes-MacBook-Pro% brew cask info teeworlds
+19:15 <+bridge> [ddnet] <Gabbo> teeworlds: 0.6.4
+19:15 <+bridge> [ddnet] <Gabbo> https://www.teeworlds.com/
+19:15 <+bridge> [ddnet] <Gabbo> /usr/local/Caskroom/teeworlds/0.6.4 (3 files, 2.6KB)
+19:15 <+bridge> [ddnet] <Gabbo> From: https://github.com/Homebrew/homebrew-cask/blob/master/Casks/teeworlds.rb
+19:15 <+bridge> [ddnet] <Gabbo> ==> Name
+19:15 <+bridge> [ddnet] <Gabbo> Teeworlds
+19:15 <+bridge> [ddnet] <Gabbo> ==> Artifacts
+19:15 <+bridge> [ddnet] <Gabbo> Teeworlds.app (App)
+19:15 <+bridge> [ddnet] <Gabbo> Teeworlds Server.app (App)
+19:15 <+bridge> [ddnet] <ChillerDragon> do u have to regisetr stuff on brew or does it search on github?
+19:15 <+bridge> [ddnet] <Gabbo> ```Gabes-MacBook-Pro% brew cask info teeworlds
+19:15 <+bridge> [ddnet] <Gabbo> teeworlds: 0.6.4
+19:15 <+bridge> [ddnet] <Gabbo> https://www.teeworlds.com/
+19:16 <+bridge> [ddnet] <Gabbo> /usr/local/Caskroom/teeworlds/0.6.4 (3 files, 2.6KB)
+19:16 <+bridge> [ddnet] <Gabbo> From: https://github.com/Homebrew/homebrew-cask/blob/master/Casks/teeworlds.rb
+19:16 <+bridge> [ddnet] <Gabbo> ==> Name
+19:16 <+bridge> [ddnet] <Gabbo> Teeworlds
+19:16 <+bridge> [ddnet] <Gabbo> ==> Artifacts
+19:16 <+bridge> [ddnet] <Gabbo> Teeworlds.app (App)
+19:16 <+bridge> [ddnet] <Gabbo> Teeworlds Server.app (App) ```
+19:16 <+bridge> [ddnet] <Gabbo> Brew is a package manager with its repository
+19:16 <+bridge> [ddnet] <Gabbo> Have you ever used GNU/Linux?
+19:16 <+bridge> [ddnet] <ChillerDragon> i have
+19:16 <+bridge> [ddnet] <ChillerDragon> and i also use brew a lot
+19:16 <+bridge> [ddnet] <Gabbo> Or even the app store on osx
+19:16 <+bridge> [ddnet] <Gabbo> the idea is: never download from outside
+19:17 <+bridge> [ddnet] <Gabbo> Only get it through brew
+19:17 <+bridge> [ddnet] <ChillerDragon> ikr
+19:17 <+bridge> [ddnet] <ChillerDragon> but how do the packages get thee
+19:17 <+bridge> [ddnet] <Gabbo> by default brew doesn't have much but cask is a nice extension
+19:17 <+bridge> [ddnet] <ChillerDragon> did some1 register teeworlds there and it got accepted?
+19:17 <+bridge> [ddnet] <Gabbo> yes
+19:17 <+bridge> [ddnet] <Gabbo> https://github.com/Homebrew/homebrew-cask/blob/master/Casks/teeworlds.rb
+19:18 <+bridge> [ddnet] <ChillerDragon> i guess cask has more stuff than plain brew
+19:18 <+bridge> [ddnet] <Gabbo> yep
+19:28 <+jxsl13> heinrich5991  online?
+19:31 <+jxsl13> by what is the unexpectedend caused in general?
+20:07 <+bridge> [ddnet] <Im 'corneum> what are tricks to make teeworlds run really fluid on lowspec pc's
+20:07 <+bridge> [ddnet] <ChillerDragon> use good os
+20:08 <+bridge> [ddnet] <ChillerDragon> overclocking
+20:09 <+bridge> [ddnet] <ChillerDragon> highdetails off or directly entities
+20:09 <+bridge> [ddnet] <ChillerDragon> but srysly i cant even run teeworls properly on a highspecs laptop xd
+20:11 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/blob/master/src/game/gamecore.cpp#L443
+20:11 <+bridge> [ddnet] <Ryozuki> i like those long if statements
+20:11 <+bridge> [ddnet] <Ryozuki> 👌
+20:19 <+bridge> [ddnet] <ChillerDragon> https://github.com/ddnet/ddnet/blob/master/src/game/server/score/sql_score.cpp#L688
+20:19 <+bridge> [ddnet] <ChillerDragon> i like this goto
+20:19 <+bridge> [ddnet] <ChillerDragon> 👌
+20:20 <+bridge> [ddnet] <ChillerDragon> wanna see a real if statement?
+20:21 <+bridge> [ddnet] <ChillerDragon> https://github.com/ChillerDragon/chidraqul/blob/master/chidraqul.cs#L1712
+20:24 <+bridge> [ddnet] <ChillerDragon> uffa someone here interested in helping me with threads in teewoods ?

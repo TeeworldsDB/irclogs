@@ -1,0 +1,160 @@
+14:52 <+bridge_> [ddnet] <ChillerDragon> Is it saver to call static functions from threads than class methods?
+14:53 <+Learath2> No difference, however you can't pass a non-static method as a pointer, so the first is usually more convenient.
+14:54 <+bridge_> [ddnet] <ChillerDragon> oh ok thats nice
+14:54 <+bridge_> [ddnet] <ChillerDragon> but if i singiggle snuggly my sketchy pointer to a object in my thread i can happily call methods there even if they get executed in other threads as well?
+14:55 <+bridge_> [ddnet] <ChillerDragon> only problem is object variables i guess
+15:19 <+Learath2> You can't even take a pointer to a member function iirc
+15:20 <+Learath2> and it wouldn't even make much sense, you can't call a member function without an object. It's signature actually includes the object as a parameter
+15:23 <+bridge_> [ddnet] <ChillerDragon> yy i have a pointer to the obj
+15:23 <+Learath2> If you just pass a pointer to the object that's also fine. But threads are pretty dangerous
+15:23 <+Learath2> You might want a lock
+15:24 <+bridge_> [ddnet] <ChillerDragon> i dont know exactly what a lock is but i have a var that is shared by both threads and tracks state of thread
+15:27 <+Learath2> When you modify a variable another thread could be reading that variable and that causes issues. To fix it you can have a lock, that makes sure only one thread is using the variable at a time
+15:28 <+bridge_> [ddnet] <ChillerDragon> hmm sounds good
+15:28 <+bridge_> [ddnet] <ChillerDragon> but too lazy rn to understand how to use it xd
+15:29 <+bridge_> [ddnet] <ChillerDragon> i dont see how my threads could mess something up
+15:29 <+bridge_> [ddnet] <ChillerDragon> ikr famous last words
+15:29 <+Learath2> Or you can make reads and writes atomic, which fixes a lot of issues but there still might be other timing issues, e.g. memory ordering :/
+15:30 <+bridge_> [ddnet] <ChillerDragon> my main thread sets the state var to running then spawns a thread if not running already and the thread then sets state to done and the main thread checks if its done in the gameloop
+15:30 <+bridge_> [ddnet] <ChillerDragon> sounds save to me
+15:30 <+bridge_> [ddnet] <ChillerDragon> so i spawn max one thread at a time
+15:30 <+bridge_> [ddnet] <ChillerDragon> *additional
+15:30 <+bridge_> [ddnet] <Learath2> “Some people, when confronted with a problem, think ‘I know, I’ll use multithreading’. Nothhw tpe yawrve o oblems.” (Eiríkr Åsheim, 2012)
+15:31 <+bridge_> [ddnet] <ChillerDragon> xd
+15:31 <+bridge_> [ddnet] <ChillerDragon> im sure it will be fine 🙂
+15:32 <+bridge_> [ddnet] <Learath2> Well the writes and reads are not atomic, so the thread can set the value halfway, then the other thread can read a trap representation, which invokes undefined behaviour
+15:33 <+bridge_> [ddnet] <ChillerDragon> what reads and write you mean? to file?
+15:33 <+bridge_> [ddnet] <Learath2> Reading and writing to the variable in the memory
+15:33 <+bridge_> [ddnet] <ChillerDragon> oh wait ye i read and write to file at same time ur right its messed up xd
+15:33 <+bridge_> [ddnet] <ChillerDragon> but not to variables
+15:33 <+bridge_> [ddnet] <ChillerDragon> as far as i know
+15:33 <+bridge_> [ddnet] <Learath2> Well even the variable that holds the state isn't safe, CPUs don't write in one cycle
+15:34 <+bridge_> [ddnet] <ChillerDragon> uh
+15:34 <+bridge_> [ddnet] <ChillerDragon> yikes
+15:34 <+bridge_> [ddnet] <ChillerDragon> ok my thread is messed up in all possible ways then
+15:34 <+bridge_> [ddnet] <ChillerDragon> teach me locks senpai
+15:34 <+bridge_> [ddnet] <Learath2> Is this teeworlds code?
+15:34 <+bridge_> [ddnet] <ChillerDragon> yy
+15:34 <+bridge_> [ddnet] <Learath2> Why don't you just use engine jobs?
+15:34 <+bridge_> [ddnet] <ChillerDragon> looked scary to me
+15:34 <+bridge_> [ddnet] <Learath2> @heinrich5991 made them pretty safe iirc
+15:34 <+bridge_> [ddnet] <ChillerDragon> i can imagine
+15:35 <+bridge_> [ddnet] <ChillerDragon> but harder to understand than the crap i built
+15:35 <+bridge_> [ddnet] <Learath2> Well actually idk if 0.7 got heinrichs engine jobs
+15:35 <+bridge_> [ddnet] <ChillerDragon> mimimi
+15:35 <+bridge_> [ddnet] <Learath2> What are you making?
+15:35 <+bridge_> [ddnet] <ChillerDragon> ranking
+15:35 <+bridge_> [ddnet] <ChillerDragon> reading files calculating rank
+15:36 <+bridge_> [ddnet] <ChillerDragon> but i just realized during the rank calculation other ranks could be saved and then there is read and write to file at the same time which is not too good
+15:36 <+bridge_> [ddnet] <Learath2> This is why people use sql for this kind of stuff 😄
+15:36 <+bridge_> [ddnet] <ChillerDragon> :/
+15:36 <+bridge_> [ddnet] <ChillerDragon> onbgy doesnt
+15:36 <+bridge_> [ddnet] <ChillerDragon> he is my big idol
+15:36 <+bridge_> [ddnet] <Learath2> Well I guess you can just do it naively and hope things don't go wrong?
+15:37 <+bridge_> [ddnet] <ChillerDragon> uff
+15:37 <+bridge_> [ddnet] <ChillerDragon> sounds like a chiller approach
+15:37 <+bridge_> [ddnet] <ChillerDragon> but works better when i can still hope my code is not broken
+15:37 <+bridge_> [ddnet] <Learath2> You can have a lock for the object you are passing around just to be safe
+15:38 <+bridge_> [ddnet] <ChillerDragon> do you have a quick lock snipped
+15:38 <+bridge_> [ddnet] <ChillerDragon> LOCK l = lock_create() i g
+15:38 <+bridge_> [ddnet] <Learath2> LOCK m_Lock;
+15:38 <+bridge_> [ddnet] <Learath2> m_Lock = lock_create(); yep
+15:39 <+bridge_> [ddnet] <Learath2> Then in the gameloop you only ever lock_trylock(obj.m_Lock);
+15:39 <+bridge_> [ddnet] <Learath2> If trylock returns true that means you have the lock, and you can touch the contents of obj safely
+15:39 <+bridge_> [ddnet] <Learath2> else just go on, it'll probably free up in a couple gameloops
+15:40 <+bridge_> [ddnet] <Learath2> in the other thread whenever you need to touch the contents of the obj, you first do lock_wait
+15:40 <+bridge_> [ddnet] <Learath2> which will wait until the lock is available to you
+15:40 <+bridge_> [ddnet] <Learath2> after you get the lock you can do things with the object
+15:40 <+bridge_> [ddnet] <Learath2> after you are done touching the object always lock_unlock
+15:41 <+bridge_> [ddnet] <Learath2> that's all, locks are simple synchronisation primitives
+15:41 <+bridge_> [ddnet] <ChillerDragon> does it matter where the lock is?
+15:41 <+bridge_> [ddnet] <ChillerDragon> like on what object or somethin?
+15:41 <+bridge_> [ddnet] <Learath2> Make it a member of the object
+15:41 <+bridge_> [ddnet] <ChillerDragon> or is it just a state i have to use consitently for what ever i want?
+15:42 <+bridge_> [ddnet] <Learath2> The object you are "locking" that is
+15:42 <+bridge_> [ddnet] <ChillerDragon> so my poiter to GameServer?
+15:42 <+bridge_> [ddnet] <Learath2> Wait you are locking the gameserver? 😄
+15:42 <+bridge_> [ddnet] <ChillerDragon> and then make the lock member of CGameContext
+15:42 <+bridge_> [ddnet] <Learath2> No no no no, that's very illegal
+15:42 <+bridge_> [ddnet] <ChillerDragon> :/
+15:42 <+bridge_> [ddnet] <ChillerDragon> xd
+15:42 <+bridge_> [ddnet] <ChillerDragon> well my thread state var is a member of CGameContext
+15:42 <+bridge_> [ddnet] <ChillerDragon> thought thats fine
+15:42 <+bridge_> [ddnet] <Learath2> I see what you are doing, there is no safe way to do it
+15:43 <+bridge_> [ddnet] <Learath2> Atleast not without major work on the code that I stopped doing a couple weeks ago because nomotivation
+15:43 <+bridge_> [ddnet] <Learath2> The proper solution to this is to have a "job queue" for the gameserver so that we can safely signal the gameserver to do things from within a thread
+15:44 <+bridge_> [ddnet] <Learath2> @ChillerDragon you can for now, just make your state variable atomic
+15:44 <+bridge_> [ddnet] <ChillerDragon> this sounds like work do you think its even worth the effort if i get problems with two threads reading and writing to files at the same time anyways?
+15:45 <+bridge_> [ddnet] <ChillerDragon> sounds like i need a job queue for file io
+15:45 <+bridge_> [ddnet] <Learath2> @ChillerDragon reading and writing to the same file without synchronisation is a lot of trouble
+15:45 <+bridge_> [ddnet] <ChillerDragon> y
+15:45 <+bridge_> [ddnet] <Learath2> The usual idea is to create a lockfile
+15:45 <+bridge_> [ddnet] <ChillerDragon> whats that
+15:45 <+bridge_> [ddnet] <ChillerDragon> a actual file?
+15:45 <+bridge_> [ddnet] <Learath2> If you are using the file test.txt for example
+15:45 <+bridge_> [ddnet] <Learath2> You create the file test.txt.lck
+15:45 <+bridge_> [ddnet] <ChillerDragon> ah i see
+15:46 <+bridge_> [ddnet] <Learath2> And whenever you want to use test.txt, you first check whether a .lck file exists
+15:46 <+bridge_> [ddnet] <ChillerDragon> yy
+15:46 <+bridge_> [ddnet] <Learath2> if it does you have to wait
+15:46 <+bridge_> [ddnet] <ChillerDragon> implementing wait alone sounds like a struggle
+15:46 <+bridge_> [ddnet] <Learath2> It's quite simple
+15:46 <+bridge_> [ddnet] <ChillerDragon> ye?
+15:47 <+bridge_> [ddnet] <Learath2> In your thread loop you check whether the file exists
+15:47 <+bridge_> [ddnet] <ChillerDragon> sounds like many things can go wrong
+15:47 <+bridge_> [ddnet] <Learath2> if it doesn't just sleep a while
+15:47 <+bridge_> [ddnet] <ChillerDragon> well so i need a thread loop
+15:47 <+bridge_> [ddnet] <ChillerDragon> for every file io
+15:47 <+bridge_> [ddnet] <Learath2> Well it's probably more performant then spawning a new thread the next gameloop if the file is not available
+15:49 <+bridge_> [ddnet] <ChillerDragon> or i dont wait
+15:50 <+bridge_> [ddnet] <ChillerDragon> if i read a file from two threads at the same time is that save?
+15:50 <+bridge_> [ddnet] <Learath2> You could maybe get fancy with creating a hashtable of semaphores that get triggered when a modifying thread quits and is removed if there are 0 threads for a file left
+15:50 <+bridge_> [ddnet] <Learath2> @ChillerDragon no
+15:50 <+bridge_> [ddnet] <ChillerDragon> so in main thread where i have to write and do important stuff like saving i create lock files and from the rank thread i just abort if lock file exist and done
+15:50 <+bridge_> [ddnet] <ChillerDragon> so /rank doesnt work when a file is currently updated
+15:51 <+bridge_> [ddnet] <ChillerDragon> np
+15:51 <+bridge_> [ddnet] <ChillerDragon> i rly dont wanna get fancy
+15:51 <+bridge_> [ddnet] <Learath2> Well the reading is probably safe, but there is no guarantee that the things read will be the same
+15:51 <+bridge_> [ddnet] <ChillerDragon> wot?
+15:52 <+bridge_> [ddnet] <ChillerDragon> what do you mean by the same? Do you mean somehow altered values by magic or simply old values not updated yet?
+15:53 <+bridge_> [ddnet] <Learath2> This is all a bit complicated, when two threads read the same file, it is usually safe
+15:53 <+bridge_> [ddnet] <ChillerDragon> ok sounds good to me
+15:53 <+bridge_> [ddnet] <Learath2> but if the file is opened non exclusively and a write happens inbetween the reads, the second read might read a half modified file, or a fully modified file, or a non modified file, it all depends on how the write is scheduled by the OS
+15:54 <+bridge_> [ddnet] <Learath2> @ChillerDragon yeah what you proposed works, as long as /rank doesn't work if there is a lockfile it's fine
+15:54 <+bridge_> [ddnet] <ChillerDragon> yy
+15:54 <+bridge_> [ddnet] <ChillerDragon> sounds like fine ux to me
+15:54 <+bridge_> [ddnet] <Learath2> And as long as you never have a thread write to the rankfile without creating the lockfile
+15:55 <+bridge_> [ddnet] <ChillerDragon> get a error in the rare case while typing /rank and just redo it
+15:55 <+bridge_> [ddnet] <ChillerDragon> ok any good conventions for lock files? Anything in tw code already to create and check for lockfiles?
+15:56 <+bridge_> [ddnet] <ChillerDragon> is ther something in place for settings?
+15:56 <+bridge_> [ddnet] <ChillerDragon> or should i just use first lockfile answer from stackoverflow
+15:57 <+bridge_> [ddnet] <Learath2> Doesn't really matter
+15:58 <+bridge_> [ddnet] <Learath2> We don't have lockfiles in tw code
+15:58 <+bridge_> [ddnet] <ChillerDragon> so the io_write etc code is not very safe?
+15:58 <+bridge_> [ddnet] <ChillerDragon> when closing two tw clients at the same time my settings might get messed up?
+15:58 <+bridge_> [ddnet] <Learath2> Yes if you are very unlucky and not on windows
+15:58 <+bridge_> [ddnet] <ChillerDragon> y just saw that
+15:59 <+bridge_> [ddnet] <ChillerDragon> windows seems to be save
+15:59 <+bridge_> [ddnet] <Learath2> windows enforces exclusivity
+15:59 <+bridge_> [ddnet] <ChillerDragon> sounds like a issue to me tbg
+15:59 <+bridge_> [ddnet] <ChillerDragon> tbh*
+15:59 <+bridge_> [ddnet] <Learath2> on POSIX you can get the same behaviour with flock iirc
+15:59 <+bridge_> [ddnet] <ChillerDragon> mby we should implement that
+15:59 <+bridge_> [ddnet] <ChillerDragon> loosing settings can be tragic
+16:00 <+bridge_> [ddnet] <ChillerDragon> cant belive that windows is superior in this case
+16:01 <+bridge_> [ddnet] <ChillerDragon> ima buy a windows vps now 😄
+16:01 <+bridge_> [ddnet] <Learath2> "superior"
+16:01 <+bridge_> [ddnet] <ChillerDragon> wait but what does windows do then?
+16:01 <+bridge_> [ddnet] <ChillerDragon> just fail?
+16:01 <+bridge_> [ddnet] <Learath2> It also commonly breaks software
+16:02 <+bridge_> [ddnet] <Learath2> Yeah fopen fails
+22:01 <+bridge_> [ddnet] <ChillerDragon> no way that made it to teh start page xd
+23:24 <+bridge_> [ddnet] <heinrich5991> @Learath2 https://www.youtube.com/watch?v=lR0nh-TdpVg
+23:24 <+bridge_> [ddnet] <Ryozuki> rip
+23:46 <+bridge_> [ddnet] <ChillerDragon> Again @heinrich5991
+23:46 <+bridge_> [ddnet] <ChillerDragon> Is this becoming a memes
+23:47 <+bridge_> [ddnet] <ChillerDragon> Or do I have trouble distinguishing talks by this guy
+23:47 <+bridge_> [ddnet] <heinrich5991> again?
+23:47 <+bridge_> [ddnet] <heinrich5991> the latter
+23:47 <+bridge_> [ddnet] <ChillerDragon> Idk
+23:47 <+bridge_> [ddnet] <ChillerDragon> K

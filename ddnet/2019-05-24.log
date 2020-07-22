@@ -1,0 +1,196 @@
+10:42 <+bridge> [ddnet] <Learath2> @heinrich5991 here?
+10:42 <@heinrich5991> kinda
+10:43 <@heinrich5991> fun, irc showed the notification before discord did
+10:43 <+bridge> [ddnet] <Learath2> quick question, do you know what `AuthInit` is in teehistorian files? I don't see any of them, I thought they were supposed to be in all
+10:44 <@heinrich5991> AuthInit is only done when the map changes and someone was still logged in
+10:44 <@heinrich5991> it's probably quite rare
+10:44 <+bridge> [ddnet] <Learath2> doesn't seem to be what i thought
+10:45 <+bridge> [ddnet] <Learath2> do we save keyslots and their names somewhere?
+10:45 <+bridge> [ddnet] <Learath2> also do we record the keyslots on rcon commands?
+10:45 <+bridge> [ddnet] <heinrich5991> you're probably looking for AuthLogin
+10:45 <+bridge> [ddnet] <heinrich5991> that's the login events
+10:46 <+bridge> [ddnet] <heinrich5991> AuthInitial is also interesting if you want to correlate rcon commands with key slots
+10:46 <+bridge> [ddnet] <Learath2> Meh, so I have to keep state to figure this out
+10:47 <+bridge> [ddnet] <heinrich5991> yes
+10:47 <+bridge> [ddnet] <heinrich5991> you should generally expect to need to keep state if you want to make sense of teehistorian files
+10:47 <+bridge> [ddnet] <heinrich5991> they're append-only and try to save the least data possible
+10:47 <+bridge> [ddnet] <Learath2> what does authlogin have in it btw?
+10:48 <+bridge> [ddnet] <Learath2> cid, level and authname?
+10:48 <+bridge> [ddnet] <Learath2> yep seems to be it
+10:49 <+bridge> [ddnet] <Learath2> let's see if I know enough rust to code this 😛
+10:49 <+bridge> [ddnet] <heinrich5991> you can also write it in whatever you want by using the output of teehistorian_dump
+10:49 <+bridge> [ddnet] <Learath2> that sounds horribly inefficient
+10:49 <+bridge> [ddnet] <heinrich5991> yes
+10:50 <+bridge> [ddnet] <Learath2> I'd rather hack teehistorian_dump at that point 😛
+10:50 <+bridge> [ddnet] <heinrich5991> 😄
+10:50 <+bridge> [ddnet] <heinrich5991> if you get a tool of sensible code quality, you could PR it to the libtw2 repo
+10:50 <+bridge> [ddnet] <Learath2> well I'll PR it anyways, you can help me get it up to quality later
+11:02 <+bridge> [ddnet] <Learath2> such a weird language...
+11:02 <+bridge> [ddnet] <heinrich5991> it's not just another language with no new concepts ^^
+11:03 <+bridge> [ddnet] <Learath2> they should make a nice to use version of c++ instead of all these new languages that are so confusing
+11:04 <+bridge> [ddnet] <heinrich5991> I think rust is the safe to use version of c++, and probably a good attemtp at being nice at the same time
+11:05 <+bridge> [ddnet] <Learath2> I don't think I like all these `Some`s and `expect`s
+11:05 <+bridge> [ddnet] <heinrich5991> those are actually a good thing to learn IMO
+11:06 <+bridge> [ddnet] <heinrich5991> Option types generally make your code more robust against error cases IMO
+11:06 <+bridge> [ddnet] <Learath2> sure, but I don't think that's something that needed improving
+11:06 <+bridge> [ddnet] <heinrich5991> I think it is something
+11:06 <+bridge> [ddnet] <heinrich5991> you see how people are complaining about hitting NPE in java in their code? that's the solution to that
+11:07 <+bridge> [ddnet] <heinrich5991> (null pointer exception)
+11:07 <+bridge> [ddnet] <heinrich5991> because it moves the error to the location where the wrong assumption happens
+11:07 <+bridge> [ddnet] <Learath2> I mean you shouldn't dereference a null pointer
+11:07 <+bridge> [ddnet] <heinrich5991> not the location where the null pointer is used
+11:07 <+bridge> [ddnet] <Learath2> it's not rocket science to add a null check, we've been doing it for quite some time now
+11:08 <+bridge> [ddnet] <heinrich5991> yes. but if you have a wrong assumption, it can blow up in a completely unrelated part of the program
+11:08 <+bridge> [ddnet] <heinrich5991> not so for option types
+11:08 <+bridge> [ddnet] <Learath2> It's a fairly easy thing to figure out where the null comes from if you have coded for more then a week
+11:08 <+bridge> [ddnet] <Learath2> a simple backtrace gives you where it comes from
+11:09 <+bridge> [ddnet] <heinrich5991> not in my experience
+11:09 <+bridge> [ddnet] <heinrich5991> you don't know where the null initially came from
+11:09 <+bridge> [ddnet] <heinrich5991> you see where the null pointer was dereferenced
+11:09 <+bridge> [ddnet] <heinrich5991> but not why the variable was null to begin with
+11:09 <+bridge> [ddnet] <Learath2> at that point, you do a bt
+11:09 <+bridge> [ddnet] <heinrich5991> then you see a backtrace of the place where the null pointer was dereferenced
+11:09 <+bridge> [ddnet] <Learath2> if you were calling the function with a null it's obv
+11:10 <+bridge> [ddnet] <heinrich5991> e.g. you see it came from a member variable
+11:10 <+bridge> [ddnet] <Learath2> if you were dereferencing a null that came from this function, it's quite easy to see where it is becoming null
+11:10 <+bridge> [ddnet] <Learath2> it's obviously somewhere you are modifying it and don't have a null check
+11:10 <+bridge> [ddnet] <heinrich5991> now you don't know why. did the function I call earlier return the null errornously? was it becasue I passed null to a function errnously? etc.
+11:10 <+bridge> [ddnet] <heinrich5991> this doesn't happen with option types
+11:11 <+bridge> [ddnet] <Learath2> In my experience I've never had a hard to debug null pointer issue tbh
+11:11 <+bridge> [ddnet] <Learath2> it's one of those problems that are extremely obvious
+11:11 <+bridge> [ddnet] <Learath2> for me atleast
+11:11 <+bridge> [ddnet] <heinrich5991> I feel like you're misunderstanding what I'm saying. of course it's easy to find where the null pointer was dereferenced
+11:12 <+bridge> [ddnet] <heinrich5991> but it's not so easy to see how the null pointer propagated through the program to that point, if it's not in the call stack anymore because it went through several variables or functions no longer in the call stack
+11:12 <+bridge> [ddnet] <Learath2> I guess I've never had an issue in finding where a null originated from
+11:13 <+bridge> [ddnet] <heinrich5991> anyway. even from a theoretical point of view. if you were designing a new system, you'd probably not say: oh, let's add a sentinel value to every pointer type
+11:13 <+bridge> [ddnet] <heinrich5991> even C and java have nonnull annotations because of that
+11:14 <+bridge> [ddnet] <heinrich5991> (or popular C compilers do)
+11:15 <+bridge> [ddnet] <deen> > but it's not so easy to see how the null pointer propagated through the program to that point, if it's not in the call stack anymore because it went through several variables or functions no longer in the call stack
+11:15 <+bridge> [ddnet] <deen> rr can help you with that btw.
+11:16 <+bridge> [ddnet] <Learath2> I've never felt the need to use such an annotation, I guess it depends very much on how you think while coding
+11:23 <+bridge> [ddnet] <Learath2> @deen rr sounds cool
+11:23 <+bridge> [ddnet] <heinrich5991> yup
+11:24 <+bridge> [ddnet] <heinrich5991> unfortunately, I never looked into it so far :/
+11:24 <+bridge> [ddnet] <deen> At work I played around with UndoDB recently, works similarly, but unfortunately not free/open source
+11:49 <+bridge> [ddnet] <Learath2> I never thought there'd be a closed source debugger
+11:50 <+bridge> [ddnet] <Learath2> sounds like a very hard to sell product, as developers most likely won't be used to it at all
+11:52 <+bridge> [ddnet] <deen> And now you know why we had an UndoDB workshop 😉
+11:52 <+bridge> [ddnet] <deen> rr can't deal with shared memory well and we use quite a bit of that, so it's the only choice
+11:53 <+bridge> [ddnet] <deen> and it's really easy to use, just record and then you can step backwards in a regular gdb interface
+11:53 <+bridge> [ddnet] <Learath2> @deen is a time-travel debugger that useful that you'd use a debugger you aren't familiar with?
+11:54 <+bridge> [ddnet] <Learath2> oh is it also gdb-ish?
+11:54 <+bridge> [ddnet] <deen> undodb is just a thin layer on top of gdb
+11:54 <+bridge> [ddnet] <Learath2> that makes more sense 😛
+11:54 <+bridge> [ddnet] <deen> so all gdb commands work plus everything with an r prefix to d o it in reverse
+11:54 <@heinrich5991> rdelete production database
+11:55 <+bridge> [ddnet] <Learath2> is time-travel debugging something you use often?
+11:55 <+bridge> [ddnet] <deen> nope
+11:55 <+bridge> [ddnet] <deen> recording is super slow, only one thread at a time
+11:55 <+bridge> [ddnet] <Learath2> that'd be a very hard product to pitch to management 😛
+11:55 <+bridge> [ddnet] <deen> and requires huge amounts of memory to store
+11:56 <+bridge> [ddnet] <deen> The thing is we have a few cases of really hard to reproduce problems
+11:56 <+bridge> [ddnet] <deen> so you can run them in a loop for days on end while recording
+11:56 <+bridge> [ddnet] <deen> and when you finally have them you can use the recording to figure out what happened previously
+11:56 <+bridge> [ddnet] <deen> or a customer has a problem that only they can reproduce on their machines, but we can't on ours
+11:57 <+bridge> [ddnet] <deen> because of the data set or whatever, so they can enable the live recorder, reproduce it, and send us the recording
+11:57 <+bridge> [ddnet] <Learath2> but if it's very slow and takes a lot of memory is it feasible for a customer to run it?
+11:57 <@heinrich5991> but then you have the customer's data. that sounds like something the customer might actively want to avoid
+11:57 <+bridge> [ddnet] <deen> only some
+11:58 <+bridge> [ddnet] <deen> the customers often have productive systems and test systems, so they could run it on a test system
+11:58 <+bridge> [ddnet] <deen> @heinrich5991 sure, they have to be aware of that. they also give us exports for reproducing problems
+11:59 <+bridge> [ddnet] <deen> and we have to be careful with customer data of course
+12:01 <+bridge> [ddnet] <Learath2> oh you can embed the recorder into your product aswell?
+12:01 <+bridge> [ddnet] <deen> I think of reverse debugging as a last-resort solution for the problems hardest to debug, not something you use daily
+12:01 <+bridge> [ddnet] <deen> yes
+12:01 <+bridge> [ddnet] <deen> The alternative for us would be to add more tracing, release a new version, tell customers to use that and then send us the traces. Takes some time
+12:03 <+bridge> [ddnet] <Learath2> yep, actually sounds like a decent last resort to debugging hard to reproduce problems
+14:47 <+bridge> [ddnet] <Learath2> @heinrich5991 does the teehistorian header include max players?
+15:24 <+bridge> [ddnet] <Learath2> I wonder if they actually tried hard to make the syntax unfamiliar to people
+15:25 <+bridge> [ddnet] <Learath2> it's like I'm trying to decode moon runes
+15:26 <+bridge> [ddnet] <archimede67> xd
+15:26 <+bridge> [ddnet] <Learath2> like just try to have a guess at what `pub identity: &'a [u8],` could mean
+15:29 <+bridge> [ddnet] <archimede67> wow
+15:30 <+bridge> [ddnet] <Learath2> I think it's a reference to an array of 8 bit unsigned integers
+15:31 <+bridge> [ddnet] <Learath2> lifetimes are such a foreign concept
+16:29 <+bridge> [ddnet] <Learath2> okay how does this even make sense `1302 ConsoleCommand { cid: 0, flag_mask: 128, cmd: b"pause", args: [] }`
+16:29 <+bridge> [ddnet] <Learath2> pause should have the flag_mask 132 not 128......................
+16:30 <+bridge> [ddnet] <archimede67> what's flag_mask?
+16:30 <+bridge> [ddnet] <Learath2> the commands flags
+16:30 <+bridge> [ddnet] <Learath2> when you register it in console
+16:31 <+bridge> [ddnet] <Learath2> It's `CFGFLAG_CHAT|CFGFLAG_SERVER` for pause
+16:31 <+bridge> [ddnet] <Learath2> which is 132, but the `CFGFLAG_SERVER` seems to be gone in the teehistorian file
+16:32 <+bridge> [ddnet] <archimede67> oh
+16:34 <+bridge> [ddnet] <Learath2> okay, the flagmask is set to only CFGFLAG_CHAT while executing chat commands
+16:34 <+bridge> [ddnet] <Learath2> that makes more sense
+16:34 <+bridge> [ddnet] <archimede67> ye xd
+16:59 <+bridge> [ddnet] <archimede67> @Learath2 is it possible to create a background job to only do one action?
+16:59 <+bridge> [ddnet] <Learath2> yes
+16:59 <+bridge> [ddnet] <archimede67> How then? xd
+16:59 <+bridge> [ddnet] <Learath2> take a look at `CJob`
+17:00 <+bridge> [ddnet] <archimede67> k thx
+20:12 <+bridge> [ddnet] <Learath2> @heinrich5991 on a scale of very horrible to horrible, how horrible is this? https://paste.pr0.tips/FO
+20:21 <+bridge> [ddnet] <archimede67> man its beautiful
+20:28 <+bridge> [ddnet] <Learath2> It's currently parsing all of the teehistorian files I have
+20:29 <+bridge> [ddnet] <Learath2> it should finish in a decade or so 😛
+20:30 <+bridge> [ddnet] <Learath2> exporting this all to json then parsing the json to render graphs don't seem like the best idea performance-wise, but idk what else to export it as 🙂
+20:40 <@deen> msgpack, protobuf?
+20:41 <@deen> but I had no problems working with json files around 1 GB, there are performant libs around
+20:41 <+Davide> Hey @deen @heinrich5991, how much time
+20:41 <@deen> hi Davide 
+20:41 <@deen> time?
+20:42 <+Davide> How much time i don't join here
+20:42 <+Davide> I mean that
+20:42 <@deen> no idea
+20:42 <+Davide> It was not a question, but an exclamation
+20:43 <+Davide> Don't care, anyway there are one way to give strong to all @deen ?
+20:44 <+Davide> Example via map config
+20:47 <+bridge> [ddnet] <Learath2> @deen will see how performant js itself is with that much data 🙂
+20:48 <@deen> no
+20:48 <+bridge> [ddnet] <Learath2> Davide: nope
+20:48 <+Davide> Wtf
+20:48 <+Davide> So, how kog do that?
+20:48 <@deen> they changed the source code
+20:49 <@deen> we had that change in ddnet too at some point, but the physics change makes some game play worse, for example hammerfly
+20:49 <+Davide> Ok so there isn't way with config, only with code
+20:49 <+bridge> [ddnet] <Learath2> I love how when we patched it everyone was angry and when kog patches it it's a revolution 😛
+20:49 <@deen> so it was reverted quickly
+20:49 <@deen> kog doesn't have hammerfly and other tee interactions like in ddrace, right?
+20:49 <+bridge> [ddnet] <Ryozuki> what dd the patch?
+20:49 <+bridge> [ddnet] <Ryozuki> they*
+20:50 <+bridge> [ddnet] <Learath2> @deen well you can still hammerfly with another tee
+20:50 <@deen> Learath2: yes, but it was worse than before
+20:50 <+bridge> [ddnet] <Learath2> not really part of maps though
+20:50 <+bridge> [ddnet] <Learath2> @deen I meant in kog
+20:50 <@deen> and now it would also invalidate all previous ranks
+20:50 <+Davide> @Deen can use hammerfly but there aren't map require that, i think
+20:51 <@deen> Davide: you can ask qshar to make the source code public
+20:51 <+Davide> I think he don't do it 
+20:51 <@deen> https://github.com/ddnet/ddnet/commit/2b084645276baa37b7a31aafa3fab0e3a323201b
+20:51 <+Davide> Thanks @deen
+20:51 <@deen> We only had it for 10 hours :D
+20:52 <+Davide> Why don't make a map-config for doing that? So you can choose what map can have it or not
+20:52 <+Davide> So the mappers can use or not that config
+20:53 <@deen> because then players have to get used to two different kinds of physics
+20:53 <@deen> instead we have /spec
+20:53 <+Davide> That isn't a problem if you're good
+20:53 <+Davide> I know @deen 
+21:32 <+Davide> @deen little problem, the code you've linked me is very old, and the current code is very different 
+21:32 <+bridge> [ddnet] <archimede67> Oh man how strange is that
+21:32 <+bridge> [ddnet] <archimede67> 
+21:32 <+bridge> [ddnet] <archimede67> https://cdn.discordapp.com/attachments/293493549758939136/581565291230658604/unknown.png
+21:34 <+bridge> [ddnet] <archimede67> sometimes the name is wrong like that
+21:34 <+bridge> [ddnet] <archimede67> its so weird
+21:35 <+bridge> [ddnet] <archimede67> and sometimes
+21:35 <+bridge> [ddnet] <archimede67> 
+21:35 <+bridge> [ddnet] <archimede67> https://cdn.discordapp.com/attachments/293493549758939136/581566054975799306/unknown.png
+22:12 <+bridge> [ddnet] <archimede67> i'm lost xd
+22:17 <+bridge> [ddnet] <jao> you can see how you got there in vs
+22:17 <+bridge> [ddnet] <archimede67> tell me
+22:17 <+bridge> [ddnet] <archimede67> please 😄
+22:19 <+bridge> [ddnet] <jao> call stack
+22:25 <+bridge> [ddnet] <archimede67> ah i need to install something
+22:32 <+bridge> [ddnet] <archimede67> omg who did that
+22:34 <+bridge> [ddnet] <archimede67> 
+22:34 <+bridge> [ddnet] <archimede67> https://cdn.discordapp.com/attachments/293493549758939136/581580761958973450/unknown.png
+22:51 <+Davide> @deen Solved 
+22:51 <+Davide> Thanks

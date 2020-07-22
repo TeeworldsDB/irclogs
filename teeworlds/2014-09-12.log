@@ -1,0 +1,21 @@
+02:06 < heinrich5991> deen: I think that's a duplicate. see #1211
+02:06 < heinrich5991> https://github.com/teeworlds/teeworlds/issues/1211
+02:15 < deen> True
+07:02 < guest__> floreo: Its short and clear (I like), but its not the same thing.
+07:02 < guest__> floreo: Be careful that log lines must begin by [.*] or you don't output anything! (and careful too: "*" means "0 or more". Maybe you want "+" ?) 
+07:03 < guest__> floreo: BTW, If you need a date even if you dont know the log format, the simplest way is to add the system date field when needed (and use/convert the log date in other cases).
+07:03 < guest__> floreo: I mean:
+07:03 < guest__> floreo: gawk '/regExp:_line_format_is_know/ { change log date format; print; next record } { add system date field; print }'
+07:03 < guest__> floreo: The second "{ }" treats lines that don't match "/regExp/", so you can't loose anything.
+07:03 < guest__> floreo: It can be something like that:
+07:03 < guest__> floreo: gawk 'BEGIN { FS="]"; OFS="]" }  /**RegExp**/ { _ts=substr($1,2); $1="[" strftime("%F %T", strtonum("0x"_ts)); print; fflush(); next } { printf "[%s]", strftime("%F %T", systime()); print; fflush() }'
+07:04 < guest__> floreo: with /**RegExp**/ ==
+07:04 < guest__> floreo: /^\[[ [ : xdigit : ] ]+\]/ 
+07:04 < guest__> floreo: without spaces.
+07:04 < guest__> floreo: Ex.:
+07:04 < guest__> floreo: echo '[4aaaaaaa] know this format!' | gawk '...'
+07:04 < guest__> floreo:         --> [2009-09-11 21:53:14] know this format!
+07:04 < guest__> floreo: echo '[dont] know this format!' | gawk '...'
+07:05 < guest__> floreo:         --> [2014-09-12 07:05:05][dont] know this format!
+07:05 < guest__> floreo: echo 'dont know this format!' | gawk '...'
+07:06 < guest__> floreo:         --> [2014-09-12 07:05:59]dont know this format!

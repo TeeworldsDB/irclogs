@@ -1,0 +1,330 @@
+00:02 < bridge> [teeworlds] <Assa> i wonder how you found it, but good job
+01:07 < bridge> [teeworlds] <jxsl13> I looked at it ... added a black layer behind it to have a better contrast, also added a grid to see tile boundaries.
+01:31 < bridge> [teeworlds] <jxsl13> zooming in also helped
+14:15 < Learath2> Would you mind if I reimplement allocators in a more C++11 way, or preferably use std::allocator like allocators?
+14:16 < Learath2> not C++14/17 mind you, the new allocator_traits stuff is just insane
+14:43 < bridge> [teeworlds] <Dune> that's C++03 compatible?
+14:44 < Learath2> Eh, we still target C++03 don't we? :/
+14:44 < bridge> [teeworlds] <Dune> yes
+14:44 < bridge> [teeworlds] <Dune> should ask Oy when he's around I guess :)
+14:44 < Learath2> The current way we do allocators is good for arrays and stuff, but when implementing a map, I need to rebind the allocator to another type
+14:45 < Learath2> Someone give matricks a call, maybe he'd implement a quick hash table for me :P
+14:45 < bridge> [teeworlds] <Dune> we probably should have a discussion on containers in general. what should be reimplemented etc
+14:46 < Learath2> I think it'd be nice if we'd just use stl containers at this point, the performance isn't too bad for us and we don't even use a custom allocator anymore
+14:47 < bridge> [teeworlds] <Dune> agree, as long as it doesn't introduce thick ass template abstraction levels
+14:49 < bridge> [teeworlds] <Dune> you don't want to end up with https://twitter.com/mcclure111/status/1078176148582998017
+14:51 < bridge> [teeworlds] <Dune> (this is a missing include)
+14:53 < bridge> [teeworlds] <Assa> why are you still targeting C++03 btw?
+14:53 < bridge> [teeworlds] <Dune> that's a controversial topic and there are many arguments for and against
+14:54 < bridge> [teeworlds] <Assa> guess it's too much work for now
+14:54 < bridge> [teeworlds] <jxsl13> `Someone give GOD matricks a call,`, you missed the prefix.
+14:55 < bridge> [teeworlds] <jxsl13> xD
+14:55 < bridge> [teeworlds] <Dune> @Assa that's not why, adding a compiler flag takes a second
+14:55 < bridge> [teeworlds] <jxsl13> `thick ass template abstraction`
+14:56 < bridge> [teeworlds] <jxsl13> c++11 would be nice, but yeah, c++ error messages are just utter garbage
+15:08 < bridge> [teeworlds] <Assa> @jxsl13 he missed the suffix too: `GOD matricks, guardian of the holy grail`
+15:10 < rand> Thou shalt not take the name of the Lord thy God in vain
+15:16 < bridge> [teeworlds] <jxsl13> kinda Doom and Wolfenstein need to be somehow verwurstet(google translate says: sausaged) in that title..
+16:18 < Learath2> Dune: do you have a good idea how I could pass the hash function for the key?
+16:41 < bridge> [teeworlds] <jxsl13> @ChillerDragon  or @fokkonaut  mind adding the logging patch that I did in that one issue to ddrace?
+16:41 < bridge> [teeworlds] <jxsl13> for joining and leaving players
+16:48 < bridge> [teeworlds] <fokkonaut> ?
+16:49 < bridge> [teeworlds] <jxsl13> this one: https://github.com/teeworlds/teeworlds/issues/2475
+17:36 < bridge> [teeworlds] <ChillerDragon> As soon as it’s in vanilla I guess
+17:47 < bridge> [teeworlds] <jxsl13> in 5 years then or never
+17:48 < Dune> git build failing?
+17:49 < Dune> g++.exe: error: `pkg-config: No such file or directory
+17:49 < Dune> huh, windows broke
+17:49 < Dune> https://github.com/teeworlds/teeworlds/runs/501145892?check_suite_focus=true
+17:55 < Dune> hey Oy
+17:55 < Oy> hey
+17:55 < Dune> Learath2 and I were chatting about when to use STL containers earlier today
+17:55 < Dune> do you have some guidance on that? the baselib redefines some but we use STL at other places
+17:55 < Dune> I think Learath2 is implementing a hashmap of some sort
+17:59 < Oy> don't  think we use stl containers
+17:59 < Oy> doubt there's aneed for that
+17:59 < Dune> for a hashmap?
+18:01 < Dune> grep -rin "include <" src | grep -v ".h>" | grep "<.*>"
+18:01 < Dune> gives <new> and <algorithm>
+18:09 < bridge> [teeworlds] <fokkonaut> @oy can you merge the command usage pr
+18:11 < Oy> done when it's done
+18:37 <@heinrich5991> Side note: Since we're okay with changing the network even in vanilla, can we finally get rid of the nethash? If introduced today, I don't believe you'd merge the nethash, yet we keep it in the code. :( It doesn't offer protection either, it's just unneeded complexity…
+18:38 <@heinrich5991> why do we have this mentality that things that are in the code should stay, even when there are arguments in favor of removing them.
+18:39 <@heinrich5991> flow being the most recent example. we would never merge a half-finished, compiled-out by default feature into teeworlds
+18:39 <@heinrich5991> yet we're not removing it either. it can always be ressurected, even if it's gone from the current codebase
+18:45 < Oy> of course nethash offers protection
+18:46 < Oy> there's an issue about making flow work, so removing the current state is nonsense
+18:46 < Dune> it gives a warning when you change something, right?
+18:46 < Oy> just a warning
+18:46 < Dune> that issue is https://github.com/teeworlds/teeworlds/issues/2437 ?
+18:47 < Oy> yeah
+18:47 < Dune> I think #2437 is more like a question and would advocate for removal
+18:47 < Dune> > we should actually make use of it and not have it sitting around in an incomplete state. [...] or it should just be removed,
+18:48 < Oy> yeah, should be made working
+18:48 < Oy> question is how the effects should be
+18:48 < Dune> ah, okay, that was unclear for me
+18:48 <@heinrich5991> and while it isn't working, it could be removed? we don't even know whether the code in question does something useful
+18:49 <@heinrich5991> I mean it's not entirely improbable that it sits there for another ten years
+18:55 < Oy> so? has been there for many years
+18:55 < Oy> it's a starting point to work on it
+18:55 < Oy> no problem with keeping it in
+18:57 < Dune> I think both viewpoints make a lot of sense
+19:03 <@heinrich5991> Oy: one could make the argument that logging of whispers and logging of a warning when nethash changes are similar
+19:04 <@heinrich5991> it doesn't change anything technical, but it changes something socially
+19:04 <@heinrich5991> currently, one accidentally looks at whispers even if you don't intend to
+19:04 <@heinrich5991> currently, one accidentally changes some network stuff but didn't intend to
+19:05 <@heinrich5991> with the change, one doesn't look at the whispers accidentally anymore
+19:05 <@heinrich5991> with the change, it's harder to notice that you accidentally changed the network code
+19:05 <@heinrich5991> re >But hiding that log meesage doesn't change anything - just gives you false-privacy.
+19:06 < rand> one can advocate not to log any chat message in vanilla, people that want to log will do anyway
+19:08 < rand> following KISS mantra, dead code should be removed
+19:08 < Dune> but using heinrich5991's words, I guess it does change something "socially" by pushing people to make it work :p
+19:09 < Dune> (though keep dead code is a bit extreme imo)
+19:09 < rand> following client modding, CFlow could be seen as a still not used powerful feature provide by official
+19:12 < Oy> well the conversation looks like the issue author will log whispers if the message will be removed from official source or not
+19:13 < Oy> and people should be aware of that
+19:13 < Oy> that would be the false-privacy
+19:13 <@heinrich5991> but you don't make people aware by keeping it in the source code
+19:13 <@heinrich5991> if you want to make people aware, you put a message next to the whisper dialog
+19:14 < rand> (about CFlow, imo, better removing to re-introduce later if useful)
+19:14 <@heinrich5991> keeping it in the source code with this reasoning is dishonest imo
+19:14 <@heinrich5991> (the whisper log)
+19:15 <@heinrich5991> (and seems to be one more example of "we keep it as it is". we probably wouldn't have blocked the whisper PR on it not logging the whisper messages in the server log)
+19:15 < Dune> > if you want to make people aware, you put a message next to the whisper dialog
+19:15 < Dune> yeah, agreee, that is better
+19:16 < Dune> no chat privacy without p2p or central authentification :/
+19:16 < rand> (about whisper, nothing is private from server-side, teeworlds is not a chat application, peolpe should be aware of it)
+19:16 < Oy> yeah, such a message would be good
+19:16 <@heinrich5991> and removing it from the source would still be good with such a message
+19:17 <@heinrich5991> so I as an honest server admin don't accidentally keep logs
+19:17 < Oy> i personally don't care if the whisper log message is in or not, was just pointing out people could log it anyway
+19:17 < Oy> and people shouldn't get false-safety
+19:17 < Dune> I believe it would be immensely better if it's not logged by default
+19:18 <@heinrich5991> okay. it sounded like you were against removing the log by default
+19:18 < Dune> A bit how cheating is possible in teeworlds, but it's better if we don't ship an aimbot as a console option
+19:18 < rand> (and so a server admin do not have to care about chat message and privacy issues (what about ip?))
+19:18 < Dune> eh ips :/
+19:18 < bridge> [teeworlds] <jxsl13> `why do we have this mentality that things that are in the code should stay, even when there are arguments in favor of removing them.` people try to argue "it was always there", which is actually not an argument but an excuse not to do anything.
+19:18 < Dune> ip is personal information according to heinrich5991 iirc
+19:19 <@heinrich5991> one step after another. it seems we almost agreed to do something to the whisper thing
+19:19 < bridge> [teeworlds] <jxsl13> off, have not read yet, as this is too active
+19:19 <@heinrich5991> if you try to fix everything at once, nothing happens
+19:19 < bridge> [teeworlds] <jxsl13> oof*
+19:20 < Dune> if I whisper someone my credit card # on an AAA game, and some staff uses it for their purpose, I'd be legitimately upset, even though it's not a chat program per se
+19:20 < Oy> if the server chat log messages gets removed it shouldn't be as plain text in the network log anymore
+19:21 < Dune> teeworlds doesn't have this privacy and it's probably not intuitive for the end user, and should be made clear
+19:21 < rand> if tackling whisper, why not remove every chat messages ? (not too far from whisper)
+19:25 < bridge> [teeworlds] <jxsl13> rip econ  mods that connect chat applications to server chat.
+19:26 < Dune> why do you use econ to mod @jxsl13 ? sounds overcomplicated
+19:26 < bridge> [teeworlds] <jxsl13> look at my git repo
+19:26 < bridge> [teeworlds] <jxsl13> that's why I stmbled upon the broken whisper logging
+19:26 < Dune> just answer
+19:26 < bridge> [teeworlds] <jxsl13> yes, I do
+19:26 < bridge> [teeworlds] <jxsl13> vpn detection
+19:27 < bridge> [teeworlds] <jxsl13> discord moderation tools that use econ
+19:27 < Oy> you should be able to mod the server via econ - don't need a tw client, or server is full
+19:27 < Dune> Oy: "mod" here was meant as modification not moderation
+19:27 < bridge> [teeworlds] <jxsl13> mod = modify or mod = moderate
+19:27 < Dune> at least my "mod"
+19:27 < rand> jxsl13: fair point
+19:28 < Dune> when you said "rip econ mods" you meant moderators?
+19:28 < bridge> [teeworlds] <jxsl13> I meant modifications
+19:28 < bridge> [teeworlds] <jxsl13> and implicitly the moderation would be impossible as well
+19:28 < bridge> [teeworlds] <jxsl13> without joining the server
+19:28 < bridge> [teeworlds] <jxsl13> with a tw client
+19:29 < bridge> [teeworlds] <jxsl13> I got like votes shown in discord and chaz + team chat
+19:29 < Dune> fair enough
+19:29 < bridge> [teeworlds] <jxsl13> chat
+19:29 < Oy> Dune: ah ok
+19:29 < bridge> [teeworlds] <jxsl13> if people write "@mods"
+19:29 < bridge> [teeworlds] <jxsl13> the moderators in the discord server get pinged
+19:30 < bridge> [teeworlds] <jxsl13> might take a look at the chat (got logs of last 24h)
+19:30 < bridge> [teeworlds] <jxsl13> and if there is no chat that indicates anything, they can join the game and help there if needed
+19:30 < bridge> [teeworlds] <jxsl13> could also chat via server messages if needed, if it's only some question asked
+19:30 < bridge> [teeworlds] <jxsl13> and no actual funvoting or other offenses
+19:49 < Learath2> It's not exactly trivial to implement a good hashmap and it's even more difficult with the way we use allocators in the tl right now. I don't really see any benefit to maintaining our own tl now that we don't even use a fancy allocator anymore
+19:51 < Learath2> I highly doubt base/tl/array.h is better then std::vector, at the very least it has a much worse way of resizing itself (+1 element each time)
+19:54 < bridge> [teeworlds] <jxsl13> wasn't array resizing by 50% each time Oo.
+19:55 < bridge> [teeworlds] <redix> @jxsl13 yeah it is
+19:55 < bridge> [teeworlds] <redix> https://github.com/teeworlds/teeworlds/blob/a50f2750c4a8fa5fd59e0a7d6821be34fb7e9856/src/base/tl/array.h#L320
+19:56 < bridge> [teeworlds] <jxsl13> lol, in add it says size +1
+19:57 < bridge> [teeworlds] <redix> oh wow...
+19:57 < bridge> [teeworlds] <jxsl13> well, both used or one implemented but not added, but the other one documented
+19:57 < Learath2> nonono, redix is right, it is 50%
+19:57 <@heinrich5991> size vs capacity
+19:58 < bridge> [teeworlds] <jxsl13> std vector grows by 100%?
+19:59 < Learath2> that's an implementation detail and yeah it is most commonly 100%
+20:00 < Learath2> vector is a really simple one, but I'm working on a hashmap, which is most commonly implemented with a rb tree for stl and usually uses open addressing, both are much more efficient then what we have in the codebase and what I would implement
+20:01 < bridge> [teeworlds] <redix> has anyone ever done some benchmarks of stl vector vs tw vector? i guess the main reason for reimplementing it was that the stl vector pulls quite a lot of code into the binary... i doubt that it has a serious performance benefit
+20:02 < bridge> [teeworlds] <jxsl13> I bet for the tw use case the tw one is better
+20:03 < Learath2> I highly doubt both drawbacks, not like we can avoid linking to libstdc++ nor is the naive implementation of an array in tw anything too well optimized for the usecase
+20:06 < bridge> [teeworlds] <jxsl13> I wonder why the tw array is used rather rarely, I think most uses are in the client, nothing or nearly nothing on the server side.
+20:07 < bridge> [teeworlds] <redix> because in tw world dynamic memory allocation is a thing from hell 😄
+20:07 < bridge> [teeworlds] <jxsl13> ah, k
+20:08 < bridge> [teeworlds] <jxsl13> satan begone. well perrormance-wise it is.
+20:08 < Learath2> I don't even remember what I was coding the hashmap anymore...
+20:08 < bridge> [teeworlds] <jxsl13> but I think the server code is currently not the part that gets inefficient ober time.
+20:08 < bridge> [teeworlds] <jxsl13> ober
+20:08 < bridge> [teeworlds] <jxsl13> over
+20:08 < bridge> [teeworlds] <jxsl13> you wanted some privacy for whisper messages?
+20:09 < bridge> [teeworlds] <jxsl13> maybe the eeitor preview for images  ;D
+20:09 < bridge> [teeworlds] <jxsl13> editor
+20:09 < Learath2> Dynamic memory surely isn't very efficient but it's not the end of the world...
+20:09 < bridge> [teeworlds] <redix> well you should not use dynamic allocations in performance critical code, yeah... but avoiding it like tw does is a bit too much i think
+20:10 < bridge> [teeworlds] <heinrich5991> matricks rule was: "no allocation in the main loop" IIRC
+20:10 < bridge> [teeworlds] <jxsl13> well, if there is only one loop, yeah :D
+20:11 < bridge> [teeworlds] <heinrich5991> we only have one main loop in client and server
+20:11 < Learath2> Okay since we have to stay in 2003, can you review my hashmap heinrich5991?
+20:11 < bridge> [teeworlds] <jxsl13> Wolfenstein, same priciples :D..
+20:11 <@heinrich5991> gimme
+20:12 < bridge> [teeworlds] <jxsl13> the server has only one loop?
+20:12 < bridge> [teeworlds] <heinrich5991> only one main loop?
+20:12 < bridge> [teeworlds] <jxsl13> I mean are there multiple threads anywhere
+20:12 < bridge> [teeworlds] <jxsl13> well, main loop is kinda implicitly only one?
+20:12 < bridge> [teeworlds] <heinrich5991> ah. they're not used except for busy waiting and doing a host lookup every hour
+20:12 < Learath2> The server does spawn threads to lookup for the maasters iirc
+20:13 < bridge> [teeworlds] <jxsl13> ah, k.
+20:13 < bridge> [teeworlds] <jxsl13> but full server logic seems to be in like thread.
+20:13 < bridge> [teeworlds] <heinrich5991> no, only one thread
+20:13 < bridge> [teeworlds] <heinrich5991> the main thread
+20:13 < bridge> [teeworlds] <jxsl13> one*
+20:13 < bridge> [teeworlds] <jxsl13> thread x)
+20:16 < bridge> [teeworlds] <heinrich5991> @redix @jxsl13 if I did benchmarks, would that change your mind based on the result?
+20:18 < Learath2> heinrich5991: sadly redix and jxsl13 aren't the ones we need to convince :P
+20:19 < bridge> [teeworlds] <jxsl13> I'm fully behind using c++17
+20:19 < bridge> [teeworlds] <jxsl13> behind you*
+20:20 < Dune> no thanks
+20:20 < bridge> [teeworlds] <jxsl13> And I'm highly in favour of refactoring Cvarint
+20:20 < bridge> [teeworlds] <jxsl13> c++11 would be enough actually :D
+20:20 < bridge> [teeworlds] <redix> i honestly don't care about the vector/array thing too much. the tw implementation does not really limit us right now
+20:20 < bridge> [teeworlds] <redix> it was more of a general thing. i would be interested in some benchmarks though 😄
+20:20 < Learath2> C++14 is as far as I'm willing to go, after 17 things start to get weird, very weird
+20:20 < bridge> [teeworlds] <jxsl13> (Y)
+20:21 < bridge> [teeworlds] <jxsl13> the only thing about c++17 I like are structured bindings, that's about it
+20:21 < Dune> c++ brings a load of good things and also a load of bullshit. in the absence of strict coding guidelines, c++03  seems like a fair compromise to me
+20:21 < Dune> with great power comes great responsibility :p
+20:21 < Dune> c++11*
+20:22 < bridge> [teeworlds] <jxsl13> c++ should slowly be approached imo.
+20:22 < bridge> [teeworlds] <jxsl13> 11
+20:22 < bridge> [teeworlds] <LordSk> sadly I agree with dune
+20:22 <@heinrich5991> you can't write thread-safe code in pre-c++11
+20:22 < bridge> [teeworlds] <redix> but using some stl (e.g. hashmap) and c++11 might be good
+20:22 <@heinrich5991> we have code that "works"
+20:22 < bridge> [teeworlds] <redix> atomics, shared pointers, ...
+20:23 < bridge> [teeworlds] <jxsl13> well, every step forward are 10 shots of bullets in each of your legs :D
+20:25 < bridge> [teeworlds] <jxsl13> next step would be when the whole headers crap gets removed and replaced by some modular system.
+20:26 < bridge> [teeworlds] <heinrich5991> +
+20:26 < bridge> [teeworlds] <jxsl13> in another 10-15 years.
+20:27 < Learath2> Dune: we can regulate the amount of template mess we accept, we've been up to C++14 on ddnet for a year now, not that much bs made it in
+20:27 < bridge> [teeworlds] <redix> c++ modules seems like a far future
+20:27 < bridge> [teeworlds] <redix> better move to rust then 😄
+20:27 < Dune> Learath2, I'm sure it can be done, but it's very delicate, brings controversy, and I guess rejecting PRs for code style is not really in the spirit of the repo
+20:28 < Learath2> well oy didn't like my goto :P
+20:30 < bridge> [teeworlds] <jxsl13> goto bad, use for loops with  breaks >:D
+20:30 < bridge> [teeworlds] <jxsl13> to emulate goto
+20:30 < bridge> [teeworlds] <heinrich5991> I prefer not having `goto` in the code
+20:30 < bridge> [teeworlds] <jxsl13> or while loops
+20:31 < bridge> [teeworlds] <heinrich5991> I also removed all the remaining `switch`-`case` fallthroughs
+20:31 < bridge> [teeworlds] <jxsl13> fallthrough bad :D
+20:31 < Learath2> gotos are the best way to handle errors and escape from nested loops
+20:32 < bridge> [teeworlds] <jxsl13> is there no feature in c++ to break outer loops?
+20:32 < Learath2> The prejudice against it has to end, that one stupid blogpost about goto just made everyone into militants
+20:32 < bridge> [teeworlds] <jxsl13> that's code racism :D
+20:32 < bridge> [teeworlds] <heinrich5991> escape from nested loops is ok, because the language can't handle it
+20:33 < bridge> [teeworlds] <heinrich5991> handle errors can already be handled with return and RAII semantics, no need for it in C++
+20:33 < bridge> [teeworlds] <heinrich5991> errors can already be handled with return and RAII semantics, no need for it in C++
+20:33 < Learath2> nesting things into more functions is not a good solution
+20:33 < bridge> [teeworlds] <jxsl13> can rust break outer loops?
+20:33 < bridge> [teeworlds] <Dune> yes iirc
+20:34 < bridge> [teeworlds] <jxsl13> hm, newschool languages doing stuff right.
+20:34 < Learath2> That switch case there is beautiful and clear, now I'll need to replace it with an ugly if-else chain or an ugly failure flag
+20:34 < bridge> [teeworlds] <jxsl13> golang has a great keyword called "defer"
+20:35 < bridge> [teeworlds] <jxsl13> why is there no sich thing in c++ :(
+20:35 < bridge> [teeworlds] <jxsl13> such
+20:35 < Learath2> I'd love a break n; in C++ to break out of n blocks in general
+20:35 < bridge> [teeworlds] <jxsl13> go handles is with those assem ly style labels.
+20:35 < bridge> [teeworlds] <jxsl13> it
+20:35 < bridge> [teeworlds] <jxsl13> break label.
+20:36 < bridge> [teeworlds] <heinrich5991> same for rust and java
+20:36 < bridge> [teeworlds] <jxsl13> hm, nice.
+20:38 < bridge> [teeworlds] <jxsl13> defer is like encapsulating a function call in some object and calling it within the destructor of that object.
+20:49 < bridge> [teeworlds] <jxsl13> @heinrich5991 do you recommend any rust books other than the one on the website?
+20:50 < bridge> [teeworlds] <heinrich5991> no, I learned it using a much older version of the book
+20:50 < bridge> [teeworlds] <heinrich5991> and writing code in a language you want to learn is absolutely viable
+20:50 < bridge> [teeworlds] <heinrich5991> *vital
+20:54 < bridge> [teeworlds] <heinrich5991> @jxsl13 what do you want to achieve in rust?
+20:55 < bridge> [teeworlds] <jxsl13> currently nothing, I'd love to take a look at the concepts used there, but have no actual project ideas yet
+20:55 < bridge> [teeworlds] <heinrich5991> you should have something to program though, otherwise language learning can be hard
+20:55 < bridge> [teeworlds] <jxsl13> I know, especially wirh the learning curve in rust
+20:56 < bridge> [teeworlds] <jxsl13> steep
+20:59 < bridge> [teeworlds] <Dune> @heinrich5991 isn't c++03 thread-safe with proper libraries, eg boost?
+21:02 < bridge> [teeworlds] <heinrich5991> @Dune no
+21:02 < bridge> [teeworlds] <heinrich5991> there's even a paper about this
+21:03 < bridge> [teeworlds] <heinrich5991> "Threads cannot be implemented in a library – Hans-J. Boehm"
+21:04 < bridge> [teeworlds] <heinrich5991> the problem is that the language needs a memory model
+21:05 < bridge> [teeworlds] <heinrich5991> and c++03 doesn't have that. you can't have thread-safety in c++11
+21:08 < Learath2> heinrich5991: when does c++ become thread-safe? c++14?
+21:08 <@heinrich5991> c++11
+21:09 < Learath2> but you said "you can't have thread-safety in c++11"
+21:09 < bridge> [teeworlds] <jxsl13> the last sentence had a typo
+21:09 < bridge> [teeworlds] <jxsl13> meant c++03
+21:09 < Learath2> I see, is there any good reading on this? I'm interested in why a memory-model is required
+21:11 <@heinrich5991> Learath2: you could read the paper I quoted :P
+22:01 < bridge> [teeworlds] <Ryozuki> @heinrich5991 does rust have somethinf like go channels?
+22:02 < bridge> [teeworlds] <heinrich5991> rust has async-await, you'd usually use this
+22:02 < bridge> [teeworlds] <heinrich5991> but there are also channels in the standard library if you prefer:
+22:02 < bridge> [teeworlds] <heinrich5991> https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html
+22:03 < bridge> [teeworlds] <Ryozuki> I recently learned golang and its quite enjoyanle, im using it for web backends. I might learn rust next
+22:03 < bridge> [teeworlds] <Ryozuki> Enjoyable*
+22:04 < bridge> [teeworlds] <jxsl13> 😄
+22:04 < bridge> [teeworlds] <jxsl13> golang is plenty fun
+22:04 < bridge> [teeworlds] <Ryozuki> Yea it is very C like but super convenient
+22:04 < bridge> [teeworlds] <Ryozuki> U can bind functions to structs
+22:04 < bridge> [teeworlds] <jxsl13> I got a makro for if err != nil { return nil, err }
+22:04 < bridge> [teeworlds] <jxsl13> makro key
+22:05 < bridge> [teeworlds] <Ryozuki> And the interface{} and reflection are super powerul
+22:05 < bridge> [teeworlds] <Ryozuki> I also like the annotation system
+22:05 < bridge> [teeworlds] <jxsl13> I like the forced conventions
+22:05 < bridge> [teeworlds] <Ryozuki> Same
+22:05 < bridge> [teeworlds] <jxsl13> exporting stuff
+22:05 < bridge> [teeworlds] <heinrich5991> it's only like C in its features
+22:05 < bridge> [teeworlds] <Ryozuki> I also love u import modules by their git repo
+22:05 < bridge> [teeworlds] <heinrich5991> you have a garbage collector
+22:06 < bridge> [teeworlds] <Ryozuki> Yeah
+22:06 < bridge> [teeworlds] <heinrich5991> > [10:05 PM] Ryozuki: I also love u import modules by their git repo
+22:06 < bridge> [teeworlds] <heinrich5991> google themselves just got bit by that btw
+22:06 < bridge> [teeworlds] <heinrich5991> because they changed hosting providers
+22:06 < bridge> [teeworlds] <Ryozuki> Well bad for them
+22:06 < bridge> [teeworlds] <Ryozuki> 😅
+22:09 < bridge> [teeworlds] <jxsl13> the gc gets improved quite well 😮
+22:10 < bridge> [teeworlds] <jxsl13> dependency management is great
+22:10 < bridge> [teeworlds] <jxsl13> defer = ❤️
+22:10 < bridge> [teeworlds] <jxsl13> python-like workflow
+22:11 < bridge> [teeworlds] <heinrich5991> I dislike both python's and go's dependency workflow
+22:11 < bridge> [teeworlds] <heinrich5991> they're "better than C", but that's the best that can be said about them
+22:11 < bridge> [teeworlds] <heinrich5991> there are languages with working dependency management
+22:11 < bridge> [teeworlds] <Ryozuki> go get
+22:11 < bridge> [teeworlds] <Ryozuki> Bam
+22:11 < bridge> [teeworlds] <Ryozuki> Done
+22:11 < bridge> [teeworlds] <jxsl13> not centralized and the forced package naming conventions are a drawback
+22:11 < bridge> [teeworlds] <Ryozuki> U are using modern go modules right?
+22:12 < bridge> [teeworlds] <jxsl13> that's about it?
+22:12 < bridge> [teeworlds] <jxsl13> since 1.11 you are not forced to work in the gopath ._.
+22:12 < bridge> [teeworlds] <heinrich5991> apparently something changed. can't comment about it then
+22:12 < bridge> [teeworlds] <heinrich5991> according to @Ryozuki
+22:12 < bridge> [teeworlds] <Ryozuki> Yeah in 1.11 they introduced go mod tooo
+22:12 < bridge> [teeworlds] <Ryozuki> Tool
+22:13 < bridge> [teeworlds] <jxsl13> I have learnt it recently, so I can't comment on how the behaviour was pre 1.11
+22:13 < bridge> [teeworlds] <jxsl13> pythons dependency management is a paint
+22:13 < bridge> [teeworlds] <jxsl13> pain
+22:13 < bridge> [teeworlds] <Ryozuki> https://blog.golang.org/using-go-modules
+22:14 < bridge> [teeworlds] <jxsl13> all I do is execute `go mod init`, iirc
+22:14 < bridge> [teeworlds] <jxsl13> with a name
+22:14 < bridge> [teeworlds] <jxsl13> in some project folder
+22:15 < bridge> [teeworlds] <jxsl13> and start programming in that folder
+22:15 < bridge> [teeworlds] <Ryozuki> Yeah
+22:15 < bridge> [teeworlds] <jxsl13> https://github.com/jxsl13/twapi ;D
+22:16 < bridge> [teeworlds] <jxsl13> if anyone wanted to use that, the do `import "github.com/jxsl13/twapi"`, then execute `go get -d` and can use that
+22:16 < bridge> [teeworlds] <jxsl13> they
+22:38 < Learath2> The more I implement the more I find in the stl implementations, gcc and clang both have caching for the hash function :/
+22:40 < bridge> [teeworlds] <jxsl13> rabbit hole :0?

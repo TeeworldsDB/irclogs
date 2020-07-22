@@ -1,0 +1,437 @@
+02:25 <@deen> back after killing ddnet.tw unintentionally^^
+02:41 <@deen> now i have to rescue the records made in the downtime on EUR and GER2
+04:28 < Nimda> DDNet CHN went down!
+04:29 < Nimda> DDNet CHN went back online!
+04:55 < eeeee> deen: what's the ping from ger1 to ger2?
+04:56 <@deen> eeeee: 0.8ms
+05:02 < eeeee> woah nice
+09:10 <@EastByte> eeeee: NET_MAX_PACKETSIZE = 1400, there should be atleast enough space to transmit an ip address+port safely
+09:56 < eeeee> yup, gre overhead is 24 bytes
+09:58 < eeeee> would totally work! just need a bunch of iptables and ip trickery
+09:59 <@EastByte> well deen doesn't like complicated solutions :P
+10:00 <@EastByte> also ddos currently doesn't seem to be problem
+10:00 < eeeee> its the least complicated solution in terms of coding
+10:00 <@EastByte> yea maybe
+10:00 <@EastByte> and I like it
+10:00 < eeeee> because no coding is required (unless you count bash scripts :P )
+10:00 < eeeee> doesn't actually solve ddos either
+10:01 < eeeee> is mostly for self-gratification
+10:01 <@EastByte> in some way it does
+10:01 < eeeee> not really. if e.g. GER1 is ddosed then everyone gets dropped off it, no matter if the were connected directly or through GER2
+10:01 <@EastByte> ips often are affected badly by ddos mitigation
+10:02 <@EastByte> yea ger1 needs to be hidden then
+10:02 <@EastByte> how would it make sense otherwise?
+10:02 <@EastByte> better routing?
+10:03 < eeeee> well if you have a hidden ger1 and then ger2-ger9 then i guess it could help vs ddos
+10:03 <@EastByte> "eeeee | could hack the client to send packets to/from both :>"
+10:03 < eeeee> yeah, deen was complaining about how routing is sometimes better to ger1 and sometimes better to ger2
+10:04 < eeeee> or sth like that
+10:04 <@EastByte> that might solve it
+10:05 < eeeee> anyway, i feel like we have to go deeper
+10:05 <@EastByte> deeper?
+10:05 < eeeee> and actually implement some kind of distributed server
+10:06 <@EastByte> yes! :D
+10:06 < eeeee> i was thinking about using the same principle antiping does
+10:06 < eeeee> except implement it in servers
+10:10 <@EastByte> serverside prediction?
+11:40 <@EastByte> https://eastbit.net/public/emscripten/blender_exp/
+11:40 <@EastByte> blender -> c vertex array export :)
+12:45 <@deen> nice EastByte 
+13:18 < ddnet-commits> [ddnet] def- pushed 1 new commit to DDRace64: http://git.io/ybdXSA
+13:18 < ddnet-commits> ddnet/DDRace64 197ed5d def: Use 0.6.3 server crash fix since the other seems not to work with GCC 4.9.2 with optimizations on
+13:24 <@EastByte> deen: "since the other seems not to work with GCC 4.9.2 with optimizations on"
+13:24 <@EastByte> how is that?
+13:24 <@deen> coffee says so, i didn't check
+13:24 <@deen> he uses gcc 4.9.2
+13:25 <@deen> when he compiles with optimizations and my fix => still crashes
+13:25 <@deen> no optimizations => no crash
+13:25 <@EastByte> sounds unlrealistic though
+13:25 <@deen> I've had to deal with many compiler bugs in the last months^^
+13:25 <@deen> but don't really expect this from gcc, would have to test myself
+13:25 <@deen> let me do that
+13:25 <@EastByte> deen: btw. where is ger2?
+13:25 <@EastByte> (provider)
+13:26 <@deen> EastByte: http://gametekk.de
+13:26 <@EastByte> did you mention gametekk before?
+13:26 <@deen> yes
+13:26 <@EastByte> ah okay
+13:26 <@deen> they say to have link11 ddos protection
+13:26 <@deen> which i'm really curious about
+13:27 <@deen> i think it's interesting that nfoservers has great ddos protection but doesn't advertise it anywhere
+13:28 <@EastByte> yea it is
+13:30 <@EastByte> maybe they can't stand too much ddos
+13:30 <@deen> indeed
+13:30 <@deen> total bandwidth they have is 20 gbit/s at each location
+13:30 <@deen> if they got a few attacks it would go down
+13:34 <@EastByte> wooow, I never saw that before
+13:34 <@EastByte> some prediction failure
+13:37 <@deen> i can confirm
+13:37 <@deen> gcc 4.9.2 wrongly optimizes that and removes the "Offset < 0"
+13:38 <@EastByte> that's horrible?
+13:38 <@deen> seems so
+13:38 <@deen> I'll try to make a minimal example
+13:38 <@deen> and bug report
+13:38 <@deen> we noticed because a guy was crashing blockZ server again
+13:38 <@deen> with the same exploit^^
+13:39 <@deen> but he couldn't crash ddnet
+13:39 <@EastByte> ^^
+13:40 <@EastByte> deen: https://eastbit.net/public/videos/predfail.webm
+13:40 <@EastByte> ever seen this before?
+13:40 <@deen> nope, really weird
+13:40 <@deen> maybe your map file is broken?
+13:40 <@EastByte> oh shit
+13:40 <@deen> same checksum, but different map
+13:40 <@EastByte> I forgot that I removed the mapcrc check for a test
+13:41 <@deen> haha
+13:41 <@deen> didn't get any fuzzy testing working yesterday =/
+13:42 <@deen> american fuzzy lop was only for file reading programs, not networking ones
+13:42 <@deen> and zzuf seemed weird and unmaintained
+13:42 <@EastByte> what's fuzzy?
+13:45 <@deen> you use normal inputs and they get manipulated in some ways to find security bugs
+13:46 <@deen> would have found the server segfault i think
+13:46 <@EastByte> oh
+13:47 < laxa> deen: did you remove nealson's time on AIB Quest 4 ?
+13:48 <@deen> which?
+13:48 < laxa> the best
+13:48 < laxa> he was first
+13:48 < laxa> his rank is gone
+13:48 <@deen> huh?
+13:48 < laxa> just wondering why
+13:48 <@deen> i don't remember doing that, no
+13:48 <@deen> are you sure?
+13:48 < laxa> how come his rank just disappeared then ?
+13:48 < laxa> yes I am sure
+13:51 <@deen> database replication problems again
+13:51 <@deen> will fix
+13:53 < laxa> ok
+13:55 <@deen> ah, RUS server totally crashed and lost part of its mysql binlog
+13:55 <@deen> should be fixable
+13:56 <@deen> it's a wonder that this replication ddnet has even works at all
+13:56 <@EastByte> because of fastdl?
+13:56 <@deen> really need a proper solution for this
+13:56 <@deen> fastdl?
+13:56 <@EastByte> fast map dl
+13:57 <@deen> ???
+13:57 <@deen> what because of fast map dl?
+13:57 <@EastByte> oh I misunderstood "replication ddnet"
+13:57 <@EastByte> nvm
+13:57 <@deen> ok
+13:57 <@deen> database replication i mean
+13:57 <@EastByte> okay
+13:58 <@deen> basically we have 7 database servers  connected in a circle, all acting as master and slave at the same time
+13:59 <@deen> I would want a system where the database servers are independent, and each sends the new records to every other server
+13:59 <@deen> but haven't found a way to do this so far
+14:00 <@EastByte> hmm
+14:16 <@deen> Ha!
+14:16 <@EastByte> HA
+14:17 <@deen> Have it down to 20 lines
+14:17 <@EastByte> hwhat
+14:17 <@deen> that's a fun bug
+14:17 <@deen> the minimal gcc bug
+14:18 <@deen> When you check "Chunk < 0" before it optimizes wrongly, if you leave out the check it's fine
+14:18 <@EastByte> ah
+14:20 <@deen> http://ddnet.tw/minbug.c
+14:21 <@deen> gcc -O2 -o minbug minbug.c && echo 100000000 | ./minbug
+14:21 <@deen> compared to
+14:21 <@deen> gcc  -o minbug minbug.c && echo 100000000 | ./minbug
+14:22 <@deen> oh, same bug with 4.8
+14:22 <@deen> luckily 4.7 is fine
+14:22 <@deen> which is in debian stable^^
+14:25 <@deen> oooh
+14:26 <@deen> "As signed integer wraparound (overflow) is not defined by C/C++ standards, GCC sometimes optimizes expressions with the assumption that wraparound does not happen, even though the CPU very well does perform wraparound. This can lead to cases in which the behaviour of a program depends on the optimization level that was used to compile the code."
+14:26 <@deen> Great!
+14:29 <@EastByte> haha
+14:29 <@EastByte> maybe overeflows should be prevently manually?
+14:30 <@deen> how?
+14:30 <@deen> you want to check the size of the current integer datatype, check if the values are small enough and only then do the multiplication?
+14:31 <@deen> haha, fefe once found the same bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=30475
+14:31 <@deen> and i think i even remember reading that back then...
+14:32 <@deen> "PLEASE REVERT THIS CHANGE.  This will create MAJOR SECURITY ISSUES in ALL MANNER OF CODE.  I don't care if your language lawyers tell you gcc is right.  THIS WILL CAUSE PEOPLE TO GET HACKED."
+14:32 <@deen> Well predicted fefe
+14:32 <@EastByte> fefe!!
+14:32 <@EastByte> ist fett
+14:37 <@EastByte> it's cool to help noobs who can't rocketjump, by rocketflying them up
+14:38 <@EastByte> I'm a helper!!!
+14:39 <@deen> oh yeah, he found that while writing his bignum library^^
+14:39 <@deen> for the CCC talk
+14:40 <@EastByte> :D
+14:57 <@deen> So, here's how to properly do it: https://www.securecoding.cert.org/confluence/display/seccode/INT32-C.+Ensure+that+operations+on+signed+integers+do+not+result+in+overflow
+14:57 <@deen> Love the code examples where you have to write 20 lines for a simple signed multiplication just because of this
+15:14 <@EastByte> ^^
+15:14 <@deen> and somewhere in one of the many discussions a gcc developer suggested that average programmers should just not use c and c++
+15:15 <@EastByte> haha
+15:15 <@EastByte> security expert level++
+15:15 <@EastByte> I will treat multiplications different in the future
+15:15 <@deen> how?
+15:16 <@deen> I still haven't understood how to do it properly
+15:16 <@EastByte> I'm just saying the next time I'm searching for vulns, I will care about signed multiplication^^
+15:16 <@deen> Even if there is a check that the value is within bounds
+15:17 <@EastByte> optimization might kill it
+15:17 <@deen> Basically, as soon as you have a signed integer overflow, you do not know what your program will do from then on...
+15:17 <@EastByte> okay right
+15:18 <@deen> on another note: the http://ddnet.tw/ranks/moderate (and so on) pages are getting too long. I would like to split them up into multiple pages
+15:19 <@deen> But then links like http://ddnet.tw/ranks/moderate/#map-42 will stop working
+15:19 <@deen> any idea how to fix that?
+15:19 <@EastByte> js would be the only way I guess
+15:20 <@deen> how would you do it with js?
+15:20 <@EastByte> you can make the list more dynamic
+15:20 <@EastByte> (filling up while scrolling e.g)
+15:20 <@deen> but then you can't use ctrl-f anymore
+15:20 <@EastByte> and check the url of #
+15:21 <@deen> that's what i hate about these dynamically loading sites
+15:21 <@EastByte> add a search bar there :P
+15:21 <@deen> oh god^^
+15:21 <@EastByte> you can't ctrl+f players either
+15:21 <@EastByte> since there are too many ranks
+15:21 <@deen> yeah
+15:21 <@deen> you're probably right
+15:21 <@deen> the site is turning too dynamic for my taste
+15:22 <@EastByte> I prefer 100% dynamic or completely static
+15:22 <@EastByte> don't like both
+15:22 <@deen> i prefer 100% static
+15:23 <@EastByte> html has changed btw :D
+15:23 <@deen> what?
+15:23 <@EastByte> I think there is no reason for the webserver to generate a page
+15:23 <@EastByte> the client should do that
+15:23 <@EastByte> html5
+15:23 <@deen> ah, you mean you should just send the data and javascript
+15:23 <@EastByte> yea
+15:24 <@EastByte> no one would notice since html5+js runs everywhere
+15:24 <@deen> but then I can't use links as my browser anymore
+15:24 <@EastByte> you can handle them using js
+15:24 <@EastByte> or make a static and a dynamic version of the site :P
+15:24 <@deen> hell no
+15:25 <@EastByte> I like that^^
+15:25 <@EastByte> for my own project I would make a retro static/simple version and some weired dynamic/floating html5 stuff for the kids out there
+15:27 <@deen> I'm really not a big friend of javascript
+15:28 <@EastByte> doing layouts and stuff using jquery is really cool
+15:54 < Nimda> FWYS 2 by Ama just released on Moderate at 2014-11-22 09:53
+15:54 <@EastByte> FWYS 2 yay
+15:58 <@EastByte> laxa: :>
+15:59 < Nimda> HDP_run_gay25 by Kaestchen & Kuadmair just released on Solo at 2014-11-22 09:58
+16:01 <@EastByte> nobody wants to play
+16:54 <@deen> !ddnetpeak
+16:54 < Nimda> Current players on DDNet : 489
+16:54 < Nimda> Current DDNet peak : 612 users online at 2014-10-26 20:15:01
+16:54 <@deen> doesn't look that way EastByte :P
+17:07 <@deen> EastByte, eeeee other idea to get low ping and ddos protection with multiple servers!
+17:08 <@deen> Use anycast: https://en.wikipedia.org/wiki/Anycast
+17:13 <@deen> (That's how 8.8.8.8 has low ping everywhere)
+17:13 <@deen> we could do anycast with GER, GER2, EUR, and redirect all to a strong secret server without ddos protection, also located in Frankfurt
+17:15 <@deen> hm, but on a ddos attack would the packets move to another node?
+17:16 <@deen> or even when the ping suddenly increases
+17:16 <@deen> meh, maybe we need to roll our own anycast after all, like you suggested
+17:24 <@EastByte> yea, don't be so complicated deen 
+17:24 <@deen> ...
+17:24 <@deen> anycast would be simpler because it's working already
+17:25 <@deen> don't think you get anycast anywhere cheap though
+17:29 <@EastByte> not an option for us I think
+17:30 <@EastByte> how does gre actually work?
+17:31 <@EastByte> looks like tun/tap tunnel but a little bit deeper
+17:32 <@EastByte> so the idea was to send all udp packets twice to two different servers
+17:33 <@EastByte> and eeeee wanted talked about server distribution and antiping serverside
+17:33 <@EastByte> -wanted
+17:34 <@deen> interesting, but you didn't write that in this channel, did you?
+17:34 <@EastByte> he did
+17:35 <@deen> starting at 09:10 today?
+17:35 <@EastByte> oh you weren't there
+17:35 <@EastByte> http://pastebin.mozilla.org/7463550
+17:36 <@deen> weird, why didn't i receive these messages?
+17:36 <@deen> aaaah, ddnet.tw was down, right
+17:36 <@EastByte> 02:29:21             --> | deen (~deen@ddnet.tw) has joined #ddnet
+17:36 <@EastByte> 02:29:21              -- | Mode #ddnet [+o deen] by Q
+17:36 <@EastByte> 02:29:57           @deen | back after killing ddnet.tw unintentionally^^
+17:36 <@EastByte> 02:46:29           @deen | now i have to rescue the records made in the downtime on EUR and GER2
+17:36 <@deen> yes yes
+17:36 <@EastByte> yeaa
+17:37 <@deen> Note to myself: Don't blindly copy /etc files from other servers
+17:38 <@deen> I don't understand how that would work exactly
+17:38 <@EastByte> Note to myslf: Prevent deen from blindly copying /etc files from other servers
+17:38 <@deen> "DNAT them on each other"?
+17:38 <@EastByte> I'm not sure eithre
+17:38 <@deen> and doubling the traffic is also not ideal
+17:38 <@EastByte> why?
+17:38 <@deen> traffic is already pretty high
+17:38 <@EastByte> not for eur :D
+17:39 <@deen> On a full server with /showall and /showothers you receive 15 KB/s
+17:40 <@EastByte> players are not using showothers afaik
+17:40 <@EastByte> showall*
+17:41 <@EastByte> argh dunno which one
+17:41 <@deen> haha
+17:43 <@EastByte> hmm how hard is it to sync a tw server over multiple servers
+17:43 <@EastByte> we shouldn't have any packet loss there soo..
+17:43 <@deen> impossible?
+17:44 <@deen> but yeah, synced servers worldwide would be cool
+17:44 <@deen> ^^
+17:44 <@EastByte> worldwide^^ yea
+17:47 <@deen> ew, i lost 1 packet to GER2
+17:47 <@EastByte> OH CRAP!
+17:47 <@EastByte> you need to find it
+17:48 <@deen> But I think the server is under attack anyway
+17:48 <@deen> Often incoming traffic is higher than outgoing
+17:49 <@EastByte> ah
+17:49 <@EastByte> I think eur is attacked everyday
+17:49 <@deen> probably all servers
+17:49 <@EastByte> often have laggs ang longtime highpings
+17:50 <@deen> it's too bad that there is no interface for getting information about attacks =/
+17:50 <@EastByte> we can make staticics about client network stability
+17:51 <@deen> nah, i want to see when it's protected, how strong the attack was
+17:52 <@EastByte> maybe the provider doesn't even have information ddos protected nodes :P
+17:52 <@deen> yeah, i think so too
+17:53 <@deen> probably his entire line is just behind one protection and that's it
+17:53 <@EastByte> yea
+17:54 <@deen> there is too much magic happening in routers
+17:54 <@deen> icmp ping can be 120 on GER for me, meanwhile ingame 20, and the other way around...
+17:55 <@EastByte> I still want to test to use multiple ips for one gameserver
+17:55 <@EastByte> like one gameserver binds to multiple ips
+17:55 <@EastByte> which are routed to the same host
+17:55 <@deen> I think we should make the teeworlds protocol look like voip-packets, they usually get the best treatment :P
+17:55 <@EastByte> haha
+17:55 <@deen> i bet you can reduce spikes and ping like that
+17:56 <@EastByte> only because chileans were able to use laxa's ts?
+17:56 <@deen> no, because I read about it on heise :P
+17:57 <@EastByte> ah
+17:57 <@EastByte> hm would also be a funny project
+17:57 <@EastByte> a lib which implements all kinds of protocols
+17:57 <@EastByte> for own use
+17:57 <@deen> just make a wrapper
+17:57 <@deen> i mean, wrap the actual protocol inside a voip-protocol
+17:57 <@deen> ^^
+17:57 <@EastByte> yea sure
+17:57 <@EastByte> but the voip-protocol needs to be rebuild
+17:58 <@deen> here it was: http://www.heise.de/newsticker/meldung/Netgear-Switches-mit-10GBase-T-und-AVB-2461190.html
+18:01 <@EastByte> hm, the fact that switches use a higher priority for specific protocols leads to misuse of them
+18:01 <@EastByte> a game developer just would use a voip protocol for his game
+18:01 <@deen> exactly
+18:02 <@EastByte> I don't like the idea of the manufactures
+18:06 <@deen> i like the tunneling solution
+18:09 <@deen> i'm trying DNAT now
+18:09 <@EastByte> do that :)
+18:12 <@deen> can't get it to work
+18:14 <@deen> home connection ddosed again
+18:45 <@EastByte> you should take care about you home connection
+18:45 <@EastByte> maybe telekom doesn't like it
+19:20 <@EastByte>  eur isn't really playable 
+19:22 <@deen> EastByte: ddos or why?
+19:24 <@EastByte> I'm not sure
+19:24 <@EastByte> it laggs sometimes
+19:24 <@EastByte> mitigation statistics look normal
+20:49 < Nimda> DDNet CHN went down!
+20:50 < Nimda> DDNet CHN went back online!
+21:09 < Nimda> HDP_run_gay25 by Kaestchen & Kuadmair just released on Solo at 2014-11-22 15:58
+21:09 < Nimda> FWYS 2 by Ama just released on Moderate at 2014-11-22 15:53
+21:09 < laxa> EastByte: sorry, was sleeping :p
+21:10 < laxa> long nap :)
+21:11 < laxa> deen: HDP_run_gay_25 is 3 stars imo, not 4
+21:11 <@deen> yeah, changed already
+21:11 <@deen> just didn't update servers
+21:17 <@deen> eeeee: any suggestions how to setup the dnat/tunnel?
+21:21 < Maple> sight
+21:26 <@deen> hi
+21:27 < Maple> deen i have a problem
+21:27 < Maple> i have people ganging up on me and banning me
+21:28 < Maple> its really annoying 
+21:28 <@deen> names?
+21:28 < Maple> TheProXD
+21:28 < Maple> he keeps voting
+21:28 < Maple> i dont know who f3's
+21:29 < Maple> he keeps voting me each time he sees me
+21:29 < Maple> i got banned twice in the last 10 min
+21:32 <@deen> i think they just kick everyone
+21:32 <@deen> i joined and they tried kicking me
+21:37 < laxa> deen: you have a faker online
+21:42 <@deen> where?
+21:42 < laxa> GER:8326
+21:42 < laxa> unless it's you
+21:42 < laxa> with bra flag
+21:44 <@deen> yes, it's me
+21:47 < coffee> lol
+21:47 < coffee> humph, sry, hello :) good luck
+21:47 <@deen> hi. what?
+21:48 < coffee> The story about your faker. It's just funny, sry.
+21:51 < coffee> .. or not. Anyway I Found the right way to configure Miranda IM. It's a nice IRC client. There are tons of features.
+21:51 <@deen> o_be_one: I made Maple mod
+21:52 <@deen> coffee: happens all the time that people think i'm a faker
+21:52 <@deen> like 3 times in 5 minutes now
+21:52 < coffee> Your account system will fix that :)
+21:54 < eeeee> deen: creating such a tunnel is quite a hassle, not sure if you really wanna deal with it. you'd have to use iproute2 to set up gre tunnel and conditional routing tables, and then add a couple rules to iptables to make conntrack mark the packets which belong to connections incoming from the tunnel so that the would use the conditional routing tables
+21:56 < eeeee> with tunnel tw server would see the real client ips
+21:56 <@deen> hm =/
+21:56 <@deen> i thought it would be easier
+21:56 < eeeee> dnat is much easier to set up but tw server will see ger1/ger2 ip as client ip
+21:56 < eeeee> so you cannot ban anyona
+21:56 <@deen> and people can connect with 64 clients
+21:56 <@deen> and votes don't work
+21:58 < eeeee> well otoh tunnel isn't actually that hard. theory behind it is quite involved but setting it up is just like 5 or 7 commands
+21:58 <@deen> tunnel sounds better
+21:58 <@EastByte> and do we even have gre kernel support in openvs?
+21:59 < eeeee> thats a good question
+21:59 <@deen> openvs?
+21:59 < Axomar> Deen, r u there?
+21:59 <@deen> hi Axomar 
+21:59 < eeeee> i was assuming you're on kvm
+21:59 <@EastByte> openvz*
+21:59 < Axomar> Hi :)
+21:59 <@deen> the relevant servers are KVM and XEN
+21:59 <@deen> should work i think
+21:59 < Maple> accounts
+21:59 < Maple> damn
+21:59 <@deen> Maple: what?
+21:59 < Maple> no more faking :(
+22:00 <@deen> yeah, make accounts EastByte !
+22:00 < Maple> wasn't that what you were talking about?
+22:00 < Axomar> Deen, i send u a pm :) have u Time to read this?
+22:00 <@deen> Maple: no
+22:00 < Maple> oh oups
+22:00 <@deen> Axomar: i read it
+22:00 <@deen> Axomar: then Saavik should tell me that herself
+22:00 <@EastByte> I'm too depressive right now :/
+22:01 < Axomar> She Talk to me that he Talk to u this ;OO
+22:01 < Axomar> "She
+22:01 < Axomar> xD
+22:01 <@deen> Axomar: i don't know why you want to be an official tester so quickly
+22:01 <@deen> all you get is access to download maps
+22:01 <@deen> you can test perfectly fine as it is
+22:02 < eeeee> there's actually another problem: how are you gonna register the tunneled endpoint on masters
+22:02 <@deen> all maps are on test server already
+22:02 <@deen> and there are maaaaaaany maps that need to be tested right now
+22:02 <@deen> eeeee: with some hack
+22:02 <@EastByte> eeeee: one option, ddnet client only with ddnet tab
+22:03 < eeeee> mh, in any case it won't be a zero coding solution anymore :/
+22:03 <@deen> with ddnet tab it is
+22:03 <@deen> you can have GER1 and GER2 and connect to either
+22:03 <@EastByte> and we could extend the ddnet tab without much work
+22:03 <@EastByte> (multiple ips for one gameserver)
+22:03 <@deen> yes
+22:04 < Axomar> Deen this is the Problem, when i come online, i Look firstly i in the Forum to Check out it, then i go on the testserver and the Map WHO i will Test, isnt online :( and it makes me Fun to Test the Maps, but it gives user who didnt post the Maps in the Forum :/
+22:04 <@EastByte> If we would want to add masterserver support like that
+22:04 <@EastByte> favourites cannot work anymore
+22:05 <@deen> Axomar: on test server use change_map in rcon, it works better than votes
+22:05 < Axomar> Sry my Tablet :/
+22:05 < Axomar> I know deen
+22:07 < Axomar_> This fucking LAN -.-
+22:29 <@deen> I'm pretty sure the lotto numbers were hacked on 2014-07-30
+22:31 <@heinrich5991> deen: why?
+22:31 <@deen> the numbers were 9 - 10 - 11 - 12 - 13 - 37
+22:31 <@deen> successive numbers, ok
+22:32 <@deen> but ending in 1337 is funny
+22:32 <@heinrich5991> there was a 123456 or similar once
+22:34 < coffee> 1234561337
+23:20 < eeeee> oh yea, all of i wrote above requires a spare ip for each server
+23:21 < eeeee> you could make it work using only one ip but that would require bridging together physical interfaces and tunnel endpoints and then using ebtables to decide what ports should be handled locally and packets for what ports should be sent to remote endpoint via the bridge
+23:22 < eeeee> could actually perform better than conntrack
+23:22 < eeeee> but you'd have to hardcode the ports in ebtables
+23:23 < eeeee> also bridging the tunnel endpoint to the underlying device is kinda mindblowing
+23:23 < eeeee> but it totally works!
+23:24 < eeeee> bridges are much easier to screw up though, i wouldn't try that on production system
+23:25 <@deen> eeeee: you should make a guide for this^^
+23:28 < eeeee> yeah maybe i should
+23:28 <@deen> i don't have any experience with that
+23:28 <@deen> would like to try it out
+23:28 < eeeee> i had a lot of adventures in networking while playing a small isp when i lived at university
+23:29 < eeeee> we had ridiculous prices for internet back then, but if you bought in bulk it was order of magnitude cheaper
+23:30 < eeeee> so i set up a dusty pentium 3 computer and set up some internet sharing there for my friends
+23:30 <@deen> i only have networking experience in openbsd, not linux
+23:32 < eeeee> 3 years later i had 30 subscribers, supported 4 types of tunneling with nat for ipv4 and native ipv6 passthrough. ipv4 was also connection load-balanced over 8 uplinks.
+23:32 < eeeee> and some of said uplinks used this bridge-tunnel-to-underlying device technology
+23:39 <@deen> nice

@@ -1,0 +1,212 @@
+12:02 < bridge> [teeworlds] <Dune> hey @Learath2, sorry to bother you again with this pesky issue
+12:02 < bridge> [teeworlds] <Dune> https://github.com/teeworlds/teeworlds/pull/2575 breaks @Fudgy's server commands for some reason
+12:02 < bridge> [teeworlds] <Learath2> what mod is that?
+12:02 < bridge> [teeworlds] <Dune> https://cdn.discordapp.com/attachments/490150878934990850/701009855640633384/screenshot_2020-04-18_12-00-50.png
+12:03 < bridge> [teeworlds] <Dune> Race, worked fine before PR
+12:03 < bridge> [teeworlds] <Learath2> and what command did you try?
+12:04 < bridge> [teeworlds] <Dune> all
+12:04 < bridge> [teeworlds] <Dune> /help, /rank Dune
+12:05 < bridge> [teeworlds] <Learath2> is the source public
+12:05 < bridge> [teeworlds] <Dune> (actually /help works fine because it's not a registered command, /info does not)
+12:05 < bridge> [teeworlds] <Learath2> I'm guessing he also used pArguments as the whole command string
+12:05 < bridge> [teeworlds] <Dune> at least based on https://github.com/axblk/teeworlds/tree/race
+12:06 < bridge> [teeworlds] <Learath2> why was this even released with the command string being passed as arguments
+12:06 < bridge> [teeworlds] <Dune> I don't know, ask ryozukki
+12:07 < bridge> [teeworlds] <Learath2> idk what to do tbh, do you want to keep sending the entire string?
+12:08 < bridge> [teeworlds] <Learath2> What a pointless feature this whole thing has been, I keep having to rollback things just to keep compatible with 0.7.4
+12:08 < bridge> [teeworlds] <Dune> I agree, should have kept it simple and not done argument parsing imo
+12:09 < bridge> [teeworlds] <Learath2> I disagree, it should have never been committed without the argument parsing
+12:10 < bridge> [teeworlds] <Dune> has it?
+12:10 < bridge> [teeworlds] <Dune> I mean, there was  only one release with server-side argument parsing, 0.7.4
+12:10 < bridge> [teeworlds] <Dune> commands*
+12:10 < bridge> [teeworlds] <Learath2> 0.7.4 had no argument parsing at any side, it just passed the entire chat line as "arguments" to the server, without even stripping the /
+12:11 < bridge> [teeworlds] <Dune> oh, argument parsing was introduced later? okay
+12:11 < bridge> [teeworlds] <Learath2> yeah, this server also expects the entire chat line in pArgs
+12:11 < bridge> [teeworlds] <Dune> I'd argue more complexity is more bug-prone
+12:11 < bridge> [teeworlds] <Dune> which makes sense, since that's how 0.7.4 works, right
+12:12 < bridge> [teeworlds] <Learath2> idk what we can do about it tbh, we can just not check arguments at all and send the entire chat line like 0.7.4
+12:13 < bridge> [teeworlds] <Dune> sounds most reasonable to me
+12:13 < bridge> [teeworlds] <Dune> constantly changing the protocol is irresponsible
+12:13 < bridge> [teeworlds] <Learath2> This is why I don't like working with vanilla, for ddnet we'd have wrapped this up in a version check, or an extended protocol message
+12:13 < bridge> [teeworlds] <Dune> we can do version checks
+12:13 < bridge> [teeworlds] <Dune> but then you just have stacks of backwards compatibility crap, don't you?
+12:14 < bridge> [teeworlds] <Dune> I mean, sounds rich to me to blame vanilla for that, which is usually light in this aspect
+12:14 < bridge> [teeworlds] <Learath2> it's the only way things can evolve, if the protocol is stagnant, then we can't improve anything
+12:16 < bridge> [teeworlds] <Dune> see https://github.com/teeworlds/teeworlds/blob/master/src/game/server/gamecontext.h#L132
+12:16 < bridge> [teeworlds] <Learath2> such a shame it was released the way ryozuki first commited it
+12:16 < bridge> [teeworlds] <Dune> we lack testers a lot
+12:18 < bridge> [teeworlds] <Learath2> do we get the server version any time during the protocol (not including serverinfo)?
+12:18 < bridge> [teeworlds] <Dune> oh, good question
+12:23 < bridge> [teeworlds] <Learath2> okay fixed that, it also breaks @Trafalgar Law and @fokkonaut's servers, but they are following master, that's expected
+12:25 < bridge> [teeworlds] <fokkonaut> what do you break?
+12:28 < bridge> [teeworlds] <Learath2> the messages arguments will now include the entire chat line including the / because ryozuki first coded it that way
+12:29 < bridge> [teeworlds] <Learath2> you can do a str_skip_to_whitespace on what you receive to get it to the way it's in current master
+12:30 < bridge> [teeworlds] <Learath2> For the record, I no longer like this code at all, really regretting even touching it at this point
+12:31 < bridge> [teeworlds] <Learath2> If I knew we were sending the entire chat line as "arguments" I would have never touched it to begin with
+12:31 < bridge> [teeworlds] <Learath2> (which is my bad, I did indeed miss that)
+12:33 < bridge> [teeworlds] <Learath2> @Dune I pushed, you can try it if you want, works on fng2 and on Race. Doesn't work on the servers that were following master
+12:40 < bridge> [teeworlds] <jxsl13> better wait for a release before uodating your servers :p
+12:41 < bridge> [teeworlds] <jxsl13> why is there not simply a dev branch. currently everything is pushed to master.
+12:42 < bridge> [teeworlds] <Learath2> master is the dev branch
+12:42 < bridge> [teeworlds] <jxsl13> well, then people should not rely on a work in orogress state.
+12:42 < bridge> [teeworlds] <jxsl13> progress
+12:43 < bridge> [teeworlds] <Learath2> well they run the two largest servers and ask people to use their own clients for the best experience, they can follow whatever branch they want
+12:44 < bridge> [teeworlds] <jxsl13> then you would not really have to care, do you? if people rely on a WIP state.
+12:45 < bridge> [teeworlds] <Learath2> I'm just giving them a heads up that #2575 is breaking
+12:46 < bridge> [teeworlds] <jxsl13> master should contain stable releases imo, dev WIP. if people rely on a broken WIP state, it's not your problem.
+12:46 < bridge> [teeworlds] <Learath2> I'll probably end up adding an extended protocol message in ddnet7 to support the sane command message, and the vanilla one will just strip the / and the command
+12:47 < bridge> [teeworlds] <Learath2> anyone here familiar with python?
+12:48 < bridge> [teeworlds] <Learath2> particularly the import mechanics
+12:52 < bridge> [teeworlds] <jxsl13> I think there are a lot of people here who have at least touched that language. just ask the question instead  of a meta question :D
+12:55 < bridge> [teeworlds] <Learath2> Fine, I need to import two different versions of network.py in one file, however when I import the first one, that imports datatype.py of one version, when I import the second version, it doesn't even import datatypes because the previous one already added it to the globals
+12:55 < bridge> [teeworlds] <Learath2> (which causes a mismatch between network.py and datatype.py)
+12:56 < bridge> [teeworlds] <jxsl13> import as might help?
+12:56 < bridge> [teeworlds] <jxsl13> usually should be a package, if I'm. it mistaken
+12:56 < bridge> [teeworlds] <Learath2> network.py imports * from datatypes, can't do `as`
+12:57 < bridge> [teeworlds] <jxsl13> import individually
+12:57 < bridge> [teeworlds] <Learath2> all folders are implicitly packages past Python 3.3
+12:57 < bridge> [teeworlds] <Learath2> I don't want to modify network.py from either version too much
+12:57 < bridge> [teeworlds] <Learath2> (so we can just copy and paste it over as vanilla changes)
+12:58 < bridge> [teeworlds] <redix> How many servers are running with the 0.7.4 commands right now? I'd make sure to update the Race servers to the new behavior when there is a new release
+12:58 < bridge> [teeworlds] <jxsl13> import * is bad practise anyway
+12:58 < bridge> [teeworlds] <jxsl13> push a vanilla update x)
+12:59 < bridge> [teeworlds] <Learath2> @redix I don't think we are allowed to break compatibility either way, you and Jupstar seem to be the only two, and you both agreed to update, but you'd have to talk with Oy or Dune, not my decision
+13:00 < bridge> [teeworlds] <Learath2> @jxsl13 even if I imported specifically, It'd need suffixes to not conflict with the other network.py anyway
+13:00 < bridge> [teeworlds] <Learath2> I think I'll have to rename the modules themselves tbh, python caching is just way too agressive
+13:01 < bridge> [teeworlds] <jxsl13> I mean having a packagename prefix. I'm not sure how that exactly works.
+13:01 < bridge> [teeworlds] <Learath2> ooh, are those a thing?
+13:02 < bridge> [teeworlds] <jxsl13> you know stuff like import numoy as np and then use np.Datatype or np.Function
+13:02 < bridge> [teeworlds] <jxsl13> numpy
+13:02 < bridge> [teeworlds] <Learath2> hmm, let me give it a try
+13:03 < bridge> [teeworlds] <jxsl13> i'm not 100% sure about these mechanics, as I haven't touched python in a long while.
+13:04 < bridge> [teeworlds] <jxsl13> but should exist
+13:04 < bridge> [teeworlds] <jxsl13> rand or assa might help
+13:10 < rand> do you need to load both or is it possible to import only the relevant one ? 
+13:12 < bridge> [teeworlds] <jxsl13> I think both
+13:12 < rand> in the first case, I agree with jxsl13, import datatypes as old, import datatypes2 as best
+13:17 < rand> about the second `from datatypes import *`, I expect the data to replace the old ones (and I observe this with a short example)
+13:20 < rand> this one : https://repl.it/repls/AshamedShockingProcedurallanguage
+13:48 < bridge> [teeworlds] <redix> Sure... Keeping compatibility for the basic gameplay and for major vanilla features is important. But server side chat commands is a small feature only used by mods. Right now most servers are already incompatible to 0.7.4 in this regard and I'd consider the 0.7.4 behavior as a bug.
+14:02 < bridge> [teeworlds] <redix> In general I don't see the point in keeping compatibility with all 0.7 minor versions for all features.
+14:02 < bridge> [teeworlds] <redix> Teeworlds does not do LTS releases. Compatibility with old versions should only be kept for some time (months not years). However, a working version server is required then
+14:05 < bridge> [teeworlds] <Dune> I think the idea behind is that any 0.7 client should be able to connect to a 0.7 server and have it work fine
+14:14 < bridge> [teeworlds] <redix> Working fine is one thing. Keeping every detail compatible is another
+14:23 < bridge> [teeworlds] <heinrich5991> @Dune server commands were never used in vanilla. this is entering the territory of being bug-for-bug compatible
+14:24 < bridge> [teeworlds] <Dune> I mean, yeah, this was a protocol for server modifications
+14:24 < bridge> [teeworlds] <Dune> I'm not sure what you mean by bug-for-bug compatible
+14:25 < bridge> [teeworlds] <heinrich5991> I mean that the old behavior doesn't look intended, and more like a bug
+14:25 < bridge> [teeworlds] <Dune> ah, I didn't see it like tht
+14:25 < bridge> [teeworlds] <heinrich5991> ah
+14:25 < bridge> [teeworlds] <heinrich5991> (bug-for-bug compatibility means that you try to emulate all the bugs an old version has, because people might be using these buggy behaviors)
+14:27 < rand> <insert relevant xkcd about heating stuff>
+14:28 < rand> x1172
+14:29 < bridge> [teeworlds] <Dune> well, that and what @redix says, that sounds like fair arguments for breaking the 0.7.4 behaviour
+14:29 < bridge> [teeworlds] <Dune> what do you think @Learath2
+14:32 < rand> I feel like this kind of change must be annouce in release version (such that `g_Config.` -> `Config()->` for documentation and for modder relying on vanilla updates
+14:33 < rand> but in dev version (master) this is not mandatory, assuming that dev maintainers know their stuff
+14:34 < bridge> [teeworlds] <Dune> rand:  it's in the 0.7.4 release though
+14:38 < rand> implying this was an error not to add this as dev note (or log diff maybe)
+14:56 < rand> hm, I search a bit more about the issue, this is pain (small one th), I like the Learath2 PR :]
+15:41 < ChillerDragon> boiiiis i finally fixed the editor shortcut on gnome! :D
+15:41 < ChillerDragon> ctrl+shift+e seems to be some emoji thingy and it can be turned off to open tw editor yay
+15:41 < ChillerDragon> gsettings set org.freedesktop.ibus.panel.emoji hotkey []
+15:45 < bridge> [teeworlds] <Dune> huh
+15:45 < bridge> [teeworlds] <Dune> all my ctrl+shift+ are broken :/ not sure if it's gnome
+15:45 < ChillerDragon> yes
+15:45 < ChillerDragon> its gnome
+15:45 < ChillerDragon> gsettings set org.freedesktop.ibus.panel.emoji hotkey []
+15:45 < ChillerDragon> saves the day
+15:45 < bridge> [teeworlds] <Dune> > all my ctrl+shift+
+15:45 < bridge> [teeworlds] <Dune> not just the ctrl+shift+e
+15:45 < ChillerDragon> eh
+15:45 < ChillerDragon> not sure about that
+15:46 < ChillerDragon> u on gnome?
+15:46 < ChillerDragon> and what happens when u press it?
+15:46 < bridge> [teeworlds] <Dune> yeah
+15:46 < bridge> [teeworlds] <Dune> nothing
+15:46 < ChillerDragon> not even some weird underlined e in a random text field?
+15:46 < bridge> [teeworlds] <Dune> no
+15:46 < bridge> [teeworlds] <Dune> especially when I use ctrl+shift+d :p
+15:46 < ChillerDragon> hmm sounds like a different issue
+15:46 < ChillerDragon> poor u
+15:47 < bridge> [teeworlds] <Dune> yes
+15:47 < ChillerDragon> like all ctrl+shift everywhere not just tw?
+15:47 < bridge> [teeworlds] <Dune> It's okay, that's why I have a dualboot windows, when I want things to simply work :D
+15:47 < ChillerDragon> yikes
+15:47 < bridge> [teeworlds] <Dune> I don't really have ctrl+shift things elsewhere
+15:48 < bridge> [teeworlds] <Dune> I also have to `bind mouse3 +fire;+hook` because mouse1 + mouse2 is interpreted as mouse3 :(
+15:48 < ChillerDragon> wat
+15:48 < ChillerDragon> ur system broken af
+15:50 < ChillerDragon> i cant believe it im so happy rn i might start mapping again :D
+15:50 < bridge> [teeworlds] <Dune> it always does that, and it's a fresh install
+15:50 < ChillerDragon> yikes
+15:51 < bridge> [teeworlds] <Dune> usually my linux installs get better over time as I fix linux/gnome bugs/shortcomings
+15:51 < bridge> [teeworlds] <Dune> windows is the opposite, things break
+16:23 < bridge> [teeworlds] <Learath2> I simply avoid gnome and kde nowadays
+16:23 < bridge> [teeworlds] <Learath2> bspwm and i3 are simple enough that they don't mess things up and can be easily debugged when things break
+16:24 < bridge> [teeworlds] <Learath2> About the 0.7.4 commands thing, idk, I'm inclined to agree with the others that it doesn't break vanilla so it doesn't reaaallly break compatibility
+16:44 < bridge> [teeworlds] <Ryozuki> i3gaps best
+16:44 < bridge> [teeworlds] <Ryozuki> things dont break when they are too simple
+16:44 < bridge> [teeworlds] <Ryozuki> follows the unix principle
+17:45 < ChillerDragon> i like desktops tho
+18:28 < rand> like https://tekmanagement.com/wp-content/uploads/2018/06/desktop-icons.png
+18:49 < bridge> [teeworlds] <Assa> there is this brand new invention from 1980 called "directories" or "folders". You should try it.
+20:11 < bridge> [teeworlds] <jxsl13> do server side demos work?
+20:12 < bridge> [teeworlds] <jxsl13> is there even such a thing in 0.7?
+20:12 < bridge> [teeworlds] <heinrich5991> `record` IIRC
+20:12 < bridge> [teeworlds] <jxsl13> ok, thanks.
+20:13 < bridge> [teeworlds] <jxsl13> would be neat to record people until they leave the server :0
+20:14  * rand have record a bunch of server demo on 1o1 dm1 with/out a bot just in case ML kicks in
+20:15 < rand> jxsl11: on your way to autorecord suspicious player ?
+20:16 < rand> (with a server boradcast: * Big Tee is watching you "teeless name" *
+20:17 < bridge> [teeworlds] <jxsl13> x)
+20:18 < bridge> [teeworlds] <jxsl13> no, just saw a hookbot today.
+20:18 < bridge> [teeworlds] <jxsl13> would be nice to autorecord from discord and upload to discord to watch later
+20:19 < bridge> [teeworlds] <jxsl13> optimal would be to convert to video and directly watch on dc
+21:54 < bridge> [teeworlds] <Learath2> I think we had to patch a little bit on ddnet to get serverside demo recording performant enough
+21:57 < bridge> [teeworlds] <redix> It worked last time I tried it. However it can just record a demo of the whole world. Would be cool to be able to follow players in such a demo.
+21:59 < bridge> [teeworlds] <Learath2> Uhm, you can with spectator controls, if thats what you mean
+21:59 < bridge> [teeworlds] <Learath2> Or do you want to strip the demo like one recorded by a tee?
+21:59 < bridge> [teeworlds] <redix> We did per player server-side demo recording for teerace. Performance was okay I think, but it was hardly ever tested with more than 8 players
+22:00 < bridge> [teeworlds] <Learath2> Well with a demo for the whole server, you can create a per player demo from that
+22:00 < bridge> [teeworlds] <redix> I think the follow feature does not work  in demos
+22:00 < bridge> [teeworlds] <Learath2> Huh, I think it was fine in 0.6 atleast
+22:00 < bridge> [teeworlds] <Learath2> Not sure if anything changed about that inbetween
+22:01 < bridge> [teeworlds] <redix> Nah it's missing some information I think. At least some effects and things like health+armor are missing in the server demos
+22:02 < bridge> [teeworlds] <redix> Player following is serverside. In the demoplayer there is no server that can tell you where the tee is
+22:03 < bridge> [teeworlds] <redix> Actually the client knows it anyway so it should be easy to add
+22:13 < bridge> [teeworlds] <redix> @Learath2 you are right. Following a player in a server demo actually works
+22:19 < rand> *waiting for javascript demo player*
+22:19 < bridge> [teeworlds] <Learath2> :D
+22:27 < bridge> [teeworlds] <heinrich5991> btw anyone familiar with nodejs modules?
+22:28 < bridge> [teeworlds] <heinrich5991> I'm trying to load a module, but it gives me an error: I enter `require("lively.lang")` and it tells me `Uncaught SyntaxError: Cannot use import statement outside a module` in the module I'm importing
+22:39 < bridge> [teeworlds] <Ryozuki> @heinrich5991 whats lively.lang
+22:51 < bridge> [teeworlds] <heinrich5991> https://github.com/LivelyKernel/lively.next/tree/master/lively.lang
+22:51 < bridge> [teeworlds] <heinrich5991> @Ryozuki what I'm trying to do: parse JS into a syntax tree, do some manipulation on it, and convert it to JS again
+22:52 < bridge> [teeworlds] <heinrich5991> I found https://github.com/acornjs/acorn for parsing, but it doesn't allow me to turn the syntax tree back into javascript
+22:52 < bridge> [teeworlds] <Ryozuki> https://www.npmjs.com/package/lively.lang
+22:52 < bridge> [teeworlds] <Ryozuki> did u npm install it
+22:52 < bridge> [teeworlds] <heinrich5991> yes
+22:53 < bridge> [teeworlds] <Ryozuki> did u npm init
+22:53 < bridge> [teeworlds] <heinrich5991> yes, loading other modules worked
+22:53 < bridge> [teeworlds] <Ryozuki> ah
+22:53 < bridge> [teeworlds] <heinrich5991> e.g. `acorn = require("acorn")`
+22:53 < bridge> [teeworlds] <Ryozuki> no idea then
+23:16 < bridge> [teeworlds] <Learath2> @heinrich5991 do you have a package.json?
+23:17 < bridge> [teeworlds] <heinrich5991> yes, I do
+23:18 < bridge> [teeworlds] <Learath2> oh wait I know what's wrong, the syntax error is in lively and not your code, right?
+23:19 < bridge> [teeworlds] <Learath2> you need polyfills for imports as nodejs doesn't do imports natively yet
+23:19 < bridge> [teeworlds] <Learath2> well I think there is some experimental support for it, but I'm not sure
+23:19 < bridge> [teeworlds] <Learath2> (lively is the one doing the import)
+23:23 < bridge> [teeworlds] <heinrich5991> nice, ty
+23:24 < bridge> [teeworlds] <heinrich5991> @Learath2 found another project to do the unparsing: https://github.com/estools/escodegen
+23:24 < bridge> [teeworlds] <Learath2> @heinrich5991 this sounds like a very interesting project, what are you doing?
+23:25 < bridge> [teeworlds] <Learath2> (also you really should get babel anyway, es6/7 is so much more fun to use)
+23:25 < bridge> [teeworlds] <Learath2> ((typescript is even more fun to use))
+23:26 < bridge> [teeworlds] <heinrich5991> @Learath2 js is just a tool here
+23:26 < bridge> [teeworlds] <heinrich5991> trying to deobfuscate some js
+23:26 < bridge> [teeworlds] <Learath2> you are deobfuscating js in js?
+23:27 < bridge> [teeworlds] <heinrich5991> yes, it seemed like the best parsers for JS are in JS(?)
+23:27 < bridge> [teeworlds] <heinrich5991> so I decided to learn some JS 😛
+23:27 < bridge> [teeworlds] <Learath2> js is a pretty insane language, I migrated most everything I have to ts nowadays
+23:28 < bridge> [teeworlds] <Learath2> it is fun to use though, first class functions and objects are a very nice feature in a language

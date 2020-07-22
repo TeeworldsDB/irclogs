@@ -1,0 +1,52 @@
+13:09 < Learath2> Dune: What I meant by the "..." was that it'd be nice if text rendering had an option to render three dots at the end if there is still text to render but we've hit max lines
+13:09 < Learath2> I gave a go at implementing it but it looked horrific so I gave it a git reset before it gave me nightmares
+13:14 < bridge> [teeworlds] <Dune> Learath2: that kind of stuff is already done for the chat buffer
+13:15 < bridge> [teeworlds] <Dune> https://www.teeworlds.com/forum/viewtopic.php?id=13342
+13:22 < Learath2> I see, I missed that, the implementation there is much better then what I'd came up with, but I think it'd be nice if the text rendering stack could handle this with a flag so the user need not be concerned
+13:25 < bridge> [teeworlds] <Dune> I would like something like that as well, with adaptive text size rather than dots... but it's pretty hard
+19:04 < Learath2> Dune: adaptive text size we do in a couple of places in ddnet, it doesn't really look the best tbh (and our implementation isn't really efficient), we just make the text smaller until the width fits
+19:05 < bridge> [teeworlds] <Dune> That is what I had in mind too
+19:05 < bridge> [teeworlds] <Dune> Learath2: what are the shortcomings?
+19:06 < Learath2> Well we'd basically "render" the text a couple times until it fits, I'm sure we could get a satisfactory approximation using the max glyph advance
+19:07 < bridge> [teeworlds] <Dune> Well that is how the TextWidth function works... render and measure
+20:01 < bridge> [teeworlds] <fokkonaut> How do I check whether the token from m_NetClient is "there" or not?
+20:02 < bridge> [teeworlds] <fokkonaut> so basically like a bool thats true when we got the token
+20:02 < bridge> [teeworlds] <heinrich5991> it sounds like you're solving the wrong problem
+20:02 < bridge> [teeworlds] <heinrich5991> why do you need to know this?
+20:03 < bridge> [teeworlds] <fokkonaut> i need something in 0.7 that does the same as this in ddnet 0.6 does:
+20:03 < bridge> [teeworlds] <fokkonaut> m_NetClient.SecurityTokenUnknown()
+20:03 < bridge> [teeworlds] <heinrich5991> that doesn't exist in 0.7 anymore
+20:04 < bridge> [teeworlds] <heinrich5991> what are you trying to do? ^^
+20:04 < bridge> [teeworlds] <fokkonaut> https://github.com/ddnet/ddnet/blob/master/src/engine/client/client.cpp#L2960
+20:04 < bridge> [teeworlds] <fokkonaut> need to solve this line for 0.7
+20:04 < bridge> [teeworlds] <heinrich5991> don't add it in 0.7
+20:04 < bridge> [teeworlds] <heinrich5991> 0.7 has this protection in vanilla
+20:04 < bridge> [teeworlds] <fokkonaut> what protection?
+20:05 < bridge> [teeworlds] <heinrich5991> protection against IP spoofing
+20:06 < bridge> [teeworlds] <heinrich5991> network security tokens are handled by the network, you don't have to care about them
+20:06 < bridge> [teeworlds] <heinrich5991> you probably care about something like "connected" or so
+20:06 < bridge> [teeworlds] <fokkonaut> well at the moment i just send the stuff that we have in this if directly after m_NetClient.Connect(), and the client connects to the server, i see that in the logs of my own one, but there wont be a tee, so im guessing that the messages get sent too early
+20:07 < bridge> [teeworlds] <fokkonaut> because it just stays in the connecting phase, so a slot is blocked while no tee is there
+20:07 < bridge> [teeworlds] <fokkonaut> i somehow need a response i think from the server
+20:07 < bridge> [teeworlds] <fokkonaut> after the initial connection from the dummy
+20:08 < bridge> [teeworlds] <fokkonaut> of course i could handle it the same way as the main tee, but i wanna have it kinda-like in 0.6
+20:09 < bridge> [teeworlds] <heinrich5991> perhaps do it like client.state == connected?
+20:10 < bridge> [teeworlds] <heinrich5991> that corresponds to the 0.6 thing I think
+20:10 < bridge> [teeworlds] <heinrich5991> netclient.state == connected
+20:10 < bridge> [teeworlds] <fokkonaut> yea
+20:10 < bridge> [teeworlds] <fokkonaut> thats how the main client does it
+20:10 < bridge> [teeworlds] <heinrich5991> why don't you do it that way then?
+20:11 < bridge> [teeworlds] <fokkonaut> i thought because 0.6 does it in another way too
+20:11 < bridge> [teeworlds] <fokkonaut> and that would make the connection step by step, in the link i just showed its all at once
+20:12 < bridge> [teeworlds] <heinrich5991> I'm telling you to replace hassecuritytoken by state == online
+20:12 < bridge> [teeworlds] <fokkonaut> the client is already online
+20:12 < bridge> [teeworlds] <heinrich5991> why is that any more step by step than 0.6?
+20:12 < bridge> [teeworlds] <heinrich5991> no
+20:12 < bridge> [teeworlds] <fokkonaut> the security check is for the dummy
+20:12 < bridge> [teeworlds] <heinrich5991> not the netclient
+20:12 < bridge> [teeworlds] <fokkonaut> ah
+20:12 < bridge> [teeworlds] <fokkonaut> wait a sec then
+20:15 < bridge> [teeworlds] <fokkonaut> using STATE_ONLINE it wont send it at all and the dummy just times out while connecting, using STATE_CONNECTING it does send, but its the same as before, nothing really happens
+20:15 < bridge> [teeworlds] <fokkonaut> maybe something else is broken
+20:31 < bridge> [teeworlds] <fokkonaut> ah
+20:31 < bridge> [teeworlds] <fokkonaut> got it i guess
