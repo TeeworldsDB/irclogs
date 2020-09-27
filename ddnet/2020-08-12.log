@@ -1,0 +1,190 @@
+04:38 <+bridge> [ddnet] <C4aCtJIuBbIu> what if you haven’t played teworlds for a long time, then I went in and didn’t show the server ddrays
+08:47 <+bridge> [ddnet] <deen> @RafaelFF @Ryozuki the AUR ddnet/ddnet-git packages should depend on sqlite
+09:01 <+bridge> [ddnet] <Ryozuki> done
+10:38 <+bridge> [ddnet] <deen> Zwelf: https://github.com/ddnet/ddnet/issues/2558
+11:04 <+bridge> [ddnet] <deen> Zwelf: Hm, I guess I should look for all team ranks and create them manually now, right?
+11:07 <+bridge> [freenode] <Zwelf> That would be nice. If you still have the logs, you can grep for the string "found team rank from same team" and update the times.
+11:09 <+bridge> [ddnet] <deen> or alternatively go through the record_race and find things that look like team ranks but has no equivalent in record_teamrace?
+11:10 <+bridge> [ddnet] <Learath2> not trivial to write that though is it?
+11:10 <+bridge> [ddnet] <Learath2> hm, I guess you can group by timestamp
+11:10 <+bridge> [ddnet] <deen> grepping the logs isn't trivial either, they get overwritten, might miss something
+11:11 <+bridge> [freenode] <Zwelf> yes going through ranks would be good enough as well
+11:11 <+bridge> [ddnet] <deen> oh well, not so many ranks actually, can do it by hand. 11 for now
+11:12 <+bridge> [ddnet] <deen> but servers will only restart slowly, so I'll have to monitor
+11:13 <+bridge> [ddnet] <deen> we should have some test scenarios with sqlite to test the sql code
+11:13 <+bridge> [ddnet] <deen> before with a real db it was annoying, with sqlite would be nicer to build
+11:14 <+bridge> [ddnet] <heinrich5991> (CI should also at least build mysql)
+11:14 <+bridge> [ddnet] <deen> yeah, but then you need to start a real mysql server etc
+11:14 <+bridge> [ddnet] <Learath2> If we can abstract out a "RaceManager" we could add a lot of tests
+11:14 <+bridge> [ddnet] <heinrich5991> yes, but without building with mysql we get build errors like the one you reported earlier
+11:15 <+bridge> [ddnet] <deen> sure, but build errors are not so bad
+11:15 <+bridge> [ddnet] <deen> failing to save ranks is bad
+11:15 <+bridge> [ddnet] <heinrich5991> yes
+11:16 <+bridge> [ddnet] <deen> Zwelf: You're also not printing out the sql queries anymore, right?
+11:19 <+bridge> [ddnet] <deen> Makes it hard to find out what the map even was, I liked seeing the SQL in there, would also have been easier to see the mistake then
+11:19 <+bridge> [ddnet] <Learath2> Our logs need some work, I think it's very noisy to be useful
+11:19 <+bridge> [ddnet] <deen> i prefer slightly too noisy
+11:20 <+bridge> [ddnet] <deen> can still grep
+11:20 <+bridge> [freenode] <Zwelf> With the prepared statements, there are only `?` in the sql statement, so it isn't that useful anymore.
+11:20 <+bridge> [ddnet] <Learath2> @deen that's true
+11:21 <+bridge> [ddnet] <deen> Zwelf: Isn't there a way to print the prepared statement with the bound values?
+11:21 <+bridge> [freenode] <Zwelf> Searched for it a bit, but didn't find a way to do this.
+11:22 <+bridge> [ddnet] <deen> is the game id printed to log somewhere?
+11:22 <+bridge> [ddnet] <heinrich5991> teehistorian name is printed
+11:22 <+bridge> [ddnet] <deen> ah, good enough
+11:23 <+bridge> [ddnet] <heinrich5991> (which contains the game id)
+11:23 <+bridge> [ddnet] <deen> but this is still quite some manual work collecting all this info instead of copy-pasting the sql from log
+11:24 <+bridge> [ddnet] <heinrich5991> the game id should also be in the (non-team) ranks btw
+11:28 <+bridge> [ddnet] <Learath2> It's mind boggling how shitty the documentation for the cpp connector is
+11:28 <+bridge> [ddnet] <deen> yeah, might as well skip using it and use straight C
+11:28 <+bridge> [ddnet] <heinrich5991> would drop a dependency \o/
+11:28 <+bridge> [ddnet] <deen> would also reduce windows problems with the cpp connector
+11:29 <+bridge> [ddnet] <heinrich5991> might also be easier with the nice abstraction now
+11:30 <+bridge> [ddnet] <Learath2> I wonder if there is a nice wrapper library that would let us use any sql implementation rather than just mysql
+11:30 <+bridge> [ddnet] <heinrich5991> Zwelf found one, but it was GPL
+11:30 <+bridge> [ddnet] <heinrich5991> ed
+11:31 <+bridge> [freenode] <Zwelf> I can't reproduce the /load problem locally and would like to compare Savestrings. Could you send me the output of `SELECT Savegame FROM record_saves WHERE Map = "Just2Easy" AND Code = "gear verse shock";`
+11:31 <+bridge> [ddnet] <Learath2> The C library does indeed look much better documented
+11:33 <+bridge> [ddnet] <deen> Zwelf: https://ddnet.tw/sqlout.txt
+11:54 <+bridge> [ddnet] <Ryozuki> oh ye sqlite rly good for testing
+11:54 <+bridge> [ddnet] <Ryozuki> it even has a memory db option
+11:55 <+bridge> [ddnet] <Ryozuki> im also for removing cpp connector
+12:01 <+bridge> [ddnet] <Ryozuki> https://dev.mysql.com/doc/c-api/8.0/en/c-api-function-overview.html
+12:03 <+bridge> [freenode] <Zwelf> Mh, copying mysql output doesn't seem to work well for tabs at the end of the line. Could you repeat the command and base64 encode the output: `SELECT to_base64(Savegame) FROM record_saves WHERE Map = "Just2Easy" AND Code = "gear verse shock";`
+12:06 <+bridge> [ddnet] <deen> done, same link
+12:06 <+bridge> [freenode] <Zwelf> thanks
+12:12 <+bridge> [freenode] <Zwelf> Hm, I can load this string locally. I have no idea yet why it fails to load on ger.ddnet.tw.
+12:14 <+bridge> [ddnet] <deen> locally with sqlite or mariadb?
+12:14 <+bridge> [ddnet] <deen> different mariadb versions? different default encoding
+12:15 <+bridge> [ddnet] <deen> I guess I can add some debug printing and try it on GER
+12:16 <+bridge> [freenode] <Zwelf> Using mariadb (on ubuntu 20.04)
+12:17 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ https://github.com/ddnet/ddnet/pull/2553#issuecomment-672784157 pls take a look
+12:20 <+bridge> [ddnet] <deen> Zwelf: I tried `dbg_msg("sql", aSaveString);` and get a very cut off string:
+12:20 <+bridge> [ddnet] <deen> `[2020-08-12 12:19:52][sql]: 2   1       1       0
+12:20 <+bridge> [ddnet] <deen> deen    1       0       34      0       1       0       -1      0       1       0       -1      0       1       0
+12:21 <+bridge> [ddnet] <deen>        0       0       0       0       0       0       0       0       0       0       P`
+12:23 <+bridge> [ddnet] <deen> And I have no idea where that P in the end comes from, that's not in the DB
+12:23 <+bridge> [ddnet] <Ryozuki> :justatest:
+12:30 <+bridge> [ddnet] <deen> https://bugs.mysql.com/bug.php?id=94503
+12:30 <+bridge> [ddnet] <Learath2> @deen you probably should have printed `"%s", aSaveString`  to be sure
+12:31 <+bridge> [ddnet] <Learath2> Though I doubt aSaveString contains %s unless someone saved with malicious intent 😛
+12:31 <+bridge> [ddnet] <deen> yeah, was my own save
+12:31 <+bridge> [ddnet] <Learath2> Where did you add the print?
+12:34 <+bridge> [ddnet] <deen> After the `strcpy(pData->m_pResult->m_aMessage, "Unable to load savegame: data corrupted");`
+12:36 <+bridge> [ddnet] <deen> We have the exact same version of mysqlcppconnector, so I guess we have the same bug
+12:36 <+bridge> [ddnet] <deen> have to compile my own mysqlcppconnector I guess, no newer one in Debian
+12:37 <+bridge> [ddnet] <deen> Why didn't we get this before, didn't we use getString?
+12:43 <+bridge> [ddnet] <deen> Confirmed, works
+12:58 <+bridge> [ddnet] <ᶰ°Konͧsti> Someone pls increase timeout protection on ger2
+12:58 <+bridge> [ddnet] <ᶰ°Konͧsti> @deen
+13:04 <+bridge> [ddnet] <deen> nope, can't connect to it either
+13:10 <+bridge> [ddnet] <ᶰ°Konͧsti> give rcon, im on server
+13:10 <+bridge> [ddnet] <ᶰ°Konͧsti> :justatest:
+13:46 <+bridge> [ddnet] <Learath2> @deen should we maybe whitelist master4 again?
+13:51 <+bridge> [ddnet] <deen> what do you mean @Learath2 ?
+13:52 <+bridge> [ddnet] <Learath2> I thought it was flooding with server ips, looks like randomly spoofed
+13:52 <+bridge> [ddnet] <deen> ah, sure. where did we get the ips?
+13:52 <+bridge> [ddnet] <deen> there was this favorites file somewhere, wasn't therE?
+13:52 <+bridge> [ddnet] <Learath2> I think we just took all the servers ips
+13:52 <+bridge> [ddnet] <deen> yeah, but where from?
+13:53 <+bridge> [ddnet] <Learath2> hm, with the masters dead I actually am not sure 😄
+13:53 <+bridge> [ddnet] <deen> found it: https://status.tw/server/dump/6/
+13:54 <+bridge> [ddnet] <deen> i will add it to whitelist
+13:54 <+bridge> [ddnet] <deen> lis2 packages?
+13:55 <+bridge> [ddnet] <Learath2> fw!!, bea2
+13:55 <+ChillerDragon> pulic ddos mitigation discussion xd
+13:55 <+bridge> [ddnet] <Learath2> whatever, it's obvious
+13:56 <+bridge> [ddnet] <Learath2> imagine being so much of a cuck that you do spoofed attacks on an old games masterserver
+13:56 <+ChillerDragon> yes 0.6 is very old
+13:56 <+ChillerDragon> imagine using master server without tokens
+13:56 <+ChillerDragon> :p
+13:56 <+bridge> [ddnet] <Learath2> imagine being dimwitted enough to think 0.7 master servers are immune to spoofing attacks
+13:57 <+ChillerDragon> :/
+13:57 <+bridge> [ddnet] <Learath2> We should have migrated to http masters
+13:58 <+bridge> [ddnet] <Learath2> Who cares if 0.7 follows us anyway? We can implement it and use it
+13:59 <+ChillerDragon> sounds good
+14:00 <+ChillerDragon> btw @Learath2 could you try to explain https://github.com/ddnet/ddnet/commit/444bd934377e3cc63dac45516a1220dcecb3209f#diff-1dd7d837c25bee6c3d340a8e8f388230 for a 6yo?
+14:00 <+bridge> [ddnet] <Learath2> recvmmsg doesn't use the same buffer as normal recv
+14:01 <+bridge> [ddnet] <Learath2> pData points to the correct one in either case
+14:01 <+bridge> [ddnet] <deen> Did I do it right?
+14:01 <+bridge> [ddnet] <Learath2> nah you seem to have broken serverstatus too
+14:01 <+bridge> [ddnet] <Learath2> oh wait
+14:01 <+bridge> [ddnet] <Learath2> looks good actually
+14:02 <+bridge> [ddnet] <deen> weird
+14:02 <+ChillerDragon> hm i hate coding :/
+14:02 <+ChillerDragon> i give 100 euros to the person who ports ddnet client to 0.7
+14:03 <+ChillerDragon> 200 if its good and merged into ddnet/ddnet
+14:03 <+bridge> [ddnet] <Learath2> At 20e per hour that's only 5 hours of work
+14:03 <+bridge> [ddnet] <Learath2> If it was only 5 hours of work I'd do it for free 😄
+14:03 <+bridge> [ddnet] <redix> then hurry up 😄
+14:03 <+ChillerDragon> i got it connecting ^
+14:03 <+bridge> [ddnet] <Learath2> I don't like ports anyway
+14:04 <+ChillerDragon> but merging with ddnet upstream becomes more annoying every time
+14:04 <+bridge> [ddnet] <Learath2> We should clean it up and do it right while going up to 0.7
+14:04 <+bridge> [ddnet] <deen> @Learath2 why is status not working?
+14:04 <+bridge> [ddnet] <Learath2> @deen it wasn't working for a second then it started working again
+14:05 <+bridge> [ddnet] <Learath2> ChillerDragon: I actually should have all the tools you need to make ddnet client able to connect to 0.7 servers in place
+14:05 <+ChillerDragon> wdym by tools?
+14:05 <+ChillerDragon> that current ddnet6 code base is 7ish enough?
+14:05 <+bridge> [ddnet] <Learath2> The protocol is generated
+14:06 <+ChillerDragon> yea i started working on my ddnet port before you did all the stuff and now i rage quitted the merge 
+14:06 <+ChillerDragon> anyways i dont get ur code
+14:06 <+ChillerDragon> so much
+14:06 <+Learath2> :(
+14:52 <+bridge> [ddnet] <fokkonaut> I cant build ddnet on windows
+14:52 <+bridge> [ddnet] <fokkonaut> since the 0.7 layer got merged
+14:52 <+bridge> [ddnet] <Learath2> did you recreate your build folder? there were issues with cmake not finding python3
+14:53 <+bridge> [ddnet] <fokkonaut> python3 found, yes. folders all there, I use MSVS
+14:53 <+bridge> [ddnet] <Learath2> Then show error
+14:53 <+bridge> [ddnet] <fokkonaut> Not at home right now, but the error is something with the get_msgs and the generated maps I believe
+14:53 <+bridge> [ddnet] <fokkonaut> something with compile.py i think
+14:54 <+bridge> [ddnet] <fokkonaut> i will look for it later
+16:45 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ i thought arb debug was widely used and available tho
+16:46 <+bridge> [ddnet] <Ryozuki> ARB means its accepted by the opengl commitee blabla
+16:46 <+bridge> [ddnet] <Ryozuki> what u refer would be AMD_debug...
+16:46 <+bridge> [ddnet] <Ryozuki> ARB = OpenGL Architecture Review Board
+16:47 <+bridge> [ddnet] <Ryozuki> well it doesnt matter anymore
+20:52 <+bridge> [ddnet] <nori> is there a config variable to disable it?
+20:52 <+bridge> [ddnet] <nori> https://cdn.discordapp.com/attachments/293493549758939136/743180157065363486/2020-08-12-215123-screenshot.png
+21:26 <+bridge> [ddnet] <m!ki> Just update the client? 🤡
+21:36 <+bridge> [ddnet] <deen> @nori i don't think so
+21:49 <+bridge> [ddnet] <Ryozuki> compile ur client without autoupdater
+22:33 <+bridge> [ddnet] <deen> that is without autoupdater already
+22:36 <+bridge> [ddnet] <heinrich5991> @deen I guess google's funding is unlikely to dry up, since they'd become a monopoly in browsers if mozilla would go away
+22:47 <+bridge> [ddnet] <Ryozuki> why wouldnt google want to be monopoly
+22:49 <+bridge> [ddnet] <Ryozuki> "Google is willing to spend that kind of money just to keep Microsoft from starting a partnership with Mozilla."
+22:50 <+bridge> [ddnet] <Ryozuki> i wonder if its true
+22:50 <+bridge> [ddnet] <deen> Definitely outdated, especially with Edge being Chromium-based now
+22:50 <+bridge> [ddnet] <Ryozuki> google pays firefox to have google as default search engine
+22:51 <+bridge> [ddnet] <Ryozuki> well monopoly is always bad, but i wonder if a company cares about that
+22:51 <+bridge> [ddnet] <Learath2> google being this strong is extremely dangerous
+22:52 <+bridge> [ddnet] <a gerdoe> let yandex get search foundings' place
+22:52 <+bridge> [ddnet] <Learath2> they know a whole lot about you, and they are not regulated at all
+22:52 <+bridge> [ddnet] <Ryozuki> i know
+22:52 <+bridge> [ddnet] <Ryozuki> i just dont know why they fund mozilla
+22:52 <+bridge> [ddnet] <Learath2> I would bet big money that they are manipulating search results to influence public thinking
+22:53 <+bridge> [ddnet] <Ryozuki> their own competitor
+22:53 <+bridge> [ddnet] <Ryozuki> in the browser sector
+22:53 <+bridge> [ddnet] <Learath2> More data for them if mozilla uses google as it's search engine
+22:53 <+bridge> [ddnet] <Ryozuki> in 2015
+22:53 <+bridge> [ddnet] <Ryozuki> firefox switched to yahoo
+22:53 <+bridge> [ddnet] <Ryozuki> 70% of users
+22:53 <+bridge> [ddnet] <deen> I don't think monopolies are always bad, for public infrastructure like railways, water, electricity you want monopolies instead of having 5 different water lines to your house from competing companies
+22:53 <+bridge> [ddnet] <Ryozuki> went back to google search
+22:53 <+bridge> [ddnet] <Ryozuki> i wonder if its worth for them to do this
+22:54 <+bridge> [ddnet] <Learath2> Oh definitely, utilities should be a government monopoly
+22:54 <+bridge> [ddnet] <Ryozuki> yeah
+22:54 <+bridge> [ddnet] <Ryozuki> public services should be monpolied by local goverment
+22:54 <+bridge> [ddnet] <Learath2> look at the mess of privatized utilities in countries like italy or britain
+22:54 <+bridge> [ddnet] <Ryozuki> USA hospitals
+22:54 <+bridge> [ddnet] <Ryozuki> they charge 5k for a ambulance
+22:54 <+bridge> [ddnet] <Learath2> 4 different electricity providers I can choose from all trying to screw you over in different ways
+22:54 <+bridge> [ddnet] <Ryozuki> haha
+22:55 <+bridge> [ddnet] <Ryozuki> but achieving this monopoly is hard
+22:55 <+bridge> [ddnet] <Ryozuki> cuz companies lure goverment
+22:55 <+bridge> [ddnet] <Ryozuki> with lot of money
+22:55 <+bridge> [ddnet] <Ryozuki> and in crisis its esier
+22:55 <+bridge> [ddnet] <Ryozuki> easier
+22:57 <+bridge> [ddnet] <Learath2> I wonder when there will be a monopoly buster against amazon
+22:57 <+bridge> [ddnet] <Learath2> it's absolutely horrible for small business
+22:58 <+bridge> [ddnet] <Ryozuki> there wont be probs

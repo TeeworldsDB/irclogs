@@ -1,0 +1,66 @@
+11:41 < deen> ssh 
+12:09 <+bridge> [ddnet] <nori> i'm in sunny side up like 5 mins and my rank just doesn't load, /rank won't answer as well
+12:10 <+bridge> [ddnet] <Shyzo> @nori can happen sometimes if the server get a dos attack (at least from what I know from kog server).
+12:10 <+bridge> [ddnet] <nori> after 6 mins it's loaded but still rank commands won't answer
+12:10 <+bridge> [ddnet] <nori> hm strange
+12:11 <+bridge> [ddnet] <Shyzo> (not 100% sure with my answer, I'm not into coding or anything. Just my guess)
+12:11 <+bridge> [ddnet] <deen> @nori i know what the problem is and it will be fixed soon. The problem is just that the servers aren't going empty so we can't restart them
+12:12 <+bridge> [ddnet] <nori> oh okay
+12:14 <+bridge> [ddnet] <deen> @nori i found a quick fix, works now?
+12:15 <+bridge> [ddnet] <nori> yes
+12:15 <+bridge> [ddnet] <deen> @Learath2 I used your iptables nat and it works ok once the connection failed once, better than nothing
+12:18 <+bridge> [ddnet] <Learath2> Don't forget to enable ip forwarding
+12:18 <+bridge> [ddnet] <deen> done
+12:22 <+bridge> [ddnet] <Learath2> @deen maybe we could force the connection to fail somehow
+16:31 <+bridge> [ddnet] <deen> @nori fixing your bug caused another bug, ddnet servers were not showing up in internet tab. Oops...
+16:39 <+bridge> [ddnet] <deen> I'm getting "No master servers" on Korea and CHN(1). Weird
+16:46 <+bridge> [ddnet] <deen> @heinrich5991  @Learath2 any experiences with this? ^
+16:46 <+bridge> [ddnet] <deen> There are no iptables rules, so I'm not sure
+17:15 <+bridge> [ddnet] <deen> regsixup works correctly, but register doesn't
+17:28 <+bridge> [ddnet] <deen> tcpdump confirms that the master servers are not responding to us (0.6 only), while 0.7 replies
+17:33 <+bridge> [ddnet] <Ryozuki> did they close the servers?
+17:33 <+bridge> [ddnet] <Ryozuki> for 0.6
+17:37 <+bridge> [ddnet] <deen> no, running
+17:37 <+bridge> [ddnet] <deen> just these 2 servers can't register
+17:54 <+bridge> [ddnet] <deen> @Jupstar ✪ gfx_opengl_major 1; gfx_opengl_minor 4 works better, but still a few white boxes left
+17:54 <+bridge> [ddnet] <deen> better even than the current ddnet release
+18:06 <+bridge> [ddnet] <deen> Zwelf: Does it help to reduce the number of sql servers? Will that make things simpler to have just 1 write server globally and file fallback?
+18:09 <+bridge> [ddnet] <redix> with embedded texture in the maps there will always be some white textures =\
+18:09 <+bridge> [ddnet] <deen> @redix i'm not familiar with our graphics, why?
+18:10 <+bridge> [ddnet] <redix> because mappers dont check if they are power of 2
+18:10 <+bridge> [ddnet] <deen> and it's not just in the map, also the heart and lock symbol in server browser
+18:10 <+bridge> [ddnet] <redix> well they can be fixed but you cannot fix all maps
+18:10 <+bridge> [ddnet] <deen> I went through all DDNet maps and made the tile maps powers of 2
+18:10 <+bridge> [ddnet] <redix> quads?
+18:11 <+bridge> [ddnet] <deen> didn't know it should also be done for quad graphics
+18:11 <+bridge> [ddnet] <redix> everything in the game i think
+18:11 <+bridge> [ddnet] <deen> the reason I did it was so we can easier convert maps to TW0.7 since the maps there have this limitation for tile layer graphics
+18:11 <+bridge> [ddnet] <deen> Can't we scale it in memory and then use that as a fallback?
+18:13 <+bridge> [ddnet] <redix> sure but i dont think there is a suitable scaling algorithm in the code right now
+18:16 <+bridge> [ddnet] <redix> well the is a Rescale function in the backend. should probably be enough
+18:35 <+bridge> [ddnet] <Jupstar ✪> Yeah thought about that to, but only want this in gl1 context tbh.. Now I can easily apply patches like that
+20:10 <+bridge> [freenode] <Zwelf> @deen: yes would make the sql writing/updating less error prone. E.g. the /save corner cases when reading from the same ddnet server (e.g. GER2), but different MySQL server.
+20:50 <+bridge> [ddnet] <deen> @heinrich5991 @Learath2 let's get rid of the db replication and run only one?
+20:51 <+bridge> [ddnet] <heinrich5991> can all servers reliably reach one other server?
+20:51 <+bridge> [ddnet] <heinrich5991> especially china?
+20:51 <+bridge> [ddnet] <Ryozuki> ^
+20:52 <+bridge> [ddnet] <deen> well, would be nicer to have fallbacks, but the replication has also been causing a few problems
+20:53 <+bridge> [ddnet] <deen> we can then also get rid of the country in save
+21:19 <+bridge> [ddnet] <Jupstar ✪> @deen you can try the new commit
+21:19 <+bridge> [ddnet] <Jupstar ✪> it will hopefully fallback to opengl 1.4 now with a clean config and will resize images that arent power of two
+21:22 <+bridge> [ddnet] <Jupstar ✪> it will hopefully fallback to opengl 1.5 now with a clean config and will resize images that arent power of two
+21:49 <+bridge> [ddnet] <redix> @Jupstar ✪ `if(GLEW_ARB_texture_non_power_of_two || pCommand->m_GlewMajor > 2)` shouldn't it be `>= 2`?
+21:49 <+bridge> [ddnet] <redix> i think opengl 2 requires support for non power of 2 textures, but does not necessarily list `ARB_texture_non_power_of_two`
+21:50 <+bridge> [ddnet] <Jupstar ✪> you are absolutly right but look here:
+21:50 <+bridge> [ddnet] <Jupstar ✪> https://www.khronos.org/opengl/wiki/NPOT_Texture
+21:50 <+bridge> [ddnet] <Jupstar ✪> "older hardware"
+21:51 <+bridge> [ddnet] <Jupstar ✪> seems like they just didnt care and said opengl 2.0 is supported 😄
+21:51 <+bridge> [ddnet] <redix> okay... 😄
+21:51 <+bridge> [ddnet] <Jupstar ✪> the chance that the driver is buggy if it doesnt list that extension is higher than that it isnt listed and 2.0 is supported xD
+21:51 <+bridge> [ddnet] <Jupstar ✪> atleast i guess so
+21:52 <+bridge> [ddnet] <redix> yeah probably
+22:07 <+bridge> [ddnet] <Learath2> @deen I think we should have atleast one server mirroring so we don't lose all our data in a catastrophe
+22:54 <+bridge> [ddnet] <heinrich5991> deen takes daily backups AFAIK
+22:54 <+bridge> [ddnet] <heinrich5991> much better server admin than I am
+23:11 <+bridge> [ddnet] <reo> im not sure if this was intended, but like when u save a run and load it u cant do /r if u go in practice mode, it will just be the location where u fell in freeze but not the previous location where you were  unfrozen
+23:55 <+bridge> [ddnet] <deen> @Learath2 I have daily backups of the full server and the database, but only keep them 3 days back actually.

@@ -1,0 +1,191 @@
+00:09 <+bridge> [freenode] <Zwelf> Yes, and it was quite hard for me to find out which file was causing the include to winuser.h
+14:26 <+bridge> [ddnet] <fokkonaut> Hey, my server still gets flooded with (connecting) players, it took them a bit but after some days after I initially fixed the ddnet tokens, it still happens. How?
+14:26 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/commit/11139517273d831bfff9451f2fb17d99a5ff3167
+14:28 <+bridge> [ddnet] <fokkonaut> I really need help at this point, to me it seemed to work
+16:57 <+bridge> [ddnet] <heinrich5991> https://github.com/fokkonaut/F-DDrace/blob/1edb14df728b2bcbdd0e5d57fc2d7f9b8bff3ea0/src/engine/shared/network_server.cpp#L97-L111
+16:58 <+bridge> [ddnet] <heinrich5991> one problem is probably there
+16:58 <+bridge> [ddnet] <heinrich5991> `sha256_update(&Sha256, (unsigned char*)&Addr, sizeof(20)); //omit port, bad idea?`
+16:58 <+bridge> [ddnet] <heinrich5991> only hashes sizeof(20) = 4 bytes
+16:58 <+bridge> [ddnet] <heinrich5991> that is just the address type, so it is the same token for everyone
+16:58 <+bridge> [ddnet] <heinrich5991> @fokkonaut ^
+17:00 <+bridge> [ddnet] <fokkonaut> Huh? I got this from ddnet
+17:01 <+bridge> [ddnet] <heinrich5991> nice, that's how you find a ddnet vulnerability
+17:02 <+bridge> [ddnet] <fokkonaut> xd
+17:02 <+bridge> [ddnet] <fokkonaut> Whats the problem here?
+17:03 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/commit/2f760e3e40b58a838191e60127a84bafa7bf70ea
+17:03 <+bridge> [ddnet] <heinrich5991> sizeof(20) is 4
+17:04 <+bridge> [ddnet] <heinrich5991> so you're only hashing the first 4 byte of the NETADDR struct
+17:04 <+bridge> [ddnet] <fokkonaut> why did learath do thaz
+17:04 <+bridge> [ddnet] <Ryozuki> cuz 20 is a int right, sizeof gets the size of the type
+17:04 <+bridge> [ddnet] <Ryozuki> why is 20 there
+17:04 <+bridge> [ddnet] <heinrich5991> probably meant 20 instead of sizeof(20)
+17:04 <+bridge> [ddnet] <Ryozuki> @Learath2 👀
+17:04 <+bridge> [ddnet] <heinrich5991> still questionable code, but might work
+17:04 <+bridge> [ddnet] <fokkonaut> :D
+17:05 <+bridge> [ddnet] <fokkonaut> thanks for looking into it @heinrich5991, also good for ddner :)
+17:05 <+bridge> [ddnet] <heinrich5991> has been in the code for 2 months
+17:05 <+bridge> [ddnet] <fokkonaut> ddnet*
+17:17 <+bridge> [ddnet] <Learath2> sizeof(20)??? god I'm dense
+17:18 <+bridge> [ddnet] <fokkonaut> xD
+17:18 <+bridge> [ddnet] <heinrich5991> @Learath2 why is the port omitted?
+17:19 <+bridge> [ddnet] <Learath2> because that's what @timakro did
+17:19 <+bridge> [ddnet] <Learath2> I think it's because the masterserver uses 2 different ports to communicate
+17:21 <+bridge> [ddnet] <timakro> yep
+17:21 <+bridge> [ddnet] <heinrich5991> teeworlds 0.7 also hashes the port
+17:22 <+bridge> [ddnet] <heinrich5991> @timakro can you elaborate why this is necessary?
+17:22 <+bridge> [ddnet] <Learath2> I think the hacky way tokens are handled in the register code only stores one token per master server ip
+17:23 <+bridge> [ddnet] <timakro> What learath said. It's just using the same token logic for the connless master server communication as for communication with regular 0.7 clients
+17:24 <+bridge> [ddnet] <timakro> We could differentiate there but I was just lazy ^^
+17:24 <+bridge> [ddnet] <heinrich5991> the regular 0.7 server also hashes the port together with the IP address, that can't be the only thing
+17:24 <+bridge> [ddnet] <Learath2> @heinrich5991 but 0.7 tokenmanager handles all tokens per ip+port
+17:24 <+bridge> [ddnet] <timakro> Yeah but we don't have to, right?
+17:25 <+bridge> [ddnet] <Learath2> the way we did it is very much a hack
+17:25 <+bridge> [ddnet] <heinrich5991> that is, *I* can't think of a new attack that this would enable
+17:25 <+bridge> [ddnet] <timakro> If it's coming from the same ip it should be fine
+17:25 <+bridge> [ddnet] <heinrich5991> yes, what I said above, I can't see any new attacks that this opens up
+17:26 <+bridge> [ddnet] <heinrich5991> yes, what I said above, I can't see any new attack vectors that this opens up
+17:26 <+bridge> [ddnet] <heinrich5991> it's something that should probably be mentioned in the PR though
+17:26 <+bridge> [ddnet] <heinrich5991> that we no longer hash the full net address
+17:26 <+bridge> [ddnet] <timakro> You can hijack other teeworlds players in your LAN :)
+17:27 <+bridge> [ddnet] <heinrich5991> oh yes CGNAT
+17:27 <+bridge> [ddnet] <heinrich5991> so there is a problem there
+17:27 <+bridge> [ddnet] <timakro> never heard of that
+17:27 <+bridge> [ddnet] <heinrich5991> another time that shows that just because we don't see a problem doesn't mean there isn't onbe
+17:27 <+bridge> [ddnet] <heinrich5991> I should really not compromise on security 😦
+17:27 <+bridge> [ddnet] <timakro> CG what
+17:27 <+bridge> [ddnet] <heinrich5991> @timakro where the provider does the NAT
+17:27 <+bridge> [ddnet] <heinrich5991> when you don't get a full IPv4 address anymore
+17:28 <+bridge> [ddnet] <heinrich5991> but share it with others
+17:28 <+bridge> [ddnet] <timakro> Wow
+17:28 <+bridge> [ddnet] <heinrich5991> so we should hash IP address and port
+17:28 <+bridge> [ddnet] <timakro> Didn't know there is something like that
+17:28 <+bridge> [ddnet] <heinrich5991> "carrier grade network address translation"
+17:28 <+bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/wiki/Carrier-grade_NAT
+17:28 <+bridge> [ddnet] <Learath2> I don't have the time to patch it up
+17:29 <+bridge> [ddnet] <heinrich5991> I guess we have enough 0.7 clients that disabling it until a fix is not feasible?
+17:29 <+bridge> [ddnet] <timakro> That's insane, it's bad enough that you have to pay enormous sums to get a static ip at your home
+17:30 <+bridge> [ddnet] <heinrich5991> @timakro it's mostly a consequence of not having enough IPv4 addresses
+17:30 <+bridge> [ddnet] <timakro> Yep, if only ipv6 was widely supported ...
+17:30 <+bridge> [ddnet] <timakro> I'm living in a dorm of my university where I get a static IPv4 for free, but we don't have IPv6 .. its wild
+17:32 <+bridge> [ddnet] <timakro> I'm curious how you would fix it, I don't even know why the masterservers use different ports. I just remember being stuck on this for a while until I figured it out and then just went the quick route (like usually with this project ^^)
+17:32 <+bridge> [ddnet] <heinrich5991> yes, waay to many 0.7 clients
+17:33 <+bridge> [ddnet] <heinrich5991> the masterservers use different ports so that they can "check" whether you have ports forwarded
+17:33 <+bridge> [ddnet] <heinrich5991> if they just reply back on the same port, the NAT will route it back (because it's seen as part of the same UDP "connection")
+17:34 <+bridge> [ddnet] <heinrich5991> so they use a different port to check if outside clients could possibly connect. not bulletproof, some NATs separate by IP address not IP address and port
+17:35 <+bridge> [ddnet] <timakro> Ah makes sense
+17:37 <+bridge> [ddnet] <timakro> You should just omit the port for master server communication then, this should be relatively easy to do. Just gotta figure out a not too painful path to pass that information down. Unless the master servers use CGNAT this will be fine
+17:41 <+bridge> [ddnet] <timakro> The core reason why this hack (and also some others) are required here is that the vanilla 0.7 servers use randomly generated tokens and store them. I decided to use ip hash tokens everywhere because I didn't want to include the logic for storing tokens.
+18:15 <+bridge> [ddnet] <deen> @heinrich5991 Zwelf : We don't bundle sqlite3 on Linux and Mac? On Mac build I get "You must install SQLite3 to compile DDNet"
+18:16 <+bridge> [ddnet] <deen> @timakro My home connection is with Vodafone atm and they don't offer IPv6 either...
+18:16 <+bridge> [ddnet] <Ryozuki> i think its rare to not have sqlite3 in linux
+18:16 <+bridge> [ddnet] <Ryozuki> i dont have ipv6 either
+18:18 <+bridge> [ddnet] <deen> ok, for Linux it uses the bundled one correctly
+18:34 <+bridge> [ddnet] <deen> Ok, this seems to work: https://github.com/ddnet/ddnet/pull/2550
+19:25 <+bridge> [ddnet] <deen> Oh well, another linking error on Mac:
+19:25 <+bridge> [ddnet] <deen> ```
+19:25 <+bridge> [ddnet] <deen> Undefined symbols for architecture x86_64:
+19:25 <+bridge> [ddnet] <deen>   "___isOSVersionAtLeast", referenced from:
+19:25 <+bridge> [ddnet] <deen>       _singleipconnect in libcurl.a(libcurl_la-connect.o)
+19:25 <+bridge> [ddnet] <deen>       _sectransp_connect_common in libcurl.a(libcurl_la-sectransp.o)
+19:25 <+bridge> [ddnet] <deen>       _sectransp_connect_step2 in libcurl.a(libcurl_la-sectransp.o)
+19:25 <+bridge> [ddnet] <deen>       _sectransp_version_from_curl in libcurl.a(libcurl_la-sectransp.o)
+19:25 <+bridge> [ddnet] <deen> ```
+19:25 <+bridge> [ddnet] <deen> Weird that this pops up now, I don't remember changing anything recently with curl
+19:30 <+bridge> [ddnet] <deen> @Learath2 @heinrich5991 any ideas?
+19:39 <+bridge> [ddnet] <Learath2> @deen are you still linking with compiler-rt properly?
+20:00 <+bridge> [ddnet] <deen> I thought so, didn't change anything
+20:38 <+bridge> [ddnet] <deen> @Learath2 linking clang or linking DDNet?
+20:38 <+bridge> [ddnet] <deen> @Learath2 linking curl or linking DDNet?
+20:39 <+bridge> [ddnet] <deen> because I didn't change curl since May 1
+20:40 <+bridge> [ddnet] <Learath2> uhm, I think it only gets linked while linking ddnet
+20:42 <+bridge> [ddnet] <Im 'corneum> i have a problem that appeared about 2 years ago.
+20:42 <+bridge> [ddnet] <Im 'corneum> so i never close my client.   sometimes when i leave my pc for an hour i logout but its still running. when i come back, login and try to go back in my client it instantly crashes. it is only after i lock/unlock my pc and i figure that a little time has to pass.  its not a big deal to just restart the client but sometimes i loose mapping progress
+20:45 <+bridge> [ddnet] <deen> I googled for the issue and found my own fix, yay: https://github.com/ddnet/ddnet/commit/e8bd8459a6f556594f48f33f4d145033bc89d46f
+20:45 <+bridge> [ddnet] <deen> No idea why we removed it again, I guess I'll try readding
+20:47 <+bridge> [ddnet] <deen> or maybe I'll rebuild osxcross first
+20:47 <+bridge> [ddnet] <deen> might be a local clang update somehow disabling it
+20:50 <+bridge> [ddnet] <deen> @heinrich5991 @Learath2 I see:
+20:50 <+bridge> [ddnet] <deen> Manually-specified variables were not used by the project: CMAKE_TOOLCHAIN_FILE. is it related?
+20:52 <+bridge> [ddnet] <Learath2> Oh that's quite odd
+20:52 <+bridge> [ddnet] <Learath2> Did we change something about cmake?
+20:53 <+bridge> [ddnet] <Learath2> We removed it because it creates executables that won't run on newer macOS
+20:53 <+bridge> [ddnet] <Learath2> `___isOSVersionAtLeast` isn't in the flat namespace anymore so dyld won't find it
+21:27 <+bridge> [ddnet] <louis> hi if u touch a startline in practice mode and /r before touching the ground, it will tp you back behind the startline and also reset ur time at the top of the screen to the server time
+21:27 <+bridge> [ddnet] <louis> and if u touch startline again it wont put it to 0:00
+21:28 <+bridge> [ddnet] <louis> might be a little bug
+21:28 <+bridge> [ddnet] <louis> and if u touch startline again it wont put it to 0:00 but you are still technically racing cause you can't join another team
+22:04 <+bridge> [ddnet] <deen> @Learath2 any idea how to fix?
+22:05 <+bridge> [ddnet] <deen> @louis so then you can't finish?
+22:05 <+bridge> [ddnet] <Learath2> @deen you can link verbosely to see if compiler-rt is getting pulled in
+22:08 <+bridge> [ddnet] <Astral✨|Crying🌙> @deen
+22:08 <+bridge> [ddnet] <Astral✨|Crying🌙> Hello how i can start translate game for Ukrainian
+22:08 <+bridge> [ddnet] <Astral✨|Crying🌙> ?
+22:08 <+bridge> [ddnet] <louis> @deen ye u cant finish in practice (it doesn't say "your team finished in 00:00 but because you're in practice mode blah blah") it acts as if u never touched start
+22:08 <+bridge> [ddnet] <deen> @Astral✨|Crying🌙 check in data/languages/ukrainean.txt
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> thats where?
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> on guthub?
+22:09 <+bridge> [ddnet] <deen> where DDNet.exe is
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> on github?
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> oh
+22:09 <+bridge> [ddnet] <deen> you can edit it and restart client to try it
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> on files?
+22:09 <+bridge> [ddnet] <deen> yes, file. when it's done, upload on github.
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> bruh but where that
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> on data
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> oh
+22:09 <+bridge> [ddnet] <Astral✨|Crying🌙> sry
+22:10 <+bridge> [ddnet] <Astral✨|Crying🌙> :lel:
+22:14 <+bridge> [ddnet] <Learath2> @deen the docs say you can try
+22:14 <+bridge> [ddnet] <Learath2> ``` echo "int main(void){return 0;}" | xcrun clang -xc -o/dev/null -v - 2>&1 | \ grep "libclang_rt" 1>/dev/null && echo "Success"```
+22:15 <+bridge> [ddnet] <deen> ok, that's not working
+22:16 <+bridge> [ddnet] <deen> I rebuilt osxcross and compiler-rt though
+22:16 <+bridge> [ddnet] <deen> just a ./build.sh; ./build_compiler_rt.sh
+22:16 <+bridge> [ddnet] <Learath2> And did you execute the commands build_compiler_rt.sh tells u to?
+22:19 <+bridge> [ddnet] <deen> Told me nothing:
+22:19 <+bridge> [ddnet] <deen> ```
+22:19 <+bridge> [ddnet] <deen> ./build_compiler_rt.sh
+22:19 <+bridge> [ddnet] <deen> ## Building compiler-rt (release/10.x) ##
+22:19 <+bridge> [ddnet] <deen> ```
+22:19 <+bridge> [ddnet] <deen> looks like it failed I guess
+22:19 <+bridge> [ddnet] <deen> So I guess I have to rerun this every time my system clang is updated then
+22:22 <+bridge> [ddnet] <Astral✨|Crying🌙> @deen why that not setup
+22:22 <+bridge> [ddnet] <Astral✨|Crying🌙> a languege
+22:22 <+bridge> [ddnet] <Astral✨|Crying🌙> on game
+22:24 <+bridge> [ddnet] <deen> I don't understand
+22:24 <+bridge> [ddnet] <Astral✨|Crying🌙> im added some words
+22:24 <+bridge> [ddnet] <Astral✨|Crying🌙> but we dont replace on game
+22:25 <+bridge> [ddnet] <deen> did you restart the game after editing and saving the file?
+22:25 <+bridge> [ddnet] <Astral✨|Crying🌙> yes
+22:25 <+bridge> [ddnet] <deen> you should only edit the text after ==
+22:25 <+bridge> [ddnet] <deen> not the original english text
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> im maked that
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> im edited after==
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> example
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> ```
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> Kill=Вбити
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> ```
+22:26 <+bridge> [ddnet] <Astral✨|Crying🌙> Look that?
+22:26 <+bridge> [ddnet] <deen> Looks very wrong 😄 It should be
+22:26 <+bridge> [ddnet] <deen> ```
+22:26 <+bridge> [ddnet] <deen> Kill
+22:26 <+bridge> [ddnet] <deen> == Вбити
+22:27 <+bridge> [ddnet] <deen> ```
+22:27 <+bridge> [ddnet] <Astral✨|Crying🌙> ?
+22:27 <+bridge> [ddnet] <Astral✨|Crying🌙> lol wut
+22:28 <+bridge> [ddnet] <louis> u need to follow the correct format
+22:28 <+bridge> [ddnet] <abcqwerty> just replace words
+22:29 <+bridge> [ddnet] <Ryozuki> bruh
+22:45 <+bridge> [ddnet] <deen> @Learath2 they pipe all errors to /dev/null, thus I missed interesting stuff like:
+22:45 <+bridge> [ddnet] <deen> ```
+22:45 <+bridge> [ddnet] <deen> fatal: Unable to create '/home/deen/git/osxcross/build/compiler-rt/.git/index.lock': Permission denied
+22:45 <+bridge> [ddnet] <deen> ```
+22:46 <+bridge> [ddnet] <fokkonaut> @heinrich5991 didnt read the whole conversation, why cant I just use sizeof(Addr)m
+22:46 <+bridge> [ddnet] <fokkonaut> ?"
+22:47 <+bridge> [ddnet] <fokkonaut> *
+22:47 <+bridge> [ddnet] <heinrich5991> timakro and Learath2 said their 0.7 compatibility code relied on the port not being hashed
+23:56 <+bridge> [ddnet] <fokkonaut> @heinrich5991 so i can use  the sizeof(addr) instead? i only use it for ddnet connections, not for 0.7 ones
+23:57 <+bridge> [ddnet] <heinrich5991> I believe sizeof(addr) is what caused your undebuggable issues before, because addr contained padding bytes
+23:57 <+bridge> [ddnet] <heinrich5991> 22 or sizeof(addr)-2 would work
+23:58 <+bridge> [ddnet] <fokkonaut> as i said, i only use it for 0.6
+23:58 <+bridge> [ddnet] <fokkonaut> should be no problem there
+23:58 <+bridge> [ddnet] <fokkonaut> my issue had another cause and was only on 0.7

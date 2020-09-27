@@ -1,0 +1,739 @@
+00:00 <+bridge> [ddnet] <Jupstar ✪> yes i know
+00:18 <+bridge> [ddnet] <Ravie> @Soreu another victim
+00:18 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/757365106374869023/unknown.png
+00:19 <+bridge> [ddnet] <Jupstar ✪> u have to ping deen, looks like some other buffer overflow @deen
+00:20 <+bridge> [ddnet] <Ravie> well this is still the unofficial release
+00:20 <+bridge> [ddnet] <Jupstar ✪> the one from my pr?
+00:21 <+bridge> [ddnet] <Ravie> yeah but I guess this bug is in the official as well
+00:21 <+bridge> [ddnet] <deen> @Ravie got a settings_ddnet.cfg?
+00:21 <+bridge> [ddnet] <Jupstar ✪> yes
+00:21 <+bridge> [ddnet] <Ravie> I'll pm u @deen
+00:22 <+bridge> [ddnet] <deen> and does it happen all the time or just randomly?
+00:22 <+bridge> [ddnet] <Ravie> nah just this time
+00:22 <+bridge> [ddnet] <Ravie> but soreu had this bug before so I guess it's not that rare
+00:27 <+bridge> [ddnet] <deen> the only suspicious thing I see is that skin prefix is activated. @Soreu you have it on too?
+00:34 <+bridge> [ddnet] <Jupstar ✪> he had it off i think
+00:34 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/757276230272811089/unknown.png
+00:34 <+bridge> [ddnet] <Jupstar ✪> no prefix rendered atleast
+00:35 <+bridge> [ddnet] <Ravie> his skin names disappeared, mine were replaced with gibberish
+00:35 <+bridge> [ddnet] <Jupstar ✪> yeah almost looks like a static localize again xD
+00:36 <+bridge> [ddnet] <deen> I'm wondering if the PNG might be loaded in an unexpected format? We write into Info.m_pData (skins.cpp) before checking the image format
+00:36 <+bridge> [ddnet] <deen> But I just tried loading all skins from skin db locally, and valgrind is not complaining
+00:37 <+bridge> [ddnet] <Jupstar ✪> well libpng warned about some broken/old chunks, i dunno if pnglite can fail with it, but this isnt the problem here anyway
+00:37 <+bridge> [ddnet] <Jupstar ✪> his skin top left should be in the selection too
+00:37 <+bridge> [ddnet] <Jupstar ✪> Psychowolfe
+00:38 <+bridge> [ddnet] <deen> Hm, so you guess it's rather a bug in the skin menu, not the skins themselves
+00:38 <+bridge> [ddnet] <deen> Oh, I see some static s_paSkinList
+00:38 <+bridge> [ddnet] <deen> because skins used to be static, but now they are not anymore...
+00:38 <+bridge> [ddnet] <deen> when we download more get added
+00:38 <+bridge> [ddnet] <Ravie> there are quite a few people with custom skins on the server, could it be caused by something like one skin having a different bit depth or os?
+00:38 <+bridge> [ddnet] <Ravie> there are quite a few people with custom skins on the server, could it be caused by something like one skin having a different bit depth or so?
+00:39 <+bridge> [ddnet] <deen> @Ravie @Soreu if the problem happens again, it probably disappears after toggling "Vanilla skins only" twice
+00:40 <+bridge> [ddnet] <Ravie> I think it disappears after doing anything that refreshes the skin list
+00:40 <+bridge> [ddnet] <deen> ok, that confirms my suspicion
+00:40 <+bridge> [ddnet] <Андрей Рудой> I also had this weird bug, I guess I reported first
+00:40 <+bridge> [ddnet] <deen> easy to fix, great that we found it
+00:42 <+bridge> [ddnet] <Jupstar ✪> static (some regular expression to find localize) ;
+00:42 <+bridge> [ddnet] <Jupstar ✪> or was it the last xd
+00:42 <+bridge> [ddnet] <deen> nono, it wasn't localize
+00:42 <+bridge> [ddnet] <Jupstar ✪> oh ok
+00:42 <+bridge> [ddnet] <deen> @Jupstar ✪ but before fixing it I still want to understand it better
+00:42 <+bridge> [ddnet] <Jupstar ✪> sure
+00:43 <+bridge> [ddnet] <deen> s_paSkinList is static which is wrong there, but why do we access outside of it?
+00:48 <+bridge> [ddnet] <Ravie> btw a neat trick I found, not sure if this is intended: you can grab any skin from the database by using `player_skin` in f1
+00:48 <+bridge> [ddnet] <deen> i know, seems ok to me
+00:49 <+bridge> [ddnet] <deen> I use that all the time for testing 😄
+00:49 <+bridge> [ddnet] <Ravie> maybe it could be made into an actual feature so people don't have to download from the database and manually move the file
+00:50 <+bridge> [ddnet] <deen> would need to be a bit more fancy to get a list of all available skins
+00:50 <+bridge> [ddnet] <Ravie> I mean it's enough to look at it in the browser I guess
+00:50 <+bridge> [ddnet] <Ravie> it's just faster to grab it ingame
+00:50 <+bridge> [ddnet] <deen> a text field wouldn't be hard, yeah
+00:51 <+bridge> [ddnet] <Ravie> perhaps a link to the database
+00:51 <+bridge> [ddnet] <deen> Ha, I got the bug
+00:51 <+bridge> [ddnet] <deen> locally, with valgrind running
+00:51 <+bridge> [ddnet] <deen> https://cdn.discordapp.com/attachments/293493549758939136/757373455397027920/screenshot-20200921005129.png
+00:51 <+bridge> [ddnet] <deen> https://cdn.discordapp.com/attachments/293493549758939136/757373513274228896/skinvalgrind.txt
+00:53 <+bridge> [ddnet] <Ravie> funny how only one got a custom color
+00:55 <+bridge> [ddnet] <Jupstar ✪> ah
+00:55 <+bridge> [ddnet] <Jupstar ✪> yeah
+00:56 <+bridge> [ddnet] <Андрей Рудой> What is valgrind?
+00:56 <+bridge> [ddnet] <Jupstar ✪> the most useful tool for memory debugging
+00:56 <+bridge> [ddnet] <deen> @Jupstar ✪ you understand the issue?
+00:57 <+bridge> [ddnet] <Jupstar ✪> mhh not 100%
+00:57 <+bridge> [ddnet] <deen> same 😄
+00:57 <+bridge> [ddnet] <heinrich5991> @Андрей Рудой something you can use for finding undefined behavior in C
+00:57 <+bridge> [ddnet] <deen> I don't understand why LoadSkin is freeing m_pData, seemingly always
+00:57 <+bridge> [ddnet] <deen> and yet we mostly access it fine
+00:58 <+bridge> [ddnet] <deen> but I'm not so familiar with the graphics stuff
+00:58 <+bridge> [ddnet] <deen> Will check again tomorrow morning, good night
+00:58 <+bridge> [ddnet] <Learath2> Stale pointer to an array that grew?
+00:59 <+bridge> [ddnet] <Jupstar ✪> good idea actually
+00:59 <+bridge> [ddnet] <Jupstar ✪> yes
+00:59 <+bridge> [ddnet] <Jupstar ✪> +1 for @Learath2
+01:00 <+bridge> [ddnet] <Jupstar ✪> @deen the static init uses the pointer of CSkin
+01:00 <+bridge> [ddnet] <Jupstar ✪> which is later increased by downloaded skins
+01:00 <+bridge> [ddnet] <Jupstar ✪> the cskin array is the dynamic list
+04:40 <+bridge> [ddnet] <lola> I updated client since i can bind Ctrl shift q again thx acqwerty
+05:07 <+bridge> [ddnet] <abcqwerty> does it work in menu
+06:17 <+bridge> [ddnet] <Jupstar ✪> @Ravie ^
+06:17 <+bridge> [ddnet] <Jupstar ✪> try to remember what u did if u find bugs
+06:17 <+bridge> [ddnet] <Jupstar ✪> helps for reproducing later 😄
+06:36 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+06:36 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/757460136829649026/unknown.png
+06:41 <+bridge> [ddnet] <Soreu> @murpi could you send me the map (background) aswell? 😄
+06:42 <+bridge> [ddnet] <Soreu> glad you guys solved the issue with skins :p
+06:42 <+bridge> [ddnet] <Soreu> the custom map BG in menu is already in 15.0.4 or latest beta needed?
+06:44 <+bridge> [ddnet] <Ryozuki> nah, i just tested the pull request
+07:52 <+bridge> [ddnet] <deen> @abcqwerty no, only F-binds work in menu
+11:17 <+bridge> [ddnet] <Soreu> @Jupstar ✪ If you manage to add to DDNet the same renderer that Vanilla 0.7+ uses, dilate would no longer be needed, right?
+11:20 <+bridge> [ddnet] <Ryozuki> Ddnet renderer should be better
+11:24 <+bridge> [ddnet] <Андрей Рудой> Let's make console renderer
+11:24 <+bridge> [ddnet] <deen> @Learath2 any ideas about mac input problems? https://steamcommunity.com/id/parriseinstein/recommended/412220/
+11:24 <+bridge> [ddnet] <Soreu> then differently asked: can we get rid of the damn dilate at some point soon? xd
+11:25 <+bridge> [ddnet] <Learath2> You just need to switch workspaces once after launch and the dock goes away and everything works
+11:26 <+bridge> [ddnet] <deen> That sounds unintuitive, any way we can fix that in code?
+11:26 <+bridge> [ddnet] <Learath2> Not much we can do about any of the issues as SDL support on macOS is shit
+11:26 <+bridge> [ddnet] <Learath2> I couldn't debug it at all
+11:26 <+bridge> [ddnet] <Learath2> You are welcome to try if you want
+11:26 <+bridge> [ddnet] <deen> ok
+11:26 <+bridge> [ddnet] <deen> so it's the same problem with other SDL2 apps?
+11:27 <+bridge> [ddnet] <Learath2> I don't have any other SDL2 app to check actually. Let me find one
+11:27 <+bridge> [ddnet] <deen> maybe we just need to grab focus more agressively?
+11:27 <+bridge> [ddnet] <deen> I also noticed once on Windows it wasn't focussed
+11:27 <+bridge> [ddnet] <deen> and I had to click in the window
+11:28 <+bridge> [ddnet] <Learath2> let me see the current state when I launch from steam, see if it regressed
+11:31 <+bridge> [ddnet] <Learath2> hum, my steam library isn't loading at all on mac
+11:33 <+bridge> [ddnet] <Learath2> Now that I think about it, this guy seems to be lying, how did he join a server to see that chat is blocked when no buttons even responded
+11:33 <+bridge> [ddnet] <deen> maybe mouse worked a bit?
+11:34 <+bridge> [ddnet] <Learath2> The current state is that you need to switch workspaces and it starts working, before that mouse clicks don't seem to be caught
+11:35 <+bridge> [ddnet] <Learath2> Sometimes pressing F1 twice works too
+11:35 <+bridge> [ddnet] <Learath2> How do we regrab the mouse after f1?
+11:35 <+bridge> [ddnet] <Learath2> Maybe we can do that when the game is fully launched
+11:36 <+bridge> [ddnet] <deen> Input()->MouseModeRelative(); I think
+11:36 <+bridge> [ddnet] <deen> which does:
+11:36 <+bridge> [ddnet] <deen>     SDL_SetRelativeMouseMode(SDL_TRUE);
+11:36 <+bridge> [ddnet] <deen>     Graphics()->SetWindowGrab(true);
+11:37 <+bridge> [ddnet] <deen> So let's just add another SetWindowGrab(true) after the initialization of window is done?
+11:37 <+bridge> [ddnet] <Learath2> This seems to be some race condition somewhere. Sometimes I can see the OS cursor too, at that point I can't grab the mouse with just double f1
+11:38 <+bridge> [ddnet] <Learath2> Yeah we can try a grab after the initialization
+11:38 <+bridge> [ddnet] <deen> I guess we don't have to set relative mouse mode again
+11:39 <+bridge> [ddnet] <Learath2> Oh btw can we let the mouse escape the window if esc is pressed too?
+11:39 <+bridge> [ddnet] <deen> I guess we could, not sureif we want to
+11:39 <+bridge> [ddnet] <deen> the mouse sensitivity feels a bit different then
+11:40 <+bridge> [ddnet] <deen> and might have muscle memory and accidentally click the wrong button
+11:40 <+bridge> [ddnet] <Learath2> Ah, since we get the os cursor. Yeah not the greatest idea
+11:52 <+bridge> [ddnet] <Ryozuki> @Learath2 u got factorio,made with sdl2
+11:53 <+bridge> [ddnet] <Ryozuki> Well not open source tho
+11:59 <+bridge> [ddnet] <Learath2> Mh the github artifact crashes instantly
+12:00 <+bridge> [ddnet] <deen> also other versions or my change makes it crash?
+12:00 <+bridge> [ddnet] <deen> I can build you a nightly or you can build yourself?
+12:00 <+bridge> [ddnet] <Learath2> Ah, it's just my bug that sdl still hasn't merged the fix for
+12:00 <+bridge> [ddnet] <Learath2> I'll just build it myself, with my own sdl
+12:03 <+bridge> [ddnet] <Learath2> mh, there is a different grabbing issue when I launch it
+12:03 <+bridge> [ddnet] <Learath2> let me try to replace the steam one and launch from steam
+12:06 <+bridge> [ddnet] <Learath2> If I build it myself I get a completely different grabbing issue
+12:07 <+bridge> [ddnet] <Learath2> The cursor starts at the very top left, seems it grabbed fine, when you go to click something it clicks the apple logo at the top bar instead
+12:07 <+bridge> [ddnet] <Learath2> @deen would be nice if you could build a nightly so I can test that
+12:08 <+bridge> [ddnet] <RafaelFF> Number of skins of DDNet Skin Database is reducing, may I know why? I'm just curious
+12:08 <+bridge> [ddnet] <deen> @RafaelFF Soreu, Ravie, louis are cleaning it up to remove non-teeish and ugly skins
+12:08 <+bridge> [ddnet] <RafaelFF> Nice
+12:08 <+bridge> [ddnet] <deen> since they are auto-downloaded now quality is more important
+12:09 <+bridge> [ddnet] <RafaelFF> Talking about skin auto-download, is this resource working right now? I mean, is ddnet-skins package not needed anymore?
+12:10 <+bridge> [ddnet] <Learath2> There was a bug with it so we disabled it, but it should work in the next patch again
+12:10 <+bridge> [ddnet] <deen> we didn't disable it
+12:11 <+bridge> [ddnet] <Learath2> Oh, then it sort of works right now, it will work much better next patch 😄
+12:11 <+bridge> [ddnet] <Learath2> @deen why add_unsorted?
+12:11 <+bridge> [ddnet] <deen> because the original array is sorted already, so if we just filter out elements we don't need to resort
+12:12 <+bridge> [ddnet] <Learath2> Ah, makes sense
+12:13 <+bridge> [ddnet] <Learath2> I think there is still a bug here, you better compare the filter properly, or use a flag
+12:15 <+bridge> [ddnet] <Learath2> Oh, nvm. This should work
+12:41 <+bridge> [ddnet] <deen> @Learath2 can you try https://ddnet.tw/downloads/DDNet-nightly-osx.dmg ?
+12:51 <+bridge> [ddnet] <Learath2> Mh, the same thing happens with this build too
+12:52 <+bridge> [ddnet] <Learath2> The current one on steam doesn't behave like this, do you remember what commit we built that from?
+12:53 <+bridge> [ddnet] <deen> Nightly on steam or regular?
+12:53 <+bridge> [ddnet] <deen> It's tagged in git
+12:53 <+bridge> [ddnet] <Learath2> regular on steam
+12:54 <+bridge> [ddnet] <deen> c2f388a52ba1458b5dd10557826c42e1b89f351b
+12:54 <+bridge> [ddnet] <Learath2> On the regular, clicks just won't work until I double f1 or switch workspaces
+12:54 <+bridge> [ddnet] <Learath2> With the new builds it does the top left corner thing
+12:55 <+bridge> [ddnet] <Learath2> Hm, I wonder if it's the bundled SDL the steam version links to
+13:02 <+bridge> [ddnet] <Learath2> Yep, it's SDL 2.0.13
+13:02 <+bridge> [ddnet] <Learath2> I'll bisect for it in SDL later. #2897 doesn't help sadly @deen
+13:02 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2897
+13:07 <+bridge> [ddnet] <RafaelFF> How do I download skin? Didn't find a "Download skin option.
+13:11 <+bridge> [ddnet] <Learath2> @RafaelFF it downloads automatically
+13:11 <+bridge> [ddnet] <Learath2> Well for other people
+13:11 <+bridge> [ddnet] <Learath2> You can set your own skin to something you don't have with `player_skin xyz` in f1 for now
+13:19 <+bridge> [ddnet] <deen> @RafaelFF settings -> skins -> download skins
+13:20 <+bridge> [ddnet] <Learath2> Is there some padding before chunks?
+13:21 <+bridge> [ddnet] <deen> what chunks?
+13:21 <+bridge> [ddnet] <Learath2> I know the decompression works fine because I can see the token at the end, but the chunk header being all 0s makes no sense
+13:21 <+bridge> [ddnet] <Learath2> Net chunks
+13:22 <+bridge> [ddnet] <deen> no idea, sorry
+13:26 <+bridge> [ddnet] <Learath2> Does a net chunk with 00 00 header make sense to anyone?
+13:33 <+bridge> [ddnet] <Soreu> maybe name it "auto-download skins"?
+13:34 <+bridge> [ddnet] <RafaelFF> Thanks @deen
+13:55 <+bridge> [ddnet] <Learath2> Ah a chunk header with 00 00 makes no sense, I'm using the wrong offset
+14:34 <+bridge> [ddnet] <Jupstar ✪> @Soreu is auto dilate not enough?
+14:35 <+bridge> [ddnet] <Soreu> yes and no
+14:36 <+bridge> [ddnet] <Soreu> new dilate makes the image file size bigger
+14:36 <+bridge> [ddnet] <Soreu> with 0.7 dilate is not needed and so the map can weight less
+14:36 <+bridge> [ddnet] <Soreu> info from @mind though
+14:37 <+bridge> [ddnet] <Jupstar ✪> Yes, but 0.7 converts images on runtime.. That's the trade
+14:37 <+bridge> [ddnet] <Jupstar ✪> But idc. Somebody can add ofc
+14:38 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/757581507345907893/Screenshot_2020-09-21-14-38-15-929_com.discord.jpg
+14:40 <+bridge> [ddnet] <Soreu> @mind hope you don't **_mind_** sharing part of our conversation
+14:40 <+bridge> [ddnet] <Jupstar ✪> Strange in my pm he gave green light, seems like he is not happy
+14:41 <+bridge> [ddnet] <Soreu> Because we both are, but due to the different rendering ways in DDNet & Vanilla, one could have same file without dilate being lighter
+14:41 <+bridge> [ddnet] <Soreu> and that's the annoying part
+14:41 <+bridge> [ddnet] <Soreu> not your fault tho
+14:42 <+bridge> [ddnet] <Jupstar ✪> I mean the file size thing can be easily removed. It's only a few KB tho
+14:42 <+bridge> [ddnet] <Soreu> whoever cares more, always tires to reduce map size as much as possible
+14:42 <+bridge> [ddnet] <Jupstar ✪> Or lowered
+14:43 <+bridge> [ddnet] <Jupstar ✪> Ah BTW, maybe dilate has less aggressive PNG options than gimp or what u use.. I'll look into this later
+14:45 <+bridge> [ddnet] <Soreu> No idea what mind is using, Ravie uses Inkscape & Gimp, Louis uses Gimp too I think, and I'm stuck on Photoshop and one lil crap that is pretty much advanced paint (depending on the needs ^^')
+14:46 <+bridge> [ddnet] <Soreu> feel free to ping when you need any info
+14:46 <+bridge> [ddnet] <louis> i use inkscape and paint.net kek
+14:47 <+bridge> [ddnet] <louis> maybe i should learn gimp
+14:53 <+bridge> [ddnet] <Patiga> if its more about drawing than editing for you, then you could maybe check out https://krita.org/en/
+14:53 <+bridge> [ddnet] <Patiga> <3 gimp too tho
+14:54 <+bridge> [ddnet] <Soreu> and https://vectr.com/ ^^
+14:55 <+bridge> [ddnet] <Soreu> Actually, maybe I'd switch from ocassionally launching AI to full-time using Vectr... :tee_thinking:
+15:00 <+bridge> [ddnet] <Soreu> @Patiga Krita looks far better then the software I have used long time ago for ~this kind of stuff 👍
+15:01 <+bridge> [ddnet] <Patiga> awesome :)
+15:01 <+bridge> [ddnet] <Soreu> ArtRage, reminded myself the name xd
+15:01 <+bridge> [ddnet] <Soreu> I can relate to the second part of its name
+15:06 <+bridge> [ddnet] <Learath2> I spent an hour debugging because matricks got the bit shifting the wrong way around...
+15:07 <+bridge> [ddnet] <Learath2> If anyone else wants to chop up teeworlds packets, it's not size_seq, it's seq_size, which makes it a PITA to read in wireshark because it's not contiguous
+15:08 <+bridge> [ddnet] <Learath2> flags_size seq_size
+15:10 <+bridge> [ddnet] <Ryozuki> https://github.com/heinrich5991/libtw2/blob/master/doc/packet.md
+15:10 <+bridge> [ddnet] <Ryozuki> is this info here?
+15:13 <+bridge> [ddnet] <Learath2> Yep, should have checked that instead of relying on ancient documentation in comments
+15:13 <+bridge> [ddnet] <Pure_luck> Q: How many projectiles and/or powerups I cand give within one snapshot before it will cause troubles?
+15:14 <+bridge> [ddnet] <Pure_luck> *with
+15:14 <+bridge> [ddnet] <Pure_luck> *within? :panic: :send_help:
+15:14 <+bridge> [ddnet] <Learath2> You should ask that to @fokkonaut
+15:15 <+bridge> [ddnet] <fokkonaut> There is a serverside limit only which can be increased to your wishes iirc
+15:16 <+bridge> [ddnet] <Pure_luck> But a snapshot is still have to fit into a UDP packet? or not?
+15:16 <+bridge> [ddnet] <fokkonaut> no idea
+15:16 <+bridge> [ddnet] <Pure_luck> or is it getting split/reassembled by a game proto?
+15:17 <+bridge> [ddnet] <Pure_luck> so... it's never a problem, right?
+15:17 <+bridge> [ddnet] <Learath2> A packet can't be larger than NET_MAX_PAYLOAD
+15:17 <+bridge> [ddnet] <Learath2> A chunk can't be split
+15:18 <+bridge> [ddnet] <Pure_luck> I knew that! It should fit into IP packet.
+15:18 <+bridge> [ddnet] <Pure_luck> But what it is a chunk? Snapshot is being sends in chunks so it reassembles on arrival by a client?
+15:18 <+bridge> [ddnet] <Learath2> So if you only manage to fit one snapshot within the packet, you'll have NET_MAX_PAYLOAD - <packet header size> - <chunk header size> - <message header>
+15:18 <+bridge> [ddnet] <Soreu> Did window focus options change between 15.0.1 and 15.0.4?
+15:18 <+bridge> [ddnet] <Soreu> because after launch I can't move mouse unless I click first
+15:19 <+bridge> [ddnet] <Learath2> But there is a problem there, compression helps this a bit, so you can't really know if it fit or not
+15:19 <+bridge> [ddnet] <Pure_luck> By a compression you mean delta?
+15:19 <+bridge> [ddnet] <Learath2> Both delta and huffman compression will help there
+15:19 <+bridge> [ddnet] <Pure_luck> all that "full snapshots" vs "delta snapshots" thing?
+15:20 <+bridge> [ddnet] <Pure_luck> > So if you only manage to fit one snapshot within the packet
+15:20 <+bridge> [ddnet] <Pure_luck> 
+15:20 <+bridge> [ddnet] <Pure_luck> So my real question is do I have to fit everything in one packet?
+15:20 <+bridge> [ddnet] <Pure_luck> And what will happen when my snapshot will get larger than 1392 bytes including headers etc after all compression applied.
+15:20 <+bridge> [ddnet] <Soreu> ok, it's not happening all the times, weird
+15:22 <+bridge> [ddnet] <Learath2> @Pure_luck packets will get dropped, you'll have a bad time
+15:22 <+bridge> [ddnet] <Pure_luck> I have some weird sporadic lags in my mod after addition of some new pickups icons.
+15:22 <+bridge> [ddnet] <Pure_luck> Oh... so it must be it.
+15:22 <+bridge> [ddnet] <Learath2> I think you can safely ignore the effects of delta compression, as being unable to send full snapshots will break it anyway
+15:22 <+bridge> [ddnet] <Pure_luck> Shouldn't a server complain about this in server logs or somewhere else?
+15:22 <+bridge> [ddnet] <Learath2> @Pure_luck it does
+15:23 <+bridge> [ddnet] <deen> @Soreu hasn't changed, but we want to fix it in next release
+15:23 <+bridge> [ddnet] <Learath2> `dbg_msg("netserver", "packet payload too big. %d. dropping packet", pChunk->m_DataSize);`
+15:23 <+bridge> [ddnet] <Soreu> Well, weird then because I haven't had that problem before xD
+15:23 <+bridge> [ddnet] <Soreu> idk, anyway got more weird problem with server
+15:24 <+bridge> [ddnet] <Pure_luck> @Soreu my DDNet client started to freeze on close for 5 seconds ~2 weeks ago after an update. Very annoying.
+15:24 <+bridge> [ddnet] <Pure_luck> Everyone is telling that it's just me.
+15:25 <+bridge> [ddnet] <Soreu> if I launch server from its own exe, it launches `autoexec_server.cfg` which then loads `myServerconfig.cfg` pointing to & loading `server\config.cfg`
+15:25 <+bridge> [ddnet] <Soreu> but... if I launch server via client, with the Start Server button, it doesn't load `myServerconfig.cfg` because settings in `server\config.cfg` are not applied at all
+15:25 <+bridge> [ddnet] <Soreu> how the hell is that possible?
+15:25 <+bridge> [ddnet] <Ryozuki> TIL europe is trying to make processors? https://www.european-processor-initiative.eu/
+15:26 <+bridge> [ddnet] <Soreu> @Pure_luck Can't relate with your problem, sorry :justatest:
+15:27 <+bridge> [ddnet] <Soreu> oh lol, found what was causing the difference... kid of
+15:28 <+bridge> [ddnet] <Soreu> changing from
+15:28 <+bridge> [ddnet] <Soreu> `exec server/config.cfg`
+15:28 <+bridge> [ddnet] <Soreu> to
+15:28 <+bridge> [ddnet] <Soreu> `exec server\config.cfg`
+15:28 <+bridge> [ddnet] <Soreu> made it execute the command properly regardless of whether server was started directly or via client ._.
+15:30 <+bridge> [ddnet] <Soreu> whatever
+15:35 <+bridge> [ddnet] <Pure_luck> @Ryozuki I wonder what will they do now when NVidia bought ARM.
+15:35 <+bridge> [ddnet] <Pure_luck> They will use RISC perhaps. Anyway I don't think we will see those processors any soon.
+15:36 <+bridge> [ddnet] <Pure_luck> Or that hey will be interesting for regular consumers like us.
+15:36 <+bridge> [ddnet] <Pure_luck> We have Elbrus processor in Russia. And nobody can buy it except military.
+15:37 <+bridge> [ddnet] <Soreu> I know closing server on client close was requested, but is there option to disable this feature? . . .
+15:38 <+bridge> [ddnet] <deen> @Soreu nope, just run it outside of client
+15:38 <+bridge> [ddnet] <deen> it's a bit ugly because then the original client process can't quit
+15:39 <+bridge> [ddnet] <deen> and we have too many options already, guarantees that there are combinations of those options that have bugs when used together
+15:39 <+bridge> [ddnet] <Soreu> yea, k
+15:40 <+bridge> [ddnet] <Soreu> that's not a big problem
+15:43 <+bridge> [ddnet] <Learath2> I think this is good enough to release for now
+15:43 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/757597854092099629/Screenshot_2020-09-21_at_16.43.04.png
+15:44 <+bridge> [ddnet] <Learath2> It currently only does 0.6 and ddnet because I kinda nuked the 0.7 part when the stupid chunk size kept being wrong
+15:44 <+bridge> [ddnet] <deen> nice
+15:50 <+bridge> [ddnet] <Pure_luck> Such amazing work
+15:50 <+bridge> [ddnet] <Pure_luck> Is this dissector available already?
+15:51 <+bridge> [ddnet] <Pure_luck> I want to finally look into teeworlds traffic to finally understand what's going on 😄
+15:51 <+bridge> [ddnet] <Pure_luck> and to estimate snapshot entities sizes and limit too
+15:52 <+bridge> [ddnet] <Pure_luck> I've spend a week relocating my server from Moscow to Frankfurt then back and then to Amsterdam to finally get today that it's related to a small addition of an extra pickup in a snapshot.
+15:52 <+bridge> [ddnet] <Learath2> I will put it up today, but just because @heinrich5991 asked to take a look, it's not ready yet
+15:52 <+bridge> [ddnet] <Pure_luck> No haste ofc.
+15:52 <+bridge> [ddnet] <Learath2> It still needs decoding of the actual chunks and wrapping up the conversation tracking feature so I can dissect 0.7 traffic too
+15:53 <+bridge> [ddnet] <Pure_luck> Is it in C++ or a python?
+15:53 <+bridge> [ddnet] <Learath2> C
+15:53 <+bridge> [ddnet] <Learath2> wireshark only allows C or lua dissectors
+15:53 <+bridge> [ddnet] <Learath2> I didn't want to port the huffman code to lua, so C it is
+15:53 <+bridge> [ddnet] <Learath2> (and I kinda love C so it's a perfect fit) 😄
+15:54 <+ChillerDragon> idk if u answered me already @Learath2 but are you planning to get it into official wireshark?
+15:55 <+bridge> [ddnet] <Learath2> It needs much work before it's ready for that, but sure
+15:58 <+ChillerDragon> sure and nice
+15:58 <+bridge> [ddnet] <Learath2> btw, I like how wireshark has memory pools, it's a cool idea
+15:59 <+bridge> [ddnet] <Learath2> You allocate memory in specific pools that has specific lifetimes, so it's ghetto garbage collection
+16:00 <+bridge> [ddnet] <Pure_luck> I know that opinion will not be popular here, but I hope one day every language will have a GC
+16:00 <+bridge> [ddnet] <Learath2> GC costs waaay too much
+16:01 <+bridge> [ddnet] <Learath2> It's unacceptable for high performance applications
+16:01 <+bridge> [ddnet] <Pure_luck> There are many high-performance applicatoins in Java and C#.
+16:02 <+bridge> [ddnet] <Learath2> Java keeps it's entire memory pool hot, so the kernel can't swap it away, ever, even if you rarely ever use the data. So it can have decent performance, at the cost of horrible memory usage
+16:02 <+bridge> [ddnet] <Pure_luck> But didn't meant to start a holywar. Just it's hard to get from interpreted languages like Ruby or GC ones like C# to C++ and get all kinds of obscure and hard to detect/track and debug memory corruption and access errors.
+16:02 <+bridge> [ddnet] <Learath2> It also throws off prefetch
+16:03 <+bridge> [ddnet] <Pure_luck> I can write application in ruby that will preallocate a memory that will be reused but never GC. Just I rarely need it.
+16:03 <+bridge> [ddnet] <Learath2> The only implementation of GC that I like is in go-lang
+16:03 <+bridge> [ddnet] <Pure_luck> Yeah, and golang.
+16:04 <+bridge> [ddnet] <Learath2> It has great performance, without much extra overhead
+16:04 <+bridge> [ddnet] <Pure_luck> It's just I never know why my app will segfault next time. And when it does sometimes there is nothing useful in coredump.
+16:04 <+bridge> [ddnet] <Pure_luck> I've learned about ASAN but still it's hard. So much troubles on memory management.
+16:05 <+bridge> [ddnet] <Pure_luck> There is teesharp which is performant enough. I would love to use sharp. Machine resources are cheaper than my time.
+16:05 <+bridge> [ddnet] <Learath2> @Pure_luck there are ways of achieving memory sanity without any performance penalty
+16:05 <+bridge> [ddnet] <Pure_luck> Ofc, it's just have a steep learning curve.
+16:05 <+bridge> [ddnet] <Learath2> Wiresharks pool approach is really cute imho
+16:05 <+bridge> [ddnet] <Pure_luck> I've started to make Unity project with grown very big and never hard any memory-related problems.
+16:06 <+bridge> [ddnet] <Pure_luck> Last month I am just debugging them and learn about yet another way a memory could get corrupted without being noticed in C++.
+16:06 <+bridge> [ddnet] <Learath2> Memory can't get corrupted in C or C++ unless you touch the memory
+16:07 <+bridge> [ddnet] <Learath2> One of the beauties of C/C++/Rust is that they don't do things behind your back
+16:07 <+bridge> [ddnet] <Pure_luck> I will learn everything eventually ofc, smart pointers and such. But for now language is getting on my way.
+16:08 <+bridge> [ddnet] <Pure_luck> Yeah, I wish that memory management patterns would get to my programmers subconcious already to this moment.
+16:08 <+bridge> [ddnet] <Pure_luck> This is my first C++ project, so I get all problems a noob could get in an old enough C++ project.
+16:09 <+bridge> [ddnet] <Pure_luck> In infCroya there are no smart pointers, not even nullptr. Just integers.
+16:09 <+bridge> [ddnet] <Pure_luck> I will rewrite this as soon I will grasp this. Just with things could be easier for me.
+16:09 <+bridge> [ddnet] <Pure_luck> Being a C++ programmer for me always was a macho dream 😄
+16:10 <+bridge> [ddnet] <Pure_luck> It's just too lowlevel for leisure.
+16:10 <+bridge> [ddnet] <Learath2> I was looking into redoing teeworlds with smart pointers, but who owns what isnt really easy to figure out
+16:10 <+bridge> [ddnet] <Learath2> Leisure is subjective
+16:11 <+bridge> [ddnet] <Pure_luck> Ofc, it's depends on your goals too.
+16:11 <+bridge> [ddnet] <Learath2> I love how everything is predictable in these low level languages
+16:11 <+bridge> [ddnet] <Pure_luck> If you want to make an experience and framework and language are just tools then you could complain if they're having a steep learning curve.
+16:11 <+bridge> [ddnet] <Pure_luck> If your goal to challenge yourself into learning something hard then it's a leisure already and small result and imrovements are nice.
+16:13 <+bridge> [ddnet] <Pure_luck> Don't mind me. I will get used to it or will just switch to something more rewarding in time.
+16:13 <+bridge> [ddnet] <Pure_luck> At least C++ syntax wasn't hard. Just memory management side effects are.
+16:13 <+bridge> [ddnet] <Pure_luck> It's a chad language after all 😄
+16:14 <+bridge> [ddnet] <Pure_luck> If your goal is to make an experience then framework and language are just tools and you could complain if they're having a steep learning curve.
+16:14 <+bridge> [ddnet] <Pure_luck> If one's goal is to make an experience then framework and language are just tools and one could complain if they're having a steep learning curve.
+16:15 <+bridge> [ddnet] <Pure_luck> Ah, I am editing my messages here again on reflexes. Time to leave, thanks
+16:21 <+bridge> [ddnet] <heinrich5991> @Learath2 too large snapshots aren't a problem due to the thing you specified
+16:21 <+bridge> [ddnet] <heinrich5991> they get broken up into more packets
+16:23 <+bridge> [ddnet] <mind> @Jupstar ✪  @Soreu  My dilemma was if I should predilate the images or not, since a lot of people are still mapping with old client versions (so predilate is usefull) while on the other hand there actually is a 0.7 mapping scene and the filesize would be up to 40% bigger for them. Removing dilate for newer versions won't solve this at all. In the end I decided to just predilate the images and I'm super happy with the new autodilate.
+16:27 <+bridge> [ddnet] <heinrich5991> @Learath2 see SNAP, SNAPSINGLE, SNAPEMPTY net messages
+16:28 <+bridge> [ddnet] <Pure_luck> Is there a command line utility to see if map is compatible with 0.6/ddnet BTW?
+16:29 <+bridge> [ddnet] <Pure_luck> I keep accidentally overwriting my 0.6 maps with 0.7 editor. Would love to have this check in my deployment pipeline
+16:30 <+ChillerDragon> or finally add 0.7 map support to ddnet
+16:31 <+bridge> [ddnet] <heinrich5991> 0.7 map incompatibility is my fault, sorry
+16:31 <+bridge> [ddnet] <heinrich5991> and retrospectively, not even for a good reason 😦
+16:31 <+ChillerDragon> fix it then :p
+16:32 <+bridge> [ddnet] <heinrich5991> can never fix it, will always have to support the new format 😦
+16:32 <+ChillerDragon> yea thats what i ment support the new stuff in ddnet is a fix for me
+16:32 <+ChillerDragon> problem solved
+16:33 <+bridge> [ddnet] <Pure_luck> We have convert to 07 utility. Just convert to 06 and which_version tools are missing.
+16:33 <+bridge> [ddnet] <Pure_luck> We have convert to 07 utility. Just convert_to_06 and which_version tools are missing.
+16:34 <+bridge> [ddnet] <Pure_luck> Does 0.7 map format have something new that ddnet doesn't have or just or just 0.7 strips some compatibility data blocks?
+16:35 <+bridge> [ddnet] <heinrich5991> it has my awesome compression
+16:35 <+bridge> [ddnet] <Pure_luck> Nice
+16:35 <+bridge> [ddnet] <Pure_luck> Any simple ways of knowing if the map 0.6 compatible?
+16:35 <+bridge> [ddnet] <Pure_luck> Like some keyword or a header flag?
+16:36 <+bridge> [ddnet] <heinrich5991> checking rn
+16:36 <+bridge> [ddnet] <Learath2> @heinrich5991 really? I thought snaps needed to fit into chunks too and we can't split chunks
+16:38 <+bridge> [ddnet] <heinrich5991> snaps get split into multiple chunks
+16:38 <+bridge> [ddnet] <heinrich5991> *can get split into multiple chunks
+16:40 <+bridge> [ddnet] <Learath2> Oh yep, didn't know that
+16:40 <+bridge> [ddnet] <Learath2> So I guess no limit
+16:40 <+bridge> [ddnet] <Pure_luck> Can a snapshot of individual entity within a server snapshot be split too?
+16:40 <+bridge> [ddnet] <heinrich5991> snaps have an inherent limit though
+16:40 <+bridge> [ddnet] <Pure_luck> Or there are no big entities and they cannot grow?
+16:40 <+bridge> [ddnet] <heinrich5991> 64KiB I think
+16:40 <+bridge> [ddnet] <Pure_luck> Oh
+16:41 <+bridge> [ddnet] <Pure_luck> Is it to limit bandwidth and guarantee a rate?
+16:41 <+bridge> [ddnet] <Pure_luck> Update rate
+16:42 <+bridge> [ddnet] <Pure_luck> Also if snapshot splits then I suppose the client has to wait before it could reassemble
+16:42 <+bridge> [ddnet] <heinrich5991> yep, for all packets that contain the snap
+16:43 <+bridge> [ddnet] <Pure_luck> If a client will get a packet with a chunk for a newer snapshot while it is aggregating older one's chunk to assemble will those chunk be just discarded?
+16:44 <+bridge> [ddnet] <Pure_luck> I mean older ones
+16:44 <+bridge> [ddnet] <Pure_luck> That would lean to ordering problem in UDP
+16:45 <+bridge> [ddnet] <heinrich5991> I'd guess the old chunks will be discarded
+16:45 <+bridge> [ddnet] <heinrich5991> but I'd have to read the source to be sure
+16:46 <+bridge> [ddnet] <heinrich5991> ye, discards all old partial data if new data arrives
+16:46 <+bridge> [ddnet] <Pure_luck> So when snapshot grows there are more chances it will have some sort of error... racing condition
+16:47 <+bridge> [ddnet] <Pure_luck> No... that it will have higher chances of not to finish assuming when getting newer snapshot packet out of order
+16:47 <+bridge> [ddnet] <heinrich5991> wdym, out of order
+16:47 <+bridge> [ddnet] <Pure_luck> Up does not guarantee order of packets
+16:47 <+bridge> [ddnet] <heinrich5991> yes
+16:47 <+bridge> [ddnet] <heinrich5991> we wait 50ms between two snapshots
+16:48 <+bridge> [ddnet] <heinrich5991> packets don't delay randomly, they usually take the same route, and usually even arrive in the same order AFAIK
+16:48 <+bridge> [ddnet] <Pure_luck> So older snapshot could consist of so many packets that server will start generating and sending a newer snapshot before client will assemble old one
+16:48 <+bridge> [ddnet] <heinrich5991> not really, to my understanding
+16:48 <+bridge> [ddnet] <Pure_luck> Yes, mostly they will be in order ofc
+16:49 <+bridge> [ddnet] <heinrich5991> I mean the packet would have to get delayed by 50ms to get a chance to be interleaved with the next snapshot
+16:56 <+bridge> [ddnet] <Pure_luck> Or have a lag spike for 50 ms + have multiparty routing anywhere on its way, right?
+16:56 <+bridge> [ddnet] <Pure_luck> *multipart
+16:56 <+bridge> [ddnet] <Pure_luck> Multipath
+16:56 <+bridge> [ddnet] <Pure_luck> Which is common for the internet
+16:58 <+bridge> [ddnet] <heinrich5991> is it common that packets take different paths?
+16:58 <+bridge> [ddnet] <heinrich5991> AFAIK no
+16:58 <+bridge> [ddnet] <Pure_luck> Anyway it works surprisingly well irl
+16:58 <+bridge> [ddnet] <Pure_luck> Yes
+16:58 <+bridge> [ddnet] <heinrich5991> got a citation for that (don't have one for my gut feeling)?
+16:58 <+bridge> [ddnet] <Pure_luck> I worked in ISP, channels get aggregated all the time
+16:58 <+bridge> [ddnet] <heinrich5991> k
+16:59 <+bridge> [ddnet] <heinrich5991> i.e. that packets send in time proximity routinely take different paths
+16:59 <+bridge> [ddnet] <Pure_luck> Could take yes
+16:59 <+bridge> [ddnet] <heinrich5991> wdym could take?
+16:59 <+bridge> [ddnet] <heinrich5991> if they don't actually routinely take different paths, then there's no issue, no?
+17:01 <+bridge> [ddnet] <Pure_luck> Depends on channel aggregation algo
+17:01 <+bridge> [ddnet] <Pure_luck> Sometimes its just every consequent packet gets a new route
+17:01 <+bridge> [ddnet] <Pure_luck> But some try to maintain a route
+17:02 <+bridge> [ddnet] <Pure_luck> For a stream (ip src+dest combination)
+17:02 <+bridge> [ddnet] <heinrich5991> https://www.openmymind.net/How-Unreliable-Is-UDP/
+17:02 <+bridge> [ddnet] <Pure_luck> Otherwise you would get into troubles with up sooner I guess
+17:02 <+bridge> [ddnet] <heinrich5991> apparently quite bad about the ordering
+17:02 <+bridge> [ddnet] <heinrich5991> check table # of ordered packets
+17:06 <+bridge> [ddnet] <Pure_luck> Yes, but irl for internet backbone router it is cheaper to emulate streams of ip packets
+17:07 <+bridge> [ddnet] <Pure_luck> That's why situation is not that horrible for us
+17:07 <+bridge> [ddnet] <Pure_luck> Also 50 ms delay helps a lot
+17:08 <+bridge> [ddnet] <Pure_luck> But the more congested the bandwidth for a server or a client the worse situation will get anyway
+17:08 <+bridge> [ddnet] <Pure_luck> Maybe thats why there is magic 64 kb limit
+17:09 <+bridge> [ddnet] <Pure_luck> I could emulate out of order delivery with some network tools and test if u curious
+17:16 <+bridge> [ddnet] <redix> 64k is just the size of the buffer, which is used for building the snapshots. What the server sends is usually way less, thanks to delta snaps and compression.
+17:19 <+bridge> [ddnet] <redix> Ordering isn't a problem. Chunks within one tick are numbered. And chunks for older ticks are just dropped.
+17:20 <+bridge> [ddnet] <Pure_luck> So it's just all chunks should arrive in a 50ms time window.
+17:20 <+bridge> [ddnet] <redix> Yeah. Otherwise the client will just use the next one
+17:22 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/teedissect/blob/master/packet-teeworlds.c
+17:22 <+bridge> [ddnet] <Pure_luck> So it means that server will get problems with internet bandwidth of 10 Mbps if 64KB will be sent every 50ms
+17:22 <+bridge> [ddnet] <Learath2> It's quite messy right now, but I need  to take a break. Might aswell leave it as is for now
+17:22 <+bridge> [ddnet] <Pure_luck> So I assume it's not gets full in general
+17:24 <+bridge> [ddnet] <redix> Sending 64kb raw UDP data every 50ms to all clients isn't the best idea :D
+17:24 <+bridge> [ddnet] <Ryozuki> > Java keeps it's entire memory pool hot, so the kernel can't swap it away, ever, even if you rarely ever use the data. So it can have decent performance, at the cost of horrible memory usage
+17:24 <+bridge> [ddnet] <Ryozuki> @Learath2 i think linux works around this with overcommit iirc
+17:24 <+bridge> [ddnet] <Pure_luck> My server sends that easily with a lot of custom entities
+17:25 <+bridge> [ddnet] <Pure_luck> But it's a sum for all players
+17:25 <+bridge> [ddnet] <redix> Don't think so. The server only sends what the tee can see. And it only sends what changed since last tick
+17:26 <+bridge> [ddnet] <redix> Debug mode has a field that shows the transfer rate I think
+17:26 <+bridge> [ddnet] <Pure_luck> A lot of thing could change in my mod. I have circles drawn via particles moving in circles
+17:26 <+bridge> [ddnet] <Pure_luck> And they update their position every snapshot
+17:26 <+bridge> [ddnet] <Pure_luck> Though it was never a problem
+17:27 <+bridge> [ddnet] <Pure_luck> I think I have a lot of headroom yet
+17:27 <+bridge> [ddnet] <redix> Still... Delta snaps, int pack and Huffman can reduce that a lot
+17:27 <+bridge> [ddnet] <Pure_luck> But would like to check it
+17:27 <+bridge> [ddnet] <Learath2> @Ryozuki overcommit helps with reducing the usage of memory, it doesn't help with the memory never being able to get swapped out. So you still need a lot of ram
+17:27 <+bridge> [ddnet] <Pure_luck> Delta cannot pack anything if every entity have different coordinates I think
+17:28 <+bridge> [ddnet] <Learath2> Delta can only help if an object hasn't changed
+17:28 <+bridge> [ddnet] <Pure_luck> But yes, it's not causing problems yet
+17:28 <+bridge> [ddnet] <Pure_luck> Well before adding 20+ more entities
+17:28 <+bridge> [ddnet] <redix> But it compares the old entity with the new one and only sends the difference.
+17:29 <+bridge> [ddnet] <redix> Using int pack and Huffman makes that rather small
+17:29 <+bridge> [ddnet] <Pure_luck> Projectiles essentially have nothing but a vel and pos which are not constant in sfx particles
+17:30 <+bridge> [ddnet] <Pure_luck> I update them every snapshot to format a circle
+17:30 <+bridge> [ddnet] <Pure_luck> And it looks nice
+17:30 <+bridge> [ddnet] <Pure_luck> To form
+17:31 <+bridge> [ddnet] <Pure_luck> And circle is rotating, I will show you how it look later
+17:31 <+bridge> [ddnet] <redix> Still the coordinates don't change that much. It only sends the difference since last snap and not the absolute coordinates
+17:32 <+bridge> [ddnet] <Pure_luck> Then compressions will help ofc
+17:32 <+bridge> [ddnet] <Pure_luck> I am curious now to see actual size of my snap )
+17:32 <+bridge> [ddnet] <redix> Most of the time int pack can reduce each of these integer values to one byte, since the difference since last snap is kinda small
+17:33 <+bridge> [ddnet] <Pure_luck> It can bee seen in a debug hud, right?
+17:33 <+bridge> [ddnet] <redix> Not the actual size of the snap but the average send rate I think
+17:34 <+bridge> [ddnet] <Pure_luck> Server tick is 1/50 right?
+17:34 <+bridge> [ddnet] <Pure_luck> So I can just divide it by 5o and get snapshot size.
+17:34 <+bridge> [ddnet] <redix> Yeah but by default it only sends 25 times per second
+17:35 <+bridge> [ddnet] <Pure_luck> Hmm... TIL
+17:35 <+bridge> [ddnet] <Pure_luck> Ok  thanks
+17:35 <+bridge> [ddnet] <redix> You have a server running?
+17:35 <+bridge> [ddnet] <Pure_luck> Protocol issues were a nightmare for such amateur modder as I am
+17:35 <+bridge> [ddnet] <Pure_luck> Yes
+17:35 <+bridge> [ddnet] <Pure_luck> Just I am not at PC atm
+17:37 <+bridge> [ddnet] <Pure_luck> BTW if I am sending a projectile 1 snapshot but not on consequent, will it be removed by a client or will it be handled by a prediction?
+17:38 <+bridge> [ddnet] <Pure_luck> I want to switch from pickup free taxi indicator to temporary projectile ones
+17:38 <+bridge> [ddnet] <redix> projectiles don't even have prediction
+17:38 <+bridge> [ddnet] <Pure_luck> Hmm... but they have curves? Or are they server-side only?
+17:39 <+bridge> [ddnet] <redix> and the client only predicts what is included in the last snapshot
+17:39 <+bridge> [ddnet] <redix> the curve is calculated based on the tick and the start pos+vel
+17:40 <+bridge> [ddnet] <redix> has the advantage that the snaps do not change
+17:41 <+bridge> [ddnet] <Pure_luck> Hm... so proj snap have start tick and start vel and pos and it does not change in later snapshots?
+17:41 <+bridge> [ddnet] <Pure_luck> I see why it is compressed nicely
+17:41 <+bridge> [ddnet] <Pure_luck> That means that client calculate ballistic isn't it?
+17:42 <+bridge> [ddnet] <Pure_luck> (Server too to get hits)
+17:42 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/C_Programming/comments/hkd0ze/question_about_what_to_do_when_malloc_fails/ interesting threas
+17:42 <+bridge> [ddnet] <Ryozuki> Thread
+17:45 <+bridge> [ddnet] <redix> @Pure_luck infNext? with 2 rotating circles and a few tees on screen it's ~14 kB/s for me
+17:46 <+bridge> [ddnet] <redix> You are also sending lasers and projectiles when there is nothing on my screen
+17:48 <+bridge> [ddnet] <redix> the table in debug mode shows what is updated in the snaps
+17:51 <+bridge> [ddnet] <Pure_luck> Yes, I don't know why it sends every reserved entity every tick
+17:51 <+bridge> [ddnet] <Pure_luck> Thats a good find I've thought that wa normal in tw )
+17:51 <+bridge> [ddnet] <Pure_luck> Thanks for testing
+17:53 <+bridge> [ddnet] <Pure_luck> 14 kBps on almost empty server would become much larger when special weapons will be used
+17:53 <+bridge> [ddnet] <Pure_luck> But thanks for the starting point
+17:53 <+bridge> [ddnet] <Pure_luck> I will investigate it further
+17:54 <+bridge> [ddnet] <Pure_luck> When I add katana pickup above character head as a sign of activated taxi function it starts to lag... sometimes on 10+ players
+17:54 <+bridge> [ddnet] <Pure_luck> So I was thinking I am getting some limits
+17:55 <+bridge> [ddnet] <Pure_luck> Maybe I still get them, I'll check it
+17:56 <+bridge> [ddnet] <Pure_luck> Thanks gods I have now chillerbot pentest tools so I can reproduce a load locally and not to wait for players
+17:57 <+bridge> [ddnet] <Pure_luck> ChillerDragon thanks
+18:33 <+bridge> [ddnet] <Learath2> Hover seems broken for the clear buttons of the filter lines
+18:35 <+bridge> [ddnet] <Ryozuki> it should be fixed
+18:35 <+bridge> [ddnet] <Ryozuki> i remember reporting it on a pr
+18:36 <+bridge> [ddnet] <Ryozuki> it prob isnt merged yet
+18:37 <+bridge> [ddnet] <Ryozuki> <https://github.com/ddnet/ddnet/pull/2880#issuecomment-695760260>
+18:37 <+bridge> [ddnet] <Ryozuki> @Learath2 did u update ur fork
+18:42 <+bridge> [ddnet] <Learath2> ah I was on a branch
+18:51 <+bridge> [ddnet] <abcqwerty> https://www.zdnet.com/article/github-to-replace-master-with-main-starting-next-month/
+18:52 <+bridge> [ddnet] <Learath2> YAY we finally did it boys, the ceo of racism is dead
+18:53 <+bridge> [ddnet] <Ryozuki> @lola topkek
+18:53 <+bridge> [ddnet] <Ryozuki> > Existing repositories that have "master" set as the default branch will be left as is.
+18:54 <+bridge> [ddnet] <Ryozuki> ill change my new repos to use master
+18:54 <+bridge> [ddnet] <Ryozuki> fuck the system
+18:54 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+18:54 <+bridge> [ddnet] <louis> they should just donate to blm charities instead of changing stuff that's been like that for forever
+18:54 <+bridge> [ddnet] <louis> if they want to help
+18:54 <+bridge> [ddnet] <Ryozuki> its sjw public relations
+18:54 <+bridge> [ddnet] <louis> sjw? xd
+18:55 <+bridge> [ddnet] <Ryozuki> haha look a corporation cares about my rights haha
+18:55 <+bridge> [ddnet] <Ryozuki> ill now proceed to love it
+18:55 <+bridge> [ddnet] <Ryozuki> @louis sjw means social justice warrior
+18:55 <+bridge> [ddnet] <louis> i know
+18:55 <+bridge> [ddnet] <abcqwerty> social warrior of justice
+18:55 <+bridge> [ddnet] <Ryozuki> what github is doing is purely Virtue signalling
+18:55 <+bridge> [ddnet] <Ryozuki> i love this word
+18:55 <+bridge> [ddnet] <Ryozuki> https://en.wikipedia.org/wiki/Virtue_signalling
+18:55 <+bridge> [ddnet] <Jupstar ✪> i like it
+18:55 <+bridge> [ddnet] <Jupstar ✪> master sounds stupid xd
+18:56 <+bridge> [ddnet] <lola> BLM isnt against racism, its literal a racist movement
+18:56 <+bridge> [ddnet] <lola> White sjws like nouis dont check that
+18:56 <+bridge> [ddnet] <abcqwerty> trollsti
+18:56 <+bridge> [ddnet] <Ryozuki> what github is oding is like twitter people changing their pfp to the french flag when a terror attack happens
+18:56 <+bridge> [ddnet] <Ryozuki> Virtue signalling
+18:56 <+bridge> [ddnet] <louis> i think main sounds better than master as well but i heard it messed some things up?
+18:56 <+bridge> [ddnet] <Ryozuki> the most cringy ppl
+18:57 <+bridge> [ddnet] <louis> ok konsti send evidence as to why blm is racist then maybe i'll listen to u
+18:58 <+bridge> [ddnet] <Ryozuki> https://github.com/openzfs/zfs/issues/10458
+18:58 <+bridge> [ddnet] <Ryozuki> > hello, as a man of non-white background (a mix of brown, black, and white), the removal of "slave" and "blacklist" from the source code itself feels racist.
+18:58 <+bridge> [ddnet] <Ryozuki> lmao
+18:59 <+bridge> [ddnet] <abcqwerty> :kek:
+18:59 <+bridge> [ddnet] <Jupstar ✪> for me its not about racism or smth, master just sounds like the wrong word
+18:59 <+bridge> [ddnet] <Ryozuki> why
+18:59 <+bridge> [ddnet] <Ryozuki> i find it normal
+19:00 <+bridge> [ddnet] <Jupstar ✪> i dunno main branch sounds more fitting imo
+19:00 <+bridge> [ddnet] <Ryozuki> https://www.zdnet.com/article/linux-team-approves-new-terminology-bans-terms-like-blacklist-and-slave/
+19:00 <+bridge> [ddnet] <Ryozuki> ah
+19:00 <+bridge> [ddnet] <Ryozuki> 2020
+19:00 <+bridge> [ddnet] <Ryozuki> a lovely year
+19:01 <+bridge> [ddnet] <Jupstar ✪> i mean whats wrong with it, they rename stuff, bcs the words are stupid anyway
+19:01 <+bridge> [ddnet] <Ryozuki> yeah lets use requester/responder
+19:01 <+bridge> [ddnet] <Ryozuki> instead of master/slave
+19:02 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+19:02 <+bridge> [ddnet] <Ryozuki> "director/performer"
+19:02 <+bridge> [ddnet] <Ryozuki> we are in a circus
+19:02 <+bridge> [ddnet] <Jupstar ✪> but master slave is better? XD
+19:02 <+bridge> [ddnet] <deen> Agree with @Jupstar ✪ , it seems a bit like fanboys and haters. I guess it's easier to care about such small things as naming than the more important things
+19:02 <+bridge> [ddnet] <Jupstar ✪> strange argument
+19:02 <+bridge> [ddnet] <Ryozuki> master slave feels normal
+19:02 <+bridge> [ddnet] <Jupstar ✪> yes u are used to it
+19:02 <+bridge> [ddnet] <Ryozuki> u can give any word a bad meaning
+19:03 <+bridge> [ddnet] <Jupstar ✪> primary/secondary
+19:03 <+bridge> [ddnet] <Jupstar ✪> sounds logical for me
+19:03 <+bridge> [ddnet] <Ryozuki> master/slave too sounds logical
+19:03 <+bridge> [ddnet] <Jupstar ✪> well idc about naming, aslong its intuitive 😄
+19:04 <+bridge> [ddnet] <Ryozuki> its like they pretend bits and bytes have feelings or something
+19:05 <+bridge> [ddnet] <deen> Considering that "git" means idiot, all the other weird names fit in well 😄
+19:06 <+bridge> [ddnet] <Ryozuki> in what language does it mean that?
+19:06 <+bridge> [ddnet] <Ryozuki> oh
+19:06 <+bridge> [ddnet] <Ryozuki> english
+19:06 <+bridge> [ddnet] <Ryozuki> TIL
+19:08 <+bridge> [ddnet] <Jupstar ✪> ironical, bcs without git, our software projects were handled by gits xd
+19:11 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪
+19:11 <+bridge> [ddnet] <Ryozuki> > Torvalds sarcastically quipped about the name git (which means "unpleasant person" in British English slang): "I'm an egotistical bastard, and I name all my projects after myself. First 'Linux', now 'git'."[24][25] The man page describes Git as "the stupid content tracker
+19:12 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/757650352320413716/unknown.png
+19:12 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+19:12 <+bridge> [ddnet] <abcqwerty> gitos
+19:14 <+bridge> [ddnet] <Jupstar ✪> if you have 8 gits, do you have 1 gyte?
+19:15 <+bridge> [ddnet] <Jupstar ✪> @Soreu btw have u tested the new editor
+19:15 <+bridge> [ddnet] <Jupstar ✪> i need ppl to test, if i broke smth
+19:15 <+bridge> [ddnet] <Soreu> what new editor, what am I missing again lately? xD
+19:15 <+bridge> [ddnet] <Jupstar ✪> no not new editor sry, just the new rendering in it
+19:15 <+bridge> [ddnet] <Jupstar ✪> https://github.com/ddnet/ddnet/pull/2894
+19:16 <+bridge> [ddnet] <Jupstar ✪> the game layer looks funny
+19:16 <+bridge> [ddnet] <Jupstar ✪> so clear xd
+19:22 <+bridge> [ddnet] <Jupstar ✪> Do you think there are still ppl with 0.6 vanilla playing on ddnet servers?
+19:24 <+bridge> [ddnet] <deen> a few, yes
+19:25 <+bridge> [ddnet] <Jupstar ✪> ok, bcs today we had the debate with dilate again
+19:25 <+bridge> [ddnet] <Jupstar ✪> 0.7 uses premultiplied alpha colors
+19:25 <+bridge> [ddnet] <Jupstar ✪> that saves a bit file size
+19:26 <+bridge> [ddnet] <deen> a few KB probably don't matter that much
+19:26 <+bridge> [ddnet] <Jupstar ✪> yeah, thats also why i added dilate to the editor
+19:26 <+bridge> [ddnet] <Jupstar ✪> so nobody has to care
+19:27 <+bridge> [ddnet] <deen> well, skin creators, game skin creators still have to care
+19:28 <+bridge> [ddnet] <Jupstar ✪> true
+19:28 <+bridge> [ddnet] <Jupstar ✪> @fokkonaut have u tried #2874 btw?
+19:28 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2874
+19:29 <+bridge> [ddnet] <BannZay> have you noticed that the game is about twice longer stays at pos 0,0 when you connect the server for the first time (seems like initialization stuff going on). Comparing to 14.7.1
+19:30 <+bridge> [ddnet] <BannZay> it takes almost a second for me. Probably we should show loading screen litle bit longer
+19:30 <+bridge> [ddnet] <Ryozuki> " that the game is about twice longer"
+19:30 <+bridge> [ddnet] <Ryozuki> what does this mean
+19:30 <+bridge> [ddnet] <Jupstar ✪> is there a loading bar for connecting to server?
+19:30 <+bridge> [ddnet] <BannZay> have you noticed that the game stays at pos 0,0 twice longer after you connected to the server for the first time (seems like initialization stuff going on). Comparing to 14.7.1
+19:31 <+bridge> [ddnet] <Jupstar ✪> or what do u mean by loading screen
+19:31 <+bridge> [ddnet] <Jupstar ✪> or just uses more ticks before rendering
+19:32 <+bridge> [ddnet] <BannZay> https://cdn.discordapp.com/attachments/293493549758939136/757655442313838592/unknown.png
+19:32 <+bridge> [ddnet] <Jupstar ✪> if that takes longer is probs bcs its building the map when onmapload is called
+19:32 <+bridge> [ddnet] <BannZay> When I connect to the server my camera shows game at position 0.0 for a second
+19:32 <+bridge> [ddnet] <Jupstar ✪> ah so after the loading screen?
+19:32 <+bridge> [ddnet] <BannZay> yes
+19:32 <+bridge> [ddnet] <Jupstar ✪> oh ok
+19:33 <+bridge> [ddnet] <Jupstar ✪> have u tried on older ddnet servers? maybe its not client side
+19:33 <+bridge> [ddnet] <BannZay> but it is "so slow" only for the first connect. When I reconnect to the server everything is fine
+19:34 <+bridge> [ddnet] <Jupstar ✪> oh ok
+19:34 <+bridge> [ddnet] <BannZay> yes I tried 14.7.1
+19:34 <+bridge> [ddnet] <BannZay> the same but for 14.7.1 it shows about for a 0.3 sec
+19:34 <+bridge> [ddnet] <Jupstar ✪> yeah nvm thought server side, buts its only once, so nvm
+19:34 <+bridge> [ddnet] <BannZay> yeah I need to reload the game to reproduce
+19:34 <+bridge> [ddnet] <BannZay> yeah I need to restart the game to reproduce
+20:03 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ not yet, but from the code i read on the train i think its good
+20:06 <+bridge> [ddnet] <fokkonaut> i will try it rn
+20:07 <+bridge> [ddnet] <Jupstar ✪> ty
+20:11 <+bridge> [ddnet] <louis> does anyone have png exports of all ddnet client-shipped skins
+20:13 <+bridge> [ddnet] <abcqwerty> https://github.com/ddnet/ddnet/tree/master/data/skins
+20:15 <+bridge> [ddnet] <louis> like, rendered
+20:17 <+bridge> [ddnet] <abcqwerty> what
+20:17 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ works, thanks
+20:17 <+bridge> [ddnet] <Jupstar ✪> alright
+20:18 <+bridge> [ddnet] <louis> @abcqwerty like how it would look ingame
+20:20 <+bridge> [ddnet] <abcqwerty> you could download client and just look at skin list
+20:22 <+bridge> [ddnet] <fokkonaut> @louis
+20:22 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/757668185242599434/Jdb19W87FXI5dbU2krgFgC1lZSH5t0CwEOCre1tbwFQW0l5aN4tADwk2Nre9hYAtZWUhb9H8gYspttRcY1AAAAAElFTkSuQmCC.png
+20:22 <+bridge> [ddnet] <fokkonaut> like this?
+20:23 <+bridge> [ddnet] <fokkonaut> if yes: https://ddnet.tw/skins/
+20:23 <+bridge> [ddnet] <fokkonaut> that page uses the skin aseembler iirc
+20:23 <+bridge> [ddnet] <fokkonaut> its somewhere open src i believe
+20:23 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/757668382190600352/Zn8sAAAAAElFTkSuQmCC.png
+20:23 <+bridge> [ddnet] <fokkonaut> actually pretty nice to use as "emojis" in discord
+20:24 <+bridge> [ddnet] <louis> oh neat
+20:24 <+bridge> [ddnet] <fokkonaut> np
+20:25 <+bridge> [ddnet] <abcqwerty> but then you have to find which ones in the skin database are in ddnet client
+20:25 <+bridge> [ddnet] <fokkonaut> true
+20:34 <+bridge> [ddnet] <Soreu> if they are shipped with DDNet client by default, they are in database too
+20:35 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/757671420229582968/PsychoWolfe.png
+20:39 <+bridge> [ddnet] <abcqwerty> ye but it also includes extra
+22:43 <+SnowFox> Jupstar: Your theory-patch worked. Thanks. :)
+22:45 <+bridge> [ddnet] <Jupstar ✪> nice 😄
+22:52 <+SnowFox> Jupstar: The patch fixes 1.1.0 internally, but it uses a 3.0 context. Should it use more features or did it not really anyway?
+22:58 <+bridge> [ddnet] <Jupstar ✪> i think sdl just defaults to EGL 3.0 or smth, and ddnet just shows it as opengl 3.0
+22:59 <+bridge> [ddnet] <Jupstar ✪> or did u not change the config?
+22:59 <+bridge> [ddnet] <Jupstar ✪> then it just creates EGL 3.0 with compability
+22:59 <+bridge> [ddnet] <Jupstar ✪> but that should be fine too, internally the patch should only call 1.0 functions
+23:00 <+bridge> [ddnet] <Jupstar ✪> but that should be fine too, internally the patch should only call 1.1 functions
+23:22 <+bridge> [ddnet] <Ryozuki> i see a month passed :monkalaugh:
+23:22 <+bridge> [ddnet] <Ryozuki> joke xD
+23:23 <+bridge> [ddnet] <Jupstar ✪> we just need the skin fix, thats why xd
+23:24 <+bridge> [ddnet] <Jupstar ✪> @deen want the screen config in? on kog there was another person complaining bcs he didnt find the setting
+23:24 <+bridge> [ddnet] <Jupstar ✪> @deen want the home screen config in? on kog there was another person complaining bcs he didnt find the setting
+23:25 <+bridge> [ddnet] <deen> @Ryozuki it's supposed to be a bug fix release, i don't think the big changes you talked about made it in
+23:25 <+bridge> [ddnet] <Ryozuki> ah
+23:26 <+bridge> [ddnet] <deen> And I didn't see any super-high-risk changes, so I didn't want to branch off
+23:27 <+bridge> [ddnet] <Ryozuki> <https://github.com/ddnet/ddnet/compare/15.0.4...master>
+23:29 <+bridge> [ddnet] <deen> Not sure what you guys meant by "not rushing". I can also delay the bugfix release if that makes the community happy
+23:30 <+bridge> [ddnet] <Jupstar ✪> honestly most ppl dont even notice when on steam
+23:30 <+bridge> [ddnet] <Jupstar ✪> its always 10 ppl complaining
+23:31 <+bridge> [ddnet] <deen> I considered not doing the bugfix release since the skin bug is not too bad
+23:31 <+bridge> [ddnet] <Ryozuki> well maybe a bug fix can be merged fast, but big features should definitly be tested more i guess
+23:31 <+bridge> [ddnet] <deen> might crash, but haven't heard anyone say so
+23:32 <+bridge> [ddnet] <Ryozuki> the best would be to have someone with a old pc able to test too tho
+23:32 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki even with testing edge cases arent always seen easliy
+23:32 <+bridge> [ddnet] <Ryozuki> i know
+23:32 <+bridge> [ddnet] <Ryozuki> but the skin download bug
+23:32 <+bridge> [ddnet] <Ryozuki> it being static
+23:32 <+bridge> [ddnet] <Jupstar ✪> e.g. for the skinprefix it had to exceed a specific length
+23:32 <+bridge> [ddnet] <Ryozuki> was it rly that hidden?
+23:32 <+bridge> [ddnet] <Jupstar ✪> i'd say not very intuitive
+23:32 <+bridge> [ddnet] <Jupstar ✪> u could have found it sure
+23:33 <+bridge> [ddnet] <deen> @Ryozuki let's see how many bugs the release candidates will find in the future
+23:33 <+bridge> [ddnet] <deen> hard to predict and depends on how many people participate and how thoroughly they search
+23:33 <+bridge> [ddnet] <Ryozuki> okay
+23:33 <+bridge> [ddnet] <Ryozuki> i will definitly try to test
+23:33 <+bridge> [ddnet] <Ryozuki> but for example if jupstar makes a graphic change we should definitly get someone with a old pc to test it
+23:33 <+bridge> [ddnet] <Jupstar ✪> ... i tried
+23:34 <+bridge> [ddnet] <Jupstar ✪> but most ppl prefer not to answer
+23:34 <+bridge> [ddnet] <Jupstar ✪> only this brazilian guy did
+23:34 <+bridge> [ddnet] <Ryozuki> :justatest:
+23:34 <+bridge> [ddnet] <Jupstar ✪> and then it was quickly fixed
+23:34 <+bridge> [ddnet] <Ryozuki> u cant simulate a old pc right?
+23:34 <+bridge> [ddnet] <Ryozuki> forcing openg 1 would not be the same
+23:34 <+bridge> [ddnet] <Jupstar ✪> i cant simulate broken drivers, no xD
+23:34 <+bridge> [ddnet] <Ryozuki> or smth like that
+23:34 <+bridge> [ddnet] <Ryozuki> xD
+23:35 <+bridge> [ddnet] <deen> well, most players are 12-16 year old kids, so it's no surprise they are not the best bug reporters 😄
+23:35 <+bridge> [ddnet] <Ryozuki> <https://github.com/ddnet/ddnet/pull/2894/files> this definitly looks like a big change that may need to be tested xd
+23:36 <+bridge> [ddnet] <Jupstar ✪> well i valgrind and test few cases always
+23:36 <+bridge> [ddnet] <Jupstar ✪> and tried all opengl contexts
+23:36 <+bridge> [ddnet] <deen> not in the release
+23:36 <+bridge> [ddnet] <Ryozuki> yeah i know
+23:38 <+bridge> [ddnet] <deen> @Jupstar ✪ i just got a weird error starting client
+23:38 <+bridge> [ddnet] <deen> https://cdn.discordapp.com/attachments/293493549758939136/757717317604999268/message.txt
+23:38 <+bridge> [ddnet] <Jupstar ✪> i what version
+23:38 <+bridge> [ddnet] <deen> hm, rebuilding client fixed it. Maybe I just mixed some old client version with new shaders
+23:38 <+bridge> [ddnet] <deen> nevermind then
+23:38 <+bridge> [ddnet] <Jupstar ✪> oh ok
+23:38 <+bridge> [ddnet] <Jupstar ✪> yeah makes sense
+23:38 <+bridge> [ddnet] <Jupstar ✪> i use the shader for opengl 3.3 now too
+23:38 <+bridge> [ddnet] <Ryozuki> this x has never been centered right? xD
+23:38 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/757717502859018411/unknown.png
+23:39 <+bridge> [ddnet] <Jupstar ✪> btw i added text render flags for such things
+23:39 <+bridge> [ddnet] <Jupstar ✪> wait
+23:39 <+bridge> [ddnet] <Jupstar ✪> TEXT_RENDER_FLAG_NO_X_BEARING = 1<<0,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_NO_Y_BEARING = 1<<1,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_ONLY_ADVANCE_WIDTH = 1<<2,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_NO_PIXEL_ALIGMENT = 1<<3,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_KERNING = 1<<4,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_NO_OVERSIZE = 1<<5,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_NO_FIRST_CHARACTER_X_BEARING = 1<<6,
+23:39 <+bridge> [ddnet] <Jupstar ✪>     TEXT_RENDER_FLAG_NO_LAST_CHARACTER_ADVANCE = 1<<7,
+23:39 <+bridge> [ddnet] <Jupstar ✪> u can basically enable almost all
+23:39 <+bridge> [ddnet] <Jupstar ✪> and it should be centered more
+23:40 <+bridge> [ddnet] <Jupstar ✪> ok noit the first two xd
+23:40 <+bridge> [ddnet] <Jupstar ✪> and maybe also not the 4th xd
+23:40 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+23:40 <+bridge> [ddnet] <Jupstar ✪> but they can controll things for single characters
+23:40 <+bridge> [ddnet] <Jupstar ✪> i added them for the gui icon font
+23:42 <+bridge> [ddnet] <Ryozuki> always when i set fsaa to 16 and restart it resets to 8
+23:42 <+bridge> [ddnet] <Ryozuki> not related to this release tho
+23:42 <+bridge> [ddnet] <Jupstar ✪> probs ur driver doesnt allow more
+23:42 <+bridge> [ddnet] <Jupstar ✪> mine just completly ignores it for some reason
+23:43 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ is multisampling enabled?
+23:43 <+bridge> [ddnet] <Jupstar ✪> u mean in shaders?
+23:45 <+bridge> [ddnet] <Ryozuki> src/engine/client/backend_sdl.cpp
+23:45 <+bridge> [ddnet] <Ryozuki> 4262:        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, FsaaSamples);
+23:45 <+bridge> [ddnet] <Ryozuki> 4267:        SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 0);
+23:45 <+bridge> [ddnet] <Ryozuki> :justatest:
+23:46 <+bridge> [ddnet] <Jupstar ✪> yes
+23:46 <+bridge> [ddnet] <Jupstar ✪> xd
+23:46 <+bridge> [ddnet] <Ryozuki> is this really fsaa?
+23:46 <+bridge> [ddnet] <Ryozuki> it looks to me like its MSAA
+23:46 <+bridge> [ddnet] <deen> Should we have a separate channel for reporting bugs (for the release candidate)?
+23:47 <+bridge> [ddnet] <Ryozuki> but i dont know much about this
+23:47 <+bridge> [ddnet] <Ryozuki> yeah why not
+23:47 <+bridge> [ddnet] <Jupstar ✪> i think MSAA is just one possibility
+23:47 <+bridge> [ddnet] <Jupstar ✪> you can also do super sampling
+23:48 <+bridge> [ddnet] <Jupstar ✪> e.g. for the ffmpeg it might be nice to have framebuffers at higher resolution, so we can export in any format
+23:48 <+bridge> [ddnet] <Ryozuki> Most modern GPUs support 2×, 4×, and 8× MSAA samples.
+23:48 <+bridge> [ddnet] <Ryozuki> so the 8 cap makes sense
+23:50 <+bridge> [ddnet] <Ryozuki> put it under #developer
+23:50 <+bridge> [ddnet] <Ryozuki> i guess
+23:58 <+bridge> [ddnet] <Jupstar ✪> the only problem i see is, that announcements will be flooded by releases, while its more for actual announcements
+23:59 <+bridge> [ddnet] <Ryozuki> you can create another category, "development" which can have 3 channels, announcements, discussion, bugs, if u do that u should move this channel and rename it to discussion i guess, to keep the webhook
+23:59 <+bridge> [ddnet] <Ryozuki> or maybe its not needed

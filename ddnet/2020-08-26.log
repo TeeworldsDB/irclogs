@@ -1,0 +1,379 @@
+00:30 <+bridge> [ddnet] <teenoodle> i made a **map**
+10:58 <+bridge> [ddnet] <Learath2> @deen why did we need special support for libs again?
+11:00 <+bridge> [ddnet] <deen> for what libs?
+11:03 <+bridge> [ddnet] <Jupstar ✪> will the auto updater ship the steam lib?
+11:03 <+bridge> [ddnet] <deen> yes
+11:03 <+bridge> [ddnet] <deen> the steam lib stub more specifically
+11:03 <+bridge> [ddnet] <deen> it does nothing
+11:04 <+bridge> [ddnet] <Jupstar ✪> ah ok
+11:06 <+bridge> [ddnet] <Learath2> @deen like when updating .so's why cant we update them like any file?
+11:07 <+bridge> [ddnet] <deen> because we have a different file for x86-64 than for x86
+11:07 <+bridge> [ddnet] <deen> and if the file is being executed you can't just overwrite it, you have to move it away first
+11:07 <+bridge> [ddnet] <deen> Didn't you write the new autoupdater? 😄
+11:07 <+bridge> [ddnet] <Learath2> On linux you can swap executed files np
+11:07 <+bridge> [ddnet] <Learath2> On windows yeah you need to move first
+11:07 <+bridge> [ddnet] <deen> no, I had trouble with that
+11:07 <+bridge> [ddnet] <Learath2> Really? Odd
+11:08 <+bridge> [ddnet] <deen> mv wil fail, cp works
+11:08 <+bridge> [ddnet] <Learath2> Anyway, that autoupdater really isnt sth I'm proud off anymore
+11:08 <+bridge> [ddnet] <deen> hm, or was it different?
+11:08 <+bridge> [ddnet] <Learath2> Many bad decisions
+11:08 <+bridge> [ddnet] <deen> but we have the same problem on official servers when we update server executable
+11:08 <+bridge> [ddnet] <deen> I remove the original one first, then copy the new one over
+11:09 <+bridge> [ddnet] <deen> and since we do the same handling for DDNet and DDNet-Server executables in autoupdater, I think we should handle shared libs the same
+11:09 <+bridge> [ddnet] <deen> @Learath2 about the missing rpath yesterday, forgot the line, works now, verified with otool -l
+11:11 <+bridge> [ddnet] <Learath2> \\○/
+11:15 <+bridge> [ddnet] <Learath2> If I was to rewrite the updater. Idn't do the swap trick again...
+11:15 <+bridge> [ddnet] <Learath2> Separate executable to do the updating
+11:15 <+bridge> [ddnet] <deen> would be cleaner the steam way, have an external updater
+11:15 <+bridge> [ddnet] <deen> yeah
+11:15 <+bridge> [ddnet] <Learath2> I was young and naive, impressed by a self swap party trick
+11:17 <+bridge> [ddnet] <deen> @Learath2 want to review my 2 changes so I can release?
+11:17 <+bridge> [ddnet] <Learath2> Just a minute and I'll be done with breakfast
+11:18 <+bridge> [ddnet] <Jupstar ✪> Can you merge
+11:18 <+bridge> [ddnet] <Jupstar ✪> https://github.com/ddnet/ddnet/pull/2647
+11:18 <+bridge> [ddnet] <Jupstar ✪> 
+11:18 <+bridge> [ddnet] <Jupstar ✪> or can i already?
+11:20 <+bridge> [ddnet] <deen> It's not good style to merge your own changes @Jupstar ✪
+11:21 <+bridge> [ddnet] <Jupstar ✪> xd
+11:26 <+bridge> [ddnet] <ᶰ°Konͧsti> lmao
+11:27 <+bridge> [ddnet] <Learath2> @deen #2648 looks fine, but how will we get the update working?
+11:27 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2648
+11:28 <+bridge> [ddnet] <Learath2> Without 2648 it can't download the new lib properly to begin with
+11:31 <+bridge> [ddnet] <TearlessAbyss46> @Learath2  is it normal when you use printscreen to take a screenshot that it doesnt show chat at all
+11:32 <+bridge> [ddnet] <TearlessAbyss46> tried holding U and pressing T to show chat but both dont show text when you paste the printscreen
+11:33 <+bridge> [ddnet] <Learath2> @Jupstar ✪ That's a head scratcher for you ^^
+11:34 <+bridge> [ddnet] <deen> @Learath2 I have fixed it with an nginx hack:
+11:34 <+bridge> [ddnet] <deen> ```
+11:34 <+bridge> [ddnet] <deen> map $http_user_agent $libsteam_api {
+11:34 <+bridge> [ddnet] <deen>   default "libsteam_api-linux-x86_64.so";
+11:34 <+bridge> [ddnet] <deen>   "~*ia32" "libsteam_api-linux-x86.so";
+11:34 <+bridge> [ddnet] <deen> }
+11:34 <+bridge> [ddnet] <deen> ...
+11:34 <+bridge> [ddnet] <deen>   location = /libsteam_api.so {
+11:34 <+bridge> [ddnet] <deen>     alias /var/www-update5/$libsteam_api;
+11:34 <+bridge> [ddnet] <deen>   }
+11:34 <+bridge> [ddnet] <deen> ```
+11:35 <+bridge> [ddnet] <Learath2> #2644 works well when cross compiling but it's not correct when building natively
+11:35 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2644
+11:35 <+bridge> [ddnet] <deen> Verified with: ```
+11:35 <+bridge> [ddnet] <deen> $ curl -H "User-Agent: DDNet 14.4 (linux; ia32)" https://update5.ddnet.tw/libsteam_api.so --output a && file a
+11:35 <+bridge> [ddnet] <deen> a: ELF 32-bit LSB shared object, Intel 80386, version 1 (SYSV), dynamically linked, BuildID[sha1]=e4c00d9ccb12410914e33d7ff1df27081c6577b3, stripped
+11:35 <+bridge> [ddnet] <deen> $ curl -H "User-Agent: DDNet 14.4 (linux; amd64)" https://update5.ddnet.tw/libsteam_api.so --output a && file a
+11:35 <+bridge> [ddnet] <deen> a: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, BuildID[sha1]=b62b4d0d63e7843ae4a9f810a979522a8538e8be, stripped
+11:35 <+bridge> [ddnet] <deen> ```
+11:35 <+bridge> [ddnet] <Learath2> Though we are not building natively so we can go ahead and release it and I'll fix the native packaging later
+11:36 <+bridge> [ddnet] <deen> Ok, thanks
+11:37 <+bridge> [ddnet] <TearlessAbyss46> wanted to know how his name is different?
+11:37 <+bridge> [ddnet] <TearlessAbyss46> https://cdn.discordapp.com/attachments/293493549758939136/748113806772797520/Untitled.png
+11:38 <+bridge> [ddnet] <Learath2> No idea, possibly two unicode characters that look very similar
+11:50 <+bridge> [ddnet] <Jupstar ✪> @TearlessAbyss46 sound almost impossible xD
+11:50 <+bridge> [ddnet] <Jupstar ✪> how does that program know what is chat in the client, bcs if it just reads the framebuffer it will show chat
+11:50 <+bridge> [ddnet] <Jupstar ✪> 
+11:51 <+bridge> [ddnet] <Jupstar ✪> but you can also just take an ingame screenshot with F10
+12:08 <+bridge> [ddnet] <Jupstar ✪> @Margineanu65 14.5 should also fix your problem:
+12:08 <+bridge> [ddnet] <Jupstar ✪> https://ddnet.tw/downloads/DDNet-14.5-win32.zip
+12:08 <+bridge> [ddnet] <Jupstar ✪> hopefully you can finally enjoy the new client
+12:08 <+bridge> [ddnet] <Jupstar ✪> and also thanks for helping
+12:39 <+bridge> [ddnet] <deen> @Learath2 for things like my .so nginx hack I'm always scared of Cloudflare deciding to suddenly start caching the file
+12:39 <+bridge> [ddnet] <deen> Needed quite a few fixes already, my eternal time.gif stopped working, the server statistics pages were not updating etc
+12:40 <+bridge> [ddnet] <deen> And if you want more than 5 special rules you need a paid account
+13:18 <+ChillerDragon> there are free cloudflare accs? o.O
+13:33 <+bridge> [ddnet] <QuiX> @Jupstar ✪ its something wrong with the entities with the update? i just logged in and all is black from the update xD it was fine yesterday
+13:33 <+bridge> [ddnet] <QuiX> https://cdn.discordapp.com/attachments/293493549758939136/748142974625644624/screenshot_2020-08-26_12-27-43.png
+13:33 <+bridge> [ddnet] <Tar .v> :pepoThink:
+13:35 <+bridge> [ddnet] <Jupstar ✪> can you give me your console output
+13:43 <+bridge> [ddnet] <Jupstar ✪> @QuiX and maybe tell me the name of your gpu
+13:57 <+bridge> [ddnet] <Jupstar ✪> @deen can the auto updater block resources in windows?
+13:57 <+bridge> [ddnet] <Jupstar ✪> appeartnly the bug above only happened after using the auto update, after a clean restart everything worked fine 😄
+13:57 <+bridge> [ddnet] <Jupstar ✪> @deen can the auto updater block resources in windows?
+13:57 <+bridge> [ddnet] <Jupstar ✪> appeartnly the bug above only happened after using the auto update, after a clean client restart everything worked fine 😄
+14:29 <+bridge> [ddnet] <deen> @Jupstar ✪ which files are missing, the shaders?
+14:29 <+bridge> [ddnet] <deen> I'd guess no permissions to overwrite them
+14:29 <+bridge> [ddnet] <Jupstar ✪> i dunno if something is missing
+14:29 <+bridge> [ddnet] <Jupstar ✪> after restarting the client it appearently worked
+14:29 <+bridge> [ddnet] <deen> Hm, weird
+14:29 <+bridge> [ddnet] <Jupstar ✪> he also has a more modern GPu
+14:29 <+bridge> [ddnet] <deen> I tested update on 4 platforms, worked fine for me on all
+14:30 <+bridge> [ddnet] <Jupstar ✪> wait i look in the windows steam files
+14:35 <+bridge> [ddnet] <Jupstar ✪> they look fine
+14:45 <+bridge> [ddnet] <murpi> people still trolling?
+14:45 <+bridge> [ddnet] <murpi> that was my goto key combination to close tw .-.
+14:46 <+bridge> [ddnet] <Learath2> You can bind it again by hand
+14:46 <+bridge> [ddnet] <Learath2> Though it won't be as robust
+14:46 <+bridge> [ddnet] <murpi> oh, whats the bind though?
+14:46 <+bridge> [ddnet] <murpi> didnt know this can be bound
+14:47 <+bridge> [ddnet] <Learath2> `bind ctrl+lshift+q quit` I guess
+14:47 <+bridge> [ddnet] <murpi> or is it just quit
+14:47 <+bridge> [ddnet] <murpi> ah
+14:48 <+bridge> [ddnet] <murpi> hm, + isn't a thing we can use
+14:50 <+bridge> [ddnet] <deen> @murpi what's wrong with alt+f4?
+14:50 <+bridge> [ddnet] <deen> For me closing windows is something every window manager has a shortcut for, so not sure the client needs to implement it again
+14:50 <+bridge> [ddnet] <Jupstar ✪> @deen he means the dots in the freeze 😄
+14:51 <+bridge> [ddnet] <murpi> I think I never used alt+f4 cuz it didnt save my settings that way
+14:51 <+bridge> [ddnet] <murpi> but I could be wrong
+14:51 <+bridge> [ddnet] <deen> the dots we can fix easily by making them smaller, and I'm doing so right now
+14:51 <+bridge> [ddnet] <Jupstar ✪> i have no problem with changing the default entities.png
+14:51 <+bridge> [ddnet] <deen> @murpi please try it, it should save them
+14:51 <+bridge> [ddnet] <deen> @Jupstar ✪ nope, he just confirmed (after I asked 10 times) that he means the text
+14:51 <+bridge> [ddnet] <mr.mac_unknown_yet> help?
+14:52 <+bridge> [ddnet] <Jupstar ✪> the text uses the old renderer @deen
+14:52 <+bridge> [ddnet] <deen> @mr.mac_unknown_yet do you need an ambulance?
+14:52 <+bridge> [ddnet] <Jupstar ✪> fixed function pipeline
+14:52 <+bridge> [ddnet] <Jupstar ✪> i cannot change it xD
+14:52 <+bridge> [ddnet] <mr.mac_unknown_yet> no thxs look at #general
+14:52 <+bridge> [ddnet] <Jupstar ✪> ahh
+14:52 <+bridge> [ddnet] <Jupstar ✪> @deen he might mean from the speedup arrows?
+14:52 <+bridge> [ddnet] <deen> yes
+14:53 <+bridge> [ddnet] <Jupstar ✪> well its now a tileset instead of streamed text
+14:53 <+bridge> [ddnet] <Jupstar ✪> which makes it alot faster
+14:53 <+bridge> [ddnet] <Jupstar ✪> he'll get used to it, he can also resize with that command you had the bug in xD
+14:54 <+bridge> [ddnet] <deen> @Jupstar ✪ but shouldn't the image be a bit higher resolution?
+14:54 <+bridge> [ddnet] <deen> it actually looks upscaled a bit
+14:54 <+bridge> [ddnet] <murpi> Ah, alt f4 does save settings. Guess I need to get used to alt+f4 now
+14:55 <+bridge> [ddnet] <Jupstar ✪> i can use 2048 pixels if you want
+14:55 <+bridge> [ddnet] <Jupstar ✪> dunno if all driver support that huge textures
+14:58 <+bridge> [ddnet] <deen> and currently it's 1024?
+14:58 <+bridge> [ddnet] <deen> oh well, if it's the same as the normal way tiles are rendered, that's fine
+15:05 <+bridge> [ddnet] <Jupstar ✪> @deen yeah its like a normal tileset at 1024 pixels rn
+15:08 <+bridge> [ddnet] <Learath2> When did we even change that and why?
+15:10 <+bridge> [ddnet] <Jupstar ✪> @Learath2 when i first added opengl 3.3 i wanted faster speedup arrows and text for entities
+15:10 <+bridge> [ddnet] <Jupstar ✪> these are "buffered" and are able to use the buffered vertices
+15:10 <+bridge> [ddnet] <Jupstar ✪> so even a map like Mystic river will perform very good
+15:10 <+bridge> [ddnet] <Jupstar ✪> while on old renderer it will die xD
+15:12 <+bridge> [ddnet] <Learath2> I see, makes sense
+15:20 <+bridge> [ddnet] <Jupstar ✪> @deen btw most ppl probs use custom entities anyway
+15:20 <+bridge> [ddnet] <Jupstar ✪> the guy in the text issue has custom ones atleast 😄
+15:22 <+bridge> [ddnet] <Jupstar ✪> @Soreu its your entities.png, what is your opinion, now that your tileset is rendered correctly? XD
+15:41 <+bridge> [ddnet] <Soreu> @Jupstar ✪ uh huh?
+15:41 <+bridge> [ddnet] <Soreu> how much should I scroll up? xd
+15:43 <+bridge> [ddnet] <deen> @Soreu the small corners in freeze are now bigger because Jupstar fixed the rendering
+15:43 <+bridge> [ddnet] <deen> https://cdn.discordapp.com/attachments/293493549758939136/748175842227781692/unknown5.png
+15:43 <+bridge> [ddnet] <deen> @Soreu do you want to make them smaller so it looks similar to before
+15:46 <+bridge> [ddnet] <Jupstar ✪> @deen 
+15:46 <+bridge> [ddnet] <Jupstar ✪> maybe like this?
+15:46 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/748176575492653096/unknown.png
+15:48 <+bridge> [ddnet] <deen> that looks nicer, what did you change?
+15:49 <+bridge> [ddnet] <Im 'corneum> is that only opengl3 stuff youre discussing about? i dont play with it because it crashes for me from time to time
+15:49 <+bridge> [ddnet] <Im 'corneum> also i found out that ddnet client was the program that caused my pc to start every night at 2am
+15:49 <+bridge> [ddnet] <Jupstar ✪> no this is the default now
+15:49 <+bridge> [ddnet] <Jupstar ✪> i fixed rendering for opengl 2.0+
+15:50 <+bridge> [ddnet] <Im 'corneum> for tilesets and such?
+15:50 <+bridge> [ddnet] <Jupstar ✪> @deen just generate the text more properly to the space it has
+15:50 <+bridge> [ddnet] <deen> How can DDNet Client cause your PC to start? 😄
+15:50 <+bridge> [ddnet] <deen> @Jupstar ✪ sounds good
+15:51 <+bridge> [ddnet] <Jupstar ✪> @deen i'll pr when my current pr is merged, bcs forgot to create new branch for it, and also maybe conflicts
+15:51 <+bridge> [ddnet] <Im 'corneum> idk but i never closed my client and it always went on in the night (from energy saving mode) but the last 2 night i closed my client and the pc was off at the morning
+15:51 <+bridge> [ddnet] <Im 'corneum> my client would always be crashed in the morning anyway
+15:53 <+bridge> [ddnet] <Jupstar ✪> @Im 'corneum the new client has a strong fallback, you should be able to set it to OpenGL 4.6 and it should still not crash and open the right version
+15:54 <+bridge> [ddnet] <Im 'corneum> it says opengl 3.3 tho
+15:54 <+bridge> [ddnet] <Im 'corneum> oh hold up i didnt have the update button
+15:57 <+bridge> [ddnet] <Jupstar ✪> @BannZay i think you were the one that added text entity size?
+15:57 <+bridge> [ddnet] <Jupstar ✪> i dunno if my pr breaks your stuff a bit, but i want to good default rn
+16:14 <+bridge> [ddnet] <Soreu> @deen Yea, I could adjust them.
+16:14 <+bridge> [ddnet] <Soreu> 
+16:14 <+bridge> [ddnet] <Soreu> @Jupstar ✪ They now render everything correctly, for both default & OpenGL 3.3? Like no shitty cuts-tricks needed to display i.e. entities-off sign as properly as possible?
+16:16 <+bridge> [ddnet] <Soreu> Btw, since you're fixing entities text size/space related stuff, maybe somehow also fix the bug that changing entities text size makes those tiles plan black until client restart? ^^' Or did I miss that it's fixed already aswell)
+16:16 <+bridge> [ddnet] <Jupstar ✪> yes no more graphic tools required xd
+16:16 <+bridge> [ddnet] <Jupstar ✪> i havent implemented the text size thing and also dunno what breaks it rn
+16:17 <+bridge> [ddnet] <Soreu> https://cdn.discordapp.com/attachments/293493549758939136/748184282148765796/32.png
+16:18 <+bridge> [ddnet] <Soreu> @Ravie time for tests and to cool champagne bottle
+16:19 <+bridge> [ddnet] <Jupstar ✪> the dilate tool might still be usefull, bcs gimp and other programs still interpolate between transparent and opaque
+16:22 <+bridge> [ddnet] <Soreu> @Jupstar ✪ Right now I have so weird bug, that I can't open some of TW graphics (shipped with client) in Photoshop until I dilate them. One of the examples was entities_clear, so I guess specific compressing during uploading to repo also messes them a bit
+16:23 <+bridge> [ddnet] <Jupstar ✪> Would be strange PNG is lossless
+16:24 <+bridge> [ddnet] <Jupstar ✪> Anyway off for now. I guess you're better in such detail things than me anyway xd
+16:24 <+bridge> [ddnet] <Soreu> and yet...
+16:26 <+bridge> [ddnet] <Soreu> Oh, btw, that change in displaying is only affecting entities, or regular tilesets in maps too?
+16:26 <+bridge> [ddnet] <Jupstar ✪> Everything except the editor
+16:26 <+bridge> [ddnet] <Jupstar ✪> Only ingame rn
+16:26 <+bridge> [ddnet] <Ryozuki> pls fix freeze, before it was nearly unnoticable and i loved it xD
+16:27 <+bridge> [ddnet] <Ravie> looks like I made a good call to design all my newer maps with 3.3 in mind :brownbear:
+16:27 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ oh ur pr also fixed the weirdness i saw on multimap
+16:27 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/748186932735115264/unknown.png
+16:27 <+bridge> [ddnet] <Ryozuki> it looked rly weird before
+16:27 <+bridge> [ddnet] <Ryozuki> specially moving
+16:27 <+bridge> [ddnet] <Jupstar ✪> Yes xd
+16:28 <+bridge> [ddnet] <Ryozuki> thats nice :D
+16:28 <+bridge> [ddnet] <Ravie> is this the new update or nightly?
+16:28 <+bridge> [ddnet] <Ryozuki> new update
+16:28 <+bridge> [ddnet] <Ryozuki> 14.5
+16:29 <+bridge> [ddnet] <Jupstar ✪> Well even now sampling will always be 100% actuate.  Floating point precision and screen resolution is still a limit for the math in the gpu
+16:29 <+bridge> [ddnet] <Jupstar ✪> Will not
+16:29 <+bridge> [ddnet] <Jupstar ✪> *
+16:29 <+bridge> [ddnet] <Jupstar ✪> There are still interpolation for sub pixels etc
+16:31 <+bridge> [ddnet] <Ravie> everything looks a bit blurrier than 3.3 used to tho
+16:31 <+bridge> [ddnet] <Jupstar ✪> Yes
+16:31 <+bridge> [ddnet] <Soreu> > looks like I made a good call to design all my newer maps with 3.3 in mind :brownbear:
+16:31 <+bridge> [ddnet] <Soreu> @Ravie as always >.> you little fairy
+16:32 <+bridge> [ddnet] <Jupstar ✪> That's because MIP mapping is now in the hand if the driver again.. Before it was me calculating it based on opengl spec
+16:32 <+bridge> [ddnet] <Ryozuki> is that a good thing?
+16:32 <+bridge> [ddnet] <Ryozuki> i always see u complaining about drivers :D
+16:33 <+bridge> [ddnet] <Jupstar ✪> Well nvidia cheated with it in the past to get better performance.. But it might be better for performance and sampling
+16:35 <+bridge> [ddnet] <Ravie> is there still gonna be an option to get the older effect?
+16:35 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/748188988421963836/unknown.png
+16:36 <+bridge> [ddnet] <Jupstar ✪> U mean the old 3.3?
+16:37 <+bridge> [ddnet] <Ravie> yeah, it's sharper
+16:38 <+bridge> [ddnet] <Jupstar ✪> You can replace texture in the shader with textureLod and as second parameter 0 then it will always load MIP map zero the highest resolution
+16:38 <+bridge> [ddnet] <Jupstar ✪> As third parameter*
+16:39 <+bridge> [ddnet] <Jupstar ✪> Just Google glsl textureLod xd replace in tile.frag
+16:39 <+bridge> [ddnet] <deen> I don't think that should be an option, but I have to agree, the old one looks a bit nicer
+16:39 <+bridge> [ddnet] <deen> Would be nice if we can get it a bit sharper without huge performance loss
+16:40 <+bridge> [ddnet] <Ravie> I'm still really thankful that my maps won't appear buggy to people without 3.3 enabled, especially the new players
+16:40 <+bridge> [ddnet] <Jupstar ✪> Well that's the nice thing about shader.. You can do it as  you want
+16:41 <+bridge> [ddnet] <Ravie> @deen 0.7 looks nice and sharp, it does run slightly worse than ddnet though but that might be due to any other optimizations in ddnet
+16:42 <+bridge> [ddnet] <Soreu> So it's still different solution than the one used in 0.7?
+16:43 <+bridge> [ddnet] <Jupstar ✪> Yes because they have MIP mapping disabled
+16:43 <+bridge> [ddnet] <Jupstar ✪> Bcs 3D textures don't support it
+16:43 <+bridge> [ddnet] <Jupstar ✪> Not for tw at least
+16:43 <+bridge> [ddnet] <Jupstar ✪> Texture Atlas
+16:44 <+bridge> [ddnet] <Jupstar ✪> We have it too as a fallback for older GPUs that don't have texture arrays xd
+16:46 <+bridge> [ddnet] <deen> But shouldn't it be the default if it looks sharper?
+16:48 <+bridge> [ddnet] <Jupstar ✪> Normally MIP mapping is nice because its interpolated correctly.. E.g. zooming out looks insanely nice with texture arrays while it looks really bad with just linear interpolation of the original image
+16:49 <+bridge> [ddnet] <Jupstar ✪> Also for smaller resolution etc
+16:49 <+bridge> [ddnet] <deen> ok
+16:49 <+bridge> [ddnet] <Ryozuki> hmm
+16:49 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ zooming out seems laggier now
+16:49 <+bridge> [ddnet] <deen> No way to have your cake and eat it too?
+16:49 <+bridge> [ddnet] <Ryozuki> it was rly smooth before
+16:49 <+bridge> [ddnet] <Jupstar ✪> E.g. when creating 2k tilesets
+16:50 <+bridge> [ddnet] <Ryozuki> before i could zoom out a lot and had decent fps xd
+16:50 <+bridge> [ddnet] <Im 'corneum> when i change cl text entities size with opengl3 it still makes the affected blocks black for me
+16:50 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki enable 3.3
+16:50 <+bridge> [ddnet] <Ryozuki> oh
+16:50 <+bridge> [ddnet] <Ryozuki> it was disabled
+16:50 <+bridge> [ddnet] <Ryozuki> for some rason
+16:50 <+bridge> [ddnet] <Jupstar ✪> The older has no border tile buffering
+16:50 <+bridge> [ddnet] <Jupstar ✪> I renamed the config
+16:51 <+bridge> [ddnet] <deen> @Im 'corneum yes, requires a restart atm
+16:51 <+bridge> [ddnet] <Ryozuki> ok it works nicely now
+17:06 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/748196621493469275/97p4ob5aebj51.png
+17:08 <+bridge> [ddnet] <redix> @Jupstar ✪ what about adding an option to use `GL_LINEAR_MIPMAP_LINEAR` for mipmap filtering?
+17:17 <+bridge> [ddnet] <Jupstar ✪> @redix yeah good idea. U could actually also just make it default.. Added most sampler settings from the very old code
+17:21 <+bridge> [ddnet] <redix> True. These defaults are for hardware from another decade :D
+17:23 <+bridge> [ddnet] <BannZay> I believe I am not the first who complains, but I will not use 14.5 because my freeze is so scuffed, plus not possible to downgrade steam version. so sad
+17:25 <+bridge> [ddnet] <BannZay> no idea why this happened, but please consider about players who use custom entities_clear
+17:29 <+bridge> [ddnet] <Jupstar ✪> Dunno. I think u the first one xd
+17:38 <+bridge> [ddnet] <deen> @BannZay @Soreu is working on a fix I think, I will release 14.5.1 when it's available
+17:46 <+bridge> [ddnet] <nori> would be better use textbox to change major opengl version instead of opengl 3.3 toggle button
+17:49 <+bridge> [ddnet] <Jupstar ✪> I dunno.  The big difference is still 3.3
+17:49 <+bridge> [ddnet] <Jupstar ✪> Since that's the new api
+18:01 <+bridge> [ddnet] <Learath2> freeze is scuffed?
+18:02 <+bridge> [ddnet] <Learath2> What does it even mean for a tile to be "scuffed"?
+18:03 <+bridge> [ddnet] <deen> @Learath2 i guess it's not so easy to write the http messages to f1 since they run in a thread, right?
+18:03 <+bridge> [ddnet] <Learath2> Ah, I forgot about that
+18:13 <+bridge> [ddnet] <BannZay> This is how game looks like if you use OpenGL 3.3 with disabled "Multiple texture units" on windows. Is this expected an expected behaviour? (v14.5)
+18:13 <+bridge> [ddnet] <BannZay> https://cdn.discordapp.com/attachments/293493549758939136/748213493664055386/unknown.png
+18:13 <+bridge> [ddnet] <BannZay> This is how game looks like if you use OpenGL 3.3 with disabled "Multiple texture units" on windows. Is this an expected behaviour? (v14.5)
+18:13 <+bridge> [ddnet] <BannZay> https://cdn.discordapp.com/attachments/293493549758939136/748213493664055386/unknown.png
+18:14 <+bridge> [ddnet] <Learath2> Oh boy, this last GL change didn't go so great with some configurations
+18:14 <+bridge> [ddnet] <Learath2> @BannZay can you show the console output from `cl_show_console 1`?
+18:16 <+bridge> [ddnet] <BannZay> @Learath2 this one?
+18:16 <+bridge> [ddnet] <BannZay> https://cdn.discordapp.com/attachments/293493549758939136/748214314472833074/console.txt
+18:18 <+bridge> [ddnet] <Learath2> @BannZay yep
+18:22 <+bridge> [ddnet] <Learath2> There is absolutely no way to get cmake to link to the sdl provided by pkg-config on osx
+18:22 <+bridge> [ddnet] <Learath2> I tried changing every single setting there, it just won't link to that one. It always finds the bundled one and links to that instead
+18:22 <+bridge> [ddnet] <Learath2> Every time I test a PR, I need to go in and delete the bundled framework so it'll link to my copy of sdl
+18:36 <+bridge> [ddnet] <louis> isnt there some way to test builds without releasing it for everyone on steam first
+18:36 <+bridge> [ddnet] <Learath2> Problem isn't that we don't test, it worked on any system we had access to
+18:37 <+bridge> [ddnet] <Learath2> We could maybe do beta tests on steam and ask more people to try it on there as it's easier
+18:37 <+bridge> [ddnet] <Ryozuki> steam allows beta clients
+18:38 <+bridge> [ddnet] <deen> I also wrote an announcement to beta test in this discord
+18:55 <+bridge> [ddnet] <TearlessAbyss46> @Jupstar ✪ ye I always used f10 for screenshots but was lazy to go to folder so I wanted to use printscreen but then I saw chat didnt want to show up for some weird reason xD
+18:55 <+bridge> [ddnet] <Bash Crandicoot> Hello
+18:55 <+bridge> [ddnet] <Bash Crandicoot> I need some help with a problem
+18:55 <+bridge> [ddnet] <Bash Crandicoot> Today steam ran an update on dd
+18:56 <+bridge> [ddnet] <Bash Crandicoot> And after that I couldnt see any map
+18:56 <+bridge> [ddnet] <Bash Crandicoot> Just the background
+18:56 <+bridge> [ddnet] <Bash Crandicoot> I already tried re installing and verifying integrity of the files
+18:56 <+bridge> [ddnet] <Soreu> @QuiX What fixed your issue with black... everything? just reinstall of client from Steam, or anything else had to be done?
+18:59 <+bridge> [ddnet] <deen> @Jupstar ✪ @Bash Crandicoot is another one with gl problems ^
+19:05 <+bridge> [ddnet] <Im 'corneum> deen can you add the total map count to ddnet.tw/mappers? im bad at maths
+19:05 <+bridge> [ddnet] <deen> Maybe that's a sign of having too many maps when you can't count your own maps 😄
+19:08 <+bridge> [ddnet] <Im 'corneum> wow even deen hates corneum maps:feelsbadman: :feelsbadman: :feelsbadman:
+19:08 <+bridge> [ddnet] <deen> done
+19:08 <+bridge> [ddnet] <Im 'corneum> king
+19:11 <+bridge> [ddnet] <louis> 52 maps LOL
+19:15 <+bridge> [ddnet] <Im 'corneum> silex is #1 with 66 maps
+19:15 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/1
+19:22 <+bridge> [ddnet] <legser4> new bug
+19:22 <+bridge> [ddnet] <legser4> If you start the game and close it REALLY fast
+19:22 <+bridge> [ddnet] <legser4> The game closes
+19:22 <+bridge> [ddnet] <legser4> But the process is still running
+19:22 <+bridge> [ddnet] <legser4> And you can hear the music
+19:22 <+bridge> [ddnet] <nori> @deen maybe you should distribute nightly automated builds under betas, so everyone can easily test latest git source. if anything goes wrong, they can just switch branch and report it
+19:23 <+bridge> [ddnet] <deen> but the problem is no one actually tests my nightlies
+19:23 <+bridge> [ddnet] <deen> you mean in steam?
+19:23 <+bridge> [ddnet] <nori> yes
+19:23 <+bridge> [ddnet] <deen> that's a good idea
+19:23 <+bridge> [ddnet] <deen> i have to see if it can be automated
+19:24 <+bridge> [ddnet] <nori> at least most mods, admins can use that branch
+19:25 <+bridge> [ddnet] <Learath2> @heinrich5991 you seem to have broken rpath handling somehow
+19:27 <+bridge> [ddnet] <Learath2> Well $ORIGIN is there, but the build dir is there too, I guess that should be somehow removed when "installing" the server
+19:31 <+bridge> [ddnet] <legser4> wait
+19:31 <+bridge> [ddnet] <legser4> no
+19:31 <+bridge> [ddnet] <legser4> It happens if you launch the game in different res with fullscren
+19:32 <+bridge> [ddnet] <legser4> Then everything just bugs out
+19:32 <+bridge> [ddnet] <legser4> Then everything bugs
+19:32 <+bridge> [ddnet] <legser4> My second monitor freaks out
+19:32 <+bridge> [ddnet] <legser4> and closing the game fast wont actually end the process
+20:05 <+bridge> [ddnet] <murpi> @Learath2 something is wrong with ranks rn
+20:05 <+bridge> [ddnet] <murpi> https://ddnet.tw/ranks/
+20:05 <+bridge> [ddnet] <murpi> last finishes
+20:11 <+bridge> [ddnet] <Ryozuki> sadge
+20:11 <+bridge> [ddnet] <deen> yeah, I'm trying to update the database but it's not going well
+20:14 <+bridge> [ddnet] <murpi> does this explain the missing finishes on player profiles?
+20:14 <+bridge> [ddnet] <murpi> e.g https://ddnet.tw/players/chiliking/
+20:14 <+bridge> [ddnet] <murpi> just finished Leftovers 1
+20:14 <+bridge> [ddnet] <murpi> but the player profile is not being updated
+20:15 <+bridge> [ddnet] <deen> yes, I guess
+20:17 <+bridge> [ddnet] <deen> What I tried to do was to `update record_race set Server = "GER1" where Server = "GER"`, and it just hung for hours, meh
+20:30 <+bridge> [ddnet] <Learath2> Huh, I guess there was no index on Server
+20:30 <+bridge> [ddnet] <Learath2> Would be a stupid index anyway, we hardly ever select by server I guess
+21:12 <+bridge> [ddnet] <Bash Crandicoot> For anyone who cares steam gave another update and now it works
+21:12 <+bridge> [ddnet] <Bash Crandicoot> Thank you c:
+21:14 <+bridge> [ddnet] <deen> great to hear, thanks for reporting!
+21:19 <+bridge> [ddnet] <nori> is whitespace unicode name issue fixed? some1 in game has that rn
+21:20 <+bridge> [ddnet] <deen> servers need to restart, might take a day or 2
+21:20 <+bridge> [ddnet] <deen> they only restart when empty
+21:32 <+bridge> [ddnet] <n000b> @deen  so it takes a week on the rus multimal server:kek:
+21:32 <+bridge> [ddnet] <n000b> @deen  so it takes a week on the rus multimap server:kek:
+21:38 <+bridge> [ddnet] <ᶰ°Konͧsti> :kek:
+21:46 <+bridge> [ddnet] <Jim-panse> 14.5.1 tried to join any ddnet servers, same pic. No OS Changes or Graphics changes done. Mapres folder contains 50 elements, so i guess that folder's fine too
+21:46 <+bridge> [ddnet] <Jim-panse> https://cdn.discordapp.com/attachments/293493549758939136/748267089399250964/unknown.png
+21:46 <+bridge> [ddnet] <Jim-panse> 14.5.1 tried to join any ddnet servers, same pic. No OS Changes or Graphics changes done. Mapres folder contains 50 elements, so i guess that folder's fine too. You guys got any idea what changed?
+21:46 <+bridge> [ddnet] <Jim-panse> https://cdn.discordapp.com/attachments/293493549758939136/748267089399250964/unknown.png
+21:48 <+bridge> [ddnet] <deen> @Jim-panse try fresh download from ddnet.tw
+21:53 <+bridge> [ddnet] <Learath2> ouf these permission issues are really biting us, how did this even happen
+21:53 <+bridge> [ddnet] <Learath2> How do people lose permissions to folders they themselves create
+21:56 <+bridge> [ddnet] <deen> i don't know...
+21:57 <+bridge> [ddnet] <maggi323> lost permissions once when i put a new ssd in the pc with windows on it, and just connected the old hdd with also windows on it. had no permissions on the hdd files from ssd
+21:57 <+bridge> [ddnet] <maggi323> Wasn't smart
+22:56 <+bridge> [ddnet] <Shyzo> @Jim-panse real jim panse from youtube? :kek:
+23:23 <+bridge> [ddnet] <Jupstar ✪> @deen dunno, the only reports i see are custom entities are broken, and the background load
+23:23 <+bridge> [ddnet] <Jupstar ✪> give me screanshots of any other problem
+23:33 <+bridge> [ddnet] <Learath2> Mh, is it all from custom entities?
+23:35 <+bridge> [ddnet] <Learath2> I keep getting fooled by the sampling bias... Maybe we didn't have to roll this back after all
+23:35 <+bridge> [ddnet] <Jupstar ✪> i mean they always say "my entites are broken"
+23:35 <+bridge> [ddnet] <Jupstar ✪> not "my game is broken"
+23:37 <+bridge> [ddnet] <Learath2> I have an idea. Maybe we should resize on the fly but warn the user on launch that his entities are mis-sized and they will break in the future
+23:37 <+bridge> [ddnet] <Learath2> (or any other asset that is mis-sized for that matter, not just entities)
+23:37 <+bridge> [ddnet] <Jupstar ✪> the only problems wiht that are:
+23:37 <+bridge> [ddnet] <Jupstar ✪> - entities are loaded first when used
+23:37 <+bridge> [ddnet] <Jupstar ✪> - how is the warning displayed
+23:37 <+bridge> [ddnet] <Learath2> I'm thinking a messagebox when first loaded
+23:39 <+bridge> [ddnet] <Learath2> The graphics thread already has a safe way to send messages to the client, so that shouldn't be too much of a trouble
+23:39 <+bridge> [ddnet] <Learath2> Or I guess we could just break, there are not enough people having weird custom entities that are broken
+23:39 <+bridge> [ddnet] <Jupstar ✪> yeah probably
+23:40 <+bridge> [ddnet] <Learath2> As I said, sampling bias got me there, I saw broken screenshots, I couldn't identify the cause and just sort of panic'd
+23:40 <+bridge> [ddnet] <Jupstar ✪> i mean the resize i implemented isnt complete trash, still better than linear interpolation
+23:40 <+bridge> [ddnet] <Jupstar ✪> its just not comparable to gimp or photoshop
+23:40 <+bridge> [ddnet] <Learath2> Maybe just a dbg_msg on loading a bad asset so it's easier to debug in the future?
+23:40 <+bridge> [ddnet] <Jupstar ✪> yeah that ofc
+23:41 <+bridge> [ddnet] <Learath2> What did you go with, bicubic interpolation?
+23:41 <+bridge> [ddnet] <Jupstar ✪> yes
+23:45 <+bridge> [ddnet] <louis> my custom entities are ok
+23:45 <+bridge> [ddnet] <louis> my custom entities were ok
+23:46 <+bridge> [ddnet] <Jupstar ✪> its only if they are not deviadable by 16, bcs a tileset is 16x16
+23:46 <+bridge> [ddnet] <louis> huh
+23:46 <+bridge> [ddnet] <louis> oh well it wasnt 1024x1024 it was like 1600x1600 or something
+23:47 <+bridge> [ddnet] <Jupstar ✪> i'll just see if its devidable by 16 and if its not, i can use the next power of two probably, easiest and safest on all GPUs

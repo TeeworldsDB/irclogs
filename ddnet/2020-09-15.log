@@ -1,0 +1,322 @@
+00:09 <+bridge> [ddnet] <ImJustANobody> Can anyone assist please
+00:09 <+bridge> [ddnet] <ImJustANobody> `/DDNet: error while loading shared libraries: libSDL2-2.0.so.0: cannot open shared object file: No such file or directory
+00:09 <+bridge> [ddnet] <ImJustANobody> `
+00:10 <+bridge> [ddnet] <heinrich5991> which OS?
+00:10 <+bridge> [ddnet] <ImJustANobody> Ubuntu 18
+00:10 <+bridge> [ddnet] <Learath2> Can you do an `ldd ./DDNet`?
+00:11 <+bridge> [ddnet] <Learath2> Actually, how did you get DDNet?
+00:11 <+bridge> [ddnet] <ImJustANobody> It lists a whole lot of packages, what am I looking for
+00:12 <+bridge> [ddnet] <ImJustANobody> from the website but think I got the linux version since I don't see a ubuntu version
+00:13 <+bridge> [ddnet] <Learath2> @deen idk how we ship the linux release, do we include libSDL? or should he install it?
+00:14 <+bridge> [ddnet] <heinrich5991> install
+00:15 <+bridge> [ddnet] <Learath2> soooo, I guess `sudo apt install libsdl2`
+00:20 <+bridge> [ddnet] <ImJustANobody> I guess I need the Ubuntu versions not the linux?
+00:22 <+bridge> [ddnet] <ImJustANobody> Unable to locate package libsdl2
+00:22 <+bridge> [ddnet] <heinrich5991> hm try `sudo apt install libsdl2-2.0-0`
+00:25 <+bridge> [ddnet] <ImJustANobody> I tried that and seemed to install with unmet peer depencies and fixed using sudo apt --fix-broken install, but still getting same error
+00:26 <+bridge> [ddnet] <heinrich5991> can you post the output of `sudo apt install libsdl2-2.0-0`?
+00:28 <+bridge> [ddnet] <ImJustANobody> > can you post the output of `sudo apt install libsdl2-2.0-0`?
+00:28 <+bridge> [ddnet] <ImJustANobody> @heinrich5991 Working now thank you very much, mb had to run the command again after it failed with unmet peer dependencies thanks my brain is dead
+00:28 <+bridge> [ddnet] <heinrich5991> nice 🙂
+00:30 <+bridge> [ddnet] <ImJustANobody> Why don't we ship sdl2 library inside instead of manually installing
+00:31 <+bridge> [ddnet] <heinrich5991> the idea was that most people will have it installed
+00:31 <+bridge> [ddnet] <heinrich5991> if you played any sort of game before, it should be installed
+00:34 <+bridge> [freenode] <b3z> @Pure_luck yes I would like to. Or at least some binary
+00:35 <+bridge> [ddnet] <ImJustANobody> @heinrich5991 I see that makes sense 🙂 did a fresh install and first game I installed is DDNet offcourse since it's the only fun game that exists 🙂
+00:36 <+bridge> [ddnet] <Learath2> I guess flatpak is kinda there to solve this issue
+00:39 <+bridge> [ddnet] <heinrich5991> doesn't ubuntu ship with flatpak?
+00:39 <+bridge> [ddnet] <Learath2> I wonder if there is a nice way to solve this issue with linux, without shipping all the libs
+00:40 <+bridge> [ddnet] <heinrich5991> well, we could ship all the libs, and prefer linking to system libs
+00:40 <+bridge> [ddnet] <Learath2> Something like an installer that can get the package manager to pull in dependencies
+00:40 <+bridge> [ddnet] <heinrich5991> the only reason not to do that would be that it increases the download size
+00:41 <+bridge> [ddnet] <Learath2> How do we even prefer that btw? Is there a linker option?
+00:42 <+bridge> [ddnet] <heinrich5991> I'd guess it searches the rpaths in order
+00:48 <+bridge> [ddnet] <Learath2> Eh I guess we could have /usr/lib as an rpath, but how portable is that I wonder
+00:53 <+bridge> [ddnet] <heinrich5991> ah
+00:54 <+bridge> [ddnet] <heinrich5991> no default paths when we have rpath?
+00:59 <+bridge> [ddnet] <Learath2> Hm, I'm not sure how it works on linux actually, is rpath just added to the search path?
+00:59 <+bridge> [ddnet] <Learath2> On macOS, if you want to load a library from the rpath you need to link to the rpath, you can't have it both ways
+00:59 <+bridge> [ddnet] <Learath2> Though if you forget to add a rpath entry it will insert /usr/lib there just in case
+01:48 <+bridge> [ddnet] <louis> anyone have data on the oldest still-standing rank 1?
+01:57 <+bridge> [ddnet] <Learath2> I tried getting it but too tired to SQL
+01:58 <+bridge> [ddnet] <heinrich5991> @louis isn't that just the oldest rank 1?
+01:59 <+bridge> [ddnet] <louis> yeah but still-standing so unbeaten
+01:59 <+bridge> [ddnet] <louis> i mean like i guess technically the oldest rank 1 was the first finish but it's been beaten
+02:03 <+bridge> [ddnet] <Learath2> It's just `All current r1s ORDER BY Timestamp LIMIT 1`
+02:03 <+bridge> [ddnet] <heinrich5991> wip
+02:05 <+bridge> [ddnet] <Learath2> 1 thing I hate about SQL is how hard it is to group by then pick the row w.r.t aggregate
+02:10 <+bridge> [ddnet] <Learath2> `SELECT *, dense_rank() OVER (PARTITION BY Map ORDER BY TIME) as rank FROM record_race WHERE rank=1`?
+02:10 <+bridge> [ddnet] <Learath2> Something like that
+02:10 <+bridge> [ddnet] <heinrich5991> Difficult 1.3 by `!_Vergeboy_!` and aaa on 2013-10-08, 17:55:04
+02:10 <+bridge> [ddnet] <Learath2> Might need to be wrapped in a subquery
+02:12 <+bridge> [ddnet] <Learath2> @heinrich5991 what query did you go with?
+02:12 <+bridge> [ddnet] <heinrich5991> ```
+02:12 <+bridge> [ddnet] <heinrich5991> > SELECT r1s.map, name, timestamp, time FROM record_race AS ranks INNER JOIN (SELECT map, MIN(time) AS mintime FROM record_race GROUP BY map) AS r1s ON ranks.map = r1s.map AND ranks.time = r1s.mintime ORDER BY timestamp LIMIT 10;
+02:12 <+bridge> [ddnet] <heinrich5991> +------------------+----------------+---------------------+---------+
+02:12 <+bridge> [ddnet] <heinrich5991> | map              | name           | timestamp           | time    |
+02:12 <+bridge> [ddnet] <heinrich5991> +------------------+----------------+---------------------+---------+
+02:12 <+bridge> [ddnet] <heinrich5991> | Difficult 1.3    | !_Vergeboy_!   | 2013-10-08 17:55:04 |   738.3 |
+02:12 <+bridge> [ddnet] <heinrich5991> | Difficult 1.3    | aaa            | 2013-10-08 17:55:04 |   738.3 |
+02:12 <+bridge> [ddnet] <heinrich5991> | SpaceIsKey       | Shyr           | 2013-11-22 00:39:50 |  176.26 |
+02:12 <+bridge> [ddnet] <heinrich5991> | The Cursed Night | (1)Ninja_Valik | 2014-04-09 20:55:25 | 2376.06 |
+02:12 <+bridge> [ddnet] <heinrich5991> | The Cursed Night | Ninja_Valik    | 2014-04-09 20:55:25 | 2376.06 |
+02:13 <+bridge> [ddnet] <heinrich5991> | DeathClaw        | - Jogginghose  | 2014-05-12 16:33:23 |  1623.2 |
+02:13 <+bridge> [ddnet] <heinrich5991> | DeathClaw        | shoxX          | 2014-05-12 16:33:23 |  1623.2 |
+02:13 <+bridge> [ddnet] <heinrich5991> | Orange 1         | artkis         | 2014-07-21 04:24:12 |  109.06 |
+02:13 <+bridge> [ddnet] <heinrich5991> | The Problem      | Virus2k gay    | 2014-07-27 17:45:04 |  222.66 |
+02:13 <+bridge> [ddnet] <heinrich5991> | WEEDS            | Cireme         | 2014-07-27 22:07:39 |   182.9 |
+02:13 <+bridge> [ddnet] <heinrich5991> +------------------+----------------+---------------------+---------+
+02:13 <+bridge> [ddnet] <heinrich5991> ```
+02:13 <+bridge> [ddnet] <Learath2> Yeah, it's either a self join or a window
+02:13 <+bridge> [ddnet] <Eki> > @Eki how much better? Is there still lag?
+02:13 <+bridge> [ddnet] <Eki> @Learath2 no, I didn't feel lag now even when other players send message fulling with new CJK character
+02:13 <+bridge> [ddnet] <Learath2> I still think they should simplify this somehow
+02:13 <+bridge> [ddnet] <heinrich5991> @louis
+02:14 <+bridge> [ddnet] <louis> neat, thanks
+02:14 <+bridge> [ddnet] <louis> 7 years lol
+02:15 <+bridge> [ddnet] <heinrich5991> beginning of ddnet I think
+02:15 <+bridge> [ddnet] <heinrich5991> first rank is on 2017-07-18
+02:16 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/Tb lol that partition ends up being an awful idea
+02:21 <+bridge> [ddnet] <heinrich5991> can you explain the EXPLAIN output?
+02:24 <+bridge> [ddnet] <Learath2> Read it from the bottom to top
+02:25 <+bridge> [ddnet] <Learath2> It tells you what tables will be used
+02:26 <+bridge> [ddnet] <Learath2> Well I guess it makes more sense to read from top to bottom, I just have an easier time thinking the other way around
+02:29 <+bridge> [ddnet] <Learath2> Anyway, type ref and type index are much cheaper then ALL which is just scanning the entire database
+02:37 <+bridge> [ddnet] <Learath2> I don't get why yours uses an index while mine sucks dick 😦
+02:38 <+bridge> [ddnet] <heinrich5991> perhaps it can't optimize dense_rank() = 1
+02:53 <+bridge> [ddnet] <Learath2> Yours takes 16 seconds, mine takes 5 minutes 16 seconds 😄
+02:54 <+bridge> [ddnet] <Learath2> I'll take a look tomorrow when I have more then 3 neurons firing
+02:57 <+bridge> [ddnet] <Learath2> Another reason people like SQL Server is it's great query visualizer
+02:57 <+bridge> [ddnet] <Learath2> The EXPLAIN output is hardly fun to interpret
+03:27 <+bridge> [ddnet] <Jupstar ✪> that u cannot access demos without going into menu in the new client is a bit cancer imo, it should get an icon just like the editor
+07:41 <+bridge> [ddnet] <Pure_luck> b3z binary is realively easy to find. But it's for windows afaik
+08:02 <+bridge> [ddnet] <n000b> Damm those oldschool names. Good times :p
+10:16 <+bridge> [ddnet] <Fin> > b3z binary is realively easy to find. But it's for windows afaik
+10:16 <+bridge> [ddnet] <Fin> @Pure_luck  i saw. But i got nothing running win and wont pay a win vm.
+10:20 <+bridge> [ddnet] <Pure_luck> I've wanted to recreate the mod in distant future.
+10:20 <+bridge> [ddnet] <Pure_luck> Not because I want to play it much or want to do that, just it seems nobody else will do that.
+10:20 <+bridge> [ddnet] <Pure_luck> So if you will get the source and/or will host it this will be even better.
+10:21 <+bridge> [ddnet] <Pure_luck> @Fin
+10:21 <+bridge> [ddnet] <Pure_luck> Q: Is that possible to use domain name instead of IP address in Teeworlds/DDNet?
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> Problem:
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> I can have up to 3 instances of cloud server with infNext servers (DDNet-based). But mostly I use only 1 of those 3 to get players on one server, it makes more sense because mod is not yet so popular to up all 3.
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> Currently I switch them once a month when one instance get's any stability/network issues. But I am losing players which use direct IP to connect or use favorites.
+10:21 <+bridge> [ddnet] <Pure_luck> Q: Is that possible to use domain name instead of IP address in Teeworlds/DDNet?
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> Problem:
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> I can have up to 3 instances of cloud server with infNext servers (DDNet-based). But mostly I run only 1 instance at a time to get players on one server, it makes more sense because mod is not yet so popular to up all 3.
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> Currently I switch them once a month when one instance get's any stability/network issues. But I am losing players which use direct IP to connect or use favorites.
+10:21 <+bridge> [ddnet] <Pure_luck> Q: Is that possible to use domain name instead of IP address in Teeworlds/DDNet?
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> Problem:
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:21 <+bridge> [ddnet] <Pure_luck> I can have up to 3 instances of cloud server with infNext servers (DDNet-based). But mostly I run only 1 instance at a time to get all players on one server. It just makes more sense because mod is not yet so popular to up all 3.
+10:21 <+bridge> [ddnet] <Pure_luck> 
+10:22 <+bridge> [ddnet] <Pure_luck> Currently I switch them once a month when one instance get's any stability/network issues. But I am losing players which use direct IP to connect or use favorites.
+10:22 <+bridge> [ddnet] <Fin> Favorite is always IP isnt it?
+10:23 <+bridge> [ddnet] <noby> i think 0.7 supports domain name
+10:24 <+bridge> [ddnet] <Pure_luck> I wanted to be sure and/or to propose adding DNS resolving to the client.
+10:24 <+bridge> [ddnet] <Pure_luck> RN I have another stability issue with Digital Ocean's FRA1 region that will be fixed next week only and it's time to switch instances again.
+10:24 <+bridge> [ddnet] <Pure_luck> My server will change IP and I will lose players who added FRA1 server to favorites. They're mostly 10 yo kids and I am not sure if they will find my new server, they will just go to some outdated infCroya server which I don't own.
+10:24 <+bridge> [ddnet] <Pure_luck> Would be nice to hear that I am stupid and there is already DNS support and I am just making my life harder than I should.
+10:25 <+bridge> [ddnet] <noby> dont think 0.6 supports it but it probably wouldnt be hard to add
+10:55 <+bridge> [ddnet] <deen> @Pure_luck i guess the problem is that the master server gives the ip, not domain, so you'd have to do a reverse lookup and then store that
+11:25 <+bridge> [ddnet] <Pure_luck> would be a fine workaround I guess
+11:43 <+bridge> [ddnet] <deen> I'd accept a PR for that for DDNet client
+11:50 <+bridge> [ddnet] <Pure_luck> I could make it in just 6 months I guess 😄
+11:50 <+bridge> [ddnet] <Pure_luck> but thanks
+11:54 <+bridge> [ddnet] <Learath2> Tight deadline for 15.0 😄
+11:58 <+bridge> [ddnet] <deen> Worst case I can just submit all my own changes and release 😄
+11:59 <+bridge> [ddnet] <deen> I want to get the font-from-memory change out asap
+12:00 <+bridge> [ddnet] <deen> since it can have huge impact with Windows on spinning rust hard disks
+12:00 <+bridge> [ddnet] <Learath2> I was going to merge a couple yesterday, but I'm not sure what we want to do about the style thing
+12:00 <+bridge> [ddnet] <deen> we'll stay with doing clang-formats for parts of files
+12:01 <+bridge> [ddnet] <deen> but we should put the clang-formats in separate changes inside the same merge maybe
+12:01 <+bridge> [ddnet] <deen> then we can have a list of all clang-format changes?
+12:05 <+bridge> [ddnet] <deen> shouldn't block us from merging changes atm
+12:17 <+bridge> [ddnet] <Brokecdx-> https://gyazo.com/7c6c27e9da74249ec5f7be4def58ad08 still not showing
+12:17 <+bridge> [ddnet] <Brokecdx-> @deen
+12:18 <+bridge> [ddnet] <deen> @Brokecdx- which team rank exactly?
+12:18 <+bridge> [ddnet] <Brokecdx-> Like we played all these 18 maps in team, no top ranks or something
+12:18 <+bridge> [ddnet] <Brokecdx-> and they only show t0 rank
+12:19 <+bridge> [ddnet] <deen> oh, ok
+12:25 <+bridge> [ddnet] <deen> I have attempted a fix, Let's see in 30-60 min if it worked
+13:50 <+bridge> [ddnet] <Brokecdx-> yes it worked showing now
+15:18 <+bridge> [ddnet] <Jupstar ✪> @deen thoughts about new icons?
+15:18 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/755417249694744627/screenshot_2020-09-15_15-18-04.png
+15:19 <+bridge> [ddnet] <Jupstar ✪> so you dont have to access the menu all the time for e.g. demo watching
+15:19 <+bridge> [ddnet] <deen> lgtm, but @BannZay might disagree. I think we wanted to remove all buttons at the top to force people to use the start menu
+15:19 <+bridge> [ddnet] <Jupstar ✪> but why
+15:20 <+bridge> [ddnet] <Jupstar ✪> its annoying to go back all time 😄
+15:20 <+bridge> [ddnet] <deen> not sure. maybe because it's a bit faster with the key binds
+15:20 <+bridge> [ddnet] <Jupstar ✪> @BannZay why xd
+15:23 <+bridge> [ddnet] <deen> anyway, i like your change @Jupstar ✪
+15:34 <+bridge> [ddnet] <Jupstar ✪> i'll just pr it, and if its unwanted, dont merge xd
+15:37 <+bridge> [ddnet] <Jupstar ✪> btw @deen the german translation says "Abspielen" in main menu, bcs its used for music or demo
+15:37 <+bridge> [ddnet] <Jupstar ✪> i dunno if it also affects other languages
+15:43 <+bridge> [ddnet] <fokkonaut> it should say "Spielen" only xd
+15:43 <+bridge> [ddnet] <fokkonaut> i mean, in this context
+15:43 <+bridge> [ddnet] <fokkonaut> sure, for demos it should be Abspielen
+15:45 <+bridge> [ddnet] <Jupstar ✪> probs need to replace Localize("Play") with Localize("Play back") or smth
+15:46 <+bridge> [ddnet] <fokkonaut> I just tried out DDNet client again after long time, what happened to the opengl stuff? :( zooming out really laggs now, and the option is split into 3 config vars
+15:47 <+bridge> [ddnet] <Jupstar ✪> u need to enable 3.3 again
+15:47 <+bridge> [ddnet] <Jupstar ✪> the config names changed
+15:47 <+bridge> [ddnet] <fokkonaut> also, the "Join Game" button in ESC is still there if paused or /specced. @deen
+15:47 <+bridge> [ddnet] <fokkonaut> 3.3, so 3 major and 3 minor?
+15:47 <+bridge> [ddnet] <Jupstar ✪> yes or just enable it in graphic settings
+15:47 <+bridge> [ddnet] <fokkonaut> and 0 for patch?
+15:48 <+bridge> [ddnet] <Jupstar ✪> patch actually doesnt matter to much xd
+15:48 <+bridge> [ddnet] <fokkonaut> ok
+15:48 <+bridge> [ddnet] <fokkonaut> aha, thanks for the lagfree zoozing :D
+15:49 <+bridge> [ddnet] <Jupstar ✪> but zooming with default opengl should be better than with old renderer too
+15:49 <+bridge> [ddnet] <Jupstar ✪> just not as much 😄
+15:50 <+bridge> [ddnet] <fokkonaut> @deen on my own server the join game button does not do anything, is there a serverside thing to unpause when hitting that button or is it clientside sending /pause again?
+15:53 <+bridge> [ddnet] <Jupstar ✪> ```
+15:53 <+bridge> [ddnet] <Jupstar ✪> 
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035== 14 errors in context 4 of 203:
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035== Conditional jump or move depends on uninitialised value(s)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    at 0x337F4D: void sort_bubble<plain_range_sorted<CMenus::CDemoItem> >(plain_range_sorted<CMenus::CDemoItem>) (algorithm.h:96)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x337D2D: void sort<plain_range_sorted<CMenus::CDemoItem> >(plain_range_sorted<CMenus::CDemoItem>) (algorithm.h:114)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x337A9F: sorted_array<CMenus::CDemoItem, allocator_default<CMenus::CDemoItem> >::sort_range() (sorted_array.h:33)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x333C79: CMenus::DemolistPopulate() (menus_demo.cpp:767)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x33408E: CMenus::RenderDemoList(CUIRect) (menus_demo.cpp:825)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x31EFFB: CMenus::Render() (menus.cpp:1174)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x32428B: CMenus::OnRender() (menus.cpp:2157)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x371CFC: CGameClient::OnRender() (gameclient.cpp:644)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x2742EA: CClient::Render() (client.cpp:1138)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x27CC24: CClient::Run() (client.cpp:3266)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==    by 0x28269C: main (client.cpp:4305)
+15:53 <+bridge> [ddnet] <Jupstar ✪> ==13035==  Uninitialised value was created by a stack allocation
+15:54 <+bridge> [ddnet] <Jupstar ✪> ==13035==    at 0x3339D0: CMenus::DemolistFetchCallback(char const*, long, int, int, void*) (menus_demo.cpp:727)
+15:54 <+bridge> [ddnet] <Jupstar ✪> ==13035== 
+15:54 <+bridge> [ddnet] <Jupstar ✪> ```
+15:54 <+bridge> [ddnet] <Jupstar ✪> 
+15:54 <+bridge> [ddnet] <Jupstar ✪> sometimes causes the demo page to break
+15:54 <+bridge> [ddnet] <Jupstar ✪> (maybe, could also be smth different)
+15:57 <+bridge> [ddnet] <Jupstar ✪> nvm we get invalid read or write in demo page
+15:58 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/755427277059129395/valgrind.txt
+15:59 <+bridge> [ddnet] <Jupstar ✪> reproducable by changing the lagnuage from german to english
+16:00 <+bridge> [freenode] <twbridge> [ddnet] <Jupstar ✪> ```
+16:01 <+bridge> [ddnet] <Jupstar ✪> xd did this break the bridge?
+16:02 <+bridge> [ddnet] <deen> @Jupstar ✪ i fixed that already in a PR
+16:02 <+bridge> [ddnet] <Jupstar ✪> oh sry
+16:02 <+bridge> [ddnet] <deen> the play/play back: https://github.com/ddnet/ddnet/pull/2816
+16:03 <+bridge> [ddnet] <Jupstar ✪> ah, alright
+16:04 <+bridge> [ddnet] <a gerdoe> @Jupstar ✪ best icons
+16:04 <+bridge> [ddnet] <deen> @fokkonaut works for me in ddnet server
+16:04 <+bridge> [ddnet] <fokkonaut> yes, but how does it work? serverside stuff?
+16:05 <+bridge> [ddnet] <fokkonaut> because it doesnt work on my server
+16:05 <+bridge> [ddnet] <fokkonaut> just says "join game" and nothing happens
+16:05 <+bridge> [ddnet] <deen> Ah, probably because your server sends no ddnet playerinfo object
+16:06 <+bridge> [ddnet] <Jupstar ✪> @deen can we adapt the 0.7 editor and menu cursor
+16:06 <+bridge> [ddnet] <Jupstar ✪> looks better imo xd
+16:07 <+bridge> [ddnet] <deen> @Jupstar ✪ go ahead
+16:46 <+bridge> [ddnet] <Ryozuki> > but @BannZay might disagree. I think we wanted to remove all buttons at the top to force people to use the start menu
+16:46 <+bridge> [ddnet] <Ryozuki> @deen nooo this is bad
+16:56 <+bridge> [ddnet] <a gerdoe> make two modes like its done in 0.7
+16:58 <+bridge> [ddnet] <Jupstar ✪> for beginners the menu is gold, but after a while it'd get really annoying
+17:11 <+bridge> [freenode] <b3z> lol. After 10 years of tw just using f1 console
+17:11 <+bridge> [ddnet] <Ryozuki> it would be epic to also skip the start menu
+17:11 <+bridge> [ddnet] <Ryozuki> and go to browser directly
+17:11 <+bridge> [ddnet] <Ryozuki> i think 0.7 has it
+17:12 <+bridge> [freenode] <b3z> like it always was in 0.6?
+17:20 <+bridge> [ddnet] <Jupstar ✪> we do too @Ryozuki , but would be nicer to have something like "Always show home screen" directly on home screen
+17:50 <+bridge> [ddnet] <fokkonaut> cl_skip_start_menu or something exists in 0.7, yes
+17:50 <+bridge> [ddnet] <fokkonaut> it also has a setting in the menus
+18:29 <+bridge> [ddnet] <BannZay> > lgtm, but @BannZay might disagree. I think we wanted to remove all buttons at the top to force people to use the start menu
+18:29 <+bridge> [ddnet] <BannZay> According to my personal usage I have no need to have super fast navigation between game and any other menu (i.e. settings, editor, etc)
+18:29 <+bridge> [ddnet] <BannZay> But the main problem is inconsistent, you can not even call a Main menu. Thats why it sounds to me like half solution
+18:29 <+bridge> [ddnet] <BannZay> > lgtm, but @BannZay might disagree. I think we wanted to remove all buttons at the top to force people to use the start menu
+18:29 <+bridge> [ddnet] <BannZay> According to my personal usage I have no need to have super fast navigation between game and any other menu (i.e. settings, editor, etc)
+18:29 <+bridge> [ddnet] <BannZay> But the main problem is inconsistence, you can not even call a Main menu. Thats why it sounds to me like half solution
+18:29 <+bridge> [ddnet] <BannZay> > lgtm, but @BannZay might disagree. I think we wanted to remove all buttons at the top to force people to use the start menu
+18:29 <+bridge> [ddnet] <BannZay> According to my personal usage I have no need to have super fast navigation between game and any other menu (i.e. settings, editor, etc)
+18:29 <+bridge> [ddnet] <BannZay> But the main problem is inconsistence, you can not even call it a Main menu. Thats why it sounds to me like half solution
+18:30 <+bridge> [ddnet] <Jupstar ✪> its more like a home screen
+18:30 <+bridge> [ddnet] <BannZay> I fear we might make wrong decision now just becase we use to have the old menu
+18:30 <+bridge> [ddnet] <BannZay> and new is always inconvenient for some period of time
+18:31 <+bridge> [ddnet] <Jupstar ✪> but how is removing the demo access better than keeping it as an icon?
+18:31 <+bridge> [ddnet] <Jupstar ✪> or do u dislike the whole home screen at all
+18:31 <+bridge> [ddnet] <BannZay> how often you need to switch between game and demo?
+18:31 <+bridge> [ddnet] <BannZay> they arent even compatible
+18:31 <+bridge> [ddnet] <Jupstar ✪> often
+18:31 <+bridge> [ddnet] <BannZay> you cant play while watching demo
+18:31 <+bridge> [ddnet] <Jupstar ✪> yes but i go there from server browser
+18:32 <+bridge> [ddnet] <BannZay> yes, thats a reason for fear
+18:32 <+bridge> [ddnet] <Jupstar ✪> currently i need to press esc then demo, then esc then server browser
+18:32 <+bridge> [ddnet] <Jupstar ✪> sounds like a pain
+18:32 <+bridge> [ddnet] <BannZay> you used to
+18:32 <+bridge> [ddnet] <Jupstar ✪> nobody wants this, i garantuee it 100% xd
+18:32 <+bridge> [ddnet] <Jupstar ✪> if we dont have a hotbar oĺd players complain
+18:33 <+bridge> [ddnet] <BannZay> isnt ESC a common key for going back? I cant say for everyone but I have no any problem with this
+18:33 <+bridge> [ddnet] <Jupstar ✪> yeah but its cancer to always press ESC
+18:34 <+bridge> [ddnet] <Jupstar ✪> and then click the right thing in menu too
+18:34 <+bridge> [ddnet] <BannZay> I see, but I feel like main menu is kinda makes no sense then
+18:35 <+bridge> [ddnet] <Jupstar ✪> for new players it does
+18:35 <+bridge> [ddnet] <Jupstar ✪> bcs they dont know what editor demos, etc are
+18:35 <+bridge> [ddnet] <Jupstar ✪> or how to start a local server
+18:35 <+bridge> [ddnet] <BannZay> a local server is new thing, but rest...
+18:35 <+bridge> [ddnet] <Jupstar ✪> u cant imagine new ppl... they dont even get how to remove novice from their search bar
+18:36 <+bridge> [ddnet] <BannZay> fells like we made second home page lmao
+18:36 <+bridge> [ddnet] <BannZay> as our current start menu has everything we need
+18:36 <+bridge> [ddnet] <Jupstar ✪> i'd say home screen is for nice overview
+18:36 <+bridge> [ddnet] <Jupstar ✪> and the hotbar for ez access
+18:38 <+bridge> [ddnet] <BannZay> I see your point, but according to my gamer experience I would stil prefer to be it "main menu" but not "home page". I not persist, probably we might make some kind of poll or just keep it for convenience of old player, I dont care much
+18:39 <+bridge> [ddnet] <BannZay> I see your point, but according to my gamer experience I would stil prefer  it to be "main menu" but not "home page". I not persist, probably we might make some kind of poll or just keep it for convenience of old player, I dont care much
+18:39 <+bridge> [ddnet] <Jupstar ✪> i'd just add "Always show home screen" as option on the home screen and call it in actually home screen, where u get alls discord links, news etc.
+18:39 <+bridge> [ddnet] <Jupstar ✪> will the other thing is really just gameplay related things
+18:39 <+bridge> [ddnet] <Jupstar ✪> i'd just add "Always show home screen" as option on the home screen and call it an actually home screen, where u get alls discord links, news etc.
+18:40 <+bridge> [ddnet] <Jupstar ✪> while the other thing is really just gameplay related things
+18:40 <+bridge> [ddnet] <BannZay> as for me I will just disable it, just saying
+18:40 <+bridge> [ddnet] <Jupstar ✪> yes, me too
+18:40 <+bridge> [ddnet] <Jupstar ✪> and new players after 2-3 weeks too
+18:40 <+bridge> [ddnet] <Jupstar ✪> but for the first time its nice
+18:40 <+bridge> [ddnet] <BannZay> yea, just sad about effort put inside of this feature
+18:41 <+bridge> [ddnet] <Jupstar ✪> 0.7 did the effort 😄
+18:41 <+bridge> [ddnet] <Jupstar ✪> and deen
+18:41 <+bridge> [ddnet] <BannZay> as for me I will just disable it (in case it is just home page), just saying.
+18:44 <+bridge> [ddnet] <Learath2> Give it a chance maybe it'll grow on you
+18:45 <+bridge> [ddnet] <Jupstar ✪> i think the simple fact that new players have a better start into the game is worth it enough
+19:08 <+bridge> [ddnet] <deen> @TsFreddie 🌈 did you find out why GetChar is called twice?
+19:08 <+bridge> [ddnet] <TsFreddie> :no:
+19:17 <+bridge> [ddnet] <deen> @TsFreddie 🌈 hm, I can confirm that it's called twice with the same character, same size, same font when I write something in chat:
+19:17 <+bridge> [ddnet] <deen> ```
+19:17 <+bridge> [ddnet] <deen> 104 10 0x564ca161fb60
+19:17 <+bridge> [ddnet] <deen> 105 10 0x564ca161fb60
+19:17 <+bridge> [ddnet] <deen> 104 10 0x564ca161fb60
+19:17 <+bridge> [ddnet] <deen> 105 10 0x564ca161fb60
+19:17 <+bridge> [ddnet] <deen> ```
+19:18 <+bridge> [ddnet] <deen> Ah, from different places, we call GetChar() in two places in text.cpp
+19:18 <+bridge> [ddnet] <Jupstar ✪> getchar isnt the problem
+19:18 <+bridge> [ddnet] <Jupstar ✪> renderglyph is
+19:18 <+bridge> [ddnet] <deen> @Jupstar ✪ what is?
+19:18 <+bridge> [ddnet] <deen> oh
+19:19 <+bridge> [ddnet] <Jupstar ✪> then it renders the glyph to the texture
+22:05 <+bridge> [ddnet] <deen> looks all good to me with renderglyph. it gets called twice, but that's because the the text you enter is a bit bigger. with a bind only gets called once for me
+22:33 <+bridge> [ddnet] <SPYRES> can we pls get csgo prediction to replace anti ping? :""""(
+22:34 <+bridge> [ddnet] <SPYRES> i always find myself teleporting into the freeze when im not near it on my screen
+22:35 <+bridge> [ddnet] <Jupstar ✪> no
+22:35 <+bridge> [ddnet] <Jupstar ✪> thats a cheat
+23:00 <+bridge> [ddnet] <n000b> @Jupstar ✪ lmao like how many times do you open the demo folder thing. Not a big deal if it is removed and placed on the start page
+23:01 <+bridge> [ddnet] <Jupstar ✪> quite often
+23:01 <+bridge> [ddnet] <Jupstar ✪> every time i have a random moment
+23:01 <+bridge> [ddnet] <Jupstar ✪> add demomarks
+23:04 <+bridge> [ddnet] <Soreu> ^ same
+23:05 <+bridge> [ddnet] <n000b> There is also this feature where u can cut the last 10-20-30-60 seconds of your gameplay without even leaving the server
+23:06 <+bridge> [ddnet] <n000b> Since that i only need to check the small demofiles
+23:08 <+bridge> [ddnet] <Jupstar ✪> yeah but i'd cut it anyway
+23:08 <+bridge> [ddnet] <Jupstar ✪> anyway, a direct demo access is QOL for me, but required but nice to have 😄
+23:08 <+bridge> [ddnet] <Jupstar ✪> anyway, a direct demo access is QOL for me, not required but nice to have 😄
+23:09 <+bridge> [ddnet] <n000b> K i can understand
+23:36 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/755542517864333332/unknown.png
+23:36 <+bridge> [ddnet] <TsFreddie> ddnet based server spitting these on 0.7 clients
+23:36 <+bridge> [ddnet] <TsFreddie> don't know if it's a ddnet problem or 0.7 problem
+23:44 <+bridge> [ddnet] <Learath2> only in debug mode
+23:45 <+bridge> [ddnet] <Learath2> No way to stop it sadly, we removed that debug message, the proper fix would probably be to only throw out a warning once per unknown type
+23:49 <+bridge> [ddnet] <TsFreddie> oh forgot i have debug mode on
+23:50 <+bridge> [ddnet] <TsFreddie> probably need to patch it on vanilla i guess

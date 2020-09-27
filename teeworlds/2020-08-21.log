@@ -1,0 +1,48 @@
+02:27 < bridge> [teeworlds] <fokkonaut> can we do something about the wrong prediction in 0.7?
+02:27 < bridge> [teeworlds] <fokkonaut> if i hook a tee the hookpos is so false
+02:27 < bridge> [teeworlds] <fokkonaut> even noticable on good ping
+02:27 < bridge> [teeworlds] <fokkonaut> only on 0.7 clints
+02:27 < bridge> [teeworlds] <fokkonaut> only on 0.7 clients
+02:57 < bridge> [teeworlds] <redix> there is no prediction for other tees in 0.7
+02:57 < bridge> [teeworlds] <redix> and when you are hooking someone else the client just uses the hook pos from the server
+02:57 < bridge> [teeworlds] <redix> does it happen on all servers?
+02:57 < bridge> [teeworlds] <fokkonaut> yes
+02:57 < bridge> [teeworlds] <redix> otherwise i guess the server is just sending a wrong hook pos
+02:58 < bridge> [teeworlds] <redix> https://github.com/teeworlds/teeworlds/blob/751bfb92b313e336819b362429a971db8d6e67df/src/game/client/components/players.cpp#L107
+02:58 < bridge> [teeworlds] <fokkonaut> nop
+02:58 < bridge> [teeworlds] <fokkonaut> for 0.6 clients it works
+02:58 < bridge> [teeworlds] <redix> no prediction involved here. it just uses the pos from the server
+02:58 < bridge> [teeworlds] <fokkonaut> no
+02:58 < bridge> [teeworlds] <fokkonaut> the character order doesnt match the servers' one
+02:58 < bridge> [teeworlds] <fokkonaut> thats the issue in 0.7
+02:59 < bridge> [teeworlds] <fokkonaut> thats why this is happening
+02:59 < bridge> [teeworlds] <fokkonaut> oy said something like that iirc
+02:59 < bridge> [teeworlds] <fokkonaut> that atleast makes sense to me and explains the weird behaviour
+02:59 < bridge> [teeworlds] <redix> that was just the same in 0.6
+02:59 < bridge> [teeworlds] <fokkonaut> nop
+03:00 < bridge> [teeworlds] <fokkonaut> i dont know the cause but there is a bug, i know it
+03:00 < bridge> [teeworlds] <redix> it was. snapshot diffs have no clue about the order
+03:00 < bridge> [teeworlds] <redix> ddnet has additional code for the order but 0.6 never had
+03:01 < bridge> [teeworlds] <fokkonaut> look
+03:02 < bridge> [teeworlds] <fokkonaut> try to join a server with 0.7 vanilla client (can also be vanilla server), preferable high ping, then hook players and drag them through the air
+03:02 < bridge> [teeworlds] <fokkonaut> you will notice the hook pos doesnt match the character pos at all time
+03:02 < bridge> [teeworlds] <fokkonaut> then try it with ddnet client, there its butter smooth in the center of the tee, always.
+03:03 < bridge> [teeworlds] <fokkonaut> can also try it out on bridge servers, as its really just a clientside thing
+03:18 < bridge> [teeworlds] <redix> it's wrong until the server tells you about the hook. same in 0.6. seems like ddnet fixed that
+03:44 < bridge> [teeworlds] <redix> in ddnet it's a side effect of the antiping implementation
+03:45 < bridge> [teeworlds] <redix> the vanilla code mixes predicted and unpredicted values
+03:45 < bridge> [teeworlds] <redix> @fokkonaut try this https://github.com/axblk/teeworlds/tree/cleanup_prediction
+03:46 < bridge> [teeworlds] <fokkonaut> will test it tomorrow
+03:47 < bridge> [teeworlds] <redix> 👍
+03:47 < bridge> [teeworlds] <fokkonaut> but i am 100% sure this wasnt the case in 0.6
+03:47 < bridge> [teeworlds] <fokkonaut> like also not in vanilla 0.6
+03:47 < bridge> [teeworlds] <fokkonaut> will test that too tomorrow
+03:48 < bridge> [teeworlds] <redix> just tested it in 0.6. same as 0.7
+03:49 < bridge> [teeworlds] <redix> that code actually didn't change between versions
+03:53 < bridge> [teeworlds] <fokkonaut> lol
+03:53 < bridge> [teeworlds] <fokkonaut> so it actually was always buggy?
+03:57 < bridge> [teeworlds] <redix> Yes. It checks the unpredicted value for whether you are hooking someone. So the client still thinks your hook is in the air. Then it uses the predicted position of the hook, which is already pulling the other tee back.
+03:57 < bridge> [teeworlds] <fokkonaut> xd
+03:59 < bridge> [teeworlds] <redix> Actually you cannot use the predicted hook position at all when you are hooking someone, as the position of the other tee is not predicted. You need to use the unpredicted position of the tee as hook position
+04:02 < bridge> [teeworlds] <fokkonaut> How does ddnet handle it then
+04:06 < bridge> [teeworlds] <fokkonaut> lol

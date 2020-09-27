@@ -1,0 +1,111 @@
+03:17 <+bridge> [ddnet] <fokkonaut> I really need help, I cannot seem to get the Secruity Token working for my 0.7 mod... I am even at that point where I cause client crashes while I try to connect :(
+03:18 <+bridge> [ddnet] <fokkonaut> I would really appreciate if anyone could help me implement it, I know the logic behind it, heinrich told me the other day already, but I just cant get it to work...
+03:24 <+bridge> [ddnet] <fokkonaut> also clients dont get inserted in network_conn::Feed instead in DirectInit? I just dont get how and why all is so different between the versions :/
+12:37 <+bridge> [ddnet] <heinrich5991> @fokkonaut which part does already work? do you see the CONNECT messages of the client in the server? the CONNECTACCEPT in the client? or even the ACCEPT in the server?
+16:44 <+bridge> [ddnet] <fokkonaut> @heinrich5991 my best result was that I got the connect and the accept from the client, tokens matching, but the weird part is that in ddnet the server tries to accept the client in the accept msg, and in 0.7 in the Connect msg which comes earlier from ddnet. So no matter what I tried, the best I could get was a "connecting" tee, but the client never rendered anything. I even caused client crashes xd. When i try to accept the client on th
+16:44 <+bridge> [ddnet] <fokkonaut> I am just lost trying to do this
+16:47 <+bridge> [ddnet] <Welf> again there are too many maps in maptesting, so new maps can't be added, idk if i should post that here
+16:47 <+bridge> [ddnet] <Welf> again there are too many maps in maptesting, so new maps can't be added, idk if i should post that here or soemwhere else
+16:48 <+bridge> [ddnet] <heinrich5991> @jao I guess?
+16:58 <+bridge> [ddnet] <heinrich5991> @fokkonaut try to debug the connection process step by step. try to send a token back with the CONNECTACCEPT, and check whether you get a response back from the client
+16:59 <+bridge> [ddnet] <fokkonaut> I obviously get, because the tokens match
+16:59 <+bridge> [ddnet] <heinrich5991> then continue with the next message. do you get the next message?
+17:00 <+bridge> [ddnet] <fokkonaut> which one is the next?
+17:00 <+bridge> [ddnet] <heinrich5991> how would one go about finding that out?
+17:00 <+bridge> [ddnet] <fokkonaut> i guess its the netmsg_info?
+17:01 <+bridge> [ddnet] <heinrich5991> I think so too
+17:01 <+bridge> [ddnet] <fokkonaut> no wait
+17:01 <+bridge> [ddnet] <fokkonaut> in ddnet its the clientver thing
+17:01 <+bridge> [ddnet] <fokkonaut> in preauth state
+17:01 <+bridge> [ddnet] <heinrich5991> oh yea, in new ddnet, true
+17:01 <+bridge> [ddnet] <fokkonaut> so i need to take care of that too?
+17:02 <+bridge> [ddnet] <heinrich5991> first you'd probably check whether the message even makes it to the relevant part of the server code
+17:02 <+bridge> [ddnet] <heinrich5991> before trying anything further
+17:03 <+bridge> [ddnet] <heinrich5991> always try small steps of things that definitely have to work
+17:03 <+bridge> [ddnet] <fokkonaut> yea but I think I will not finish this working anyways... And if I get it the code is really ugly
+17:04 <+bridge> [ddnet] <fokkonaut> What do you use DirectInit for? why not the normal path using Feed(
+17:04 <+bridge> [ddnet] <fokkonaut> )
+17:04 <+bridge> [ddnet] <fokkonaut> I have too many questions
+17:05 <+bridge> [ddnet] <heinrich5991> you oculd treat it as a learning opportunity and try to understand the code
+17:05 <+bridge> [ddnet] <heinrich5991> idk what DirectInit is either
+17:05 <+bridge> [ddnet] <fokkonaut> it initializes the netconnection witout going through Feed to check the msgs again etc
+17:06 <+bridge> [ddnet] <fokkonaut> I should maybe structure the Recv() part of network_server the same as in ddnet
+17:06 <+bridge> [ddnet] <fokkonaut> with all the functions and Slot
+17:08 <+bridge> [ddnet] <heinrich5991> the general code structure is relatively irrelevant if you understand what is sent over the network
+17:17 <+bridge> [ddnet] <Learath2> It's rather difficult to work with when the code structure doesn't match what's send over the network
+17:17 <+bridge> [ddnet] <Learath2> sent*
+17:18 <+bridge> [ddnet] <heinrich5991> I disagree here
+17:18 <+bridge> [ddnet] <heinrich5991> the protocol is trivial to describe, it should fit fine into any code base
+17:18 <+bridge> [ddnet] <heinrich5991> it's just three messages and only the last one causes state to change
+17:20 <+bridge> [ddnet] <Learath2> eh, look at the mess that is the 0.7 compatibility
+17:20 <+bridge> [ddnet] <Learath2> The token protocol of 0.7 doesn't match 0.6 at all and it sticks out like a sore thumb
+17:21 <+bridge> [ddnet] <heinrich5991> example?
+17:22 <+bridge> [ddnet] <heinrich5991> and can you explain the difference between the 0.6 and the 0.7 protocol here?
+17:22 <+bridge> [ddnet] <heinrich5991> 0.6 sends CONNECT, CONNECTACCEPT, ACCEPT over the network
+17:22 <+bridge> [ddnet] <heinrich5991> the 0.7 equivalent is TOKEN, TOKEN, CONNECT, CONNECTACCEPT <- okay, here's an extra step
+17:23 <+bridge> [ddnet] <heinrich5991> but you only have to cut it short by one step for 0.6
+17:23 <+bridge> [ddnet] <heinrich5991> if you start from 0.7
+17:26 <+bridge> [ddnet] <Learath2> Well the fact that detecting 0.7 requires us to unpack the message first makes it even worse
+17:26 <+bridge> [ddnet] <Learath2> but take a look at network_server.cpp where we had to unpack the packet twice
+17:27 <+bridge> [ddnet] <heinrich5991> sounds like a problem with the code, not with the concept
+17:27 <+bridge> [ddnet] <heinrich5991> I think I described how to do it with unpacking only once
+17:28 <+bridge> [ddnet] <heinrich5991> by pattern matching unconnected messages against 0.7 TOKEN and CONNECT, and treating the rest of the unconnected messages as 0.7
+17:28 <+bridge> [ddnet] <heinrich5991> by pattern matching unconnected messages against 0.7 TOKEN and CONNECT, and treating the rest of the unconnected messages as 0.6
+17:28 <+bridge> [ddnet] <Learath2> It'd take some very clever restructuring of the code to get it to look nice
+17:28 <+bridge> [ddnet] <heinrich5991> not really
+17:28 <+bridge> [ddnet] <Learath2> the point stands, the code doesn't match the protocol so it's a PITA to work with
+17:28 <+bridge> [ddnet] <Learath2> Pattern matching is hardly cute
+17:29 <+bridge> [ddnet] <heinrich5991> it's how e.g. the "ssh and https" on one port works
+17:29 <+bridge> [ddnet] <Learath2> (which is a very ugly thing imho)
+17:29 <+bridge> [ddnet] <heinrich5991> if you want to have it nice and clean you could do it on a second port
+17:31 <+bridge> [ddnet] <Learath2> At which point the code would match the protocol we are handling but we'd get a lot of duplicated code in return, to fix that you'd need to clean up CNetBase and CNetServer a fair bit
+17:31 <+bridge> [ddnet] <heinrich5991> otherwise something like pattern matching is practically required I think
+17:31 <+bridge> [ddnet] <heinrich5991> what?
+17:31 <+bridge> [ddnet] <heinrich5991> you can do the pattern matching very nicely
+17:32 <+bridge> [ddnet] <heinrich5991> idk what you're talking about, it fits into the existing code. okay, call it unclean
+17:32 <+bridge> [ddnet] <Learath2> Feel free to implement it, it's open source after all
+17:32 <+bridge> [ddnet] <heinrich5991> why would I?
+17:32 <+bridge> [ddnet] <heinrich5991> you just claimed some impossibility and I claim possibility and that means I have to implement something now?
+17:32 <+bridge> [ddnet] <Learath2> I couldn't get it in there in a way that didn't make it look out of place, neither could timakro come up with a cleaner way to do it
+17:32 <+bridge> [ddnet] <heinrich5991> I can do it in rust one day, when I wnat it there
+17:33 <+bridge> [ddnet] <Learath2> I never claimed an impossibility, I just said "It's rather difficult" and that the "code ends up ugly"
+17:34 <+bridge> [ddnet] <heinrich5991> would some pseudocode help?
+17:34 <+bridge> [ddnet] <Learath2> Just because I couldn't get it clean obviously doesn't mean it's impossible, though I'm flattered you think that highly of me
+17:35 <+bridge> [ddnet] <Learath2> @heinrich5991 sure, don't make it too abstract though
+17:42 <+bridge> [ddnet] <Shyzo> bonjour hello hi, is it possible to add a feature to ddnet demo playing? So that you can rewind the demo? Or a "jump back 10sec" button?
+17:42 <+bridge> [ddnet] <Shyzo> rewind= play backwards
+17:43 <+bridge> [ddnet] <jao> it already exists
+17:44 <+bridge> [ddnet] <jao> left and right arrow
+17:44 <+bridge> [ddnet] <Shyzo> pro
+17:44 <+bridge> [ddnet] <Shyzo> ty xD
+17:44 <+bridge> [ddnet] <Shyzo> but rewind not in the client, right?
+17:45 <+bridge> [ddnet] <Shyzo> oh is it possible to change the time that gets jumped by pressing the arrow? so I could maybe change from 5sec to 10sec
+17:45 <+bridge> [ddnet] <jao> wdym
+17:45 <+bridge> [ddnet] <jao> j and k for 10 sec
+17:45 <+bridge> [ddnet] <Shyzo> playing the demo backwards
+17:45 <+bridge> [ddnet] <Patiga> playing a demo backwards is not supported
+17:45 <+bridge> [ddnet] <jao> or k and l
+17:46 <+bridge> [ddnet] <Shyzo> alrighty :)) @Patiga plans to implement it?
+17:46 <+bridge> [ddnet] <Patiga> rewinding -> going to an earlier timestamp is supported
+17:46 <+bridge> [ddnet] <Shyzo> ye
+17:46 <+bridge> [ddnet] <Patiga> i dont think its planned
+17:47 <+bridge> [ddnet] <Learath2> playing backwards could be a fun coding challange 😄
+17:47 <+bridge> [ddnet] <Shyzo> @jao what is the bind for 5 or 10sec jump? or cant I bind it to another key?
+17:47 <+bridge> [ddnet] <Patiga> you could convert the demo and play the video backwards ^^
+17:48 <+bridge> [ddnet] <Patiga> you can render a demo to mp4 in the client and play the video file backwards if that is your goal :)
+17:48 <+bridge> [ddnet] <jao> you cant rebind it
+17:48 <+bridge> [ddnet] <jao> i think its j and k for 10s jumps
+17:50 <+bridge> [ddnet] <Shyzo> @Patiga ah nono I just like to rewind videos to see again what happened xD just preference over jumping to a certain point. but doesnt matter that much
+17:51 <+bridge> [ddnet] <Shyzo> okay thank you :) 5 or 10sec jumps do that job just right. tyty
+19:03 <+ChillerDragon> i think ddnet7 is not working anymore since https://github.com/teeworlds/teeworlds/commit/293209e7227c81e92b99c89890ebfdc264374a4a :/
+19:28 <+bridge> [ddnet] <redix> That breaks the protocol extension
+19:29 <+ChillerDragon> send help @redix :D
+19:34 <+bridge> [ddnet] <Ryozuki> just remove ddnet7
+19:36 <+bridge> [ddnet] <redix> Well that can be fixed without breaking compatibility. Oy probably didn't think/care about mods
+19:39 <+bridge> [ddnet] <Learath2> Ofc not
+19:40 <+bridge> [ddnet] <Learath2> Not even surprised
+21:27 <+bridge> [ddnet] <Ryozuki> https://ferrous-systems.com/blog/mindsets-and-expectations/
+21:40 <+bridge> [ddnet] <a gerdoe> jao added nouis
+22:34 <+ChillerDragon> eh i always thought a bad harddrive means slow io ops but stuff like typing should be fast. but if the os is on a slow driver ervythign is slow huh?
+22:35 <+ChillerDragon> i have like 10 fps while typing in my gnome terminal on tha old hdd i found in my basement xd
+22:38 <+bridge> [ddnet] <abcqwerty> isnt typing input
