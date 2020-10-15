@@ -1,0 +1,694 @@
+00:09 <+bridge> [ddnet] <Learath2> @heinrich5991 well since we can't change the signature of strncpy, it's reasonable  that our wrapper for it should mimic the signature
+00:10 <+bridge> [ddnet] <heinrich5991> @Learath2 huh? I think that's precisely what a wrapper function can do for us, change the parameter type
+00:11 <+bridge> [ddnet] <Learath2> it can, but should it? it's unnecessary complexity imho
+00:12 <+bridge> [ddnet] <Learath2> we get size_t from sizeof, we truncate it down to int, we pass it to our wrapper, which pads it with zeros and passes it to strncpy
+00:12 <+bridge> [ddnet] <heinrich5991> the wrapper can shield the complexity from us
+00:15 <+bridge> [ddnet] <heinrich5991> sizeof is constant, so the truncations isn't really real. but yea, it creates an unsigned integer that can be used in unsigned comaprisons 😦
+00:29 <+bridge> [ddnet] <nori> also i run clang-tidy with clang-analyzer*, output: https://0x0.st/iGMI.txt
+00:30 <+bridge> [ddnet] <Ryozuki> :justatest: :justatest:
+00:42 <+bridge> [ddnet] <Learath2> Besides, who cares what google thinks, they've created one of the messiest programs I've ever seen in a decade with their "guidelines"
+00:42 <+bridge> [ddnet] <Ryozuki> @Learath2 which one? xd
+00:42 <+bridge> [ddnet] <Learath2> why chromium ofcourse
+00:42 <+bridge> [ddnet] <Ryozuki> ah
+00:45 <+bridge> [ddnet] <Learath2> > Because of historical accident, the C++ standard also uses unsigned integers to represent the size of containers - many members of the standards body believe this to be a mistake, but it is effectively impossible to fix at this point.
+00:45 <+bridge> [ddnet] <Learath2> If there is anyone not to be trusted with anything, it's the C++ standards committee 😛
+01:38 <+bridge> [ddnet] <heinrich5991> ```
+01:38 <+bridge> [ddnet] <heinrich5991> [*] '/opt/teamspeak3/ts3client_linux_amd64'
+01:38 <+bridge> [ddnet] <heinrich5991>     Arch:     amd64-64-little
+01:38 <+bridge> [ddnet] <heinrich5991>     RELRO:    Partial RELRO
+01:38 <+bridge> [ddnet] <heinrich5991>     Stack:    Canary found
+01:38 <+bridge> [ddnet] <heinrich5991>     NX:       NX disabled
+01:38 <+bridge> [ddnet] <heinrich5991>     PIE:      No PIE (0x400000)
+01:38 <+bridge> [ddnet] <heinrich5991>     RWX:      Has RWX segments
+01:38 <+bridge> [ddnet] <heinrich5991>     RPATH:    b'$ORIGIN/lib/:/usr/local/Qt-5.12.1/lib'
+01:38 <+bridge> [ddnet] <heinrich5991>     FORTIFY:  Enabled
+01:38 <+bridge> [ddnet] <heinrich5991> ```
+01:38 <+bridge> [ddnet] <heinrich5991> teamspeak 3, no PIE, executable stack, … WHY
+01:39 <+bridge> [ddnet] <heinrich5991> https://stackoverflow.com/a/34800050
+01:40 <+bridge> [ddnet] <heinrich5991> > They can't use OpenGL to accelerate Qt Quick, no. Which is a pretty severe drawback. Unfortunately the status of OpenGL on Windows is a nightmare. The "average" Windows computer will have an Intel-based GPU with ancient drivers, which are buggy enough to cause Qt not even try to use any 3D at all (OpenGL nor Direct3D). NVIDIA and AMD are usually better, as at least they tend to be more up-to-date.
+01:40 <+bridge> [ddnet] <heinrich5991> sounds a bit like the issues we're running into
+01:40 <+bridge> [ddnet] <heinrich5991> https://source.chromium.org/chromium/chromium/src/+/master:gpu/config/software_rendering_list.json;l=1?q=software_rendering_&sq=&ss=chromium
+01:42 <+bridge> [ddnet] <heinrich5991> maybe we should copy one of these lists and warn the user to update their drivers in the DDNet client
+06:43 <+Obiwan> Hey @deen
+06:43 <+Obiwan> What is "sixup connections"?
+06:44 <+Obiwan> I googled it, but found a site for study in europe
+06:44 <+Obiwan> nothing more about programming or network main
+07:37 <@deen> Obiwan: It's our way of providing Teeworlds 0.7 net protocol compatibility in DDNet Server
+08:51 <+bridge> [ddnet] <Jupstar ✪> Unsigned let's you think about the math u do. They nice
+08:55 <+bridge> [ddnet] <Jupstar ✪> Google doesn't even give a reason. So thumbs down on that
+08:57 <+bridge> [ddnet] <Ryozuki> "Bjarne Stroustrup says that unsigned ints are error prone and lead to bugs"
+08:57 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ the creator of c++ says things too
+08:57 <+bridge> [ddnet] <Ryozuki> xd
+08:58 <+bridge> [ddnet] <deen> In my mind the main danger comes from the very common value 0 being one-off to an underflow. much higher chance of going wrong than with int64_t
+08:58 <+bridge> [ddnet] <Ryozuki> yeah
+09:16 <+bridge> [ddnet] <Jupstar ✪> well teeworlds is the best argument against this.
+09:16 <+bridge> [ddnet] <Jupstar ✪> unscalable, full of undefined behaviour, negative array accesses that arent checked
+09:16 <+bridge> [ddnet] <Jupstar ✪> int to floats, floats to int without thinking
+09:16 <+bridge> [ddnet] <Jupstar ✪> ever wondered why we dont have a full 360° cursor in teeworlds
+09:17 <+bridge> [ddnet] <noby> wdym 360° cursor?
+09:17 <+bridge> [ddnet] <Jupstar ✪> `
+09:17 <+bridge> [ddnet] <Jupstar ✪>     m_HookDir.x = pObjCore->m_HookDx / 256.0f;
+09:17 <+bridge> [ddnet] <Jupstar ✪>     m_HookDir.y = pObjCore->m_HookDy / 256.0f;`
+09:17 <+bridge> [ddnet] <Jupstar ✪> bcs we just kill the precision
+09:17 <+bridge> [ddnet] <Jupstar ✪> if that would be 1024, tw would be much nicer already
+09:17 <+bridge> [ddnet] <noby> o_o
+09:17 <+bridge> [ddnet] <Jupstar ✪> move ur cursor very slowly
+09:17 <+bridge> [ddnet] <Jupstar ✪> with hook line
+09:17 <+bridge> [ddnet] <Jupstar ✪> and u'll notice
+09:17 <+bridge> [ddnet] <noby> is that why some hooks thru corners from far away dont work well
+09:17 <+bridge> [ddnet] <noby> because of precision
+09:18 <+bridge> [ddnet] <Jupstar ✪> if the hook is long enough probably,
+09:18 <+bridge> [ddnet] <noby> wow
+09:18 <+bridge> [ddnet] <noby> u just saved me
+09:18 <+bridge> [ddnet] <noby> alot of time thanks
+09:18 <+bridge> [ddnet] <Jupstar ✪> u cannot change this
+09:18 <+bridge> [ddnet] <Jupstar ✪> the client uses it for network
+09:18 <+bridge> [ddnet] <noby> yes thats why it saved time xd
+09:18 <+bridge> [ddnet] <Jupstar ✪> ok xD
+09:18 <+bridge> [ddnet] <noby> i thought i messed something up
+09:18 <+bridge> [ddnet] <noby> didnt consider that it could be limitation of tw protocol
+09:20 <+bridge> [ddnet] <Jupstar ✪> one thing is true tho, try not not mix data types
+09:20 <+bridge> [ddnet] <Jupstar ✪> but i dont see an argument against unsigned
+09:20 <+bridge> [ddnet] <Jupstar ✪> if unsigned underflows u are fucked
+09:20 <+bridge> [ddnet] <Jupstar ✪> so u need to care much more than with ints
+09:20 <+bridge> [ddnet] <Jupstar ✪> signeds*
+09:21 <+bridge> [ddnet] <noby> array[-1] and array[2147483648] will both crash
+09:21 <+bridge> [ddnet] <Jupstar ✪> yeah bcs -1 is probs converted
+09:21 <+bridge> [ddnet] <Jupstar ✪> but (ptr - 1) might be a legit memory address
+09:21 <+bridge> [ddnet] <noby> oh true
+09:21 <+bridge> [ddnet] <Jupstar ✪> and thats undefined by your source probably
+09:22 <+bridge> [ddnet] <Jupstar ✪> not invalid read write, but undesired
+09:22 <+bridge> [ddnet] <noby> and undefined ye
+09:30 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/765114263575461928/unknown.png
+09:31 <+bridge> [ddnet] <Jupstar ✪> we prefer todo this instead of not program like this xd
+09:38 <+bridge> [ddnet] <TsFreddie 🌈> ~~wizard~~
+09:58 <+bridge> [ddnet] <Learath2> The bounds checking on gcc is absolutely shit, we are in the right to silence it
+10:12 <+bridge> [ddnet] <Jupstar ✪> i dunno std::array for example typedefs its size_type to size_t, so the [] operator would require unsigned
+10:15 <+bridge> [ddnet] <Jupstar ✪> (what i am just saying is, the compiler probs prefers to warn than to create user undesired behaviour)
+11:19 <+bridge> [ddnet] <deen> @Learath2 To be fair, C++ standards commitee is in an impossible situation. They want 100% backwards compatibility, new features without any cost, and modernize the language at the same time.
+11:20 <+bridge> [ddnet] <Learath2> Exactly, it's clear to any sane person that they have to give one up
+11:20 <+bridge> [ddnet] <deen> But they wouldn't be C++ if they did that. Other languages fill the other niches
+11:21 <+bridge> [ddnet] <Learath2> (I'd give up the backwards compatibility, with one major revision of time to fix deprecated stuff)
+11:21 <+bridge> [ddnet] <deen> Hello Python 3, my good friend
+11:21 <+bridge> [ddnet] <Ryozuki> but isnt backwards compatibility what makes c++ stay for so long
+11:21 <+bridge> [ddnet] <Learath2> Unmaintained code can be compiled with old compilers
+11:22 <+bridge> [ddnet] <deen> The idea in C++ is instead to use something like clang-tidy to enforce modern stile in new code bases and to try to clean up old ones
+11:22 <+bridge> [ddnet] <Learath2> Pythons upgrade was such a mess because they didn't want to commit to it. They let the userbase draaaaaag it on
+11:23 <+bridge> [ddnet] <Learath2> Oh and that guy the benevolent dictator for life, he was just too benevolent
+11:23 <+bridge> [ddnet] <deen> Oh, they wanted to commit. But the user base was strongly against it, and the same would happen in C++ but much stronger
+11:23 <+bridge> [ddnet] <Ryozuki> yeah
+11:23 <+bridge> [ddnet] <Ryozuki> c++ fanatics
+11:23 <+bridge> [ddnet] <Ryozuki> like learath
+11:23 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+11:24 <+bridge> [ddnet] <Learath2> What are you on about? I don't even like C++
+11:24 <+bridge> [ddnet] <Ryozuki> you like the C right
+11:24 <+bridge> [ddnet] <Ryozuki> you like C right
+11:24 <+bridge> [ddnet] <Learath2> @deen users don't know what's good for them, that's why we have committees making decisions
+11:25 <+bridge> [ddnet] <Learath2> Especially the average python user
+11:25 <+bridge> [ddnet] <deen> Not that it says much, but I was a bit shocked to see C move to number 1 on TIOBE Index: https://www.tiobe.com/tiobe-index/
+11:25 <+bridge> [ddnet] <Ryozuki> yeah
+11:25 <+bridge> [ddnet] <Ryozuki> i wonder why it is first
+11:25 <+bridge> [ddnet] <deen> mostly because Java went down, not C up, but anyway
+11:26 <+bridge> [ddnet] <Learath2> Huh, I wonder where the java devs went
+11:26 <+bridge> [ddnet] <Learath2> Js maybe?
+11:26 <+bridge> [ddnet] <Ryozuki> PHP going up :justatest:
+11:26 <+bridge> [ddnet] <Ryozuki> damn wordpress
+11:26 <+bridge> [ddnet] <Ryozuki> i think java went down due to oracle
+11:26 <+bridge> [ddnet] <Ryozuki> doing that paid thing
+11:27 <+bridge> [ddnet] <Learath2> What did they do?
+11:28 <+bridge> [ddnet] <Ryozuki> you have to paid to have a LTS version
+11:28 <+bridge> [ddnet] <Ryozuki> or something like that
+11:28 <+bridge> [ddnet] <Ryozuki> pay*
+11:28 <+bridge> [ddnet] <noby> [4:25 AM] deen: Not that it says much, but I was a bit shocked to see C move to number 1 on TIOBE Index: 
+11:28 <+bridge> [ddnet] <noby> 
+11:28 <+bridge> [ddnet] <noby> :feelsamazingman: :feelsamazingman: :feelsamazingman:
+11:28 <+bridge> [ddnet] <Ryozuki> https://dev.karakun.com/java/2018/06/25/java-releases.html
+11:28 <+bridge> [ddnet] <noby> c best
+11:28 <+bridge> [ddnet] <Ryozuki> @Learath2 they are speeding up java development
+11:28 <+bridge> [ddnet] <Ryozuki> > Starting with Java 9 most Java version will only have a lifetime of 6 months. Updates won’t be provided for the version after this period. Even if you have a commercial contract with Oracle you won’t get any additional updates for Java 9 or 10 after these 6 months. Plus, all 3 years a LTS (long term support) version of Java will be released. The first version with LTS support will be Java 11 that is scheduled for fall 2018. This LTS v
+11:29 <+bridge> [ddnet] <Ryozuki> as u know companies want stability
+11:29 <+bridge> [ddnet] <Ryozuki> so they seek LTS versions
+11:29 <+bridge> [ddnet] <Ryozuki> i think
+11:29 <+bridge> [ddnet] <Ryozuki> then u have to pay
+11:29 <+bridge> [ddnet] <Ryozuki> xd
+11:29 <+bridge> [ddnet] <Ryozuki> idk maybe i misunderstood
+11:29 <+bridge> [ddnet] <Intelligent Cat> > PHP going up :justatest:
+11:29 <+bridge> [ddnet] <Intelligent Cat> i know some php
+11:29 <+bridge> [ddnet] <Intelligent Cat> it isnt really good
+11:29 <+bridge> [ddnet] <Ryozuki> > The most important fact is that updates for LTS versions can only be accessed and used by people that buy commercial support at Oracle. My experience is that today most companies that develop Java based software do not have commercial support since the release train of Java was quite „friendly“ and an adoption of the newest version was easily possible.
+11:29 <+bridge> [ddnet] <Ryozuki> this ^
+11:30 <+bridge> [ddnet] <Learath2> I doubt the commercial support being paid is an issue
+11:30 <+bridge> [ddnet] <Ryozuki> before new java releases were rare
+11:30 <+bridge> [ddnet] <Learath2> Java 11 is soooooooo stable
+11:30 <+bridge> [ddnet] <Ryozuki> but now they are speeding
+11:30 <+bridge> [ddnet] <Learath2> Even the open source version, pretty much everyone uses that
+11:30 <+bridge> [ddnet] <Ryozuki> btw i think java 15 is modular or smth
+11:30 <+bridge> [ddnet] <Ryozuki> yeah
+11:30 <+bridge> [ddnet] <Ryozuki> but those wont receive updates
+11:30 <+bridge> [ddnet] <Ryozuki> if u donth ave commercial
+11:30 <+bridge> [ddnet] <Ryozuki> support
+11:31 <+bridge> [ddnet] <Intelligent Cat> multiline strings were added with ` in java
+11:31 <+bridge> [ddnet] <Intelligent Cat> multiline strings were added with ` in java 12
+11:31 <+bridge> [ddnet] <Intelligent Cat> lol
+11:31 <+bridge> [ddnet] <Ryozuki> > Oracle JDKs may only be used in production if you buy the commercial support. I
+11:31 <+bridge> [ddnet] <Ryozuki> also this
+11:31 <+bridge> [ddnet] <Intelligent Cat> what do you expect from oracle than wanting money
+11:31 <+bridge> [ddnet] <Ryozuki> u can no longer use oracle jdk freely
+11:32 <+bridge> [ddnet] <Intelligent Cat> well that commercial thingie really sucks
+11:32 <+bridge> [ddnet] <Ryozuki> most minecraft stuff is still java 8
+11:32 <+bridge> [ddnet] <Ryozuki> i wish they updated
+11:32 <+bridge> [ddnet] <Ryozuki> coding spigot is quite fun
+11:32 <+bridge> [ddnet] <Intelligent Cat> java 8 is enough for a java dev i suppose
+11:32 <+bridge> [ddnet] <Learath2> Well do you really need updates to java 11?
+11:33 <+bridge> [ddnet] <Ryozuki> my son will rise up and conquer the world
+11:33 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/765145021636018186/unknown.png
+11:33 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+11:33 <+bridge> [ddnet] <Intelligent Cat> i have both 8 and 11 but 8 still does my stuff
+11:33 <+bridge> [ddnet] <Learath2> OpenJ9 maintains LTS releases too and you can use them
+11:33 <+bridge> [ddnet] <Ryozuki> there are good featurs in new java versions
+11:33 <+bridge> [ddnet] <Ryozuki> getting stuck in 8 is n ogood
+11:33 <+bridge> [ddnet] <Intelligent Cat> its just enough
+11:33 <+bridge> [ddnet] <Intelligent Cat> i dont say its bad
+11:34 <+bridge> [ddnet] <Intelligent Cat> nor good
+11:34 <+bridge> [ddnet] <Learath2> Java's streams are so nice to work with
+11:34 <+bridge> [ddnet] <Ryozuki> java 9 intoduces modules
+11:34 <+bridge> [ddnet] <Intelligent Cat> maven exists
+11:34 <+bridge> [ddnet] <Learath2> They really made functional programming quite palatable and usable
+11:35 <+bridge> [ddnet] <Intelligent Cat> i agree with that
+11:35 <+bridge> [ddnet] <Ryozuki> i dont like ppl who are content with "enough"
+11:35 <+bridge> [ddnet] <Ryozuki> weak mindset
+11:35 <+bridge> [ddnet] <Intelligent Cat> it just does what i need
+11:35 <+bridge> [ddnet] <Intelligent Cat> i wouldnt need a higher version than 11
+11:36 <+bridge> [ddnet] <Ryozuki> yeah why software gets updates
+11:36 <+bridge> [ddnet] <Ryozuki> stupid developers
+11:36 <+bridge> [ddnet] <Intelligent Cat> to get better ofc
+11:37 <+bridge> [ddnet] <Intelligent Cat> but i see no reason to update while there is no need
+12:09 <+bridge> [ddnet] <Ryozuki> @deen can you put in the readme the dependencies needed for videorecorder on debian atleast? they arent there 👀
+12:13 <+bridge> [ddnet] <deen> what are the dependencies? ffmpeg?
+12:13 <+bridge> [ddnet] <Ryozuki> libx264-dev libavfilter-dev libavdevice-dev libavformat-dev libavcodec-extra
+12:13 <+bridge> [ddnet] <Ryozuki> libavutil-dev
+12:13 <+bridge> [ddnet] <Ryozuki> im finding them
+12:13 <+bridge> [ddnet] <deen> then you make a PR
+12:13 <+bridge> [ddnet] <Ryozuki> yeah, i thought u knew all them tho
+12:14 <+bridge> [ddnet] <Ryozuki> also
+12:14 <+bridge> [ddnet] <Ryozuki> cmake complains this By not providing "FindSQLite3.cmake" in CMAKE_MODULE_PATH this project has
+12:14 <+bridge> [ddnet] <Ryozuki> but then it says
+12:14 <+bridge> [ddnet] <Ryozuki> -- Checking for module 'sqlite3'
+12:14 <+bridge> [ddnet] <Ryozuki> --   Found sqlite3, version 3.27.2
+12:14 <+bridge> [ddnet] <Ryozuki> -- Found SQLite3: /usr/include
+12:14 <+bridge> [ddnet] <Ryozuki> which makes no sense to me
+12:14 <+bridge> [ddnet] <Ryozuki> (this on debian)
+12:15 <+bridge> [ddnet] <deen> maybe @heinrich5991 knows better about cmake problems ^
+12:21 <+bridge> [ddnet] <Ryozuki> https://ryozuki.xyz/ddnet-scan/
+12:21 <+bridge> [ddnet] <Ryozuki> i set this up
+12:21 <+bridge> [ddnet] <Ryozuki> ill make daily scans
+12:22 <+bridge> [ddnet] <deen> I'm not a big fan of daily scans. I think we should fix them and enable clang-tidy with those checks in github so we notice on the PRs directly
+12:22 <+bridge> [ddnet] <deen> and not only after they are merged
+12:23 <+bridge> [ddnet] <Ryozuki> yeah but we should fix all first
+12:23 <+bridge> [ddnet] <Ryozuki> otherwise the prs will get a x tick right
+12:23 <+bridge> [ddnet] <Ryozuki> and its not their fault
+12:23 <+bridge> [ddnet] <deen> Yes, but you could also mark all existing ones with an exclude if you don't want to fix them immediately
+12:24 <+bridge> [ddnet] <deen> `// NOLINT(clang-analyzer-core.DivideZero)`
+12:28 <+bridge> [ddnet] <Ryozuki> well i dont know much about configuring the CI and stuff
+12:28 <+bridge> [ddnet] <deen> make it work locally and we can get it done
+12:28 <+bridge> [ddnet] <deen> basically just copy the normal build and run it with clang tidy on
+12:29 <+bridge> [ddnet] <deen> and in the .clang-tidy file set WarningsAsErrors: '*'
+12:30 <+bridge> [ddnet] <deen> And `Checks: -*, clang-analyzer*`. You could test if that results in the same failures you're seeing with clang-analyzer
+12:33 <+bridge> [ddnet] <Ryozuki> https://cmake.org/cmake/help/latest/prop_tgt/LANG_CLANG_TIDY.html#prop_tgt:%3CLANG%3E_CLANG_TIDY
+12:33 <+bridge> [ddnet] <Ryozuki> looks like cmake has clang-tidy integration
+12:33 <+bridge> [ddnet] <Ryozuki> https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_CLANG_TIDY.html
+12:34 <+bridge> [ddnet] <deen> yeah, so -DCMAKE_CXX_CLANG_TIDY=ON -DCMAKE_C_CLANG_TIDY=ON should work
+12:44 <+bridge> [ddnet] <Ryozuki> that variable doesnt work like that
+12:44 <+bridge> [ddnet] <Ryozuki> u set it in cmake: set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
+12:44 <+bridge> [ddnet] <Ryozuki> and then when u run ninja
+12:44 <+bridge> [ddnet] <Ryozuki> it shows the warnings
+12:44 <+bridge> [ddnet] <Ryozuki> and there are quite a lot
+12:44 <+bridge> [ddnet] <Ryozuki> xd
+12:45 <+bridge> [ddnet] <deen> set it just to `clang-tidy` and use a .clang-tidy file as I described
+12:45 <+bridge> [ddnet] <deen> not all checks make sense for us, start with the clang-analyzer ones
+12:55 <+bridge> [ddnet] <Ryozuki> treating it as error wont show all the warnings tho
+12:55 <+bridge> [ddnet] <Ryozuki> src/game/collision.cpp:1030:2: error: Variable 'f' with floating point type 'float' should not be used as a loop counter
+12:55 <+bridge> [ddnet] <Ryozuki> well this makes sense
+12:56 <+bridge> [ddnet] <Ryozuki> oh
+12:56 <+bridge> [ddnet] <Ryozuki> the CI doesnt have clang-tidy installed
+12:56 <+bridge> [ddnet] <deen> Hm, we could grep for warnings in the output or use `make --keep-going`
+12:57 <+bridge> [ddnet] <deen> just add it in the installation at top
+12:59 <+bridge> [ddnet] <Ryozuki> where do  put keep-going hm
+13:00 <+bridge> [ddnet] <deen> in the call to make, but I think we don't call make explicitly but make cmake call it
+13:01 <+bridge> [ddnet] <deen> `cmake --build <dir> -- --keep-going`
+13:01 <+bridge> [ddnet] <deen> so just add the `-- --keep-going at the end`
+13:05 <+bridge> [ddnet] <Ryozuki> @deen why put .clang-tidy in src?
+13:05 <+bridge> [ddnet] <Ryozuki> i think cmake detects it fine in the base dir
+13:05 <+bridge> [ddnet] <deen> Hm, I guess it's fine
+13:06 <+bridge> [ddnet] <Ryozuki> ur github comment was a bit weird formatted
+13:06 <+bridge> [ddnet] <deen> Just thought it's more specific in src, but we don't really have other source code around anyway
+13:06 <+bridge> [ddnet] <Ryozuki> thanks to markdown xd
+13:06 <+bridge> [ddnet] <deen> oops, fixed
+13:10 <+bridge> [ddnet] <Ryozuki> @deen its full of unknown warning option
+13:11 <+bridge> [ddnet] <deen> I can give it a look, is your pr up-to-date?
+13:11 <+bridge> [ddnet] <Ryozuki> i mean the CI btw
+13:11 <+bridge> [ddnet] <Ryozuki> yea
+13:12 <+bridge> [ddnet] <Ryozuki> localy it shows warnings correctly
+13:12 <+bridge> [ddnet] <deen> ok
+13:13 <+bridge> [ddnet] <deen> Why did you set clang-tidy always on for every build?
+13:13 <+bridge> [ddnet] <Ryozuki> well im testing
+13:14 <+bridge> [ddnet] <deen> I think the idea is to have a separate clang-based build
+13:14 <+bridge> [ddnet] <deen> where are the errors then?
+13:14 <+bridge> [ddnet] <Ryozuki> when u compile
+13:14 <+bridge> [ddnet] <Ryozuki> or what errors u mean
+13:15 <+bridge> [ddnet] <deen> you said locally it works, where are the failures in CI
+13:15 <+bridge> [ddnet] <Ryozuki> it doesnt recognize the warnings added by clang-tidy i guess
+13:15 <+bridge> [ddnet] <deen> what doesn't?
+13:15 <+bridge> [ddnet] <deen> where can i find the failures?
+13:15 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/pull/3075/checks?check_run_id=1241803867
+13:15 <+bridge> [ddnet] <Ryozuki> look at
+13:15 <+bridge> [ddnet] <Ryozuki> build debug
+13:15 <+bridge> [ddnet] <Ryozuki> anmd scroll down
+13:16 <+bridge> [ddnet] <Ryozuki> its full of unknown warning option
+13:16 <+bridge> [ddnet] <deen> That is a clang-tidy warning
+13:16 <+bridge> [ddnet] <Ryozuki> rly?
+13:17 <+bridge> [ddnet] <Ryozuki> localy it looks like this to me
+13:17 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/765171208563982346/unknown.png
+13:17 <+bridge> [ddnet] <deen> also, is it building with gcc? we should be using clang for that I guess
+13:18 <+bridge> [ddnet] <Ryozuki> i think heinrich can do this better
+13:18 <+bridge> [ddnet] <Ryozuki> im no cmake magician
+13:18 <+bridge> [ddnet] <deen> I can also try to finish it up if you want
+13:18 <+bridge> [ddnet] <Ryozuki> go for it
+13:39 <+bridge> [ddnet] <Ryozuki> oh nice
+13:41 <+bridge> [ddnet] <Learath2> Float as a loop counter is a first for me
+13:42 <+bridge> [ddnet] <Ryozuki> @Learath2 wdym by first for me
+13:42 <+bridge> [ddnet] <Ryozuki> as in top priority? or as in u never saw it
+13:42 <+bridge> [ddnet] <Learath2> Never saw it before
+13:42 <+bridge> [ddnet] <Ryozuki> xd
+13:43 <+bridge> [ddnet] <Learath2> I hope we don't actually use it to index anything 😛
+13:43 <+bridge> [ddnet] <deen> I'll try to fix the clang-tidies we have for now
+13:43 <+bridge> [ddnet] <Ryozuki> looks like lot of work
+13:43 <+bridge> [ddnet] <deen> See my update in https://github.com/ddnet/ddnet/pull/3076, mostly all the same
+13:44 <+bridge> [ddnet] <Ryozuki> yea
+13:44 <+bridge> [ddnet] <Learath2> Oh, we should probably exclude external stuff too
+13:44 <+bridge> [ddnet] <Learath2> I see 1 warning in wavpack atleast
+13:46 <+bridge> [ddnet] <deen> yeah, will try
+13:53 <+bridge> [ddnet] <Learath2> "Failed to finalize filesystems. Ignoring" Thanks systemd
+13:53 <+bridge> [ddnet] <Learath2> I always prefer corrupt filesystems over waiting a couple seconds or actually troubleshooting
+13:55 <+bridge> [ddnet] <fokkonaut> https://discordapp.com/channels/407308363031117832/490150878934990850/765175509142470666
+13:55 <+bridge> [ddnet] <Ryozuki> 🍷 :frozen:
+13:55 <+bridge> [ddnet] <fokkonaut> if anyone can hep :(
+14:04 <+bridge> [ddnet] <Learath2> After spending almost a year with systemd and archlinux, I have to say, I'm quite unimpressed
+14:05 <+bridge> [ddnet] <Learath2> It's all packaged for even a goof to be able to use linux, but it's a rolling release. A rolling release always has issues and archlinux gives you no way to fix them
+14:05 <+bridge> [ddnet] <Ryozuki> i have yet to find a issue tho
+14:05 <+bridge> [ddnet] <Ryozuki> and im using it since a year too
+14:06 <+bridge> [ddnet] <Learath2> Well do you get the failed to unmount oldroot on shutdown?
+14:07 <+bridge> [ddnet] <Ryozuki> also ur quite wrong usually when there is a problem with a package update they post a news
+14:07 <+bridge> [ddnet] <Ryozuki> https://www.archlinux.org/news/ghostpcl9532-2-and-ghostxps9532-2-updates-require-manual-intervention/
+14:07 <+bridge> [ddnet] <Learath2> They decided the best course of action, is to try to unmount and if it doesn't work, ignore it
+14:08 <+bridge> [ddnet] <Learath2> It tries to synchronize my filesystem fails, just ignores it
+14:08 <+bridge> [ddnet] <Learath2> During boot I get like 10 driver issues, none of them have been fixed even though they've been reported for weeks
+14:09 <+bridge> [ddnet] <Ryozuki> ah and that is systemd fault?
+14:09 <+bridge> [ddnet] <Learath2> If it wasn't a PITA, I would just build the kernel without the overzealous drivers trying to attach to hardware that they are not for
+14:10 <+bridge> [ddnet] <Ryozuki> in what way are driver issues arch fault
+14:10 <+bridge> [ddnet] <Learath2> If it wasn't a PITA to build an initrd with systemd, I would just fix the stupid script that's trying to unmount filesystems that aren't even mounted
+14:10 <+bridge> [ddnet] <Ryozuki> and "weeks" is a small time imho
+14:11 <+bridge> [ddnet] <Learath2> @Ryozuki it's a rolling release that gives me no way to fix it myself. It would never happen in debian, because even though they give you no way to fix shit, they follow the kernel sooo slowly it doesn't matter
+14:11 <+bridge> [ddnet] <Learath2> On gentoo it's absolutely trivial for me to just not build these drivers I don't need
+14:11 <+bridge> [ddnet] <Ryozuki> omg man
+14:11 <+bridge> [ddnet] <Ryozuki> just install the lts kernel
+14:11 <+bridge> [ddnet] <<BµmM>> how can i increase the fps
+14:11 <+bridge> [ddnet] <Ryozuki> u have solutions
+14:11 <+bridge> [ddnet] <Ryozuki> u just dont know them
+14:11 <+bridge> [ddnet] <noby> cl_increasefps 1
+14:11 <+bridge> [ddnet] <Ryozuki> linux-lts
+14:11 <+bridge> [ddnet] <Learath2> My solution is to use an old kernel on my rolling release distro?
+14:11 <+bridge> [ddnet] <Learath2> Thanks
+14:11 <+bridge> [ddnet] <Ryozuki> hell
+14:12 <+bridge> [ddnet] <Ryozuki> use linux-lts44
+14:12 <+bridge> [ddnet] <Ryozuki> from aur
+14:12 <+bridge> [ddnet] <Ryozuki> if u want
+14:12 <+bridge> [ddnet] <Ryozuki> how is a new kernel driver bug arch linux fault?
+14:12 <+bridge> [ddnet] <Ryozuki> ur insane
+14:12 <+bridge> [ddnet] <<BµmM>> noby biggest stalker
+14:12 <+bridge> [ddnet] <noby> u wish
+14:12 <+bridge> [ddnet] <noby> i was reading the chat
+14:12 <+bridge> [ddnet] <<BµmM>> stalker
+14:12 <+bridge> [ddnet] <noby> of who
+14:12 <+bridge> [ddnet] <noby> lol
+14:12 <+bridge> [ddnet] <<BµmM>> thats what a stalker would do
+14:12 <+bridge> [ddnet] <noby> no u
+14:12 <+bridge> [ddnet] <Learath2> It's not their fault that the driver is broken, it is their fault that they provide no way for me to not have the broken driver
+14:13 <+bridge> [ddnet] <Ryozuki> they do proivide one
+14:13 <+bridge> [ddnet] <Ryozuki> use a older kernel
+14:13 <+bridge> [ddnet] <Ryozuki> and wait until its fixed
+14:13 <+bridge> [ddnet] <Ryozuki> u can also make ur own aur package
+14:13 <+bridge> [ddnet] <Learath2> Anyway, some people just don't care about any of this and they are free to use archlinux and shit over other peoples opinions online
+14:13 <+bridge> [ddnet] <Ryozuki> and configure it how u like
+14:14 <+bridge> [ddnet] <nori> @Learath2 you can try void linux, install older kernel series https://docs.voidlinux.org/config/kernel.html#kernel-series
+14:14 <+bridge> [ddnet] <Ryozuki> did u know u can configure and use pkgbuild files to ur own liking?
+14:14 <+bridge> [ddnet] <nori> also runit really fast
+14:14 <+bridge> [ddnet] <Ryozuki> @nori xdd
+14:14 <+bridge> [ddnet] <Ryozuki> thats not his problem
+14:14 <+bridge> [ddnet] <Learath2> I'll just go back to gentoo where I can just build my system however I want
+14:14 <+bridge> [ddnet] <Ryozuki> cuz i actually told him about using older kernel
+14:14 <+bridge> [ddnet] <Ryozuki> you can do that
+14:14 <+bridge> [ddnet] <Ryozuki> the fact that u dont know or arent willing
+14:15 <+bridge> [ddnet] <Ryozuki> is urs only
+14:15 <+bridge> [ddnet] <Learath2> I am not willing to spend time building a whole package to customize my kernel, yes.
+14:15 <+bridge> [ddnet] <Ryozuki> https://wiki.archlinux.org/index.php/Kernel_module#Blacklisting
+14:15 <+bridge> [ddnet] <Ryozuki> :lol:
+14:16 <+bridge> [ddnet] <Ryozuki> why do i even talk ur just set in stone already
+14:17 <+bridge> [ddnet] <Ryozuki> use ur allmighty gentoo and done
+14:17 <+bridge> [ddnet] <Ryozuki> i go back to watching anime
+14:17 <+bridge> [ddnet] <Learath2> Exactly, I don't get why you are throwing stuff at me. I tried, I don't like the unflexible nature of this distro. Opinions are opinions
+14:17 <+bridge> [ddnet] <Ryozuki> cuz it triggers me u say u cant when u can
+14:17 <+bridge> [ddnet] <Ryozuki> u just dont like t he way u can
+14:18 <+bridge> [ddnet] <Learath2> Exactly, It's very inconvenient IMHO. It might be convenient enough for you
+14:18 <+bridge> [ddnet] <Ryozuki> also why are u even using arch linux if u have systemd
+14:18 <+bridge> [ddnet] <Ryozuki> are u a masochist
+14:18 <+bridge> [ddnet] <Ryozuki> xd
+14:18 <+bridge> [ddnet] <Ryozuki> hate*
+14:19 <+bridge> [ddnet] <Learath2> Because people tell me I'm not allowed to have an opinion about systemd before trying it
+14:19 <+bridge> [ddnet] <Ryozuki> ah sure its that
+14:19 <+bridge> [ddnet] <Learath2> IMO that's like saying I'm not allowed to hate on nazis before being a nazi. You can disagree with something without trying it, shocker
+14:20 <+bridge> [ddnet] <Learath2> Anyway, now that I'm done with my experiment and I can freely rant. I'll be heading back to gentoo
+14:20 <+bridge> [ddnet] <Ryozuki> im not sure ithats
+14:20 <+bridge> [ddnet] <Learath2> Or maybe I'll try one more on the way
+14:20 <+bridge> [ddnet] <Ryozuki> i wouldnt use a distro just to prove someone wrong
+14:21 <+bridge> [ddnet] <Learath2> I didn't do it to prove someone wrong. I just geniunely wanted to know what people saw in systemd and a binary rolling release distro at the same time
+14:21 <+bridge> [ddnet] <Ryozuki> http://www.linuxfromscratch.org/lfs/
+14:21 <+bridge> [ddnet] <Ryozuki> just use this 4Head
+14:21 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+14:22 <+bridge> [ddnet] <Learath2> That's just too much work. Gentoo gives me almost the same level of customization without spending half a decade putting together my own distro
+14:22 <+bridge> [ddnet] <Ryozuki> well cya when u finished compiling
+14:22 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+14:23 <+bridge> [ddnet] <Ryozuki> well cya until u finished compiling
+14:23 <+bridge> [ddnet] <Learath2> Did you know what with a well configured kernel, you can even use the computer while it's compiling?
+14:23 <+bridge> [ddnet] <Ryozuki> yeah im joking
+14:35 <+bridge> [ddnet] <Tezcan> idk if its already reported, but: http://prntscr.com/uxqr1n
+14:36 <+bridge> [ddnet] <Tezcan> when i spec and my time is over 1hr, hindus skin is over his time
+14:36 <@deen> yes, fixed
+14:36 <@deen> will release fix now
+16:24 <+bridge> [ddnet] <Pure_luck> Am I the only one who has to double-tick "borderless window" every start of a non-fullscreen 15.0.5 DDNet client?
+16:25 <+bridge> [ddnet] <Pure_luck> As it starts as border windows regardless of the setting is loaded correctly to an ui.
+16:25 <+bridge> [ddnet] <Pure_luck> https://cdn.discordapp.com/attachments/293493549758939136/765218627371663420/Screenshot_from_2020-10-12_17-25-31.png
+16:27 <+bridge> [ddnet] <deen> Weird, sounds like an SDL bug
+16:28 <+bridge> [ddnet] <deen> oh wait
+16:28 <+bridge> [ddnet] <deen> we only create borderless window on mac, that seems wrong
+16:34 <+bridge> [ddnet] <Pure_luck> No, in linux borderless windows works fine. It's just it ignores the setting on load.
+16:34 <+bridge> [ddnet] <Pure_luck> I mean it loads setting in UI but doesn't apply it to the game window @deen
+16:35 <+bridge> [ddnet] <Pure_luck> If uncheck/check it after load it applies.
+16:36 <+bridge> [ddnet] <Jupstar ✪> yeah bcs its only ignored when initialized
+16:36 <+bridge> [ddnet] <Pure_luck> Exactly. Please don't remove borderless windows from linux build 😅
+16:36 <+bridge> [ddnet] <Jupstar ✪> he did the opposite
+16:36 <+bridge> [ddnet] <Pure_luck> I cannot use full-sized as they give me more problems.
+16:36 <+bridge> [ddnet] <Jupstar ✪> he added it again
+16:37 <+bridge> [ddnet] <Pure_luck> Nice, thanks for adding it
+16:37 <+bridge> [ddnet] <Pure_luck> So... please leave borderless windows as it is. I will just silently leave 😅 no need to remove it.
+16:38 <+bridge> [ddnet] <Pure_luck> I will tolerate this small bug. k thanks bye
+16:38 <+bridge> [ddnet] <Jupstar ✪> ?
+16:38 <+bridge> [ddnet] <Pure_luck> As I understand you were going to remove borderless window functionality from linux build.
+16:38 <+bridge> [ddnet] <Pure_luck> Please don't.
+16:38 <+bridge> [ddnet] <Jupstar ✪> dude
+16:39 <+bridge> [ddnet] <Jupstar ✪> read my sentences carefully
+16:39 <+bridge> [ddnet] <Pure_luck> i don't know who did the oppisite and what. Still don't get it
+16:40 <+bridge> [ddnet] <Jupstar ✪> see the github popup xD
+16:40 <+bridge> [ddnet] <Pure_luck> ah... my brains filters github popups
+16:40 <+bridge> [ddnet] <Pure_luck> thanks!
+17:04 <+bridge> [ddnet] <heinrich5991> > if unsigned underflows u are fucked
+17:04 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ if you use something to index into an array, it doesn't really matter whether it's an unsigned or not, right?
+17:04 <+bridge> [ddnet] <heinrich5991> I think -1 and MAX_INT behave the same for accidental out of bounds reads/writes
+17:04 <+bridge> [ddnet] <heinrich5991> MAX_UINT*
+17:05 <+bridge> [ddnet] <heinrich5991> they both access the array element before the first one
+17:05 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ what do you think about blacklisting opengl drivers like chromium does? https://discordapp.com/channels/252358080522747904/293493549758939136/764996392300707851
+17:07 <+bridge> [ddnet] <Learath2> Are you sure? MAX_UINT would probably go over
+17:07 <+bridge> [ddnet] <Learath2> Ah, array indexes are signed aren't they
+17:08 <+bridge> [ddnet] <Learath2> Actually not really sure, the standard seems to just say "integral type"
+17:09 <+bridge> [ddnet] <Jupstar ✪> c style arrays should be ptrdiff
+17:10 <+bridge> [ddnet] <Jupstar ✪> @heinrich5991 i only mean, that -1 might not crash while 2^64 will crash for sure
+17:10 <+bridge> [ddnet] <Jupstar ✪> @heinrich5991 generally ok, but i dunno if we even require this anymore, the fallback catches everything rn i think
+17:11 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ why will 2^64 crash for sure?
+17:12 <+bridge> [ddnet] <heinrich5991> 2^64-1 will access the previous array elemetn the same way as -1 as far as I can tlel
+17:12 <+bridge> [ddnet] <Jupstar ✪> mhh yeah converted to ptrdiff probs
+17:12 <+bridge> [ddnet] <Jupstar ✪> tho, e.g. for iterating
+17:12 <+bridge> [ddnet] <Jupstar ✪> it will crash for sure xd
+17:13 <+bridge> [ddnet] <heinrich5991> but for iterating, -1 actually does the sane thing
+17:13 <+bridge> [ddnet] <Jupstar ✪> while with signed it might not even enter the loop
+17:13 <+bridge> [ddnet] <heinrich5991> `int i = 0; i < -1; i++`
+17:13 <+bridge> [ddnet] <Jupstar ✪> yes
+17:13 <+bridge> [ddnet] <Jupstar ✪> thats bad, might create undesired things
+17:14 <+bridge> [ddnet] <heinrich5991> ok fair
+17:14 <+bridge> [ddnet] <heinrich5991> but it's unfair to say that the problems in teeworlds come from signed integers
+17:14 <+bridge> [ddnet] <Jupstar ✪> not directly
+17:14 <+bridge> [ddnet] <Jupstar ✪> but i still would use int for alot of stuff
+17:15 <+bridge> [ddnet] <heinrich5991> the problems in teeworlds come from missing bounds checking or from C/C++'s problems of not automatically bounds checking
+17:15 <+bridge> [ddnet] <Jupstar ✪> thats fair too
+17:15 <+bridge> [ddnet] <Jupstar ✪> ofc rust would be nicer in general, but the question is, how would other devs react to that
+17:16 <+bridge> [ddnet] <Jupstar ✪> or better: with infinite time, c is never better than rust
+17:18 <+bridge> [ddnet] <Jupstar ✪> and yeah, scalability is something else too
+17:18 <+bridge> [ddnet] <Jupstar ✪> i know it might sound crazy to have support for 16k textures, but we laugh about this now, not in 20years xd
+17:19 <+bridge> [ddnet] <heinrich5991> 😄
+17:22 <+bridge> [ddnet] <Learath2> Most any compiler I know of will catch the infinite iteration because unsigned btw
+17:23 <+bridge> [ddnet] <Learath2> gcc, clang, icc and msvc all have warnings about it
+17:23 <+bridge> [ddnet] <Jupstar ✪> it cannot predict user input
+17:23 <+bridge> [ddnet] <Jupstar ✪> load a tw map, make the camera go somewhere insane
+17:23 <+bridge> [ddnet] <Jupstar ✪> smth like this
+17:23 <+bridge> [ddnet] <Learath2> I'm sure there are compilers/settings that can make this even more paranoid to cover for the user input case
+17:23 <+bridge> [ddnet] <Jupstar ✪> or negative zoom lvl
+17:24 <+bridge> [ddnet] <Jupstar ✪> smth that isnt really expected
+17:24 <+bridge> [ddnet] <Learath2> gcc already does a lot with trying to predict the range of values a variable can ever be
+17:24 <+bridge> [ddnet] <Jupstar ✪> well we had a bug
+17:24 <+bridge> [ddnet] <Jupstar ✪> with the camera going outside the kill borders
+17:24 <+bridge> [ddnet] <Learath2> Avoiding a data type because people used it wrong back when gcc4 was current is a bad idea imho
+17:25 <+bridge> [ddnet] <Jupstar ✪> https://github.com/ddnet/ddnet/pull/2768
+17:25 <+bridge> [ddnet] <Jupstar ✪> we caught it bcs it uses unsigned, and crashed bannzays game
+17:25 <+bridge> [ddnet] <Jupstar ✪> ofc this wouldnt be insanly critical with signed
+17:25 <+bridge> [ddnet] <Jupstar ✪> it would just not render something at all
+17:25 <+bridge> [ddnet] <Ryozuki> looks like learath still havent seen jupstar ui pr :justatest:
+17:25 <+bridge> [ddnet] <Ryozuki> war incoming
+17:26 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki i made it as simple as the tw gui btw
+17:26 <+bridge> [ddnet] <Learath2> What is unsigned there anyway? `m_Zoom`?
+17:26 <+bridge> [ddnet] <Jupstar ✪> i havent added something insane, and the old ui is still in tact
+17:26 <+bridge> [ddnet] <Ryozuki> yeah i know
+17:26 <+bridge> [ddnet] <Ryozuki> im ok with it
+17:26 <+bridge> [ddnet] <Jupstar ✪> @Learath2 it renders a unsigned amount of tiles
+17:26 <+bridge> [ddnet] <Learath2> Ah
+17:27 <+bridge> [ddnet] <Learath2> How did it crash the game anyway?
+17:28 <+bridge> [ddnet] <Jupstar ✪> mhh, wait gonna look into the code
+17:28 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/pull/3076/commits/f0807845e8ee762182a3085bc752992a2dbd5916
+17:28 <+bridge> [ddnet] <Ryozuki> can this for some magical reason
+17:28 <+bridge> [ddnet] <Ryozuki> change game physics?
+17:28 <+bridge> [ddnet] <Ryozuki> :justatest:
+17:29 <+bridge> [ddnet] <Ryozuki> i wish github links didnt include a fcking massive image embedded everytime
+17:29 <+bridge> [ddnet] <Ryozuki> so annoying
+17:29 <+bridge> [ddnet] <Learath2> @Ryozuki I welcome a UI cleanup, it's been in a horrible state for so long
+17:29 <+bridge> [ddnet] <Learath2> Though I am a little concerned about a capturing lambda in the hot path 😛
+17:30 <+bridge> [ddnet] <Ryozuki> yeah i also thought about that
+17:30 <+bridge> [ddnet] <Ryozuki> is it me or github also shows the tabs however it wants?
+17:30 <+bridge> [ddnet] <Learath2> Compilers are actually great with them nowadays, gone are the early days of wasteful captures but still, needs investigation and thorough review
+17:31 <+bridge> [ddnet] <Ryozuki> ah
+17:31 <+bridge> [ddnet] <Ryozuki> its dark theme fault
+17:31 <+bridge> [ddnet] <Ryozuki> damn
+17:31 <+bridge> [ddnet] <Learath2> @Ryozuki github does that, you can set it to a value with the dark theme though
+17:32 <+bridge> [ddnet] <Jupstar ✪> in `RenderBorderTileEmulation`
+17:32 <+bridge> [ddnet] <Jupstar ✪> i implemented the bordertiles in a loop, just like a opengl driver would do it, so it creates a specific amount of tiles to render
+17:32 <+bridge> [ddnet] <Ryozuki> > @Ryozuki github does that, you can set it to a value with the dark theme though
+17:32 <+bridge> [ddnet] <Ryozuki> @Learath2 where
+17:33 <+bridge> [ddnet] <Learath2> How did you install the theme? Stylish?
+17:33 <+bridge> [ddnet] <Ryozuki> stylus
+17:33 <+bridge> [ddnet] <TsFreddie 🌈> https://cdn.discordapp.com/attachments/293493549758939136/765235680443891742/unknown.png
+17:33 <+bridge> [ddnet] <Jupstar ✪> u in vs?
+17:33 <+bridge> [ddnet] <Jupstar ✪> debug mode?
+17:33 <+bridge> [ddnet] <Learath2> @Ryozuki
+17:33 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/765235772667854898/Screenshot_2020-10-12_at_17.33.29.png
+17:33 <+bridge> [ddnet] <TsFreddie 🌈> this happens a lot in china already, not a good sign.
+17:33 <+bridge> [ddnet] <Jupstar ✪> oh
+17:34 <+bridge> [ddnet] <Jupstar ✪> thought its just curl does support https xD
+17:34 <+bridge> [ddnet] <Ryozuki> ohhh
+17:34 <+bridge> [ddnet] <Ryozuki> it has customization
+17:34 <+bridge> [ddnet] <Ryozuki> damn this is good
+17:34 <+bridge> [ddnet] <Jupstar ✪> happened to me in windows debug mode
+17:34 <+bridge> [ddnet] <Learath2> I assumed cloudflare would mitigate the effects of the great firewall 😦
+17:34 <+bridge> [ddnet] <Ryozuki> maybe add a mirror in a china server
+17:34 <+bridge> [ddnet] <TsFreddie 🌈> i think cloudflare are heavily restricted already
+17:35 <+bridge> [ddnet] <Learath2> I'm not really very familiar with how one routes based on geolocation
+17:35 <+bridge> [ddnet] <heinrich5991> when that happens, can you ask them to go to the URL manually?
+17:35 <+bridge> [ddnet] <heinrich5991> in a browser
+17:35 <+bridge> [ddnet] <TsFreddie 🌈> which one
+17:35 <+bridge> [ddnet] <TsFreddie 🌈> i don't know the full url  😄
+17:35 <+bridge> [ddnet] <Learath2> https://info2.ddnet.tw/info
+17:35 <+bridge> [ddnet] <TsFreddie 🌈> also does the client retry?
+17:36 <+bridge> [ddnet] <Learath2> I think it does when you refresh, not sure though
+17:36 <+bridge> [ddnet] <TsFreddie 🌈> might just be outbound QoS by ISPs at high stress.
+17:37 <+bridge> [ddnet] <TsFreddie 🌈> but it is 11pm so might not be. anything outbound is slow between 6pm - 9pm i think
+17:38 <+bridge> [ddnet] <heinrich5991> what QoS outright blocks the request to a HTTPS page with low traffic?
+17:38 <+bridge> [ddnet] <TsFreddie 🌈> by outbound i mean out of china
+17:38 <+bridge> [ddnet] <heinrich5991> does cf not have servers in china?
+17:38 <+bridge> [ddnet] <TsFreddie 🌈> :thonk: they might dropped it, not blocked completely
+17:38 <+bridge> [ddnet] <heinrich5991> tcp retries if packets are dropped
+17:38 <+bridge> [ddnet] <TsFreddie 🌈> then i have no idea
+17:38 <+bridge> [ddnet] <TsFreddie 🌈> :doggo_lol:
+17:39 <+bridge> [ddnet] <TsFreddie 🌈> they didn't respond, it might be fixed itself
+17:39 <+bridge> [ddnet] <Ryozuki> > I'm not really very familiar with how one routes based on geolocation
+17:39 <+bridge> [ddnet] <Ryozuki> @Learath2 some months ago i got millions of traffic from china to my website and i had to geoban them
+17:39 <+bridge> [ddnet] <heinrich5991> https://www.cloudflare.com/network/
+17:39 <+bridge> [ddnet] <Ryozuki> :justatest:
+17:39 <+bridge> [ddnet] <heinrich5991> seems like it does have servers in china
+17:40 <+bridge> [ddnet] <TsFreddie 🌈> i think china servers are handled by Baidu, don't know how it works. let me check.
+17:40 <+bridge> [ddnet] <Learath2> @Ryozuki in this case we'd need to route before it hits our servers, that sounds impossible
+17:40 <+bridge> [ddnet] <Learath2> I don't really know how CDNs do it, the clients don't have a way of choosing the closest server
+17:41 <+bridge> [ddnet] <TsFreddie 🌈> yeah, you need to call cf as a enterpirse customer to use china server
+17:41 <+bridge> [ddnet] <TsFreddie 🌈> https://www.cloudflare.com/network/china/
+17:41 <+bridge> [ddnet] <Learath2> > An ICP license is issued by China's Ministry of Industry and Information Technology (MIIT)
+17:41 <+bridge> [ddnet] <TsFreddie 🌈> oof, plus you need a ICP
+17:41 <+bridge> [ddnet] <Learath2> Lol
+17:41 <+bridge> [ddnet] <TsFreddie 🌈> i have one tho
+17:42 <+bridge> [ddnet] <TsFreddie 🌈> it is outdated, but i can renew it
+17:42 <+bridge> [ddnet] <Learath2> You are a licensed internet content provider in china?
+17:42 <+bridge> [ddnet] <Pure_luck> Guys, how do you fight spam on your forum? Do you have some kind of extensions or automatic solution or it's hand labor of post-moderation.
+17:42 <+bridge> [ddnet] <TsFreddie 🌈> ye
+17:43 <+bridge> [ddnet] <Ryozuki> i combat it by not having a forum
+17:43 <+bridge> [ddnet] <Ryozuki> :greenthing:
+17:43 <+bridge> [ddnet] <TsFreddie 🌈> it is content provider, not internet provider, i have it for teeworlds.cn
+17:43 <+bridge> [ddnet] <Learath2> > You can choose to place your private SSL keys in our China data centers
+17:43 <+bridge> [ddnet] <Learath2> Guess what will happen to your private keys 😉 <a:baidu_wink:734775918064828437> 😉
+17:43 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+17:43 <+bridge> [ddnet] <TsFreddie 🌈> :thonk:
+17:43 <+bridge> [ddnet] <Learath2> @Pure_luck Premoderation on registration
+17:43 <+bridge> [ddnet] <Ryozuki> but thats since the forum is not active
+17:44 <+bridge> [ddnet] <Ryozuki> as much*
+17:44 <+bridge> [ddnet] <heinrich5991> cloudflare business is 200$/m
+17:44 <+bridge> [ddnet] <TsFreddie 🌈> oof
+17:44 <+bridge> [ddnet] <heinrich5991> cloudflare enterprise is contact us/m
+17:44 <+bridge> [ddnet] <heinrich5991> probably more than business
+17:44 <+bridge> [ddnet] <TsFreddie 🌈> tbh i can try mirroring some of ddnet on teeworlds.cn if i get my shit together
+17:44 <+bridge> [ddnet] <Learath2> Contact Us/m is usually businessspeak for way out of your budget unless you have investors
+17:45 <+bridge> [ddnet] <heinrich5991> @TsFreddie 🌈 mirroring isn't really possible, it's dynamic content
+17:45 <+bridge> [ddnet] <heinrich5991> I guess you could mirror the static content and use the dynamic one if it's contactable
+17:46 <+bridge> [ddnet] <Learath2> If ddnet was popular enough I bet they would let us have it for free as a PR stunt. "Helping the open source community"
+17:46 <+bridge> [ddnet] <Pure_luck> thanks, @Learath2
+17:46 <+bridge> [ddnet] <heinrich5991> not sure
+17:46 <+bridge> [ddnet] <heinrich5991> they quoted us 5k$/m for game ddos protection IIRC
+17:46 <+bridge> [ddnet] <TsFreddie 🌈> :thonk: info.json is probably fairly static, maybe a short cache
+17:46 <+bridge> [ddnet] <heinrich5991> no
+17:46 <+bridge> [ddnet] <heinrich5991> it's different per player
+17:47 <+bridge> [ddnet] <heinrich5991> it contains your finished maps
+17:47 <+bridge> [ddnet] <heinrich5991> so basically no way to cache
+17:47 <+bridge> [ddnet] <TsFreddie 🌈> rip
+17:47 <+bridge> [ddnet] <Learath2> @heinrich5991 we just don't give them enough exposure at this size. It'd be a waste to help us for cheap
+17:47 <+bridge> [ddnet] <heinrich5991> ah
+17:47 <+bridge> [ddnet] <TsFreddie 🌈> :thonk: then..
+17:47 <+bridge> [ddnet] <TsFreddie 🌈> i'll let them restart the client then, that worked so far
+17:47 <+bridge> [ddnet] <TsFreddie 🌈> lol
+17:47 <+bridge> [ddnet] <TsFreddie 🌈> i'll let tell them to restart the client then, that worked so far
+17:48 <+bridge> [ddnet] <Learath2> You see how they instantly took in brian krebs for free after akamai dropped him, who were carrying him for free too?
+17:48 <+bridge> [ddnet] <Learath2> It's all about exposure for these businessppl
+17:49 <+bridge> [ddnet] <TsFreddie 🌈> :thonk: or maybe made a warning a banner with a retry button instead of a full-on popup.
+17:49 <+bridge> [ddnet] <TsFreddie 🌈> it scares ppl i think
+17:49 <+bridge> [ddnet] <TsFreddie 🌈> and it is red too
+17:49 <+bridge> [ddnet] <Ryozuki> is it bad to be red
+17:49 <+bridge> [ddnet] <Learath2> We could attach a severity to the warnings and color the popup accordingly
+17:49 <+bridge> [ddnet] <Ryozuki> arent chinese very red
+17:49 <+bridge> [ddnet] <Ryozuki> the flag
+17:49 <+bridge> [ddnet] <Ryozuki> etc
+17:49 <+bridge> [ddnet] <Learath2> ddnet-info.json failing to download is definitely not as fatal as red warning would imply 😄
+17:49 <+bridge> [ddnet] <TsFreddie 🌈> :thonk: but you don't stare at the flag every day on your pc
+17:50 <+bridge> [ddnet] <Ryozuki> why not
+17:50 <+bridge> [ddnet] <TsFreddie 🌈> why would you
+17:50 <+bridge> [ddnet] <Learath2> @TsFreddie 🌈 they can just refresh on the ddnet tab btw, that should retry getting ddnet-info.json
+17:50 <+bridge> [ddnet] <TsFreddie 🌈> i see
+17:50 <+bridge> [ddnet] <Ryozuki> :troll:
+17:50 <+bridge> [ddnet] <Ryozuki> cuz u love ur country
+17:50 <+bridge> [ddnet] <TsFreddie 🌈> but still, probably change it to some other color
+17:50 <+bridge> [ddnet] <TsFreddie 🌈> :doggo_lol:
+17:50 <+bridge> [ddnet] <Learath2> Yeah I'll add it to my TODO
+17:50 <+bridge> [ddnet] <TsFreddie 🌈> and possibly no popup
+17:51 <+bridge> [ddnet] <Learath2> No popup would make it a tad hard to indicate the warning in a generic way
+17:51 <+bridge> [ddnet] <TsFreddie 🌈> true.
+17:51 <+bridge> [ddnet] <Learath2> Can you create an issue about it so I don't forget and someone else can take a whack at it if they want to?
+17:51 <+bridge> [ddnet] <TsFreddie 🌈> :saddog: or you can make the refresh button red or something
+17:52 <+bridge> [ddnet] <Learath2> I thought the exact same thing, but keeping that generic is quite hard
+17:53 <+bridge> [ddnet] <Learath2> I'd need to check the warnings list before rendering any component
+17:54 <+bridge> [ddnet] <Learath2> Since components don't really exist until rendered I don't see any other way
+18:00 <+bridge> [ddnet] <TsFreddie 🌈> is github really slow right now or it is just china
+18:00 <+bridge> [ddnet] <heinrich5991> works for me
+18:01 <+bridge> [ddnet] <Ryozuki> works for me
+18:01 <+bridge> [ddnet] <TsFreddie 🌈> feelsbadman
+18:01 <+bridge> [ddnet] <Ryozuki> feelsgoodman
+18:01 <+bridge> [ddnet] <TsFreddie 🌈> i have a proxy, but both proxy and direct connection is pretty slow
+18:01 <+bridge> [ddnet] <TsFreddie 🌈> also this
+18:01 <+bridge> [ddnet] <TsFreddie 🌈> https://cdn.discordapp.com/attachments/293493549758939136/765242768238313473/unknown.png
+18:01 <+bridge> [ddnet] <Ryozuki> :monkaS:
+18:02 <+bridge> [ddnet] <TsFreddie 🌈> it does look like a avatar ngl
+18:05 <+bridge> [ddnet] <TsFreddie 🌈> nvm, github isn't going through my proxy because it is technically not blocked
+18:05 <+bridge> [ddnet] <TsFreddie 🌈> it works now. thx
+18:27 <+bridge> [ddnet] <heinrich5991> @Moderator Robert blocking on ger1:8312
+18:52 <+bridge> [ddnet] <Ryozuki> https://releases.llvm.org/11.0.0/tools/clang/docs/ReleaseNotes.html
+18:52 <+bridge> [ddnet] <Ryozuki> clang 11.0 out
+18:52 <+bridge> [ddnet] <Ryozuki> :poggers:
+18:53 <+bridge> [ddnet] <Ryozuki> > clang’s AST now improves support for representing broken C++ code. This improves the quality of subsequent diagnostics after an error is encountered. It also exposes more information to tools like clang-tidy and clangd that consume clang’s AST, allowing them to be more accurate on broken code.
+18:54 <+bridge> [ddnet] <Jupstar ✪> i have clang 12
+18:54 <+bridge> [ddnet] <Ryozuki> what
+18:54 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ how x
+18:54 <+bridge> [ddnet] <Ryozuki> d
+18:54 <+bridge> [ddnet] <Jupstar ✪> https://apt.llvm.org/
+18:54 <+bridge> [ddnet] <Jupstar ✪> u can add devel source
+18:55 <+bridge> [ddnet] <Ryozuki> ah 12 is in development
+18:55 <+bridge> [ddnet] <Jupstar ✪> yes xd
+18:55 <+bridge> [ddnet] <Ryozuki> i use arch btw
+18:55 <+bridge> [ddnet] <Ryozuki> :lol:
+18:55 <+bridge> [ddnet] <Jupstar ✪> does arch not have dpkg and apt ?
+18:55 <+bridge> [ddnet] <Ryozuki> lmao no
+18:55 <+bridge> [ddnet] <Ryozuki> it has pacman
+18:56 <+bridge> [ddnet] <Jupstar ✪> i mean optionally
+18:56 <+bridge> [ddnet] <Ryozuki> and AUR helpers
+18:56 <+bridge> [ddnet] <Ryozuki> u can install that version im sure
+18:56 <+bridge> [ddnet] <Ryozuki> with clang-git pkg or smth like that
+18:56 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/765256575425708072/unknown.png
+18:56 <+bridge> [ddnet] <Ryozuki> see
+18:57 <+bridge> [ddnet] <Jupstar ✪> ez
+18:57 <+bridge> [ddnet] <Ryozuki> but why u want the dev version
+18:57 <+bridge> [ddnet] <Ryozuki> do u test new llvm stuff?
+18:57 <+bridge> [ddnet] <Ryozuki> xD
+18:58 <+bridge> [ddnet] <Jupstar ✪> well c++20 features, and also i had a bug some day and i was annoyed xd
+18:58 <+bridge> [ddnet] <Jupstar ✪> since then i didnt deactivated it xd
+18:58 <+bridge> [ddnet] <Ryozuki> https://clang.llvm.org/cxx_status.html
+18:59 <+bridge> [ddnet] <Ryozuki> ah
+19:14 <+bridge> [ddnet] <Jupstar ✪> @heinrich5991 u obviously know that, but, if you not use size_t(on 64bit) there is ofc still a case where unsigned int is different
+19:14 <+bridge> [ddnet] <Jupstar ✪> 
+19:14 <+bridge> [ddnet] <Jupstar ✪> but to be fair, i'd probs use size_t most of the time when i work with ptrs directly, and then this ofc is equal to -1
+19:14 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/765261212509929503/unknown.png
+19:22 <+bridge> [ddnet] <heinrich5991> yea, with 32bit integers on 64bit platforms, -1 as an index is different between signed and unsigned
+19:24 <+bridge> [ddnet] <Jupstar ✪> makes me wonder if a 128bit compiler(emulated) would find some very rare bugs 😄
+20:07 <+bridge> [ddnet] <mokielBRKS> Alguém BR
+22:26 <+bridge> [ddnet] <Jupstar ✪> @deen u dont know the shotgun bug? XD
+22:26 <+bridge> [ddnet] <deen> no
+22:26 <+bridge> [ddnet] <Jupstar ✪> thats funny
+22:26 <+bridge> [ddnet] <Jupstar ✪> bcs its used in brainduck i think
+22:26 <+bridge> [ddnet] <deen> there are no physics bugs
+22:26 <+bridge> [ddnet] <Jupstar ✪> xDD
+22:26 <+bridge> [ddnet] <deen> everything is as it is supposed to be
+22:27 <+bridge> [ddnet] <Jupstar ✪> tho we could think about fixing it like heinrich did with grenade
+22:36 <+bridge> [ddnet] <Ryozuki> if the shotgun bug is the one where u get speed to one side with spec
+22:36 <+bridge> [ddnet] <Ryozuki> or when u go one direction and shot a side
+22:37 <+bridge> [ddnet] <Ryozuki> they are used in maps
+22:37 <+bridge> [ddnet] <Ryozuki> also shotgun bugs are fun
+22:37 <+bridge> [ddnet] <Ryozuki> pls dont remove them
+22:39 <+bridge> [ddnet] <Ryozuki> <https://youtu.be/aYCpB0v4Mcg?t=97>
+22:39 <+bridge> [ddnet] <Ryozuki> fun
+22:42 <+bridge> [ddnet] <Jupstar ✪> hes trolling xd
+22:42 <+bridge> [ddnet] <Jupstar ✪> deen always trolls xD, he just makes it so perfect that u think hes not
+23:08 <+ChillerDragon> deen is a unkown troll
+23:08 <+ChillerDragon> omg a typo
+23:12 <+ChillerDragon> and btw stop "fixing" features
+23:12 <+ChillerDragon> whats next fixing the wallhammer?
+23:14 <+bridge> [ddnet] <Jupstar ✪> NaN = not a number, so, basically this is non existing
+23:14 <+bridge> [ddnet] <Jupstar ✪> it never existed
+23:14 <+bridge> [ddnet] <Jupstar ✪> what shotgun bug?
+23:17 <+ChillerDragon> @noby im legit and no :robot: confirmed by duck.com https://zillyhuhn.com/cs/.1602537337.png
+23:17 <+bridge> [ddnet] <noby> kclient has zoom and tracers and radar
+23:17 <+bridge> [ddnet] <noby> so ban u
+23:17 <+ChillerDragon> oof
+23:18 <+bridge> [ddnet] <noby> chillerbot-zz.exe
+23:18 <+bridge> [ddnet] <noby> :kek:
+23:26 <+ChillerDragon> who owns http://rafabrony.com/ ?
+23:26 <+ChillerDragon> https://zillyhuhn.com/cs/.1602537943.png
+23:27 <+ChillerDragon> similar sites ranking to teeworlds.com lol https://zillyhuhn.com/cs/.1602537961.png
+23:27 <+bridge> [ddnet] <plsplsplslol> whats tracers and radar
+23:27 <+ChillerDragon> https://www.alexa.com/siteinfo/teeworlds.com

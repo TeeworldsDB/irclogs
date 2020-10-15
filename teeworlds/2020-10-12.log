@@ -1,0 +1,76 @@
+10:28 < bridge> [teeworlds] <fokkonaut> status.tw bad gateway
+10:29 < bridge> [teeworlds] <fokkonaut> why does status.tw have so many errors, like its down alot :/
+13:34 < bridge> [teeworlds] <fokkonaut> Hey, I am experiencing a weird bug in my mod, I just updated to vanilla master and now when I kick someone it doesnt kick the player in most cases, but it makes my client unable to use any rcon cmds, but i can still read. also after 10 seconds i mostly get the not acked for 10 seconds kcik, until that i can still move around and everything is normal otherwise
+13:34 < bridge> [teeworlds] <fokkonaut> if i add a reason to the kick, like "kick 1 hello" it is worse somehow, and with a space inside of the reason its the worst case
+13:34 < bridge> [teeworlds] <fokkonaut> i have no idea what that could mean, does anyone have an idea?
+13:36 < bridge> [teeworlds] <fokkonaut> can it be due to the new `str_utf8_copy_num`?
+13:41 < bridge> [teeworlds] <fokkonaut> nah, doesnt make sense
+13:41 < bridge> [teeworlds] <fokkonaut> But I am really lost with this issue, no idea what can be the cause
+13:53 < bridge> [teeworlds] <fokkonaut> https://github.com/fokkonaut/F-DDrace/commit/c68273c10d137f32ef15dfb193fcfb31f50ebe15
+13:53 < bridge> [teeworlds] <fokkonaut> this is my merge commit, including fixed conflicts
+13:56 < bridge> [teeworlds] <Learath2> I changed a tad bit in the console parsing
+13:56 < bridge> [teeworlds] <Learath2> Maybe you mistranscribed it?
+13:56 < bridge> [teeworlds] <fokkonaut> what do you mean?
+13:56 < bridge> [teeworlds] <Learath2> A merge mistake?
+13:56 < bridge> [teeworlds] <fokkonaut> I have no idea
+13:56 < bridge> [teeworlds] <fokkonaut> But it appeared after the merge
+13:57 < bridge> [teeworlds] <Learath2> Unlike me, you can actually get an idea, by debugging you know :D
+13:57 < bridge> [teeworlds] <fokkonaut> I tried, but I cant debug it locally
+13:57 < bridge> [teeworlds] <fokkonaut> It only happens on the VPS of chiller
+13:58 < bridge> [teeworlds] <fokkonaut> Its not like I didnt try
+13:58 < bridge> [teeworlds] <Learath2> Ah, some undefined behaviour
+13:58 < bridge> [teeworlds] <Learath2> Well debug it on the VPS than? If it always happens it should be easy
+13:58 < bridge> [teeworlds] <fokkonaut> how?
+13:58 < bridge> [teeworlds] <fokkonaut> its such a weird situation
+13:59 < bridge> [teeworlds] <Learath2> Well you have a clue, it happens when you use the rcon command. First I would check if it's only that specific rcon command that makes this happen, or all commands
+13:59 < bridge> [teeworlds] <fokkonaut> only that
+13:59 < bridge> [teeworlds] <fokkonaut> and only if i add a reason to the kick
+13:59 < bridge> [teeworlds] <fokkonaut> no wait
+13:59 < bridge> [teeworlds] <fokkonaut> I think also sometimes without
+14:00 < bridge> [teeworlds] <Learath2> Actually even before that, since I know it only happens on one server, I'd suspect undefined behaviour. So try running the server with valgrind. If that's not enough try ubsan
+14:00 < bridge> [teeworlds] <fokkonaut> its random a bit, a reason like "gggggg" always works, a reason like "Invalid" doesnt
+14:01 < bridge> [teeworlds] <Learath2> Random issues like this appear on valgrind or ubsan 8 times out of 10
+15:58 < bridge> [teeworlds] <fokkonaut> @Learath2 problem only occurs on that specific server... not on another test server or so
+16:00 < bridge> [teeworlds] <Learath2> You'll just have to test on that server
+16:01 < bridge> [teeworlds] <fokkonaut> weird, if i use "invalid" or "valid" as string for the reason it always glithes out, otherwise it doesnt
+16:05 < bridge> [teeworlds] <fokkonaut> well, i have a valgrind now, but from the server where the bug doesnt happen
+16:05 < bridge> [teeworlds] <fokkonaut> does that help me in any way?
+16:06 < bridge> [teeworlds] <Stiopa> Can u say kick in chat?
+16:06 < bridge> [teeworlds] <fokkonaut> ye ofc
+16:07 < bridge> [teeworlds] <fokkonaut> its not about the kick command, somehow about the reason tho
+16:07 < bridge> [teeworlds] <fokkonaut> i can also just enter "kick" in f2, without problems, then the syntax error appears of course
+16:07 < bridge> [teeworlds] <fokkonaut> its just weird
+16:11 < bridge> [teeworlds] <fokkonaut> https://streamable.com/khft4x
+16:11 < bridge> [teeworlds] <fokkonaut> 
+16:11 < bridge> [teeworlds] <fokkonaut> as you can see, i can not kill anymore (by bind), send emotes, send rcon cmds, i can just read and somehow inputs are working. on my dummy as you can see emotes etc is working. and after 10 secs it says not acked. kicking someone without a reason worked well, and if i would have choosen another reason like "123" or something it would work too. its very weird, but if i write "invalid" or "invalid client" as reason it gets buggy aga
+16:12 < bridge> [teeworlds] <fokkonaut> i wonder where the fuck this hangs? its with every client, so definitely nota client bug. But it seems like the message just doesnt arrive correctly at the server (?) because as you can see it doesnt kick my dummy and it doesnt give an output
+16:15 < bridge> [teeworlds] <fokkonaut> and it of course doesnt happen locally again... only on the main server
+16:18 < bridge> [teeworlds] <fokkonaut> okay, another interesting fact: if i kick myself with reason "invalid client" or anything that causes the bug usually, i dont get the "you cant kick yourself" message either, so its not about kicking in general, just about the reason or so? not sure...
+16:19 < bridge> [teeworlds] <fokkonaut> LOL, i cant write "invalid client" in chat either... the same effect
+16:19 < bridge> [teeworlds] <fokkonaut> wtffffffffffffffffffffffffffffffffffff
+16:20 < bridge> [teeworlds] <fokkonaut> how, just how?!
+16:22 < bridge> [teeworlds] <fokkonaut> https://streamable.com/a591e2
+16:46 < bridge> [teeworlds] <Learath2> @fokkonaut valgrind on another box would work too, just do what would usually make the bug happen and check the output
+16:47 < bridge> [teeworlds] <Learath2> undefined behaviour is undefined everywhere, it's just that some systems or builds act in a saner way
+16:47 < bridge> [teeworlds] <fokkonaut> mh, okay, but in this valgrind i cant find any lines
+16:47 < bridge> [teeworlds] <fokkonaut> just function names
+16:49 < bridge> [teeworlds] <Learath2> eh?
+16:49 < bridge> [teeworlds] <Learath2> Even RelWithDebInfo should get you line numbers
+16:50 < bridge> [teeworlds] <fokkonaut> @ChillerDragon
+16:50 < bridge> [teeworlds] <fokkonaut> i have no clue about this :D
+16:50 < bridge> [teeworlds] <Learath2> (not very accurate ones, I'd really stick to debug builds, it's less likely that a compiler optimization creates the UB, which would be a bad compiler bug)
+17:38 < ChillerDragon> its compiled in Debug
+21:53 < bridge> [teeworlds] <fokkonaut> wow. it seems like the server doesnt like the string "vali"...
+21:53 < bridge> [teeworlds] <fokkonaut> if i enter that string in chat, in rcon, or even before connecting - as my name - it will be glitchy
+21:54 < bridge> [teeworlds] <fokkonaut> if i connect with name valid, or invalid or vali
+21:54 < bridge> [teeworlds] <fokkonaut> i cant even connect
+21:54 < bridge> [teeworlds] <fokkonaut> i am just confused
+21:55 < bridge> [teeworlds] <fokkonaut> i understand nothing, seems like it was like that before the merge, i reverted all the utf8 stuff by oy because that was the only thing changed in the server, and it still happened
+21:55 < bridge> [teeworlds] <fokkonaut> why would it be like "oh, the string vali, nah im not gonna accept that"
+21:55 < bridge> [teeworlds] <fokkonaut> the server can return "invalid account" for example without problems tho
+21:56 < bridge> [teeworlds] <fokkonaut> i hope this is a troll... wtf
+22:17 < bridge> [teeworlds] <jxsl13> @ChillerDragon is that a fake of yours on zCatch right now with Syn clan?
+23:05 < ChillerDragon> its not me but might be the real ChillerDragon @jxsl13 :p
+23:07 < ChillerDragon> For updates to my clantag watch this github repo https://github.com/ChillerTW/GitSettings/blob/master/swap_settings/07/settings_zilly.cfg#L46 I usually do not edit tw settings without a git push
+23:10 < bridge> [teeworlds] <jxsl13> there is a real Chillerdragon, what country is he from Oo?
+23:13 < ChillerDragon> u mean his flag? He speaks ger as far as i remember
