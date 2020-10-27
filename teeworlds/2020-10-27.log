@@ -1,0 +1,149 @@
+00:08 < bridge> [teeworlds] <heinrich5991> ChillerDragon: you can use the packet_decode from libtw2 tools
+00:11 < ChillerDragon> im not better at reading rust than c
+00:11 < ChillerDragon> or does it help me reading the packet when run?
+00:12 < bridge> [teeworlds] <heinrich5991> it outputs the packet
+00:12 < bridge> [teeworlds] <heinrich5991> in human readable form
+00:12 < ChillerDragon> how do i input it tho
+00:12 < bridge> [teeworlds] <heinrich5991> the input is a bit excentric though
+00:12 < ChillerDragon> stdin?
+00:12 < bridge> [teeworlds] <heinrich5991> need to prefix |
+00:12 < ChillerDragon> hex?
+00:12 < ChillerDragon> raw?
+00:12 < bridge> [teeworlds] <heinrich5991> and suffix | after the hex
+00:12 < bridge> [teeworlds] <heinrich5991> yes
+00:12 < bridge> [teeworlds] <heinrich5991> hex
+00:12 < ChillerDragon> ok
+00:12 < ChillerDragon> sounds good
+00:13 < bridge> [teeworlds] <heinrich5991> oh wait, coming from you it might be a 0.7 packet
+00:13 < bridge> [teeworlds] <heinrich5991> don't have support for that
+00:14 < ChillerDragon> meh
+00:14 < ChillerDragon> i mean cool and all but a bit of a weird tool isnt it?
+00:14 < bridge> [teeworlds] <heinrich5991> wdym?
+00:14 < ChillerDragon> what about a wireshark dissector instead
+00:15 < bridge> [teeworlds] <heinrich5991> I tried doing that afterwards, but my motivation got lost midway
+00:15 < ChillerDragon> meh
+00:15 < ChillerDragon> i really miss a proper dissector for tw
+00:15 < bridge> [teeworlds] <heinrich5991> I think @Learath2 started a packet dissector
+00:15 < ChillerDragon> ye ik
+00:15 < ChillerDragon> but he also does not seem to continue it
+00:16 < bridge> [teeworlds] <heinrich5991> have you tried it? maybe it's at a stage where it's useful to you
+00:16 < ChillerDragon> i messed with fstds c dissector and nheirs lua implementation
+00:16 < ChillerDragon> was not too successful
+00:16 < ChillerDragon> oh wait
+00:17 < ChillerDragon> you are talking about using not implementing?
+00:17 < ChillerDragon> i havent seen learaths dissector
+00:17 < bridge> [teeworlds] <heinrich5991> but it doesn't look like it's able to dissect at a level where you need it
+00:18 < ChillerDragon> it even has a huffman.c that looks promising
+00:19 < ChillerDragon> but heinrich do u know maybe how i can read the packets without a dissector?
+00:19 < ChillerDragon> like at least find out the type
+00:20 < bridge> [teeworlds] <heinrich5991> give the bytes in a usable format please
+00:20 < bridge> [teeworlds] <heinrich5991> maybe base64
+00:20 < ChillerDragon> wot
+00:21 < ChillerDragon> why is hex not useful?
+00:21 < bridge> [teeworlds] <heinrich5991> or hex
+00:21 < bridge> [teeworlds] <heinrich5991> but not an image
+00:21 < ChillerDragon> xd
+00:21 < ChillerDragon> fair
+00:21 < bridge> [teeworlds] <heinrich5991> and preferably only the UDP payload
+00:21 < ChillerDragon> https://paste.zillyhuhn.com/LP
+00:21 < ChillerDragon> oop
+00:22 < ChillerDragon> thats all
+00:22 < ChillerDragon> also including my ip :D
+00:22 < ChillerDragon> idk how to only get udp payload with tcpdump
+00:22 < bridge> [teeworlds] <heinrich5991> you already did that in the original screenshot
+00:22 < ChillerDragon> ikr
+00:22 < bridge> [teeworlds] <heinrich5991> open it in wireshark, I guess
+00:22 < bridge> [teeworlds] <heinrich5991> you can get the udp payload there
+00:22 < ChillerDragon> well
+00:22 < ChillerDragon> ye ik
+00:24 < ChillerDragon> working w gui applications is so annoying no clue how to copy stuff
+00:24 < bridge> [teeworlds] <heinrich5991> try rightclick
+00:25 < ChillerDragon> that copies it all
+00:26 < bridge> [teeworlds] <heinrich5991> ok, rightclick "Data" below "User Datagram Protocol" and select "Copy" → "as a Hex Stream"
+00:27 < ChillerDragon> https://paste.zillyhuhn.com/Rk that should be a manual slice only with the udp data
+00:27 < bridge> [teeworlds] <heinrich5991> does that work?
+00:27 < ChillerDragon> idk
+00:27 < ChillerDragon> 003d0200000031402318300140454545454545454545454545454545454545454545454545454545454545450000172996fedfda029bfedfda02280014000000000000000023
+00:27 < ChillerDragon> thats the result
+00:27 < ChillerDragon> could be it
+00:27 < ChillerDragon> yes
+00:28 < ChillerDragon> when compared to my manual slice it looks good
+00:28 < ChillerDragon> i realized that chat messages are usually prefixed with 300140 but idk where that comes from
+00:29 < bridge> [teeworlds] <heinrich5991> now we can look into src/engine/shared/network.h
+00:30 < bridge> [teeworlds] <heinrich5991> it says 7 bytes header
+00:31 < ChillerDragon> ye bcs chat is probably not connless
+00:31 < ChillerDragon> what is connless btw is it only in the beginning before there is a token?
+00:31 < bridge> [teeworlds] <heinrich5991> flags is 0, ack is some uninteresting number, numchunks is 2
+00:31 < bridge> [teeworlds] <heinrich5991> so we're expecting two chunks
+00:31 < bridge> [teeworlds] <heinrich5991> no compression, so that's also good
+00:32 < bridge> [teeworlds] <heinrich5991> connless: server info, masterserver communication
+00:32 < bridge> [teeworlds] <heinrich5991> uhm
+00:32 < bridge> [teeworlds] <heinrich5991> your token very much looks like it's just one byte
+00:32 < ChillerDragon> sounds secure
+00:33 < bridge> [teeworlds] <heinrich5991> you might want to check the code that generates it, it's likely to be vulnerable to IP spoofing
+00:33 < bridge> [teeworlds] <heinrich5991> anyway
+00:33 < ChillerDragon> not that i changed that xd
+00:33 < bridge> [teeworlds] <heinrich5991> which server did you connect to?
+00:33 < ChillerDragon> do we have a security issue again?
+00:34 < ChillerDragon> uhm
+00:34 < ChillerDragon> ddnet7 i think
+00:35 < bridge> [teeworlds] <heinrich5991> next byte is 40
+00:35 < bridge> [teeworlds] <heinrich5991> that should be the message ID
+00:35 < ChillerDragon> yes ddnet7 confirmed
+00:35 < bridge> [teeworlds] <heinrich5991> ah no, it's not
+00:35 < bridge> [teeworlds] <heinrich5991> the chunk header
+00:35 < ChillerDragon> wait u lost me at the 1 byte token
+00:36 < bridge> [teeworlds] <heinrich5991> we now see the chunk header 40 23 18
+00:36 < bridge> [teeworlds] <heinrich5991> we check src/engine/shared/network.h again
+00:38 < bridge> [teeworlds] <heinrich5991> flags is VITAL, size is 8, we also have a sequence number
+00:38 < bridge> [teeworlds] <heinrich5991> so now the next byte should be the msgid
+00:39 < bridge> [teeworlds] <heinrich5991> 0x30 == 0b0011_0000
+00:39 < bridge> [teeworlds] <heinrich5991> that should just be 0x30 = 48, lowest bit is system flag, since it's an even number it's apparently a game message
+00:39 < bridge> [teeworlds] <heinrich5991> number 24
+00:39 < ChillerDragon> oh
+00:40 < bridge> [teeworlds] <heinrich5991> we check build/src/generated/protocol.h
+00:40 < ChillerDragon> ye i was searching that 24
+00:40 < ChillerDragon> but i did not expect it to be a 30
+00:40 < bridge> [teeworlds] <heinrich5991> it says CL_SAY
+00:40 < ChillerDragon> ye
+00:40 < ChillerDragon> i was looking for that
+00:40 < ChillerDragon> the systemflag got me
+00:42 < ChillerDragon> wait but how did u see 0b0011_0000 is 24?
+00:42 < ChillerDragon> isnt lowest bit 0 here?
+00:42 < ChillerDragon> ah
+00:43 < ChillerDragon> ye but its not counted
+00:43 < ChillerDragon> so its 0b0011_000
+00:43 < ChillerDragon> aah
+00:44 < bridge> [teeworlds] <heinrich5991> 0x30 = 48, and then I halfed that
+00:44 < ChillerDragon> but it is not a fixed offset is it? So i can not use tcpdump to check for 0x30 at this index
+00:44 < bridge> [teeworlds] <heinrich5991> halved*
+00:44 < ChillerDragon> ye
+00:44 < ChillerDragon> got that part now i hope
+00:44 < bridge> [teeworlds] <heinrich5991> it'll work in practice
+00:44 < bridge> [teeworlds] <heinrich5991> is that enough?
+00:44 < ChillerDragon> yea sounds good
+00:44 < ChillerDragon> think i learned a lot thanks mate
+00:45 < bridge> [teeworlds] <heinrich5991> you're welcome
+01:08 < ChillerDragon> u said my token is only 1 byte long? I read 3 zero bytes followed by 0x31 is that correct? So my token could also start by chance with leading zeros?
+01:08 < bridge> [teeworlds] <heinrich5991> yes, but unlikely
+01:08 < ChillerDragon> ye
+01:08 < bridge> [teeworlds] <heinrich5991> it's 1/16million
+01:09 < bridge> [teeworlds] <heinrich5991> so basically impossible
+01:17 < ChillerDragon> meh the fixed index does not work too well I sent 6 messages got 10 packets that contained 2 of my chat messages :D
+01:17 < bridge> [teeworlds] <Learath2> I dissect enough for seeing tokens and stuff, tho it's only ddnet tokens for now
+01:18 < ChillerDragon> where are ur install instructions btw
+01:21 < ChillerDragon> ``tcpdump -X 'dst port 8707 and udp[18:1] = 0x30'`` thats the command i tried in case anyone wonders (hi me grepping this in 2 month in the logs)
+01:22 < ChillerDragon> is the bridge even allowed to format code snippets on discord?
+01:22 < bridge> [teeworlds] <Learath2> yes it is
+01:22 < ChillerDragon> nice
+01:23 < bridge> [teeworlds] <Learath2> There are no install instructions, you clone wireshark, you place my repo in the plugins folder and compile
+01:23 < bridge> [teeworlds] <Learath2> wireshark doesn't have a standalone plugin build thing
+01:23 < ChillerDragon> that sounds very much like a install instruction to me
+01:23 < ChillerDragon> something i would have guessed
+01:23 < ChillerDragon> but still a readme having the two git clones and maybe a cd in order would help a lot
+11:21 < bridge> [teeworlds] <TsFreddie 🌈> oy: can we increase the vote reason string size as well please :P
+11:37 < Dune> @tsfreddie: you should join irc if you want to speak to oy
+11:37 < Dune> he's not always online
+11:38 < bridge> [teeworlds] <TsFreddie 🌈> oof. i don't know how to use it everytime i tried
+11:38 < Dune> easy, just follow this link: https://webchat.quakenet.org/?channels=#teeworlds
+11:39 < TsFreddie> oof
