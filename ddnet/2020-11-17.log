@@ -1,0 +1,446 @@
+08:45 <+bridge> [ddnet] <Ryozuki> https://git.scuttlebot.io/%25RPKzL382v2fAia5HuDNHD5kkFdlP7bGvXQApSXqOBwc%3D.sha256
+08:45 <+bridge> [ddnet] <Ryozuki> :poggers:
+10:52 <+bridge> [ddnet] <PochiTM ツ> can anybody tell me how to create a server in ddnet?
+11:07 <+bridge> [ddnet] <deen> @PochiTM ツ https://trashmap.ddnet.tw/ https://forum.ddnet.tw/viewtopic.php?f=16&t=5095
+11:09 <+bridge> [ddnet] <PochiTM ツ> thanks
+12:24 <+bridge> [ddnet] <deen> @Jupstar ✪ @Learath2 @heinrich5991 I'd like to release 15.2, which requires https://github.com/ddnet/ddnet/pull/3300 to be reviewed first.
+12:43 <+bridge> [ddnet] <TsFreddie 🌈> are kog just ddnet servers with gores maps?
+12:43 <+bridge> [ddnet] <<BµmM>> no
+12:44 <+bridge> [ddnet] <Boti.> yes
+12:44 <+bridge> [ddnet] <TsFreddie 🌈> so they have their own fork?
+12:44 <+bridge> [ddnet] <<BµmM>> modified ddnet servers
+12:44 <+bridge> [ddnet] <<BµmM>> they have stuff like moving walls and moving freeze
+12:45 <+bridge> [ddnet] <TsFreddie 🌈> right
+12:45 <+bridge> [ddnet] <TsFreddie 🌈> qshar doesnt want a mainland server. so i'm thinking of a third party one through us.
+12:45 <+bridge> [ddnet] <TsFreddie 🌈> :tee_thinking:
+13:01 <+bridge> [ddnet] <Learath2> Kog is running a very old ddnet which is kinda disappointing. Doesn't have any of the prediction improvements we got in with the extended protocol
+13:02 <+bridge> [ddnet] <TsFreddie 🌈> that's a fork for you
+13:29 <+bridge> [ddnet] <Learath2> Caffeine "waking" someone up must be like the biggest scam ever
+13:29 <+bridge> [ddnet] <Learath2> I can feel I'm hopped up on caffeine, I feel jumpy, my hands are jittery. Yet I still feel sleepy
+13:44 <+bridge> [ddnet] <deen> @Learath2 on Windows autoupdater is hanging after parsing update/update.json, but on Linux it works. Any idea?
+13:44 <+bridge> [ddnet] <Learath2> Let me take a quick look
+13:45 <+bridge> [ddnet] <Learath2> @deen anything interesting in the logs?
+13:46 <+bridge> [ddnet] <deen> nope, nothing
+13:46 <+bridge> [ddnet] <deen> ```
+13:46 <+bridge> [ddnet] <deen> [2020-11-17 13:45:42][http]: task done https://update6.ddnet.tw/update.json
+13:46 <+bridge> [ddnet] <deen> [2020-11-17 13:45:42][updater]: parsing update.json
+13:46 <+bridge> [ddnet] <deen> ```
+13:47 <+bridge> [ddnet] <Learath2> And what does the UI look like?
+13:47 <+bridge> [ddnet] <Learath2> Does it say downloading?
+13:48 <+bridge> [ddnet] <deen> "Downloading update/update.json"
+13:49 <+bridge> [ddnet] <Learath2> Well the only path I can see which leads to this is a parsing failure
+13:50 <+bridge> [ddnet] <Learath2> I would check that m_FileJobs is populated after the ParseUpdate() call
+13:52 <+bridge> [ddnet] <Learath2> Mh, me not returning whether the parsing succeeded or not from ParseUpdate is so silly
+13:53 <+bridge> [ddnet] <deen> but there is nothing platform specific in ParseUpdate, is ther?
+13:53 <+bridge> [ddnet] <Learath2> Yeah I don't see anything else. Sorry I can't be of more help
+13:53 <+bridge> [ddnet] <Learath2> @deen well we open a file, windows has notoriously been susceptible to permission issues
+13:54 <+bridge> [ddnet] <Learath2> Maybe an issue in the json library? We might be linking to another version on linux
+13:54 <+bridge> [ddnet] <deen> nope, we build it in-source
+13:55 <+bridge> [ddnet] <Learath2> Are any of the fetch jobs getting queued properly? e.g. after update.json
+13:56 <+bridge> [ddnet] <deen> oh, probably it's my fault
+13:56 <+bridge> [ddnet] <deen> I think we changed something in GetBinaryPath
+13:57 <+bridge> [ddnet] <Learath2> > 1:48 PM] deen: "Downloading update/update.json"
+13:57 <+bridge> [ddnet] <Learath2> this implies OnProgress never gets called after update.json is downloaded so no other download task ever progressed. Either they are never getting queued, e.g. ParseUpdate failed or they are queued but are not running, e.g. we are stuck in a deadlock, we don't have any worker threads left, or curl issue
+13:58 <+bridge> [ddnet] <Learath2> Ah, that makes sense
+13:58 <+bridge> [ddnet] <Learath2> @deen I think update.json should go in TYPE_SAVE not "binary path"
+14:00 <+bridge> [ddnet] <Learath2> binary path can be unwritable for example
+14:00 <+bridge> [ddnet] <Learath2> though I guess if binary path was unwritable, we can't autoupdate anyway
+14:00 <+bridge> [ddnet] <deen> I'll go out now, will check back in a few hours. can't fix this release anyway since 15.1.3 had the broken updater already :/
+14:01 <+bridge> [ddnet] <Learath2> Well is `m_FileJobs` getting filled?
+14:01 <+bridge> [ddnet] <Learath2> That's the only thing I would check
+14:01 <+bridge> [ddnet] <deen> Not sure how to check without editing source code
+14:01 <+bridge> [ddnet] <Learath2> Ah, yep you can't without editing the source
+14:01 <+bridge> [ddnet] <Learath2> well you could with a debugger, but that takes a bit more time
+14:02 <+bridge> [ddnet] <Learath2> I fixed and cleaned up a lot of nasty behaviour in #2754 so I guess it'll be kinda broken until then
+14:02 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2754
+14:23 <+bridge> [ddnet] <TsFreddie 🌈> https://cdn.discordapp.com/attachments/293493549758939136/778248976817586206/unknown.png
+14:23 <+bridge> [ddnet] <TsFreddie 🌈> https://cdn.discordapp.com/attachments/293493549758939136/778249007502983178/unknown.png
+14:23 <+bridge> [ddnet] <TsFreddie 🌈> script detection is such a b**ch
+14:24 <+bridge> [ddnet] <Learath2> confusing
+14:24 <+bridge> [ddnet] <Learath2> One day we will have good support for all languages everywhere. Probably in 2050 or so
+14:25 <+bridge> [ddnet] <TsFreddie 🌈> most script detection just fails around SC TC and J if one of these aren't the system default
+14:28 <+bridge> [ddnet] <Learath2> I wonder if script detection actually is possible
+14:28 <+bridge> [ddnet] <TsFreddie 🌈> personally i don't think so.
+14:28 <+bridge> [ddnet] <TsFreddie 🌈> especially after the han unification
+14:28 <+bridge> [ddnet] <Learath2> Yeah, most text is probably ambiguous now
+14:29 <+bridge> [ddnet] <TsFreddie 🌈> if they weren't unified or at least separated by language it would be easier. But then normalization would be a b**ch again.
+14:30 <+bridge> [ddnet] <Learath2> Maybe it's time asia abandoned their very complex glyphs :P
+14:30 <+bridge> [ddnet] <TsFreddie 🌈> :d49Rip:
+14:30 <+bridge> [ddnet] <Learath2> Korea did away with them and they saw a huge surge in literacy AND they get decent support on every OS
+14:31 <+bridge> [ddnet] <TsFreddie 🌈> chinese tried
+14:31 <+bridge> [ddnet] <TsFreddie 🌈> pinyin is the attempt
+14:31 <+bridge> [ddnet] <TsFreddie 🌈> pinyin wasn't a thing before.
+14:31 <+bridge> [ddnet] <TsFreddie 🌈> we have special glyphs for sounds before as well
+14:31 <+bridge> [ddnet] <TsFreddie 🌈> taiwan still using them
+14:31 <+bridge> [ddnet] <Learath2> I'm not sure if romanizing is the best idea
+14:32 <+bridge> [ddnet] <TsFreddie 🌈> pinyin is the \*failed\* attempt
+14:33 <+bridge> [ddnet] <Learath2> Unspaced text is the first thing that should be phased out. Without the pictograms and the ideograms it would become a huge pita to read anything
+14:33 <+bridge> [ddnet] <TsFreddie 🌈> :thonk:
+14:33 <+bridge> [ddnet] <TsFreddie 🌈> just kill all asians
+14:33 <+bridge> [ddnet] <Learath2> LOL that would solve things
+14:33 <+bridge> [ddnet] <TsFreddie 🌈> it would
+14:33 <+bridge> [ddnet] <Learath2> Tho a little unethical
+14:34 <+bridge> [ddnet] <Learath2> irc never forgets btw
+14:34 <+bridge> [ddnet] <TsFreddie 🌈> i know
+14:34 <+bridge> [ddnet] <Learath2> It's forever recorded in history
+14:34 <+bridge> [ddnet] <TsFreddie 🌈> the deletion is for the comedic effect
+14:35 <+bridge> [ddnet] <Learath2> Maybe romanization could work actually, just not quite sure how well the grammatical constructs would work
+14:36 <+bridge> [ddnet] <Learath2> Japanese reading atleast relies a lot on grammatical constructs being very easy to identify at a first glance
+14:37 <+bridge> [ddnet] <TsFreddie 🌈> chinese do need the tone marks to make sense if a sentence is full pinyin
+14:37 <+bridge> [ddnet] <TsFreddie 🌈> due to how we speak
+14:37 <+bridge> [ddnet] <Learath2> Should ask some native speakers if they can read romaji well
+14:37 <+bridge> [ddnet] <TsFreddie 🌈> if it is just plain a-z, if would be really hard to understand
+14:37 <+bridge> [ddnet] <Learath2> @TsFreddie can you read pinyin well with the marks?
+14:37 <+bridge> [ddnet] <TsFreddie 🌈> if trained, probably
+14:38 <+bridge> [ddnet] <Learath2> Marks are easy to handle both from a computer and teaching sense
+14:38 <+bridge> [ddnet] <TsFreddie 🌈> i don't usually read those, and we don't really have a standard way to type them.
+14:38 <+bridge> [ddnet] <TsFreddie 🌈> so it is actually less common
+14:38 <+bridge> [ddnet] <TsFreddie 🌈> other than in dictionary and in class
+14:39 <+bridge> [ddnet] <Learath2> Hm, that's silly given how much chinese is tone based
+14:39 <+bridge> [ddnet] <TsFreddie 🌈> we've been dealing with plain pinyin a lot in the early teeworlds days
+14:39 <+bridge> [ddnet] <TsFreddie 🌈> it was PITA to talk
+14:39 <+bridge> [ddnet] <Learath2> I can imagine
+14:40 <+bridge> [ddnet] <TsFreddie 🌈> lol, chinese community are discussing how hard to read chat with the new chat.
+14:40 <+bridge> [ddnet] <Learath2> As expected. No one likes new visual updates
+14:40 <+bridge> [ddnet] <TsFreddie 🌈> it'll grow on them i believe
+14:40 <+bridge> [ddnet] <Learath2> That's why we left the old setting
+14:41 <+bridge> [ddnet] <Learath2> It's astonishing how sleepy I feel after 8 hours of solid sleep + 5 cups of coffee
+14:41 <+bridge> [ddnet] <TsFreddie 🌈> 👀
+14:41 <+bridge> [ddnet] <Learath2> I think I'm just not set up for being awake at normal human hours
+14:41 <+bridge> [ddnet] <TsFreddie 🌈> 5 cups sounds unhealthy
+14:42 <+bridge> [ddnet] <Learath2> It's well within the established safe amount of caffeine
+14:42 <+bridge> [ddnet] <TsFreddie 🌈> 😄 fair
+14:42 <+bridge> [ddnet] <Learath2> I will drop out of uni and become a night guard. I am perfectly awake at 2 am
+14:43 <+bridge> [ddnet] <TsFreddie 🌈> :megathink:
+14:43 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/778253965908901908/unknown.png
+14:43 <+bridge> [ddnet] <fokkonaut> stuck here
+14:43 <+bridge> [ddnet] <TsFreddie 🌈> i can't use built-in update at all in china
+14:43 <+bridge> [ddnet] <fokkonaut> restarted client - same
+14:43 <+bridge> [ddnet] <Learath2> @fokkonaut discussed it with deen a bit ago. If you want you can try debugging it
+14:43 <+bridge> [ddnet] <TsFreddie 🌈> but that's just a china thing
+14:44 <+bridge> [ddnet] <fokkonaut> @Learath2 no thanks, i once tried to work with the autoupdater but i couldnt come further
+14:44 <+bridge> [ddnet] <Learath2> I have a feeling it's ParseUpdate failing
+14:44 <+bridge> [ddnet] <fokkonaut> Why would it fail this time tho and not in the previous updates?
+14:44 <+bridge> [ddnet] <Learath2> Oh I now understood what deen ment
+14:45 <+bridge> [ddnet] <Learath2> This is an old version, so we can't fix it anyway :(
+14:45 <+bridge> [ddnet] <Learath2> @fokkonaut Who knows, I don't have windows to check
+14:45 <+bridge> [ddnet] <Learath2> Well I do but not right now
+14:45 <+bridge> [ddnet] <fokkonaut> xD
+14:45 <+bridge> [ddnet] <fokkonaut> Is there a plan/fix alreadY?
+14:45 <+bridge> [ddnet] <fokkonaut> Is there a plan/fix already?
+14:46 <+bridge> [ddnet] <Learath2> Well nothing to plan, no way to fix a client we already deployed. I'd guess #2754 would fix it but I just can't finish that up
+14:46 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/2754
+14:47 <+bridge> [ddnet] <fokkonaut> Oh, again a client thats broken?
+14:47 <+bridge> [ddnet] <Learath2> If we want a fix for the meanwhile, someone needs to check what's actually broken
+14:48 <+bridge> [ddnet] <Learath2> I'm like a factory defect. Whenever I have something I have to do I am sleepy. Whenever I'm doing something that's useless I'm wide awake
+14:48 <+bridge> [ddnet] <Learath2> Is there like a website where we can apply for a replacement brain? Is there like a warranty on these things?
+14:59 <+bridge> [ddnet] <noby> https://cdn.discordapp.com/attachments/293493549758939136/778257984601194516/Screen_Shot_2020-11-17_at_7.55.49_AM.png
+14:59 <+bridge> [ddnet] <TsFreddie 🌈> nice warning
+15:00 <+bridge> [ddnet] <TsFreddie 🌈> ~~it is probably telling you sｕｃｋ~~
+15:01 <+bridge> [ddnet] <noby> u
+15:07 <+bridge> [ddnet] <TsFreddie 🌈> https://cdn.discordapp.com/attachments/293493549758939136/778260011292819466/unknown.png
+15:07 <+bridge> [ddnet] <TsFreddie 🌈> i'm trying to make a hud popup for dummy state change. don't know if it'll make any sense.
+15:09 <+bridge> [ddnet] <louis> i feel like it'd only make sense if u had more than 1 dummy
+15:10 <+bridge> [ddnet] <TsFreddie 🌈> probably. i accidentally trigger copying a lot. so i might came in handy for me
+15:10 <+bridge> [ddnet] <TsFreddie 🌈> it*
+15:11 <+bridge> [ddnet] <TsFreddie 🌈> i can just don't PR and keep it to myself😄
+15:12 <+bridge> [ddnet] <TsFreddie 🌈> https://cdn.discordapp.com/attachments/293493549758939136/778261262006091836/unknown.png
+15:12 <+bridge> [ddnet] <TsFreddie 🌈> oof
+15:13 <+bridge> [ddnet] <noby> is dummy copy realy used that often
+15:28 <+bridge> [ddnet] <Username> hey, i had to format my pc and now when i play teeworlds i get a crazy 'motion blur', and the game is very sluggish! before it as a lot smoother when i moved
+15:28 <+bridge> [ddnet] <Username> its like every entitie merges when i move
+15:28 <+bridge> [ddnet] <Username> anyone with the same problem ?
+15:28 <+bridge> [ddnet] <Username> already tried every setting, and version of ddnet! same thing
+15:33 <+bridge> [ddnet] <Nooback> So for the first time my game png got deleted after update can someone tell me again where I should put it so it wouldnt get deleted after next updates?
+15:33 <+bridge> [ddnet] <Jupstar ✪> what do you mean by merging
+15:33 <+bridge> [ddnet] <Souly> some icon symbolizing hammerfly/copy would be good
+15:34 <+bridge> [ddnet] <Jupstar ✪> @Nooback open assets directory
+15:34 <+bridge> [ddnet] <Jupstar ✪> thats why we added it
+15:34 <+bridge> [ddnet] <louis> @Jupstar ✪ i think he means like an acid effect
+15:34 <+bridge> [ddnet] <Nooback> \AppData\Roaming\Teeworlds\assets\game
+15:34 <+bridge> [ddnet] <Nooback> this?
+15:34 <+bridge> [ddnet] <louis> where the previous frame renders arent deleted
+15:34 <+bridge> [ddnet] <Jupstar ✪> @Username maybe GSync or Freesync?
+15:35 <+bridge> [ddnet] <Jupstar ✪> @Nooback just press "Assets directory" button
+15:35 <+bridge> [ddnet] <Jupstar ✪> when selecting "Game"
+15:35 <+bridge> [ddnet] <Nooback> I was right its that
+15:39 <+bridge> [ddnet] <Username> > @Username maybe GSync or Freesync?
+15:39 <+bridge> [ddnet] <Username> @Jupstar ✪ nah, already tried on and off
+15:41 <+bridge> [ddnet] <Jupstar ✪> @Username well, its probably a problem outside of ddnet:
+15:41 <+bridge> [ddnet] <Jupstar ✪> - GPU driver
+15:41 <+bridge> [ddnet] <Jupstar ✪> - Use the right GPU, deticated, or integrated
+15:41 <+bridge> [ddnet] <Jupstar ✪> - Try newest client always with a clean config, don't open older clients, else configs are overwritten
+15:41 <+bridge> [ddnet] <Jupstar ✪> - The config of you screen(refresh rate etc.)
+15:43 <+bridge> [ddnet] <Username> gpu driver was just installed freshly
+15:43 <+bridge> [ddnet] <Username> im using dedicated gpu
+15:43 <+bridge> [ddnet] <Username> already tried every version 11+
+15:43 <+bridge> [ddnet] <Username> what a nightmare xD
+15:44 <+bridge> [ddnet] <Jupstar ✪> tried newest versions only with clean configs?
+15:52 <+bridge> [ddnet] <Username> omg im a potato
+15:52 <+bridge> [ddnet] <Username> totally forgot that the refresh rate goes to 60hz after formating
+15:52 <+bridge> [ddnet] <Username> changed back to 144 and installed the new ddnet version and its back to normal
+15:53 <+bridge> [ddnet] <Username> @Jupstar ✪ thanks ❤️
+15:53 <+bridge> [ddnet] <Jupstar ✪> nice 😄
+16:06 <+bridge> [ddnet] <TsFreddie 🌈> :watermeron:
+17:10 <+bridge> [ddnet] <Jupstar ✪> is the freeze patch not in the current version?
+17:11 <+bridge> [ddnet] <deen> @Jupstar ✪ no
+17:12 <+bridge> [ddnet] <deen> was it a regression?
+17:12 <+bridge> [ddnet] <deen> My assumption was that it was always broken
+17:12 <+bridge> [ddnet] <Jupstar ✪> well i thought it was related to the IME change
+17:12 <+bridge> [ddnet] <deen> oh... then I need to take it in..
+17:12 <+bridge> [ddnet] <Jupstar ✪> but im not sure
+17:13 <+bridge> [ddnet] <TsFreddie 🌈> :justatest:
+17:15 <+bridge> [ddnet] <TsFreddie 🌈> i was planning on reworking the text input using some other design that can be reused across console editor editbox and chat. havent really get started
+17:19 <+bridge> [ddnet] <TsFreddie 🌈> Learath2 gave me some idea on implementing text selection on not only text input but chat/console history as well.
+17:51 <+bridge> [ddnet] <gerdoe> i have a suggestion for translations: make something like comment with max amount of characters
+19:08 <+bridge> [ddnet] <gerdoe> why is steam_api goes with non-steam ddnet client?
+19:08 <+bridge> [ddnet] <gerdoe> why does steam_api go with non-steam ddnet client?
+19:10 <+bridge> [ddnet] <deen> because it's a bit cleaner, then we don't need to ifdef in our code, but instead we build a steam_api.so/dll stub that does nothing
+19:10 <+bridge> [ddnet] <deen> and the code for non-steam and steam ddnet client are the same (minus autoupdater), just the steam_api.dll is different
+19:13 <+bridge> [ddnet] <Pure_luck> Hello! have anybody changed recently anything related assets loading logic (particles) or particle trajectory, lifespan or physics/timers?
+19:15 <+bridge> [ddnet] <Pure_luck> Today I am and one of players have noticed that some particles are missing in the game. Those were consisted of gun (pistol) projectiles. But regular gun projectiles work. I've tried to revert server changes to a month ago but problem still persists. Reinstalling DDNet to ~latest git version and removing ~/.teeworlds directory didn't helped.
+19:15 <+bridge> [ddnet] <Pure_luck> Everything is working fine in teeworlds 0.6 and 0.7 though.
+19:15 <+bridge> [ddnet] <Pure_luck> Any ideas?
+19:15 <+bridge> [ddnet] <deen> I feel like no one tests our release candidates
+19:16 <+bridge> [ddnet] <Pure_luck> Still there is a possibility that this is somehow my mod's issue, but it's 100% reproducible on DDNet client and not on teeworlds.
+19:16 <+bridge> [ddnet] <Pure_luck> Also some DDNet players with same versions didn't had that problem.
+19:16 <+bridge> [ddnet] <deen> @Pure_luck is it only in 15.2 and not 15.1? We had lots of changes in there, would be great if you could bisect it.
+19:17 <+bridge> [ddnet] <Pure_luck> I've found that in 15.1.2 and updated to 15.2
+19:17 <+bridge> [ddnet] <Pure_luck> I could try installing older versions I think
+19:17 <+bridge> [ddnet] <deen> You could try reverting this https://github.com/ddnet/ddnet/commit/98d4baabeda2382568da2c61424b7d3962ab1974
+19:17 <+bridge> [ddnet] <deen> it's the only change in projectile.cpp
+19:18 <+bridge> [ddnet] <Pure_luck> hm... nice tip
+19:18 <+bridge> [ddnet] <Pure_luck> I will. Just will try older ddnet client version first. Should have started with that tbh
+19:21 <+bridge> [ddnet] <Pure_luck> hm... this is somehow related to assets it seems
+19:21 <+bridge> [ddnet] <Pure_luck> when I am starting a client from the folder of downloaded client everything works fine
+19:21 <+bridge> [ddnet] <Pure_luck> it's so weird, I haven't touched my system's DDNet package for a month
+19:22 <+bridge> [ddnet] <Jupstar ✪> wait do they have custom skins
+19:22 <+bridge> [ddnet] <Jupstar ✪> ask them for the resolution
+19:22 <+bridge> [ddnet] <Pure_luck> I've just deleted my /usr/share/ddnet folder sorry
+19:23 <+bridge> [ddnet] <Pure_luck> I am trying to reinstall the package
+19:23 <+bridge> [ddnet] <Pure_luck> could backup it though first
+19:25 <+bridge> [ddnet] <Pure_luck> it got weirder, now starting from the current directory of downloaded ddnet client doesn't help
+19:25 <+bridge> [ddnet] <plsplsplslol> wait why is the latest version 15.2.2
+19:25 <+bridge> [ddnet] <Jupstar ✪> quick patches
+19:25 <+bridge> [ddnet] <plsplsplslol> its only 15.2.1 on github
+19:25 <+bridge> [ddnet] <Jupstar ✪> should be at same code tho
+19:26 <+bridge> [ddnet] <Learath2> maybe @deen didn't commit the version bump yet
+19:26 <+bridge> [ddnet] <Learath2> or atleast didn't push
+19:26 <+bridge> [ddnet] <plsplsplslol> oh its on a different branch
+19:27 <+bridge> [ddnet] <Pure_luck> hm... if I download a tarball and starting ./DDNet with storage containing $CURRENT_DIR only
+19:28 <+bridge> [ddnet] <Pure_luck> should it get started in theory?
+19:28 <+bridge> [ddnet] <Pure_luck> it seems that deleting /usr/share/ddnet messed up things and that particle doesn't drawn no matter which version of ddnet client I run
+19:29 <+bridge> [ddnet] <Pure_luck> or I am just encountering very weird random error that sounds like it has a system
+19:30 <+bridge> [ddnet] <Pure_luck> ok, I will suppress my noise for awhile and will try to experiment more to gather data
+19:30 <+bridge> [ddnet] <Pure_luck> thanks
+19:36 <+bridge> [ddnet] <Pure_luck> hmm... people with ddnet versions 15.1.2 and 15.1.3 don't have problems
+19:36 <+bridge> [ddnet] <Pure_luck> and when I start 15.1.3 from tarball everything works correctly
+19:37 <+bridge> [ddnet] <Pure_luck> 15.2.1 and 15.2.2 have this problem for me
+19:37 <+bridge> [ddnet] <deen> @Pure_luck if you can reproduce it, bisect?
+19:37 <+bridge> [ddnet] <Pure_luck> I will bisect
+19:48 <+bridge> [ddnet] <Pure_luck> ```8d6148b20b2cde94d8e1fbe0a0dcd0bd81e86acc is the first bad commit
+19:48 <+bridge> [ddnet] <Pure_luck> commit 8d6148b20b2cde94d8e1fbe0a0dcd0bd81e86acc        
+19:49 <+bridge> [ddnet] <Pure_luck> Author: Jupeyy <jupjopjap@gmail.com>                      
+19:49 <+bridge> [ddnet] <Pure_luck> Date:   Fri Oct 9 09:07:05 2020 +0200                  
+19:49 <+bridge> [ddnet] <Pure_luck>                                                                          
+19:49 <+bridge> [ddnet] <Pure_luck>     Modulize skins, particles, emoticons and game
+19:49 <+bridge> [ddnet] <Pure_luck> ```
+19:49 <+bridge> [ddnet] <Pure_luck> this one
+19:49 <+bridge> [ddnet] <Pure_luck> https://github.com/ddnet/ddnet/commit/8d6148b20b2cde94d8e1fbe0a0dcd0bd81e86acc
+19:50 <+bridge> [ddnet] <Pure_luck> omg, it's so huge
+19:50 <+bridge> [ddnet] <Pure_luck> @Jupstar ✪ any ideas?
+19:51 <+bridge> [ddnet] <Pure_luck> weirdest thing is that this problem occured just today. I haven't updated anything
+19:51 <+bridge> [ddnet] <Pure_luck> it just happened mid-day, I was playing and then one person asked me if I see that important particles are missing
+19:52 <+bridge> [ddnet] <Pure_luck> and as those were core elements of a mod I've instantly knew there is a problem
+19:52 <+ChillerDragon> @deen do you want me to open an issue for the ping filter inf loop?
+19:52 <+bridge> [ddnet] <heinrich5991> if it's still an issue, yes
+19:52 <+ChillerDragon> ok deen
+19:52 <+ChillerDragon> :D sorry
+19:54 <+bridge> [ddnet] <Pure_luck> Have you got your T-shirt ChillerDragon?
+19:55 <+ChillerDragon> hacktoberfest?
+19:56 <+ChillerDragon> nah i decided to go with a tree but then it wanted like my address i did not understood why and rage quitted :D
+19:59 <+bridge> [ddnet] <Pure_luck> I'd do the same
+19:59 <+bridge> [ddnet] <Pure_luck> both for T-shirt and rq on neglecting my privacy 😄
+20:00 <+bridge> [ddnet] <heinrich5991> I gave a random address in new york
+20:02 <+ChillerDragon> hm sounds like a good idea
+20:02 <+ChillerDragon> i was scared they publish my data in some forest or send me a seed to my home
+20:03 <+ChillerDragon> a random address sounds good but i wonder what they need it for
+20:06 <+bridge> [ddnet] <Pure_luck> Should I open an issue @deen ?
+20:06 <+bridge> [ddnet] <heinrich5991> did you open an issue already?
+20:06 <+bridge> [ddnet] <heinrich5991> yes
+20:06 <+bridge> [ddnet] <Pure_luck> one moment
+20:06 <+bridge> [ddnet] <heinrich5991> please also include your findings (bisect)
+20:16 <+bridge> [ddnet] <Jupstar ✪> @Pure_luck with default game skins?
+20:28 <+bridge> [ddnet] <Pure_luck> @Jupstar ✪ yes
+20:31 <+bridge> [ddnet] <Learath2> Nice catch @Pure_luck, how did you even discover that behaviour for your mod? 😄
+20:31 <+bridge> [ddnet] <Learath2> Seems someone else did actually, given you didn't spot the issue immediately
+20:31 <+bridge> [ddnet] <Pure_luck> Trick is used currently on all  infClass servers too
+20:31 <+bridge> [ddnet] <Pure_luck> so they're all affected too
+20:31 <+bridge> [ddnet] <Learath2> I wonder who came up with ti
+20:32 <+bridge> [ddnet] <Learath2> s\/ti/it/
+20:32 <+bridge> [ddnet] <Pure_luck> wdym? about WEAPON_HAMMER trace?
+20:32 <+bridge> [ddnet] <Learath2> Yeah
+20:32 <+bridge> [ddnet] <Pure_luck> yes, code was used in old infClass
+20:32 <+bridge> [ddnet] <Pure_luck> and on infClass this trick is broken for 5.2 too
+20:32 <+bridge> [ddnet] <Pure_luck> I will update the issue
+20:32 <+bridge> [ddnet] <Learath2> So I guess necropotame was the one who found it?
+20:35 <+bridge> [ddnet] <Jupstar ✪> @Pure_luck can u debug that with ddnet somehow
+20:36 <+bridge> [ddnet] <Jupstar ✪> @Pure_luck in ur issue u say custom gameskins?
+20:36 <+bridge> [ddnet] <Pure_luck> no, "custom entities"
+20:36 <+bridge> [ddnet] <Pure_luck> that's the rather common term for new things build up from particles
+20:36 <+bridge> [ddnet] <Jupstar ✪> so what is broken
+20:36 <+bridge> [ddnet] <Jupstar ✪> entities or particles
+20:36 <+bridge> [ddnet] <Pure_luck> traces for particles that are not drawn
+20:36 <+bridge> [ddnet] <Jupstar ✪> so you mean particles are broken
+20:36 <+bridge> [ddnet] <Pure_luck> for WEAPON_HAMMER for example
+20:36 <+bridge> [ddnet] <Jupstar ✪> not entities
+20:37 <+bridge> [ddnet] <Pure_luck> ok, traces are particles
+20:37 <+bridge> [ddnet] <Jupstar ✪> send me your custom entities or what ever
+20:37 <+bridge> [ddnet] <Pure_luck> ```id CInfCircle::Snap(int SnappingClient)
+20:37 <+bridge> [ddnet] <Pure_luck> {
+20:37 <+bridge> [ddnet] <Pure_luck>     if (NetworkClipped(SnappingClient))
+20:38 <+bridge> [ddnet] <Pure_luck>         return;
+20:38 <+bridge> [ddnet] <Pure_luck>     //const float MAGIC_NUMBER = NUM_SIDE / 3.125f; // a magic number for NUM_SIDE = 24, NUM_HINT = 24, when dots stay
+20:38 <+bridge> [ddnet] <Pure_luck>     const float MAGIC_NUMBER = NUM_SIDE / 3.0f;
+20:38 <+bridge> [ddnet] <Pure_luck>     float AngleStart = (2.0f * pi * Server()->Tick() / static_cast<float>(Server()->TickSpeed())) / (MAGIC_NUMBER / 8);
+20:38 <+bridge> [ddnet] <Pure_luck>     float AngleStep = 2.0f * pi / NUM_SIDE;
+20:38 <+bridge> [ddnet] <Pure_luck>     AngleStart = AngleStart * 2.0f;
+20:38 <+bridge> [ddnet] <Pure_luck>     for (int i = 0; i < NUM_SIDE; i++)
+20:38 <+bridge> [ddnet] <Pure_luck>     {
+20:38 <+bridge> [ddnet] <Pure_luck>         vec2 PosStart = m_Pos + vec2(m_Radius * cos(AngleStart + AngleStep * i), m_Radius * sin(AngleStart + AngleStep * i));
+20:38 <+bridge> [ddnet] <Pure_luck> 
+20:38 <+bridge> [ddnet] <Pure_luck>         CNetObj_Projectile * pObj = static_cast<CNetObj_Projectile*>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_IDs[NUM_SIDE + i], sizeof(CNetObj_Projectile)));
+20:38 <+bridge> [ddnet] <Pure_luck>         if (pObj)
+20:38 <+bridge> [ddnet] <Pure_luck>         {
+20:38 <+bridge> [ddnet] <Pure_luck>             pObj->m_X = (int)PosStart.x;
+20:38 <+bridge> [ddnet] <Pure_luck>             pObj->m_Y = (int)PosStart.y;
+20:38 <+bridge> [ddnet] <Pure_luck>             pObj->m_VelX = 0;
+20:38 <+bridge> [ddnet] <Pure_luck>             pObj->m_VelY = 0;
+20:38 <+bridge> [ddnet] <Pure_luck>             pObj->m_StartTick = Server()->Tick();
+20:38 <+bridge> [ddnet] <Pure_luck>             pObj->m_Type = WEAPON_NINJA;
+20:38 <+bridge> [ddnet] <Pure_luck>         }
+20:38 <+bridge> [ddnet] <Pure_luck>     }
+20:38 <+bridge> [ddnet] <Pure_luck> }
+20:38 <+bridge> [ddnet] <Pure_luck> ```
+20:38 <+bridge> [ddnet] <Pure_luck> ```void CInfCircle::Snap(int SnappingClient)
+20:38 <+bridge> [ddnet] <Pure_luck> {
+20:38 <+bridge> [ddnet] <Pure_luck>     if (NetworkClipped(SnappingClient))
+20:38 <+bridge> [ddnet] <Pure_luck>         return;
+20:38 <+bridge> [ddnet] <Pure_luck>     //const float MAGIC_NUMBER = NUM_SIDE / 3.125f; // a magic number for NUM_SIDE = 24, NUM_HINT = 24, when dots stay
+20:38 <+bridge> [ddnet] <Pure_luck>     const float MAGIC_NUMBER = NUM_SIDE / 3.0f;
+20:38 <+bridge> [ddnet] <Pure_luck>     float AngleStart = (2.0f * pi * Server()->Tick() / static_cast<float>(Server()->TickSpeed())) / (MAGIC_NUMBER / 8);
+20:39 <+bridge> [ddnet] <Pure_luck>     float AngleStep = 2.0f * pi / NUM_SIDE;
+20:39 <+bridge> [ddnet] <Pure_luck>     AngleStart = AngleStart * 2.0f;
+20:39 <+bridge> [ddnet] <Pure_luck>     for (int i = 0; i < NUM_SIDE; i++)
+20:39 <+bridge> [ddnet] <Pure_luck>     {
+20:39 <+bridge> [ddnet] <Pure_luck>         vec2 PosStart = m_Pos + vec2(m_Radius * cos(AngleStart + AngleStep * i), m_Radius * sin(AngleStart + AngleStep * i));
+20:39 <+bridge> [ddnet] <Pure_luck> 
+20:39 <+bridge> [ddnet] <Pure_luck>         CNetObj_Projectile * pObj = static_cast<CNetObj_Projectile*>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_IDs[NUM_SIDE + i], sizeof(CNetObj_Projectile)));
+20:39 <+bridge> [ddnet] <Pure_luck> It's in the issue
+20:39 <+bridge> [ddnet] <Pure_luck> do you see it?
+20:39 <+bridge> [ddnet] <Jupstar ✪> i don't get what you mean, if you just send net objects then its nothing custom
+20:39 <+bridge> [ddnet] <Pure_luck> https://cdn.discordapp.com/attachments/293493549758939136/778343387401027655/Screenshot_from_2020-11-17_22-38-33.png
+20:39 <+bridge> [ddnet] <Jupstar ✪> so are we speaking of default everything?
+20:39 <+bridge> [ddnet] <Pure_luck> those are traces of a bullets
+20:39 <+bridge> [ddnet] <Pure_luck> but without bullets
+20:39 <+bridge> [ddnet] <Jupstar ✪> ok but they work fine for me
+20:39 <+bridge> [ddnet] <Jupstar ✪> i join ddnet server
+20:39 <+bridge> [ddnet] <Jupstar ✪> and press fire with pistol
+20:39 <+bridge> [ddnet] <Pure_luck> with bullets they would look like this
+20:39 <+bridge> [ddnet] <Pure_luck> https://cdn.discordapp.com/attachments/293493549758939136/778343651402448926/unknown.png
+20:40 <+bridge> [ddnet] <Jupstar ✪> but how is it related to rendering then?
+20:40 <+bridge> [ddnet] <Jupstar ✪> then some netcode changed
+20:40 <+bridge> [ddnet] <Pure_luck> So this technique uses WEAPON_HAMMER to hide actual projectile
+20:40 <+bridge> [ddnet] <Jupstar ✪> ah
+20:40 <+bridge> [ddnet] <Jupstar ✪> i see
+20:40 <+bridge> [ddnet] <Pure_luck> but in 0.6, 0.7 and 5.1.3 traces are still drawn
+20:40 <+bridge> [ddnet] <Jupstar ✪> weapon has no particles
+20:40 <+bridge> [ddnet] <Pure_luck> yes
+20:40 <+bridge> [ddnet] <Jupstar ✪> that sounds right to me 😄
+20:41 <+bridge> [ddnet] <Pure_luck> it's logical in real world
+20:41 <+bridge> [ddnet] <Pure_luck> but alas it's not in infClass/infCroya/infNext
+20:41 <+bridge> [ddnet] <Jupstar ✪> can't you add a new netobj for that?
+20:41 <+bridge> [ddnet] <Pure_luck> why would I?
+20:41 <+bridge> [ddnet] <Jupstar ✪> bcs hammer has no projectiles
+20:42 <+bridge> [ddnet] <Pure_luck> but it has in 0.6, 0.7 and 5.1.3, why change that?
+20:42 <+bridge> [ddnet] <Pure_luck> it has traces
+20:42 <+bridge> [ddnet] <Pure_luck> even if it doesn't have projectile image
+20:43 <+bridge> [ddnet] <Pure_luck> I suppose you're not motivated to debug this and consider it extra minor.
+20:43 <+bridge> [ddnet] <Pure_luck> I could help you to debug but I have zero expertise in client and render debugging and code.
+20:44 <+bridge> [ddnet] <Jupstar ✪> i dont consider this a bug
+20:44 <+bridge> [ddnet] <Pure_luck> 😢
+20:44 <+bridge> [ddnet] <Jupstar ✪> i'll look in the code first
+20:46 <+bridge> [ddnet] <Pure_luck> I don't push you with that ofc. Take your time. I hope info I've gathered will help narrow the issue.
+20:47 <+bridge> [ddnet] <Pure_luck> Thanks for your help
+20:47 <+bridge> [ddnet] <Jupstar ✪> yeah xd
+20:53 <+bridge> [ddnet] <gerdoe> `bezier.h/cpp` stay in game-shared, it's not right for me, because `bezier.h/cpp` are only used by client-side
+21:00 <+bridge> [ddnet] <Jupstar ✪> @Pure_luck ^
+21:01 <+bridge> [ddnet] <louis> newer clients crash too much for me zz
+21:01 <+bridge> [ddnet] <Jupstar ✪> what happens
+21:01 <+bridge> [ddnet] <Jupstar ✪> or do u mean ur intel driver?
+21:02 <+bridge> [ddnet] <louis> yea idk
+21:02 <+bridge> [ddnet] <Jupstar ✪> but did u see the warning?
+21:02 <+bridge> [ddnet] <Jupstar ✪> it should default to opengl 2.0 then
+21:03 <+bridge> [ddnet] <louis> what warning
+21:03 <+bridge> [ddnet] <Jupstar ✪> when u at OpenGL 3.0 it should show a warning
+21:03 <+bridge> [ddnet] <Jupstar ✪> at start
+21:03 <+bridge> [ddnet] <louis> i had opengl stuffs on ddnet 12.8 idk why it changed
+21:03 <+bridge> [ddnet] <Jupstar ✪> first time start
+21:04 <+bridge> [ddnet] <Jupstar ✪> if u downgrade it resets some configs
+21:05 <+bridge> [ddnet] <Pure_luck> @Jupstar ✪ I will test it
+21:07 <+bridge> [ddnet] <Pure_luck> @Jupstar ✪ omfg, it solved it!
+21:08 <+bridge> [ddnet] <Pure_luck> https://cdn.discordapp.com/attachments/293493549758939136/778350848027000882/unknown.png
+21:08 <+bridge> [ddnet] <Pure_luck> Though I am not sure why it detects as 15.1.2, but in game menu it was 15.2.2 so I guess it's just how it builds.
+21:08 <+bridge> [ddnet] <Pure_luck> Or how my server detects versions.
+21:09 <+bridge> [ddnet] <Jupstar ✪> but shouldnt it show it without the gun projectiles?
+21:09 <+bridge> [ddnet] <Jupstar ✪> or was that the issue xD
+21:09 <+bridge> [ddnet] <Pure_luck> oh...
+21:09 <+bridge> [ddnet] <Pure_luck> you're right
+21:09 <+bridge> [ddnet] <Pure_luck> but poison clouds are drawn correctly for some reason
+21:10 <+bridge> [ddnet] <Pure_luck> ah... I just didn't looked well
+21:10 <+bridge> [ddnet] <Pure_luck> it's not
+21:10 <+bridge> [ddnet] <Jupstar ✪> so it should only show the balls
+21:10 <+bridge> [ddnet] <Jupstar ✪> but not the projectiles?
+21:10 <+bridge> [ddnet] <Pure_luck> yes
+21:10 <+bridge> [ddnet] <Jupstar ✪> xD
+21:11 <+bridge> [ddnet] <Jupstar ✪> i'd really call this a bug in the old code
+21:11 <+bridge> [ddnet] <Jupstar ✪> but ok
+21:11 <+bridge> [ddnet] <Pure_luck> It's a feature for sure 😄
+21:11 <+bridge> [ddnet] <Jupstar ✪> u have deen on ur side anyway
+21:11 <+bridge> [ddnet] <Pure_luck> but I don't want to argue on terms with a person helping me 😄
+21:12 <+bridge> [ddnet] <Pure_luck> please recreate that nasty bug
+21:12 <+bridge> [ddnet] <Pure_luck> 🙏
+21:14 <+bridge> [ddnet] <Jupstar ✪> @Pure_luck try again
+21:15 <+bridge> [ddnet] <Jupstar ✪> BTW couldnt u just use shotgun?
+21:15 <+bridge> [ddnet] <Jupstar ✪> pObj->m_Type = WEAPON_NINJA;
+21:15 <+bridge> [ddnet] <Jupstar ✪> pObj->m_Type = WEAPON_SHOTGUN;
+21:16 <+bridge> [ddnet] <Pure_luck> it flickers a lot
+21:16 <+bridge> [ddnet] <Jupstar ✪> ok nvm
+21:16 <+bridge> [ddnet] <Jupstar ✪> but pls test the current code
+21:16 <+bridge> [ddnet] <Jupstar ✪> its force pushed
+21:16 <+bridge> [ddnet] <Jupstar ✪> do you know how to reset?
+21:19 <+bridge> [ddnet] <Pure_luck> yes, I've just deleted branch and fetched it again
+21:19 <+bridge> [ddnet] <Pure_luck> hard resetting didn't helped for some reason
+21:19 <+bridge> [ddnet] <Jupstar ✪> u need to fetch first
+21:19 <+bridge> [ddnet] <Jupstar ✪> but nvm
+21:20 <+bridge> [ddnet] <Pure_luck> now it works
+21:20 <+bridge> [ddnet] <Jupstar ✪> ok nice xd
+21:20 <+bridge> [ddnet] <Pure_luck> for both effects
+21:20 <+bridge> [ddnet] <Pure_luck> https://cdn.discordapp.com/attachments/293493549758939136/778353852076392498/Screenshot_from_2020-11-17_23-20-01.png
+21:20 <+bridge> [ddnet] <Pure_luck> Thanks a lot 🙏
+21:26 <+bridge> [ddnet] <Jupstar ✪> @louis did you try a beta driver btw?, or did u crash also on the new driver?
+21:28 <+bridge> [ddnet] <louis> idk ill test them after school
+21:57 <+bridge> [ddnet] <plsplsplslol> zooz looks bad in 15.2.2 with default entities
+21:57 <+bridge> [ddnet] <plsplsplslol> https://cdn.discordapp.com/attachments/293493549758939136/778363237740838942/screenshot_2020-11-17_12-57-02.png
+21:57 <+bridge> [ddnet] <plsplsplslol> ok maybe thats too much
+21:58 <+bridge> [ddnet] <plsplsplslol> https://cdn.discordapp.com/attachments/293493549758939136/778363428661362738/screenshot_2020-11-17_12-58-09.png
+21:58 <+bridge> [ddnet] <Jupstar ✪> @plsplsplslol what does `gfx_opengl_major` say?
+21:59 <+bridge> [ddnet] <plsplsplslol> 3
+21:59 <+bridge> [ddnet] <Jupstar ✪> mhh strange
+22:00 <+bridge> [ddnet] <Jupstar ✪> my zoom looks muhc better
+22:00 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/778363992451711016/screenshot_2020-11-17_22-00-12.png
+22:01 <+bridge> [ddnet] <Jupstar ✪> changed smth in ur driver settings or anything like that? 😄
+22:01 <+bridge> [ddnet] <Jupstar ✪> looks like your GPU isnt creating "enough" mipmaps
+22:02 <+bridge> [ddnet] <plsplsplslol> oh opengl 3.3 fixed it
+22:03 <+bridge> [ddnet] <Jupstar ✪> ok, strange tho 😄
+22:17 <+bridge> [ddnet] <Ryozuki> graphics are like a black box

@@ -1,0 +1,37 @@
+10:55  * ChillerDragon can someone fix irc pls
+10:55  * ChillerDragon :D
+12:22 < bridge> [teeworlds] <Assa> can sb. tell me how the hook_attach_ground-Sound is played? I see that it's added with all Sounds and there is a network message for it, but I can't find any place where it's played
+12:26 < bridge> [teeworlds] <Assa> https://github.com/teeworlds/teeworlds/blob/dc1802c20270679f112fef86e37e0831c8fe2104/src/game/client/gameclient.cpp#L1100
+12:26 < bridge> [teeworlds] <Assa> well this was hard to find
+12:27 < bridge> [teeworlds] <Assa> github-search didn't work there oO
+12:28 < bridge> [teeworlds] <Dune> Yeah don't rely on github for searches
+13:53 < bridge> [teeworlds] <Assa> Adding Sounds breaks the netcode :C
+14:10 < bridge> [teeworlds] <fokkonaut> why?
+14:51 < bridge> [teeworlds] <Assa> because the server sends the events and no other infos or flags
+14:51 < bridge> [teeworlds] <Assa> so if you send the event GAMECORE_HOOK_ATTACH the hook sound is played
+14:53 < bridge> [teeworlds] <Assa> if i want to add a different sound to hook ice, i need to add a flag to gamecore for material or something like tthat
+14:57 < bridge> [teeworlds] <redix> You can do that, you just must not send this flag to old clients. Unfortunately flags and enums are not forward compatible... should be fixed for 0.8
+14:59 < bridge> [teeworlds] <Assa> how does the network handle that? there is m_TriggeredEvents and I tried setting Event |= (Material << 16)
+15:02 < bridge> [teeworlds] <heinrich5991> the client throws out packets with flags it does not know
+15:02 < bridge> [teeworlds] <heinrich5991> netobjs* with flags that it does not know
+15:02 < bridge> [teeworlds] <Assa> this worked btw but opened the scoreboard
+15:02 < bridge> [teeworlds] <heinrich5991> huh
+15:02 < bridge> [teeworlds] <heinrich5991> did you set another game flag by accident?
+15:03 < bridge> [teeworlds] <Assa> yes but not by accident
+15:03 < bridge> [teeworlds] <Assa> if you hook ice you have HOOK_ATTACH + MATERIAL
+15:04 < bridge> [teeworlds] <Assa> in theory
+17:27 < bridge> [teeworlds] <Assa> I am debugging the max ice speed currently, when going on a really really long ice plate you gain a lot of speed and ramp is going up
+17:27 < bridge> [teeworlds] <Assa> ramp*velspeed tops at 75 and then slowly declines, is that right?
+17:39 < bridge> [teeworlds] <Assa> the speed is very weird in teeworlds
+17:59 < bridge> [teeworlds] <heinrich5991> yes
+18:00 < bridge> [teeworlds] <heinrich5991> when you go really fast (have high velocity), the horziontal movement is eventually slowed to a halt
+18:01 < bridge> [teeworlds] <Assa> why don't we fix this?
+18:03 < bridge> [teeworlds] <heinrich5991> well, a part of that is a feature
+18:03 < bridge> [teeworlds] <heinrich5991> and you don't really go that fast in vanilla, so it's not really necessary
+18:04 < bridge> [teeworlds] <heinrich5991> but I guess it can be fixed (just make sure not to break the feature)
+18:04 < bridge> [teeworlds] <Assa> if(vel_next > vel_previous && vel_next*ramp < cur_speed) vel_next = vel_previous
+18:04 < bridge> [teeworlds] <Assa> just clip it to it's max value i think
+18:05 < bridge> [teeworlds] <heinrich5991> doesn't work, the actual speed isn't modified
+18:05 < bridge> [teeworlds] <heinrich5991> (see how you gain back your speed when your velocity decreases again)
+18:06 < bridge> [teeworlds] <heinrich5991> what would work is probably refining the function for ramp
+18:06 < bridge> [teeworlds] <heinrich5991> that it is constant after a certain point instead of falling to 0

@@ -1,0 +1,552 @@
+01:33 <+bridge> [ddnet] <Дядя Женя> A lot of servers seems to be down
+01:34 <+bridge> [ddnet] <Дядя Женя> @snail ?
+02:06 <+bridge> [ddnet] <Дядя Женя> ok, all servers appear to off when nobody is playing on them and didn't turn on back
+02:06 <+bridge> [ddnet] <Learath2> @deen uhm, did you do sth?
+02:08 <+bridge> [ddnet] <Дядя Женя> except for `Persian`, it's alive
+02:33 <+bridge> [ddnet] <Learath2> I think that fixes all of them
+02:51 <+bridge> [ddnet] <Дядя Женя> yeah, nicely done
+08:17 <+bridge> [ddnet] <heinrich5991> I got in top 10 today. after discussing it with others, it became clear why 😛 I misread the problem statement
+09:46 <+bridge> [ddnet] <deen> @heinrich5991 congrats 😄
+09:47 <+bridge> [ddnet] <deen> @Learath2 I updated the server, nothing else
+09:48 <+bridge> [ddnet] <deen> Thanks for the workaround @Learath2
+09:49 <+bridge> [ddnet] <heinrich5991> oh yea, thanks for being around to fix the servers @Learath2
+09:51 <+bridge> [ddnet] <deen> Maybe the middle of the night is not the ideal time for our scheduled server restarts
+09:51 <+bridge> [ddnet] <deen> I think when I set that I used to be online around that time and could react, but not anymore
+10:28 <+bridge> [ddnet] <Ryozuki> what happened?
+10:29 <+bridge> [ddnet] <Ryozuki> or is it secret info 👀
+10:29 <+bridge> [ddnet] <noby> i wanna know too o_0
+10:29 <+bridge> [ddnet] <heinrich5991> https://discord.com/channels/252358080522747904/293493549758939136/786027814608568321
+10:30 <+bridge> [ddnet] <noby> why did that only recently cause an issue
+10:30 <+bridge> [ddnet] <heinrich5991> idk
+10:30 <+bridge> [ddnet] <noby> oof
+10:30 <+bridge> [ddnet] <heinrich5991> maybe a change in compiler
+10:30 <+bridge> [ddnet] <noby> sry? 😅
+10:30 <+bridge> [ddnet] <heinrich5991> ```
+10:30 <+bridge> [ddnet] <heinrich5991> ./DDRace64-Server_sql: symbol lookup error: /home/teeworlds/servers/libantibot.so: undefined symbol: mem_comp
+10:30 <+bridge> [ddnet] <heinrich5991> ```
+10:30 <+bridge> [ddnet] <heinrich5991> error message was here
+10:30 <+bridge> [ddnet] <noby> afaik i mostly used memcmp not mem_comp anyway
+10:31 <+bridge> [ddnet] <heinrich5991> *this, you can also see it in the pull request
+10:31 <+bridge> [ddnet] <heinrich5991> yes, it's my fault anyway, if you want to blame someone 😉
+10:31 <+bridge> [ddnet] <heinrich5991> it's only an issue because I added the glue code
+10:31 <+bridge> [ddnet] <Learath2> Oh what was it?
+10:31 <+bridge> [ddnet] <noby> i dont want to blame someone i was just hoping i didnt fuck something up again lol
+10:31 <+bridge> [ddnet] <Learath2> Just woke up :P
+10:31 <+bridge> [ddnet] <heinrich5991> apparently the compiler stopped exporting `mem_comp` from the binary for the shared libraries
+10:31 <+bridge> [ddnet] <noby> gm
+10:32 <+bridge> [ddnet] <heinrich5991> but `libantibot-noby.so` used it and couldn't find it
+10:32 <+bridge> [ddnet] <heinrich5991> `1-rdynamic` exports all the public symbols again
+10:32 <+bridge> [ddnet] <heinrich5991> `-rdynamic` exports all the public symbols again
+10:32 <+bridge> [ddnet] <heinrich5991> usually it uses a heuristic at build time which symbols to export
+10:32 <+bridge> [ddnet] <Learath2> Huh, how can the compiler not export that? It's a symbol with external linkage no?
+10:33 <+bridge> [ddnet] <heinrich5991> it only exports those used by the shared libraries it can see at build time apparently
+10:33 <+bridge> [ddnet] <heinrich5991> but that doesn't work for our setup where we only give the actual binary to the program at runtime
+10:33 <+bridge> [ddnet] <Learath2> Huh, is that even a legal aasumption to make?
+10:33 <+bridge> [ddnet] <noby> why cant we use memcmp instead
+10:34 <+bridge> [ddnet] <heinrich5991> I didn't feel like tracking down every function we use from the main binary ^^
+10:34 <+bridge> [ddnet] <noby> i meant bcs its string.h standard fn
+10:34 <+bridge> [ddnet] <Learath2> Anyway, did you find a way to fix it?
+10:34 <+bridge> [ddnet] <noby> or is it a compatibility thing
+10:34 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/3391
+10:35 <+bridge> [ddnet] <noby> huh smart
+10:35 <+bridge> [ddnet] <Ryozuki> `libantibot-noby.so` -> `libantibot-nobo.so`
+10:35 <+bridge> [ddnet] <noby> no u
+10:35 <+bridge> [ddnet] <Ryozuki> :pepe_straight:
+10:35 <+bridge> [ddnet] <noby> not my fault :pepeH:
+10:36 <+bridge> [ddnet] <Ryozuki> ah github dark
+10:36 <+bridge> [ddnet] <Ryozuki> so many years
+10:37 <+bridge> [ddnet] <deen> I used it for 1 minute and went back to white 😄
+10:37 <+bridge> [ddnet] <Learath2> @deen took me a couple minutes to figure out what was even happening. We should prolly add something to run64 to stop trying to restart and warn us
+10:37 <+bridge> [ddnet] <noby> is there a way to save backtrace and restart the executable
+10:37 <+bridge> [ddnet] <Learath2> I think I like the new dark modd
+10:37 <+bridge> [ddnet] <heinrich5991> @noby search for "coredump". they're usually saved when a program crashes
+10:38 <+bridge> [ddnet] <heinrich5991> try it with a simple C program that crashes
+10:38 <+bridge> [ddnet] <deen> @Learath2 I wouldn't necessarily stop, but at least warn sounds good. But an email per failed run would quickly explode 😄
+10:38 <+bridge> [ddnet] <Learath2> We already have coredumps but I don't think this caused a coredump
+10:38 <+bridge> [ddnet] <Learath2> Or I couldn't find one anyway
+10:38 <+bridge> [ddnet] <deen> nope, it's not a crash when it doesn't even start
+10:38 <+bridge> [ddnet] <heinrich5991> it starts
+10:38 <+bridge> [ddnet] <heinrich5991> it only detects at runtime that symbols are missing
+10:38 <+bridge> [ddnet] <heinrich5991> not sure how it quits
+10:38 <+bridge> [ddnet] <deen> oh
+10:39 <+bridge> [ddnet] <Learath2> Need to be smarter than 1 mail per fail :D
+10:39 <+bridge> [ddnet] <heinrich5991> I use https://healthchecks.io/ for this kind of monitoring (e.g. for certificates, or teehistorian downloads)
+10:39 <+bridge> [ddnet] <heinrich5991> I get a single telegram message when a job has not completed on time
+10:39 <+bridge> [ddnet] <heinrich5991> and no more until I fix it again
+10:39 <+bridge> [ddnet] <heinrich5991> (I self-host it)
+10:39 <+bridge> [ddnet] <Learath2> I wonder if we  could monitor the servers with twping
+10:40 <+bridge> [ddnet] <Learath2> Ping everything in serverlist once a minute or two
+10:41 <+bridge> [ddnet] <Learath2> This would have taken down all the servers and we wouldn't get a single warning about it :P
+10:42 <+bridge> [ddnet] <heinrich5991> you mean with our current system no warning?
+10:42 <+bridge> [ddnet] <heinrich5991> @Learath2 do you have experience with prometheus/grafana or similar monitoring btw?
+10:43 <+bridge> [ddnet] <heinrich5991> I want to set something up for my servers, but it all looks so complicated 😄
+10:44 <+bridge> [ddnet] <Learath2> Nope, I never did much with larger scale system administration
+10:44 <+bridge> [ddnet] <deen> We use grafana at work, works ok
+10:45 <+bridge> [ddnet] <heinrich5991> @deen I think grafana usually uses a backend, what do you use? prometheus? influxdb?
+10:47 <+bridge> [ddnet] <deen> I just use grafana, I didn't it up actually 😄
+10:47 <+bridge> [ddnet] <heinrich5991> *set it up?
+10:47 <+bridge> [ddnet] <deen> yes
+10:48 <+bridge> [ddnet] <deen> My keyboard is breaking, hopefully it's just the cable
+10:48 <+bridge> [ddnet] <Ryozuki> i used graphana once too
+10:48 <+bridge> [ddnet] <Ryozuki> @heinrich5991 it supports various "data sources"
+10:49 <+bridge> [ddnet] <Ryozuki> am i reading this wrong? it sums 15 to 40 to find the invalid number, but then it says the range is from 15 to 47
+10:49 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/786167645506502656/unknown.png
+10:49 <+bridge> [ddnet] <Ryozuki> is this a error on their part?
+10:49 <+bridge> [ddnet] <Ryozuki> or what im understanding wrong
+10:51 <+bridge> [ddnet] <Ryozuki> AH
+10:51 <+bridge> [ddnet] <Ryozuki> ok i see
+10:51 <+bridge> [ddnet] <Ryozuki> nvm i should read better
+10:54 <+bridge> [ddnet] <Ryozuki> its not first and last its lowest and highest
+10:54 <+bridge> [ddnet] <Ryozuki> my assumption xd
+10:54 <+bridge> [ddnet] <Learath2> I aspire to one day wake up and actually be fully rested... I'll leave aoc to the night
+10:55 <+bridge> [ddnet] <Ryozuki> well u go to sleep rly late
+10:55 <+bridge> [ddnet] <Ryozuki> doing aoc in night might even worsen that
+10:55 <+bridge> [ddnet] <Ryozuki> xd
+10:56 <+bridge> [ddnet] <Ryozuki> @heinrich5991  <https://github.com/edg-l/adventofcode-2020/blob/master/day9.rs>
+10:56 <+bridge> [ddnet] <Ryozuki> what u think
+10:56 <+bridge> [ddnet] <Ryozuki> any improvements today
+10:56 <+bridge> [ddnet] <heinrich5991> `&Vec<i64>`
+10:57 <+bridge> [ddnet] <heinrich5991> first thing I see in the code 😄
+10:57 <+bridge> [ddnet] <Learath2> I have tried sleeping at every possible hour past 2200 until 0500. I don't even set an alarm anymore, still doesn't work
+10:57 <+bridge> [ddnet] <Ryozuki> ahhh
+10:57 <+bridge> [ddnet] <Learath2> I really wish humans had jtag
+10:57 <+bridge> [ddnet] <Ryozuki> im so used to not using bare arrays
+10:57 <+bridge> [ddnet] <Ryozuki> xdd
+10:58 <+bridge> [ddnet] <Ryozuki> i went tosleep at 23:30 and woke up at 9:30
+10:58 <+bridge> [ddnet] <Ryozuki> i sleep like a baby
+10:58 <+bridge> [ddnet] <Comrade> @heinrich5991 CentOS is dead now so you can finally drop CMake 2.8 😄
+10:58 <+bridge> [ddnet] <Comrade> https://www.phoronix.com/scan.php?page=news_item&px=CentOS-8-Ending-For-Stream
+10:58 <+bridge> [ddnet] <heinrich5991> yea I saw that @Comrade 😄
+10:58 <+bridge> [ddnet] <Ryozuki> wow
+10:58 <+bridge> [ddnet] <heinrich5991> what did you do?
+10:59 <+bridge> [ddnet] <heinrich5991> the lengths people go to convince ddnet to change their cmakelists.txt
+10:59 <+bridge> [ddnet] <heinrich5991> killing of distributions…
+10:59 <+bridge> [ddnet] <Comrade> i just happened 😄
+10:59 <+bridge> [ddnet] <Ryozuki> outdated distros*
+10:59 <+bridge> [ddnet] <Comrade> it just happened 😄
+10:59 <+bridge> [ddnet] <heinrich5991> but I have bad news ^^
+10:59 <+bridge> [ddnet] <heinrich5991> this is only for centos 8
+10:59 <+bridge> [ddnet] <heinrich5991> the outdated distros were centos 6&7 IIRC
+10:59 <+bridge> [ddnet] <Ryozuki> CentOS 7 will stick around in a supported maintenance state until 2024.
+10:59 <+bridge> [ddnet] <Comrade> RPM distros are bad anyway (no offense)
+10:59 <+bridge> [ddnet] <Ryozuki> centos 6 maintenance ends this year
+11:00 <+bridge> [ddnet] <Ryozuki> yeah
+11:00 <+bridge> [ddnet] <Ryozuki> tho ppl like fedora
+11:00 <+bridge> [ddnet] <Ryozuki> my first vpn i had was centos 6 i think
+11:00 <+bridge> [ddnet] <Ryozuki> i didnt know much about linux
+11:00 <+bridge> [ddnet] <heinrich5991> I heard good things about fedora, some friends of mine use it
+11:00 <+bridge> [ddnet] <Ryozuki> but centos lacking lot ofp ackages
+11:00 <+bridge> [ddnet] <Ryozuki> made the experience worse
+11:00 <+bridge> [ddnet] <Ryozuki> xddd
+11:00 <+bridge> [ddnet] <Ryozuki> so i never went back to using such distro
+11:04 <+bridge> [ddnet] <Learath2> Centos is the oddest distro I've ever used
+11:04 <+bridge> [ddnet] <Learath2> Why is a distro being that stable ever wanted? Systems stuck in the past have aaaalways caused issues
+11:05 <+bridge> [ddnet] <Ryozuki> maybe banks use it
+11:05 <+bridge> [ddnet] <Ryozuki> ?
+11:05 <+bridge> [ddnet] <Ryozuki> xd
+11:05 <+bridge> [ddnet] <Comrade> they use RHEL/SUSE i think
+11:06 <+bridge> [ddnet] <Learath2> I guess if all the software you run is in-house/private you could afford to stick to a decade old version of your distro
+11:06 <+bridge> [ddnet] <heinrich5991> @Ryozuki rest looks good to me. some nits: instead of returning the wrong result 0, I'd use `unreachable!()` or `panic!()`
+11:06 <+bridge> [ddnet] <Ryozuki> do some companies make their own distro?
+11:07 <+bridge> [ddnet] <Ryozuki> oh
+11:07 <+bridge> [ddnet] <Ryozuki> unreachable macro
+11:07 <+bridge> [ddnet] <Ryozuki> never heard of that
+11:07 <+bridge> [ddnet] <heinrich5991> I like that your code is not using a quadratic algorithm for the first part, like mine
+11:07 <+bridge> [ddnet] <Learath2> Doubt anyone would bother with rolling their own distro
+11:07 <+bridge> [ddnet] <Ryozuki> i always knew the trick with the hashset
+11:07 <+bridge> [ddnet] <deen> @Ryozuki That doesn't sound reasonable. I know SAP works together closely with SUSE for their SLES distro for example
+11:07 <+bridge> [ddnet] <heinrich5991> I think the city of munich rolled their own distro
+11:08 <+bridge> [ddnet] <heinrich5991> but went back to microsoft after some microsoft promised to put some HQs near munich
+11:08 <+bridge> [ddnet] <heinrich5991> but went back to microsoft after microsoft promised to put some HQs near munich
+11:08 <+bridge> [ddnet] <Ryozuki> <a:sadSnail:785072987815804929>
+11:08 <+bridge> [ddnet] <Learath2> I love corporatism
+11:08 <+bridge> [ddnet] <Ryozuki> rip
+11:09 <+bridge> [ddnet] <deen> Windows will become a Linux distribution in a few years anyway 😄
+11:09 <+bridge> [ddnet] <Learath2> The illusion of meritocracy is so annoying
+11:09 <+bridge> [ddnet] <Ryozuki> meritocracy?
+11:09 <+bridge> [ddnet] <Comrade> forking whole distro to change a few things... no wonder we have this mess 😄
+11:09 <+bridge> [ddnet] <Comrade> https://upload.wikimedia.org/wikipedia/commons/1/1b/Linux_Distribution_Timeline.svg
+11:10 <+bridge> [ddnet] <Ryozuki> > a political system in which economic goods and/or political power are vested in individual people on the basis of talent, effort, and achievement, rather than wealth or social class.
+11:10 <+bridge> [ddnet] <Ryozuki> microsoft doing that by using its wealth is meritocracy
+11:10 <+bridge> [ddnet] <Ryozuki> ?
+11:10 <+bridge> [ddnet] <Ryozuki> or did i understand wrong
+11:10 <+bridge> [ddnet] <Ryozuki> xd
+11:11 <+bridge> [ddnet] <Ryozuki> damn debian is used by a lot in that graph
+11:11 <+bridge> [ddnet] <Learath2> Nah if one would consider just the merits, they would use linux for things like this. Then microsoft comes in with their fat stacks of cash, and breaks the illusion that there is any meritocracy
+11:11 <+bridge> [ddnet] <deen> @Comrade yeah, I think it's better to look at the package manager. Ubuntu & Debian I mostly consider as the same for example
+11:11 <+bridge> [ddnet] <Ryozuki> ah ok
+11:11 <+bridge> [ddnet] <Learath2> Ubuntu is a better integrated debian :P
+11:12 <+bridge> [ddnet] <heinrich5991> it might actually be easier to use windows for the city
+11:12 <+bridge> [ddnet] <Learath2> What were they using it for?
+11:12 <+bridge> [ddnet] <heinrich5991> since every office worker is trained in microsoft office and not in libreoffice
+11:13 <+bridge> [ddnet] <Ryozuki> updated my solution
+11:13 <+bridge> [ddnet] <heinrich5991> but then it might also make sense to break that cycle if you think longer-term
+11:13 <+bridge> [ddnet] <heinrich5991> but as of today, you learn microsoft office in school (at least in berlin)
+11:13 <+bridge> [ddnet] <deen> (this is for the Windows as a Linux distro argument: http://esr.ibiblio.org/?p=8764)
+11:13 <+bridge> [ddnet] <Ryozuki> did u know openoffice is outdated, but their creators refuse to recommend the usage of the updated libreoffice
+11:13 <+bridge> [ddnet] <Learath2> Ah for user facing stuff idk. I was thinking about dumb displays, where windows is just a silly silly choice
+11:14 <+bridge> [ddnet] <heinrich5991> @Ryozuki yes, see me not using openoffice in my sentence 😄
+11:14 <+bridge> [ddnet] <Learath2> Do you know the drama behind that? I never looked into it
+11:14 <+bridge> [ddnet] <Ryozuki> i saw it once on reddit
+11:14 <+bridge> [ddnet] <Comrade> @Ryozuki Oracle... 😄
+11:14 <+bridge> [ddnet] <heinrich5991> sun donated it to the apache foundation
+11:14 <+bridge> [ddnet] <heinrich5991> it's a dying project there, too few contributors
+11:14 <+bridge> [ddnet] <heinrich5991> they refuse to let it die there though, and refuse to recommend libreoffice instead
+11:15 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/linux/comments/ja0q8v/open_letter_from_libreoffice_to_apache_openoffice/
+11:15 <+bridge> [ddnet] <Ryozuki> https://blog.documentfoundation.org/blog/2020/10/12/open-letter-to-apache-openoffice/
+11:15 <+bridge> [ddnet] <Ryozuki> found it
+11:15 <+bridge> [ddnet] <deen> At least there the situation is rather clear. For mysql/mariadb it's more chaotic, where MySQL has some features & bug fixes, MariaDB another set, but none is clearly better
+11:15 <+bridge> [ddnet] <heinrich5991> but openoffice still has brand value
+11:15 <+bridge> [ddnet] <Ryozuki> @deen i use postgresql these days
+11:16 <+bridge> [ddnet] <Learath2> Btw libreoffice works about as good as visual studio. It had been a while since I've seen software that slow
+11:16 <+bridge> [ddnet] <Ryozuki> libreoffice handles pasting images rly bad for me
+11:16 <+bridge> [ddnet] <Ryozuki> i always end up using g oogle docs on the web
+11:16 <+bridge> [ddnet] <heinrich5991> maybe you're running it in the wrong environment
+11:16 <+bridge> [ddnet] <Ryozuki> sadly
+11:16 <+bridge> [ddnet] <heinrich5991> it runs fine on my parent's debian and on a windows 10
+11:16 <+bridge> [ddnet] <Ryozuki> but for anything serious i use LaTeX
+11:16 <+bridge> [ddnet] <heinrich5991> but on my arch linux it's reaaly slow
+11:16 <+bridge> [ddnet] <Ryozuki> latex best
+11:17 <+bridge> [ddnet] <Learath2> Possible, it runs awfully on my mac, a little better on linux
+11:17 <+bridge> [ddnet] <heinrich5991> disabling spellcheck and changing some weird config options related to rendering alleviated the issue a little
+11:17 <+bridge> [ddnet] <Ryozuki> do u know what runs horrible too? eclipse
+11:17 <+bridge> [ddnet] <Ryozuki> xd
+11:17 <+bridge> [ddnet] <heinrich5991> but it's not become "usable"
+11:17 <+bridge> [ddnet] <Learath2> It's actually slower than running older microsoft office in a vm in either case :P
+11:18 <+bridge> [ddnet] <Comrade> isn't some part of LibreOffice written in Java?
+11:18 <+bridge> [ddnet] <heinrich5991> not a relevant part AFAIK
+11:18 <+bridge> [ddnet] <heinrich5991> https://www.theverge.com/2020/8/6/21355674/human-genes-rename-microsoft-excel-misreading-dates
+11:18 <+bridge> [ddnet] <heinrich5991> don't use excel, people ^^
+11:18 <+bridge> [ddnet] <Ryozuki> omg
+11:18 <+bridge> [ddnet] <Learath2> Shame a fork or an alternative hasn't emerged
+11:19 <+bridge> [ddnet] <Ryozuki> is libreoffice calc as good?
+11:19 <+bridge> [ddnet] <Ryozuki> i never used excel tbh
+11:19 <+bridge> [ddnet] <heinrich5991> for my purposes it works
+11:19 <+bridge> [ddnet] <Learath2> I guess an office suite is an undertaking too large
+11:19 <+bridge> [ddnet] <heinrich5991> I use it for editing csvs e.g.
+11:19 <+bridge> [ddnet] <heinrich5991> @Learath2 yea, think so, too
+11:19 <+bridge> [ddnet] <Ryozuki> some ppl solved AoC in excel
+11:20 <+bridge> [ddnet] <Learath2> I use the cloud version of office for the rare occasion that I need office
+11:20 <+bridge> [ddnet] <heinrich5991> meh, cloud < proprietrary software < open-source software
+11:20 <+bridge> [ddnet] <Learath2> Uni has a subscription
+11:20 <+bridge> [ddnet] <heinrich5991> if it's gone, it's gone
+11:20 <+bridge> [ddnet] <noby> :justatest:
+11:21 <+bridge> [ddnet] <Learath2> On mac I have the mac version of office
+11:21 <+bridge> [ddnet] <heinrich5991> @deen running a rebuild of the servers already? or can I do it
+11:21 <+bridge> [ddnet] <Learath2> @heinrich5991 one benefit of cloud is that you get performance. The cloud version of matlab works better for me e.g.
+11:22 <+bridge> [ddnet] <heinrich5991> matlab is such a bad programming language IMO. are you forced to use it?
+11:22 <+bridge> [ddnet] <Learath2> Yep forced. Awful language
+11:22 <+bridge> [ddnet] <heinrich5991> it has inconsistent behavior in a lot of places that lead to wrong results instead of exceptions
+11:22 <+bridge> [ddnet] <Ryozuki> whats a matlab alt
+11:22 <+bridge> [ddnet] <heinrich5991> python&numpy
+11:22 <+bridge> [ddnet] <heinrich5991> they even feature the same function names
+11:22 <+bridge> [ddnet] <Ryozuki> what about gnu octave
+11:23 <+bridge> [ddnet] <Learath2> French unis switched their linalg courses to numpy a while ago
+11:23 <+bridge> [ddnet] <heinrich5991> only that their functions behave sanely in edge cases
+11:23 <+bridge> [ddnet] <heinrich5991> @Ryozuki octave is bug-for-bug compatible
+11:23 <+bridge> [ddnet] <heinrich5991> so not sane
+11:23 <+bridge> [ddnet] <Ryozuki> what does that mean
+11:23 <+bridge> [ddnet] <Learath2> Italy is always a bit behind the curve :P
+11:23 <+bridge> [ddnet] <heinrich5991> berlin also uses numpy
+11:23 <+bridge> [ddnet] <heinrich5991> e.g. the primitive type
+11:24 <+bridge> [ddnet] <Ryozuki> numpy is mostly made with C right?
+11:24 <+bridge> [ddnet] <Ryozuki> and then exposed to python
+11:24 <+bridge> [ddnet] <Learath2> No way to get good performance in pure python sadly
+11:24 <+bridge> [ddnet] <heinrich5991> the primitive type is an "at least two dimensional array of numbers" in matlab
+11:24 <+bridge> [ddnet] <heinrich5991> it's "an n-dimensional array of numbers" in numpy
+11:24 <+bridge> [ddnet] <Learath2> Not until they finally find a way to remove the GIL
+11:24 <+bridge> [ddnet] <Ryozuki> rust is trying to have its own stuff https://nalgebra.org/ :pepe_straight:
+11:25 <+bridge> [ddnet] <Learath2> Tho idk if numpy parallelizes. But the problems of linear algebra parallelize reeeaaally well
+11:25 <+bridge> [ddnet] <heinrich5991> or the max function in matlab: it returns the max of each row in a vector. except if you only have one column. then it returns the max of that column
+11:25 <+bridge> [ddnet] <heinrich5991> like tf. it broke my code when I only had one datapoint
+11:26 <+bridge> [ddnet] <heinrich5991> or the max function in matlab: it returns the max of each row resulting in a vector. except if you only have one column. then it returns the max of that column
+11:26 <+bridge> [ddnet] <Learath2> Matlab is really a goof when it comes to this stuff. It tries to behave how a "scientist" that doesn't know programming would expect it to behave
+11:27 <+bridge> [ddnet] <deen> @heinrich5991 run already
+11:27 <+bridge> [ddnet] <deen> `23/23 servers updated successfully`
+11:27 <+bridge> [ddnet] <heinrich5991> kk
+11:27 <+bridge> [ddnet] <Learath2> Did you switch the symlink back?
+11:28 <+bridge> [ddnet] <deen> no
+11:28 <+bridge> [ddnet] <deen> Should Iß
+11:28 <+bridge> [ddnet] <deen> ?
+11:28 <+bridge> [ddnet] <Learath2> Maybe try to run one server see if that fixed it? :P
+11:28 <+bridge> [ddnet] <heinrich5991> it works on ddnet.tw
+11:28 <+bridge> [ddnet] <Learath2> Or if you are feeling brave yeah, you can switch it all
+11:29 <+bridge> [ddnet] <heinrich5991> (I tested it a couple of secs ago)
+11:29 <+bridge> [ddnet] <deen> Tried one on GER2, works
+11:29 <+bridge> [ddnet] <deen> switched all now
+11:29 <+bridge> [ddnet] <heinrich5991> nice. ty 🙂
+11:41 <+bridge> [ddnet] <Learath2> I still can't get my hands on one of the new ryzens :( I hate scalpers
+11:47 <+bridge> [ddnet] <Comrade> let's wait for next generation - it will be even better 😄
+11:47 <+bridge> [ddnet] <Comrade> there are still no good mainboards for Ryzens anyway i think
+11:48 <+bridge> [ddnet] <Ryozuki> ill probs disappear from here soon :monkalaugh:
+11:48 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/786182353822810152/unknown.png
+11:56 <+bridge> [ddnet] <deen> @Learath2 which one did you want to buy?
+11:56 <+bridge> [ddnet] <deen> The 5800x is sometimes available in Germany (but it has the worst perf/cost ratio)
+11:57 <+bridge> [ddnet] <Learath2> 5950x
+11:59 <+bridge> [ddnet] <Learath2> I'd even set aside the money, never thought stock would be the issue :P
+12:04 <+bridge> [ddnet] <deen> AMD is using 80% of their TSMC wafers to produce PlayStation & Xbox chips, so not much left over for their other business at the moment
+12:05 <+bridge> [ddnet] <Learath2> I was also thinking of getting a ps5, those are also all gone
+12:06 <+bridge> [ddnet] <Learath2> If only there was a way to enforce "one per person" on these times of demand
+12:06 <+bridge> [ddnet] <Learath2> Scalpers are making soooo much money
+12:07 <+bridge> [ddnet] <Learath2> They are all buying with scripts too, so it's not even fair competition
+12:08 <+bridge> [ddnet] <deen> The usualy solution is a 24 hour entry which is restricted to once per person and then you do a lottery and the winners can buy it. But honestly I'd just wait it out until stock improves
+12:10 <+bridge> [ddnet] <Learath2> Hm, that does sound better
+12:14 <+bridge> [ddnet] <Ryozuki> i also wanted to get a ps5
+12:14 <+bridge> [ddnet] <Ryozuki> but couldnt
+12:14 <+bridge> [ddnet] <Ryozuki> rip
+12:26 <+bridge> [ddnet] <deen> Boring C++ today: https://github.com/def-/adventofcode-2020/blob/master/day09.cpp
+12:26 <+bridge> [ddnet] <noby> ```cpp
+12:26 <+bridge> [ddnet] <noby>         std::cout << *std::min_element(&v[j], &v[k+1]) + *std::max_element(&v[j], &v[k+1]) << std::endl; // Part 2
+12:26 <+bridge> [ddnet] <noby> ```
+12:26 <+bridge> [ddnet] <noby> 👀
+12:28 <+bridge> [ddnet] <Learath2> I have cyberpunk preloaded, hopefully my 1080 isn’t too out of date to run atleast at high. The game looks so nice, wouldn’t want a compromise
+12:37 <+bridge> [ddnet] <Ryozuki> @Learath2 1080 runs it on high for sure
+12:37 <+bridge> [ddnet] <Ryozuki> it recommends a 1060 for high
+12:37 <+bridge> [ddnet] <Ryozuki> c++ rly looks ugly
+12:39 <+bridge> [ddnet] <Learath2> Well beauty is both subjective and relative
+12:40 <+bridge> [ddnet] <Ryozuki> yeah
+12:40 <+bridge> [ddnet] <Ryozuki> rust is beutiful
+12:40 <+bridge> [ddnet] <Ryozuki> :PES2_WotAlt:
+12:40 <+bridge> [ddnet] <Learath2> I think it looks relatively prettier than rust
+12:40 <+bridge> [ddnet] <Ryozuki> i dont
+12:40 <+bridge> [ddnet] <Ryozuki> i always found c++ and specially modern c++ to look rly ugly
+12:40 <+bridge> [ddnet] <Ryozuki> xd
+12:41 <+bridge> [ddnet] <Learath2> Modern c++ is pretty ugly. @deen’s solution doesn’t have much of it though
+12:41 <+bridge> [ddnet] <deen> Yes, I tried to convert it to modern C++ and noticed that was making it even worse
+12:41 <+bridge> [ddnet] <deen> so I just left it as I wrote it initially
+12:41 <+bridge> [ddnet] <Ryozuki> :monkaS:
+12:42 <+ChillerDragon> is it rly ugly tho? Or just intimidating if your not used to it?
+12:42 <+ChillerDragon> I always thought im just too nub for this crazy new c++
+12:42 <+bridge> [ddnet] <Learath2> Besides, modern c++ does get prettier when you omit the namespaces, it just looks cluttered mostly
+12:42 <+bridge> [ddnet] <Ryozuki> yea cluttered
+12:43 <+ChillerDragon> there has to be some advantage right?
+12:43 <+bridge> [ddnet] <Learath2> C++20 brings with it concepts that cleans up the ugliest part of the modern c++ syntax, the templates
+12:43 <+ChillerDragon> is it harder to mess up or something?
+12:43 <+ChillerDragon> deen dont u write modern c++ fulltime? tell me something nice about it
+12:43 <+bridge> [ddnet] <Learath2> Not really, it’s mostly a result of years of backwards compatibilty
+12:43 <+ChillerDragon> hm
+12:44 <+bridge> [ddnet] <Learath2> The way it’s set up is really extremely flexible btw
+12:45 <+bridge> [ddnet] <Learath2> Coding for a toaster with only 1k of memory? You can replace the allocator e.g.
+12:46 <+ChillerDragon> oh so the modern c++ still trys to run well on limited hardware?
+12:46 <+ChillerDragon> i did not expect that
+12:46 <+bridge> [ddnet] <Learath2> Or the atomics that allow you to micro optimize
+12:46 <+ChillerDragon> so the new c++ is not a tons of abstractions where you lose control?
+12:47 <+bridge> [ddnet] <Learath2> It’s tons of abstractions where you can manipulate every part of it
+12:47 <+ChillerDragon> i see
+12:47 <+bridge> [ddnet] <Learath2> It tries to cater to like everyone
+12:47 <+ChillerDragon> but i rly never had the urge to learn it
+12:48 <+bridge> [ddnet] <Learath2> There are some parts of the it just fly right over my head
+12:48 <+ChillerDragon> i think @jxsl13 has the most c++ tw project as far as i know :D
+12:49 <+bridge> [ddnet] <Learath2> Like execution policies
+12:50 <+ChillerDragon> https://github.com/jxsl13/zcatch/commit/c2693d52369dc36dd489010389de7e56993d96c4
+12:51 <+ChillerDragon> std::string IP = {aBuf}; in tw code looks weird
+12:52 <+bridge> [ddnet] <Learath2> Oh, or memory resources, who uses those and for what even
+12:54 <+bridge> [ddnet] <Ryozuki> u can never learn 100% c++
+12:54 <+bridge> [ddnet] <Ryozuki> there will be always u dont know
+12:54 <+bridge> [ddnet] <Ryozuki> and thats not true for other languages
+12:54 <+bridge> [ddnet] <Ryozuki> atleast thats how i feel
+12:54 <+bridge> [ddnet] <Ryozuki> there will be always something u dont know
+12:55 <+bridge> [ddnet] <Learath2> C++ has too wide a usecase for someone to understand everything, such a complex beast
+12:56 <+bridge> [ddnet] <Comrade> https://cdn.discordapp.com/attachments/293493549758939136/786199617284079666/personal_learning_curve.jpg
+12:56 <+bridge> [ddnet] <Learath2> C I even know which parts of the standard relate to what behaviour. Even the standardese in The C standard is easier to understand
+12:57 <+bridge> [ddnet] <Learath2> Generally I have trouble reading the C++ standard
+12:57 <+bridge> [ddnet] <deen> @Learath2 we use them at work. It's nice to have different allocators for different stuff, with different properties. And you can get statistics of what is using how much memory exactly
+12:58 <+bridge> [ddnet] <deen> And I think some people do have a full understanding of C++, but very few in the world probably
+12:58 <+bridge> [ddnet] <Learath2> @deen what are they? I have a vague idea of what problem they are trying to solve, is it containers with different allocators containing the same type being different types?
+12:59 <+bridge> [ddnet] <Learath2> (I assumed you meant memory_resource s)
+12:59 <+bridge> [ddnet] <deen> Yes, for me it's just an interface for an allocator
+13:00 <+bridge> [ddnet] <Learath2> I want to learn more C++17 and 20 this year. If I ever have free time and am not sleepy
+13:38 <+bridge> [ddnet] <Ryozuki> @Learath2 if cyberpunk 2077 is in stadia does it mean they have a linux build?
+13:38 <+bridge> [ddnet] <Ryozuki> stadia only good thing may be that games will be made on linux too
+13:38 <+bridge> [ddnet] <Ryozuki> for me xd
+13:38 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/786210253061881876/19908860961553016899gol1.png
+13:39 <+bridge> [ddnet] <Learath2> Well it’s not known what stadia runs on, but I’d guess so, windows doesn’t have good support for the dozen gpus they run per server
+13:39 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/cyberpunkgame/comments/ct67ur/vulkan_and_linux_support_in_cyberpunk_2077/
+13:39 <+bridge> [ddnet] <Learath2> Oh, hadn’t seen we know what stadia uses now
+13:40 <+bridge> [ddnet] <Ryozuki> i mean if ur game uses vulkan linux support shouldnt be that hard
+13:40 <+bridge> [ddnet] <Learath2> It does make sense tho, as said windows doesn’t like these applications
+13:41 <+bridge> [ddnet] <Ryozuki> as the post says they probs should only need to change the input and windowing to get it working on linux
+13:41 <+bridge> [ddnet] <Ryozuki> well thats making lot of assumptions
+13:41 <+bridge> [ddnet] <Learath2> I would think they first made a linux build, then ported to stadia
+13:42 <+bridge> [ddnet] <Ryozuki> :pepe_straight:
+13:42 <+bridge> [ddnet] <Ryozuki> why wouldnt they announce the game on linux then
+13:42 <+bridge> [ddnet] <deen> because nearly no linux players, so who cares?
+13:42 <+bridge> [ddnet] <Learath2> Idk , not cool enough news?
+13:42 <+bridge> [ddnet] <Ryozuki> meh
+13:42 <+bridge> [ddnet] <Ryozuki> this circle of death
+13:42 <+bridge> [ddnet] <Ryozuki> no players -> no game -> no growth of players
+13:43 <+bridge> [ddnet] <Ryozuki> we will never go out of this
+13:43 <+bridge> [ddnet] <Learath2> Even the nicest developers don’t care about us 😦
+13:43 <+bridge> [ddnet] <Ryozuki> i mean
+13:43 <+bridge> [ddnet] <Ryozuki> look ddnet
+13:44 <+bridge> [ddnet] <Learath2> Ddnet is linux first :P
+13:44 <+bridge> [ddnet] <Ryozuki> there isnt much cross incompatible code
+13:44 <+bridge> [ddnet] <Ryozuki> u just abstract it first
+13:44 <+bridge> [ddnet] <Learath2> Porting is actually not hard at all, they just don't care as there is no money
+13:44 <+bridge> [ddnet] <Ryozuki> but if u start the development thinking in crossplatform terms
+13:44 <+bridge> [ddnet] <Learath2> See how good it got when suddenly there was profit in sight with steamOS?
+13:44 <+bridge> [ddnet] <Ryozuki> i dont think it costs that much money
+13:45 <+bridge> [ddnet] <Ryozuki> obviously remaking a non crossplatform would cost more money
+13:45 <+bridge> [ddnet] <Ryozuki> sadly steamos was a failure
+13:45 <+bridge> [ddnet] <Learath2> Everyone and their mothers rushed to get linux ports, the drivers leaped an entire light year ahead
+13:45 <+bridge> [ddnet] <Ryozuki> yeah
+13:45 <+bridge> [ddnet] <Ryozuki> i hope valve still works on this
+13:45 <+bridge> [ddnet] <Learath2> Then yeah steamos failed and everything stopped
+13:45 <+bridge> [ddnet] <Ryozuki> well they work a lot of proton
+13:45 <+bridge> [ddnet] <Ryozuki> but proton is not native no matter what
+13:46 <+bridge> [ddnet] <Learath2> Borderlands 2 linux version is still like 5 patches behind
+13:46 <+bridge> [ddnet] <Ryozuki> well i wish also valve made steam for linux better
+13:46 <+bridge> [ddnet] <Ryozuki> currently u gotta install 32 bit librarys
+13:46 <+bridge> [ddnet] <Ryozuki> just for steam
+13:46 <+bridge> [ddnet] <Ryozuki> libs*
+13:47 <+bridge> [ddnet] <Learath2> I wish steam in general got better. It's way too unnecessarily complex
+13:48 <+bridge> [ddnet] <Ryozuki> better than epic store
+13:48 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+13:48 <+bridge> [ddnet] <Learath2> I wonder why steam on linux needs 32bit libraries
+13:49 <+bridge> [ddnet] <Ryozuki> i think its cuz some old games
+13:49 <+bridge> [ddnet] <Ryozuki> i think u can rely on steam sdl
+13:49 <+bridge> [ddnet] <Ryozuki> not sure
+13:50 <+bridge> [ddnet] <Ryozuki> https://steamcommunity.com/app/221410/discussions/
+13:50 <+bridge> [ddnet] <Ryozuki> :POGGIES:
+13:50 <+bridge> [ddnet] <Ryozuki> didnt know there was a forum
+14:01 <+bridge> [ddnet] <Pepe> They do shit about some games:justatest:
+14:50 <+bridge> [ddnet] <Ryozuki> https://www.youtube.com/watch?v=AiWjanAdD3s&t=13m22s
+14:50 <+bridge> [ddnet] <Ryozuki> this was the darkmode announcement
+15:12 <+bridge> [ddnet] <ReD | allocaツ> nice
+15:13 <+ChillerDragon> lol
+15:13 <+ChillerDragon> so cinnematic rofl
+15:13 <+ChillerDragon> its ugly darkmode tho sadly i still use lightmode
+15:14 <+ChillerDragon> compared to vscode for example its rly hard on the eyes somehow
+15:15 <+ChillerDragon> i think its too dark bg
+15:18 <+bridge> [ddnet] <ReD | allocaツ> u can only truly enjoy dark mode if it had an epic anime backstory with sacrifices of the evil and birth of the good
+15:23 <+bridge> [ddnet] <timakro> I find it difficult to read too, it's really dark
+15:24 <+bridge> [ddnet] <timakro> Compared to e.g. youtube, discord, firefox which all have a very similar tone of gray for the background
+15:31 <+bridge> [ddnet] <Ryozuki> I think they plan to add more themes
+16:00 <+bridge> [ddnet] <Learath2> Cute keynote and all but people have been requesting darkmode for what since github first launched? 😛 Funny how low the return on investment on that feature was that it was only done 6 months ago
+16:02 <+bridge> [ddnet] <Learath2> Oh btw, should we try github discussions for things that we keep discussing here that get lost or get “archived” in a meh manner in issues?
+16:06 <+bridge> [ddnet] <Ryozuki> Ye lets try it
+16:06 <+ChillerDragon> im not too sure if its cool but try for sure
+16:06 <+bridge> [ddnet] <Ryozuki> Chiller u cool
+16:06 <+ChillerDragon> we could also use ddnet.tw forum :D
+16:06 <+bridge> [ddnet] <Ryozuki> ☕
+16:06 <+bridge> [ddnet] <Ryozuki> Thats ded
+16:07 <+ChillerDragon> revive it
+16:07 <+bridge> [ddnet] <Learath2> Hm, now that I think about it, it doesn’t really help people that don’t have gh accounts contribute to the discussion
+16:07 <+bridge> [ddnet] <Learath2> We really shouldn’t have killed the forum on ddnet.tw ;P
+16:07 <+ChillerDragon> it just makes us more dependend on microsoft
+16:07 <+ChillerDragon> ye rip forum
+16:07 <+bridge> [ddnet] <deen> last time we discussed this my proposal was a daily log of all discord channels
+16:07 <+ChillerDragon> rip all the people who dont have discord
+16:08 <+bridge> [ddnet] <Learath2> We embrace monopolies here at ddnet inc. Windows server next
+16:08 <+ChillerDragon> ye
+16:08 <+ChillerDragon> when drop linux support?
+16:08 <+bridge> [ddnet] <Ryozuki> I wouldnt log generao
+16:08 <+bridge> [ddnet] <Ryozuki> General
+16:08 <+ChillerDragon> add more irc bridges
+16:08 <+bridge> [ddnet] <deen> But I often search for something and Discord search is horrible for me, I just want text
+16:08 <+ChillerDragon> ye grep is bae
+16:08 <+bridge> [ddnet] <Learath2> @deen log of discord is nice to have but it’s not browsable like a forum. No topics no categorization
+16:08 <+bridge> [ddnet] <Ryozuki> Ripgrep*
+16:09 <+bridge> [ddnet] <Learath2> And doesn’t let us continue long winded discussions like accounts
+16:09 <+ChillerDragon> ye livechat is good for quick questions and memes
+16:09 <+bridge> [ddnet] <Learath2> It’s unreasonable for me to ask people to search the logs for our discussions on accounts each time it comes up but it’s also unreasonable for them to expect me to repeat everything every time it’s asked
+16:09 <+bridge> [ddnet] <Ryozuki> I doubt any kind of forum will work as long as ppl use discord
+16:10 <+ChillerDragon> we should delete the ddnet discord server then :p
+16:10 <+bridge> [ddnet] <Learath2> It can work, many communities have both forums and discord
+16:11 <+bridge> [ddnet] <Ryozuki> But a chat will always be the prefered way for ppl
+16:11 <+bridge> [ddnet] <Ryozuki> And its also our fault too
+16:11 <+bridge> [ddnet] <Ryozuki> We make dev discussions here
+16:11 <+bridge> [ddnet] <Ryozuki> And get lost
+16:11 <+bridge> [ddnet] <Ryozuki> xd
+16:13 <+ChillerDragon> i search the logs of this channel here quite often tho
+16:13 <+ChillerDragon> not all information is lost here
+16:14 <+bridge> [ddnet] <Learath2> Discussions among us we can do in issues, prs and if we want longer winded ones gh discussions. I’m more concerned with decisions/discussions with community implications
+16:14 <+ChillerDragon> among us
+16:14 <+ChillerDragon> imo community should participate in pr and issue discussions
+16:14 <+ChillerDragon> if the issue or pr has affect that users can notice
+16:15 <+ChillerDragon> it should be announced on discord
+16:15 <+bridge> [ddnet] <Learath2> I feel like the polls we do in announcements are a good step, but we only give options there, so it’s not really a discussion
+16:15 <+ChillerDragon> encuraging ppl to write and read comments on github is nice imo
+16:15 <+ChillerDragon> no need for a seperate discussions github thingy
+16:15 <+ChillerDragon> separate
+16:15 <+ChillerDragon> aaa
+16:16 <+bridge> [ddnet] <Learath2> One thing with issues is that they get buried and discussion ‘“issues” are not really issues
+16:16 <+ChillerDragon> could u provide an example?
+16:17 <+ChillerDragon> never seen that being a problem
+16:17 <+bridge> [ddnet] <Ryozuki> Lot of prs lately are things a user wouldnt even know notice
+16:17 <+ChillerDragon> yea and in this case they should not be announced on discord
+16:17 <+ChillerDragon> to not annoy users
+16:17 <+bridge> [ddnet] <Learath2> Well I don’t know one in ddnet of the top of my head but oy and Dune had trouble with gameplay “issues” over in teeworlds/teeworlds
+16:17 <+bridge> [ddnet] <Learath2> Off*
+16:18 <+ChillerDragon> hm
+16:18 <+bridge> [ddnet] <Learath2> Anyway as I said, it doesn’t help much with the issue I’m concerned about
+16:18 <+ChillerDragon> sounds like taste
+16:18 <+bridge> [ddnet] <Learath2> Community involvement
+16:18 <+bridge> [ddnet] <Ryozuki> The issue is community involvement?
+16:19 <+bridge> [ddnet] <Ryozuki> It would be cool if github had oauth with discord
+16:19 <+bridge> [ddnet] <Ryozuki> That way it would be ez
+16:19 <+ChillerDragon> we can make a bot that replys to github issues :D
+16:19 <+ChillerDragon> from ddnet forum and or discord
+16:19 <+bridge> [ddnet] <Ryozuki> The bot would get banned in a hot chat
+16:19 <+bridge> [ddnet] <Ryozuki> <a:aPES_WTFEyes:642733839973613598>
+16:19 <+bridge> [ddnet] <fokkonaut> Is ravie not in here?
+16:20 <+bridge> [ddnet] <fokkonaut> @Ravie ah, no I could tag you
+16:20 <+bridge> [ddnet] <fokkonaut> Is it okay if I add your 0.7 skins to my client?
+16:20 <+bridge> [ddnet] <Ryozuki> #off-topic
+16:20 <+bridge> [ddnet] <Ryozuki> :weird:
+16:23 <+bridge> [ddnet] <heinrich5991> @Learath2 maybe make an accounts issue if we don't have one yet 🙂
+16:24 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+16:24 <+bridge> [ddnet] <fokkonaut> stays open forever
+16:24 <+bridge> [ddnet] <Ryozuki> Drama inc
+16:24 <+bridge> [ddnet] <fokkonaut> xdd
+16:24 <+bridge> [ddnet] <Learath2> People won’t create a github account to say anything, we would agree on a solution, implement it, then get flamed
+16:25 <+bridge> [ddnet] <Ryozuki> There is no "solution"
+16:25 <+bridge> [ddnet] <Ryozuki> U cant cater to everyone
+16:25 <+bridge> [ddnet] <heinrich5991> @Learath2 sure, but it would at least help us
+16:25 <+bridge> [ddnet] <heinrich5991> that we don't repeat our arguments to each other endlessly ^^
+16:30 <+bridge> [ddnet] <Ravie> @fokkonaut sure
+16:30 <+bridge> [ddnet] <fokkonaut> Thanks alot!
+18:24 <+bridge> [ddnet] <cagent> why am i not able to start steam ddnet?
+18:24 <+bridge> [ddnet] <Learath2> Is anyone here using githubs cli? I'm interested in not needing a browser
+18:24 <+bridge> [ddnet] <cagent> https://cdn.discordapp.com/attachments/293493549758939136/786282244099670046/unknown.png
+18:25 <+bridge> [ddnet] <Learath2> @cagent hm, can you translate the german?
+18:25 <+bridge> [ddnet] <cagent> sec
+18:26 <+bridge> [ddnet] <cagent> An error occurred while updating
+18:27 <+bridge> [ddnet] <Ryozuki> Read the docs :4Head:
+18:30 <+bridge> [ddnet] <murpi> (application configuration not available)
+18:32 <+bridge> [ddnet] <Learath2> For what?
+18:33 <+bridge> [ddnet] <Learath2> Hm, I don't have access to the steam admin thing, @deen did we recently do an update or sth?
+18:33 <+bridge> [ddnet] <Ryozuki> Github cli
+18:36 <+bridge> [ddnet] <cagent> i somehow fixxed the problem, thx
+18:37 <+bridge> [ddnet] <murpi> Somehow? Mind sharing your steps for future reference?
+18:37 <+bridge> [ddnet] <cagent> i mean
+18:37 <+bridge> [ddnet] <cagent> i just minimized steam
+18:37 <+bridge> [ddnet] <cagent> went in discord
+18:37 <+bridge> [ddnet] <cagent> and tried again after reading learaths message
+18:38 <+bridge> [ddnet] <cagent> then i worked
+18:43 <+bridge> [ddnet] <murpi> Huh, perhaps you didn't finish downloading the game? Well, glad to see it's working again 😄
+19:11 <+bridge> [ddnet] <deen> @Learath2 nope, should still work
+19:12 <+bridge> [ddnet] <deen> But I don't see any errors logged anyway
+19:12 <+bridge> [ddnet] <deen> @cagent did you try uninstalling it and installing it again? I assume this is a Steam problem
+19:13 <+bridge> [ddnet] <deen> oh, it worked again, ok
+20:11 <+bridge> [ddnet] <hussainx3> :ddnet: suggestion:ddnet: 
+20:11 <+bridge> [ddnet] <hussainx3> 
+20:11 <+bridge> [ddnet] <hussainx3> reduce crowding the  skins 
+20:11 <+bridge> [ddnet] <hussainx3> by create  skins group by  color/design
+20:11 <+bridge> [ddnet] <hussainx3> 
+20:11 <+bridge> [ddnet] <hussainx3> result this=
+20:11 <+bridge> [ddnet] <hussainx3> 
+20:11 <+bridge> [ddnet] <hussainx3> 1-more  tidy place  and easier for see
+20:11 <+bridge> [ddnet] <hussainx3> 
+20:11 <+bridge> [ddnet] <hussainx3> 2-makers the skins can make more than one for same  a skin 
+20:11 <+bridge> [ddnet] <hussainx3> with other color or design without been haveing problem
+20:12 <+bridge> [ddnet] <hussainx3> https://cdn.discordapp.com/attachments/293493549758939136/786309133023313920/-2.png
+20:54 <+bridge> [ddnet] <Learath2> I found another impossible to diagnose bug 😄
+20:54 <+bridge> [ddnet] <Learath2> Launching ddnet creates two windows, one stuck on my left screen, one on my right screen
+20:57 <+bridge> [ddnet] <Learath2> And this happens when I switch to borderless, the screens are not mirrored btw
+20:57 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/786320637354311710/20201209_205527_1.mp4
+20:59 <+bridge> [ddnet] <Learath2> And the best part, it only happens if I launch the game at my full screen resolution
+21:00 <+bridge> [ddnet] <Learath2> it works perfectly on smaller resolutions if I do borderless
+21:01 <+bridge> [ddnet] <louis> nice 5x5
+21:22 <+bridge> [ddnet] <Ryozuki> Rubick cube
+23:05 <+bridge> [ddnet] <NeXus> nasal spray drug addict :monkaS:

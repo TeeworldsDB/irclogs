@@ -1,0 +1,64 @@
+16:29 < bridge> [teeworlds] <Assa> hey is there currently working sb on issue #2790 with the tile layer system?
+16:29 < bridge> [teeworlds] <Assa> this or the extended netcode for 0.8
+16:30 < bridge> [teeworlds] <Dune> don't think so cc @redix
+16:31 < bridge> [teeworlds] <Assa> bcc @Learath2
+16:32 < bridge> [teeworlds] <Stiopa> for water there will probably be a need for an m_pCollisionTiles that is split from the rest of the entities
+16:34 < bridge> [teeworlds] <Assa> I want to add another layer of abstraction, you only need an air tile with water properties
+16:35 < bridge> [teeworlds] <Assa> not a solid, deadly or unhookable tile
+16:35 < bridge> [teeworlds] <redix> I'm not working on it. It's just my thoughts about it. Don't have time to work on it myself this year
+16:37 < bridge> [teeworlds] <redix> Water should just be a normal tile. #2790 would allow multiple layers, so you can still place pickups, etc. in water
+16:37 < bridge> [teeworlds] <Stiopa> well. I needed to add m_pCollisionTiles for Water Layer. 🙂
+16:37 < bridge> [teeworlds] <Assa> with that logic I would say you may be allowed to put all entities (except spawns) in other tiles
+16:38 < bridge> [teeworlds] <Learath2> I'm not working on it either. But I would love to have input on the direction you decide to take it. So whoever wants to take it up should probably make a proposal first
+16:40 < bridge> [teeworlds] <Dune> Yeah, that's def. the right way to approach gameplay stuff
+17:47 < bridge> [teeworlds] <Assa> isn't the issue already a proposal? Or do you mean a code proposal?
+17:48 < bridge> [teeworlds] <Learath2> This would be more technical as it involves no actual gameplay changes. However, it would make gameplay changes much easier. You could even run old maps on new servers and vice versa if implemented properly. It’d also be a very important modability QoL change. It’s quite important to get this one right before it gets merged so it’s useful for all of us
+17:50 < bridge> [teeworlds] <Learath2> Well the issue proposes a couple things but it also leaves some things to the reader. A complete proposal would have to address things like what kinds of identifiers will be used, if applicable how will we handle identifier conflicts, whether there will be datafile format changes needed, versioning, the collision properties of the tiles on these layers
+17:50 < bridge> [teeworlds] <Learath2> And probably a bit more that I’m missing
+17:52 < bridge> [teeworlds] <Assa> the easiest solution is to switch the map format directly to json xD
+17:52 < bridge> [teeworlds] <Learath2> Human readable formats are god awful in space efficiency
+17:52 < bridge> [teeworlds] <Learath2> The header being json I wouldn’t really object to
+17:52 < bridge> [teeworlds] <Assa> but they are git-readable
+17:52 < bridge> [teeworlds] <Learath2> Git is god awful for binary data pretending to be text
+17:54 < bridge> [teeworlds] <Learath2> A json map would inevitably be larger than a binary map, so the diffs would be useless anyway. I don’t see how one could make sense of a 5kb diff on a 500kb map without a tool
+17:56 < bridge> [teeworlds] <TsFreddie 🌈> Besides embedding images would make our "json" more like a binary data with some json in front of it.
+17:56 < bridge> [teeworlds] <TsFreddie 🌈> Which is more useless
+18:29 < ChillerDragon> @Assa btw there is already a fully working twmap to json converter written in rust by @Patiga
+18:29 < ChillerDragon> it is early wip and patiga will probably kill me for posting it here but it works fine https://gitlab.com/Patiga/twmap/-/tree/directory-map-format
+18:49 < bridge> [teeworlds] <jxsl13> chillinsky, you dead already?
+18:52 < bridge> [teeworlds] <jxsl13> don't say anything to confirm.
+18:59 < bridge> [teeworlds] <Assa> alternativly we can expand on the default format for maps
+19:28 < ChillerDragon> im here
+19:34 < bridge> [teeworlds] <Dune> why should we support json?
+21:03 < bridge> [teeworlds] <Assa> there are reasons for and against it
+21:05 < bridge> [teeworlds] <Assa> Is there anywhere a documentation on how mapfiles work?
+21:09 < bridge> [teeworlds] <Dune> what are the reasons for is my question
+21:09 < bridge> [teeworlds] <Dune> there is no doc that I know of
+21:10 < bridge> [teeworlds] <Assa> - It's human readable
+21:10 < bridge> [teeworlds] <Assa> - well documented
+21:10 < bridge> [teeworlds] <Assa> - easy write and readable
+21:10 < bridge> [teeworlds] <Assa> - tw is already supports json files
+21:11 < bridge> [teeworlds] <Assa> I would have already wrote a mapconverter but I have no idea how to open older mapfiles
+21:20 < bridge> [teeworlds] <redix> the map files contain mostly binary data (images and tile layers), even in json this is hardly readable
+21:20 < bridge> [teeworlds] <redix> and maps files in json format would be bigger. right now most data inside the map files is compressed
+21:20 < bridge> [teeworlds] <redix> supporting both formats just means more code to maintain
+21:20 < bridge> [teeworlds] <Dune> why should maps be human readable? they should be efficiently stored, they get downloaded over the network
+21:20 < bridge> [teeworlds] <Dune> and yeah there's going to be a lot of unreadable stuff within anyway
+21:21 < bridge> [teeworlds] <redix> when changing map format i would rather use flatbuffers or something like that
+21:22 < bridge> [teeworlds] <Dune> what's the beenfit?
+21:22 < bridge> [teeworlds] <redix> but i don't see a reason for that right now
+21:22 < bridge> [teeworlds] <redix> standardized format and docs
+21:23 < bridge> [teeworlds] <redix> and it does real serialization instead of just writing structs to a file 😄
+21:27 < bridge> [teeworlds] <Dune> sounds nice yeah
+21:27 < bridge> [teeworlds] <Dune> not sure if worth breaking compatibility tho
+21:30 < bridge> [teeworlds] <redix> completely breaking compatibility with old maps would kill the game 😮
+21:37 < bridge> [teeworlds] <Dune> yeah
+21:37 < bridge> [teeworlds] <Dune> well let's that'd be a very unpopular update :D
+21:37 < bridge> [teeworlds] <Dune> map converters don't get adopted super well
+21:40 < ChillerDragon> even more unpopular than 0.7? :D
+21:48 < bridge> [teeworlds] <heinrich5991> https://github.com/heinrich5991/libtw2/blob/ba09b18d4cbb5632765bb520ec9b84d6539f8870/doc/datafile.md @𝓔𝓼𝓼𝓲𝓰𝓪𝓾𝓽𝓸𝓶𝓪𝓽
+21:48 < bridge> [teeworlds] <heinrich5991> for data files
+21:48 < bridge> [teeworlds] <heinrich5991> plus the upcoming https://github.com/heinrich5991/libtw2/blob/7c26cb65a98501f3fc0e8ec1253f40dd175f1256/doc/map.md for maps (based on data files)
+21:49 < bridge> [teeworlds] <heinrich5991> reminds me that I should look at that pull request, thanks
+22:40 < bridge> [teeworlds] <Assa> this is so helpfull
+23:09 < bridge> [teeworlds] <jxsl13> hdf5
