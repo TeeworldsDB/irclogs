@@ -1,0 +1,714 @@
+02:20 <+bridge> [ddnet] <TsFreddie> mad lads
+02:45 <+bridge> [ddnet] <louis> anyone have a definitive answer to this?
+05:08 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789343397378785280/2020-12-18_11-58-35.mp4
+05:19 <+bridge> [ddnet] <TsFreddie> 👀 the new CLineInput is so good
+06:18 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789361014998564894/2020-12-18_13-14-22.mp4
+06:24 <+bridge> [ddnet] <louis> colemak 👀
+06:25 <+bridge> [ddnet] <TsFreddie> exposed
+06:36 <+bridge> [ddnet] <Дядя Женя> Does anybody understand how teehistorian INTs are saved?
+06:38 <+bridge> [ddnet] <Дядя Женя> There is a wierd things going on and I'm still not able to read the data. Only header works well, then goes TickSkip, which is read correctly for me and then it's just random bytes
+06:38 <+bridge> [ddnet] <heinrich5991> @louis try this
+06:38 <+bridge> [ddnet] <heinrich5991> https://cdn.discordapp.com/attachments/293493549758939136/789365980698247188/hook_attach-01-fixed.wv
+06:40 <+bridge> [ddnet] <heinrich5991> if that works, try `ffmpeg -i your_input.whatever -ar 48000 -ac 1 -sample_fmt s16p hook_attach-01-fixed.wv` to convert from any audio format
+06:41 <+bridge> [ddnet] <heinrich5991> @Дядя Женя what have you tried? there's source code to decode ints in ddnet, in the teehistorian lib or there's docs here: https://wiki.ddnet.tw/encodings/int/
+06:42 <+bridge> [ddnet] <heinrich5991> did you now also "waste" a day not using the library? I guess the library would have done that for you
+06:42 <+bridge> [ddnet] <Дядя Женя> I've tried to copy unpack method from source code
+06:42 <+bridge> [ddnet] <Дядя Женя> it seems to work but return weird values sometime
+06:43 <+bridge> [ddnet] <heinrich5991> not every value in the teehistorian is encoded as a tw int
+06:43 <+bridge> [ddnet] <Дядя Женя> does it really work with `bits` instead of `bytes`
+06:43 <+bridge> [ddnet] <Дядя Женя> oh cmoooooon...
+06:44 <+bridge> [ddnet] <heinrich5991> https://wiki.ddnet.tw/encodings/teehistorian/
+06:45 <+bridge> [ddnet] <Дядя Женя> thanks
+06:48 <+bridge> [ddnet] <louis> ye it works heinrich
+06:48 <+bridge> [ddnet] <louis> ill test the command out later tho
+08:07 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789388353979285504/whenyoucodeforadeadclient.mp4
+08:14 <+bridge> [ddnet] <heinrich5991> @TsFreddie do you have an estimate how easy it would be to port this to ddnet?
+08:15 <+bridge> [ddnet] <TsFreddie> the ime part is easy
+08:15 <+bridge> [ddnet] <heinrich5991> which OS btw?
+08:15 <+bridge> [ddnet] <TsFreddie> both windows and mac are tested (by me)
+08:15 <+bridge> [ddnet] <heinrich5991> nice
+08:16 <+bridge> [ddnet] <TsFreddie> the textselection (made by robyt3) might be tricky
+08:17 <+bridge> [ddnet] <TsFreddie> the new CLineInput with text selection depends on the new CTextRender. so to just "port" it, we might need to nuke the current text.cpp.
+08:17 <+bridge> [ddnet] <heinrich5991> is the new CTextRender also better than ours?
+08:18 <+bridge> [ddnet] <TsFreddie> i actually don't know. probably not since it doesn't use hashmap but that's easily solvable i guess.
+08:18 <+bridge> [ddnet] <heinrich5991> we use a hashmap for caching?
+08:18 <+bridge> [ddnet] <TsFreddie> feature wise it is probably better
+08:19 <+bridge> [ddnet] <TsFreddie> i think so.
+08:20 <+bridge> [ddnet] <TsFreddie> i think we should ask @Jupstar ✪ whether he can port some of the methods of CTextRender because I actually have no idea how ddnet's text.cpp works.
+08:21 <+bridge> [ddnet] <TsFreddie> mainly a way to count glyphs quads and return a coordinate. `TextWidth()` might run into problems with multi-line and stuff.
+08:24 <+bridge> [ddnet] <Jupstar ✪> we dont cache anything
+08:24 <+bridge> [ddnet] <Jupstar ✪> we use text containers
+08:24 <+bridge> [ddnet] <Jupstar ✪> we buffer basically
+08:25 <+bridge> [ddnet] <TsFreddie> 👀 i mean the glyph finding part
+08:25 <+bridge> [ddnet] <Jupstar ✪> a, well its a map
+08:25 <+bridge> [ddnet] <Jupstar ✪> with the character as key
+08:25 <+bridge> [ddnet] <Jupstar ✪> so not really a hash
+08:25 <+bridge> [ddnet] <heinrich5991> std::map? that's a rbtree IIRC
+08:25 <+bridge> [ddnet] <TsFreddie> i see
+08:25 <+bridge> [ddnet] <Jupstar ✪> yeah
+08:26 <+bridge> [ddnet] <TsFreddie> still better than vanilla tho
+08:26 <+bridge> [ddnet] <TsFreddie> vanilla need O(n) to insert a new glyph
+08:26 <+bridge> [ddnet] <Jupstar ✪> bcs vanilla blocks STL
+08:26 <+bridge> [ddnet] <TsFreddie> i know
+08:26 <+bridge> [ddnet] <Jupstar ✪> and reimplementing everything is annoying xD
+08:27 <+bridge> [ddnet] <TsFreddie> but still that's solvable if we want to port it
+08:27 <+bridge> [ddnet] <TsFreddie> is every text in ddnet text container now?
+08:28 <+bridge> [ddnet] <Jupstar ✪> no
+08:28 <+bridge> [ddnet] <Jupstar ✪> i started implementing buffered text streams tho
+08:28 <+bridge> [ddnet] <heinrich5991> what's that?
+08:28 <+bridge> [ddnet] <Jupstar ✪> e.g. the server browser is pretty fast now(in text part)
+08:28 <+bridge> [ddnet] <TsFreddie> can you get quads data out of a dynamic cursor
+08:28 <+bridge> [ddnet] <Jupstar ✪> it just checks if the string requires to be recreated
+08:29 <+bridge> [ddnet] <Jupstar ✪> which is still faster than creating it every frame
+08:29 <+bridge> [ddnet] <Jupstar ✪> ddnet has text cursor and selction support visually
+08:29 <+bridge> [ddnet] <Jupstar ✪> its just outdated and would require some removale of code dublication
+08:29 <+bridge> [ddnet] <TsFreddie> oh so we have text selection already?
+08:29 <+bridge> [ddnet] <Jupstar ✪> well only visual support
+08:29 <+bridge> [ddnet] <Jupstar ✪> nobody did the simulation part xD
+08:30 <+bridge> [ddnet] <TsFreddie> i don't get it.
+08:30 <+bridge> [ddnet] <TsFreddie> so you can see the selection but not replacing or copy them?
+08:30 <+bridge> [ddnet] <Jupstar ✪> SetTextContainerSelection
+08:30 <+bridge> [ddnet] <Jupstar ✪> u can do this
+08:30 <+bridge> [ddnet] <Jupstar ✪> and have the selection 😄
+08:30 <+bridge> [ddnet] <Jupstar ✪> but as said its outdated, and since nobody did the sim part its also dead code
+08:31 <+bridge> [ddnet] <TsFreddie> well i guess TextContainer is really different from our TextCursor
+08:31 <+bridge> [ddnet] <Jupstar ✪> the easiest would be to work with ints
+08:31 <+bridge> [ddnet] <Jupstar ✪> not with UTF8
+08:31 <+bridge> [ddnet] <TsFreddie> we already did
+08:31 <+bridge> [ddnet] <Jupstar ✪> ah ok
+08:32 <+bridge> [ddnet] <Jupstar ✪> it doesnt matter for TW anyway
+08:32 <+bridge> [ddnet] <Jupstar ✪> since we dont have 100000 lines or smth
+08:33 <+bridge> [ddnet] <Jupstar ✪> ddnet text rendering is really designed for modern GL
+08:33 <+bridge> [ddnet] <Jupstar ✪> (in mind)
+08:34 <+bridge> [ddnet] <TsFreddie> :saddog: well i guess I can redo ime support and text selection instead of porting it
+08:34 <+bridge> [ddnet] <Jupstar ✪> yeah sry, ddnet got a bit away from vanilla, before u did something vanilla was really far behind 😄
+08:35 <+bridge> [ddnet] <Jupstar ✪> so always keeping the backward compability is too much pain
+08:35 <+bridge> [ddnet] <Jupstar ✪> u and rybte
+08:35 <+bridge> [ddnet] <TsFreddie> :tee_thinking: maybe making everything a text container can helnp
+08:35 <+bridge> [ddnet] <Jupstar ✪> yes
+08:36 <+bridge> [ddnet] <Jupstar ✪> i'd just need to use the text stream a bit more, and then we can drop textex
+08:36 <+bridge> [ddnet] <Jupstar ✪> just create textcontainer, render it, delete it
+08:36 <+bridge> [ddnet] <TsFreddie> sure i'll wait
+08:36 <+bridge> [ddnet] <Jupstar ✪> for the rest text, which isnt performance relevant then
+08:37 <+bridge> [ddnet] <Jupstar ✪> i did not really plan todo this anytime soon, working with text is always annoying xD
+08:37 <+bridge> [ddnet] <Jupstar ✪> one language wants this, the other that
+08:38 <+bridge> [ddnet] <TsFreddie> 👀 can you just do these for me so you have something else to do lol
+08:38 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ do you think using tw code and readding our containers or porting tw stuff to our code base is easier?
+08:38 <+bridge> [ddnet] <Jupstar ✪> i dunno, i tw doesnt use quad containers either
+08:38 <+bridge> [ddnet] <Jupstar ✪> so we'd need to recreate alot
+08:38 <+bridge> [ddnet] <TsFreddie> what does quad containers do
+08:38 <+bridge> [ddnet] <Jupstar ✪> buffering quads
+08:39 <+bridge> [ddnet] <TsFreddie> we buffer quads
+08:39 <+bridge> [ddnet] <heinrich5991> does it mean saving some information about quads between frames to ease working with the graphics card?
+08:39 <+bridge> [ddnet] <Jupstar ✪> i mean for openGL
+08:39 <+bridge> [ddnet] <TsFreddie> oh
+08:39 <+bridge> [ddnet] <Jupstar ✪> lets just say GPU buffering
+08:39 <+bridge> [ddnet] <Jupstar ✪> less confusing 😄
+08:40 <+bridge> [ddnet] <TsFreddie> redix was doing vbo is that the same?
+08:40 <+bridge> [ddnet] <heinrich5991> I still don't know what that means
+08:40 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ can you try to ELI5? ^^
+08:40 <+bridge> [ddnet] <Jupstar ✪> a dedicated GPU has VRAM
+08:40 <+bridge> [ddnet] <Jupstar ✪> VRAM is alot faster in accesing than e.g. system memory, but slower in creating etc, and also requires less bus activity
+08:40 <+bridge> [ddnet] <Jupstar ✪> so optimal for GPUs
+08:41 <+bridge> [ddnet] <heinrich5991> so buffering quads means uploading stuff to the GPU and reusing it in the next frame
+08:41 <+bridge> [ddnet] <Jupstar ✪> yes
+08:41 <+bridge> [ddnet] <heinrich5991> what information about the quad is stored in the GPU?
+08:41 <+bridge> [ddnet] <Jupstar ✪> the vertices
+08:41 <+bridge> [ddnet] <heinrich5991> textures are already uploaded, before this, right?
+08:41 <+bridge> [ddnet] <Jupstar ✪> position, texture coordiinates color
+08:42 <+bridge> [ddnet] <heinrich5991> oh, and this creates a win big enough to justify the added complexity?
+08:42 <+bridge> [ddnet] <heinrich5991> I'd have thought that there's not many quads
+08:42 <+bridge> [ddnet] <Jupstar ✪> well open the ingame chat with GL 3.3 vs 3.0
+08:42 <+bridge> [ddnet] <heinrich5991> I'd have thought that there aren't many quads
+08:42 <+bridge> [ddnet] <Jupstar ✪> the difference is insane
+08:42 <+bridge> [ddnet] <heinrich5991> ah
+08:42 <+bridge> [ddnet] <heinrich5991> text is using quads
+08:42 <+bridge> [ddnet] <heinrich5991> I see
+08:42 <+bridge> [ddnet] <Jupstar ✪> well it buffers quads yeah 😄
+08:43 <+bridge> [ddnet] <heinrich5991> I don't know what quads are ^^
+08:43 <+bridge> [ddnet] <Jupstar ✪> vertices that are rendered as quads to be precise
+08:43 <+bridge> [ddnet] <heinrich5991> I thought it's the stuff in maps
+08:43 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ sorry for my ignorance, I'm not trying to diminish your work, I'm just really ignorant about graphics so far 😦
+08:44 <+bridge> [ddnet] <Jupstar ✪> im fine, im not against the vanilla stuff in general, i just dont want to loose performance xD
+08:44 <+bridge> [ddnet] <heinrich5991> yes, I agree with that
+08:44 <+bridge> [ddnet] <Jupstar ✪> the easiest would be if vanilla gets more open to VBOs(buffer objects)
+08:44 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ if I decide to work on this, would you lend me a hand and answer questions about graphics stuff? ^^
+08:45 <+bridge> [ddnet] <heinrich5991> I think I'd be overwhelmed without
+08:45 <+bridge> [ddnet] <Jupstar ✪> sure
+08:45 <+bridge> [ddnet] <TsFreddie> redix was doing some vbo stuff, but he isn't available this year sadly.
+08:45 <+bridge> [ddnet] <heinrich5991> ❤️
+08:45 <+bridge> [ddnet] <heinrich5991> this *year*?
+08:45 <+bridge> [ddnet] <heinrich5991> you mean 2020 or 2021?
+08:45 <+bridge> [ddnet] <TsFreddie> 2020
+08:45 <+bridge> [ddnet] <Jupstar ✪> so you want to port the vanilla thing?
+08:45 <+bridge> [ddnet] <TsFreddie> iirc
+08:45 <+bridge> [ddnet] <heinrich5991> afk, food
+08:46 <+bridge> [ddnet] <Jupstar ✪> @TsFreddie why does the IME even differ so hard?
+08:46 <+bridge> [ddnet] <Jupstar ✪> cant u just call something like TextEx( ?
+08:46 <+bridge> [ddnet] <TsFreddie> not hard. just i need to reimplement some of the textrender feature under your code which might take me a while
+08:47 <+bridge> [ddnet] <Jupstar ✪> what for example?
+08:47 <+bridge> [ddnet] <Jupstar ✪> also simulation? or just rendering=
+08:47 <+bridge> [ddnet] <TsFreddie> idk what you mean simulation.
+08:47 <+bridge> [ddnet] <Jupstar ✪> anything that is on the CPU and not related to Visualization
+08:47 <+bridge> [ddnet] <TsFreddie> modifying a text buffer along with string?
+08:48 <+bridge> [ddnet] <Jupstar ✪> well that is outside the text class isnt it?
+08:48 <+bridge> [ddnet] <Jupstar ✪> i'd imagine these things pretty modular tbh
+08:48 <+bridge> [ddnet] <TsFreddie> probably
+08:48 <+bridge> [ddnet] <Jupstar ✪> SDL sends input, your class wraps it
+08:48 <+bridge> [ddnet] <Jupstar ✪> renders stuff
+08:48 <+bridge> [ddnet] <Jupstar ✪> something like this
+08:50 <+bridge> [ddnet] <TsFreddie> mine is done in CLineInput which is robyt3's active PR, which calls CTextRender's CaretPosition and CTextCursor's BoundingBox
+08:50 <+bridge> [ddnet] <Jupstar ✪> ah i see
+08:50 <+bridge> [ddnet] <Jupstar ✪> u did it like that
+08:51 <+bridge> [ddnet] <TsFreddie> well i need to read text.cpp first to tell whether i can just add something, maybe it is simple enough
+08:51 <+bridge> [ddnet] <TsFreddie> reading might be the hard part tho 😆
+08:51 <+bridge> [ddnet] <Jupstar ✪> is vanilla text rendering descender, ascender aware?
+08:52 <+bridge> [ddnet] <TsFreddie> not really, boundingbox has a extended bottom and that's it.
+08:52 <+bridge> [ddnet] <Jupstar ✪> ok
+08:53 <+bridge> [ddnet] <Jupstar ✪> @heinrich5991 well its not so easy tbh, i invested quite a bit time to make text pretty deterministic by reading the whole freetype stuff
+08:53 <+bridge> [ddnet] <Jupstar ✪> 
+08:53 <+bridge> [ddnet] <Jupstar ✪> e.g. for vertical alignment 😄
+08:53 <+bridge> [ddnet] <Jupstar ✪> maybe its indeed easier to just add bounding boxes to our code
+08:54 <+bridge> [ddnet] <Jupstar ✪> when creating the quads
+08:54 <+bridge> [ddnet] <TsFreddie> 👀 how do you do proper vertical alignment
+08:55 <+bridge> [ddnet] <TsFreddie> if I bound text with descender and ascender middle text gets wonky between different languages
+08:55 <+bridge> [ddnet] <Jupstar ✪> https://www.freetype.org/freetype2/docs/tutorial/metrics.png
+08:55 <+bridge> [ddnet] <TsFreddie> i've read that already
+08:55 <+bridge> [ddnet] <Jupstar ✪> i used this and used the stuff that is useful 😄
+08:56 <+bridge> [ddnet] <TsFreddie> i've used everything in this pic besides xM** i think
+08:57 <+bridge> [ddnet] <TsFreddie> but i guess maintaining pixel perfect ruined a lot of things
+08:57 <+bridge> [ddnet] <Jupstar ✪> i see, well with the aascender u can make text (especially latin text) align correctly
+08:57 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/789400936979496990/tEt8J.png
+08:57 <+bridge> [ddnet] <TsFreddie> hold
+08:58 <+bridge> [ddnet] <TsFreddie> by vertical alignment do you mean layout or just characters
+08:59 <+bridge> [ddnet] <Jupstar ✪> it supports vertical alignment too, but since text isnt reliably the same size it only makes sense for e.g. the icon font
+08:59 <+bridge> [ddnet] <Jupstar ✪> but i mean the layout of the quads in this case
+08:59 <+bridge> [ddnet] <TsFreddie> it is fine in vanilla i think
+09:01 <+bridge> [ddnet] <TsFreddie> like these?
+09:01 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789401866198843423/unknown.png
+09:02 <+bridge> [ddnet] <TsFreddie> speaking of icon font. where was the `svg2ttf` thing Learath2 was talking about. 👀
+09:02 <+bridge> [ddnet] <Jupstar ✪> why not just using ttf directly? 😄
+09:03 <+bridge> [ddnet] <TsFreddie> so we can have a custom dedicated icon font designed by us plus we can keep the glyphs source in repo
+09:04 <+bridge> [ddnet] <Jupstar ✪> ah i see, why not just use SVGs then? xd
+09:04 <+bridge> [ddnet] <TsFreddie> so you can just call the text layout engine to do stuff for you?
+09:05 <+bridge> [ddnet] <TsFreddie> all the hard parts are done already aren't they
+09:05 <+bridge> [ddnet] <TsFreddie> 😆
+09:05 <+bridge> [ddnet] <Jupstar ✪> 😄
+09:05 <+bridge> [ddnet] <Jupstar ✪> still sounds overcompicated to maintain 😄
+09:06 <+bridge> [ddnet] <TsFreddie> svg2ttf should be a python script that builds ttf file in build time
+09:06 <+bridge> [ddnet] <Jupstar ✪> googles icon font is good enough, looks like the average android phone xddd
+09:06 <+bridge> [ddnet] <TsFreddie> not loading svgs in game lol
+09:08 <+bridge> [ddnet] <Jupstar ✪> ok seems like the textrenderer is simpler than i thought
+09:08 <+bridge> [ddnet] <Jupstar ✪> i guess vanilla really improved lately
+09:09 <+bridge> [ddnet] <TsFreddie> it is as stupid as i can make it
+09:11 <+bridge> [ddnet] <TsFreddie> oh right i think TextDeferred can be changed a bit to be a drop in replacement for TextEx, I rewrote the text layout engine to be greedy which should be faster.
+09:11 <+bridge> [ddnet] <Jupstar ✪> so its more about design question if heinrich wants todo it anyway
+09:12 <+bridge> [ddnet] <Jupstar ✪> binary packing vs skyline
+09:12 <+bridge> [ddnet] <Jupstar ✪> 
+09:12 <+bridge> [ddnet] <Jupstar ✪> and increasing font textures
+09:12 <+bridge> [ddnet] <Jupstar ✪> vs
+09:12 <+bridge> [ddnet] <Jupstar ✪> static
+09:12 <+bridge> [ddnet] <TsFreddie> emm
+09:12 <+bridge> [ddnet] <TsFreddie> atlas is skyline packed
+09:12 <+bridge> [ddnet] <Jupstar ✪> didnt u use binary packing?
+09:13 <+bridge> [ddnet] <TsFreddie> we use binary search for finding stored glyphs in an sorted array which is the only binary thing we have.
+09:14 <+bridge> [ddnet] <Jupstar ✪> i meant on the texture itself
+09:14 <+bridge> [ddnet] <TsFreddie> unless i'm stupid and reference the wrong algorithm in atlas
+09:14 <+bridge> [ddnet] <Jupstar ✪> not the data structure
+09:14 <+bridge> [ddnet] <Jupstar ✪> finding glyph space
+09:14 <+bridge> [ddnet] <TsFreddie> the texture is supposely skyline packed
+09:14 <+bridge> [ddnet] <Jupstar ✪> ok
+09:14 <+bridge> [ddnet] <TsFreddie> ye that
+09:14 <+bridge> [ddnet] <TsFreddie> just we section our texture to have different parts that can be dropped
+09:14 <+bridge> [ddnet] <Jupstar ✪> so as soon as the skyline is full u recreate one "page"?
+09:15 <+bridge> [ddnet] <TsFreddie> yes
+09:15 <+bridge> [ddnet] <Jupstar ✪> well there definitelly is some potential overheat then
+09:15 <+bridge> [ddnet] <TsFreddie> so we have 16 skylines texture
+09:15 <+bridge> [ddnet] <Jupstar ✪> e.g. if it recreates often used characters
+09:16 <+bridge> [ddnet] <TsFreddie> we drop the page with the least character shown on last frame
+09:16 <+bridge> [ddnet] <Jupstar ✪> ok
+09:16 <+bridge> [ddnet] <TsFreddie> but i mean. the texture part is probably replaceable
+09:17 <+bridge> [ddnet] <Jupstar ✪> btw vanilla doesnt disable texture compression for alpha textures
+09:17 <+bridge> [ddnet] <Jupstar ✪> i'd really suggest creating an issue for that
+09:17 <+bridge> [ddnet] <Jupstar ✪> else u get graphic glitches on GPUs that do lossy compression
+09:17 <+bridge> [ddnet] <TsFreddie> like red spots flashing everywhere?
+09:18 <+bridge> [ddnet] <TsFreddie> was happening with my intel laptop before. but i think that might just be me lol.
+09:19 <+bridge> [ddnet] <Jupstar ✪> https://i.imgur.com/Xspp5kC.png
+09:19 <+bridge> [ddnet] <Jupstar ✪> in my personal opinion, texture compression that isnt lossless is stupid anyway
+09:20 <+bridge> [ddnet] <Jupstar ✪> i'd be in favour of removing texture compression completly
+09:20 <+bridge> [ddnet] <Jupstar ✪> tho i only deprecated it in ddnet
+09:20 <+bridge> [ddnet] <TsFreddie> lol
+09:20 <+bridge> [ddnet] <Jupstar ✪> if ur pc cant run tw, maybe u should accept that its old xdc
+09:20 <+bridge> [ddnet] <deen> texture compression is not lossless?! ouch
+09:21 <+bridge> [ddnet] <Jupstar ✪> well else it would give performance increase for GPUs
+09:21 <+bridge> [ddnet] <Jupstar ✪> the whole idea is to lower memory bandwidth
+09:21 <+bridge> [ddnet] <Jupstar ✪> and GPU cores arent strong enough to uncompress it on fly
+09:25 <+bridge> [ddnet] <Jupstar ✪> well else it wouldnt give performance increase for GPUs
+09:31 <+bridge> [ddnet] <Jupstar ✪> @TsFreddie have u benchmarked a atlas drop?
+09:31 <+bridge> [ddnet] <Jupstar ✪> does it just zero the page?
+09:32 <+bridge> [ddnet] <TsFreddie> zero the page and increment a counter, and every cached CTextCursor will try to update their quads next frame.
+09:33 <+bridge> [ddnet] <Jupstar ✪> ok
+09:33 <+bridge> [ddnet] <Jupstar ✪> and u use 2048 texture size?
+09:33 <+bridge> [ddnet] <Jupstar ✪> guess windows VM isnt supported then anymore xd
+09:33 <+bridge> [ddnet] <Jupstar ✪> but u can just use mesa software renderer anyway
+09:33 <+bridge> [ddnet] <Jupstar ✪> its better anyway 😄
+09:33 <+bridge> [ddnet] <TsFreddie> the performance does burn to the ground when there is a drop each frame, but i only created it with 256 texture
+09:34 <+bridge> [ddnet] <TsFreddie> and we do use 2048 texture now
+09:34 <+bridge> [ddnet] <Jupstar ✪> i just fear a bit the frame drops, but maybe im too pessimistic 😄
+09:34 <+bridge> [ddnet] <Jupstar ✪> alpha textures are quite cheap compared to RGBA (4 times as less obv.)
+09:35 <+bridge> [ddnet] <Jupstar ✪> so increasing it doesnt really increase rendering time 😄
+09:36 <+bridge> [ddnet] <Jupstar ✪> 4096x4096 can already hold nearly all chars inside the fonts
+09:36 <+bridge> [ddnet] <Jupstar ✪> and thats only a 2048x2048 RGBA texture
+09:36 <+bridge> [ddnet] <TsFreddie> 😆
+09:38 <+bridge> [ddnet] <Jupstar ✪> but ur IME thing looks really good, so we need it xd
+09:39 <+bridge> [ddnet] <TsFreddie> lol
+09:39 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789411510644113439/unknown.png
+09:39 <+bridge> [ddnet] <Jupstar ✪> is that with texture compression?
+09:39 <+bridge> [ddnet] <TsFreddie> no
+09:39 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789411614003560468/unknown.png
+09:40 <+bridge> [ddnet] <Jupstar ✪> oh xd
+09:40 <+bridge> [ddnet] <TsFreddie> just tried to tank the textrender
+09:41 <+bridge> [ddnet] <TsFreddie> it happens when there are glyphs missing even after one refresh. (since pages are allowed to drop during quad refresh)
+09:41 <+bridge> [ddnet] <Jupstar ✪> ah yeah
+09:41 <+bridge> [ddnet] <TsFreddie> can't really reproduce it in 2048 texture tho.
+09:41 <+bridge> [ddnet] <Jupstar ✪> thats also something that wouldn happen on ddnet ever 😄
+09:41 <+bridge> [ddnet] <Jupstar ✪> yeah
+09:41 <+bridge> [ddnet] <Jupstar ✪> realistically it cant happen
+09:42 <+bridge> [ddnet] <Jupstar ✪> it would require rendering alot of different characters in one frame
+09:43 <+bridge> [ddnet] <TsFreddie> i also logged it when it happens, so it is easier to tell if it is my fault in the future
+09:44 <+bridge> [ddnet] <Jupstar ✪> imagine the whole world would just use 26 characters
+09:44 <+bridge> [ddnet] <Jupstar ✪> all problems of the computer world solved
+09:44 <+bridge> [ddnet] <Jupstar ✪> uint8_t is enough for everything XD
+09:44 <+bridge> [ddnet] <Jupstar ✪> smaller textures
+09:45 <+bridge> [ddnet] <TsFreddie> btw should we stop google from indexing irclogs
+09:45 <+bridge> [ddnet] <Jupstar ✪> am i a culture hater for the google bot now? xd
+09:45 <+bridge> [ddnet] <TsFreddie> idk
+09:45 <+bridge> [ddnet] <TsFreddie> sometime i search some stuff ddnet related irclogs pops up.
+09:46 <+bridge> [ddnet] <Jupstar ✪> oh xD
+09:46 <+bridge> [ddnet] <TsFreddie> don't know if it is bad tho
+09:46 <+bridge> [ddnet] <Jupstar ✪> i thought u fear being profiled by it 😄
+09:46 <+bridge> [ddnet] <TsFreddie> i mean i did say kill all asians twice (including this one)
+09:46 <+bridge> [ddnet] <Jupstar ✪> xD
+09:50 <+bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/789414357338554396/unknown.png
+10:10 <+bridge> [ddnet] <Brokecdx-> If i change colour of "friend messages" it only changes the heart colour not the actual text they are writing, just me or bug?
+10:10 <+bridge> [ddnet] <Brokecdx-> https://cdn.discordapp.com/attachments/293493549758939136/789419202724495380/screenshot_2020-12-18_10-09-09.png
+10:23 <+bridge> [ddnet] <Jupstar ✪> apearently only used for the heart
+10:24 <+bridge> [ddnet] <TsFreddie> looks like either the example below is wrong or the chat is wrong
+10:24 <+bridge> [ddnet] <Jupstar ✪> just open an issue
+10:24 <+bridge> [ddnet] <Jupstar ✪> yeah cant tell either 😄
+10:24 <+bridge> [ddnet] <Jupstar ✪> if it worked before it was probs removed by accidient
+10:24 <+bridge> [ddnet] <Jupstar ✪> if it worked before it was probs removed by accident
+10:25 <+bridge> [ddnet] <TsFreddie> i've never seen any pink text before.
+10:33 <+bridge> [ddnet] <Jupstar ✪> nice, no more graphic glitches with zink, and already over 2k fps
+10:33 <+bridge> [ddnet] <TsFreddie> 💯
+10:33 <+bridge> [ddnet] <Jupstar ✪> hope someone compiles it on windows some day
+10:33 <+bridge> [ddnet] <Jupstar ✪> then we can use vulkan for broken opengl drivers
+10:34 <+bridge> [ddnet] <TsFreddie> pog
+10:36 <+bridge> [ddnet] <Jupstar ✪> or GL on DX12, but sadly didnt see any performance benchmarks yet
+10:36 <+bridge> [ddnet] <Jupstar ✪> dunno if micrsoft just plans to make their ubuntu subsystem work, or actually performant 😄
+10:39 <+bridge> [ddnet] <deen> AoC was easy with Crystal and redefining existing operators that happen to have the precedence I want. Would've been easier to just change the precedence, but not sure if I still have a language left that allows that. Int32 as default type was the most annoying part: https://github.com/def-/adventofcode-2020/blob/master/day18.cr
+10:40 <+bridge> [ddnet] <deen> And of course there is no eval in Crystal, so had to use sed for my "metaprogramming"
+10:44 <+bridge> [ddnet] <timakro> Sitting in a uni meeting since one hour watching my windows using group members trying to get their IDE to compile the project. Meanwhile on my linux `./gradlew build`
+10:45 <+bridge> [ddnet] <deen> Isn't it an online meeting? Just do something more productive at the same time? 😄
+10:45 <+bridge> [ddnet] <Ryozuki> :twinbop:
+10:45 <+bridge> [ddnet] <timakro> Yep working on aoc :D
+10:59 <+bridge> [ddnet] <Дядя Женя> @deen do you have some automated localization strings search to clear them? Because I often want to rename something, but always afraid of losing localization for it
+10:59 <+bridge> [ddnet] <Дядя Женя> @deen do you have some automated localization strings search to clear them? Because I often want to rename something, but always afraid of losing localization for it and leaving extra localization string unused
+11:00 <+bridge> [ddnet] <Дядя Женя> @deen do you have some automated localization strings search to clear them? Because I often want to rename something, but always afraid of losing localization for it and leaving extra localization string unused. In #questions there is a good point now that we should rename "Friend message" in settings, because it's not really means message
+11:01 <+bridge> [ddnet] <deen> yes, see scripts/languages/
+11:02 <+bridge> [ddnet] <deen> it's also used in the github ci
+13:58 <+bridge> [ddnet] <NeXus> When you are in free cam spec, tab out of the game and tab in again, your cam jumps to a random place
+13:59 <+bridge> [ddnet] <NeXus> Is this a known issue?
+13:59 <+bridge> [ddnet] <Im 'corneum> did you move your mouse while tabbing in out and in?
+13:59 <+bridge> [ddnet] <Im 'corneum> did you move your mouse while tabbing out and in?
+14:00 <+bridge> [ddnet] <NeXus> i move my mouse to my second monitor yes
+14:00 <+bridge> [ddnet] <Im 'corneum> it doesnt happen to me at all
+14:00 <+bridge> [ddnet] <NeXus> ah I see it applies the movement I do with my mouse outside of the game
+14:01 <+bridge> [ddnet] <NeXus> my screen doesnt move when I dont move the mouse and just tab out with hotkeys
+14:01 <+bridge> [ddnet] <Im 'corneum> maybe it has something to do with windowed/fullscreen mode or whatever
+14:01 <+bridge> [ddnet] <NeXus> probably, I dont play in fullscreen
+14:09 <+bridge> [ddnet] <Дядя Женя> happens to me as well. Extremely annoying
+14:15 <+bridge> [ddnet] <NeXus> https://cdn.discordapp.com/attachments/293493549758939136/789480934592217108/freecam-bug.gif
+14:15 <+bridge> [ddnet] <Дядя Женя> I'll take a look at the source code now, see if I can easy fix this
+14:33 <+bridge> [ddnet] <Дядя Женя> I see a problem, but don't know how to fix it without ugly shit code
+14:48 <+bridge> [ddnet] <Дядя Женя> Fixed @NeXus
+14:49 <+bridge> [ddnet] <Дядя Женя> thx for motivating me by pointing out I'm not the only one getting annoyed by this shit
+14:49 <+bridge> [ddnet] <murpi> you can prevent this by pressing f1 first
+14:50 <+bridge> [ddnet] <murpi> then alt tab
+14:50 <+bridge> [ddnet] <Дядя Женя> no need now)
+15:08 <+bridge> [ddnet] <Ravie> how's the new hud planned to work? is something like this good?
+15:08 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789494398853185576/rect3785.png
+15:09 <+bridge> [ddnet] <TsFreddie> 🔥
+15:09 <+bridge> [ddnet] <louis> can we change position where those are
+15:12 <+bridge> [ddnet] <Дядя Женя> I'm planning an insane feature of fully customizable ingame hud
+15:13 <+bridge> [ddnet] <deen> @Ravie yes, looks great to me
+15:14 <+bridge> [ddnet] <deen> I'm not a designer, so hard for me to imagine what would look good, so I didn't want to suggest something
+15:14 <+bridge> [ddnet] <Ravie> it might be better to have icons appear/disappear based on what you have but then some icons are harder to make, I'll need to think about it
+15:15 <+bridge> [ddnet] <Ravie> mostly I can't think of a good way to cross out hammer off or player hooking off without making it cluttered and weird
+15:17 <+bridge> [ddnet] <Дядя Женя> for me they will appear only when active
+15:18 <+bridge> [ddnet] <Дядя Женя> so "No hammer" icon if you can't hammer
+15:18 <+bridge> [ddnet] <Дядя Женя> if can - nothing appears
+15:18 <+bridge> [ddnet] <Дядя Женя> same for all
+15:19 <+bridge> [ddnet] <Ravie> yeah that's what I'd prefer also because including tele guns there would be a lot of possible icons
+15:19 <+bridge> [ddnet] <Дядя Женя> yes, there are some of tele icons
+15:20 <+bridge> [ddnet] <Дядя Женя> you may consider using the same style for all of them changing only the gun
+15:20 <+bridge> [ddnet] <Im 'corneum> what about the switch weapon off options?
+15:21 <+bridge> [ddnet] <Im 'corneum> like "you cant hit anyone with grenade"
+15:21 <+bridge> [ddnet] <Ravie> does anyone even use this?
+15:21 <+bridge> [ddnet] <Дядя Женя> is that a tile or tune zone?
+15:21 <+bridge> [ddnet] <Im 'corneum> i dont think so
+15:21 <+bridge> [ddnet] <Im 'corneum> its a tile
+15:22 <+bridge> [ddnet] <Ravie> it's a setting on hammer-off tile I think
+15:23 <+bridge> [ddnet] <louis> yea u use the switch hammer tile and its like the delay on it or whatever
+15:24 <+bridge> [ddnet] <Дядя Женя> what about generated icons then?
+15:24 <+bridge> [ddnet] <Дядя Женя> like layered for such shit
+15:25 <+bridge> [ddnet] <Дядя Женя> `background` > `NoHit` > `Item`
+15:25 <+bridge> [ddnet] <Ravie> no hit is already one of the trickier icons 😅
+15:26 <+bridge> [ddnet] <Дядя Женя> its an example
+15:26 <+bridge> [ddnet] <louis> :nobot: make it like this but with a hammer
+15:26 <+bridge> [ddnet] <Im 'corneum> or any other weapon
+15:26 <+bridge> [ddnet] <Дядя Женя> and the tee icon on that means "others"
+15:26 <+bridge> [ddnet] <Im 'corneum> also thetile itself already looks like that
+15:27 <+bridge> [ddnet] <Дядя Женя> so Im talking about that. We can generate it layered if there are a lot of options needed to be shown
+15:31 <+bridge> [ddnet] <Дядя Женя> @Ravie could you also make a "slider" for freeze timer that we will use instead of shields?
+15:31 <+bridge> [ddnet] <Дядя Женя> as we're working on the top left side of the UI anyway
+15:31 <+bridge> [ddnet] <louis> its already in the new gameskin
+15:31 <+bridge> [ddnet] <louis> its in 0.7
+15:31 <+bridge> [ddnet] <Im 'corneum> or alittle clock to save space
+15:32 <+bridge> [ddnet] <louis> https://cdn.discordapp.com/attachments/293493549758939136/789500235697225798/unknown.png
+15:32 <+bridge> [ddnet] <Дядя Женя> we don't have it in our version
+15:32 <+bridge> [ddnet] <louis> update ddnet
+15:32 <+bridge> [ddnet] <Ravie> @Дядя Женя yeah I already thought about using 3 ilttle snowflakes to display it but if you wanna code a slider that's even better
+15:33 <+bridge> [ddnet] <Дядя Женя> oh we do ok
+15:33 <+bridge> [ddnet] <Ravie> I guess this is the only way, I'm not really a fan but only this will work on other weapons
+15:33 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789500578665201715/unknown.png
+15:33 <+bridge> [ddnet] <Дядя Женя> but slider is not working anyway
+15:33 <+bridge> [ddnet] <Дядя Женя> default hammer looks like shit
+15:33 <+bridge> [ddnet] <Дядя Женя> btw I can use the gameskin one xD
+15:34 <+bridge> [ddnet] <Дядя Женя> u ok?
+15:34 <+bridge> [ddnet] <Дядя Женя> https://cdn.discordapp.com/attachments/293493549758939136/789500791257432064/unknown.png
+15:34 <+bridge> [ddnet] <Ravie> u can just scale the ones from gameskin but it will probably look bad
+15:34 <+bridge> [ddnet] <Дядя Женя> yes I think
+15:34 <+bridge> [ddnet] <Ravie> u can do it for the weapon display cause those will be bigger
+15:34 <+bridge> [ddnet] <Дядя Женя> never scale something to make an icon...
+15:35 <+bridge> [ddnet] <Дядя Женя> @Ravie will you make a... I don't know the english word for that... Like preview of this area?
+15:35 <+bridge> [ddnet] <Ravie> mockup? ye for sure
+15:36 <+bridge> [ddnet] <Дядя Женя> yes, that's the word
+15:36 <+bridge> [ddnet] <Дядя Женя> so we can see and even discuss how it will finally look like
+15:37 <+bridge> [ddnet] <Дядя Женя> @deen let me catch you while you're here and ask where do you have a players `Character` object (which contains all the info about hook time, endless jumps etc.)
+15:37 <+bridge> [ddnet] <Дядя Женя> @deen let me catch you while you're here and ask where do you have a player's `Character` object (which contains all the info about hook time, endless jumps etc.) on client side
+15:37 <+bridge> [ddnet] <Дядя Женя> @deen let me catch you while you're here and ask where do you have a player's `Character` object (which contains all the info about hook time, endless jumps etc.) on client side. Can't find it, only the `m_PredictedChar`
+15:38 <+bridge> [ddnet] <Дядя Женя> @deen let me catch you while you're here and ask where do you have a player's `Character` object (which contains all the info about hook time, endless jumps etc.) on client side. Can't find it, only the `m_PredictedChar` what, I assume, is predicted and may not work without "antiping"?
+15:38 <+bridge> [ddnet] <Ravie> also there's a "you can jump x times", do we layer a text number over a jump icon?
+15:38 <+bridge> [ddnet] <Дядя Женя> if you'll figure out how to show this then we can
+15:39 <+bridge> [ddnet] <Дядя Женя> otherwise I would just... skip this one
+15:40 <+bridge> [ddnet] <Дядя Женя> @Ravie keep in mind that this thing is more likely to be pixelated because of TW scaling
+15:41 <+bridge> [ddnet] <Learath2> The ddnet character is a part of the snap, it should have those
+15:41 <+bridge> [ddnet] <Ravie> this is my best idea for now
+15:41 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789502557948608552/unknown.png
+15:41 <+bridge> [ddnet] <Дядя Женя> may work
+15:41 <+bridge> [ddnet] <Ravie> might look bad with long numbers tho, it can go up to 255 xD
+15:41 <+bridge> [ddnet] <Дядя Женя> never used
+15:41 <+bridge> [ddnet] <Дядя Женя> this icon should support infinity sign in it
+15:42 <+bridge> [ddnet] <Дядя Женя> or I mean some extra icon for infinity jumps
+15:42 <+bridge> [ddnet] <Ravie> yeah I was about to say we can just put a number in the corner or infinity
+15:44 <+bridge> [ddnet] <NeXus> https://cdn.discordapp.com/attachments/293493549758939136/789503386142900254/nouisban.jpg
+15:45 <+bridge> [ddnet] <Learath2> First one should be louis, the result should be nouis. Overall I rate ur meme 2/10
+15:46 <+bridge> [ddnet] <Ravie> at least he put in effort and matched up the transparency squares xd
+15:47 <+bridge> [ddnet] <NeXus> oh yeah you are right
+15:47 <+bridge> [ddnet] <NeXus> https://cdn.discordapp.com/attachments/293493549758939136/789503994140950558/nouisban2.jpg
+15:47 <+bridge> [ddnet] <NeXus> Im Photoshop pro :Kappa:
+15:50 <+bridge> [ddnet] <Ravie> @Дядя Женя alternatively the infinity one can 2 arrows like in entities
+15:50 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789504957664591912/unknown.png
+15:52 <+bridge> [ddnet] <Дядя Женя> @Ravie I don't think these icons will be big enough to see such small numbers
+15:53 <+bridge> [ddnet] <Ravie> there are such numbers on switches in entities
+15:53 <+bridge> [ddnet] <Дядя Женя> I barely see them if rly
+15:53 <+bridge> [ddnet] <Дядя Женя> We need something more user friendly
+15:55 <+bridge> [ddnet] <Ravie> I can also just make a good infinite jumps icon and not worry about this one (at least for now)
+15:55 <+bridge> [ddnet] <Learath2> Well if we only had to support a reasonable number of jumps we could have something like the shield display to display the djs we have
+15:55 <+bridge> [ddnet] <Learath2> That would be very intuitive
+15:55 <+bridge> [ddnet] <Дядя Женя> too much screen space
+15:56 <+bridge> [ddnet] <Learath2> For 255, sure. For 10 jumps it's not much space at all
+15:56 <+bridge> [ddnet] <Ravie> normally it would be only one DJ icon which on its own might be useful anyway
+15:56 <+bridge> [ddnet] <Ravie> you'd also know when you have dj other than feet color
+15:57 <+bridge> [ddnet] <Дядя Женя> feet color for DJ is awesome and more then enough
+15:57 <+bridge> [ddnet] <Ravie> yeah but just as a side effect
+15:57 <+bridge> [ddnet] <Дядя Женя> mb
+15:57 <+bridge> [ddnet] <Learath2> Dj counts over 10 is also very uncommon, we could indeed try a dj bar
+15:58 <+bridge> [ddnet] <Ravie> it could simply not show more past 10
+15:58 <+bridge> [ddnet] <Learath2> It could have a number next to it or we could start putting them closer together as they increase
+15:59 <+bridge> [ddnet] <Learath2> With some overlap it should look decent all the way up to 20-25 dj. After that it'd start to look bad
+16:00 <+bridge> [ddnet] <Learath2> For dummy I was thinking a small region only for dummy features that only gets shown when the dummy is connected
+16:00 <+bridge> [ddnet] <Learath2> And we could use your own dummy skin as an icon for "dummy"
+16:00 <+bridge> [ddnet] <Ravie> designing icons for dummy features :monkaS:
+16:51 <+bridge> [ddnet] <Дядя Женя> @Ravie add a deepfly-ON icon as well
+16:51 <+bridge> [ddnet] <Дядя Женя> I mean for map setting
+16:52 <+bridge> [ddnet] <Дядя Женя> if it's possible to deep-fly
+16:55 <+bridge> [ddnet] <Ravie> I don't think that's needed and it's impossible to design xd
+16:55 <+bridge> [ddnet] <Дядя Женя> ok, not the primary thing right now
+16:56 <+bridge> [ddnet] <Дядя Женя> do you have something already as a mockup?
+16:56 <+bridge> [ddnet] <Ravie> I was making a few of the basic icons, I can throw it over a screenshot and add weapons just give me a minute
+17:04 <+bridge> [ddnet] <Ravie> @Дядя Женя if your screen is 1920x1080 you can open in paint and press f11 to see 1:1
+17:04 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789523431560839228/image3542.png
+17:06 <+bridge> [ddnet] <Ravie> haven't thought much about layout but I'm open to suggestions
+17:07 <+bridge> [ddnet] <Дядя Женя> I thought about weapons on the first row
+17:08 <+bridge> [ddnet] <Дядя Женя> Do the hammer and pistol as well
+17:08 <+bridge> [ddnet] <Дядя Женя> For other gamemods (fuck them btw) and to see what you're holding right now in the freeze
+17:08 <+bridge> [ddnet] <Дядя Женя> So all the weapons will be slightly transparent except for one choosen
+17:08 <+bridge> [ddnet] <Ravie> but you always have hammer and there's an icon when it's off :x
+17:09 <+bridge> [ddnet] <Дядя Женя> It's weapon hammer
+17:09 <+bridge> [ddnet] <Дядя Женя> Not "hit allowed"
+17:09 <+bridge> [ddnet] <Дядя Женя> There is no "hit allowed" icon
+17:09 <+bridge> [ddnet] <Ravie> I'd try to keep it as minimal as possible and only display weapons that you can pick up and when you have them
+17:10 <+bridge> [ddnet] <Ravie> if you have gun or hammer in hand then all "special" weapons can be transparent
+17:10 <+bridge> [ddnet] <Дядя Женя> No no
+17:10 <+bridge> [ddnet] <Дядя Женя> the idea here is to see what you're holding now
+17:11 <+bridge> [ddnet] <Дядя Женя> I'll try to make weapons working now...
+17:12 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789525512313765928/image3542.png
+17:12 <+bridge> [ddnet] <Ravie> that's getting cluttered really fast
+17:13 <+bridge> [ddnet] <Дядя Женя> did u understand when I said "Row"
+17:13 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789525824876707900/image3542.png
+17:13 <+bridge> [ddnet] <Дядя Женя> lol
+17:13 <+bridge> [ddnet] <Дядя Женя> well kinda this
+17:17 <+bridge> [ddnet] <Ravie> but now seriously
+17:17 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/789526767215706152/image3542.png
+17:17 <+bridge> [ddnet] <Дядя Женя> not the 90 degrees ofc
+17:18 <+bridge> [ddnet] <Ravie> _  _  _  _  _ would look stupid
+17:18 <+bridge> [ddnet] <Ravie> `_ _ _ _ _` would look stupid
+17:18 <+bridge> [ddnet] <heinrich5991> I like only showing weapons that can be picked up
+17:18 <+bridge> [ddnet] <Дядя Женя> yes it will
+17:18 <+bridge> [ddnet] <Ravie> vertical like this looks like they're on a weapon rack or something
+17:32 <+bridge> [ddnet] <YupHio> Opinion: I don't love the vertical layout. I think a horizontal layout with the same footprint as the default health bar might look nice.
+17:32 <+bridge> [ddnet] <Дядя Женя> yes
+17:46 <+bridge> [ddnet] <YupHio> Default:
+17:46 <+bridge> [ddnet] <YupHio> https://cdn.discordapp.com/attachments/293493549758939136/789534013433839626/default.png
+17:46 <+bridge> [ddnet] <YupHio> Basic mock up for horizontal layout:
+17:46 <+bridge> [ddnet] <YupHio> https://cdn.discordapp.com/attachments/293493549758939136/789534087035093002/horizontal_layout.png
+17:46 <+bridge> [ddnet] <YupHio> plus a couple extra items, but all in the footprint of the original health bar
+17:46 <+bridge> [ddnet] <Ravie> oh no I don't like the grid thing
+17:47 <+bridge> [ddnet] <YupHio> hmmm, guess they could all 4 just be in a ling
+17:47 <+bridge> [ddnet] <YupHio> hmmm, guess they could all 4 just be in a line
+17:47 <+bridge> [ddnet] <Ravie> it's be best to just display shotgun/grenade/laser if you have them
+17:47 <+bridge> [ddnet] <Дядя Женя> I am already making the best one
+17:47 <+bridge> [ddnet] <Дядя Женя> wait for it...
+17:47 <+bridge> [ddnet] <YupHio> 3 guns in a line, then maybe a couple small  icons for status like infinite hook/jump?
+17:48 <+bridge> [ddnet] <YupHio> the simplest/minimum viable solution will probably look the slickest
+18:00 < ***> Buffer Playback...
+18:00 <+bridge> [17:59:29] [ddnet] <Дядя Женя> https://cdn.discordapp.com/attachments/293493549758939136/789537330707955752/unknown.png
+18:00 <+bridge> [17:59:38] [ddnet] <Дядя Женя> I've done it... almost.... But in-game already
+18:00 <+bridge> [18:00:02] [ddnet] <Дядя Женя> so some spacing fixes and some scaling for big weapons and we're done
+18:00 <+bridge> [18:00:21] [ddnet] <Дядя Женя> showing only weapons you have, transparenting all that you're not holding in hands
+18:00 <+bridge> [18:00:36] [ddnet] <Дядя Женя> meaning that there will be always hammer + pistol. Rarely third
+18:00 < ***> Playback Complete.
+18:00 <+bridge> [ddnet] <Дядя Женя> super rarely 4 or all five
+18:01 <+bridge> [ddnet] <Дядя Женя> Never 6
+18:05 <+bridge> [ddnet] <deen> hammer & pistol don't need to be shown I think. pistol is only interesting when you have jetpack
+18:06 <+bridge> [ddnet] <Jupstar ✪> why not as hotbar
+18:07 <+bridge> [ddnet] <Jupstar ✪> and showing the active weapon too xd
+18:14 <+bridge> [ddnet] <Дядя Женя> https://cdn.discordapp.com/attachments/293493549758939136/789541202433015888/unknown.png
+18:15 <+bridge> [ddnet] <Дядя Женя> Need to learn some math to align it properly
+18:15 <+bridge> [ddnet] <Дядя Женя> but you got the idea
+18:15 <+bridge> [ddnet] <Дядя Женя> it IS a hotbar
+18:16 <+bridge> [ddnet] <Дядя Женя> but it will not show weapons you don't have
+18:19 <+bridge> [ddnet] <Ravie> I also had the diagonal idea but thought it'd be extra work  to code and not worth it
+18:19 <+bridge> [ddnet] <Ravie> but still should only display sg+nade+laser
+18:19 <+bridge> [ddnet] <Дядя Женя> it always worth it when it's cooooool
+18:19 <+bridge> [ddnet] <Ravie> true xd
+18:20 <+bridge> [ddnet] <Дядя Женя> every weapon you have at the moment + highlight the weapon you're holding
+18:20 <+bridge> [ddnet] <Дядя Женя> too useful for in-freeze weapon picking
+18:20 <+bridge> [ddnet] <Дядя Женя> because I always wonder what am I holding right now
+18:20 <+bridge> [ddnet] <Ravie> gun is never useful xd
+18:20 <+bridge> [ddnet] <Дядя Женя> IT IS
+18:20 <+bridge> [ddnet] <Ravie> ninja is also obvious when you have it
+18:21 <+bridge> [ddnet] <Дядя Женя> How would you scream in deep freeze!?
+18:21 <+bridge> [ddnet] <Aoe> @Ravie   pistol is the most op gun in the game
+18:21 <+bridge> [ddnet] <Ravie> yes you can shoot very very fast
+18:21 <+bridge> [ddnet] <Aoe> no people use it to aim with
+18:21 <+bridge> [ddnet] <Дядя Женя> and SPIN!
+18:21 <+bridge> [ddnet] <Дядя Женя> and Scream in deep
+18:21 <+bridge> [ddnet] <Aoe> if you go on gores srv you never see someone with a hammer xD
+18:21 <+bridge> [ddnet] <Ravie> you can scream with any weapon
+18:21 <+bridge> [ddnet] <Дядя Женя> can you spin hammer>
+18:21 <+bridge> [ddnet] <Дядя Женя> ?
+18:21 <+bridge> [ddnet] <Дядя Женя> no, u can't with hammer
+18:22 <+bridge> [ddnet] <Ravie> cause deepfly off?
+18:22 <+bridge> [ddnet] <Дядя Женя> yes
+18:22 <+bridge> [ddnet] <Ravie> well ok but still you don't need to display it xd
+18:22 <+bridge> [ddnet] <Ravie> weapons in freeze are whatever, you can press hotkeys
+18:22 <+bridge> [ddnet] <Ravie> also I had a cool idea to display weapon in freeze with the cursor but I guess nobody cared
+18:22 <+bridge> [ddnet] <Дядя Женя> hotkeys for noobs
+18:22 <+bridge> [ddnet] <Дядя Женя> and you never know what hotkeys your dummy using
+18:23 <+bridge> [ddnet] <Дядя Женя> cool idea I may consider doing it in 30 mins
+18:23 <+bridge> [ddnet] <louis> u can def freeze cry with hammer
+18:23 <+bridge> [ddnet] <louis> can u not
+18:23 <+bridge> [ddnet] <Jupstar ✪> u can
+18:24 <+bridge> [ddnet] <Jupstar ✪> in gores u use hammer often
+18:24 <+bridge> [ddnet] <Jupstar ✪> for saving
+18:24 <+bridge> [ddnet] <louis> some ppl do lol
+18:24 <+bridge> [ddnet] <Kenzoo> :kogsux:
+18:24 <+bridge> [ddnet] <Aoe> good players will use pistol all the time and only use hammer to unfreeze
+18:24 <+bridge> [ddnet] <Jupstar ✪> insane gores is about peripheric view anyway
+18:25 <+bridge> [ddnet] <louis> jawsh is best gores and uses hammer
+18:25 <+bridge> [ddnet] <Jupstar ✪> u dont really need the weapon
+18:52 <+bridge> [ddnet] <Дядя Женя> changing cursor in freeze turns out to be much harder task then it looks
+18:52 <+bridge> [ddnet] <Дядя Женя> because here we go again, deeply into shit code where nobody knows what weapon you're holding right now
+18:53 <+bridge> [ddnet] <timakro> Sounds like a candidate for the ddnet character net obj
+18:53 <+bridge> [ddnet] <Дядя Женя> no thx
+18:53 <+bridge> [ddnet] <Дядя Женя> it's stored on client side, but in some shitty way
+18:54 <+bridge> [ddnet] <timakro> Nope, the client doesn't know which weapon it has
+18:54 <+bridge> [ddnet] <Дядя Женя> so you can't really easily access it. Well... You can... But the data is not guaranteed to be correct
+18:54 <+bridge> [ddnet] <Дядя Женя> there is a "wanted weapon"
+18:54 <+bridge> [ddnet] <timakro> Not, if the server sends "ninja" because he is freezed
+18:54 <+bridge> [ddnet] <Дядя Женя> yes.
+18:55 <+bridge> [ddnet] <Дядя Женя> thats the problem here
+18:55 <+bridge> [ddnet] <timakro> Wanted could be a weapon the tee doesn't have
+18:55 <+bridge> [ddnet] <Дядя Женя> seems it couldn't
+18:55 <+bridge> [ddnet] <Дядя Женя> but... It should be...
+18:55 <+bridge> [ddnet] <timakro> Sure you can set your wanted weapon to anything by using the number keys 1,2,..
+18:55 <+bridge> [ddnet] <Дядя Женя> Ok, nvm, will come back at it later. I guess even after HUD is done
+18:56 <+bridge> [ddnet] <Ryozuki> u can definitly show the weapon
+18:56 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/pull/2307
+18:56 <+bridge> [ddnet] <Ryozuki> i made this time ago
+18:56 <+bridge> [ddnet] <Ryozuki> but ppl didnt want it
+18:56 <+bridge> [ddnet] <Дядя Женя> mouse fix was merged and now I still have 5 things to work on. 6 actually, there is also anti-cheat teehistorian scanner, which is not part of the fork
+18:56 <+bridge> [ddnet] <Дядя Женя> https://cdn.discordapp.com/attachments/293493549758939136/789551768781586463/unknown.png
+18:57 <+bridge> [ddnet] <Jupstar ✪> better only do one thing and make that good
+18:57 <+bridge> [ddnet] <Дядя Женя> and yes, there is a server-sided dummies
+18:57 <+bridge> [ddnet] <Дядя Женя> and I think I'll go make some steps towards it now
+18:57 <+bridge> [ddnet] <Дядя Женя> my updates are always excellent
+18:57 <+bridge> [ddnet] <Ryozuki> hahahaha
+18:58 <+bridge> [ddnet] <Ryozuki> u always make for a laugh in this chat
+18:58 <+bridge> [ddnet] <Дядя Женя> perfect
+18:58 <+bridge> [ddnet] <Jupstar ✪> yeah they are perfect, but imagine u'd concentrate on only one
+18:58 <+bridge> [ddnet] <Jupstar ✪> its post perfect
+18:58 <+bridge> [ddnet] <Jupstar ✪> the next step
+18:58 <+bridge> [ddnet] <Дядя Женя> then there would be only 1 perfect update
+18:58 <+bridge> [ddnet] <Jupstar ✪> the key to the universe
+18:59 <+bridge> [ddnet] <Дядя Женя> but here we have five excellent updates
+18:59 <+bridge> [ddnet] <Дядя Женя> you can't go better then perfect
+18:59 <+bridge> [ddnet] <Дядя Женя> but you can do more of the perfect, what I'm doing exactly
+19:00 <+bridge> [ddnet] <Дядя Женя> but you can do more of the perfect, and that's what I'm doing exactly
+19:00 <+bridge> [ddnet] <timakro> @Ryozuki @Дядя Женя Nope, in the current version of the protocol you can't tell. That's why you had to touch the protocol in your PR here https://github.com/ddnet/ddnet/pull/2307/commits/1163fa16854c18912080989c9ac02110ca3427a5#diff-95a9207711f0fa572be4148ea6239216afd4ff86cfbb4e8510463ad21bba2f12R30
+19:00 <+bridge> [ddnet] <Ryozuki> lovely embeds
+19:00 <+bridge> [ddnet] <Ryozuki> yeah true
+19:01 <+bridge> [ddnet] <Ryozuki> well i wanted to say i meant its possible
+19:01 <+bridge> [ddnet] <Ryozuki> my bad
+19:01 <+bridge> [ddnet] <Дядя Женя> it hurts to make new net objects
+19:01 <+bridge> [ddnet] <Дядя Женя> why is it even on some python
+19:02 <+bridge> [ddnet] <Дядя Женя> not supporting even array wtf
+19:02 <+bridge> [ddnet] <Ryozuki> lol its actually pretty darn easy
+19:02 <+bridge> [ddnet] <Дядя Женя> not supporting even arrays wtf
+19:02 <+bridge> [ddnet] <timakro> @Дядя Женя You could actually cherry pick that from @Ryozukis commit, there was no criticism of the protocol changes below that PR
+19:02 <+bridge> [ddnet] <Ryozuki> ugh
+19:03 <+bridge> [ddnet] <Ryozuki> he once said i dont know how to code
+19:03 <+bridge> [ddnet] <Ryozuki> so he should obviously not use it
+19:04 <+bridge> [ddnet] <timakro> Key is to come up with a good UI which will be good for most players, adding a way to turn it back off and not introducing too many config settings on the way
+19:13 <+bridge> [ddnet] <Mystery?> Is there a way to do nested binding of keys?
+19:13 <+bridge> [ddnet] <Mystery?> for example:
+19:13 <+bridge> [ddnet] <Mystery?> bind 1 "+weapon1; bind q "+weapon2; exec quickswitch/toggles/gun_hammer.cfg""
+19:13 <+bridge> [ddnet] <Mystery?> doesnt seem to work as intended
+19:14 <+bridge> [ddnet] <Дядя Женя> `exec file.cfg`
+19:14 <+bridge> [ddnet] <Дядя Женя> ```
+19:14 <+bridge> [ddnet] <Дядя Женя> file.cfg:
+19:14 <+bridge> [ddnet] <Дядя Женя> weapon1; 
+19:14 <+bridge> [ddnet] <Дядя Женя> bind q "+weapon2; exec quickswitch/toggles/gun_hammer.cfg"
+19:14 <+bridge> [ddnet] <Дядя Женя> ```
+19:14 <+bridge> [ddnet] <Дядя Женя> `vind 1exec file.cfg`
+19:14 <+bridge> [ddnet] <Дядя Женя> ```
+19:14 <+bridge> [ddnet] <Дядя Женя> file.cfg:
+19:14 <+bridge> [ddnet] <Дядя Женя> weapon1; 
+19:14 <+bridge> [ddnet] <Дядя Женя> bind q "+weapon2; exec quickswitch/toggles/gun_hammer.cfg"
+19:14 <+bridge> [ddnet] <Дядя Женя> ```
+19:14 <+bridge> [ddnet] <Дядя Женя> `bind 1 exec file.cfg`
+19:14 <+bridge> [ddnet] <Дядя Женя> ```
+19:14 <+bridge> [ddnet] <Дядя Женя> file.cfg:
+19:14 <+bridge> [ddnet] <Дядя Женя> weapon1; 
+19:15 <+bridge> [ddnet] <Дядя Женя> bind q "+weapon2; exec quickswitch/toggles/gun_hammer.cfg"
+19:15 <+bridge> [ddnet] <Дядя Женя> ```
+19:15 <+bridge> [ddnet] <Mystery?> oof thats gonna make a lot more files
+19:15 <+bridge> [ddnet] <Дядя Женя> cool, isn't it?
+19:15 <+bridge> [ddnet] <Mystery?> trying to implement quickswitch like in csgo/tf2
+19:19 <+bridge> [ddnet] <heinrich5991> @timakro the client knows which weapons it has on ddnet servers
+19:19 <+bridge> [ddnet] <timakro> Ok, must be new then
+19:21 <+bridge> [ddnet] <Ryozuki> @heinrich5991 i think it doesnt know what weapon it holds when its frozen tho
+19:21 <+bridge> [ddnet] <Ryozuki> since the server tells its frozen by telling ninja weapon
+19:21 <+bridge> [ddnet] <Дядя Женя> it can assume
+19:21 <+bridge> [ddnet] <Ryozuki> currently
+19:21 <+bridge> [ddnet] <heinrich5991> I guess that could be done at the same time
+19:22 <+bridge> [ddnet] <Дядя Женя> Ok, we have around 220+ errors after attempt of unbinding Characters from players for serverside dummies
+19:22 <+bridge> [ddnet] <Ryozuki> we just dont use ddnet network char freeze status due to not all clients having this
+19:22 <+bridge> [ddnet] <Ryozuki> thats why my pr added capabilities stuff
+19:23 <+bridge> [ddnet] <heinrich5991> I think we decided to base that on the client's version number
+19:23 <+bridge> [ddnet] <heinrich5991> so you'd do >= VERSION instead
+19:23 <+bridge> [ddnet] <Ryozuki> i dont htink it was that clear
+19:23 <+bridge> [ddnet] <Ryozuki> but anyway the pr was closed cuz ppl didnt like to show weapons
+19:24 <+bridge> [ddnet] <Дядя Женя> @deen I'm unbinding characters from players on ddnet server side. How should serverside dummies behave when something is asking for their ID
+19:24 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/789558742370746378/68747470733a2f2f63646e2e646973636f72646170702e636f6d2f6174746163686d656e74732f3239333439333534393735.png
+19:24 <+bridge> [ddnet] <Ryozuki> <a:sadSnail:785072987815804929>
+19:24 <+bridge> [ddnet] <Дядя Женя> can we please discuss serverside dummies
+19:25 <+bridge> [ddnet] <timakro> whats the motivation?
+19:25 <+bridge> [ddnet] <Дядя Женя> I need to know as much as possible to make it correct
+19:25 <+bridge> [ddnet] <Дядя Женя> there are a lot of mappers waiting for serverside dummies
+19:25 <+bridge> [ddnet] <Дядя Женя> also, it is real shit that every character is bound to player
+19:25 <+bridge> [ddnet] <Дядя Женя> shouldn't be so
+19:25 <+bridge> [ddnet] <Ryozuki> why not
+19:25 <+bridge> [ddnet] <Ryozuki> its only logical
+19:25 <+bridge> [ddnet] <timakro> wdym by serverside dummies then
+19:26 <+bridge> [ddnet] <Дядя Женя> also, I would like (maybe) to make some scriptable AI's for maps
+19:26 <+bridge> [ddnet] <Ryozuki> and i onloy know 1 ppl wanting this and its im corneum
+19:26 <+bridge> [ddnet] <TsFreddie> I guess a benefit is that sixup can play dummy maps
+19:26 <+bridge> [ddnet] <Дядя Женя> that's the character controlled by server
+19:26 <+bridge> [ddnet] <Дядя Женя> basically, for now, it just stands still. Like AFK player
+19:28 <+bridge> [ddnet] <Дядя Женя> it's true that every player has a character, but that every character has a player is wrong
+19:28 <+bridge> [ddnet] <Ryozuki> no its not, because it didnt make sense before
+19:28 <+bridge> [ddnet] <Дядя Женя> I know it sounds strange to you cuz you're not familiar with logic, but anyway
+19:28 <+bridge> [ddnet] <Дядя Женя> nvm
+19:28 <+bridge> [ddnet] <Ryozuki> omg
+19:28 <+bridge> [ddnet] <Ryozuki> fck off
+19:28 <+bridge> [ddnet] <timakro> Completely unrelated question, was there ever an incentive to make the ddnet client work on 0.7 servers?
+19:28 <+bridge> [ddnet] <Ryozuki> stupid windows normie
+19:28 <+bridge> [ddnet] <Ryozuki> that doesnt even know to link a fcking library
+19:29 <+bridge> [ddnet] <Дядя Женя> what do you mean? Do we need it? I think we don't
+19:29 <+bridge> [ddnet] <Ryozuki> @heinrich5991 moderate this guy
+19:29 <+bridge> [ddnet] <Ryozuki> he is obviously baiting me every time
+19:29 <+bridge> [ddnet] <Дядя Женя> Who would ever play any server except DDnet in TW
+19:29 <+bridge> [ddnet] <timakro> Just curious, seems like a logical step
+19:30 <+bridge> [ddnet] <timakro> Now that the server supports 0.7 clients
+19:30 <+bridge> [ddnet] <Дядя Женя> it is, but it's so much work to do
+19:30 <+bridge> [ddnet] <Дядя Женя> and for what...
+19:30 <+bridge> [ddnet] <heinrich5991> @timakro no one has done it yet, it would probably be accepted if the code is not outright horrible
+19:30 <+bridge> [ddnet] <timakro> Hehe
+19:30 <+bridge> [ddnet] <timakro> You mean like my original code for the 0.7 client support
+19:31 <+bridge> [ddnet] <heinrich5991> no comment
+19:31 <+bridge> [ddnet] <Дядя Женя> just huge waste of time leading to no profit for ddnet players
+19:31 <+bridge> [ddnet] <heinrich5991> @Дядя Женя @Ryozuki hey, you guys both chill. I acknowledge that @Дядя Женя started, but continuing isn't okay either
+19:32 <+bridge> [ddnet] <Дядя Женя> it's better to make new ddnet features then struggle with 0.7 client side support
+19:32 <+bridge> [ddnet] <heinrich5991> I'd actually like 0.7 support
+19:32 <+bridge> [ddnet] <Дядя Женя> why
+19:32 <+bridge> [ddnet] <Ryozuki> @Learath2 hear this, u did a useless work!
+19:32 <+bridge> [ddnet] <heinrich5991> because I like to play with more players
+19:32 <+bridge> [ddnet] <heinrich5991> and 0.7 has players
+19:33 <+bridge> [ddnet] <Ryozuki> i love how this guy can be unironically rude and shit on others work and get a free pass
+19:33 <+bridge> [ddnet] <Ryozuki> xddd
+19:33 <+bridge> [ddnet] <Дядя Женя> fair. Then maybe it worth it
+19:33 <+bridge> [ddnet] <heinrich5991> yes, that's not okay, and I already told @Дядя Женя before (I think yesterday)
+19:37 <+bridge> [ddnet] <Дядя Женя> answering some questions somebody might have: characters (which are tees) can be controlled not only by player, but also by server. Or even nobody
+19:38 <+bridge> [ddnet] <Дядя Женя> Maybe by some unnatural forces as well...
+19:38 <+bridge> [ddnet] <heinrich5991> yes. but so far they couldn't, so the code doesn't assume that this might happen
+19:38 <+bridge> [ddnet] <Дядя Женя> and the current server architecture have a big mistake in it's root when assuming each character has a player and referencing it through the character
+19:39 <+bridge> [ddnet] <Дядя Женя> as well as not accepting the server as a player
+19:39 <+bridge> [ddnet] <heinrich5991> everything that is not tested does not work
+19:39 <+bridge> [ddnet] <heinrich5991> since nothing required the use of characters without players yet, it does not work
+19:39 <+bridge> [ddnet] <heinrich5991> (we also don't have tests that could ensure that, so there's that)
+19:40 <+bridge> [ddnet] <Дядя Женя> it worked, yes, just because there was no need of server-controlled characters or some others
+19:40 <+bridge> [ddnet] <heinrich5991> yep, see above
+19:40 <+bridge> [ddnet] <Дядя Женя> it doesn't make a code good, it just worked 'till it could
+19:40 <+bridge> [ddnet] <Дядя Женя> so, the time has come to fix this and open new possibilities
+19:42 <+bridge> [ddnet] <Дядя Женя> imagine RPG in teeworlds with some real NPCs lol xD
+19:43 <+bridge> [ddnet] <heinrich5991> I think that exists
+19:43 <+bridge> [ddnet] <Дядя Женя> You didn't get it
+19:43 <+bridge> [ddnet] <Дядя Женя> I mean real NPC, with dialogue system and so on
+19:44 <+bridge> [ddnet] <heinrich5991> https://discord.gg/yugwwn5
+19:44 <+bridge> [ddnet] <heinrich5991> yes, that exists
+19:44 <+bridge> [ddnet] <Дядя Женя> hah
+19:44 <+bridge> [ddnet] <Дядя Женя> cool

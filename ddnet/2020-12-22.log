@@ -1,0 +1,253 @@
+10:59 <+bridge> [ddnet] <heinrich5991> if I output a list of (texture, texture coords, screen coords), then that could theoretically be rendered by a graphics card, right?
+10:59 <+bridge> [ddnet] <heinrich5991> @Learath2 ^ (thinking about letting render_map use the graphics card)
+11:01 <+bridge> [ddnet] <Ryozuki> @heinrich5991 render to a framebuffer
+11:01 <+bridge> [ddnet] <Ryozuki> http://www.opengl-tutorial.org/intermediate-tutorials/tutorial-14-render-to-texture/
+11:01 <+bridge> [ddnet] <fokkonaut> @heinrich5991 could you help adding support for F-Client to ddnet server?
+11:02 <+bridge> [ddnet] <fokkonaut> I dont know how to translate extended msgs in the ddnet code
+11:04 <+bridge> [ddnet] <timakro> ```
+11:04 <+bridge> [ddnet] <timakro> if seen.contains(&(deck1, deck2)) {
+11:04 <+bridge> [ddnet] <timakro>     ...
+11:04 <+bridge> [ddnet] <timakro> }
+11:04 <+bridge> [ddnet] <timakro> ```
+11:04 <+bridge> [ddnet] <timakro> `seens` is of type `HashSet<(VecDeque<i32>,VecDeque<i32>)` Why does this move `deck1` and `deck2`? Any way around this?
+11:04 <+bridge> [ddnet] <timakro> ```
+11:04 <+bridge> [ddnet] <timakro> if seen.contains(&(deck1, deck2)) {
+11:04 <+bridge> [ddnet] <timakro>     ...
+11:04 <+bridge> [ddnet] <timakro> }
+11:04 <+bridge> [ddnet] <timakro> ```
+11:04 <+bridge> [ddnet] <timakro> `seen` is of type `HashSet<(VecDeque<i32>,VecDeque<i32>)` Why does this move `deck1` and `deck2`? Any way around this?
+11:04 <+bridge> [ddnet] <heinrich5991> any way around this:
+11:05 <+bridge> [ddnet] <heinrich5991> ```
+11:05 <+bridge> [ddnet] <heinrich5991> let decks = (deck1, deck2);
+11:05 <+bridge> [ddnet] <heinrich5991> if seen.contains(&decks) {
+11:05 <+bridge> [ddnet] <heinrich5991>   …
+11:05 <+bridge> [ddnet] <heinrich5991> }
+11:05 <+bridge> [ddnet] <heinrich5991> ```
+11:05 <+bridge> [ddnet] <Ryozuki> :o
+11:05 <+bridge> [ddnet] <timakro> this transfers ownership to `decks`?
+11:05 <+bridge> [ddnet] <heinrich5991> yes, you can get it back out
+11:05 <+bridge> [ddnet] <heinrich5991> `decks.0`, `decks.1` or `let (deck1, deck2) = decks;`
+11:06 <+bridge> [ddnet] <timakro> Silly :D
+11:06 <+bridge> [ddnet] <timakro> Thanks, you've been a huge help in my rust journey @heinrich5991
+11:06 <+bridge> [ddnet] <heinrich5991> you could manage it in the tuple the whole time, then you won't have to do that juggling
+11:06 <+bridge> [ddnet] <heinrich5991> you're welcome 🙂
+11:06 <+bridge> [ddnet] <Ryozuki> <a:sadSnail:785072987815804929>
+11:07 <+bridge> [ddnet] <Ryozuki> @timakro soon u will know more than me
+11:07 <+bridge> [ddnet] <Ryozuki> :pepe_straight:
+11:07 <+bridge> [ddnet] <heinrich5991> @fokkonaut wdym by translate?
+11:08 <+bridge> [ddnet] <heinrich5991> (I'm not well-versed in 0.7 compatibility code btw)
+11:09 <+bridge> [ddnet] <fokkonaut> Mh, well, 0.7 for example uses an extended netmsg for team state, so i have to translate the msgid to the 0.7 msgid in RepackMsg()
+11:09 <+bridge> [ddnet] <fokkonaut> I think
+11:09 <+bridge> [ddnet] <fokkonaut> Thats how I do it in my mod at least but I cant find RepackMsg
+11:09 <+bridge> [ddnet] <heinrich5991> yes, sounds good
+11:09 <+bridge> [ddnet] <fokkonaut> its generated or so?
+11:09 <+bridge> [ddnet] <heinrich5991> idk ^^
+11:09 <+bridge> [ddnet] <fokkonaut> Mh
+11:09 <+bridge> [ddnet] <heinrich5991> I haven't worked with that code yet
+11:10 <+bridge> [ddnet] <heinrich5991> I think Learath2 and timakro worked with it, but I don't know if they want to answer questions about it
+11:11 <+bridge> [ddnet] <timakro> I don't think I remember
+11:11 <+bridge> [ddnet] <timakro> wdym by adding support for F-Client to ddnet server? @fokkonaut
+11:11 <+bridge> [ddnet] <fokkonaut> @timakro Learath did a lot things different than in your initial build
+11:12 <+bridge> [ddnet] <timakro> Yep I read some of his code
+11:12 <+bridge> [ddnet] <fokkonaut> Doubt you could help, but anyways; I am trying to send and receive extended net msgs to and from my 0.7 client
+11:12 <+bridge> [ddnet] <fokkonaut> For example, in ddnet sv_teamstate is a normal net msg
+11:13 <+bridge> [ddnet] <fokkonaut> and in 0.7 i made it a netmsgEx, so now I have to translate it between the versions
+11:13 <+bridge> [ddnet] <fokkonaut> That should happen in CServer::RepackMsg
+11:13 <+bridge> [ddnet] <fokkonaut> But I cant find it, and if its generated it will be a problem I think
+11:14 <+bridge> [ddnet] <timakro> Ah, I was just confused, sounded like you were working on the ddnet server code
+11:14 <+bridge> [ddnet] <fokkonaut> I am
+11:15 <+bridge> [ddnet] <timakro> Oh then you want extended net msgs for 0.7
+11:15 <+bridge> [ddnet] <timakro> And the server doesn't even send them to your client?
+11:15 <+bridge> [ddnet] <timakro> Because it's 0.7
+11:16 <+bridge> [ddnet] <fokkonaut> I just need to add the if (msgid == 30) msgid = Netmsg_sv_teamstate (but the extended one, to be sent to 0.7 clients)
+11:16 <+bridge> [ddnet] <fokkonaut> msgid 30 is the normal sv_teamstate in ddnet
+11:16 <+bridge> [ddnet] <TsFreddie> well does it break for vanilla tho.
+11:17 <+bridge> [ddnet] <fokkonaut> i think learath did a fix for vanilla 0.7 clients, not sure
+11:18 <+bridge> [ddnet] <fokkonaut> Ah no
+11:18 <+bridge> [ddnet] <fokkonaut> Someone else did
+11:18 <+bridge> [ddnet] <heinrich5991> @fokkonaut I think you need to fix the `RepackMsg` function in server.cpp to also work correctly with extended net messages
+11:18 <+bridge> [ddnet] <fokkonaut> I would use @ddnet7, would that be correct?
+11:19 <+bridge> [ddnet] <heinrich5991> wdym, do you want to introduce new messages?
+11:19 <+bridge> [ddnet] <fokkonaut> yes
+11:19 <+bridge> [ddnet] <heinrich5991> ah, I thought you had an existing one
+11:19 <+bridge> [ddnet] <fokkonaut> Doesnt work without it
+11:20 <+bridge> [ddnet] <fokkonaut> Yes, I do, but I am doing a new update for fclient so i will reset it
+11:20 <+bridge> [ddnet] <fokkonaut> bcs i fucked up naming before
+11:20 <+bridge> [ddnet] <heinrich5991> ah
+11:20 <+bridge> [ddnet] <heinrich5991> ideally you'd use a domain that you contrl
+11:20 <+bridge> [ddnet] <heinrich5991> if you don't have any, you could maybe use `@fokkonaut.github.io`
+11:20 <+bridge> [ddnet] <fokkonaut> i just thought why not using ddnet7 or so because that would be more general
+11:20 <+bridge> [ddnet] <fokkonaut> And can be used by other clients
+11:21 <+bridge> [ddnet] <heinrich5991> yours can also be used by other clients
+11:21 <+bridge> [ddnet] <fokkonaut> Mh
+11:21 <+bridge> [ddnet] <heinrich5991> but I guess if you add it to the ddnet source code, it's also fine to use 7.ddnet.tw or something
+11:21 <+bridge> [ddnet] <fokkonaut> ok
+11:21 <+bridge> [ddnet] <heinrich5991> or just ddnet.tw
+11:21 <+bridge> [ddnet] <fokkonaut> okay, one last question
+11:21 <+bridge> [ddnet] <fokkonaut> xd
+11:22 <+bridge> [ddnet] <heinrich5991> (look into the messages, the first ones I added were @heinrich5991.de ^^)
+11:22 <+bridge> [ddnet] <heinrich5991> (look into the messages, the first ones I added were `@heinrich5991.de` ^^)
+11:22 <+bridge> [ddnet] <heinrich5991> and they're still supported by everyone supporting the protocol
+11:23 <+bridge> [ddnet] <fokkonaut> I am adding a cl_explayerflags, because that is sent by my client, it only contains whether my Aimline is on or not right now, but for the future it might get more, so does it need a 7.ddnet.tw or just ddnet.tw?
+11:23 <+bridge> [ddnet] <heinrich5991> just use fokkonaut.github.io there I guess
+11:23 <+bridge> [ddnet] <heinrich5991> I don't think ddnet will switch to use playerflags via a different message
+11:23 <+bridge> [ddnet] <fokkonaut> mh
+11:24 <+bridge> [ddnet] <heinrich5991> for teamstate I can see that ddnet will switch to it, eventually
+11:24 <+bridge> [ddnet] <timakro> Isn't that already covered by the ddnet protocol? I think there was a feature to display other players aimlines
+11:25 <+bridge> [ddnet] <fokkonaut> @timakro thats not what I need xD my client is 0.7 and in 0.7 the playerflags are clamped, so an unknown playerflag will invalidate the packet
+11:25 <+bridge> [ddnet] <fokkonaut> its not possible to add the aim flag there
+11:26 <+bridge> [ddnet] <timakro> Sorry, I'm a bit out of touch with the network code, now I finally got what you want. Thought the whole time you wanted to support extended net msgs with your 0.7 client
+11:27 <+bridge> [ddnet] <timakro> Wait or do you, ok just forget it xD
+11:27 <+bridge> [ddnet] <timakro> I'm confused
+11:27 <+bridge> [ddnet] <fokkonaut> xD
+11:28 <+bridge> [ddnet] <fokkonaut> I am working on ddnet server to support fclient a bit more
+11:28 <+bridge> [ddnet] <fokkonaut> fclient already has ex netmsgs etc
+11:28 <+bridge> [ddnet] <fokkonaut> But communicates only with my server basically
+11:53 <+bridge> [ddnet] <TsFreddie> :nouis: it's more confusing now
+11:55 <+bridge> [ddnet] <TsFreddie> btw what is stopping vanilla from getting ex messages. did someone veto it already.
+11:56 <+bridge> [ddnet] <heinrich5991> no, I guess it could be done
+11:56 <+bridge> [ddnet] <heinrich5991> I can see them vetoing a compatible implementation though
+11:57 <+bridge> [ddnet] <heinrich5991> e.g. because it contains strings like `@heinrich5991.de`
+11:58 <+bridge> [ddnet] <TsFreddie> i see
+11:58 <+bridge> [ddnet] <TsFreddie> is your one acts like a identifier currently?
+11:58 <+bridge> [ddnet] <heinrich5991> there are a couple of messages that I expect everyone implementing the protocol to implement
+11:59 <+bridge> [ddnet] <heinrich5991> ah no, they're even `@ddnet.tw`
+11:59 <+bridge> [ddnet] <TsFreddie> sixup currently doesn't have anything extended right?
+11:59 <+bridge> [ddnet] <heinrich5991> `what-is@ddnet.tw`, `it-is@ddnet.tw` and `i-dont-know@ddnet.tw`
+11:59 <+bridge> [ddnet] <heinrich5991> correct
+11:59 <+bridge> [ddnet] <heinrich5991> AFIAK
+12:01 <+bridge> [ddnet] <TsFreddie> if we do it in vanilla i would imagine all extension would be teeworlds.com since they don't have anything else. and ddnet can maybe some how do the same with sixup, since it currently doesn't have any
+12:01 <+bridge> [ddnet] <heinrich5991> that's exactly what I fear
+12:01 <+bridge> [ddnet] <heinrich5991> protocol incompatibility just because there are a couple of strings mentioning ddnet
+12:01 <+bridge> [ddnet] <heinrich5991> which demotivated me to not do a PR against teeworlds
+12:02 <+ChillerDragon> why not rename it to teeworlds then?
+12:02 <+bridge> [ddnet] <heinrich5991> because it's an existing network protocol
+12:02 <+bridge> [ddnet] <TsFreddie> doesn't sixup need seperate extensions from ddnet's
+12:02 <+bridge> [ddnet] <heinrich5991> no, not necessarily
+12:02 <+ChillerDragon> if we update to 0.7 we might as well break other protocols
+12:02 <+bridge> [ddnet] <TsFreddie> i see
+12:03 <+bridge> [ddnet] <heinrich5991> it'll just create complexity for vanilla's pride's sake
+12:03 <+bridge> [ddnet] <heinrich5991> not good 😦
+12:03 <+bridge> [ddnet] <TsFreddie> :tee_thinking:
+12:04 <+bridge> [ddnet] <TsFreddie> :tee_thinking: but if fok gets sixup extensions if vanilla someday decided to do something similar it will just create more complex stuff i think
+12:04 <+bridge> [ddnet] <TsFreddie> :tee_thinking: but if fok gets sixup extensions now, then vanilla someday decided to do something similar it will just create more complex stuff i think
+12:05 <+bridge> [ddnet] <TsFreddie> and the way the race protocol works in vanilla is kinda dirty.
+12:05 <+bridge> [ddnet] <heinrich5991> how does it work?
+12:06 <+bridge> [ddnet] <TsFreddie> they just appended it and expect them to be moved to proper offset in 0.8 i think?
+12:06 <+bridge> [ddnet] <TsFreddie> i don't know if offset is the right term.
+12:06 <+bridge> [ddnet] <heinrich5991> yea, I understand
+12:08 <+bridge> [ddnet] <TsFreddie> vanilla also need a way to somewhat freely extend their own protocol within major version (like the player name change thing and spectating cursor thing which oy said could be done in 0.7).
+12:08 <+bridge> [ddnet] <TsFreddie> and i think a map vote issue oy said might be good for 0.7 as well
+12:09 <+bridge> [ddnet] <TsFreddie> ex messages kinda does that. we just need a cleaner identifier (maybe)
+12:09 <+bridge> [ddnet] <heinrich5991> for a single entity updating the protocol, simply adding one each time they add a message suffices
+12:09 <+bridge> [ddnet] <heinrich5991> but I guess it'd also be nicer if vnailla had an easy way for mods to add messages
+12:09 <+bridge> [ddnet] <TsFreddie> right
+12:10 <+bridge> [ddnet] <TsFreddie> i think i'm still thinking about mods.
+12:10 <+bridge> [ddnet] <TsFreddie> vanilla can just add stuff if no mods are using those "offsets"
+12:10 <+bridge> [ddnet] <heinrich5991> ye
+12:10 <+bridge> [ddnet] <fokkonaut> @heinrich5991 fixed cmakelist
+12:10 <+bridge> [ddnet] <TsFreddie> tough choice
+12:12 <+bridge> [ddnet] <heinrich5991> @fokkonaut I still see a cross
+12:12 <+bridge> [ddnet] <fokkonaut> its the clang style
+12:12 <+bridge> [ddnet] <fokkonaut> idk about it
+12:12 <+bridge> [ddnet] <heinrich5991> can't be merged before it's not fixed
+12:12 <+bridge> [ddnet] <fokkonaut> not dilated xD lol
+12:12 <+bridge> [ddnet] <fokkonaut> wtf
+12:12 <@deen> you can run clang-format -i $file
+12:16 <+bridge> [ddnet] <fokkonaut> @deen i think i got it now
+12:23 <+bridge> [ddnet] <TsFreddie> it is possible that f-client gets enough 0.7 extensions to the point that ddnet client could just talk 0.7 protocols but still keeping most of the codes.
+12:23 <+bridge> [ddnet] <TsFreddie> 😆
+12:23 <+bridge> [ddnet] <heinrich5991> ye
+12:24 <+bridge> [ddnet] <TsFreddie> brilliant :kek:
+12:25 <+bridge> [ddnet] <heinrich5991> @TsFreddie mind if I close https://github.com/ddnet/ddnet/pull/3262 ?
+12:25 <+bridge> [ddnet] <heinrich5991> doesn't look like it's getting updated soon
+12:25 <+bridge> [ddnet] <TsFreddie> sure.
+12:27 <+bridge> [ddnet] <TsFreddie> i'll wait a bit and see how vanilla deal with this. 👀
+12:56 <+bridge> [ddnet] <murpi> `Add w as default bind for dummy hammer - def-` oof
+12:56 <+bridge> [ddnet] <Ryozuki> i think its good
+12:57 <+bridge> [ddnet] <murpi> I jump on w 😄
+12:58 <+bridge> [ddnet] <deen> The message is wrong, it's on h
+12:58 <+bridge> [ddnet] <TsFreddie> wait isn't w the default jump
+12:58 <+bridge> [ddnet] <TsFreddie> oh
+12:58 <+bridge> [ddnet] <TsFreddie> <a:ghosty:742137614798291046>
+12:58 <+bridge> [ddnet] <murpi> space is default jump
+12:58 <+bridge> [ddnet] <TsFreddie> i think both were default in ddnet at least
+12:58 <+bridge> [ddnet] <deen> anyway, those defaults would never overwrite your existing settings
+13:02 <+bridge> [ddnet] <murpi> oh, so this commit is just regular auto-hammerfly
+13:03 <+bridge> [ddnet] <murpi> I thought that's actual built in deepfly 😄
+13:04 <+bridge> [ddnet] <deen> that one too
+13:09 <+bridge> [ddnet] <murpi> ah nice! Did you figure out whats causing the random weapon switch while deepflying or is this still unfixed
+13:09 <+bridge> [ddnet] <deen> no idea
+13:09 <+bridge> [ddnet] <Ama> i never seen random weapon switch
+13:10 <+bridge> [ddnet] <Ama> i always think it was only on the first shot
+13:10 <+bridge> [ddnet] <murpi> example here: https://discordapp.com/channels/252358080522747904/295908390956433410/782951875741483009
+13:10 <+bridge> [ddnet] <murpi> you'd have to manually switch to hammer again to fix it (even if you're already having the hammer out)
+13:11 <+bridge> [ddnet] <Ama> seems only on first shot
+13:11 <+bridge> [ddnet] <Ama> probably you had pistol out and after that it just looks like panic
+13:12 <+bridge> [ddnet] <murpi> I never panic
+13:12 <+bridge> [ddnet] <murpi> let me upload another example
+13:16 <+bridge> [ddnet] <Learath2> The original deepfly bind is such a hack I'm not quite sure where to even look to find what went wrong
+13:25 <+bridge> [ddnet] <murpi> #3258
+13:25 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/3258
+13:25 <+bridge> [ddnet] <murpi> unsure if thats true, idk
+13:41 <+bridge> [ddnet] <Ryozuki> @Patiga https://gitlab.com/ddnet-wiki/ddnet-wiki.gitlab.io/-/issues/3#note_472218708
+13:44 <+bridge> [ddnet] <Ryozuki> Zwelf ^
+14:24 <+bridge> [ddnet] <timakro> @heinrich5991 I think you wanted to ping trml instead of me https://github.com/ddnet/ddnet/pull/3368#issuecomment-749493030
+16:28 <+bridge> [ddnet] <heinrich5991> @timakro good call, ty
+17:58 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/pcgaming/comments/ki3wxg/directx_creator_dies_aged_55_leaving_behind_a/
+17:58 <+bridge> [ddnet] <Ryozuki> oh noes, the man who made it impossible to game on linux died
+17:58 <+bridge> [ddnet] <Ryozuki> im so sad
+17:59 <+bridge> [ddnet] <deen> @Ryozuki Don't be an ass, especially about someone having died
+18:07 <+bridge> [ddnet] <Jupstar ✪> directx isnt even the problem
+18:07 <+bridge> [ddnet] <Jupstar ✪> its more about drm that makes game not run on linux nowadays
+18:45 <+bridge> [ddnet] <snail> is the antiping source on github?
+18:49 <+bridge> [ddnet] <deen> Yes: https://github.com/ddnet/ddnet/tree/master/src/game/client/prediction
+18:55 <+bridge> [ddnet] <ReiTW> is this: 194.67.208.6:8203 a real ddnet server, cuz it's shit af
+18:55 <+bridge> [ddnet] <ReiTW> since when u can teleport to players
+18:58 <+bridge> [ddnet] <deen> @ReiTW yes, official. Teleport how?
+18:58 <+bridge> [ddnet] <ReiTW> there's a telegun at the end of the race lol
+18:59 <+bridge> [ddnet] <ReiTW> wth is this shit
+18:59 <+bridge> [ddnet] <deen> haha, intentional addition or just an old tile that got a new meaning?
+19:00 <+bridge> [ddnet] <ReiTW> idk, pepe map is not like that by default, and seeing people teleporting everywhere is kinda annoying, idk how rus can play like that, prob cuz there's not much servers for them
+19:01 <+bridge> [ddnet] <snail> @deen ty
+19:01 <+bridge> [ddnet] <Pepe> :justatest:
+19:01 <+bridge> [ddnet] <ReiTW> @Pepe fck, u there
+19:02 <+bridge> [ddnet] <ReiTW> \*run*
+19:02 <+bridge> [ddnet] <ReiTW> well I hope ddnet will  remove that, it's not pepe anymore
+19:04 <+bridge> [ddnet] <deen> @ReiTW yeah, tele gun might be a bad idea, @Šøø™ also noticed that you can do weird stuff with it
+19:15 <+bridge> [ddnet] <plsplsplslol> its because of cl_dummy_restore_weapon
+19:34 <+bridge> [ddnet] <deen> This confirms heinrich5991 always saying we have too many options 😄
+19:38 <+bridge> [ddnet] <Jupstar ✪> the biggest issue is that most stuff is coded to work, not designed to work xd
+20:12 <+bridge> [ddnet] <Just_Chill> hey
+20:12 <+bridge> [ddnet] <Just_Chill> any dev there is blocker
+20:17 <+bridge> [ddnet] <Just_Chill> https://cdn.discordapp.com/attachments/293493549758939136/791021520826531890/screenshot_2020-12-22_22-10-07.png
+20:17 <+bridge> [ddnet] <Just_Chill> here is it
+20:17 <+bridge> [ddnet] <Just_Chill> cunt is blocker
+20:17 <+bridge> [ddnet] <Just_Chill> and raven is my mate
+20:17 <+bridge> [ddnet] <Just_Chill> he dont give him
+20:17 <+bridge> [ddnet] <Just_Chill> and blocked much people
+20:19 <+bridge> [ddnet] <Just_Chill> @snail  @Akari
+20:22 <+bridge> [ddnet] <Swarfey> -/team
+20:23 <+bridge> [ddnet] <Just_Chill> u like boomer but ıdk what boomer meanin
+20:23 <+bridge> [ddnet] <Just_Chill> but u like boomer
+20:23 <+bridge> [ddnet] <Just_Chill> its exatly true
+20:23 <+bridge> [ddnet] <Just_Chill> c
+20:28 <+bridge> [ddnet] <Just_Chill> @Swarfey racoon is better than you mate
+20:28 <+bridge> [ddnet] <Swarfey> im a raccoon
+20:30 <+bridge> [ddnet] <Just_Chill> no u are looser of loosers test with finishing it 2nd
+20:30 <+bridge> [ddnet] <Just_Chill> is it good mate
+20:30 <+bridge> [ddnet] <Just_Chill> its not
+20:30 <+bridge> [ddnet] <Just_Chill> then dont be weird like tEaM bRo!
+20:31 <+bridge> [ddnet] <Jupstar ✪> if you want help report it in #reports not here
+20:31 <+bridge> [ddnet] <Jupstar ✪> this is for development not for moderatin
+20:31 <+bridge> [ddnet] <Jupstar ✪> this is for development not for moderation
+20:32 <+bridge> [ddnet] <Just_Chill> oke racoon is right
+20:32 <+bridge> [ddnet] <Just_Chill> you won
+20:33 <+bridge> [ddnet] <Swarfey> raccoon is always right
+20:55 <+bridge> [ddnet] <Toxxic1> can anyone get me setup with compiling teeworlds using vscode?
+21:28 <+bridge> [ddnet] <Toxxic1> can anyone get me setup with compiling teeworlds 0.6 using vscode?
+21:32 <+bridge> [ddnet] <Learath2> vscode isn't a compiler
+21:32 <+bridge> [ddnet] <Learath2> you need to pick a compiler first
+22:05 <+ChillerDragon> xxd grep bamboozeld me when searching for the string --version xd https://zillyhuhn.com/cs/.1608670923.png
+22:05 <+ChillerDragon> thanks to deen the hackerman i know that -- solves it :D
+22:06 <+ChillerDragon> i spend so much time in the shell and still am not seeing how useless quotes sometimes are xd
