@@ -1,0 +1,485 @@
+00:00 <+bridge> [ddnet] <Learath2> There has to be a trick to move the stupid shared libs towards the end
+00:00 <+bridge> [ddnet] <Ryozuki> 32 bit = 4,294,967,296 bytes (4 Gigabytes)
+00:00 <+bridge> [ddnet] <Ryozuki> 64 bit = 18,446,744,073,709,551,616 (16 Exabytes)
+00:00 <+bridge> [ddnet] <Ryozuki> the difference is ridiculous
+00:01 <+bridge> [ddnet] <Learath2> I wonder if vmmap is open source, I could modify it to snap sooner
+00:01 <+bridge> [ddnet] <Jupstar ✪> my mobile is also 32bit, should test the map there xD
+00:01 <+bridge> [ddnet] <Ryozuki> does it support opengl
+00:01 <+bridge> [ddnet] <Ama> im dissapointed in your dev team
+00:02 <+bridge> [ddnet] <Ryozuki> why
+00:02 <+bridge> [ddnet] <Ama> zwelf doesnt know who nouis is
+00:02 <+bridge> [ddnet] <Ryozuki> cuz he is not on this discord
+00:02 <+bridge> [ddnet] <Ama> yh just talked to him about biggernouis and he had no idea about it
+00:02 <+bridge> [ddnet] <Ama> and didnt even know nouis
+00:04 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki even OpenGL es 3.0
+00:05 <+bridge> [ddnet] <Jupstar ✪> tested it few months ago on android
+00:05 <+bridge> [ddnet] <Ryozuki> :poggers:
+00:08 <+bridge> [ddnet] <Learath2> You know what could work? Preallocating a large chunk for this kind of stuff at the very beginning
+00:08 <+bridge> [ddnet] <Jupstar ✪> but i'd call this map the worst case
+00:08 <+bridge> [ddnet] <Jupstar ✪> 2660x1100 or smth like that
+00:09 <+bridge> [ddnet] <Jupstar ✪> with many layers
+00:10 <+bridge> [ddnet] <Learath2> LARGEADDRESSAWARE works
+00:11 <+bridge> [ddnet] <Learath2> though I'm sure we are breaking something with that so I'll enable top-down allocation to see what breaks 😛
+00:13 <+bridge> [ddnet] <heinrich5991> @Learath2 you can maybe disable ASLR to map libraries to places you want
+00:13 <+bridge> [ddnet] <heinrich5991> probably not a good idea though
+00:13 <+bridge> [ddnet] <heinrich5991> (but an interesting exploit target)
+00:17 <+bridge> [ddnet] <Learath2> Anyway from 2gb you dont get to use much if at all for your heap
+00:17 <+bridge> [ddnet] <Learath2> So keep that in mind next time working on 32bit stuff
+00:17 <+bridge> [ddnet] <heinrich5991> what's the reason for allocating 250MB btw?
+00:17 <+bridge> [ddnet] <heinrich5991> sounds like a lot
+00:18 <+bridge> [ddnet] <Learath2> That you'll have to ask @Jupstar ✪
+00:18 <+bridge> [ddnet] <Learath2> Maybe there is a way to upload it to the gpu in chunks? I honestly wouldn't know
+00:19 <+bridge> [ddnet] <Learath2> Or maybe a way to avoid making a copy of it
+00:22 <+bridge> [ddnet] <Learath2> Yeah this allocation is just massive I see why it won't fit now that I've turned on LARGEADDRESSAWARE
+00:23 <+bridge> [ddnet] <heinrich5991> pix
+00:23 <+bridge> [ddnet] <Learath2> Anyway, I think this is a viable(tm) solution. Forcing malloc to return memory top-down didn't break any of our libraries either
+00:23 <+bridge> [ddnet] <heinrich5991> LARGEADDRESSAWARE you mean?
+00:23 <+bridge> [ddnet] <Jupstar ✪> well its allocating the vertices
+00:23 <+bridge> [ddnet] <Learath2> LARGEADDRESSAWARE gets us well large addresses
+00:24 <+bridge> [ddnet] <Learath2> forcing the top down allocation lets me make sure the larger addresses that can now be returned by malloc doesn't break any library
+00:24 <+bridge> [ddnet] <heinrich5991> ah
+00:24 <+bridge> [ddnet] <Learath2> This is the largest snapshot I managed to capture but it gets a little larger than this, no way to get faster than 1s intervals in vmmap
+00:24 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/807028944904912946/unknown.png
+00:25 <+bridge> [ddnet] <Learath2> This is with large addresses, with small addresses the huge orange blocks don't fit above the first purple nor is there enough contiguous memory anywhere after the first purple
+00:26 <+bridge> [ddnet] <Jupstar ✪> appereantly one layer is pretty full of tiles, didntr check tho if true
+00:28 <+bridge> [ddnet] <Learath2> if this stupid tool was integrated into VS I could debug it even further
+00:29 <+bridge> [ddnet] <Learath2> Anyway, with only small addresses this is the largest heap I could capture
+00:29 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/807030112033833010/unknown.png
+00:30 <+bridge> [ddnet] <Learath2> That white block in the middle is 260M so I guess we are making a huge deallocation that's causing fragmentation
+00:36 <+bridge> [ddnet] <Jupstar ✪> freezebg is 2415*1620 tiles
+00:36 <+bridge> [ddnet] <Jupstar ✪> each tile consumes 4 vertices
+00:36 <+bridge> [ddnet] <Jupstar ✪> each vertex 24 bytes
+00:36 <+bridge> [ddnet] <Learath2> Nah, I just need more resolution, idk why that happens
+00:36 <+bridge> [ddnet] <Learath2> There is enough space but that 260M block is just left empty for some reason
+00:38 <+bridge> [ddnet] <heinrich5991> factorio only renders stuff near the player I think
+00:38 <+bridge> [ddnet] <heinrich5991> (given that the world is unbounded, they have to do that in some way)
+00:38 <+bridge> [ddnet] <Learath2> factorio is in a class of optimization of it's own, us mere mortals can't achieve that
+00:39 <+bridge> [ddnet] <heinrich5991> I think they had a blog post about that
+00:39 <+bridge> [ddnet] <heinrich5991> they render each layer near the player
+00:39 <+bridge> [ddnet] <Learath2> the things they come up with to cut 1ms from their pipeline really should be inspiration to us all
+00:39 <+bridge> [ddnet] <heinrich5991> and then just render new stuff as the player moves
+00:40 <+bridge> [ddnet] <Learath2> I guess I can code tooling to figure out why the allocator is skipping that 260m block
+00:40 <+bridge> [ddnet] <Learath2> Or maybe a high resolution memory map
+00:41 <+bridge> [ddnet] <Learath2> Or maybe dig into some very old blogs to figure out what they did back in Windows XP
+00:43 <+bridge> [ddnet] <Jupstar ✪> it has nothing todo with the rendering
+00:44 <+bridge> [ddnet] <Jupstar ✪> pre creating the buffer is fastest, what else would u do
+00:44 <+bridge> [ddnet] <heinrich5991> really? I thought you upload information about hte whole map up-front
+00:44 <+bridge> [ddnet] <Jupstar ✪> runtime creation is slower
+00:44 <+bridge> [ddnet] <heinrich5991> factorio doesn't do that, I think
+00:44 <+bridge> [ddnet] <Jupstar ✪> only about tiles that exist
+00:44 <+bridge> [ddnet] <Jupstar ✪> the map has a layer that filles all tiles tho
+00:44 <+bridge> [ddnet] <Jupstar ✪> yeah but why should that be faster?
+00:45 <+bridge> [ddnet] <heinrich5991> it would use less memory 🙂
+00:45 <+bridge> [ddnet] <Jupstar ✪> reallocating everything is fastest obv, but has disadvantages as RAM usage
+00:45 <+bridge> [ddnet] <Jupstar ✪> preallocating everything is fastest obv, but has disadvantages as RAM usage
+00:45 <+bridge> [ddnet] <heinrich5991> probably has a higher up-front cost, too
+00:45 <+bridge> [ddnet] <Jupstar ✪> why
+00:46 <+bridge> [ddnet] <heinrich5991> because you need to look at every tile at the start vs only looking at tiles near the player
+00:46 <+bridge> [ddnet] <Jupstar ✪> we also only look to tiles near the player
+00:46 <+bridge> [ddnet] <Jupstar ✪> the renderer doesnt render anything not visible
+00:46 <+bridge> [ddnet] <heinrich5991> oh, so we only allocate that buffer for later usage?
+00:46 <+bridge> [ddnet] <Jupstar ✪> yes
+00:47 <+bridge> [ddnet] <heinrich5991> leaving it mostly empty?
+00:47 <+bridge> [ddnet] <Jupstar ✪> no
+00:47 <+bridge> [ddnet] <Jupstar ✪> we have 2 buffers
+00:47 <+bridge> [ddnet] <Jupstar ✪> one that helps with finding offsets and one on the GPU containing vertices
+00:48 <+bridge> [ddnet] <heinrich5991> and the one containing vertices contains info about every tile, not only near the player? so it has a higher up-front cost to build?
+00:48 <+bridge> [ddnet] <Jupstar ✪> ah thought u mean at runtime
+00:48 <+bridge> [ddnet] <Jupstar ✪> yeah, should have
+00:48 <+bridge> [ddnet] <Jupstar ✪> but in tw u alsmost always spec the whole map probably
+00:48 <+bridge> [ddnet] <Jupstar ✪> or huge chunks
+00:49 <+bridge> [ddnet] <Jupstar ✪> so wouldnt really be worth optimizing it in chunks for RAM
+00:49 <+bridge> [ddnet] <Learath2> Q: Isn't tmpTiles also on the heap?
+00:49 <+bridge> [ddnet] <heinrich5991> we just had someone who couldn't run this game on that map ^^
+00:49 <+bridge> [ddnet] <Jupstar ✪> he can run it
+00:49 <+bridge> [ddnet] <Jupstar ✪> with gl 1.x
+00:50 <+bridge> [ddnet] <Jupstar ✪> @Learath2 yes, but tmp xd
+00:50 <+bridge> [ddnet] <heinrich5991> did we tell him?
+00:50 <+bridge> [ddnet] <Jupstar ✪> @Learath2 in the end it worked on linux 32bit
+00:50 <+bridge> [ddnet] <Jupstar ✪> so cant be out of address space
+00:50 <+bridge> [ddnet] <Jupstar ✪> @heinrich5991 yes i did
+00:50 <+bridge> [ddnet] <heinrich5991> nice
+00:50 <+bridge> [ddnet] <Learath2> ASLR works differently on each platform
+00:50 <+bridge> [ddnet] <heinrich5991> @Jupstar ✪ linux might allocate differently, might even be a different userspace allocator
+00:51 <+bridge> [ddnet] <Learath2> So does malloc and the underlying kernel allocator
+00:51 <+bridge> [ddnet] <Jupstar ✪> yes
+00:51 <+bridge> [ddnet] <Jupstar ✪> thats what learath tries to understand since 2 hours isnt it
+00:51 <+bridge> [ddnet] <Jupstar ✪> (how we can change it)
+00:51 <+bridge> [ddnet] <Learath2> It quite obviously runs out of address space, the largest remaining free contiguous block in the address space is 260M which is not enough
+00:51 <+bridge> [ddnet] <Jupstar ✪> so large address space works or what?
+00:52 <+bridge> [ddnet] <Learath2> Large address space works and didn't break anything in my 10-20 minutes of testing
+00:52 <+bridge> [ddnet] <Learath2> Though it's a shit fix, it would work for people running the 32bit binary by mistake or on situations like the one reported
+00:53 <+bridge> [ddnet] <Learath2> It wouldn't work so well on an actually memory constrained 32bit computer
+00:54 <+bridge> [ddnet] <Jupstar ✪> yeah ok
+00:54 <+bridge> [ddnet] <Jupstar ✪> dunno the details of that
+00:54 <+bridge> [ddnet] <Jupstar ✪> anyway i'd prefer to disable GL >= 2.1 on 32bit completly than to fix this
+00:55 <+bridge> [ddnet] <Learath2> Figures
+00:55 <+bridge> [ddnet] <Jupstar ✪> for me this is also a pretty worst case
+00:55 <+bridge> [ddnet] <Jupstar ✪> the editor already warns at 1000x1000 tiles
+00:55 <+bridge> [ddnet] <heinrich5991> sounds good. maybe we could also display an error message
+00:55 <+bridge> [ddnet] <Jupstar ✪> this is like 3 times the size
+00:55 <+bridge> [ddnet] <Learath2> You are okay with it crashing too I guess
+00:56 <+bridge> [ddnet] <Jupstar ✪> i am indeed
+00:56 <+bridge> [ddnet] <heinrich5991> instead of crashing I mean 😉
+00:56 <+bridge> [ddnet] <Jupstar ✪> xD
+00:56 <+bridge> [ddnet] <heinrich5991> an error message to tell people to enable opengl1.1 sounds better to me
+00:56 <+bridge> [ddnet] <Learath2> @heinrich5991 we are using unguarded mallocs everywhere anyway, getting to an error is tough without exceptions as teeworlds code is built for crashing and burning mostly
+00:56 <+bridge> [ddnet] <Jupstar ✪> funny how slow pcs get a slow implementation
+00:56 <+bridge> [ddnet] <Jupstar ✪> almost ironically xD
+00:57 <+bridge> [ddnet] <heinrich5991> @Learath2 since it's only about address space exhaustion, we can guard that single big allocation
+00:57 <+bridge> [ddnet] <heinrich5991> not about actual out of memory problems
+00:58 <+bridge> [ddnet] <Learath2> Well I'd feel warmer about that
+00:58 <+bridge> [ddnet] <Jupstar ✪> i think its better to not allow gl >= 2.x at all
+00:58 <+bridge> [ddnet] <Jupstar ✪> completly disable it
+00:58 <+bridge> [ddnet] <Jupstar ✪> most ppl with 32bit system have a old pc anyway
+00:59 <+bridge> [ddnet] <Jupstar ✪> or maybe only on windows
+00:59 <+bridge> [ddnet] <Learath2> That I don't quite like
+00:59 <+bridge> [ddnet] <Jupstar ✪> i'll test with my mobile now, but since android is basiucally linux kernel, probs will work
+00:59 <+bridge> [ddnet] <Learath2> Dooming people to worse performance because some very edge case massive maps crash sounds silly
+01:00 <+bridge> [ddnet] <Jupstar ✪> as said
+01:00 <+bridge> [ddnet] <Jupstar ✪> they wont have GPUs to run anything than 1.x anyway
+01:01 <+bridge> [ddnet] <Learath2> Well at the very least the person that actually reported the issue won't be happy that we doomed him to bad performance 😛
+01:01 <+bridge> [ddnet] <heinrich5991> you think my 2012 GPU doesn't support anything newer than opengl1.x?
+01:01 <+bridge> [ddnet] <Jupstar ✪> is it 64bit ready?
+01:01 <+bridge> [ddnet] <heinrich5991> yes
+01:01 <+bridge> [ddnet] <Jupstar ✪> see
+01:01 <+bridge> [ddnet] <Learath2> Atleast he can compile his own tho so he is better off than most people with 32bit computers
+01:02 <+bridge> [ddnet] <Jupstar ✪> so u can use 64bit
+01:03 <+bridge> [ddnet] <heinrich5991> well, the error message doesn't hurt
+01:03 <+bridge> [ddnet] <heinrich5991> not even in program complexity I think
+01:04 <+bridge> [ddnet] <Jupstar ✪> but u underestimate ppl
+01:04 <+bridge> [ddnet] <Jupstar ✪> they never get warnings
+01:04 <+bridge> [ddnet] <Jupstar ✪> they read it and are like, WTF?? ERROR
+01:04 <+bridge> [ddnet] <Learath2> I'll try to look into TraceProcessor later to parse xperf recordings to get a high resolution timeline. I want to know why we leave that 260M block free
+01:05 <+bridge> [ddnet] <Learath2> Oh or maybe attach a kernel debugger, that sounds fun
+01:05 <+bridge> [ddnet] <Jupstar ✪> @Learath2 at this point just replace windows with linux kernel silently ^^
+01:05 <+bridge> [ddnet] <Jupstar ✪> get microsoft dev
+01:06 <+bridge> [ddnet] <Learath2> You should read the blog of that guy I mentioned, he does stuff like this all the time to figure out chromium performance issues and bugs
+01:06 <+bridge> [ddnet] <Learath2> There are ways to work around the idiocy of windows
+01:08 <+bridge> [ddnet] <Jupstar ✪> sounds cool, if u have infinite time
+01:08 <+bridge> [ddnet] <Jupstar ✪> then i'd also write teeworlds-os
+01:08 <+bridge> [ddnet] <Jupstar ✪> that can only run teeworlds
+01:10 <+bridge> [ddnet] <Learath2> We should work on an asciiart renderer for the next version, for the computers with 8g of ram, because that's just of the past decade
+01:10 <+bridge> [ddnet] <Jupstar ✪> just saw a video of smone writing raytraced ascii renderer xd
+01:10 <+bridge> [ddnet] <Learath2> Funnily with the heap growing top down the allocations actually do fit
+01:11 <+bridge> [ddnet] <Learath2> even without largeaddressaware
+01:23 <+bridge> [ddnet] <Learath2> Okay xperf is great
+01:30 <+bridge> [ddnet] <Learath2> Though I kinda need a workstation to run this thing, it's insane the amount of processing power it uses
+03:20 <+bridge> [ddnet] <Learath2> Great, I spent almost an hour researching how to browse the virtual memory of a windows process, tried it `unresolved external symbol _PssCaptureSnapshot referenced in function _dbg_dumpmem`
+03:20 <+bridge> [ddnet] <Learath2> because it would kill us if god forbid for once our game builds without 10 thousand linking issues
+04:09 <+bridge> [ddnet] <Learath2> https://gist.github.com/Learath2/dfc67040e79598d8551aeac382ffc79e you can not possibly comprehend how happy I was to get this working
+04:10 <+bridge> [ddnet] <Learath2> an API scarcely documented, mostly used by malware developers
+05:26 <+bridge> [ddnet] <Learath2> Okay monkey patching native code is just too much work
+14:14 <+bridge> [ddnet] <Learath2> I missed these extended debugging sessions, first time I've had fun in months
+15:07 <+bridge> [ddnet] <SollyBunny> im sure that hammerfly is just a variable you set and it is read somewhere but i cant find where its set
+15:11 <+bridge> [ddnet] <SollyBunny> im sure that hammerfly is just a variable you set and it is read somewhere but i cant find where its read
+15:44 <+bridge> [ddnet] <Learath2> Hammerfly? You mean the dummy hf?
+15:44 <+bridge> [ddnet] <SollyBunny> yeah
+15:44 <+bridge> [ddnet] <SollyBunny> its all jank
+15:45 <+bridge> [ddnet] <SollyBunny> what actually sends of the thing to make the dummy fire
+15:45 <+bridge> [ddnet] <SollyBunny> ```cpp
+15:45 <+bridge> [ddnet] <SollyBunny> if((m_DummyFire / 12.5f) - (int)(m_DummyFire / 12.5f) > 0.01f)
+15:45 <+bridge> [ddnet] <SollyBunny>         {
+15:45 <+bridge> [ddnet] <SollyBunny>             m_DummyFire++;
+15:45 <+bridge> [ddnet] <SollyBunny>             return 0;
+15:45 <+bridge> [ddnet] <SollyBunny>         }
+15:45 <+bridge> [ddnet] <SollyBunny>         m_DummyFire++;
+15:45 <+bridge> [ddnet] <SollyBunny> 
+15:45 <+bridge> [ddnet] <SollyBunny>         m_HammerInput.m_Fire = (m_HammerInput.m_Fire + 1) | 1;
+15:45 <+bridge> [ddnet] <SollyBunny>         m_HammerInput.m_WantedWeapon = WEAPON_HAMMER + 1;
+15:45 <+bridge> [ddnet] <SollyBunny>         if(!g_Config.m_ClDummyRestoreWeapon)
+15:45 <+bridge> [ddnet] <SollyBunny>         {
+15:45 <+bridge> [ddnet] <SollyBunny>             m_DummyInput.m_WantedWeapon = WEAPON_HAMMER + 1;
+15:45 <+bridge> [ddnet] <SollyBunny>         }
+15:45 <+bridge> [ddnet] <SollyBunny> 
+15:45 <+bridge> [ddnet] <SollyBunny>         vec2 Main = m_LocalCharacterPos;
+15:45 <+bridge> [ddnet] <SollyBunny>         vec2 Dummy = m_aClients[m_LocalIDs[!g_Config.m_ClDummy]].m_Predicted.m_Pos;
+15:45 <+bridge> [ddnet] <SollyBunny>         vec2 Dir = Main - Dummy;
+15:45 <+bridge> [ddnet] <SollyBunny>         m_HammerInput.m_TargetX = (int)(Dir.x);
+15:45 <+bridge> [ddnet] <SollyBunny>         m_HammerInput.m_TargetY = (int)(Dir.y);
+15:45 <+bridge> [ddnet] <SollyBunny> 
+15:45 <+bridge> [ddnet] <SollyBunny>         mem_copy(pData, &m_HammerInput, sizeof(m_HammerInput));
+15:45 <+bridge> [ddnet] <SollyBunny>         return sizeof(m_HammerInput);
+15:45 <+bridge> [ddnet] <SollyBunny> ```
+15:45 <+bridge> [ddnet] <SollyBunny> i found this but changing WEAPON_HAMMER to WEAPON_LASER turns it into a gun?
+15:46 <+bridge> [ddnet] <SollyBunny> cant find where m_HammerInput is defined either
+15:47 <+bridge> [ddnet] <SollyBunny> ```sh
+15:47 <+bridge> [ddnet] <SollyBunny> [solly@arch src]$ grep -r "HammerIput" ./*
+15:47 <+bridge> [ddnet] <SollyBunny> [solly@arch src]$ 
+15:47 <+bridge> [ddnet] <SollyBunny> ```
+15:47 <+bridge> [ddnet] <SollyBunny> ??????
+15:47 <+bridge> [ddnet] <Ryozuki> u have a typo there
+15:47 <+bridge> [ddnet] <SollyBunny> ```sh
+15:47 <+bridge> [ddnet] <SollyBunny> [solly@arch src]$ grep -r "HammerInput" ./*
+15:47 <+bridge> [ddnet] <SollyBunny> [solly@arch src]$ 
+15:47 <+bridge> [ddnet] <SollyBunny> ```
+15:47 <+bridge> [ddnet] <SollyBunny> ??????
+15:47 <+bridge> [ddnet] <Ryozuki> also dont post such big code
+15:47 <+bridge> [ddnet] <Ryozuki> this chat is connected to irc
+15:48 <+bridge> [ddnet] <SollyBunny> wow im dumb soz but uhh do u know how changing WEAPON_HAMMER to WEAPON_LASER changes it to gun
+15:50 <+bridge> [ddnet] <Ryozuki> u know there is a +1 right
+15:50 <+bridge> [ddnet] <Ryozuki> WEAPON_LASER + 1 is equal to WEAPON_NINJA
+15:50 <+bridge> [ddnet] <SollyBunny> but then WEAPON_HAMMER + 1 = hamer?
+15:50 <+bridge> [ddnet] <Ryozuki> no
+15:50 <+bridge> [ddnet] <Ryozuki> = gun
+15:50 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807261958264324147/unknown.png
+15:50 <+bridge> [ddnet] <SollyBunny> but its not gun when its unedited
+15:51 <+bridge> [ddnet] <Ryozuki> it sets the m_WantedWeapon
+15:51 <+bridge> [ddnet] <Ryozuki> btw do u have the laser
+15:51 <+bridge> [ddnet] <Ryozuki> if u dont then m_WantedWeapon is prob ignores
+15:51 <+bridge> [ddnet] <Ryozuki> and thats why u get a gun
+15:51 <+bridge> [ddnet] <Ryozuki> but idk
+15:51 <+bridge> [ddnet] <SollyBunny> `m_HammerInput.m_WantedWeapon = WEAPON_LASER + 1`
+15:51 <+bridge> [ddnet] <SollyBunny> remove the +1?
+15:52 <+bridge> [ddnet] <Ryozuki> yea
+15:52 <+bridge> [ddnet] <SollyBunny> very confusing
+15:52 <+bridge> [ddnet] <Ryozuki> but if u havent acquired the laser
+15:52 <+bridge> [ddnet] <Ryozuki> it prob wont work
+15:52 <+bridge> [ddnet] <Ryozuki> idk what this code does tho
+15:53 <+bridge> [ddnet] <gerdoe> dummybot
+15:53 <+bridge> [ddnet] <gerdoe> xd
+15:53 <+bridge> [ddnet] <fokkonaut> @Ryozuki dont remove the +1
+15:54 <+bridge> [ddnet] <SollyBunny> it woks
+15:54 <+bridge> [ddnet] <Ryozuki> tell him not me
+15:54 <+bridge> [ddnet] <Ryozuki> xd
+15:54 <+bridge> [ddnet] <Ryozuki> it works ? xd
+15:54 <+bridge> [ddnet] <SollyBunny> i just ctrl c ctrl v the dummy code change it for laser cuz i wanted laser dummy
+15:54 <+bridge> [ddnet] <fokkonaut> @SollyBunny wanted weapon is the direct weapon selection which uses the input, and 0 means no weapon selected
+15:54 <+bridge> [ddnet] <Ryozuki> @fokkonaut u know that WEAPON_HAMMER + 1 is essentially WEAPON_GUN
+15:54 <+bridge> [ddnet] <fokkonaut> check the server side of the code
+15:54 <+bridge> [ddnet] <SollyBunny> oh okay
+15:54 <+bridge> [ddnet] <fokkonaut> its weapon+1
+15:54 <+bridge> [ddnet] <fokkonaut> for wanted weapon using direct weapon selection
+15:55 <+bridge> [ddnet] <fokkonaut> iirc
+15:55 <+bridge> [ddnet] <fokkonaut> xD
+15:55 <+bridge> [ddnet] <Ryozuki> 0 means hammer
+15:55 <+bridge> [ddnet] <fokkonaut> Not in wantedweapon case
+15:55 <+bridge> [ddnet] <Ryozuki> there is always a weapon selected
+15:55 <+bridge> [ddnet] <SollyBunny> my dummy is now capable of wall shotting me somehow
+15:55 <+bridge> [ddnet] <Ryozuki> bot
+15:55 <+bridge> [ddnet] <Ryozuki> i helped abotter
+15:55 <+bridge> [ddnet] <Ryozuki> rip
+15:55 <+bridge> [ddnet] <fokkonaut> Ryozuki for me, there is never a directly selected weapon because I dont use +weaponX
+15:55 <+bridge> [ddnet] <fokkonaut> i just scroll
+15:56 <+bridge> [ddnet] <fokkonaut> so it stays 0 for my character all the time
+15:56 <+bridge> [ddnet] <Ryozuki> isnt scroll +weapon or smth
+15:56 <+bridge> [ddnet] <gerdoe> it says wanted++ ig
+15:56 <+bridge> [ddnet] <fokkonaut> no
+15:56 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807263446151725066/unknown.png
+15:56 <+bridge> [ddnet] <fokkonaut> @Ryozuki scroll just goes to the next weapon, not selecting a weapon directly
+15:56 <+bridge> [ddnet] <fokkonaut> yes
+15:57 <+bridge> [ddnet] <Ryozuki> i mean if u think it logically scroll probs sets the wanted weapon to the next
+15:57 <+bridge> [ddnet] <Ryozuki> but idk i didnt look the code
+15:57 <+bridge> [ddnet] <fokkonaut> No
+15:57 <+bridge> [ddnet] <fokkonaut> wanted weapon is something else xd
+15:57 <+bridge> [ddnet] <fokkonaut> as said
+15:57 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/d21f7966b11ed010a6f9827cbc6b302ad6206d75/src/game/server/entities/character.cpp#L331
+15:58 <+bridge> [ddnet] <fokkonaut> Idk why everything I say has to be wrong ^^
+15:58 <+bridge> [ddnet] <fokkonaut> I worked with this part of the code already
+15:58 <+bridge> [ddnet] <Ryozuki> dont get offended
+15:58 <+bridge> [ddnet] <fokkonaut> its okay
+15:58 <+bridge> [ddnet] <fokkonaut> Lol
+16:00 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807264411135508500/unknown.png
+16:00 <+bridge> [ddnet] <fokkonaut> 0 means no direct selection
+16:01 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/d21f7966b11ed010a6f9827cbc6b302ad6206d75/src/game/server/entities/character.cpp#L307
+16:03 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807265029069471784/unknown.png
+16:04 <+bridge> [ddnet] <Ryozuki> back to rust
+16:04 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+16:04 <+bridge> [ddnet] <Ryozuki> @Learath2 in my way towards learning rust macros i found something interesting, you can create compiler errors and tell the compiler the span of the code that makes those
+16:04 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807265517403373618/unknown.png
+16:05 <+bridge> [ddnet] <Ryozuki> rust master race :monkalaugh:
+16:08 <+bridge> [ddnet] <Learath2> I was going to stop you because no one asks about that part of the code
+16:09 <+bridge> [ddnet] <Ryozuki> i realized it later
+16:09 <+bridge> [ddnet] <Ryozuki> xd
+16:09 <+bridge> [ddnet] <Learath2> I knew it the second I heard about the uninformed question, noobs only want to touch that part of the code because they want to make bots
+16:10 <+bridge> [ddnet] <Learath2> This is very useful, I wish clang had such pretty errors and ways to trigger more informative asserts
+16:10 <+bridge> [ddnet] <Ryozuki> :poggers: learath agreed :poggers:
+16:11 <+bridge> [ddnet] <Learath2> I’ll work on a language called definitelyNotRust taking all the parts I like ;P
+16:11 <+bridge> [ddnet] <Ryozuki> :monkaS:
+16:12 <+bridge> [ddnet] <Ryozuki> i noticed a lack of blog posts about macros doing the stuff i do
+16:12 <+bridge> [ddnet] <Ryozuki> a free path for my blogging career
+16:12 <+bridge> [ddnet] <Ryozuki> rust macros
+16:12 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+16:13 <+bridge> [ddnet] <Ryozuki> it rly looks like black magic
+16:16 <+bridge> [ddnet] <Learath2> My adventures yesterday confirmed that tooling for windows is shit.
+16:16 <+bridge> [ddnet] <Ryozuki> actually with this spanned compiler errors i can do really precise macro attributes
+16:16 <+bridge> [ddnet] <Ryozuki> e.g the input can only accept text, password, email
+16:16 <+bridge> [ddnet] <Learath2> Chromium apparently stole my idea and made their own. They monkey patch all allocation functions by disassembling at runtime
+16:16 <+bridge> [ddnet] <Ryozuki> rly epic
+16:16 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+16:17 <+bridge> [ddnet] <Ryozuki> @Learath2 i see tweets on twitter "linux is the best os for dev"
+16:17 <+bridge> [ddnet] <Ryozuki> and windows normies in replies
+16:17 <+bridge> [ddnet] <Ryozuki> telling windows is the best
+16:17 <+bridge> [ddnet] <Ryozuki> and i cant laugh more
+16:18 <+bridge> [ddnet] <Learath2> But memory debugging tools are shit everywhere, which confirms my worst fear
+16:18 <+bridge> [ddnet] <Ryozuki> https://twitter.com/DerekBeattie/status/1231256549408071685
+16:18 <+bridge> [ddnet] <Ryozuki> :nouis:
+16:18 <+bridge> [ddnet] <Learath2> Modern programmers give no shits about memory usage
+16:18 <+bridge> [ddnet] <Ryozuki> @Learath2 modern programmers directly dont know c+
+16:18 <+bridge> [ddnet] <Ryozuki> why would they give a shit about memory
+16:19 <+bridge> [ddnet] <Ryozuki> they use their javascripts
+16:19 <+bridge> [ddnet] <Ryozuki> and some python here and there
+16:19 <+bridge> [ddnet] <Learath2> And the interfaces to develop such tools are only slightly better on windows
+16:19 <+bridge> [ddnet] <Learath2> On linux**
+16:20 <+bridge> [ddnet] <Ryozuki> cant u do some kernel levels stuff to debug memory or something
+16:20 <+bridge> [ddnet] <Learath2> On windows literally the only way to keep track of allocations is a monkey patched hook you can get by injecting a dll into the process, or a kernel interface soooooo badly documented that you'd cry
+16:20 <+bridge> [ddnet] <Ryozuki> level*
+16:21 <+bridge> [ddnet] <Learath2> Like the kernel interface is only there for windows' own performance toolkit
+16:21 <+bridge> [ddnet] <Learath2> They only document a handful of functions to interact with it
+16:25 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807270770563874866/unknown.png
+16:25 <+bridge> [ddnet] <Ryozuki> omg
+16:25 <+bridge> [ddnet] <Ryozuki> im loving this
+16:26 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807270870900670474/unknown.png
+16:26 <+bridge> [ddnet] <Ryozuki> :greenthing:
+16:27 <+bridge> [ddnet] <SollyBunny> also with dummy hammer it doesnt actually point at a player but seems to be randomly up?
+16:27 <+bridge> [ddnet] <Ryozuki> dont ask coding help for botting
+16:27 <+bridge> [ddnet] <Ryozuki> do this to fix all ur issues
+16:27 <+bridge> [ddnet] <Ryozuki> git reset --hard origin/master
+16:28 <+bridge> [ddnet] <SollyBunny> it was for ddrace maps
+16:28 <+bridge> [ddnet] <Ryozuki> :nouis:
+16:28 <+bridge> [ddnet] <SollyBunny> -.-
+16:28 <+bridge> [ddnet] <SollyBunny> also it is just the original code which isnt aiming at me
+16:29 <+bridge> [ddnet] <SollyBunny> or not it is?
+16:29 <+bridge> [ddnet] <Ryozuki> botters out
+16:29 <+bridge> [ddnet] <SollyBunny> or now it is?
+16:29 <+bridge> [ddnet] <SollyBunny> idk
+16:29 <+bridge> [ddnet] <Ryozuki> :nobot:
+16:30 <+bridge> [ddnet] <SollyBunny> no its that hammer fly keeps breaking
+16:31 <+bridge> [ddnet] <SollyBunny> like if i hook it
+16:31 <+bridge> [ddnet] <SollyBunny> im very confused
+16:33 <+bridge> [ddnet] <Learath2> I have a 6% solution of acetic acid. I need a 12% solution, assuming only water boils off, which is true at these concentrations. Is havling the volume close enough?
+16:34 <+bridge> [ddnet] <Learath2> @SollyBunny we think you are making a bot. We don't want to help you any further
+16:34 <+bridge> [ddnet] <SollyBunny> its hammerfly but with laser instead of hammer
+16:34 <+bridge> [ddnet] <SollyBunny> for ddrace maps
+16:34 <+bridge> [ddnet] <fokkonaut> @noby
+16:34 <+bridge> [ddnet] <fokkonaut> @Nobosaurus
+16:34 <+bridge> [ddnet] <fokkonaut> ah
+16:34 <+bridge> [ddnet] <fokkonaut> fuc
+16:34 <+bridge> [ddnet] <fokkonaut> @noby
+16:34 <+bridge> [ddnet] <fokkonaut> xD
+16:35 <+bridge> [ddnet] <Learath2> Spammer
+16:35 <+bridge> [ddnet] <fokkonaut> big sorry
+16:47 <+bridge> [ddnet] <Learath2> Assuming the density is relatively constant evaporating off half should work
+16:49 <+bridge> [ddnet] <Learath2> Hopefully I'm correct about water and acetic acid not forming an azeotrope this early on
+16:51 <+bridge> [ddnet] <Ryozuki> are u making chemistry now
+16:51 <+bridge> [ddnet] <Learath2> Pickles
+16:51 <+bridge> [ddnet] <Ryozuki> :poggers:
+16:52 <+bridge> [ddnet] <Learath2> It would be extremely funny if I get chemical burns in my lungs because of acetic acid vapour
+16:53 <+bridge> [ddnet] <murpi> you could also just go outside and buy pickles :greenthing:
+16:53 <+bridge> [ddnet] <murpi> no risk in burning your lungs
+16:54 <+bridge> [ddnet] <Learath2> But the italian people make bad pickles
+16:54 <+bridge> [ddnet] <Ryozuki> i think halving is close
+16:54 <+bridge> [ddnet] <Ryozuki> according to my rule of 3
+16:54 <+bridge> [ddnet] <Ryozuki> idk if this even makes sense
+16:55 <+bridge> [ddnet] <Learath2> Besides where is the fun in that. It should make my eyes burn way before there is a risk of lung damage
+17:02 <+bridge> [ddnet] <Learath2> Oh it never even forms an azeotrope
+17:04 <+bridge> [ddnet] <Ryozuki> :greenthing:
+17:04 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807280498707398736/unknown.png
+17:31 <+bridge> [ddnet] <jao> learath making drugs
+17:35 <+bridge> [ddnet] <Learath2> I stopped 150ml short, i forgot how god awful vinegar smells when boiled
+17:37 <+bridge> [ddnet] <heinrich5991> @SollyBunny tools not included in the official ddnet client that automate gameplay are considered bots. if you get caught with one of these on official ddnet servers, it will get you banned
+17:37 <+bridge> [ddnet] <SollyBunny> auto laser should be a feature then ri
+17:37 <+bridge> [ddnet] <SollyBunny> auto laser should be a feature then cri
+17:37 <+bridge> [ddnet] <Learath2> Nothing much to be made from acetic acid but pickles :P
+17:38 <+bridge> [ddnet] <Learath2> I guess you could use it in candy making if you are russian
+17:38 <+bridge> [ddnet] <heinrich5991> suggest it on github then, but I don't think there'll be consensus to add it @SollyBunny
+17:38 <+bridge> [ddnet] <jao> @Learath2 you are like my friend who made drugs and fireworks
+17:38 <+bridge> [ddnet] <Learath2> Auto laser would make some insane parts trivial with dummy
+17:38 <+bridge> [ddnet] <Learath2> There us no way we add that
+17:39 <+bridge> [ddnet] <Learath2> is*
+17:39 <+bridge> [ddnet] <heinrich5991> I'm just presenting the correct route for suggesting that feature, and saying that it's unlikely to get added
+17:39 <+bridge> [ddnet] <heinrich5991> ^^
+17:40 <+bridge> [ddnet] <SollyBunny> is shooting a person that hard
+17:40 <+bridge> [ddnet] <Learath2> Then you can definitely do it yourself without the help of a bot :)
+17:41 <+bridge> [ddnet] <heinrich5991> well, that's called an aimbot if you automate it
+17:41 <+bridge> [ddnet] <heinrich5991> so apparently it's hard enough to get you banned in all sorts of games
+17:41 <+bridge> [ddnet] <SollyBunny> it cant be used for fng / zcatch cuz its hitting player not anyone else
+17:42 <+bridge> [ddnet] <heinrich5991> it's still a gameplay advantage for ddnet servers, which is not okay since they also host something competitive: racing
+17:42 <+bridge> [ddnet] <SollyBunny> ur never gonna be faster with a dummy than a player so where it matters it doesnt effect right
+17:43 <+bridge> [ddnet] <heinrich5991> https://discord.com/channels/252358080522747904/338779500085116938/806293647913779281
+17:43 <+bridge> [ddnet] <Learath2> coradax is much faster than most any player with his dummy on just fly 1. @murpi here probably plays better with dummy than he does with ppl :D
+17:44 <+bridge> [ddnet] <heinrich5991> because other people are so bad 😛
+17:44 <+bridge> [ddnet] <Learath2> This is also a factor :P
+17:44 <+bridge> [ddnet] <SollyBunny> ^
+17:44 <+bridge> [ddnet] <deen> You can also probably do a hacky udp gateway to switch between having dummy and real partner instantly
+17:45 <+bridge> [ddnet] <SollyBunny> also laser fly doesnt effect lasery.. stuff
+17:45 <+bridge> [ddnet] <SollyBunny> and also because of the glitchiness of hammer fly can be achieved if u hit 5 on ur dummy then hammerfly then switch u get lazered anyway
+17:45 <+bridge> [ddnet] <Learath2> ? What is a laser fly even? It would literally just periodically laser you
+17:46 <+bridge> [ddnet] <SollyBunny> laser fly = hammer fly without the hammer but with the laser
+17:46 <+bridge> [ddnet] <Learath2> Which is just a periodic shot of laser. What do you even want this for?
+17:46 <+bridge> [ddnet] <heinrich5991> aimbotted unfreeze by laser, I guess
+17:47 <+bridge> [ddnet] <Learath2> That was my guess aswell, but he says that's not it
+17:47 <+bridge> [ddnet] <SollyBunny> i do it with hammerfly glitchiness anyway so
+17:47 <+bridge> [ddnet] <fokkonaut> @heinrich5991 already possible by deepfly bind
+17:47 <+bridge> [ddnet] <fokkonaut> and dummy
+17:47 <+bridge> [ddnet] <heinrich5991> fine, then use that
+17:47 <+bridge> [ddnet] <fokkonaut> :D
+17:47 <+bridge> [ddnet] <SollyBunny> -.-
+17:47 <+bridge> [ddnet] <Learath2> @fokkonaut really? Can you get it to shoot any weapon?
+17:47 <+bridge> [ddnet] <heinrich5991> yes
+17:47 <+bridge> [ddnet] <fokkonaut> Yes
+17:48 <+bridge> [ddnet] <heinrich5991> the first shot only though, but you can just restart it ^^
+17:48 <+bridge> [ddnet] <Ryozuki> u can already make laser shoot u
+17:48 <+bridge> [ddnet] <Ryozuki> dummy laser*
+17:48 <+bridge> [ddnet] <Learath2> Lol, we keep coding the oddest of stuff. Maybe we should look for jobs in microsoft
+17:48 <+bridge> [ddnet] <SollyBunny> its annoying for using hammerfly but can be used for laser n stufz
+17:48 <+bridge> [ddnet] <fokkonaut> @heinrich5991 if you dont keep the fire input you dont have to reset
+17:48 <+bridge> [ddnet] <fokkonaut> it can stay on rifle
+17:48 <+bridge> [ddnet] <heinrich5991> ah
+17:49 <+bridge> [ddnet] <heinrich5991> stuff like that is why I don't like https://github.com/ddnet/ddnet/pull/3552
+17:50 <+bridge> [ddnet] <Learath2> @heinrich5991 I can't think of many new constructs that are possible
+17:50 <+bridge> [ddnet] <heinrich5991> yea, I also didn't know you could laser yourself with the dummy hammer for the longest time
+17:50 <+bridge> [ddnet] <Learath2> The most innovative thing was that access to inputstate abusing unimportant configs
+17:51 <+bridge> [ddnet] <Learath2> That is more on our implementation of hammerfly bot
+17:51 <+bridge> [ddnet] <heinrich5991> yes plus the input handling on the server, probably
+17:51 <+bridge> [ddnet] <Learath2> I guess that's also an unexpected construct though
+17:51 <+bridge> [ddnet] <Learath2> I wonder if eval if makes teeworlds console turing complete :D
+17:53 <+bridge> [ddnet] <Learath2> Ah needs an arithmetic operation
+18:11 <+bridge> [ddnet] <Ryozuki> @hein https://discord.com/channels/252358080522747904/293493549758939136/807265519639199784
+18:11 <+bridge> [ddnet] <Ryozuki> @heinrich5991 ^
+18:12 <+bridge> [ddnet] <heinrich5991> oh, cool 🙂
+18:12 <+bridge> [ddnet] <Ryozuki> 🙂
+18:12 <+bridge> [ddnet] <heinrich5991> so when is this blog psot of yours going to come out? ^^
+18:13 <+bridge> [ddnet] <Ryozuki> 👀
+18:13 <+bridge> [ddnet] <Ryozuki> well first i want to finish this crate a bit
+18:13 <+bridge> [ddnet] <Ryozuki> i probs discover more stuff
+18:13 <+bridge> [ddnet] <Ryozuki> will*
+18:13 <+bridge> [ddnet] <Ryozuki> https://github.com/edg-l/formy
+18:15 <+bridge> [ddnet] <Ryozuki> @heinrich5991 did u mention u that i made a blog post about the error stuff we discussed? it also was features in this week in rust
+18:16 <+bridge> [ddnet] <Ryozuki> it has 5k visits
+18:16 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+18:16 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/807298557950296084/unknown.png
+18:16 <+bridge> [ddnet] <Ryozuki> did i*
+18:16 <+bridge> [ddnet] <heinrich5991> link? 🙂
+18:16 <+bridge> [ddnet] <heinrich5991> no, you didn't
+18:16 <+bridge> [ddnet] <Ryozuki> https://edgarluque.com/blog/wrapping-errors-in-rust
+18:16 <+bridge> [ddnet] <Ryozuki> https://this-week-in-rust.org/blog/2021/01/27/this-week-in-rust-375/
+18:16 <+bridge> [ddnet] <Ryozuki> u can find it here
+18:16 <+bridge> [ddnet] <Ryozuki> "Rust Walkthroughs"
+18:17 <+bridge> [ddnet] <heinrich5991> oh wow, nice 🙂
+18:17 <+bridge> [ddnet] <Ryozuki> 😀
+18:17 <+bridge> [ddnet] <heinrich5991> ah now that I read the post again, I think I even read it before ^^
+18:17 <+bridge> [ddnet] <Ryozuki> ^^
+18:18 <+bridge> [ddnet] <Ryozuki> i think my blog will end up only being rust
+18:18 <+bridge> [ddnet] <Ryozuki> i also have this, idk if u read it <https://edgarluque.com/blog/rust-iterator-fibonacci>
+18:18 <+bridge> [ddnet] <Ryozuki> when i learned how to impl iterators
+18:19 <+bridge> [ddnet] <heinrich5991> 🙂
+18:20 <+bridge> [ddnet] <Ryozuki> @heinrich5991 u had a blog too right?
+18:20 <+bridge> [ddnet] <heinrich5991> only one blog post
+18:20 <+bridge> [ddnet] <heinrich5991> not sure if it counts as a blog ^^
+18:20 <+bridge> [ddnet] <heinrich5991> the one tick unfreeze
+18:21 <+bridge> [ddnet] <Ryozuki> im sure u can write about a lot of stuff
+18:21 <+bridge> [ddnet] <Ryozuki> u know way more than me :)
+18:22 <+bridge> [ddnet] <heinrich5991> idk, I'll write something if something interests me and I think that it also interests others *and* I want to spend some time on writing it down
+18:22 <+bridge> [ddnet] <Ryozuki> i also think about it a lot
+18:22 <+bridge> [ddnet] <Ryozuki> but u would be surprised
+18:22 <+bridge> [ddnet] <Ryozuki> even small simple stuff interests others
+18:46 <+bridge> [ddnet] <SollyBunny> potatoes
+18:47 <+bridge> [ddnet] <SollyBunny> interesting rihgt
+19:08 <+ChillerDragon> congratz for ending up in this blogpost @Ryozuki o.O
+19:08 <+bridge> [ddnet] <Ryozuki> :greenthing:
+19:09 <+ChillerDragon> @heinrich5991 if its tw related count in one interested chillerdragon
+19:31 <+ChillerDragon> @qshar still no success with logging in any ideas what could go wrong during pw reset? Ip filter? Sync delay with tw server? Unsupported pw len? Unsupported characters?
+19:32 <+ChillerDragon> it says pw change successfully but ingame the pw wont work
+20:37 <+bridge> [ddnet] <Wollwolke> i had the same exact problem, tried a few different passwords and came to the conclusion that my passwords were too long...
+20:47 <+bridge> [ddnet] <SollyBunny> how do you get the current gamemode from gameclient client (so i can check if its zcatch c;)

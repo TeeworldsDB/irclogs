@@ -1,0 +1,746 @@
+01:14 < PerfeCtion_> Hey
+01:14 <+PerfeCtion_> Can someone help me changing small things in the teeworlds source? I already compiled it I just need some help please
+01:17 <@heinrich5991> hello also from over here ;) ask your question and you might get an answer within a day or so ;)
+01:23 <@heinrich5991> good night
+03:03 <+PerfeCtion_> Okayy so in which cpp file can I do unlimited ammo?
+03:14 <+PerfeCtion_> i found it out myself
+03:14 <+PerfeCtion_> but how can i make the gun autoshoot?
+03:28 <+PerfeCtion_> Heheee i got ittttt
+03:38 <+PerfeCtion_> Oh mann Wie kann ich die shotgun mehr spread machen?
+03:46 <+PerfeCtion_> i need the shotgun to spread more but it is acting weird i dont get it :/
+05:43 <+bridge> [ddnet] <gerdoe> i guess you didn't add new direction for your bullets
+05:43 <+bridge> [ddnet] <gerdoe> i guess you didn't add new directions for your bullets
+06:00 <+bridge> [ddnet] <Jupstar ✪> ChillerDragon: can we also get a script to remove paths automatically xd
+06:39 <+bridge> [ddnet] <TsFreddie (CHN Community Repost)> bruh
+06:39 <+bridge> [ddnet] <TsFreddie (CHN Community Repost)> https://cdn.discordapp.com/attachments/293493549758939136/810747146755899432/unknown.png
+06:40 <+bridge> [ddnet] <Jupstar ✪> intel driver
+06:42 <+bridge> [ddnet] <TsFreddie (CHN Community Repost)> using nvidia tho lol
+06:42 <+bridge> [ddnet] <TsFreddie (CHN Community Repost)> it is probably the site that is broken
+08:49 <+bridge> [ddnet] <Ryozuki> man these botters that ask for source code help are increasing exponentially lately
+09:48 <+fokkonaut> Hey fstd
+10:03 <+fstd> hi fokkonaut
+10:09 <+fokkonaut> heinrich told me you have a 512 player server? Could you show me how you did the collision between tees? My server sometimes need up to 100% of the CPU, I did some local tests and think it is related to the collision code, e.g. CCharacterCore::Move()
+10:19 <+fstd> oh well he's probably referring to http://penenen.de/twparticle.png
+10:20 <+fstd> in no way shape or form i run such a server, that screenshot is at least 6-8 years old
+10:20 <+bridge> [ddnet] <fokkonaut> oh true, i remember this
+10:20 <+bridge> [ddnet] <fokkonaut> ohhh
+10:20 <+fstd> and i didn't do anything special collision wise, it performed horribly at 512
+10:20 <+fstd> in fact the lesson learned was
+10:20 <+bridge> [ddnet] <fokkonaut> exactly
+10:20 <+fstd> many tees needs ac ollision overhaul
+10:21 <+fstd> quadtree maybe
+10:21 <+bridge> [ddnet] <fokkonaut> well, i probably dont know how :D
+10:22 <+fstd> the general idea is to group tees together that are physically close
+10:23 <+fstd> that way you only have to check collisions against your group rather than everything
+10:23 <+fstd> of course maintaining the groups has some overhead on its own
+10:24 <+bridge> [ddnet] <fokkonaut> uhm..
+10:24 <+bridge> [ddnet] <fokkonaut> why is it even that expensive?
+10:26 <+fstd> what collisions?
+10:26 <+fokkonaut> yea
+10:27 <+fstd> well because the vanilla approach checks every tee vs every other tee
+10:27 <+fstd> so N tees -> N^2 checks
+10:27 <+fstd> that gets costly as N grows
+10:28 <+bridge> [ddnet] <fokkonaut> hm
+10:30 <+fstd> (technically it only takes half the amount of checks as after checking X vs Y you don't have to check Y vs X
+10:30 <+fstd> so there's a /2 in there somewhere
+10:30 <+fstd> but that becomes insignificant as N grows as well
+10:30 <+bridge> [ddnet] <fokkonaut> but for 128 players it should be possible to improve it, right?
+10:31 <+fstd> IIRC 128 was right at the edge of becoming noticably nasty but still kinda playable (i only tested with dummies though, not with 128 real clients)
+10:32 <+fstd> but yes for 128 players the naive approach really gets to its limits
+10:33 <+bridge> [ddnet] <fokkonaut> well for my server i can say it usually works, i even had 128 clients connected 2-3 times, but in the past few days im facing problems more and more, where CPU usage goes up to 100%
+10:33 <+bridge> [ddnet] <fokkonaut> i dont really know why it suddenly started to do that so often
+10:33 <+bridge> [ddnet] <Jupstar ✪> the easiest you could do without changing source too much is replacing distance checks with squared distance
+10:33 <+bridge> [ddnet] <fokkonaut> isnt distance already checked by squared distance?
+10:34 <+bridge> [ddnet] <Jupstar ✪> oh in 0.7? i dunno ^^
+10:34 <+bridge> [ddnet] <fokkonaut> let me check it
+10:34 <+fstd> fokkonaut: it's a little involved but a profiler would tell you what part is eating the CPU
+10:35 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ sqrtf(a.x*a.x + a.y*a.y)
+10:35 <+bridge> [ddnet] <Jupstar ✪> thats not squared
+10:35 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ `sqrtf(a.x*a.x + a.y*a.y)`
+10:35 <+bridge> [ddnet] <Jupstar ✪> its rooted
+10:35 <+bridge> [ddnet] <Jupstar ✪> root function is expensive
+10:35 <+bridge> [ddnet] <fokkonaut> ah lol
+10:36 <+fstd> see this is the kind of thing you'd probably want to profile before changing
+10:36 <+bridge> [ddnet] <fokkonaut> ChillerDragon tried to do that, but couldnt get it to work
+10:36 <+bridge> [ddnet] <fokkonaut> i did some local tests with visual studio, and it looked like the distance function in CCharacterCore::Move (inside of the player <-> player loop) is very expensive
+10:36 <+bridge> [ddnet] <Jupstar ✪> you could also compile with Ofast, then it optimizes floating calculations
+10:37 <+fstd> okay
+10:38 <+bridge> [ddnet] <fokkonaut> fstd: Jupstar: do you think you can help?
+10:39 <+bridge> [ddnet] <Jupstar ✪> sqrt(9) == 3
+10:39 <+bridge> [ddnet] <Jupstar ✪> becomes
+10:39 <+bridge> [ddnet] <Jupstar ✪> 9 = 3*3
+10:39 <+bridge> [ddnet] <Jupstar ✪> 
+10:39 <+bridge> [ddnet] <Jupstar ✪> so basically remove sqrt and instead increase the checks  by ^ 2
+10:40 <+bridge> [ddnet] <Jupstar ✪> but this is really only about optmizing the math a bit, fstd's approach of grouped physics will still be faster
+10:44 <+bridge> [ddnet] <Jupstar ✪> last time i checked with Ofast vs O2 was about 10% performance increase, tho i didnt dig much deeper into what exactly is better
+10:44 <+bridge> [ddnet] <Jupstar ✪> probs the static sized loops like MAX_CLIENTS
+10:44 <+bridge> [ddnet] <Jupstar ✪> and maybe the floating point arithmetics
+10:44 <+bridge> [ddnet] <fokkonaut> :D
+10:44 <+bridge> [ddnet] <fokkonaut> creating a mod gets more complicated every time
+11:20 <+bridge> [ddnet] <fokkonaut> I would really appreciate any help
+11:20 <+bridge> [ddnet] <fokkonaut> with this specific lag problem
+11:22 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ i will try the squared way<
+11:33 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ `sqrtf(a.x*a.x + a.y*a.y)`
+11:33 <+bridge> [ddnet] <fokkonaut> What do you I have to replace this with?
+11:33 <+bridge> [ddnet] <fokkonaut> What do I have to replace this with?
+11:57 <+bridge> [ddnet] <Learath2> We can all suggest optimizations but doubt anyone will know what to do without a profile
+11:58 <+bridge> [ddnet] <fokkonaut> Locally with some server dummies I can see that its the distance function
+11:58 <+bridge> [ddnet] <Learath2> What jupstar meant was to compare distances without sqrt which would work because sqrt is monotone increasing
+11:58 <+bridge> [ddnet] <fokkonaut> I understood what he means, but not how to do it
+11:58 <+bridge> [ddnet] <Learath2> (As long as we don't have negative coordinates, that will crash and burn)
+11:59 <+bridge> [ddnet] <fokkonaut> oh wait, thats very important
+11:59 <+bridge> [ddnet] <fokkonaut> I want to try it anyways
+12:00 <+bridge> [ddnet] <Learath2> I don't think it would help significantly, check perf see how much of the time is spent on the sqrt
+12:02 <+bridge> [ddnet] <Learath2> fstd was considering a quadtree which would help with much larger N but it's not trivial to implement.
+12:05 <+bridge> [ddnet] <Learath2> I considered a precalculated BSP or spatial hashing (chunking) both are much easier to implement
+12:08 <+bridge> [ddnet] <Learath2> I guess most engines now use a Bounding Volume Hierarchy though so that's also an option you can look into
+12:09 <+bridge> [ddnet] <Learath2> Actually this will work just fine, sorry, just woke up
+12:11 <+bridge> [ddnet] <fokkonaut> :D
+12:11 <+bridge> [ddnet] <fokkonaut> Could you help me implement any of those ideas
+12:13 <+bridge> [ddnet] <Learath2> If I had time to code anything I'd finish my own PRs
+12:24 <+bridge> [ddnet] <Learath2> @fokkonaut You can try the trivial optimization of checking squared distance but I have a feeling gcc/clang already figures this out on it's own
+12:26 <+bridge> [ddnet] <fokkonaut> hmm
+12:27 <+bridge> [ddnet] <Learath2> I doubt that will do much though. I'd go straight to spatial hashing. You basically split the map into chunks and a hash function tells you which chunk you are in. When checking for collision you only check against other tees in your chunk
+12:29 <+bridge> [ddnet] <fokkonaut> makes sense, but i doubt i can implement such thing
+12:29 <+bridge> [ddnet] <Jupstar ✪> make a 2nd function called distance_squared
+12:29 <+bridge> [ddnet] <Jupstar ✪> and change all affected calculations to the squared versions
+12:30 <+bridge> [ddnet] <fokkonaut> i still dont know what i should calculate in there
+12:31 <+bridge> [ddnet] <Jupstar ✪> e.g.
+12:31 <+bridge> [ddnet] <Jupstar ✪> 
+12:31 <+bridge> [ddnet] <Jupstar ✪> ```
+12:31 <+bridge> [ddnet] <Jupstar ✪> float D = distance(Pos, pCharCore->m_Pos);
+12:31 <+bridge> [ddnet] <Jupstar ✪>                     if(D < 28.0f && D >= 0.0f)
+12:31 <+bridge> [ddnet] <Jupstar ✪>                     {
+12:31 <+bridge> [ddnet] <Jupstar ✪>                         if(a > 0.0f)
+12:31 <+bridge> [ddnet] <Jupstar ✪>                             m_Pos = LastPos;
+12:31 <+bridge> [ddnet] <Jupstar ✪>                         else if(distance(NewPos, pCharCore->m_Pos) > D)
+12:31 <+bridge> [ddnet] <Jupstar ✪>                             m_Pos = NewPos;
+12:31 <+bridge> [ddnet] <Jupstar ✪>                         return;
+12:31 <+bridge> [ddnet] <Jupstar ✪>                     }
+12:31 <+bridge> [ddnet] <Jupstar ✪> ```
+12:31 <+bridge> [ddnet] <Jupstar ✪> gets
+12:31 <+bridge> [ddnet] <Jupstar ✪> 
+12:31 <+bridge> [ddnet] <Jupstar ✪> ```
+12:31 <+bridge> [ddnet] <Jupstar ✪> float D = distance_squared(Pos, pCharCore->m_Pos);
+12:31 <+bridge> [ddnet] <Jupstar ✪>                     if(D < 28.0f  * 28.0f && D >= 0.0f)
+12:31 <+bridge> [ddnet] <Jupstar ✪>                     {
+12:31 <+bridge> [ddnet] <Jupstar ✪>                         if(a > 0.0f)
+12:31 <+bridge> [ddnet] <Jupstar ✪>                             m_Pos = LastPos;
+12:31 <+bridge> [ddnet] <Jupstar ✪>                         else if(distance_squared(NewPos, pCharCore->m_Pos) > D)
+12:31 <+bridge> [ddnet] <Jupstar ✪>                             m_Pos = NewPos;
+12:31 <+bridge> [ddnet] <Jupstar ✪>                         return;
+12:31 <+bridge> [ddnet] <Jupstar ✪>                     }
+12:31 <+bridge> [ddnet] <Jupstar ✪> ```
+12:31 <+bridge> [ddnet] <fokkonaut> i mean inside of that function...
+12:31 <+bridge> [ddnet] <Jupstar ✪> remove sqrt
+12:31 <+bridge> [ddnet] <Learath2> Well doesn't the name tell you what it is? 😄
+12:31 <+bridge> [ddnet] <Jupstar ✪> but better create a 2nd function
+12:32 <+bridge> [ddnet] <Learath2> Definitely create a 2nd function, changing it everywhere at once won't be fun
+12:32 <+bridge> [ddnet] <Jupstar ✪> just retuirn `a.x*a.x + a.y*a.y`
+12:32 <+bridge> [ddnet] <fokkonaut> lol
+12:32 <+bridge> [ddnet] <fokkonaut> and that works without problems?
+12:32 <+bridge> [ddnet] <Jupstar ✪> up to a certain point
+12:32 <+bridge> [ddnet] <Learath2> Shouldn't be too hard btw, in CCharacterCore::Move instead of going thru all the tees, you only go thru tees in your and neighbouring chunks
+12:35 <+bridge> [ddnet] <fokkonaut> how would i define where a chunk is and ends?
+12:36 <+bridge> [ddnet] <fokkonaut> what are the boundaries?
+12:36 <+bridge> [ddnet] <Learath2> When the squares get way too large
+12:37 <+bridge> [ddnet] <Learath2> At some point floats will become too inaccurate
+12:37 <+bridge> [ddnet] <Jupstar ✪> u shouldnt care too much i think, in theory u could also use doubles, bcs x87 uses 80bit precision internally
+12:38 <+bridge> [ddnet] <Learath2> Also I think there is a conversion to an integer there so floor(D) + 1 can't be larger than INT_MAX
+12:38 <+bridge> [ddnet] <Learath2> So that's another limit
+12:38 <+bridge> [ddnet] <Learath2> Ooooh now that I think about it you shouldn't replace that first distance with a distance squared e.g.
+12:39 <+bridge> [ddnet] <Learath2> It will square the amount of iterations you do along the line 😄
+12:39 <+bridge> [ddnet] <fokkonaut> yea
+12:39 <+bridge> [ddnet] <Jupstar ✪> yeah only inside the MAX_CLIENTS loop
+12:40 <+bridge> [ddnet] <Learath2> I think you can skip thru tees aswell
+12:40 <+bridge> [ddnet] <Learath2> didn't know this
+12:44 <+bridge> [ddnet] <fokkonaut> it performs better i think, but not yet perfect of course
+12:44 <+bridge> [ddnet] <Jupstar ✪> is ur server on linux?
+12:46 <+bridge> [ddnet] <Jupstar ✪> for the release build u could deffs try out Ofast and lto
+12:46 <+bridge> [ddnet] <Jupstar ✪> the good thing here is, if they dont work as expected, you can just remove them again without changing any code
+12:52 <+bridge> [ddnet] <fokkonaut> ChillerDragon:
+12:52 <+bridge> [ddnet] <fokkonaut> you here for this? :D
+12:52 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ https://github.com/fokkonaut/F-DDrace/commit/c2017bcd2e4016c4171bbd2deb1a2016d9753b6e
+12:54 <+bridge> [ddnet] <Jupstar ✪> i think the reference looks wrong
+12:54 <+bridge> [ddnet] <fokkonaut> why?
+12:54 <+bridge> [ddnet] <Jupstar ✪> &v => v
+12:54 <+bridge> [ddnet] <Jupstar ✪> bcs u take a reference of a tmp object
+12:54 <+bridge> [ddnet] <fokkonaut> just as the length function would do
+12:54 <+bridge> [ddnet] <Jupstar ✪> no, it accepts a const reference
+12:55 <+bridge> [ddnet] <fokkonaut> i never understoof this xD
+12:55 <+bridge> [ddnet] <Jupstar ✪> just remove the reference
+12:55 <+bridge> [ddnet] <Jupstar ✪> the compiler is smart enough to not produce slower code
+12:55 <+bridge> [ddnet] <fokkonaut> i dont even know what that is
+12:55 <+bridge> [ddnet] <Jupstar ✪> its like a pointer just that it cant be null xd
+12:55 <+bridge> [ddnet] <fokkonaut> what is it used for
+12:55 <+bridge> [ddnet] <fokkonaut> like
+12:55 <+bridge> [ddnet] <fokkonaut> idk
+12:56 <+bridge> [ddnet] <Jupstar ✪> e.g. if you have an object of class CPlayer
+12:56 <+bridge> [ddnet] <Jupstar ✪> and u take it by reference, you modify the object itself
+12:56 <+bridge> [ddnet] <Jupstar ✪> not a copy of it
+12:57 <+bridge> [ddnet] <fokkonaut> but isnt that the same with a pointer?
+12:57 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/commit/1ac880a085ecd7376d3570fd60da52c1444ed72f
+12:57 <+bridge> [ddnet] <Jupstar ✪> yes
+12:57 <+bridge> [ddnet] <Jupstar ✪> references are basically pointers
+12:58 <+bridge> [ddnet] <Jupstar ✪> its not directly true, but they are implemented like that
+12:58 <+bridge> [ddnet] <Jupstar ✪> the rest looks fine to me
+12:58 <+bridge> [ddnet] <fokkonaut> okay, thanks
+12:58 <+bridge> [ddnet] <Jupstar ✪> if its broken you'd notice anyway, bcs the collision wont work 😄
+12:58 <+bridge> [ddnet] <fokkonaut> it all works fine, as it seems
+12:59 <+bridge> [ddnet] <fokkonaut> I wonder if my mod has more of these "bugs"
+13:00 <+bridge> [ddnet] <fokkonaut> performance issues
+13:00 <+bridge> [ddnet] <fokkonaut> I think I should replace the distance by distance_squared in gameworld too, right?
+13:00 <+bridge> [ddnet] <fokkonaut> all these FindEntities etc
+13:00 <+bridge> [ddnet] <fokkonaut> ClosestCharacter
+13:04 <+bridge> [ddnet] <Jupstar ✪> u can replace it basically everywhere, where the distance is not used directly, but only compared against others
+13:04 <+bridge> [ddnet] <Jupstar ✪> but it wont improve it everywhere as much
+13:04 <+bridge> [ddnet] <fokkonaut> makes sense
+13:05 <+bridge> [ddnet] <fokkonaut> why?
+13:05 <+bridge> [ddnet] <fokkonaut> i guess a single call is not that bad? :d
+13:05 <+bridge> [ddnet] <fokkonaut> :D*
+13:06 <+bridge> [ddnet] <Jupstar ✪> well the FPU might not even profit from a signle core, if it waits on another call anyway
+13:06 <+bridge> [ddnet] <Jupstar ✪> its really hard to predict what happens inside the CPU
+13:06 <+bridge> [ddnet] <Jupstar ✪> ask an intel or amd dev xd
+13:06 <+bridge> [ddnet] <fokkonaut> xd
+13:06 <+bridge> [ddnet] <fokkonaut> so basically you lol
+13:06 <+bridge> [ddnet] <Jupstar ✪> well the FPU might not even profit from a signle call, if it waits on another call anyway
+13:06 <+bridge> [ddnet] <fokkonaut> what you've done to ddnet is immaculate xD
+13:07 <+bridge> [ddnet] <Jupstar ✪> but i havent done anything FPU related xD
+13:07 <+bridge> [ddnet] <Jupstar ✪> i also dont know how GPU drivers are implemented in detail, its more guessing
+13:07 <+bridge> [ddnet] <fokkonaut> also dont know what that is tbh
+13:07 <+bridge> [ddnet] <Jupstar ✪> floating point unit
+13:07 <+bridge> [ddnet] <fokkonaut> xD thats why its experimental?
+13:07 <+bridge> [ddnet] <Jupstar ✪> its like a CPU just for floating points
+13:07 <+bridge> [ddnet] <fokkonaut> lol
+13:07 <+bridge> [ddnet] <Jupstar ✪> ah no, opengl is well defined
+13:08 <+bridge> [ddnet] <Jupstar ✪> its experimental, bcs we had quite a few bugs on Mac and older hardware on windows
+13:08 <+bridge> [ddnet] <Jupstar ✪> we even have an unknown bug in 6+7th gen intel
+13:08 <+bridge> [ddnet] <Jupstar ✪> tho it also affects older GL versions
+13:09 <+bridge> [ddnet] <Jupstar ✪> but i'd say GL 3.3 is stable, i didnt really encounter an issue lately
+13:13 <+bridge> [ddnet] <Jupstar ✪> anyway fokko, if u have the motivation to change every distance check do it. it wont hurt^^
+13:20 <+bridge> [ddnet] <fokkonaut> :D
+13:26 <+bridge> [ddnet] <Learath2> something something premature optimization something something
+13:27 <+bridge> [ddnet] <Learath2> Profile your code before making small insignificant optimizations a modern CPU has so many tricks up it's sleeve, small changes usually mean nothing
+13:31 <+bridge> [ddnet] <Jupstar ✪> i ran my fng server with 256 slots, 255 dbg dummies which randomly moved and jumped etc. and it worked fine without code modications, but maybe i just used a stronger CPU
+13:32 <+bridge> [ddnet] <Learath2> I had trouble with cpu usage so I'd guess that's what helps
+13:33 <+bridge> [ddnet] <Learath2> Maybe just throw money at the problem @fokkonaut
+13:33 <+bridge> [ddnet] <fokkonaut> ChillerDragon said that we have the best CPU already
+13:33 <+bridge> [ddnet] <fokkonaut> i wondered too
+13:33 <+bridge> [ddnet] <fokkonaut> he said anything better costs > 100€
+13:34 <+bridge> [ddnet] <fokkonaut> p/m
+13:41 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/runs/1903237972
+13:41 <+bridge> [ddnet] <fokkonaut> doesnt work
+13:43 <+bridge> [ddnet] <fokkonaut> ah
+13:43 <+bridge> [ddnet] <fokkonaut> i think i know how this works
+13:43 <+bridge> [ddnet] <fokkonaut> yea i fucked it up lol
+13:48 <+bridge> [ddnet] <fokkonaut> still doesnt work
+14:00 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/810858123291131944/unknown.png
+14:02 <+bridge> [ddnet] <Jupstar ✪> cant u use smth like push "-Wno-..."
+14:03 <+bridge> [ddnet] <Jupstar ✪> ah nvm that looks right indeed
+14:03 <+bridge> [ddnet] <Jupstar ✪> maybe outdated compiler?
+14:04 <+bridge> [ddnet] <fokkonaut> not sure, its github actions test
+14:04 <+bridge> [ddnet] <fokkonaut> the first error just occured out of nowhere
+14:05 <+bridge> [ddnet] <fokkonaut> and the fix doesnt work
+14:06 <+bridge> [ddnet] <Jupstar ✪> its also missing a pop isnt it?
+14:06 <+bridge> [ddnet] <Jupstar ✪> but probs not causing this issue
+14:07 <+bridge> [ddnet] <Jupstar ✪> but ubuntu latest doest fail?
+14:07 <+bridge> [ddnet] <Jupstar ✪> then its probs the compiler version, i'd say
+14:07 <+bridge> [ddnet] <Jupstar ✪> gcc 5.5 is pretty old xd
+14:08 <+bridge> [ddnet] <fokkonaut> added the pop later on
+14:08 <+bridge> [ddnet] <fokkonaut> how do i update it?
+14:08 <+bridge> [ddnet] <Jupstar ✪> i think you can just check the gcc version somehow
+14:09 <+bridge> [ddnet] <fokkonaut> i am not familiar with all of this xD
+14:09 <+bridge> [ddnet] <fokkonaut> at all
+14:09 <+bridge> [ddnet] <Jupstar ✪> #if defined(__GNUC__) && ....
+14:09 <+bridge> [ddnet] <Jupstar ✪> `#if defined(__GNUC__) && ....`
+14:10 <+bridge> [ddnet] <Jupstar ✪> ```
+14:10 <+bridge> [ddnet] <Jupstar ✪> /* Test for GCC > 3.2.0 */
+14:10 <+bridge> [ddnet] <Jupstar ✪> #if __GNUC__ > 3 || \
+14:10 <+bridge> [ddnet] <Jupstar ✪>     (__GNUC__ == 3 && (__GNUC_MINOR__ > 2 || \
+14:10 <+bridge> [ddnet] <Jupstar ✪>                        (__GNUC_MINOR__ == 2 && \
+14:10 <+bridge> [ddnet] <Jupstar ✪>                         __GNUC_PATCHLEVEL__ > 0))
+14:10 <+bridge> [ddnet] <Jupstar ✪> ```
+14:10 <+bridge> [ddnet] <Jupstar ✪> https://gcc.gnu.org/onlinedocs/cpp/Common-Predefined-Macros.html
+14:10 <+bridge> [ddnet] <Jupstar ✪> so a `&& __GNUC__ > 7` might do the job
+14:10 <+bridge> [ddnet] <Jupstar ✪> i dunno when they added that pragma support
+14:11 <+bridge> [ddnet] <fokkonaut> well, i do have a fix already in f-ddrace
+14:11 <+bridge> [ddnet] <fokkonaut> for other false positives
+14:11 <+bridge> [ddnet] <Jupstar ✪> maybe it just fails bcs the actual warning is unsupported
+14:11 <+bridge> [ddnet] <fokkonaut> no idea, but how can it suddenly pop up?
+14:11 <+bridge> [ddnet] <fokkonaut> like the whole warning why i want to add this ignore thing
+14:12 <+bridge> [ddnet] <Jupstar ✪> yes, but like this:
+14:12 <+bridge> [ddnet] <Jupstar ✪> warning was added in gcc 8
+14:12 <+bridge> [ddnet] <Jupstar ✪> warning causes werror in gcc 8
+14:12 <+bridge> [ddnet] <Jupstar ✪> 
+14:12 <+bridge> [ddnet] <Jupstar ✪> so u only want to remove it for gcc 8
+14:12 <+bridge> [ddnet] <fokkonaut> i mean
+14:13 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/810861277910925312/unknown.png
+14:13 <+bridge> [ddnet] <fokkonaut> from one day to another
+14:13 <+bridge> [ddnet] <fokkonaut> this error appeared
+14:13 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/810861345544994837/unknown.png
+14:13 <+bridge> [ddnet] <Jupstar ✪> yes, maybe ubuntu latest was updated
+14:13 <+bridge> [ddnet] <fokkonaut> oh
+14:13 <+bridge> [ddnet] <fokkonaut> true
+14:15 <+bridge> [ddnet] <Jupstar ✪> that warning is considered not very useful anyway, i already read it in the gcc mailing lists, and they were devided, if its useful or not, in the end, not warning might cause more issues 😄
+14:15 <+ChillerDragon> @fokkonaut haha we do not have the best single core cpu on the market but i think the best we can afford at the current hoster
+14:15 <+bridge> [ddnet] <fokkonaut> meh
+14:15 <+ChillerDragon> anything i missed i did not read all?
+14:15 <+bridge> [ddnet] <Jupstar ✪> yes
+14:16 <+bridge> [ddnet] <Jupstar ✪> Can you add a script to remove the paths for svgs? XD
+14:16 <+ChillerDragon> sure
+14:16 <+bridge> [ddnet] <Jupstar ✪> nice thanks
+14:16 <+ChillerDragon> make an issue please
+14:16 <+ChillerDragon> wait i can make one :D
+14:16 <+bridge> [ddnet] <Jupstar ✪> ok
+14:16 <+ChillerDragon> oh no then i do not get a mail
+14:16 <+ChillerDragon> can you do it ? :D
+14:16 <+bridge> [ddnet] <Jupstar ✪> ok xD
+14:16 <+ChillerDragon> nice thanks
+14:20 <+ChillerDragon> ofast and lto is just to boost performance right? not to solve the actual issue but more compating the sympthoms?
+14:22 <+bridge> [ddnet] <Jupstar ✪> yes, but it heavily relies on defined behavior
+14:22 <+bridge> [ddnet] <Jupstar ✪> so better write good code with it xD, there are edge cases you never heard of, before you googled them xD
+14:39 <+ChillerDragon> i wrote "compating" sometimes i wonder how people understand me
+14:40 <+bridge> [ddnet] <Jupstar ✪> i just ignore words i dont understand xd
+14:49 <+bridge> [ddnet] <Ryozuki> https://9to5linux.com/linux-kernel-5-11-officially-released-this-is-whats-new
+14:49 <+bridge> [ddnet] <Ryozuki> :poggers:
+15:39 <+bridge> [ddnet] <fokkonaut> @Learath2 splitting the map into different chunks doesnt make mush sense if all players are in the same chunk, or in chunks close to it
+15:39 <+bridge> [ddnet] <Learath2> You make the chunks rather small
+15:40 <+bridge> [ddnet] <Learath2> There is a version of this scheme that makes the density of the grid variable at a given point (quadtrees), quite a bit harder to implement though
+16:29 <+bridge> [ddnet] <Ryozuki> https://www.drdobbs.com/jvm/an-algorithm-for-compressing-space-and-t/184406478
+16:29 <+bridge> [ddnet] <Ryozuki> 👀
+16:34 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/810896764474621972/unknown.png
+16:34 <+bridge> [ddnet] <Ryozuki> u have to scroll all the way down
+16:34 <+bridge> [ddnet] <Ryozuki> to reject all their shit
+16:34 <+bridge> [ddnet] <Ryozuki> but allow all is up there
+16:34 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/810896845773209600/unknown.png
+16:35 <+bridge> [ddnet] <Ryozuki> i wonder if u can law suit them
+16:35 <+bridge> [ddnet] <Ryozuki> doesnt it have to be clear?
+16:36 <+bridge> [ddnet] <Ryozuki> gdrp should make this a opt in feature, where it is disabled by default, and the user has to explicitly go and activate it by his own will
+18:34 <+bridge> [ddnet] <fokkonaut> @Jupstar ✪ @fstd: it probably is not even related to that part of the code, i did some tests with real clients, and it seems the DoSnapshot function is just taking so much
+18:35 <+bridge> [ddnet] <fokkonaut> and all the entities in general
+18:36 <+bridge> [ddnet] <fokkonaut> i did some intense debugging with chillerdragon but idk, i cant really find anything, but i also never had anything like this before, sucks really hard
+18:38 <+bridge> [ddnet] <fokkonaut> I dont know why it ran so good for months now, I dont want to remove 128p support again
+18:52 <+bridge> [ddnet] <fokkonaut> Can i for example thread some specific stuff?
+18:52 <+bridge> [ddnet] <fokkonaut> for example the snapshotting which will go up to 60% iirc, or some other stuff?
+19:04 <+bridge> [ddnet] <Trafalgar Law> Eh the gun is broken xD
+19:05 <+bridge> [ddnet] <Trafalgar Law> You can see if you shoot with grenade or smth
+19:05 <+bridge> [ddnet] <Trafalgar Law> You cant see if you shoot with grenade or smth
+19:07 <+bridge> [ddnet] <n000b> @Marius  you made a bad update. I think the version you got is already removed
+19:07 <+bridge> [ddnet] <n000b> Check out if you can download the latest version
+19:09 <+bridge> [ddnet] <Trafalgar Law> So its not the problem from the srv?
+19:10 <+bridge> [ddnet] <Trafalgar Law> Ah I see
+19:10 <+bridge> [ddnet] <Learath2> @fokkonaut would it kill you to learn how to profile the code? Speculating about where the issue might be and randomly moving things to threads won’t help
+19:11 <+bridge> [ddnet] <fokkonaut> I profiled it
+19:11 <+bridge> [ddnet] <fokkonaut> DoSnapshot is using 50-60% of the CPU on my local server
+19:12 <+bridge> [ddnet] <fokkonaut> CGameWorld::Tick and Snap takes a lot too
+19:12 <+bridge> [ddnet] <fokkonaut> iterating over all entities
+19:12 <+bridge> [ddnet] <fokkonaut> CSnapshotBuilder::Finish is also very expensive due to the tl_swap
+19:12 <+bridge> [ddnet] <fokkonaut> and all the loops in CCharacterCore::Move and ::Tick
+19:13 <+bridge> [ddnet] <Learath2> Snap on what?
+19:14 <+bridge> [ddnet] <fokkonaut> CDragger takes 10%, character just about 2-5
+19:14 <+bridge> [ddnet] <fokkonaut> but creating the snapshots takes a lot
+19:16 <+bridge> [ddnet] <Learath2> There is a tl_swap in ::Finish?
+19:16 <+bridge> [ddnet] <fokkonaut> 3
+19:16 <+bridge> [ddnet] <fokkonaut> well not in finish i think
+19:16 <+bridge> [ddnet] <fokkonaut> let me see
+19:17 <+bridge> [ddnet] <fokkonaut> yes
+19:17 <+bridge> [ddnet] <fokkonaut> 3 times per index
+19:17 <+bridge> [ddnet] <fokkonaut> in the loop
+19:17 <+bridge> [ddnet] <Learath2> Also is this profile from a live server? People moving around and chatting might change the profile drastically due to the way collision is handled
+19:18 <+bridge> [ddnet] <fokkonaut> i tested it with clients locally because chillerdragon said its not possible to get a profiler on the live server
+19:18 <+bridge> [ddnet] <Learath2> There is no loop in CSnapshotBuilder::Finish?
+19:18 <+bridge> [ddnet] <fokkonaut> i am on 0.7
+19:18 <+bridge> [ddnet] <fokkonaut> my mod
+19:18 <+bridge> [ddnet] <Learath2> ChillerDragon learn to use perf nobo
+19:19 <+bridge> [ddnet] <fokkonaut> his argument was that the one he used didnt give any information
+19:19 <+bridge> [ddnet] <Learath2> Oh 0.7 now sorts the snapshots?
+19:19 <+bridge> [ddnet] <fokkonaut> and valgrind or some others are way to expensive
+19:19 <+bridge> [ddnet] <fokkonaut> i have no idea
+19:19 <+bridge> [ddnet] <fokkonaut> maybe? it seems like
+19:19 <+bridge> [ddnet] <fokkonaut> why tho?
+19:20 <+bridge> [ddnet] <Learath2> Well bubble sort has awful performance characteristics as n grows. Maybe try replacing that with std::sort?
+19:20 <+bridge> [ddnet] <fokkonaut> I see, I should have based on 0.6 xD
+19:20 <+bridge> [ddnet] <fokkonaut> how would that work?
+19:21 <+bridge> [ddnet] <fokkonaut> `std::sort(pSnap->SortedKeys()[0], pSnap->SortedKeys()[NumItems]);`?
+19:22 <+bridge> [ddnet] <fokkonaut> ah no
+19:22 <+bridge> [ddnet] <Learath2> You need a custom swap function to swap the offsets too
+19:22 <+bridge> [ddnet] <fokkonaut> why is that even needed
+19:24 <+bridge> [ddnet] <Learath2> Because of the way split 1 item into 3, (data, size, offset) all go into separate arrays
+19:25 <+bridge> [ddnet] <Learath2> So when sorting the data by key, you also need to swap around the size and the offset so they stay correct
+19:25 <+bridge> [ddnet] <fokkonaut> Oh, yea of course! i mean why does 0.7 sort them?
+19:25 <+bridge> [ddnet] <Learath2> Oh, so they can do binary search on the client
+19:26 <+bridge> [ddnet] <Learath2> Avoids the costly linear search 0.6 does
+19:26 <+bridge> [ddnet] <fokkonaut> ohh
+19:27 <+bridge> [ddnet] <Learath2> But I don’t like the idea honestly. The client sorting it would distribute the cost. The server pays a huge cost per client all on it’s own like this
+19:27 <+bridge> [ddnet] <fokkonaut> And why dont you need to do that for 0.6?
+19:28 <+bridge> [ddnet] <fokkonaut> i mean for the bridge servers
+19:28 <+bridge> [ddnet] <Learath2> I think I did, didn’t I?
+19:28 <+bridge> [ddnet] <fokkonaut> not sure
+19:28 <+bridge> [ddnet] <Learath2> Hm I actually don’t remember
+19:28 <+bridge> [ddnet] <fokkonaut> you sounded surprised
+19:29 <+bridge> [ddnet] <Learath2> I did but then I do remember discussing this before
+19:29 <+bridge> [ddnet] <Learath2> Well let me check
+19:29 <+bridge> [ddnet] <fokkonaut> i dont think you sort them, tbh
+19:30 <+bridge> [ddnet] <Learath2> Hm, okay than idk what the bubble sort on the server is for. Maybe to reduce the cost for the client?
+19:30 <+fstd> fokkonaut: if nothing about your build changed then i guess something changed on the host (duh)
+19:30 <+fstd> this would be a good time to have been running munin for a few months :)
+19:30 <+bridge> [ddnet] <fokkonaut> Well I push changes every day almost
+19:30 <+bridge> [ddnet] <fokkonaut> and Mr. Anderson says nothing has changed on his side
+19:31 <+fstd> so you can revert to a commit that has okay performance?
+19:31 <+fstd> in that case use git bisect
+19:31 <+bridge> [ddnet] <Learath2> https://github.com/teeworlds/teeworlds/commit/0c4b3ab62bb3ef798c77f8d591f921bffe6b30b0
+19:31 <+bridge> [ddnet] <fokkonaut> thats the point, i dont know when it started
+19:31 <+bridge> [ddnet] <Learath2> This is indeed why they bubble sort, I wonder how our bridge even works at all now 😄
+19:32 <+fstd> finding out at what point it started is the whole point of using git bisect
+19:32 <+bridge> [ddnet] <fokkonaut> x
+19:32 <+bridge> [ddnet] <fokkonaut> D
+19:32 <+fstd> ?
+19:32 <+bridge> [ddnet] <fokkonaut> how does it work?
+19:32 <+fstd> you tell it a good and a bad commit
+19:32 <+bridge> [ddnet] <fokkonaut> i reacted to learaths message fstd
+19:32 <+fstd> and it does a binary search
+19:33 <+bridge> [ddnet] <fokkonaut> no idea what any of those means
+19:33 <+bridge> [ddnet] <Ryozuki> binary search is rly simple
+19:33 <+bridge> [ddnet] <Ryozuki> just look it up
+19:33 <+fstd> it makes find teh bug fast
+19:33 <+fstd> is what it means
+19:33 <+bridge> [ddnet] <fokkonaut> But I would like to understand xD
+19:33 <+fstd> or let's say the commit that introduced the bug
+19:34 <+fstd> well
+19:34 <+bridge> [ddnet] <Ryozuki> binary search discards half
+19:34 <+bridge> [ddnet] <Ryozuki> every iteration
+19:34 <+bridge> [ddnet] <Ryozuki> https://blog.penjee.com/wp-content/uploads/2015/04/binary-and-linear-search-animations.gif
+19:34 <+fstd> there's this magical network of information
+19:34 <+fstd> i'd explain it to you but only if you genuinely can't figure out out by yourself using google or wikipedia etc
+19:35 <+bridge> [ddnet] <Ryozuki> yeah
+19:35 <+bridge> [ddnet] <Ryozuki> literally wikipedia can tell u all this
+19:35 <+bridge> [ddnet] <Ryozuki> u just a lazy bones
+19:36 <+bridge> [ddnet] <fokkonaut> so how do i use git bisect
+19:36 <+bridge> [ddnet] <Ryozuki> google it
+19:36 <+bridge> [ddnet] <Ryozuki> or run "git bisect"
+19:37 <+bridge> [ddnet] <Ryozuki> git bisect --help
+19:37 <+bridge> [ddnet] <fokkonaut> wtf
+19:37 <+bridge> [ddnet] <fokkonaut> it runs git-bisect.hmtk
+19:37 <+bridge> [ddnet] <fokkonaut> it runs git-bisect.hmtl
+19:37 <+bridge> [ddnet] <Ryozuki> on linux it opens a man page
+19:38 <+bridge> [ddnet] <Learath2> Ah the client when unpacking the delta also uses the snapshotbuilder so it sorts too
+19:38 <+fstd> even the .html file will do.  i think you can download .html viewers somewhere
+19:39 <+bridge> [ddnet] <fokkonaut> okay, but git bisect wont help me much i think. since i need about 60-80 players for it to trigger
+19:39 <+bridge> [ddnet] <Learath2> @fokkonaut you can probably abuse that to distribute the cost of sorting. Just send unsorted snaps
+19:39 <+fstd> you obviously need some way to tell whether a given version is good or bad
+19:39 <+bridge> [ddnet] <fokkonaut> i dont really have that
+19:40 <+bridge> [ddnet] <fokkonaut> because it just starts to lag very hard, there is no value that pops over :D
+19:40 <+bridge> [ddnet] <fokkonaut> so removing the bubble sort should work?
+19:40 <+fstd> well but you notice whether it lags very hard or not...?
+19:40 <+fstd> so you can tell when it's bad
+19:41 <+fstd> now with the same test load if it doesn't lag very hard, it's good, no?
+19:41 <+bridge> [ddnet] <fokkonaut> yea, true
+19:41 <+bridge> [ddnet] <fokkonaut> but its not always happening
+19:41 <+fstd> okay that sucks
+19:41 <+bridge> [ddnet] <fokkonaut> its not just, oh okay 70 players i will start to lag now
+19:41 <+bridge> [ddnet] <fokkonaut> yea
+19:41 <+bridge> [ddnet] <fokkonaut> it sucks so bad
+19:42 <+fstd> well bring 70 players then every time?
+19:42 <+bridge> [ddnet] <fokkonaut> its at 72 right now and doesnt lag
+19:42 <+fstd> sigh
+19:42 <+bridge> [ddnet] <Learath2> There is actually a way to handle this. perf is perfectly capable of saving to a ring buffer and you can send a SIGUSR2 to it to get it to dump the buffer to a file
+19:42 <+bridge> [ddnet] <fokkonaut> its pure randomness so the only thing i can do is improving everything
+19:43 <+bridge> [ddnet] <Learath2> So to profile transient issues like this keep perf running and send it a SIGUSR2 when it gets laggy
+19:43 <+fstd> Learath2: nice idea
+19:43 <+bridge> [ddnet] <fokkonaut> ChillerDragon
+19:43 <+bridge> [ddnet] <fokkonaut> u there :/
+19:43 <+fstd> Learath2: what's perf tho?  not gprof?
+19:44 <+bridge> [ddnet] <fokkonaut> @Learath2 ?
+19:44 <+bridge> [ddnet] <Learath2> @fokkonaut I think so, try it it should break very obviously if my hypothesis is wrong
+19:44 <+bridge> [ddnet] <fokkonaut> okay, thanks
+19:44 <+bridge> [ddnet] <Learath2> fstd: perf is part of the kernel
+19:45 <+bridge> [ddnet] <Learath2> it can do the kind of sampling profiling gprof does
+19:46 <+bridge> [ddnet] <fokkonaut> works @Learath2
+19:49 <+bridge> [ddnet] <Learath2> Again not sure how much it'll help but it's one less bubble sort per player per snap less
+19:51 <+bridge> [ddnet] <Learath2> O(nk^2) where k is the number of snapitems which I guess is fair to assume is of the same order as n so an O(n^3) process gone
+19:52 <+bridge> [ddnet] <Learath2> (atleast I think, I'm usually not very good with the theory part of CS)
+19:57 <+bridge> [ddnet] <fokkonaut> well, just locally already it is a huge improvement
+20:04 <+bridge> [ddnet] <Learath2> fstd: perf works without instrumenting the code so a little less information but it's still very useful imho, you should add it to your toolkit for profiling stuff
+20:05 <+bridge> [ddnet] <sikiş> ulan ziyaaa
+20:25 <+bridge> [ddnet] <Technoo> rider is better than vs but running trying to run 32 bits on it sucks
+20:25 <+bridge> [ddnet] <Technoo> you gotta download alot of shit
+20:25 <+bridge> [ddnet] <Technoo> sad
+20:26 <+bridge> [ddnet] <Technoo> you gotta download some of shit
+20:50 <+bridge> [ddnet] <fokkonaut> @Learath2 why is the CDragger::Snap so expensive?
+20:50 <+bridge> [ddnet] <fokkonaut> because it moves all the time?
+20:55 <+bridge> [ddnet] <Learath2> Because of their very complex behaviour with respect to teams and solo
+20:56 <+bridge> [ddnet] <Learath2> The way we fake entities being separate in different teams is actually quite costly. That’s what I’d suspect to be the culprit
+20:56 <+bridge> [ddnet] <fokkonaut> ```for (int i = 0; i < MAX_CLIENTS; i++)
+20:56 <+bridge> [ddnet] <fokkonaut>     {
+20:56 <+bridge> [ddnet] <fokkonaut>         if (m_SoloIDs[i] == -1)
+20:56 <+bridge> [ddnet] <fokkonaut>             break;
+20:56 <+bridge> [ddnet] <fokkonaut> 
+20:56 <+bridge> [ddnet] <fokkonaut>         Server()->SnapFreeID(m_SoloIDs[i]);
+20:56 <+bridge> [ddnet] <fokkonaut>         m_SoloIDs[i] = -1;
+20:56 <+bridge> [ddnet] <fokkonaut>     }```
+20:56 <+bridge> [ddnet] <fokkonaut> stuff like this belongs to the Tick function, no?
+20:56 <+bridge> [ddnet] <fokkonaut> that would save us quite a bit already
+20:56 <+bridge> [ddnet] <fokkonaut> on fuller servers
+20:57 <+bridge> [ddnet] <Learath2> I honestly don’t remember the logic there at all, it’s been that way for a long time
+20:57 <+bridge> [ddnet] <Learath2> All I know is that snap function is called once per player and it has a large costly loop that is run once per player. That’s O(n^2) and O(n^2) bad
+20:58 <+bridge> [ddnet] <fokkonaut> yea
+20:58 <+bridge> [ddnet] <fokkonaut> snaps every 2nd tick for all active players
+20:59 <+bridge> [ddnet] <Learath2> I have no idea why for snapping for a single player it needs to go thru alll players. You’ll have to read the code to figure it out
+20:59 <+bridge> [ddnet] <fokkonaut> i believe for spectators
+20:59 <+bridge> [ddnet] <fokkonaut> idk
+20:59 <+bridge> [ddnet] <fokkonaut> nah probbaly not xD
+21:00 <+bridge> [ddnet] <nuborn> that looks like it checks if people are in solo
+21:00 <+bridge> [ddnet] <fokkonaut> yeah thats just a small snippet
+21:00 <+bridge> [ddnet] <fokkonaut> well, we have a SnappingClient already, I also dotn understand why we would need a loop inside of the Snap function
+21:01 <+bridge> [ddnet] <fokkonaut> the Snap function basically IS A loop
+21:01 <+bridge> [ddnet] <nuborn> oh, yeah, that's really strange
+21:01 <+bridge> [ddnet] <fokkonaut> But it really is expensive
+21:02 <+bridge> [ddnet] <Learath2> Well maybe check the commit messages? At the end of the day to optimize something you need to understand it first
+21:04 <+bridge> [ddnet] <fokkonaut> the handling of m_SoloIDs is also very, very strang
+21:04 <+bridge> [ddnet] <fokkonaut> the handling of m_SoloIDs is also very, very strange
+21:04 <+bridge> [ddnet] <Learath2> My theory is that it’s snapping multiple times because it can be attached to multiple people in different teams
+21:04 <+bridge> [ddnet] <fokkonaut> thats what i thought too
+21:05 <+bridge> [ddnet] <Learath2> So a way to optimize could be to keep track if connections instead of going thru every tee to see if we are connected
+21:05 <+bridge> [ddnet] <Learath2> But again, I’m only speculating
+21:05 <+bridge> [ddnet] <fokkonaut> fact tho: i need to change it
+21:05 <+bridge> [ddnet] <fokkonaut> the more players are online on my server the more it eats
+21:05 <+bridge> [ddnet] <fokkonaut> locally, it went up to 17%
+21:06 <+bridge> [ddnet] <fokkonaut> just the dragger snap
+21:06 <+bridge> [ddnet] <Learath2> Sounds like a great place to optimize
+21:06 <+bridge> [ddnet] <fokkonaut> i already improved another thing to not loop over all players, works fine
+21:07 <+bridge> [ddnet] <fokkonaut> also the snap sorting was quite expensive
+21:07 <+bridge> [ddnet] <fokkonaut> if i understood the profiler correctly
+21:24 <+bridge> [ddnet] <fokkonaut> I did some tests now
+21:24 <+bridge> [ddnet] <fokkonaut> 1. You will only see draggers from your team
+21:24 <+bridge> [ddnet] <fokkonaut> 2. using /showothers you can see the draggers of another person from the same team who is in solo
+21:26 <+bridge> [ddnet] <fokkonaut> i dont really think its needed to see other draggers than the one that can affect you
+21:27 <+bridge> [ddnet] <fokkonaut> thats what the loop is for, as you suspected, showing multiple draggers
+21:30 <+bridge> [ddnet] <ScReeNy> Are there some resources on the Maths behind Tw physics, best i could find is some old Forum post https://www.teeworlds.com/forum/viewtopic.php?id=10603
+21:45 <+bridge> [ddnet] <fokkonaut> wow it even creates 1 CDragger for every team
+21:46 <+bridge> [ddnet] <timakro> Before I embarrass myself on the rust books issue tracker: This section from the book explaining lifetimes doesn't make sense, right?
+21:46 <+bridge> [ddnet] <timakro> > ```
+21:46 <+bridge> [ddnet] <timakro> > fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+21:47 <+bridge> [ddnet] <timakro> >     if x.len() > y.len() {
+21:47 <+bridge> [ddnet] <timakro> >         x
+21:47 <+bridge> [ddnet] <timakro> >     } else {
+21:47 <+bridge> [ddnet] <timakro> >         y
+21:47 <+bridge> [ddnet] <timakro> >     }
+21:47 <+bridge> [ddnet] <timakro> > }
+21:47 <+bridge> [ddnet] <timakro> > ```
+21:47 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that the string slice returned from the function will live at least as long as lifetime 'a.
+21:47 <+bridge> [ddnet] <timakro> 
+21:47 <+bridge> [ddnet] <timakro> Rather it should be:
+21:48 <+bridge> [ddnet] <timakro> Before I embarrass myself on the rust books issue tracker: This section from the book explaining lifetimes doesn't make sense, right?
+21:48 <+bridge> [ddnet] <timakro> > ```
+21:48 <+bridge> [ddnet] <timakro> > fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+21:48 <+bridge> [ddnet] <timakro> >     if x.len() > y.len() {
+21:48 <+bridge> [ddnet] <timakro> >         x
+21:48 <+bridge> [ddnet] <timakro> >     } else {
+21:48 <+bridge> [ddnet] <timakro> >         y
+21:48 <+bridge> [ddnet] <timakro> >     }
+21:48 <+bridge> [ddnet] <timakro> > }
+21:48 <+bridge> [ddnet] <timakro> > ```
+21:48 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that the string slice returned from the function will live at least as long as lifetime 'a.
+21:48 <+bridge> [ddnet] <timakro> 
+21:48 <+bridge> [ddnet] <timakro> Rather it should be:
+21:48 <+bridge> [ddnet] <timakro> 
+21:48 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that lifetime 'a will live at least as long as the string slice returned from the function.
+21:48 <+bridge> [ddnet] <timakro> Where are you rust crew? :D
+21:49 <+bridge> [ddnet] <timakro> Before I embarrass myself on the rust books issue tracker: This section from the book explaining lifetimes doesn't make sense, right?
+21:49 <+bridge> [ddnet] <timakro> > ```
+21:49 <+bridge> [ddnet] <timakro> > fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+21:49 <+bridge> [ddnet] <timakro> >     if x.len() > y.len() {
+21:50 <+bridge> [ddnet] <timakro> >         x
+21:50 <+bridge> [ddnet] <timakro> >     } else {
+21:50 <+bridge> [ddnet] <timakro> >         y
+21:50 <+bridge> [ddnet] <timakro> >     }
+21:50 <+bridge> [ddnet] <timakro> > }
+21:50 <+bridge> [ddnet] <timakro> > ```
+21:50 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that the string slice returned from the function will live at least as long as lifetime 'a.
+21:50 <+bridge> [ddnet] <timakro> 
+21:50 <+bridge> [ddnet] <timakro> Rather it should be:
+21:50 <+bridge> [ddnet] <timakro> 
+21:50 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that **lifetime 'a will live at least as long as the string slice returned from the function**.
+21:50 <+bridge> [ddnet] <timakro> Before I embarrass myself on the rust books issue tracker: This section from the book explaining lifetimes doesn't make sense, right?
+21:50 <+bridge> [ddnet] <timakro> > ```
+21:50 <+bridge> [ddnet] <timakro> > fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
+21:50 <+bridge> [ddnet] <timakro> >     if x.len() > y.len() {
+21:50 <+bridge> [ddnet] <timakro> >         x
+21:50 <+bridge> [ddnet] <timakro> >     } else {
+21:50 <+bridge> [ddnet] <timakro> >         y
+21:50 <+bridge> [ddnet] <timakro> >     }
+21:50 <+bridge> [ddnet] <timakro> > }
+21:50 <+bridge> [ddnet] <timakro> > ```
+21:50 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that **the string slice returned from the function will live at least as long as lifetime 'a**.
+21:50 <+bridge> [ddnet] <timakro> 
+21:50 <+bridge> [ddnet] <timakro> Rather it should be:
+21:50 <+bridge> [ddnet] <timakro> 
+21:50 <+bridge> [ddnet] <timakro> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that **lifetime 'a will live at least as long as the string slice returned from the function**.
+21:50 <+bridge> [ddnet] <Learath2> Isn’t that an iff?
+21:50 <+bridge> [ddnet] <Learath2> The two sound equivalent
+21:51 <+bridge> [ddnet] <timakro> no!?
+21:51 <+bridge> [ddnet] <Learath2> (Disclaimer I’m not much of a rust person, just thinking)
+21:57 <+bridge> [ddnet] <timakro> As an argument that it's not equivalent (ik it's super shallow but idk how to talk about lifetimes idk if I understand them good enough): The sentence is "x lives at least as long as y", so x >= y. You can't change x and y here.
+21:57 <+bridge> [ddnet] <timakro> No?
+21:58 <+bridge> [ddnet] <Learath2> Ah I see, hm
+21:58 <+bridge> [ddnet] <timakro> I guess you could say that the lifetime of 'a should really be the same as the lifetime of the string slice returned from the function
+21:59 <+bridge> [ddnet] <timakro> That would make sense in my understanding of lifetimes
+21:59 <+bridge> [ddnet] <Learath2> So your argument is that it's the lifetime 'a that is constrained by the lifetime of the string slice?
+21:59 <+bridge> [ddnet] <timakro> Exactly that
+22:00 <+bridge> [ddnet] <Learath2> but from what I understand (even more shallow than your knowledge) lifetimes exist separate from the objects that they constrain
+22:01 <+bridge> [ddnet] <fokkonaut> @Learath2 omg
+22:01 <+bridge> [ddnet] <timakro> This is important context from later in the paragraph:
+22:01 <+bridge> [ddnet] <timakro> > [...] only that some scope can be substituted for 'a that will satisfy this signature.
+22:01 <+bridge> [ddnet] <timakro> So it will compile only if there is any scope 'a that works
+22:01 <+bridge> [ddnet] <fokkonaut> @Learath2 if i dont create the draggers, it doesnt lag that heavily, because one dragger creates MAX_CLIENTS draggers, 1 for each team, so in my case 128 draggers which alle have to be snapped
+22:02 <+bridge> [ddnet] <fokkonaut> it only snaps draggers to the same team tho
+22:02 <+bridge> [ddnet] <Learath2> Yeah the proper solution is to get rid of this silly idea of entities having multiple personality disorder
+22:02 <+bridge> [ddnet] <fokkonaut> but just alone the calls to CDragger::Snap, 128 calls to 128 draggers, so 128*128 takes already 5% alone
+22:02 <+bridge> [ddnet] <Learath2> GameWorld per team is the future
+22:02 <+bridge> [ddnet] <fokkonaut> thats so insane
+22:03 <+bridge> [ddnet] <fokkonaut> sadly, i dont know what a good fix for this would be.
+22:03 <+bridge> [ddnet] <Learath2> @timakro doesn't that signature basically say that the lifetime of the returned string slice is the same as the lifetime of the inputs?
+22:04 <+bridge> [ddnet] <fokkonaut> i think i will rework the dragger for my purposes xD
+22:04 <+bridge> [ddnet] <timakro> Yeah you could say it like that and I guess it would be unambiguous what you mean.
+22:05 <+bridge> [ddnet] <timakro> But that wouldn't be precisely right because the lifetime of the inputs can be longer than that of the output, right?
+22:05 <+bridge> [ddnet] <Learath2> I see your confusion though. I think the original sounds more correct to my understanding of rust lifetimes but the only one that understands the concept well enough to comment on a technical matter like this is probably @heinrich5991
+22:06 <+bridge> [ddnet] <timakro> Heck, I don't even know if the lifetime includes when the variable comes into scope or only means the time when it goes out of scope
+22:06 <+bridge> [ddnet] <timakro> From the ascii art stuff they draw in their code it seems like they mean both, where lifetime A is "longer" than lifetime B if A comes into scope before B and goes out of scope after B
+22:09 <+bridge> [ddnet] <timakro> For a moment think of a' as the lifetime which starts right before the function is called and ends right after the function returns. That would work with the original sentence, right?
+22:54 <+bridge> [ddnet] <Ryozuki> >  The function signature also tells Rust that the string slice returned from the function will live at least as long as lifetime 'a.
+22:54 <+bridge> [ddnet] <Ryozuki> both have to live as long as 'a
+22:54 <+bridge> [ddnet] <Ryozuki> note that rust only knows stuff at compile time
+22:54 <+bridge> [ddnet] <Ryozuki> there is no runtime
+22:54 <+bridge> [ddnet] <Ryozuki> so it needs this
+22:55 <+bridge> [ddnet] <Ryozuki> also len() on a str is the length in bytes
+22:55 <+bridge> [ddnet] <Ryozuki> use .chars().count() if u want the count in chars
+22:56 <+bridge> [ddnet] <Ryozuki> u dont know if it will return x or y at runtime
+22:57 <+bridge> [ddnet] <Ryozuki> ur best bet is to return a owned str
+22:57 <+bridge> [ddnet] <Ryozuki> aka a String
+22:58 <+bridge> [ddnet] <Ryozuki> altho i find it hard to find this function practical
+22:58 <+bridge> [ddnet] <Ryozuki> or just do it this way and deal with the lifetimes
+22:59 <+bridge> [ddnet] <timakro> Both parameters? Yes, both parameters need to live at least as long as 'a. But the returned value? I'm arguing 'a has to live at least as long as the returned value. Not the other way around.
+22:59 <+bridge> [ddnet] <Ryozuki> the returned value has to live as long as 'a too
+22:59 <+bridge> [ddnet] <timakro> This example is not my code, it's from the book
+23:00 <+bridge> [ddnet] <Ryozuki> cuz its a reference still
+23:01 <+bridge> [ddnet] <timakro> Why would you want it to live *longer* than anything? It could be dropped immediately after the function is called, no?
+23:01 <+bridge> [ddnet] <timakro> Why would you want it to live *longer* than anything? It could be dropped immediately after the function returns, no?
+23:01 <+bridge> [ddnet] <Ryozuki> it has to live as long as the parameter
+23:01 <+bridge> [ddnet] <Ryozuki> cuz what u return is the parameter
+23:02 <+bridge> [ddnet] <Ryozuki> they are references to the same thing
+23:04 <+bridge> [ddnet] <timakro> No, the returned reference can live at most as long as the thing it's referencing, not any longer
+23:04 <+bridge> [ddnet] <Ryozuki> yea
+23:04 <+bridge> [ddnet] <Ryozuki> it has to live as long as 'a
+23:04 <+bridge> [ddnet] <timakro> Or shorter
+23:06 <+bridge> [ddnet] <Ryozuki> no, it has to be 'a
+23:07 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/810995618910437396/unknown.png
+23:07 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/810995802260242512/unknown.png
+23:08 <+bridge> [ddnet] <Ryozuki> the lifetime of both parameters has to be equal or longer than 'a
+23:08 <+bridge> [ddnet] <timakro> Right
+23:08 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+23:08 <+bridge> [ddnet] <Ryozuki> lifetimes reminds me of learning pointers
+23:08 <+bridge> [ddnet] <Ryozuki> in c++
+23:08 <+bridge> [ddnet] <Ryozuki> all confusion
+23:09 <+bridge> [ddnet] <timakro> And to be more specific, the lifetime of the thing the parameters are pointing to has to be equal or longer than 'a
+23:09 <+bridge> [ddnet] <Ryozuki> but u once u get it its fine i guess
+23:09 <+bridge> [ddnet] <timakro> And to be more specific, the lifetime of the things the parameters are pointing to has to be equal or longer than 'a
+23:09 <+bridge> [ddnet] <Ryozuki> ye
+23:09 <+bridge> [ddnet] <timakro> I get it but the explanation in the book is still wrong xD
+23:09 <+bridge> [ddnet] <timakro> I think
+23:10 <+bridge> [ddnet] <timakro> And the lifetime of the reference that is returned has to be equal or shorter than 'a
+23:10 <+bridge> [ddnet] <Ryozuki> > The function signature now tells Rust that for some lifetime 'a, the function takes two parameters, both of which are string slices that live at least as long as lifetime 'a. The function signature also tells Rust that the string slice returned from the function will live at least as long as lifetime 'a.
+23:10 <+bridge> [ddnet] <Ryozuki> its not wrong
+23:10 <+bridge> [ddnet] <Ryozuki> check my image again
+23:10 <+bridge> [ddnet] <Ryozuki> u can see the value returned will live as long as lifetime 'a
+23:10 <+bridge> [ddnet] <Ryozuki> check how i marked 'a
+23:10 <+bridge> [ddnet] <Ryozuki> and where it gets dropped
+23:13 <+bridge> [ddnet] <Ryozuki> btw, i think i get what u think, if a was a reference to b in that context, it will only get dropped once all its lifetimes drop
+23:13 <+bridge> [ddnet] <Ryozuki> thats how i would say it
+23:14 <+bridge> [ddnet] <Ryozuki> i dont think the compiler drops x directly as u would think, it drops x in that scope and b in that scope
+23:14 <+bridge> [ddnet] <timakro> In the image you sent 'b would be the argument and 'a would be the string slice that's returned from the function. And now I can't go on because we have two different `'a`s ^^
+23:15 <+bridge> [ddnet] <Ryozuki> ??
+23:15 <+bridge> [ddnet] <Ryozuki> no
+23:15 <+bridge> [ddnet] <Ryozuki> 'a is the argument
+23:15 <+bridge> [ddnet] <Ryozuki> and the returned
+23:16 <+bridge> [ddnet] <timakro> Yeah ok whatever, this is just hypothetical hypothetical ...
+23:17 <+bridge> [ddnet] <Ryozuki> ```rust
+23:17 <+bridge> [ddnet] <Ryozuki> let b = "a";
+23:17 <+bridge> [ddnet] <Ryozuki> {
+23:17 <+bridge> [ddnet] <Ryozuki>   let x = "c";
+23:17 <+bridge> [ddnet] <Ryozuki>   let a = longest(b, x);
+23:17 <+bridge> [ddnet] <Ryozuki>   drop(x) // a is implicitly dropped by this
+23:17 <+bridge> [ddnet] <Ryozuki> }
+23:17 <+bridge> [ddnet] <Ryozuki> drop(b)
+23:17 <+bridge> [ddnet] <Ryozuki> ```
+23:17 <+bridge> [ddnet] <Ryozuki> u could say a is just a alias
+23:17 <+bridge> [ddnet] <Ryozuki> idk
+23:17 <+bridge> [ddnet] <Ryozuki> im a bad teacher
+23:17 <+bridge> [ddnet] <Ryozuki> i guess i couldnt explain it to u
+23:18 <+bridge> [ddnet] <Ryozuki> :pepeH:
+23:18 <+bridge> [ddnet] <timakro> A is dropped after the 4th line because it's never used xD
+23:19 <+bridge> [ddnet] <timakro> a is dropped after the 4th line because it's never used xD
+23:19 <+bridge> [ddnet] <Ryozuki> no
+23:19 <+bridge> [ddnet] <Ryozuki> a is not dropped directly
+23:19 <+bridge> [ddnet] <Ryozuki> cuz its just another references
+23:19 <+bridge> [ddnet] <Ryozuki> i imagine it as the compiler only dropping the original references
+23:19 <+bridge> [ddnet] <Ryozuki> idk
+23:19 <+bridge> [ddnet] <Ryozuki> im rly bad explaining it
+23:19 <+bridge> [ddnet] <timakro> stuff is always dropped implicitly after it's last use
+23:20 <+bridge> [ddnet] <Ryozuki> yeah thats not what im trying to say
+23:20 <+bridge> [ddnet] <timakro> if reference or not
+23:20 <+bridge> [ddnet] <Ryozuki> a in this case can be x or b
+23:20 <+bridge> [ddnet] <Ryozuki> a isnt dropped as is
+23:20 <+bridge> [ddnet] <Ryozuki> x or b will be dropped
+23:20 <+bridge> [ddnet] <Ryozuki> when their lifetime ends
+23:21 <+bridge> [ddnet] <timakro> ah ok yeah what i just said was wrong, just noticed they all have the same type
+23:22 <+bridge> [ddnet] <timakro> the brackets are just confusing, they don't change anything, right?
+23:22 <+bridge> [ddnet] <Ryozuki> they define a scope
+23:22 <+bridge> [ddnet] <timakro> but in this case they don't change anything, right?
+23:22 <+bridge> [ddnet] <Ryozuki> no
+23:23 <+bridge> [ddnet] <Ryozuki> xd
+23:24 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/810999900846030888/unknown.png
+23:24 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/810999919015886848/unknown.png
+23:25 <+bridge> [ddnet] <timakro> I think what makes the example dumb is that x and y have static lifetime
+23:25 <+bridge> [ddnet] <Ryozuki> yea
+23:25 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/811000249337249812/unknown.png
+23:25 <+bridge> [ddnet] <Ryozuki> his works
+23:25 <+bridge> [ddnet] <Ryozuki> cuz it has static lifetime
+23:25 <+bridge> [ddnet] <Ryozuki> but
+23:25 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/811000328001552414/unknown.png
+23:25 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/811000349477175376/unknown.png
+23:26 <+bridge> [ddnet] <Ryozuki> if u put the print inside it works
+23:27 <+bridge> [ddnet] <Ryozuki> the compiler knows this thanks to lifetimes
+23:27 <+bridge> [ddnet] <Ryozuki> xd
+23:27 <+bridge> [ddnet] <timakro> btw this `let b = "a";` does something similar to my brain as
+23:27 <+bridge> [ddnet] <timakro> https://cdn.discordapp.com/attachments/293493549758939136/811000725755789322/colors2.png
+23:27 <+bridge> [ddnet] <Ryozuki> yeah sry
+23:27 <+bridge> [ddnet] <Ryozuki> my examples xddd
+23:27 <+bridge> [ddnet] <timakro> 😄
+23:28 <+bridge> [ddnet] <Ryozuki> what r u tryna do btw?
+23:28 <+bridge> [ddnet] <timakro> I was just reading the book and thinking this sentence is wrong xD
+23:28 <+bridge> [ddnet] <Ryozuki> this book is actually reviewed
+23:29 <+bridge> [ddnet] <Ryozuki> there even is a beta version of the book iirc
+23:30 <+bridge> [ddnet] <Ryozuki> the book is released for stable beta and nightly
+23:30 <+bridge> [ddnet] <Ryozuki> i dont think they would miss something that important
+23:30 <+bridge> [ddnet] <Ryozuki> specially in the lifetimes section
+23:33 <+bridge> [ddnet] <timakro> All you're examples have only static livetimes, they can't possibly get to the core of my problem with the second sentence
+23:33 <+bridge> [ddnet] <timakro> All your examples have only static livetimes, they can't possibly get to the core of my problem with the second sentence
+23:34 <+bridge> [ddnet] <Ryozuki> my last
+23:34 <+bridge> [ddnet] <timakro> All your examples have only static lifetimes, they can't possibly get to the core of my problem with the second sentence
+23:34 <+bridge> [ddnet] <Ryozuki> doesnt have
+23:34 <+bridge> [ddnet] <timakro> ah sry
+23:35 <+bridge> [ddnet] <timakro> Okay so my problem with that second sentence will also be a problem with only one argument, so I'll make a function with only one argument
+23:35 <+bridge> [ddnet] <Ryozuki> btw with 1 argument u can omit the lifetime
+23:35 <+bridge> [ddnet] <Ryozuki> but its there
+23:35 <+bridge> [ddnet] <timakro> Yep, I will keep it for now just so we have a name for it
+23:38 <+bridge> [ddnet] <Ryozuki> @timakro btw i think 2021 will be the year a new edition of rust is released
+23:39 <+bridge> [ddnet] <timakro> What's new?
+23:39 <+bridge> [ddnet] <Ryozuki> https://github.com/rust-lang/rfcs/pull/2966
+23:39 <+bridge> [ddnet] <Ryozuki> this is the rfc
+23:39 <+bridge> [ddnet] <Ryozuki> well wait
+23:40 <+bridge> [ddnet] <Ryozuki> https://doc.rust-lang.org/nightly/edition-guide/rust-next/index.html
+23:40 <+bridge> [ddnet] <Ryozuki> this section here keeps track of changes
+23:41 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/811004344559206440/unknown.png
+23:41 <+bridge> [ddnet] <Ryozuki> its there in nightly already
+23:41 <+bridge> [ddnet] <Ryozuki> xd
+23:42 <+bridge> [ddnet] <Ryozuki> <https://github.com/rust-lang/rust/pull/79576>
