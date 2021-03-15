@@ -1,0 +1,161 @@
+00:14 <+bridge> [ddnet] <deen> Anyone got an idea how to make this query faster?
+00:14 <+bridge> [ddnet] <deen> ```
+00:14 <+bridge> [ddnet] <deen> select distinct r.Name, r.ID, r.Time, r.Timestamp, n.Server from (select distinct ID from record_teamrace where Map = 'Multeasymap' ORDER BY Time limit 20) as l left join (select * from record_teamrace where Map = 'Multeasymap') as r on l.ID = r.ID inner join ((select distinct Map, Name, Time, SUBSTRING(Server, 1, 3) as Server from record_race) as n) on r.Map = n.Map and r.Name = n.Name and r.Time = n.Time order by r.Time, r.ID, r.Name;
+00:14 <+bridge> [ddnet] <deen> ```
+00:14 <+bridge> [ddnet] <deen> Explain for context:
+00:14 <+bridge> [ddnet] <deen> ```
+00:14 <+bridge> [ddnet] <deen> | id   | select_type | table           | type | possible_keys                      | key          | key_len | ref                                                           | rows   | Extra                                                     |
+00:14 <+bridge> [ddnet] <deen> +------+-------------+-----------------+------+------------------------------------+--------------+---------+---------------------------------------------------------------+--------+-----------------------------------------------------------+
+00:14 <+bridge> [ddnet] <deen> |    1 | PRIMARY     | <derived2>      | ALL  | NULL                               | NULL         | NULL    | NULL                                                          |     20 | Using temporary; Using filesort                           |
+00:14 <+bridge> [ddnet] <deen> |    1 | PRIMARY     | record_teamrace | ref  | PRIMARY,Name,Map,ID,MapID          | ID           | 532     | l.ID,const                                                    |      1 | Using where; Using index                                  |
+00:14 <+bridge> [ddnet] <deen> |    1 | PRIMARY     | <derived4>      | ref  | key0                               | key0         | 70      | teeworlds.record_teamrace.Name,teeworlds.record_teamrace.Time |     10 | Using where                                               |
+00:14 <+bridge> [ddnet] <deen> |    4 | DERIVED     | record_race     | ref  | Map,Map_2,MapTimestamp,MapNameTime | MapTimestamp | 514     | const                                                         | 161796 | Using where; Using index; Using temporary                 |
+00:14 <+bridge> [ddnet] <deen> |    2 | DERIVED     | record_teamrace | ref  | PRIMARY,Map,MapID                  | PRIMARY      | 514     | const                                                         |  20044 | Using where; Using index; Using temporary; Using filesort |
+00:14 <+bridge> [ddnet] <deen> ```
+00:15 <+bridge> [ddnet] <deen> Ok, I think I got it myself 😄
+00:16 <+bridge> [ddnet] <deen> Got from ~20 s to 0.01 s, seems good enough for now:
+00:16 <+bridge> [ddnet] <deen> ```
+00:16 <+bridge> [ddnet] <deen> select distinct r.Name, r.ID, r.Time, r.Timestamp, SUBSTRING(n.Server, 1, 3) from (select distinct ID from record_teamrace where Map = 'Multeasymap' ORDER BY Time limit 20) as l left join record_teamrace as r on l.ID = r.ID inner join record_race as n on r.Map = n.Map and r.Name = n.Name and r.Time = n.Time order by r.Time, r.ID, r.Name;
+00:16 <+bridge> [ddnet] <deen> ```
+09:04 <+bridge> [ddnet] <Ryozuki> i dont think anyone knows sql here better than u
+09:04 <+bridge> [ddnet] <Ryozuki> :justatest:
+10:28 <+bridge> [ddnet] <fokkonaut> Hey, I need some help, I think.
+10:28 <+bridge> [ddnet] <fokkonaut> I have 2 issues, first one is this crash: https://pastebin.com/raw/CzcgPjRr
+10:28 <+bridge> [ddnet] <fokkonaut> And second one is this:
+10:28 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/blob/F-DDrace/src/game/server/entities/trail.cpp#L121-L122
+10:28 <+bridge> [ddnet] <fokkonaut> if i uncomment this line it crashes due to out of bounds (historypos + 1), but i dont know a good fix for it since I cant reach timakro who originally made the trail
+11:53 <+bridge> [freenode] <timakro[m]> @Learath2 If you're considering pass, at least for android you wouldn't have to write your own app. I use android password store  It's awesome
+12:04 <+bridge> [ddnet] <Learath2> timakro: @fokkonaut was looking for you 😛
+12:43 <+bridge> [freenode] <timakro[m]> It's too long ago that I wrote that code, I don't know any more about what I did there than you do @fokkonaut
+12:43 <+bridge> [ddnet] <heinrich5991> ouch
+13:03 <+bridge> [ddnet] <fokkonaut> ouch
+13:23 <+bridge> [ddnet] <ReD> game/collision.cpp : 1093
+13:23 <+bridge> [ddnet] <ReD> ```cpp
+13:23 <+bridge> [ddnet] <ReD>         dbg_msg("collision", "something is VERY wrong with the %s layer please report this at https://github.com/ddnet/ddnet, you will need to post the map as well and any steps that u think may have led to this", aBuf);
+13:23 <+bridge> [ddnet] <ReD> ```
+13:23 <+bridge> [ddnet] <ReD> nice error message lol
+13:37 <+bridge> [ddnet] <Patiga> got that couple of times 😅
+13:40 <+bridge> [ddnet] <heinrich5991> still from ddrace times where we had the random tile bug
+13:40 <+bridge> [ddnet] <heinrich5991> that one was *very* annoying
+13:40 <+bridge> [ddnet] <heinrich5991> it caused random tiles to appear in the map, but only for the server
+13:41 <+bridge> [ddnet] <heinrich5991> so then you'll find you're 90% through a map, and the server has decided to spawn a blocker at just the right place to block you from finishing
+13:41 <+bridge> [ddnet] <heinrich5991> or a random death tile
+13:41 <+bridge> [ddnet] <heinrich5991> (not seen in entities btw)
+13:42 <+bridge> [ddnet] <jao> good that you fixed it
+13:42 <+bridge> [ddnet] <heinrich5991> idk who fixed it, probably GreYFoX
+15:32 <+bridge> [ddnet] <M Emile> Sorry if this isnt the proper channel but who should i ask to have a flag added
+15:32 <+bridge> [ddnet] <M Emile> It would be nice for Québec people to find each other if we had our flag
+15:40 <+bridge> [ddnet] <NeXus> Isnt quebec a city?
+15:44 <+bridge> [ddnet] <NeXus> I think the idea is to only support countries. So you would search for people with a canadian flag
+16:02 <+bridge> [ddnet] <Ama> yeah exactly lets docs ourselfs to random people on the internet
+16:23 <+bridge> [ddnet] <M Emile> @NeXus Quebec is a province in canada, the main point is that quebec is a french province so it would help identify french speakers
+16:54 <+bridge> [ddnet] <heinrich5991> @Learath2 let's deploy now? 🙂
+17:00 <+bridge> [ddnet] <Learath2> Can you also commit or pr a bump in the version cutoff for the new messages so we can deploy master?
+17:01 <+bridge> [ddnet] <gerdoe> add Tatarstan flag too xdd
+17:01 <+bridge> [ddnet] <heinrich5991> comment on github 😉
+17:02 <+bridge> [ddnet] <heinrich5991> @Learath2 bump to which version?
+17:03 <+bridge> [ddnet] <Learath2> 99999 I guess, we can bump it down when releasing 15.4 with the new messages
+17:04 <+bridge> [ddnet] <heinrich5991> hm
+17:05 <+bridge> [ddnet] <Learath2> Or 15040 if you want to make sure we don’t forget as it’ll break
+17:08 <+bridge> [ddnet] <Learath2> Taking one last look over the mysql pr
+17:09 <+bridge> [ddnet] <Learath2> Huh, why did you cancel that? Doesn’t fix the issue? 😛
+17:10 <+bridge> [ddnet] <heinrich5991> @Learath2 forgot that I had <= instead of <
+17:10 <+bridge> [ddnet] <heinrich5991> fixed it now
+17:11 <+bridge> [ddnet] <Learath2> Um, <= sounds correct to me
+17:12 <+bridge> [ddnet] <heinrich5991> depends on whether `VERSION_DDNET_MSG_LEGACY` is on the right or the left side 😛
+17:12 <+bridge> [ddnet] <Learath2> Oh yeah 😄
+17:25 <+bridge> [ddnet] <Learath2> @heinrich5991 I spotted another assert
+17:26 <+bridge> [ddnet] <Learath2> m_InUse
+17:27 <+bridge> [ddnet] <heinrich5991> I guarantee that all my other code also relies on asserts firing 😛 will fix
+17:27 <+bridge> [ddnet] <Learath2> I mean we will compile this in release mode, which means it won’t be thread safe really. That’s why I’m concerned
+17:28 <+bridge> [ddnet] <heinrich5991> there's only one thread (I do crash on a failed assert after all)
+17:28 <+bridge> [ddnet] <heinrich5991> (I assumed a crash on a failed assert after all*)
+17:33 <+bridge> [ddnet] <heinrich5991> @Learath2 fixed
+17:33 <+bridge> [ddnet] <heinrich5991> oh, boost
+17:35 <+bridge> [ddnet] <Learath2> Whatever it’s only on CI
+17:36 <+bridge> [ddnet] <heinrich5991> I pushed 7 seconds before your last review, I could have sneaked in code 😛
+17:36 <+bridge> [ddnet] <heinrich5991> (removed boost)
+17:36 <+bridge> [ddnet] <Learath2> Lol
+17:36 <+bridge> [ddnet] <heinrich5991> maybe bors should decline to do its job if the latest push is <1min ago?
+17:38 <+bridge> [ddnet] <heinrich5991> suggest braces around empty if block
+17:38 <+bridge> [ddnet] <heinrich5991> fine..
+17:39 <+bridge> [ddnet] <heinrich5991> I wonder why I forgot the braces there anyway 😄
+17:52 <+bridge> [ddnet] <Learath2> That CodeQL step takes some time
+17:54 <+bridge> [ddnet] <heinrich5991> so, now let's deploy it on ger2, and if not everything catches fire, deploy it everywhere?
+17:55 <+bridge> [ddnet] <heinrich5991> @Learath2 I'll do that, okay?
+17:55 <+bridge> [ddnet] <Learath2> Lets deploy it on ger2, restart a single server and finish a map
+17:55 <+bridge> [ddnet] <Learath2> That sounds a good enough test
+18:00 <+bridge> [ddnet] <heinrich5991> @Learath2 8313
+18:11 <+bridge> [ddnet] <Learath2> @heinrich5991 I'll get back to doing some math, lmk if you need anything
+18:11 <+bridge> [ddnet] <heinrich5991> ye
+18:11 <+bridge> [ddnet] <heinrich5991> works locally obviously
+18:11 <+bridge> [ddnet] <heinrich5991> wouldn't be fun otherwise
+18:12 <+bridge> [ddnet] <Learath2> Could it be that many servers are connected to the same mysql server and you need some magic flag to get it to work in parallel?
+18:12 <+bridge> [ddnet] <heinrich5991> I don't htink so
+18:12 <+bridge> [ddnet] <heinrich5991> I had that error in testing as well
+18:13 <+bridge> [ddnet] <heinrich5991> it happened when I wasn't correctly finishing processing the results
+18:13 <+bridge> [ddnet] <Learath2> Maybe you still have a result lying around?
+18:14 <+bridge> [ddnet] <heinrich5991> oh wait
+18:14 <+bridge> [ddnet] <Learath2> You could try wrapping MYSQL_RES in a smart object aswell to make sure it gets freed even if we don't use all of it when it goes out of scope
+18:14 <+bridge> [ddnet] <heinrich5991> I reproduced sth locally
+19:02 <+bridge> [ddnet] <deen> does master server support 15.3 clients already?
+19:15 <+bridge> [ddnet] <Learath2> @deen should but now master has broken mysql
+19:16 <+bridge> [ddnet] <Learath2> not should, it does we checked
+19:25 <+bridge> [ddnet] <Trafalgar Law> Can I not bind gfx_fullscreen?
+19:25 <+bridge> [ddnet] <Trafalgar Law> I did: bind ctrl+f5 gfx_fullscreen 1
+19:27 <+bridge> [ddnet] <Trafalgar Law> Ok it works
+19:28 <+bridge> [ddnet] <Astramast> what was the cmd for deepfly ?
+19:29 <+bridge> [ddnet] <Astramast> the cmd that make that when u shoot ur dummy shoot
+19:29 <+bridge> [ddnet] <Learath2> For standard deepfly you can just use the dummy hammerfly command normally
+19:30 <+bridge> [ddnet] <Learath2> If you want to time your shots the deepfly bind is `bind x "bind mouse1 \"+fire; +toggle cl_dummy_hammer 1 0\""`
+19:32 <+bridge> [ddnet] <Astramast> :brownbear:
+19:33 <+bridge> [ddnet] <Astramast> i am very bad bcs dont work lmao
+19:34 <+bridge> [ddnet] <Astramast> i mean he doesnt hit me, he hit but deep
+19:59 <+bridge> [ddnet] <Learath2> If you are trying it on the new map it has been disabled
+20:00 <+bridge> [ddnet] <fokkonaut> @timakro could you at least take a look at the backtrace and guess what could be changed?
+20:20 <+bridge> [ddnet] <GutZuFusss> im quite the guessing type of guy
+20:26 <+bridge> [freenode] <timakro[m]> @fokkonaut I'd guess in line 120 of trail.cpp the index HistoryPos is out of bounds?
+20:26 <+bridge> [ddnet] <fokkonaut> yea
+20:26 <+bridge> [ddnet] <fokkonaut> but i dont know what a good fix for this is
+20:26 <+bridge> [ddnet] <fokkonaut> and it doesnt happen always xd
+20:27 <+bridge> [freenode] <timakro[m]> Looks like floating point inaccuracy
+20:28 <+bridge> [freenode] <timakro[m]> I don't know the reasoning for having an extra m_TrailHistoryLength variable that needs to be kept in sync with the data in the deque
+20:41 <+bridge> [freenode] <timakro[m]> Try saving a little extra history
+20:41 <+bridge> [freenode] <timakro[m]> Maybe just to be 100% sure break before accessing an invalid indec
+20:42 <+bridge> [freenode] <timakro[m]> The line you commented was for interpolating between two history points
+20:42 <+bridge> [freenode] <timakro[m]> Might look fine without
+20:46 <+bridge> [ddnet] <heinrich5991> @Learath2 ^
+20:46 <+bridge> [freenode] <timakro[m]> I'd be curious how the code looked before your edit
+20:48 <+bridge> [ddnet] <fokkonaut> @timakro https://github.com/DDNetPP/DDNetPP/blob/master/src/game/server/entities/character.cpp#L1854-L1934
+20:49 <+bridge> [ddnet] <heinrich5991> unrelated, @Learath2: you said you worked with swagger before. does one have to design one's API with that tool in mind, or can you describe the API with it later on?
+21:18 <+bridge> [ddnet] <Learath2> @heinrich5991 I only ever used it to design an api, but I think there are tools that generate it from php code
+21:18 <+bridge> [ddnet] <Learath2> (Using annotations)
+21:59 <+bridge> [ddnet] <Андрей Рудой> I used swagger and openapi even wrotey own codegen. What I got to say - it's pretty shitty permissive tool without any contracts in mind
+22:00 <+bridge> [ddnet] <Андрей Рудой> And all codegenerators for it are shitty generating degenerative code that doesn't work / poorly designed
+22:00 <+bridge> [ddnet] <Андрей Рудой> If you ask me what to use I'd say use gRPC
+22:49 <+bridge> [ddnet] <fokkonaut> @timakro https://pastebin.com/raw/JrVBkyq4
+23:05 <+bridge> [ddnet] <fokkonaut> @timakro could you look into it again maybe? i am trying to fix it but i cant reproduce the bug at all, it just happens randomly sometimes
+23:15 <+bridge> [freenode] <timakro[m]> If its so seldom just break the loop before accessing an out of bounds value
+23:16 <+bridge> [freenode] <timakro[m]> @fokkonaut ^
+23:17 <+bridge> [ddnet] <fokkonaut> https://github.com/fokkonaut/F-DDrace/commit/9cea7be036e12959102ef8992f65f726c891da25
+23:17 <+bridge> [ddnet] <fokkonaut> like this?
+23:18 <+bridge> [ddnet] <fokkonaut> it may look weird if i break at certain places
+23:19 <+bridge> [ddnet] <fokkonaut> this seems to work, but i also dont understand what you did with AdditionalLength, since I am unable to use it because HistoryPos + 1 will instantly crash so i worked around it which seems to work nicely
+23:19 <+bridge> [freenode] <timakro[m]> No I mean just check if HistoryPos >= m_TrailHistory.size() before indexing
+23:19 <+bridge> [freenode] <timakro[m]> And break in that case
+23:19 <+bridge> [ddnet] <fokkonaut> isnt that what i do now?
+23:21 <+bridge> [ddnet] <fokkonaut> i think i am doing exactly thats
+23:22 <+bridge> [ddnet] <fokkonaut> a break would only break the while loop which would still index at the bottom
+23:22 <+bridge> [ddnet] <fokkonaut> so return is okay since nothing more is happening after the loop anyways
+23:22 <+bridge> [ddnet] <fokkonaut> no?
+23:23 <+bridge> [freenode] <timakro[m]> Yes, you're right. Though there's still a possible path to a out of bounds index - maybe?
+23:23 <+bridge> [freenode] <timakro[m]> Wow the code prior was completely borked
+23:24 <+bridge> [ddnet] <fokkonaut> xD
+23:24 <+bridge> [freenode] <timakro[m]> So this worked?
+23:25 <+bridge> [ddnet] <fokkonaut> i dont know
+23:25 <+bridge> [ddnet] <fokkonaut> it does not happen alwayys
+23:25 <+bridge> [ddnet] <fokkonaut> time will tell me whether this works^^
+23:25 <+bridge> [freenode] <timakro[m]> If it still happens just add a if directly before the indexing
+23:25 <+bridge> [ddnet] <fokkonaut> kk, thanks
+23:26 <+bridge> [freenode] <timakro[m]> Or rewrite this mess ^^
+23:26 <+bridge> [ddnet] <fokkonaut> xD
