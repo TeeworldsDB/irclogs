@@ -1,0 +1,128 @@
+00:10 < bridge> [ddnet] <deen> In general you can use `/help times` to find out stuff like that
+00:11 < bridge> [ddnet] <Night_L> However, i
+00:11 < bridge> [ddnet] <Learath2> indeed
+00:13 < bridge> [ddnet] <Night_L> I see. But default behavior is inconsistent between /times "name with a blank" and /times "pure-number". If this is designed to be, it is somekind confusing.
+00:14 < bridge> [ddnet] <Night_L> I would agree this is not a designed calling of the command (but it just, doesn't fit)
+00:15 < bridge> [ddnet] <Night_L> This might be a out-of-consider case in the pipeline of parsing. IDK
+00:16 < bridge> [ddnet] <heinrich5991> it's the weird choice the first person to implement it made
+00:16 < bridge> [ddnet] <Learath2> In essence the command is both `times ?s[name] ?i[numbertoskip]` and `times ?i[numbertoskip]` when name is. When name is just numeric it's a parser conflict
+00:16 < bridge> [ddnet] <heinrich5991> to treat numbers differently from names
+00:16 < bridge> [ddnet] <heinrich5991> when numbers can obviously also be names
+00:17 < bridge> [ddnet] <Learath2> I don't like it either but I doubt we can change it without someones mothers cousins uncles brothers bind breaking
+00:17 < bridge> [ddnet] <Night_L> There is quotes when querying ID
+00:17 < bridge> [ddnet] <Night_L> or quotes doesn't work as I expect??
+00:17 < bridge> [ddnet] <Learath2> Quotes don't imply string. Maybe they should? I'm not completely sure of the implications if we do that
+00:18 < bridge> [ddnet] <Night_L> I know now.
+00:18 < bridge> [ddnet] <Night_L> But, /times "12 3" doesn't make sense unless "12 3" refers to a ID instead of [numbertoskip]
+00:20 < bridge> [ddnet] <Learath2> "12 3" should work as expected
+00:21 < bridge> [ddnet] <heinrich5991> I wouldn't be so sure of that 😄
+00:21 < bridge> [ddnet] <Night_L> I mean, numbers won't contain blanks inside themself.
+00:21 < bridge> [ddnet] <Learath2> "12 3" will make it evaluate as one string argument
+00:21 < bridge> [ddnet] <Learath2> unless the person who made the command considers ' ' numeric I can't see it doing times ?i
+00:21 < bridge> [ddnet] <Night_L> so /times "123" is not that useful since /times 123 will work ofcuz..
+00:21 < bridge> [ddnet] <heinrich5991> nah, 12 3 is going to be an offset
+00:22 < bridge> [ddnet] <heinrich5991> as is 123abc
+00:22 < bridge> [ddnet] <heinrich5991> if I read the code correctly
+00:22 < bridge> [ddnet] <heinrich5991> `pResult->GetInteger(0) != 0`
+00:23 < bridge> [ddnet] <heinrich5991> and that's straight up atoi
+00:23 < bridge> [ddnet] <heinrich5991> praise C's shitty integer parsing functions and that we use them
+00:26 < bridge> [ddnet] <Night_L> Now I am rly confused by parsing haha. I suppose "abcd" implies abcd is treated as an ID no matter what abcd is. The reason is quite simple: quoting a number doesn't make sense, we only quotes ID since there are names with blanks
+00:27 < bridge> [ddnet] <Night_L> Do we have anything else in commands other than "s t r i n g" and number?
+00:29 < bridge> [ddnet] <heinrich5991> are you interested in why things are the way they are?
+00:29 < bridge> [ddnet] <heinrich5991> I agree that the current syntax is bad
+00:29 < bridge> [ddnet] <heinrich5991> I think that problem appeared because the /times function tried to stuff two possible parameters into one
+00:30 < bridge> [ddnet] <lynn> what happens if a name contains quotes
+00:31 < bridge> [ddnet] <heinrich5991> quotes are used to separate parameters
+00:31 < bridge> [ddnet] <heinrich5991> you can do `"\""`
+00:32 < bridge> [ddnet] <heinrich5991> that is used for the name that is a single doublequote
+00:40 < bridge> [ddnet] <louis> im pretty sure there was a name u couldnt check /times of
+00:40 < bridge> [ddnet] <Night_L> Probably yes. But things can be fixed if we suppose quoting a number directly refers to a string, a name. So things will become quite simple :《》
+00:40 < bridge> [ddnet] <Night_L> Probably yes. But things can be fixed if we suppose quoting a number directly refers to a string, a name. So things will become quite simple :<
+00:40 < bridge> [ddnet] <Learath2> The callback function knows nothing of quotes. The console parses that. So quotes only enforce that no matter what, the things within the quotes will be treated as one parameter
+00:41 < bridge> [ddnet] <Night_L> k. So not able to fix it directly, we should seperate /times into two commands i guess
+00:42 < bridge> [ddnet] <Night_L> Or just make it legacy and nevermind
+00:42 < bridge> [ddnet] <Night_L> Anyway, I now know the problems behind. NVM
+00:42 < bridge> [ddnet] <Learath2> Also, the part that does this parsing knows nothing of the concept of names
+00:42 < bridge> [ddnet] <Learath2> I wanted to teach it but just haven't had the time to hash out a plan
+00:43 < bridge> [ddnet] <heinrich5991> I guess one could stop accepting offsets in there
+00:43 < bridge> [ddnet] <heinrich5991> I feel like that would be the cleanest fix
+00:43 < bridge> [ddnet] <Learath2> @heinrich5991 but how do we replace `times ?i[numskip]` then?
+00:44 < bridge> [ddnet] <Learath2> a new command?
+00:44 < bridge> [ddnet] <heinrich5991> /times heinrich5991 5
+00:44 < bridge> [ddnet] <Learath2> `/times 5` is what I was concerned about
+00:44 < bridge> [ddnet] <heinrich5991> oh right, it returned recent finishes
+00:44 < bridge> [ddnet] <heinrich5991> new command?
+00:45 < bridge> [ddnet] <heinrich5991> \/recent
+00:45 < bridge> [ddnet] <Learath2> Yeah I think that's the cleanest
+00:45 < bridge> [ddnet] <Learath2> or maybe `/finishes`
+00:47 < bridge> [ddnet] <lynn> ah didn't know it supported escape sequences
+00:47 < bridge> [ddnet] <lynn> thought I could have expected that based on the fact that motd does
+00:47 < bridge> [ddnet] <lynn> thoughI could have expected that based on the fact that motd does
+00:47 < bridge> [ddnet] <lynn> though I could have expected that based on the fact that motd does
+00:49 < bridge> [ddnet] <heinrich5991> the motd has its own treatment of escape sequences
+00:49 < bridge> [ddnet] <heinrich5991> in the weirdest way possible
+00:49 < bridge> [ddnet] <heinrich5991> the character sequence `\n` is translated into a newline by the client(!)
+00:53 < bridge> [ddnet] <lynn> ohh interesting
+00:54 < bridge> [ddnet] <Night_L> em, I think the console parser could parse `/cmd "some thing" 123` into `cmd ; "some thing"; 123`. So the pipeline gets information of quotes. Just do not break quotes without escapes and split by blanks. (Well, this might need an automata to realize..)
+00:55 < bridge> [ddnet] <lynn> any recommendations for simple web servers
+00:55 < bridge> [ddnet] <lynn> I might give cobalt.rs a try
+00:55 < bridge> [ddnet] <heinrich5991> what do you want to build?
+00:57 < bridge> [ddnet] <Learath2> cobalt.rs seems to be a static site generator not a web server
+01:00 < bridge> [ddnet] <lynn> well it also serves the files
+01:02 < bridge> [ddnet] <Learath2> Well it seems to have a live preview thing like most new frontend frameworks have provided by tiny_http. I wouldn't host anything like that in production no matter how small 😛
+01:03 < bridge> [ddnet] <Night_L> I might be able to deal with it with some lexer. After my thesis defence :<
+01:03 < bridge> [ddnet] <Learath2> nginx is not that difficult to set up and is small, especially trivial if you are hosting a static website
+01:04 < bridge> [ddnet] <Learath2> The problem isn't that it's unsolvable. The problem is whether we want it solved. This seems to be more of an issue on the person implementing the command trying to pack too much into one command
+01:05 < bridge> [ddnet] <Learath2> Quotes imply string would also fix this without messing with the parser possibly breaking dozens of things
+01:06 < bridge> [ddnet] <lynn> nginx gives me heartburn
+01:09 < bridge> [ddnet] <lynn> it's really going to be a single page with links / IP addresses. https://teehou.se
+01:09 < bridge> [ddnet] <lynn> unreachable for now
+01:12 < bridge> [ddnet] <Learath2> just bite the bullet and learn it, it's a skill useful for a lifetime
+01:12 < bridge> [ddnet] <Learath2> for a static website it's absolutely trivial as I said
+03:02 < bridge> [ddnet] <lynn> this might be a weird question, but i hate ubuntu with the fury of a thousand suns and NFO doesn't have an arch option
+03:02 < bridge> [ddnet] <lynn> can't decide between centos and gentoo
+03:03 < bridge> [ddnet] <lynn> what would yall choose
+03:03 < bridge> [ddnet] <lynn> i guess i could pick whatever and flash it with arch
+03:03 < bridge> [ddnet] <lynn> sounds annoying
+03:57 < bridge> [ddnet] <Learath2> I'd take centos on a server
+03:58 < bridge> [ddnet] <Learath2> Bootstrapping from a running OS is not trivial btw, took me a while to figure out how best to do it. If possible use a rescue system and bootstrap from that instead
+03:59 < bridge> [ddnet] <Learath2> I usually use debootstrap to get devuan on all my server installations
+08:59 < bridge> [ddnet] <Ryozuki> a web server is not a static site generator tho
+09:00 < bridge> [ddnet] <jao> :justatest: #
+09:00 < bridge> [ddnet] <Ryozuki> it depends on what you want, if you simply want to serve files, use nginx, if you want to code endpoints and such, im using actix-rs on a big project, but i want to try warp on a new project i may make, warp is newer and uses the tokio runtime, and the idea of Filters looks rly cool
+09:01 < bridge> [ddnet] <Ryozuki> (actix also uses actix-rt which its tokio at the end of the day i guess)
+09:01 < bridge> [ddnet] <Ryozuki> btw the most famous static gen for rust is <https://github.com/getzola/zola>
+09:10 < bridge> [ddnet] <lynn> warp is what https://owo.pew.im uses
+09:10 < bridge> [ddnet] <lynn> i think
+09:11 < bridge> [ddnet] <jao> weebs out
+09:12 < bridge> [ddnet] <lynn> xd
+09:12 < bridge> [ddnet] <Ryozuki> weebs in
+09:12 < bridge> [ddnet] <Ryozuki> :greenthing:
+09:12 < bridge> [ddnet] <lynn> warp + typescript with svelte
+09:12 < bridge> [ddnet] <lynn> good lil app
+09:13 < bridge> [ddnet] <Ryozuki> did u learn rust yet?
+09:14 < bridge> [ddnet] <lynn> NOPE
+09:15 < bridge> [ddnet] <lynn> i broke my promise to myself to do more tw bullshit
+09:15 < bridge> [ddnet] <lynn> hosted a GER xPanic server
+09:15 < bridge> [ddnet] <Ryozuki> :feelsbadman:
+09:15 < bridge> [ddnet] <lynn> eventually some day maybe
+09:16 < bridge> [ddnet] <jao> try python
+09:16 < bridge> [ddnet] <Ryozuki> https://i.imgur.com/cSdqYOV.png
+09:16 < bridge> [ddnet] <Ryozuki> https://i.imgur.com/joO18MD.png
+09:16 < bridge> [ddnet] <Ryozuki> this is the resoruce usage by someone using nodejs porting their app to rust
+09:16 < bridge> [ddnet] <Ryozuki> :monkalaugh:
+09:18 < bridge> [ddnet] <lynn> hahahah i already know too much python
+09:18 < bridge> [ddnet] <lynn> wtf
+09:26 < bridge> [ddnet] <Ryozuki> wtf
+09:26 < bridge> [ddnet] <Ryozuki> i made rustc crash
+09:26 < bridge> [ddnet] <Ryozuki> first time ever i seen this
+09:26 < bridge> [ddnet] <Ryozuki> time to report a bug
+09:27 < bridge> [ddnet] <Ryozuki> :justatest:
+09:27 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/841214930262163486/unknown.png
+09:36 < bridge> [ddnet] <Ryozuki> yay i found a minimum verifiable example
+09:44 < bridge> [ddnet] <Ryozuki> https://github.com/rust-lang/rust/issues/85137 :monkalaugh:
+20:56 < bridge> [ddnet] <louis> !printf("rust sux");
+20:58 < bridge> [ddnet] <lynn> about how much ram does a typically ddrace server install use
+20:58 < bridge> [ddnet] <lynn> about how much ram does a typical ddrace server install use
+20:58 < bridge> [ddnet] <lynn> 15-30 players
+20:58 < bridge> [ddnet] <lynn> someone probably has stats on this

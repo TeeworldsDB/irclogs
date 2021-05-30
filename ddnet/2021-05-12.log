@@ -1,0 +1,147 @@
+10:22 < bridge> [ddnet] <TsFreddie> is there a way to tell ddnet client to turn off weapon prediction
+10:23 < bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/841953770819813376/2021-05-12_16-22-57.mp4
+10:47 < bridge> [ddnet] <fokkonaut> sadly no, been focussing this problem too since a long time
+10:48 < bridge> [ddnet] <fokkonaut> well, a hack might be to set the m_AttackTick to Server()->Tick()
+10:48 < bridge> [ddnet] <fokkonaut> let me try that real quick
+10:49 < bridge> [ddnet] <TsFreddie> that would be way to late for it to reach the client before the prediction kicks in tho.
+10:49 < bridge> [ddnet] <fokkonaut> Server()->Tick() - x
+10:50 < bridge> [ddnet] <TsFreddie> sounds like a plan
+10:56 < bridge> [ddnet] <fokkonaut> `pCharacter->m_AttackTick = m_AttackTick > Server()->Tick() - 25 ? m_AttackTick : Server()->Tick() - 25;`
+10:56 < bridge> [ddnet] <fokkonaut> definitely fixes that permanent laser prediction, but one single laser will still get through
+10:57 < bridge> [ddnet] <fokkonaut> When the original m_AttackTick gets set, or something like that
+10:57 < bridge> [ddnet] <fokkonaut> we should have a gameinfoexflag for weapon prediction
+10:58 < bridge> [ddnet] <fokkonaut> then it can also be toggled on and off serverside, depending on which weapon one is holding right now, because my server does have extra weapons, it also mispredicts scrolling when taking another weapon than the vanilla weapons
+10:59 < bridge> [ddnet] <fokkonaut> But that also happens when the attack tick is just set to Server()->Tick - 10, because the client just tries to create that laser
+11:01 < bridge> [ddnet] <fokkonaut> attacktick > servertick - 2 should probably also work, since snapshots are sent every 2 ticks this should work
+11:17 < bridge> [ddnet] <murpi> `cl_antiping_weapons 0` ?
+11:18 < bridge> [ddnet] <TsFreddie> i mean from server
+11:18 < bridge> [ddnet] <TsFreddie> :justatest:
+11:18 < bridge> [ddnet] <murpi> <a:ismetriggered:758293590765338645>
+11:18 < bridge> [ddnet] <TsFreddie> If people play with weapon pred on, it messes up mods that doesn't use vanilla behaviors that's all
+12:13 < bridge> [ddnet] <Astramast> so
+12:14 < bridge> [ddnet] <Astramast> i come back to you
+12:15 < bridge> [ddnet] <Astramast> i really think that u have to be able to see others assets in a temp file (on/off in settings for those who dont want to download others assets) and save them if u like them
+12:16 < bridge> [ddnet] <Astramast> it would download them when u connect and u could have a refresh button to download the assets of the people that connected to sserver after u
+12:16 < bridge> [ddnet] <Astramast> so it does not start a download each time someone join the server
+12:16 < bridge> [ddnet] <Astramast> this would affect only the using assets
+12:16 < bridge> [ddnet] <Astramast> not all the assets library of everynyan
+12:20 < bridge> [ddnet] <Jupstar ✪> and now in one setence pls
+12:20 < bridge> [ddnet] <Jupstar ✪> u want to download assets?
+15:46 < bridge> [ddnet] <Comrade> map votes are not available anymore?
+15:46 < bridge> [ddnet] <Comrade> https://cdn.discordapp.com/attachments/293493549758939136/842035097330122823/unknown.png
+15:53 < bridge> [ddnet] <Comrade> `/map` still works 😄
+16:48 < bridge> [ddnet] <TsFreddie> https://github.com/TeeworldsCN/ddnet-pvp/blob/master/src/game/server/weapons/grenade.cpp rate my weapon class
+16:52 < bridge> [ddnet] <deen> @Comrade where?
+16:54 < bridge> [ddnet] <Comrade> 176.9.114.238:8332
+18:04 < bridge> [ddnet] <nuborn> @TsFreddie looked at the pr, and just thought of one thing about Evolve, if you're here
+18:07 < bridge> [ddnet] <TsFreddie> i am
+18:10 < bridge> [ddnet] <nuborn> I think the tunings used in Evolve has to be the same as those used by m_ReckoningCore in server/character.cpp. so it might not work to use tunezones for Evolve if we dont also use it in the server. but it's some time since I looked at how it worked
+18:11 < bridge> [ddnet] <TsFreddie> ic
+18:11 < bridge> [ddnet] <TsFreddie> what does m_ReckoningCore do exactly?
+18:13 < bridge> [ddnet] <nuborn> ehm, it's not very clear from the code, but I think the purpose is to save server bandwidth by not sending the character if the character didn't move, or if it can be predicted from the last tick (with Evolve)
+18:14 < bridge> [ddnet] <TsFreddie> oh
+18:14 < bridge> [ddnet] <TsFreddie> actually that makes sense
+18:15 < bridge> [ddnet] <nuborn> so the server will try to step the character forward one tick, and if that matches what the client would get with evolve, it's not sent
+18:15 < bridge> [ddnet] <nuborn> yes
+18:15 < bridge> [ddnet] <TsFreddie> so i probably need to revert evolve.
+18:15 < bridge> [ddnet] <TsFreddie> i thought it was for filling dropped ticks
+18:16 < bridge> [ddnet] <TsFreddie> well i guess technically it is
+18:16 < bridge> [ddnet] <nuborn> oh, yeah. if snapshots are dropped the client will still use Evolve, so that can technically still happen
+18:17 < bridge> [ddnet] <nuborn> and give misprediction in tunezones
+18:17 < bridge> [ddnet] <nuborn> so its not perfect
+18:17 < bridge> [ddnet] <TsFreddie> we have a dilemma then
+18:18 < bridge> [ddnet] <TsFreddie> would collecting the most recent tick from all characters and see if we need to match reckoning or do prediction works?
+18:21 < bridge> [ddnet] <nuborn> hmm, if the server sends a new character, the evolve is automatically overwritten
+18:21 < bridge> [ddnet] <TsFreddie> right
+18:21 < bridge> [ddnet] <nuborn> actually, it might work to do Evolve still (with tunezones)
+18:22 < bridge> [ddnet] <nuborn> since if the character is in a tunezone the server will probably end up sending a new character every tick (since the Evolve/reckoning fails)
+18:22 < bridge> [ddnet] <TsFreddie> it'd be a bit hard to be 100% sure probably
+18:23 < bridge> [ddnet] <nuborn> the best would perhaps if the client and server could send some flags to agree on using tunezones for Evolve
+18:24 < bridge> [ddnet] <TsFreddie> and send tuning params with tunezone number
+18:25 < bridge> [ddnet] <TsFreddie> but i think that might be asking too much from server.
+18:25 < bridge> [ddnet] <nuborn> maybe we should do that, the current way of getting the tunezones is a bit hackish 😛
+18:26 < bridge> [ddnet] <TsFreddie> i mean in most cases using maps' tunezone settings is enough.
+18:26 < bridge> [ddnet] <nuborn> also we now update the entire tuning every time a player moves between zones, instead of sending all tunings just once (if tunings within zones stays the same)
+18:27 < bridge> [ddnet] <TsFreddie> do we ever change tunezone settings during actual playtime?
+18:28 < bridge> [ddnet] <TsFreddie> we can just not send them at all if we know the clients is capable of getting them from maps
+18:30 < bridge> [ddnet] <nuborn> yes, it's only possible from rcon, and I don't think anyone does that
+18:30 < bridge> [ddnet] <nuborn> unless testing while making a tunezone part
+18:30 < bridge> [ddnet] <TsFreddie> or we do send them for simplicity in the server end, but if a flag is set in server, the client doesn't update them
+18:31 < bridge> [ddnet] <TsFreddie> since they will be the same. and maybe only update it when we are in the test server so mappers can still do it
+18:33 < bridge> [ddnet] <TsFreddie> actually maybe not sending them is easier
+18:33 < bridge> [ddnet] <TsFreddie> :justatest:
+18:35 < bridge> [ddnet] <nuborn> yes
+18:35 < bridge> [ddnet] <nuborn> but the cleanest would perhaps be to get them into the snapshot
+18:38 < bridge> [ddnet] <nuborn> and also include tunezone numbers
+18:42 < bridge> [ddnet] <TsFreddie> also just realized i've made a mistake about evolve
+18:43 < bridge> [ddnet] <TsFreddie> i set the evolving core's tuning only at the start of the evolution. should be doing that every tick
+18:53 < bridge> [ddnet] <heinrich5991> sending them from the server would probably be cleaner than calculating them from the map
+18:53 < bridge> [ddnet] <heinrich5991> that way, the server is in control how the map is parsed
+18:58 < bridge> [ddnet] <TsFreddie> ye
+18:59 < bridge> [ddnet] <TsFreddie> it's 1am here tho. i should go to bed.
+18:59 < bridge> [ddnet] <nuborn> would it be possible to add an extended netobject for this? I thought about that last time I looked at this
+19:00 < bridge> [ddnet] <nuborn> btw, we should actually do this. if we know that we always get a new snapshot on each snap, we can check if a snapshot was received. then we could perhaps also get rid of the "floating player" problem during connection dropouts
+19:02 < bridge> [ddnet] <TsFreddie> actually i just checked the code again, evolve is only used upon receiving netcharacters. so it doesn't seem to affect dropouts.
+19:02 < bridge> [ddnet] <TsFreddie> maybe the dropout thing is just interpolation
+19:02 < bridge> [ddnet] <nuborn> oh, ok, I see
+19:03 < bridge> [ddnet] <TsFreddie> so i just reverted evolve lol
+19:03 < bridge> [ddnet] <TsFreddie> i'll look into sending tunezone infos tomorrow
+19:03 < bridge> [ddnet] <nuborn> ok, nice
+19:48 < bridge> [ddnet] <Astramast> ok so i want that when u connect to a server, u download the assets of people and u see them with they own assets, those assets u downloaded should go in a temporary file so u dont end with 3000 assets, u then could have a button to refresh that download the assets of ppl that joined the server after u, and another button to keep some assets if u see someone using a cool asset u want, and ofc a button to turn it off/on
+19:49 < bridge> [ddnet] <Jupstar ✪> wont happen
+19:49 < bridge> [ddnet] <Astramast> when i say assets it means the only assets ppl are using
+19:49 < bridge> [ddnet] <Jupstar ✪> too many trolls
+19:49 < bridge> [ddnet] <Astramast> wdym ?
+19:49 < bridge> [ddnet] <Jupstar ✪> except u mean from some managed database
+19:49 < bridge> [ddnet] <Astramast> wait 1st tell me what could go wrong about trolls
+19:50 < bridge> [ddnet] <Jupstar ✪> nazi symbols, whatever
+19:50 < bridge> [ddnet] <heinrich5991> you'd get images you don't want
+19:50 < bridge> [ddnet] <Astramast> ah
+19:50 < bridge> [ddnet] <Astramast> well yeah from a database managed so no porn or nazis or $hit
+19:51 < bridge> [ddnet] <Astramast> also idk if i tell it right but u would see the ppl with their own assets
+19:51 < bridge> [ddnet] <Jupstar ✪> yeah
+19:52 < bridge> [ddnet] <Jupstar ✪> generally i like the idea, but not sure yet
+19:52 < bridge> [ddnet] <Jupstar ✪> probs wont happen very soon
+19:52 < bridge> [ddnet] <Astramast> ye i think not for this year xD
+19:52 < bridge> [ddnet] <Astramast> but would be interesting
+19:52 < bridge> [ddnet] <Astramast> also a first step to this would be to manage assets like skins
+19:52 < bridge> [ddnet] <Jupstar ✪> yeah i think i discussed that with some ppl on gores server already 😄
+19:53 < bridge> [ddnet] <Astramast> so u dont dwnld assets each time u connect to a server
+19:53 < bridge> [ddnet] <Astramast> u just see ppl with default asset if u dont have it or the asset they choose if u have it
+19:53 < bridge> [ddnet] <Astramast> in my memories skins works like this
+19:57 < bridge> [ddnet] <Astramast> @Jupstar ✪ u think that would be possible ? :tee_thinking:
+20:01 < bridge> [ddnet] <Jupstar ✪> possible yes
+20:01 < bridge> [ddnet] <Jupstar ✪> everything is possible xd
+20:01 < bridge> [ddnet] <heinrich5991> most stuff is possible
+20:01 < bridge> [ddnet] <heinrich5991> client side anti cheat is not one of them 😉
+20:01 < bridge> [ddnet] <Jupstar ✪> maybe not everything for humans xd
+20:01 < bridge> [ddnet] <heinrich5991> at least not without hardware controlled by ddnet
+20:01 < bridge> [ddnet] <Jupstar ✪> everything is possible, except nothing
+20:02 < bridge> [ddnet] <heinrich5991> how is client-side anticheat possible, without ddnet-owned hardware?
+20:02 < bridge> [ddnet] <Jupstar ✪> hack mod pw
+20:02 < bridge> [ddnet] <Jupstar ✪> and ban cheaters xd
+20:03 < bridge> [ddnet] <TsFreddie> 🤖
+20:07 < bridge> [ddnet] <Jupstar ✪> But yeah, you mean bot clients in first place, but I meant it more philosophically
+20:08 < bridge> [ddnet] <TsFreddie> I would just collect phone numbers in china and ban phone numbers :kek:
+20:08 < bridge> [ddnet] <Jupstar ✪> In China they just put camera in your room and spy you
+20:09 < bridge> [ddnet] <TsFreddie> it's true
+20:09 < bridge> [ddnet] <Jupstar ✪> Bad social score bcs cheating in a 2d  game xddd
+20:10 < bridge> [ddnet] <TsFreddie> I wonder what mine is
+20:13 < bridge> [ddnet] <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/842102154491723776/Screenshot_20210513-021210__01.jpg
+20:14 < bridge> [ddnet] <Jupstar ✪> Is that good enough?
+20:14 < bridge> [ddnet] <Jupstar ✪> How did you lose some xd
+20:15 < bridge> [ddnet] <TsFreddie> by not paying my credit card bill lol
+20:15 < bridge> [ddnet] <Jupstar ✪> xD
+20:15 < bridge> [ddnet] <TsFreddie> yeah, it's just my credit score
+20:15 < bridge> [ddnet] <TsFreddie> 😅
+20:17 < bridge> [ddnet] <jao> why dont pay lol
+20:20 < bridge> [ddnet] <TsFreddie> 😅 I'm paying them
+20:55 < bridge> [ddnet] <Astramast> https://discord.com/channels/252358080522747904/293493549758939136/842096983103111219
+20:55 < bridge> [ddnet] <Astramast> @deen what do u think about that?
+20:55 < bridge> [ddnet] <Astramast> @deen what do u think about that ?
+20:55 < bridge> [ddnet] <Astramast> could be turned on/off ofc
+21:11 < bridge> [ddnet] <Ryozuki> https://docusaurus.io/
+21:11 < bridge> [ddnet] <Ryozuki> this looks rly pretty
+21:11 < bridge> [ddnet] <Ryozuki> afaik most modern api docs use this
+21:12 < bridge> [ddnet] <Ryozuki> an example from cloudflare docusaurus
+21:12 < bridge> [ddnet] <Ryozuki> an example from cloudflare https://developers.cloudflare.com/docs
