@@ -1,0 +1,375 @@
+00:00 <+bridge> [ddnet] <heinrich5991> need something new, the old protocol doesn't have challenge-response
+00:02 <+bridge> [ddnet] <Learath2> @heinrich5991 okay, hm, this is a tad annoying to add but maybe just a large-ish packet similar to the 0.7 CONNECT?
+00:14 <+bridge> [ddnet] <heinrich5991> probably add some bytes that can be set by the game server so that the game server can see that it comes from a legitimate masterserver?
+00:21 <+bridge> [ddnet] <heinrich5991> why do you wnat to make it large? @Learath2
+00:22 <+bridge> [ddnet] <Learath2> I wanted to discourage people from spamming it
+00:22 <+bridge> [ddnet] <heinrich5991> it can include "authentication" in the form of bytes only known to the game server and the masterserver
+00:22 <+bridge> [ddnet] <Learath2> and it'd lead to a worse than 1 reflection ratio
+00:23 <+bridge> [ddnet] <heinrich5991> it wouldn't reflect at all if it doesn't include the "authentication"
+00:23 <+bridge> [ddnet] <Learath2> @heinrich5991 it should definitely include authentication, my initial implementation included a `secret` sent with the info to make sure
+00:27 <+bridge> [ddnet] <Learath2> You know what would be cute in rust? C++14s `operator""s`
+00:28 <+bridge> [ddnet] <heinrich5991> can you convince me of that? ^^
+00:29 <+bridge> [ddnet] <Learath2> `String::from("Test string")` vs `"Test string".to_owned()` vs `"Test string".to_str()` vs `"Test string"s`
+00:29 <+bridge> [ddnet] <Learath2> One is much much easier to type than the others 😄
+00:30 <+bridge> [ddnet] <Learath2> Especially when you need a lot of them to initialize say a default value for a struct with many Strings in it
+00:32 <+bridge> [ddnet] <heinrich5991> hm, not really convinced
+00:32 <+bridge> [ddnet] <heinrich5991> sounds like bloat
+00:32 <+bridge> [ddnet] <heinrich5991> can you do `.into()`?
+00:35 <+bridge> [ddnet] <Learath2> I mean it's not getting shorter than `""s`, into does work but it still looks meh imo
+00:36 <+bridge> [ddnet] <Learath2> Why do you think it is bloat? When there is a prettier way to do things it usually gets in. E.g. the unstable try blocks
+00:36 <+bridge> [ddnet] <Learath2> You can get their behaviour using a closure
+00:37 <+bridge> [ddnet] <heinrich5991> try blocks are unstable since forever
+00:38 <+bridge> [ddnet] <heinrich5991> also, there's something you can't do from a closure, returning from the outer function
+00:39 <+bridge> [ddnet] <Learath2> btw rust already has literals, I don't really see why extending them to some heap types hurts
+00:39 <+bridge> [ddnet] <heinrich5991> hm. dedicated syntax for .to_owned() for just strings is a bit underwhelming for a new language feature
+00:39 <+bridge> [ddnet] <heinrich5991> also, rust tries to make less efficient stuff more verbose, `String` is less efficient than `&'static str`
+00:40 <+bridge> [ddnet] <heinrich5991> (I realize you could theoretically use `operator""` for other stuff, but I don't know any)
+00:40 <+bridge> [ddnet] <Learath2> C++ thought so too, so they introduced `user defined literals` along with it. Maybe in that form it's more palatable to you
+00:42 <+bridge> [ddnet] <heinrich5991> also it kinda does away with namespacing
+00:42 <+bridge> [ddnet] <Learath2> I'm out of arguments, it looks pretty to me so that's enough for me 😄
+00:44 <+bridge> [ddnet] <heinrich5991> ok, about the masterserver forward check
+00:45 <+bridge> [ddnet] <heinrich5991> it doesn't really have to be large if it includes some bytes chosen by the game server, right?
+00:47 <+bridge> [ddnet] <Learath2> Yep
+00:54 <+bridge> [ddnet] <heinrich5991> how do I best format the challenge/response in JSON?
+00:54 <+bridge> [ddnet] <heinrich5991> should it be a zero-terminated string in the packet and a normal JSON string?
+00:54 <+bridge> [ddnet] <heinrich5991> or a byte array in the packet and a array of numbers < 256 in JSON?
+00:55 <+bridge> [ddnet] <Learath2> byte array in the packet and a base 64 encoded string in the json maybe?
+00:56 <+bridge> [ddnet] <Learath2> If you don't want to bother encoding your first suggestion would be what I do
+00:56 <+bridge> [ddnet] <heinrich5991> what about a hex string vs base64? ^^
+00:57 <+bridge> [ddnet] <heinrich5991> hex is already implemented in teeworlds ^^
+00:57 <+bridge> [ddnet] <Learath2> Sure that works too, b64 is just shorter is why I had it in mind
+00:57 <+bridge> [ddnet] <heinrich5991> I mean, time to write a b64 encoder/decoder I guess 😄
+00:57 <+bridge> [ddnet] <Learath2> a byte saved here and there doesn't really matter anyway for this, we don't do fwchecks all the time
+00:57 <+bridge> [ddnet] <heinrich5991> actually, we do (at least currently)
+00:57 <+bridge> [ddnet] <heinrich5991> ah, but I'll drop it, since the game server can continue to provide the proof
+00:58 <+bridge> [ddnet] <Learath2> hm, do we? I thought we only did simple heartbeats after the first fwcheck stuff
+00:58 <+bridge> [ddnet] <Learath2> how will the gameserver prove it is connectable if not continuous fwchecks actually?
+00:58 <+bridge> [ddnet] <heinrich5991> I'm assuming it won't go away immediately
+00:59 <+bridge> [ddnet] <heinrich5991> by replaying the secret I sent in the port forward challenge from the masterserver
+01:01 <+bridge> [ddnet] <Learath2> So wait the protocol is the server sends info with secret, master sends secret + challenge, the server sends response to some other endpoint on the master?
+01:15 <+bridge> [ddnet] <heinrich5991> the server sends info with secret + challenge @Learath2
+01:16 <+bridge> [ddnet] <heinrich5991> (at the end)
+01:17 <+bridge> [ddnet] <Learath2> Ah, okay. But you still need to keep challenges  to make sure the server is still alive, no?
+01:17 <+bridge> [ddnet] <Learath2> keep sending*
+01:18 <+bridge> [ddnet] <heinrich5991> hm, every few minutes might be enough, no?
+01:18 <+bridge> [ddnet] <Learath2> Yep, sounds good
+01:18 <+bridge> [ddnet] <heinrich5991> the server sends its heartbeats more often
+01:19 <+bridge> [ddnet] <heinrich5991> (I think the port forward check isn't relevant to security, it just helps people figure out that their servers are unreachable. in the end, the game server could just respond to port forward checks and nothing else, and it would be the same result for the user as elaborate "port forward faking")
+01:27 <+bridge> [ddnet] <Learath2> Yeah, sounds sane to me
+01:28 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/P2 does this not look very cute? 😄
+01:29 <+bridge> [ddnet] <heinrich5991> looks good
+01:29 <+bridge> [ddnet] <heinrich5991> maybe only retry on BUSY?
+01:30 <+bridge> [ddnet] <Learath2> I was considering that but there are 3 issues with that: 1) I want to retry on LOCKED too, 2) sqlx doesn't really expose it in a way I can match easily, maybe I can hard code a numeric code there, 3) it wouldn't be cute 😄
+01:30 <+bridge> [ddnet] <heinrich5991> ^^
+01:31 <+bridge> [ddnet] <Learath2> Maybe when I'm making a cleaner version I'll directly use the database library instead of an abstraction
+01:47 <+bridge> [ddnet] <GutZuFusss> hi, i added a field to the NETSOCK struct, and for some reason it gets mem_zero'd some times... any ideas why? cant find any explicit mem_zero calls
+01:48 <+bridge> [ddnet] <heinrich5991> no idea
+01:48 <+bridge> [ddnet] <heinrich5991> you could try setting a memory breakpoint in gdb
+01:49 <+bridge> [ddnet] <GutZuFusss> i was trying to dodge that, but it seems like i have no choice 😄 thanks
+01:50 <+bridge> [ddnet] <heinrich5991> doesn't seem too bad to me?
+01:50 <+bridge> [ddnet] <GutZuFusss> never done that with gcc...
+01:50 <+bridge> [ddnet] <GutZuFusss> learning something new every day 🙂
+01:50 <+bridge> [ddnet] <heinrich5991> `watch <address>`, I think
+01:50 <+bridge> [ddnet] <Learath2> it's actually extremely simple and a very useful tool to learn to use
+01:50 <+bridge> [ddnet] <GutZuFusss> how do i get hold of the address though?
+01:51 <+bridge> [ddnet] <heinrich5991> break somewhere where you have access to it
+01:51 <+bridge> [ddnet] <heinrich5991> probably in CNetClient initialization or so
+01:51 <+bridge> [ddnet] <Learath2> You can do `&sock.mynewfield` gdb will figure out the address of the field for you
+01:52 <+bridge> [ddnet] <heinrich5991> (if `sock` is in scope)
+01:53 <+bridge> [ddnet] <GutZuFusss> what was the cmake debug flag again?
+01:53 <+bridge> [ddnet] <GutZuFusss> sorry xd
+01:54 <+bridge> [ddnet] <heinrich5991> `-DDEV=ON`
+01:54 <+bridge> [ddnet] <heinrich5991> (for teeworlds/ddnet. in general it's `-DCMAKE_BUILD_TYPE=Debug`, I think)
+01:54 <+bridge> [ddnet] <Learath2> `-DCMAKE_BUILD_TYPE=Debug` is what I use, what does `-DDEV=ON` do?
+01:54 <+bridge> [ddnet] <heinrich5991> it's ddnet specific. saner defaults for developing IIRC
+01:55 <+bridge> [ddnet] <heinrich5991> the default configuration is for packaging
+01:58 <+bridge> [ddnet] <Learath2> @heinrich5991 I have another request for rust, compound literals
+01:58 <+bridge> [ddnet] <heinrich5991> is that "abc" "def"?
+01:59 <+bridge> [ddnet] <Learath2> No C99 ones `(struct foo){"foo", 3}`
+01:59 <+bridge> [ddnet] <heinrich5991> hm, rust has these, no?
+01:59 <+bridge> [ddnet] <heinrich5991> you need to name the fields though
+01:59 <+bridge> [ddnet] <Learath2> > consider using a `let` binding to create a longer lived value
+01:59 <+bridge> [ddnet] <Learath2> This is the issue I'd like to work around
+02:00 <+bridge> [ddnet] <heinrich5991> code sample pls
+02:00 <+bridge> [ddnet] <heinrich5991> @GutZuFusss how is it going?
+02:00 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/k6
+02:01 <+bridge> [ddnet] <Learath2> For this to be correct I need let bindings for the temporaries I create, which looks unpretty
+02:02 <+bridge> [ddnet] <Learath2> I even have a proposal for this new revolutionary language features name `LetLive`. Creates a temporary that will live through the entirety of it's parent block
+02:02 <+bridge> [ddnet] <Learath2> s\/features/feature/
+02:02 <+bridge> [ddnet] <heinrich5991> where is that a problem there?
+02:03 <+bridge> [ddnet] <heinrich5991> can you post the error? my brain rust compiler accepts your code
+02:03 <+bridge> [ddnet] <Learath2> `s.com_id.to_string()` is a temporary, `query!` wants a `&str`
+02:04 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/jq
+02:04 <+bridge> [ddnet] <Learath2> here is the error
+02:04 <+bridge> [ddnet] <Learath2> Actually I think it takes a `&String` not `&str` but same issue either way
+02:05 <+bridge> [ddnet] <heinrich5991> ah
+02:05 <+bridge> [ddnet] <heinrich5991> I don't know the exact rules around that. you might be able to cheat using a `match` statement 😄
+02:06 <+bridge> [ddnet] <heinrich5991> I guess that would be similar to a let binding
+02:06 <+bridge> [ddnet] <Learath2> C++ doesn't have compound literals either, it's so annoying 😦
+02:06 <+bridge> [ddnet] <heinrich5991> hah
+02:07 <+bridge> [ddnet] <heinrich5991> my base64 encoding code only had two bugs caught by the tests
+02:07 <+bridge> [ddnet] <Learath2> huh, none of the libraries we have has one?
+02:07 <+bridge> [ddnet] <Learath2> I thought curl would include one
+02:07 <+bridge> [ddnet] <heinrich5991> didn't check
+02:07 <+bridge> [ddnet] <heinrich5991> curl is extremely conservative with exposing features
+02:07 <+bridge> [ddnet] <heinrich5991> it didn't even have an URL parser until recently
+02:08 <+bridge> [ddnet] <heinrich5991> no, its base64 parser is private as well
+02:08 <+bridge> [ddnet] <heinrich5991> time to write a decoder 😛
+02:08 <+bridge> [ddnet] <Learath2> I shall draft a RFC for my `C Compliance Changes (CCC)`, introducing compound literals and (post/pre)crement operators
+02:09 <+bridge> [ddnet] <heinrich5991> does "compound literal" specify the lifetime?
+02:09 <+bridge> [ddnet] <heinrich5991> I thought it only meant that you can have struct literals. you can have that in rust
+02:10 <+bridge> [ddnet] <Learath2> C18: 6.5.2.5p5: ```The value of the compound literal is that of an unnamed object initialized by the initializer list. If
+02:10 <+bridge> [ddnet] <Learath2> the compound literal occurs outside the body of a function, the object has static storage duration; otherwise, it has automatic storage duration associated with the enclosing block.```
+02:10 <+bridge> [ddnet] <heinrich5991> the dictionary doesn't tell me that compound means something like "lives long"
+02:11 <+bridge> [ddnet] <Learath2> So my 3rd error would be fixed by `(i32){ s.state as i32}`
+02:12 <+bridge> [ddnet] <Learath2> Compound long-living literals just doesn't sound as catchy 😛
+02:12 <+bridge> [ddnet] <Learath2> I bet the compiler could even do some magic to figure out how long they are actually needed with all the lifetime information rust has associated with it's functions
+02:14 <+bridge> [ddnet] <Learath2> I have a more rusty syntax for it too `LetLive! { s.state as i32 }` ooor `(let s.state as i32)`
+02:48 <+bridge> [ddnet] <heinrich5991> yay, the decoder also only had two bugs
+03:20 <+bridge> [ddnet] <Learath2> \o/
+05:35 <+bridge> [ddnet] <TsFreddie> o(-`д´- ｡)
+12:13 <+bridge> [ddnet] <Ryozuki> :justatest: python-like java programming :justatest:
+12:13 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/865536502603055124/lutnqsjdtma71.png
+12:29 <+bridge> [ddnet] <heinrich5991> @Learath2 I found an argument against base64-encoding the bytes: other teeworlds mods don't have a base64 function at their disposal, making the protocol harder to implement for them
+12:29 <+bridge> [ddnet] <heinrich5991> perhaps I should just go for 0-terminated string
+16:51 <+bridge> [ddnet] <Learath2> Uff, I'm just about to replace the map testing bot :/
+16:52 <+bridge> [ddnet] <Learath2> It's kinda broken
+16:55 <+bridge> [ddnet] <heinrich5991> oh no 😦
+16:55 <+bridge> [ddnet] <heinrich5991> I told Patiga that this is the map testing bot and it'd be best to work on that if he wants to add something
+16:57 <+bridge> [ddnet] <heinrich5991> @Learath2 where's the new bot? I think I might owe Patiga porting his PR to the new one
+16:59 <+bridge> [ddnet] <Learath2> It'll be at `Learath2/ddnet-discordbot` but I didn't push the map testing part yet, but I don't intend it to be permanent either
+17:01 <+bridge> [ddnet] <Learath2> I'll personally port it for him, if we never end up fixing @DDNet
+17:02 <+bridge> [ddnet] <heinrich5991> can you explain the bot situation? there's the currently broken python DDNet. you wrote a replacement bot in rust, but it's only temporary? what happens after that temporary state? we go back to the python DDNet? you write some nodejs DDNet bot?
+17:03 <+bridge> [ddnet] <Learath2> I'll do one in rust that's not this much of a mess when life calms down a little bit
+17:03 <+bridge> [ddnet] <heinrich5991> I see. so the plan is that the python bot is on its way out
+17:04 <+bridge> [ddnet] <Learath2> That's my intention yes
+17:08 <+bridge> [ddnet] <Learath2> why is it not a thing for people to document the lifetimes in their code?
+17:08 <+bridge> [ddnet] <heinrich5991> link?
+17:08 <+bridge> [ddnet] <Learath2> https://docs.rs/sqlx/0.5.5/sqlx/trait.Executor.html
+17:09 <+bridge> [ddnet] <heinrich5991> ```rs
+17:09 <+bridge> [ddnet] <heinrich5991> pub trait Executor<'c>: Send + Debug {
+17:09 <+bridge> [ddnet] <heinrich5991>     type Database: Database;
+17:09 <+bridge> [ddnet] <heinrich5991>     fn fetch_many<'e, 'q, E>(
+17:09 <+bridge> [ddnet] <heinrich5991> ```
+17:09 <+bridge> [ddnet] <heinrich5991> uh oh
+17:09 <+bridge> [ddnet] <Learath2> I think `'c` denotes the lifetime of the `Connection` but I honestly don't know from a glance
+17:10 <+bridge> [ddnet] <Learath2> `impl<'c> Executor<'c> for &'c mut PoolConnection<Sqlite>` this is what I based my guess on but who knows 😄
+17:15 <+bridge> [ddnet] <Learath2> Yeah okay, my final verdict on sqlx is that it's just annoying. So hard to wrap queries in functions when they return adhoc structs
+18:27 <+bridge> [ddnet] <GutZuFusss> hi all, is there a way to set a net_tcp_recv delay, in a sense that when i have an endless loop i dont have to use thread_sleep in order to not have 100% cpu usage?
+18:33 <+bridge> [ddnet] <Learath2> What do you want that to do? Usually you'd not have an endless loop to begin with but instead block on select
+18:34 <+bridge> [ddnet] <GutZuFusss> i want to keep a tcp connection going and recv packets from it from time to time
+18:34 <+bridge> [ddnet] <GutZuFusss> can you name an example? i dont really know what u mean, sorry
+18:40 <+bridge> [ddnet] <Learath2> e.g. `net_socket_read_wait` when you call this function it will wait for packets on the socket for `time`, during this time it will yield to the kernel so you won't be using the cpu at all
+18:40 <+bridge> [ddnet] <GutZuFusss> ahhh, i see! yes, this seems like what i have been looking for. thank you!
+18:41 <+bridge> [ddnet] <Learath2> If you don't have any realtime obligations (like the server having to keep the physics running) you can just pass `time = 0` this will block on select until there are some packets there
+18:42 <+bridge> [ddnet] <Learath2> `time = -1` sorry 0 returns immediately if there are no packetx
+19:29 <+bridge> [ddnet] <Patiga> @Learath2 The code I wrote was just executing binaries and retrieving their stdout/files they created, so I don't think its hard to port it (it wouldn't bother me too much to do it again). I spend most of the time trying to setup the bot and understanding how it works ^^
+19:38 <+bridge> [ddnet] <heinrich5991> @GutZuFusss if you want to just wait for anything to arrive, you can set the socket to blocking mode (the default, actually) and call recv on it
+19:51 <+bridge> [ddnet] <Learath2> @heinrich5991 here?
+19:51 <+bridge> [ddnet] <heinrich5991> hai
+19:52 <+bridge> [ddnet] <Learath2> Q: https://paste.pr0.tips/1U Err: https://paste.pr0.tips/k1
+19:52 <+bridge> [ddnet] <Learath2> 
+19:52 <+bridge> [ddnet] <Learath2> Do you happen to know why reply2 won't compile? Feels like the compiler has enough information to not need the type annotation
+19:53 <+bridge> [ddnet] <Learath2> `reply1` suggests it does indeed know enough to coerce the type of the box
+19:57 <+bridge> [ddnet] <heinrich5991> ah
+19:57 <+bridge> [ddnet] <heinrich5991> the problem seems to be that it infers the type of the closure first, for whatever reason
+19:57 <+bridge> [ddnet] <heinrich5991> and gets to `Box<YourSpecificErrorType>`
+19:58 <+bridge> [ddnet] <heinrich5991> and `Result<Message, Box<YourSpecificErrorType>>` cannot be coerced to `Result<Message, Box<dyn Error>>`, I *think*
+19:58 <+bridge> [ddnet] <heinrich5991> let me try
+20:00 <+bridge> [ddnet] <heinrich5991> that seems to be correct
+20:01 <+bridge> [ddnet] <heinrich5991> ```rs
+20:01 <+bridge> [ddnet] <heinrich5991> use std::fmt;
+20:01 <+bridge> [ddnet] <heinrich5991> fn main() {
+20:01 <+bridge> [ddnet] <heinrich5991>     let x: Result<(), Box<()>> = Ok(());
+20:01 <+bridge> [ddnet] <heinrich5991>     let y: Result<(), Box<dyn fmt::Debug>> = x;
+20:01 <+bridge> [ddnet] <heinrich5991> }
+20:01 <+bridge> [ddnet] <heinrich5991> ```
+20:01 <+bridge> [ddnet] <heinrich5991> gives me
+20:01 <+bridge> [ddnet] <heinrich5991> ```
+20:01 <+bridge> [ddnet] <heinrich5991> error[E0308]: mismatched types
+20:01 <+bridge> [ddnet] <heinrich5991>  --> a.rs:4:46
+20:01 <+bridge> [ddnet] <heinrich5991>   |
+20:01 <+bridge> [ddnet] <heinrich5991> 4 |     let y: Result<(), Box<dyn fmt::Debug>> = x;
+20:01 <+bridge> [ddnet] <heinrich5991>   |            -------------------------------   ^ expected trait object `dyn Debug`, found `()`
+20:01 <+bridge> [ddnet] <heinrich5991>   |            |
+20:01 <+bridge> [ddnet] <heinrich5991>   |            expected due to this
+20:01 <+bridge> [ddnet] <heinrich5991>   |
+20:01 <+bridge> [ddnet] <heinrich5991>   = note: expected enum `Result<_, Box<dyn Debug>>`
+20:01 <+bridge> [ddnet] <heinrich5991>              found enum `Result<_, Box<()>>`
+20:01 <+bridge> [ddnet] <heinrich5991> 
+20:01 <+bridge> [ddnet] <heinrich5991> error: aborting due to previous error
+20:01 <+bridge> [ddnet] <heinrich5991> 
+20:01 <+bridge> [ddnet] <heinrich5991> For more information about this error, try `rustc --explain E0308`.
+20:01 <+bridge> [ddnet] <heinrich5991> ```
+20:16 <+bridge> [ddnet] <Learath2> Hm, does `()` even implement `Debug`?
+20:25 <+bridge> [ddnet] <heinrich5991> yes
+20:32 <+bridge> [ddnet] <Ryozuki> :D
+20:33 <+bridge> [ddnet] <Ryozuki> `println!("{:?}", ());`
+20:33 <+bridge> [ddnet] <Ryozuki> https://play.rust-lang.org/?version=stable&mode=debug&edition=2018&gist=99e7f2815f83d8164227218c020a35a3
+20:34 <+bridge> [ddnet] <Ryozuki> idk why i dont like errors with dyn boxes
+20:34 <+bridge> [ddnet] <Ryozuki> i strongly prefer enums with from impls
+20:35 <+bridge> [ddnet] <Ryozuki> and its rly ez with thiserror lib
+20:35 <+bridge> [ddnet] <Learath2> Hm, this is a shortcoming of the compiler, no? There is indeed enough information here to do coercion properly
+20:36 <+bridge> [ddnet] <Ryozuki> if ur error implements std::error::Error you can do .map_err(|e| e.into()) and it gets boxed
+20:36 <+bridge> [ddnet] <Learath2> @Ryozuki I also prefer concrete error types but in this specific case this is irrecoverable anyway
+20:36 <+bridge> [ddnet] <Ryozuki> > if ur error implements std::error::Error you can do .map_err(|e| e.into()) and it gets boxed
+20:37 <+bridge> [ddnet] <Ryozuki> discord told me smth weird about a emote
+20:37 <+bridge> [ddnet] <Ryozuki> > The stdlib helps in boxing our errors by having Box implement conversion from any type that implements the Error trait into the trait object Box<Error>, via From.
+20:38 <+bridge> [ddnet] <Ryozuki> then why not panic kek
+20:38 <+bridge> [ddnet] <Learath2> It's not that irrecoverable 😄
+20:38 <+bridge> [ddnet] <Ryozuki> or use anyhow?
+20:38 <+bridge> [ddnet] <Ryozuki> https://docs.rs/anyhow/1.0.42/anyhow/
+20:38 <+bridge> [ddnet] <Learath2> This just needs to be done now, I can't afford to take anymore detours refactoring code to use anyhow and thiserror
+20:39 <+bridge> [ddnet] <Ryozuki> refactoring for anyhow should be super ez
+20:39 <+bridge> [ddnet] <Ryozuki> change Result<Message, Box<dyn StdError>>  to `Result<Message> ` where result is anyhow::Result
+20:39 <+bridge> [ddnet] <Learath2> The final thing will probably use thiserror but I'm not coding that until later, maybe end of august
+20:40 <+bridge> [ddnet] <Ryozuki> xd
+20:40 <+bridge> [ddnet] <Ryozuki> ye thiserror is the way i like most
+20:40 <+bridge> [ddnet] <Ryozuki> but its specially useful for libraries
+20:40 <+bridge> [ddnet] <Ryozuki> for clients anyhow does it
+20:40 <+bridge> [ddnet] <Ryozuki> binaries*
+20:41 <+bridge> [ddnet] <Learath2> This was a smart idea but it's not good enough here, the compiler can't infer the type inside the first `map_err`
+20:47 <+bridge> [ddnet] <heinrich5991> @Learath2 the problem is that hte compiler infers the wrong type, not that coercion doesn't happen, I think
+20:48 <+bridge> [ddnet] <Learath2> I have another interesting type issue
+20:49 <+bridge> [ddnet] <Learath2> > expected trait `std::error::Error`, found trait `std::error::Error + Sync + std::marker::Send`
+20:49 <+bridge> [ddnet] <Learath2> This one idk how to fix
+20:49 <+bridge> [ddnet] <Ryozuki> maybe add  + Sync + std::marker::Send
+20:49 <+bridge> [ddnet] <Ryozuki> brb eat
+20:49 <+bridge> [ddnet] <Learath2> Can't it's the trait function `source()`
+20:50 <+bridge> [ddnet] <Learath2> Well I do know how to fix it but it's quite ugly 😄
+20:51 <+bridge> [ddnet] <Learath2> `self.1.as_ref().map(|e| -> &(dyn StdError + 'static) { &**e })`
+20:51 <+bridge> [ddnet] <Learath2> Why doesn't the compiler know here that it can drop the two extra traits itself?
+20:52 <+bridge> [ddnet] <Learath2> idk, I sort of miss my concrete rules in C/C++ I honestly don't know whether something will compile or not until I hit compile in rust, and if it doesn't compile I usually don't get why not
+20:52 <+bridge> [ddnet] <Learath2> Also this entire thing is a bit of a fail on rusts part imo, `&**e` is so ugly 😛
+20:55 <+bridge> [ddnet] <Learath2> Actually I wonder as_deref would work
+21:00 <+bridge> [ddnet] <Ryozuki> do u actually compile it?
+21:00 <+bridge> [ddnet] <Ryozuki> cargo b?
+21:00 <+bridge> [ddnet] <Ryozuki> u justh ave to check it
+21:00 <+bridge> [ddnet] <Ryozuki> cargo c
+21:00 <+bridge> [ddnet] <Ryozuki> its faster
+21:00 <+bridge> [ddnet] <Ryozuki> also with rust-analyzer it will tell you
+21:01 <+bridge> [ddnet] <Learath2> No, rust-analyzer tells me, which is indeed faster
+21:01 <+bridge> [ddnet] <Learath2> but it's still sometimes baffling how hard it is to reason about extremely simple looking code in rust
+21:01 <+bridge> [ddnet] <Ryozuki> can u try self.source.as_ref().map(|err| err.as_ref() as _)
+21:02 <+bridge> [ddnet] <Ryozuki> `self.source.as_ref().map(|err| err.as_ref() as _)`
+21:02 <+bridge> [ddnet] <Ryozuki> stupid discord
+21:02 <+bridge> [ddnet] <Learath2> I did `self.1.as_deref().map(|e| -> &(dyn StdError + 'static) { e })` at the end and that works
+21:02 <+bridge> [ddnet] <Ryozuki> `self.1.as_ref().map(|err| err.as_ref() as _)`
+21:02 <+bridge> [ddnet] <Learath2> I can try yours too if you are interested
+21:02 <+bridge> [ddnet] <Ryozuki> try it
+21:03 <+bridge> [ddnet] <Learath2> Ah perfect, type inference does work with the explicit `as _`
+21:03 <+bridge> [ddnet] <Ryozuki> ye
+21:03 <+bridge> [ddnet] <Ryozuki> _ is like magic
+21:03 <+bridge> [ddnet] <Ryozuki> xd
+21:03 <+bridge> [ddnet] <Learath2> "is like magic" is not very good in a programming language 😄
+21:03 <+bridge> [ddnet] <Ryozuki> ik
+21:03 <+bridge> [ddnet] <Ryozuki> well i would look into it
+21:03 <+bridge> [ddnet] <Ryozuki> but im 2 lazy rn
+21:04 <+bridge> [ddnet] <Learath2> oh, this is another problem I have with rust, no spec
+21:04 <+bridge> [ddnet] <Learath2> When I want to lookup something very low level like this in C or C++ I just open the standard
+21:04 <+bridge> [ddnet] <Ryozuki> https://doc.rust-lang.org/stable/reference/
+21:04 <+bridge> [ddnet] <Ryozuki> look here
+21:04 <+bridge> [ddnet] <Ryozuki> its in the works tho
+21:04 <+bridge> [ddnet] <Ryozuki> but has lot of stuff already
+21:05 <+bridge> [ddnet] <Learath2> I checked around this to find the type inference rules to figure out why my first question wouldn't work
+21:05 <+bridge> [ddnet] <Learath2> couldn't find anything though
+21:05 <+bridge> [ddnet] <Ryozuki> https://doc.rust-lang.org/stable/reference/types/inferred.html
+21:05 <+bridge> [ddnet] <Ryozuki> this is the _
+21:05 <+bridge> [ddnet] <Ryozuki> for types
+21:05 <+bridge> [ddnet] <Ryozuki> > The inferred type asks the compiler to infer the type if possible based on the surrounding information available. It cannot be used in item signatures. It is often used in generic arguments:
+21:06 <+bridge> [ddnet] <Ryozuki> i guess its the following: since rust doesnt do implicit casts (that i know of) it will error because the type difers
+21:06 <+bridge> [ddnet] <Ryozuki> but as _
+21:06 <+bridge> [ddnet] <Ryozuki> is a explicit cast
+21:06 <+bridge> [ddnet] <Ryozuki> so it will allow it
+21:06 <+bridge> [ddnet] <Ryozuki> thats my nobo reasoning
+21:07 <+bridge> [ddnet] <Learath2> sounds reasonable
+21:08 <+bridge> [ddnet] <Learath2> they should maybe relax type matching for dyn
+21:08 <+bridge> [ddnet] <Learath2> `dyn Error + Send + Sync` definitely satisfies `dyn Error`
+21:09 <+bridge> [ddnet] <Ryozuki> rust strongly prefers monomorphization over dynamic dispatch
+21:09 <+bridge> [ddnet] <Ryozuki> thats why i never use dyn errors
+21:09 <+bridge> [ddnet] <heinrich5991> hm, but why? leads to code bloat
+21:09 <+bridge> [ddnet] <Ryozuki> i use my enum
+21:09 <+bridge> [ddnet] <Learath2> you don't like generics?
+21:11 <+bridge> [ddnet] <513> xD?
+21:11 <+bridge> [ddnet] <513> https://cdn.discordapp.com/attachments/293493549758939136/865672039142916176/unknown.png
+21:12 <+bridge> [ddnet] <Ryozuki> btw i think dyn dispatch in rust is more efficient, c++ uses 1 pointer to a structure that has the vtable and the data, rust has 2 pointers, one to the data and one to the vtable
+21:12 <+bridge> [ddnet] <Ryozuki> so its less indirection
+21:12 <+bridge> [ddnet] <Ryozuki> i read it somewhere
+21:12 <+bridge> [ddnet] <513> xd?
+21:12 <+bridge> [ddnet] <513> https://cdn.discordapp.com/attachments/293493549758939136/865672222961434694/unknown.png
+21:12 <+bridge> [ddnet] <Ryozuki> @513 pls report this elsewhere
+21:12 <+bridge> [ddnet] <heinrich5991> I think it leads to code bloat if you duplicate e.g. the sort function for essentially every call site
+21:13 <+bridge> [ddnet] <513> xd? one person created a bunch of tee
+21:13 <+bridge> [ddnet] <513> https://cdn.discordapp.com/attachments/293493549758939136/865672222961434694/unknown.png
+21:13 <+bridge> [ddnet] <Learath2> Hm, I don't really know what kind of optimizations are available to the compilers in case of generics, but I'd think they can share some code between the implementations
+21:14 <+bridge> [ddnet] <Ryozuki> u can profile
+21:14 <+bridge> [ddnet] <Ryozuki> the code
+21:14 <+bridge> [ddnet] <Ryozuki> https://github.com/rustwasm/twiggy
+21:14 <+bridge> [ddnet] <heinrich5991> no, afaik not @Learath2
+21:14 <+bridge> [ddnet] <Ryozuki> xd
+21:14 <+bridge> [ddnet] <heinrich5991> that "same function optimization" essentially never works AFAIK
+21:15 <+bridge> [ddnet] <Learath2> Hm, well we can take a look at c++ I guess
+21:15 <+bridge> [ddnet] <Ryozuki> i wonder how much bloat is acceptable, maybe if u are doing embedded u want everything with dynamic, but i dont think its that much elsewhere?
+21:15 <+bridge> [ddnet] <heinrich5991> @Learath2 c++ has the same problem, I think
+21:16 <+bridge> [ddnet] <Ryozuki> it does
+21:16 <+bridge> [ddnet] <Learath2> Yeah, that's why I'm checking C++ 😄
+21:16 <+bridge> [ddnet] <Learath2> if clang and gcc can't do it rustc probably can't either being my reasoning
+21:16 <+bridge> [ddnet] <heinrich5991> @Ryozuki every where code size matters
+21:17 <+bridge> [ddnet] <Ryozuki> but then why rust uses static dispatch everywhere?
+21:17 <+bridge> [ddnet] <heinrich5991> everywhere where*
+21:17 <+bridge> [ddnet] <heinrich5991> because it's fast™
+21:17 <+bridge> [ddnet] <heinrich5991> the slowness/code size doesn't show up in microbenchmarks
+21:17 <+bridge> [ddnet] <heinrich5991> I mean it's why C++ can be faster than C
+21:18 <+bridge> [ddnet] <heinrich5991> in microbenchmarks
+21:18 <+bridge> [ddnet] <Learath2> (dynamic dispatch is actually quite fast in the cases where the compiler can reason about the type allowing devirtualization)
+21:18 <+bridge> [ddnet] <heinrich5991> which I wouldn't rely on
+21:19 <+bridge> [ddnet] <heinrich5991> since it's halting problem hard, in general
+21:20 <+bridge> [ddnet] <Learath2> I would, problems don't need to be solved for every instance to be practically useful
+21:20 <+bridge> [ddnet] <Learath2> I rely on the compiler optimizing my code to an acceptable degree, even though that problem is halting problem hard too
+21:21 <+bridge> [ddnet] <heinrich5991> hmm. but I can reason about local code optimizations
+21:21 <+bridge> [ddnet] <heinrich5991> isn't the devirtualization a rather global optimization?
+21:21 <+bridge> [ddnet] <heinrich5991> if you get it from a struct field, the compiler has to ensure that nowhere else is this field assigned
+21:22 <+bridge> [ddnet] <Learath2> No, the compiler needs to locally know the dynamic type of the instance
+21:22 <+bridge> [ddnet] <heinrich5991> okay, so you can assume it works for things you just instantiated
+21:22 <+bridge> [ddnet] <Learath2> Or it needs to know that there are no overrides, so I guess it is a tad global
+21:24 <+bridge> [ddnet] <Learath2> Anyway, indeed `std::sort<int>` and `std::sort<float>` can't be optimized together
+21:25 <+bridge> [ddnet] <Learath2> So I guess it's fair to say generics will always imact binary size
+21:25 <+bridge> [ddnet] <Learath2> impact*
+21:29 <+bridge> [ddnet] <Learath2> We should benchmark this stuff on something like a c64
+21:30 <+bridge> [ddnet] <Learath2> Modern computers are just way too fast, way too spacious to even observe these things 😄
+21:52 <+bridge> [ddnet] <Nouaa> it is possible to teleport player from one tile to another tile simply without using the current tile because I don't want the "number" system 😄
+21:53 <+bridge> [ddnet] <Nouaa> something like 
+21:53 <+bridge> [ddnet] <Nouaa> ```cpp
+21:53 <+bridge> [ddnet] <Nouaa> if (m_TileIndex == TILE_TELEIN_1)
+21:53 <+bridge> [ddnet] <Nouaa>     {
+21:53 <+bridge> [ddnet] <Nouaa>         m_Core.m_Pos = TILE_TELEOUT_1;
+21:53 <+bridge> [ddnet] <Nouaa>     }
+21:53 <+bridge> [ddnet] <Nouaa> ```
+22:18 <+bridge> [ddnet] <gerdoe> actually no
+22:43 <+bridge> [ddnet] <heinrich5991> @Nouaa ye, you can do something like that. but `m_Core.m_Pos` needs to be set to a position, not a tile index
+22:48 <+bridge> [ddnet] <Learath2> You might also need to update the position of the entity aswell, not just the core, no?
+22:51 <+bridge> [ddnet] <heinrich5991> @Learath2 don't think there's a separate position(?)
+22:51 <+bridge> [ddnet] <Learath2> I've finally hit an error I can't even read 😄 https://paste.pr0.tips/GO
+22:52 <+bridge> [ddnet] <Ryozuki> can u show more code?
+22:52 <+bridge> [ddnet] <Learath2> um, `CEntity` has an `m_Pos` and `CCharacter : CEntity` so it has an `m_Pos` absolutely no idea if we use it though, don't really remember
+22:52 <+bridge> [ddnet] <heinrich5991> hm ok
+22:52 <+bridge> [ddnet] <Ryozuki> @Learath2 iirc async functions need 'static lifetimes
+22:53 <+bridge> [ddnet] <Ryozuki> idk
+22:53 <+bridge> [ddnet] <Learath2> ```rust
+22:53 <+bridge> [ddnet] <Learath2> pub async fn sql_start_transaction<'a, T: Acquire<'a>>(c: T) -> Result<Transaction<'a, T::Database>, sqlx::Error> {
+22:53 <+bridge> [ddnet] <Learath2>     c.acquire().await?.begin().await
+22:53 <+bridge> [ddnet] <Learath2> }```
+22:54 <+bridge> [ddnet] <Ryozuki> ```rust
+22:54 <+bridge> [ddnet] <Ryozuki> pub async fn sql_start_transaction<T: Acquire<'static>>(c: T) -> Result<Transaction<'static, T::Database>, sqlx::Error> {
+22:54 <+bridge> [ddnet] <Ryozuki>     c.acquire().await?.begin().await
+22:54 <+bridge> [ddnet] <Ryozuki> }
+22:54 <+bridge> [ddnet] <Ryozuki> ```
+22:54 <+bridge> [ddnet] <Ryozuki> does this work?
+22:54 <+bridge> [ddnet] <Ryozuki> xd
+22:54 <+bridge> [ddnet] <Ryozuki> ok idk
+22:55 <+bridge> [ddnet] <Learath2> I can try in a couple minutes, but not sure if that makes sense, the lifetime parameter within acquire seems to be the lifetime of the connection
+22:58 <+bridge> [ddnet] <Ryozuki> ok i think i can ty it locally
+23:06 <+bridge> [ddnet] <Ryozuki> i think its cuz .await requires a static lifetime
+23:33 <+bridge> [ddnet] <Learath2> on what though?
+23:33 <+bridge> [ddnet] <Learath2> The future itself? It's output?
+23:52 <+bridge> [ddnet] <Ryozuki> idk dont mind me xd

@@ -1,0 +1,135 @@
+00:00 <+bridge> [ddnet] <lynn> wait you just gave me an idea
+00:00 <+bridge> [ddnet] <lynn> maybe it doesnt work thoug
+00:00 <+bridge> [ddnet] <lynn> maybe it doesnt work though
+00:01 <+bridge> [ddnet] <lynn> it involves storage of IPs on master so i think it can't be done under privacy law
+00:01 <+bridge> [ddnet] <uwu> :nouis:
+00:02 <+bridge> [ddnet] <lynn> if we have the ability to classify region based on IP the same could be done for players
+00:02 <+bridge> [ddnet] <lynn> and then we could insert approximate ping for servers that have not been connected to
+00:02 <+bridge> [ddnet] <lynn> but maybe the server determination is more secure than player could be, and it wouldn't work as well
+00:03 <+bridge> [ddnet] <uwu> Actually i know nothing, forget what i said above just open code and see how it works. Good noght i goo sleep😴
+00:04 <+bridge> [ddnet] <lynn> meh we can just do something like "opt into geolocation for approximate ping values for new servers"
+00:04 <+bridge> [ddnet] <lynn> good night
+00:06 <+bridge> [ddnet] <Patiga> with the new master that is also no longer possible as I understand it, since it is now cached behind cloudflare
+00:08 <+bridge> [ddnet] <lynn> @Patiga what do you think about the idea of averaging ping for client storage
+00:08 <+bridge> [ddnet] <lynn> bad because it's technically inaccurate? or helpful
+00:09 <+bridge> [ddnet] <lynn> i think it should always store the lowest value
+00:09 <+bridge> [ddnet] <lynn> unless there's a really old ping that is lower, and the new ping is consistently higher
+00:10 <+bridge> [ddnet] <Patiga> hm
+00:10 <+bridge> [ddnet] <Patiga> I have no idea about the code there, but averaging probably comes with its own problems
+00:10 <+bridge> [ddnet] <lynn> yeah like 999 ping
+00:10 <+bridge> [ddnet] <louis> average > lowest ping
+00:10 <+bridge> [ddnet] <lynn> maybe it should just store high ping if it's consistent in the current session compared to last session
+00:10 <+bridge> [ddnet] <louis> some people have jumpy pings so lowest ping would be less accurate
+00:11 <+bridge> [ddnet] <lynn> okay but let's say you have 60 ping to a server and you disconnect in a ddos at 999 ping. then you have 500 ping and your filter makes it so you dont see it anymore
+00:11 <+bridge> [ddnet] <Patiga> what do you mean with averaging btw, which data do you use?
+00:11 <+bridge> [ddnet] <lynn> there needs to be a threshold on when to average
+00:11 <+bridge> [ddnet] <Patiga> do you take it each time you disconnect?
+00:12 <+bridge> [ddnet] <lynn> 3 things, last disconnect ping, last average / lowest ping (however we decide), and transient ping
+00:12 <+bridge> [ddnet] <lynn> like whatever is recent
+00:12 <+bridge> [ddnet] <lynn> last disconnect ping should be favored if it is low
+00:12 <+bridge> [ddnet] <lynn> but if the new values are consistent, we have to consider that a player may have moved or changed internet service
+00:12 <+bridge> [ddnet] <louis> cant you ignore outliers when calculating average
+00:12 <+bridge> [ddnet] <lynn> yes
+00:12 <+bridge> [ddnet] <lynn> but what is a good threshold?
+00:13 <+bridge> [ddnet] <lynn> what is normal deviation for inconsistent ping?
+00:13 <+bridge> [ddnet] <lynn> 05?
+00:13 <+bridge> [ddnet] <lynn> 50?
+00:13 <+bridge> [ddnet] <louis> idk maybe do mode then
+00:14 <+bridge> [ddnet] <Patiga> I mean do we want to see servers that we left with a 999 ping?
+00:14 <+bridge> [ddnet] <lynn> ping has several nearby values for close fluctuations
+00:14 <+bridge> [ddnet] <lynn> i dont think mode can work
+00:14 <+bridge> [ddnet] <lynn> you have to "lump" pings together for average consideration
+00:15 <+bridge> [ddnet] <lynn> i think most people will not want that, but there may be some that want
+00:15 <+bridge> [ddnet] <lynn> imo 999 ping is never really "accurate"
+00:15 <+bridge> [ddnet] <lynn> it may have been accurate when you left
+00:15 <+bridge> [ddnet] <lynn> but is it really accurate before you start playing again?
+00:15 <+bridge> [ddnet] <lynn> most likely not
+00:15 <+bridge> [ddnet] <louis> i mean technically the ddos ping getting into average is accurate :monkalaugh:
+00:15 <+bridge> [ddnet] <lynn> yes, but what about when you plan to connect again
+00:15 <+bridge> [ddnet] <lynn> and ddos is done
+00:16 <+bridge> [ddnet] <lynn> it's not accurate anyomre
+00:16 <+bridge> [ddnet] <lynn> it's not accurate anymore
+00:16 <+bridge> [ddnet] <louis> then itll average out later
+00:16 <+bridge> [ddnet] <lynn> but you cant see the server anymore because ping filter
+00:16 <+bridge> [ddnet] <louis> dont use ping filter
+00:16 <+bridge> [ddnet] <lynn> this is not ideal xd
+00:16 <+bridge> [ddnet] <lynn> it should be resilient to wild fluctuations
+00:16 <+bridge> [ddnet] <Patiga> I think smth like take the ping on disconnect and the ones in the last 5 secs and average them could be fine
+00:16 <+bridge> [ddnet] <lynn> yeah i have something like that in github
+00:16 <+bridge> [ddnet] <Patiga> recent values, a bit of average
+00:16 <+bridge> [ddnet] <lynn> in the issue comment
+00:17 <+bridge> [ddnet] <lynn> last 16 pings, recorded every 30 seconds
+00:17 <+bridge> [ddnet] <lynn> then try to come to an average within an outlier threshold
+00:17 <+bridge> [ddnet] <lynn> average that with last disconnect ping
+00:17 <+bridge> [ddnet] <lynn> repeat
+00:17 <+bridge> [ddnet] <louis> if u record every 30 seconds then i dont think u need disconnect pings
+00:17 <+bridge> [ddnet] <lynn> if you disconnect mid-collection just use all those values for the basis of your average
+00:17 <+bridge> [ddnet] <lynn> disconnect ping is important for historic context
+00:18 <+bridge> [ddnet] <lynn> an average of 16 pings in 8 minutes is still inaccurate if the ddos lasts that long
+00:18 <+bridge> [ddnet] <lynn> honestly we might want to up it to 15 seconds
+00:18 <+bridge> [ddnet] <lynn> so 16 pings in 4 minutes
+00:18 <+bridge> [ddnet] <lynn> seems more realistic
+00:19 <+bridge> [ddnet] <Patiga> imo this approach is too complicated. that doesn't sound intuitive for the user to me
+00:19 <+bridge> [ddnet] <lynn> i want to avoid using arbitrary things like thresholds
+00:19 <+bridge> [ddnet] <lynn> maybe if your ping was stable in a certain range it changes to the average
+00:19 <+bridge> [ddnet] <lynn> and that's the only criteria
+00:20 <+bridge> [ddnet] <lynn> but ddos ofc still affects this
+00:20 <+bridge> [ddnet] <Patiga> imo if a server gets ddosed the client should see it as 999
+00:20 <+bridge> [ddnet] <Patiga> only maybe the master server could detect ddos and send that info to the client
+00:20 <+bridge> [ddnet] <lynn> just sucks for people using ping filter
+00:21 <+bridge> [ddnet] <lynn> or never try to connect to a server again if it was ddossed and they just connect to top pings
+00:21 <+bridge> [ddnet] <Patiga> here the master server could tell the client that this specific server isn't ddosed anymore, so reset your ping
+00:22 <+bridge> [ddnet] <lynn> hmm so like two values on the client
+00:22 <+bridge> [ddnet] <Patiga> no, one
+00:22 <+bridge> [ddnet] <lynn> historic_ping and incidental_ping
+00:22 <+bridge> [ddnet] <lynn> well, we want to avoid ping queries without having to disconnect right?
+00:22 <+bridge> [ddnet] <lynn> so the client would have to remember the old ping
+00:23 <+bridge> [ddnet] <lynn> instead of it being fed from the master server
+00:23 <+bridge> [ddnet] <Patiga> that would work too, but I think the current way, displaying it as the region, would work as well
+00:23 <+bridge> [ddnet] <lynn> ah i see
+00:23 <+bridge> [ddnet] <lynn> yeah that can work fine
+00:23 <+bridge> [ddnet] <Patiga> both is good
+00:24 <+bridge> [ddnet] <lynn> i think having historic_ping and then if they are in game while ddos starts, the client is notified and it stores something in incidental
+00:24 <+bridge> [ddnet] <lynn> and master server can reply with "server is ok now" and it will remove incidental and use historic
+00:25 <+bridge> [ddnet] <lynn> having this at server level is way better btw
+00:25 <+bridge> [ddnet] <lynn> because we've completely solved the issue of confusing client connection for ddos
+00:27 <+bridge> [ddnet] <Patiga> 👍, historic ping could work really well, although I think it might also be really annoying/hard to get right
+00:27 <+bridge> [ddnet] <Patiga> since its a value that you would need to adjust a lot with changing circumstances, you can't just write down one simple number and be happy
+00:29 <+bridge> [ddnet] <lynn> i mean you always put ping there unless the server tells you it's being ddosed
+00:29 <+bridge> [ddnet] <lynn> and then when you connect, the server tells you if it's being ddosed a single time
+00:29 <+bridge> [ddnet] <lynn> and it either throws away incidental or keeps using it
+00:30 <+bridge> [ddnet] <lynn> and then when you query master, the master server tells you if it's being ddosed a single time
+00:30 <+bridge> [ddnet] <lynn> sorry edited
+00:31 <+bridge> [ddnet] <Patiga> but the 'current' ping is updated constantly, you contact the master server much less frequently
+00:31 <+bridge> [ddnet] <Patiga> ^ while you are connected to the server
+00:31 <+bridge> [ddnet] <Patiga> -> since out of the server you can't update the ping
+00:32 <+bridge> [ddnet] <lynn> well doesn't the server communicate with master
+00:32 <+bridge> [ddnet] <lynn> and if it's able to tell if it's being ddosed it forwards that to the client
+00:32 <+bridge> [ddnet] <Patiga> you mean the server can tell you it is being ddosed?
+00:33 <+bridge> [ddnet] <lynn> can't we do this
+00:33 <+bridge> [ddnet] <lynn> i guess the client would just ask the master server for this info periodically
+00:35 <+bridge> [ddnet] <Patiga> yeah, although by the time you get that info from the master server, you will already be experiencing ddos ping
+00:35 <+bridge> [ddnet] <Patiga> I'm not trying to say its impossible, only that this approach will have some complications to get it right
+00:49 <+bridge> [ddnet] <lynn> hmm yeah
+00:50 <+bridge> [ddnet] <lynn> i think it's better if the game server handles the request for all connected clients, and it does it frequently enough to record your incident ping before historic
+00:50 <+bridge> [ddnet] <lynn> and the server just broadcasts the ddos flag asap to all clients
+00:53 <+bridge> [ddnet] <lynn> im even wondering now if it would be better to keep a running average, and compress similar historic values as a single average value that's multiplied by some amount
+00:54 <+bridge> [ddnet] <lynn> brain working
+00:58 <+bridge> [ddnet] <lynn> ping = (ping * max(days since first connect, 30) + new ping) / (max(days since first connect, 30) + 1)
+00:58 <+bridge> [ddnet] <lynn> maybe 30 days max is too hight
+00:58 <+bridge> [ddnet] <lynn> maybe 30 days max is too high
+01:02 <+bridge> [ddnet] <lynn> hmm i think i just thought of a great solution
+02:23 <+bridge> [ddnet] <chillerdragon> When I heard the first time that C is a high level language I was kinda confused \:DBut this video shows what dirty hacks are required to do some bit magic with floatshttps://youtu.be/p8u_k2LIZyo
+06:33 <+bridge> [ddnet] <Maiski> The evil floating point bit hack is wrong because it casts through a pointer
+06:34 <+bridge> [ddnet] <Maiski> A C compiler is allowed to think that a long pointer can never point to the same location as a float pointer
+06:35 <+bridge> [ddnet] <Maiski> The code could be fixed by using memcpy
+06:37 <+bridge> [ddnet] <Maiski> Or it could use a union because casting through a union is implementation-defined behavior in C
+08:36 <+bridge> [ddnet] <Tater> can someone who knows a lot about the games code tell me if it's possible to compile a server version where the predictions margin is higher?
+08:36 <+bridge> [ddnet] <Tater> https://cdn.discordapp.com/attachments/293493549758939136/873092065502851102/unknown.png
+08:36 <+bridge> [ddnet] <Tater> can someone who knows a lot about the games code tell me if it's possible to compile a server version where the prediction margin is higher?
+08:36 <+bridge> [ddnet] <Tater> https://cdn.discordapp.com/attachments/293493549758939136/873092065502851102/unknown.png
+08:58 <+bridge> [ddnet] <Ryozuki> man github doesnt load any images and github pages domains
+08:58 <+bridge> [ddnet] <Ryozuki> some dns problem?
+08:58 <+bridge> [ddnet] <Ryozuki> this sucks
+08:58 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/873097738672283659/unknown.png
+09:01 <+bridge> [ddnet] <Ryozuki> searching problems about github is always a lost battle, you end up seeing some random issues from random repos
