@@ -1,0 +1,115 @@
+00:53 < bridge> [ddnet] <Anime.pdf> Is there any work with threads in teeworlds code?
+00:53 < bridge> [ddnet] <Anime.pdf> Is there any work with threads in teeworlds(ddnet) code?
+00:55 < bridge> [ddnet] <fokkonaut> Yes
+00:57 < bridge> [ddnet] <Jupstar ✪> what is your bug?
+00:57 < bridge> [ddnet] <Jupstar ✪> std::thread should work just fine
+00:58 < bridge> [ddnet] <Learath2> (or the more tee-ish engine jobs which should be used if possible)
+00:58 < bridge> [ddnet] <Anime.pdf> Its not
+00:58 < bridge> [ddnet] <fokkonaut> or thread_init_and_detach xD
+00:58 < bridge> [ddnet] <Learath2> oh yeah we do have an abstraction around threads too
+00:58 < bridge> [ddnet] <Anime.pdf> I use std::thread t1(*my void function*) and it gives me error
+00:59 < bridge> [ddnet] <Learath2> Since none of us here have telepathic abilities we can't really diagnose from just "error" 😄
+00:59 < bridge> [ddnet] <Jupstar ✪> u cannot just run a function from a class
+00:59 < bridge> [ddnet] <Jupstar ✪> u need to bind this then
+01:00 < bridge> [ddnet] <Jupstar ✪> or use a static function and call it from there
+01:00 < bridge> [ddnet] <Jupstar ✪> std::bind(&Class::Func, this)
+01:00 < bridge> [ddnet] <Jupstar ✪> should work
+01:00 < bridge> [ddnet] <Anime.pdf> :Alzheimer:
+01:00 < bridge> [ddnet] <Anime.pdf> Thx
+01:00 < bridge> [ddnet] <Anime.pdf> I will test it tmrw
+01:04 < bridge> [ddnet] <Jupstar ✪> c++11 is nicer way imo xd
+01:04 < bridge> [ddnet] <Learath2> I'd disagree since I'm a fan of using only one set of abstractions, but to each their own
+01:05 < bridge> [ddnet] <fokkonaut> What do you think about how I solved #3917?
+01:05 < bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/3917
+01:05 < bridge> [ddnet] <fokkonaut> It works but im not sure if there is a better way
+01:06 < bridge> [ddnet] <Learath2> I don't know of any, @heinrich5991 might
+01:06 < bridge> [ddnet] <Jupstar ✪> but whats wrong with c++11 tho? its standard
+01:06 < bridge> [ddnet] <Jupstar ✪> ez to read for everyone
+01:07 < bridge> [ddnet] <Learath2> I mean if you think `thread_init` is any harder to read there is nothing to discuss, but given they are equally readable we already use one in the codebase, no need to introduce another one
+01:08 < bridge> [ddnet] <Jupstar ✪> yeah but that makes the code more complex
+01:08 < bridge> [ddnet] <Jupstar ✪> a name u need to know
+01:08 < bridge> [ddnet] <Jupstar ✪> if u a new contributor u would search for this function
+01:08 < bridge> [ddnet] <Learath2> (fwiw I'd be okay if we replaced all uses of it, mine is just a consistency thing)
+01:09 < bridge> [ddnet] <Jupstar ✪> a ok
+02:00 < bridge> [ddnet] <heinrich5991> https://www.redox-os.org/news/open-source-mental-health/
+02:04 < bridge> [ddnet] <Jupstar ✪> yeah i think georode sent this a few days ago
+02:04 < bridge> [ddnet] <Jupstar ✪> not sure if i agree with everything psychologically wise
+02:04 < bridge> [ddnet] <Jupstar ✪> but still good insight
+02:08 < bridge> [ddnet] <Jupstar ✪> yeah i think gerdoe sent this a few days ago
+02:08 < bridge> [ddnet] <Jupstar ✪> not sure if i agree with everything psychologically wise
+02:19 < bridge> [ddnet] <Learath2> Hm, async rust really does need some more work, I just remembered a condition variable solves my issue perfectly but tokio doesn't have one yet
+08:35 < bridge> [ddnet] <Ryozuki> But rust has cond vars iirc
+08:35 < bridge> [ddnet] <Ryozuki> Or atleast a lib
+08:37 < bridge> [ddnet] <Ryozuki> @Learath2 https://docs.rs/tokio/0.2.13/tokio/sync/struct.Notify.html
+08:37 < bridge> [ddnet] <Ryozuki> I think u can use this
+08:38 < bridge> [ddnet] <Ryozuki> https://docs.rs/tokio/1.7.0/tokio/sync/struct.Notify.html
+08:38 < bridge> [ddnet] <Ryozuki> Updated*
+09:05 < bridge> [ddnet] <Learath2> Close but no dice. Condvars are great because they also have a mutex meaning I can safely access the condition after being notified
+09:06 < bridge> [ddnet] <Learath2> Rust only has a sync one working with std::sync::Mutex
+09:07 < bridge> [ddnet] <Ryozuki> https://github.com/tokio-rs/tokio/pull/3742
+09:07 < bridge> [ddnet] <Ryozuki> its closed tho
+09:07 < bridge> [ddnet] <Ryozuki> > We discussed this on discord. It seems that implementing an async Condvar that behaves correctly in the face of cancellation is difficult
+09:08 < bridge> [ddnet] <Ryozuki> async-std, a competing runtime to tokio has it, but ignores cancellation
+09:08 < bridge> [ddnet] <Learath2> Condvars that behave correctly are indeed very hard :F
+09:10 < bridge> [ddnet] <Learath2> http://birrell.org/andrew/papers/ImplementingCVs.pdf here is a paper that shows why
+09:12 < bridge> [ddnet] <Ryozuki> > The tricky part arises because of the binary atomic operation in 
+09:12 < bridge> [ddnet] <Ryozuki> > Wait, where the lock is released and the thread is enqueued on the condition variable. 
+09:12 < bridge> [ddnet] <Ryozuki> > If you don’t have a suitable binary operation available, and you attempt to construct 
+09:12 < bridge> [ddnet] <Ryozuki> > one by clever use of something like a semaphore, you’ll probably end up with an 
+09:12 < bridge> [ddnet] <Ryozuki> > incorrect implementation. You should either do the queuing yourself, or lobby your 
+09:12 < bridge> [ddnet] <Ryozuki> > kernel implementer to provide a suitable primitive.
+09:16 < bridge> [ddnet] <Learath2> Queuing explicitly is what glibc does, I might contribute a similar implementation to tokio but threads you can't cancel, tokio tasks you can, which is kinda difficult to handle
+09:21 < bridge> [ddnet] <Learath2> Actually, I know how to fix that one too, most common definition of condition vars only allows a thread queued at the signal point to handle a signal, the cancellation example given there is moot, a task should never be able to wake itself up with a signal
+09:22 < bridge> [ddnet] <Learath2> so if a task waiting on a signal is cancelled unless there is another task waiting, the signal should be discarded
+09:38 < bridge> [ddnet] <loky> what are the standard ports for teeworlds?
+09:39 < bridge> [ddnet] <loky> 8303?
+09:39 < bridge> [ddnet] <Jupstar ✪> yes
+09:39 < bridge> [ddnet] <loky> ty
+11:42 < bridge> [ddnet] <lynn> pls merge
+11:44 < bridge> [ddnet] <Jupstar ✪> i bet we cant bcs it breaks some old clients xdddd
+11:44 < bridge> [ddnet] <Jupstar ✪> but funny nobody noticed yet
+11:47 < bridge> [ddnet] <lynn> i am crying
+11:47 < bridge> [ddnet] <Jupstar ✪> was joke
+11:48 < bridge> [ddnet] <lynn> no you made me cry
+11:48 < bridge> [ddnet] <lynn> too late
+11:48 < bridge> [ddnet] <Jupstar ✪> i dunno if some messages gets parsed
+11:48 < bridge> [ddnet] <lynn> :''''(
+11:48 < bridge> [ddnet] <Jupstar ✪> its ok to cry
+11:49 < bridge> [ddnet] <lynn> https://www.youtube.com/watch?v=m_S0qCeA-pc
+11:50 < bridge> [ddnet] <lynn> rest in peace btw
+11:51 < bridge> [ddnet] <nuborn> sophie is cool
+11:53 < bridge> [ddnet] <lynn> died waaaaay too soon
+11:54 < bridge> [ddnet] <lynn> @nuborn you like hyperpop?
+11:54 < bridge> [ddnet] <lynn> o let's move to #off-topic
+11:54 < bridge> [ddnet] <nuborn> sure
+12:37 < bridge> [ddnet] <Anime.pdf> @Jupstar ✪ :mae_death_2::mae_death_1: it says there are no constructors of `std:🧵:thread` with `(void())` arguments
+12:37 < bridge> [ddnet] <Anime.pdf> https://cdn.discordapp.com/attachments/293493549758939136/855033338921222154/unknown.png
+12:41 < bridge> [ddnet] <Jupstar ✪> auto ircStartFunc = std::bind ...
+12:42 < bridge> [ddnet] <Anime.pdf> :earlessfloppa:
+12:42 < bridge> [ddnet] <Anime.pdf> okay
+12:42 < bridge> [ddnet] <Jupstar ✪> or put the std::bind directly into the iirc thread parameter
+12:43 < bridge> [ddnet] <Anime.pdf> it worked
+12:43 < bridge> [ddnet] <Anime.pdf> thx
+12:43 < bridge> [ddnet] <Anime.pdf> :feelsamazingman:
+13:37 < bridge> [ddnet] <Ryozuki> https://urbit.org/
+13:42 < bridge> [ddnet] <lynn> i have been following urbit for a whilke
+13:42 < bridge> [ddnet] <lynn> i have been following urbit for a while
+13:42 < bridge> [ddnet] <lynn> but recently havent heard much
+15:57 < bridge> [ddnet] <Ryozuki> https://www.phoronix.com/scan.php?page=news_item&px=Zink-Suballocator-Performance
+15:57 < bridge> [ddnet] <Ryozuki> @Jupstar ✪
+15:58 < bridge> [ddnet] <Ryozuki> Blumenkrantz summed up the impact in a new blog post as "massively improved performance" across many apps/games. As an extreme example, Tomb Raider (2013) went on Zink from running at a horrible 9 FPS to now at 91 FPS... Quite a big improvement and likely puts it closer to native OpenGL driver performance.
+15:59 < bridge> [ddnet] <Ryozuki> Ddnet zink :greenthing:
+19:54 < bridge> [ddnet] <FreZZ7> short question to developers, is there a "vull command list" of tw somewhere? im looking for a command to display something permant, something like echo but as an hud....
+19:56 < bridge> [ddnet] <chillerdragon> press tab in console
+19:56 < bridge> [ddnet] <chillerdragon> https://wiki.ddnet.tw/wiki/Settings_and_Commands
+19:56 < bridge> [ddnet] <chillerdragon> im not sure how up to date that is
+19:56 < bridge> [ddnet] <chillerdragon> also the command u search does not exist
+19:57 < bridge> [ddnet] <chillerdragon> u can order that feature for chillerbot-ux tho \:D
+19:59 < bridge> [ddnet] <FreZZ7> thanks
+20:09 < bridge> [ddnet] <FreZZ7> whats that? xd
+20:32 < bridge> [ddnet] <chillerdragon> whats what? \:D
+20:40 < bridge> [ddnet] <heinrich5991> what's chillerbot-ux
+20:41 < bridge> [ddnet] <heinrich5991> it's a custom client by chillerdragon
+20:41 < bridge> [ddnet] <chillerdragon> oh did the bridge swallow a reply again? \:/
+20:41 < bridge> [ddnet] <chillerdragon> or am i just stoopid? \:D
+20:42 < bridge> [ddnet] <Jupstar ✪> If it would just work on windows correctly :\

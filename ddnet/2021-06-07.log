@@ -1,0 +1,515 @@
+00:37 < bridge> [ddnet] <Anime.pdf> how can i translate player color to RBGA
+00:37 < bridge> [ddnet] <Anime.pdf> how can i translate player color to RGBA
+00:43 < bridge> [ddnet] <lynn> isn't it output as hex with an additional 2 hex digits for transparency
+00:43 < bridge> [ddnet] <Anime.pdf> :Alzheimer:
+00:43 < bridge> [ddnet] <Anime.pdf> thx
+00:44 < bridge> [ddnet] <Learath2> Depends on where you are looking for it, in the console if you print numbers it will tell you r g and b values
+00:44 < bridge> [ddnet] <Learath2> @heinrich5991 here?
+00:44 < bridge> [ddnet] <Learath2> or @Ryozuki, or anyone else with rust experience really
+00:45 < bridge> [ddnet] <Anime.pdf> oh wow didnt noticed this was added
+00:45 < bridge> [ddnet] <Anime.pdf> https://cdn.discordapp.com/attachments/293493549758939136/851230250968154112/unknown.png
+00:45 < bridge> [ddnet] <Anime.pdf> oh wow didnt notic this was added
+00:45 < bridge> [ddnet] <Anime.pdf> https://cdn.discordapp.com/attachments/293493549758939136/851230250968154112/unknown.png
+00:45 < bridge> [ddnet] <Anime.pdf> oh wow didnt notice this was added
+00:45 < bridge> [ddnet] <Anime.pdf> https://cdn.discordapp.com/attachments/293493549758939136/851230250968154112/unknown.png
+00:45 < bridge> [ddnet] <Learath2> @uwu try to be conservative with your edits in this channel, they sort of spam irc
+00:45 < bridge> [ddnet] <Anime.pdf> sry
+00:47 < bridge> [ddnet] <heinrich5991> @Learath2 here
+00:47 < bridge> [ddnet] <Learath2> @heinrich5991 How would you go about wrapping multiple error types? I want my `InternalError` to be able to hold either a `std::env::VarError` or a `reqwest::Error`
+00:48 < bridge> [ddnet] <heinrich5991> what are you writing? application or library?
+00:48 < bridge> [ddnet] <Learath2> application
+00:48 < bridge> [ddnet] <Learath2> but it's a module that really should be just propagating it's errors upwards
+00:49 < bridge> [ddnet] <heinrich5991> they say https://github.com/dtolnay/anyhow for applications and https://github.com/dtolnay/thiserror for libraries
+00:49 < bridge> [ddnet] <Anime.pdf> so well do i need to enter hex code in ColorRGBA constructor
+00:49 < bridge> [ddnet] <heinrich5991> you can also emulate thiserror yourself with a few From implementations and an enum
+00:49 < bridge> [ddnet] <Anime.pdf> cuz r, g and b as args are not working
+00:49 < bridge> [ddnet] <Learath2> @uwu no, ColorRGBA has multiple constructors, I don't think it has a hex one
+00:50 < bridge> [ddnet] <Anime.pdf> i just get white instead of blue
+00:50 < bridge> [ddnet] <Anime.pdf> :whenwwseeachild:
+00:50 < bridge> [ddnet] <Learath2> @heinrich5991 I have `enum Error { InternalError, BackendError(String) }` not really sure how to shove either error into an InternalError
+00:51 < bridge> [ddnet] <heinrich5991> do you want to keep the representation or not?
+00:51 < bridge> [ddnet] <heinrich5991> you probably want to wrap it, right?
+00:51 < bridge> [ddnet] <Learath2> I could do `enum Error { VarError(std::env::VarError), ReqwestError(reqwest::Error), BackendError(String)}` but I'd much prefer if I could have just one `InternalError`
+00:51 < bridge> [ddnet] <Learath2> I want to wrap it, so yeah, keep the representation
+00:53 < bridge> [ddnet] <heinrich5991> do you want to avoid a dependency on anyhow?
+00:53 < bridge> [ddnet] <heinrich5991> ```rust
+00:53 < bridge> [ddnet] <heinrich5991> enum Error { Internal(anyhow::Error), Backend(String) }
+00:53 < bridge> [ddnet] <heinrich5991> ```
+00:53 < bridge> [ddnet] <Learath2> Well I can use anyhow, but I'm still getting more familiar with rust so I'd prefer to also know what it does to achieve this
+00:54 < bridge> [ddnet] <heinrich5991> anyhow uses a trait object representation (like virtual base class polymorphism). we can handcraft it though
+00:54 < bridge> [ddnet] <Learath2> (I'm guessing it's a `Box<dyn Error>` underneath it all)
+00:54 < bridge> [ddnet] <heinrich5991> under anyhow, yes
+00:56 < bridge> [ddnet] <heinrich5991> ```
+00:56 < bridge> [ddnet] <heinrich5991> enum Error { Internal(Box<dyn Error>), Backend(String) }
+00:56 < bridge> [ddnet] <heinrich5991> // or
+00:56 < bridge> [ddnet] <heinrich5991> enum Error { Internal(InternalError), Backend(String) }
+00:56 < bridge> [ddnet] <heinrich5991> enum InternalError { Var(std::env::VarError), Reqwest(reqwest::Error) }
+00:56 < bridge> [ddnet] <heinrich5991> ```
+00:56 < bridge> [ddnet] <Learath2> hm, we should be able to avoid this kind of dynamic polymorphism though, since all my error types are known in advance, no?
+00:56 < bridge> [ddnet] <heinrich5991> that's the latter representation above
+00:57 < bridge> [ddnet] <Learath2> Ah, someone should do a rfc for anonymous enums 😄
+00:57 < bridge> [ddnet] <heinrich5991> then do
+00:57 < bridge> [ddnet] <heinrich5991> ```rs
+00:57 < bridge> [ddnet] <heinrich5991> impl From<std::env::VarError> for Error {
+00:57 < bridge> [ddnet] <heinrich5991>     fn from(e: std::env::VarError) -> Error {
+00:57 < bridge> [ddnet] <heinrich5991>         Error::Internal(InternalError::Var(e))
+00:57 < bridge> [ddnet] <heinrich5991>     }
+00:58 < bridge> [ddnet] <heinrich5991> }
+00:58 < bridge> [ddnet] <heinrich5991> ```
+00:58 < bridge> [ddnet] <heinrich5991> and the same for the reqwest error
+00:58 < bridge> [ddnet] <heinrich5991> that enables you to use the ? operator
+00:58 < bridge> [ddnet] <Learath2> Yeah already had the froms there, I was just missing the second enum
+00:58 < bridge> [ddnet] <Learath2> Q: How costly is rusts runtime polymorphism? About around C++?
+00:59 < bridge> [ddnet] <heinrich5991> the runtime polymorphism works quite similar, except that the vtable pointer is stored next to the pointer instead of inside the pointed-to object
+01:00 < bridge> [ddnet] <heinrich5991> i.e. Box<dyn std::error::Error> is two pointers wide
+01:00 < bridge> [ddnet] <heinrich5991> This emoji doesn't work here because it's from a different server. Discord Nitro can solve all of that, check User Settings > Nitro for details
+01:00 < bridge> [ddnet] <Learath2> 😄
+01:01 < bridge> [ddnet] <Learath2> I'll have to use a `Box<dyn Error>` anyway, apparently reqwest errors don't implement the trait Clone
+01:02 < bridge> [ddnet] <heinrich5991> I see no reason why boxing would help with that issue
+01:03 < bridge> [ddnet] <heinrich5991> thiserror helps with the enum boilerplate btw, and anyhow with the trait object boilerplate
+01:03 < bridge> [ddnet] <Learath2> Hm, I guess I could drop the Clone trait from my own error type
+01:04 < bridge> [ddnet] <heinrich5991> (a boxed reqwest error is still unclonable)
+01:05 < bridge> [ddnet] <Patiga> If you want to propagate the errors upwards, you probably also want to match them, right?
+01:05 < bridge> [ddnet] <Patiga> is matching possible with anyhow?
+01:05 < bridge> [ddnet] <heinrich5991> not really (a little bit)
+01:06 < bridge> [ddnet] <heinrich5991> but in practice I never ended up matching on "what library did this error originate from" (for libtw2 at least)
+01:06 < bridge> [ddnet] <Learath2> It's nice that this language makes you think about errors but sometimes you just want to get on with it 😄
+01:06 < bridge> [ddnet] <Patiga> ah I suppose the assumption here might be the problem then ^^
+01:06 < bridge> [ddnet] <heinrich5991> @Learath2 take anyhow then
+01:07 < bridge> [ddnet] <Learath2> I'll do the two enums, I don't need to change my code then, just need to rename a couple things
+01:07 < bridge> [ddnet] <heinrich5991> it's really nice. it gives you the possibility to attach context
+01:07 < bridge> [ddnet] <Learath2> I need to match the errors outside, is that possible with anyhow?
+01:07 < bridge> [ddnet] <heinrich5991> not really
+01:07 < bridge> [ddnet] <heinrich5991> (you could downcast them, but it's ugly)
+01:08 < bridge> [ddnet] <heinrich5991> can you explain why it's interesting whether you get a VarError or a reqwest error from the outside?
+01:12 < bridge> [ddnet] <Learath2> A VarError I can't recover from (but I'm not really sure how to cleanly die inside an async), A Reqwest error I'll just exponentially backoff
+01:13 < bridge> [ddnet] <Learath2> You know what, if I knew what was good for me I'd just extract all the vars at the start
+01:13 < bridge> [ddnet] <heinrich5991> sounds good 😉
+01:14 < bridge> [ddnet] <heinrich5991> rust led me to overcomplicate stuff before, because it's suddenly in the "possible" range
+01:14 < bridge> [ddnet] <Learath2> oh, is there an "idiomatic" way to do global application state in rust?
+01:14 < bridge> [ddnet] <heinrich5991> do it as simple as possible to get it to work. is my new motto
+01:14 < bridge> [ddnet] <heinrich5991> do you want it thread-local or global?
+01:14 < bridge> [ddnet] <Learath2> global
+01:15 < bridge> [ddnet] <Learath2> So a Arc to a hashmap is what I was thinking
+01:15 < bridge> [ddnet] <heinrich5991> I think a lazy_static can have a mutex
+01:15 < bridge> [ddnet] <heinrich5991> a normal static can't because rust relies on posix mutexes which cannot be constructed at compile time
+01:16 < bridge> [ddnet] <Learath2> I don't need a mutex, it won't change at runtime
+01:16 < bridge> [ddnet] <Learath2> (well not after startup)
+01:17 < bridge> [ddnet] <heinrich5991> https://docs.rs/once_cell/1.7.2/once_cell/sync/struct.Lazy.html
+01:17 < bridge> [ddnet] <heinrich5991> this then, I guess?
+01:18 < bridge> [ddnet] <heinrich5991> it'll get into the standard library at some point
+01:18 < bridge> [ddnet] <heinrich5991> ah, you probably need parameters as well
+01:18 < bridge> [ddnet] <heinrich5991> https://docs.rs/once_cell/1.7.2/once_cell/sync/struct.OnceCell.html
+01:18 < bridge> [ddnet] <heinrich5991> this then
+01:18 < bridge> [ddnet] <heinrich5991> call `get_or_init` to initialize it once
+01:20 < bridge> [ddnet] <Learath2> such a complex thing, what does it provide even?
+01:21 < bridge> [ddnet] <heinrich5991> oncecell?
+01:21 < bridge> [ddnet] <Learath2> yeah
+01:21 < bridge> [ddnet] <heinrich5991> thread-safe initialization
+01:21 < bridge> [ddnet] <heinrich5991> that the initialization func will only get called once
+01:22 < bridge> [ddnet] <Learath2> sounds like something I don't need, at startup I have a single thread, I need to populate a hashmap from some config and some env, then all the threads just read from it
+01:23 < bridge> [ddnet] <heinrich5991> https://news.ycombinator.com/item?id=23920945
+01:23 < bridge> [ddnet] <heinrich5991> does that suit you? ^^
+01:24 < bridge> [ddnet] <heinrich5991> you can have the code under any license
+01:25 < bridge> [ddnet] <heinrich5991> fun, apparently I went through the same exchange with that person as with you
+01:29 < bridge> [ddnet] <Learath2> Still looks quite complex, hm I'm going too fast again, concurrency is annoying enough in C++
+01:29 < bridge> [ddnet] <heinrich5991> okay, I wouldn't consider this complex
+01:29 < bridge> [ddnet] <heinrich5991> the stuff compiles down to memcpy
+01:30 < bridge> [ddnet] <Learath2> I mean complex for the trivial thing I'm doing, I can read it if I squint really hard
+01:31 < bridge> [ddnet] <heinrich5991> so much stuff I could suggest. but I wanna go to bed :/
+01:31 < bridge> [ddnet] <Learath2> go ahead, I'll figure something out 😄
+01:31 < bridge> [ddnet] <heinrich5991> good night 🙂
+01:33 < bridge> [ddnet] <Learath2> @heinrich5991 if you didn't go yet what's wrong with just a `Arc<HashMap<K, V>>`?
+01:34 < bridge> [ddnet] <heinrich5991> that was actually my next suggestion
+01:34 < bridge> [ddnet] <heinrich5991> *that would actually have been
+01:34 < bridge> [ddnet] <heinrich5991> I think the quic library from cloudflare does it
+01:34 < bridge> [ddnet] <heinrich5991> it's an atomic instruction per clone, can be fine
+01:34 < bridge> [ddnet] <heinrich5991> probably will be fine
+01:56 < bridge> [ddnet] <Learath2> Ah I also understand what you did now, cute
+08:00 < bridge> [ddnet] <Ryozuki> The idiomatic way is to avoid it, unless u are doing microcontroller stuff
+08:01 < bridge> [ddnet] <Ryozuki> I personally rly like thiserror
+08:01 < bridge> [ddnet] <Ryozuki> I dont write many binaries so i havent used anyhow much
+08:04 < bridge> [ddnet] <Ryozuki> https://docs.rs/dashmap/4.0.2/dashmap/
+08:19 < bridge> [ddnet] <Ryozuki> ^ "Blazingly fast concurrent map in Rust."
+10:56 < bridge> [ddnet] <Astramast> @Chairn @Chairn i answered on github but i just proposed to create teams faster
+10:56 < bridge> [ddnet] <Astramast> idk if we must create a new issue for what u asked or if we can put it in the same one
+11:01 < bridge> [ddnet] <lynn> if it's related to the same issue comment on it
+11:02 < bridge> [ddnet] <Astramast> i did i did :bluekitty:
+11:03 < bridge> [ddnet] <lynn> nice
+11:18 < bridge> [ddnet] <Astramast> https://discord.com/channels/252358080522747904/293493549758939136/850380658261622834
+12:24 < bridge> [ddnet] <Learath2> I'm an old man. I like my global state no matter why you kids call it unsafe :P
+12:24 < bridge> [ddnet] <Ryozuki> well in rust ur forced to handle the unsafeness
+12:24 < bridge> [ddnet] <Ryozuki> as u have seen
+12:25 < bridge> [ddnet] <Ryozuki> :monkalaugh:
+12:25 < bridge> [ddnet] <Ryozuki> thats why its a chore
+12:25 < bridge> [ddnet] <Ryozuki> to use global state
+12:25 < bridge> [ddnet] <Learath2> (I also ise it an an extremely specific way that where I ensure the safety)
+12:25 < bridge> [ddnet] <Ryozuki> hmm i dont understand what u saying here
+12:25 < bridge> [ddnet] <Ryozuki> u worded it a bit weirdly
+12:25 < bridge> [ddnet] <Ryozuki> xd
+12:25 < bridge> [ddnet] <Learath2> Heinrichs wrapping of it is quite nice but I ended up passing the state along to functions at the end
+12:26 < bridge> [ddnet] <Learath2> Much cleaner, very expensive but much cleanrr :P
+12:26 < bridge> [ddnet] <Ryozuki> have u checked the concurrent hashmap i sent
+12:26 < bridge> [ddnet] <Ryozuki> maybe its useful
+12:27 < bridge> [ddnet] <Learath2> I use global state in a way that specifically avoids the issues that cause people to call global state unsafe
+12:27 < bridge> [ddnet] <Ryozuki> ah
+12:28 < bridge> [ddnet] <Learath2> I ended up not using a hashmap either. I'll deal with dynamic configuration when I get to it. Just using a struct for now
+12:28 < bridge> [ddnet] <Ryozuki> im using reactjs again, seems like the idiomatic way is to use functional components for everything now
+12:28 < bridge> [ddnet] <Ryozuki> feels weird but its way less boilerplate code
+12:28 < bridge> [ddnet] <Ryozuki> so i can see why it is like this
+12:29 < bridge> [ddnet] <Learath2> Very expensive to pass a struct full of strings but whatever. It looks pretty
+12:29 < bridge> [ddnet] <Ryozuki> @Learath2 what are you trying to do?
+12:30 < bridge> [ddnet] <Learath2> Well I have some configuration that must be shared amongst threads
+12:30 < bridge> [ddnet] <Ryozuki> look at this :monkalaugh:
+12:30 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851407776391757824/unknown.png
+12:31 < bridge> [ddnet] <Learath2> The configuration becomes immutable way before the threads are launched, and the threads only ever read the configuration
+12:31 < bridge> [ddnet] <Learath2> So in theory it should be very safe and very cheap. Heinrichs wrapping of a cell looks like it would compile down to what I expect
+12:31 < bridge> [ddnet] <Ryozuki> @Learath2 for my config i usually use https://docs.rs/config/0.11.0/config/ and it maps everything to a struct
+12:32 < bridge> [ddnet] <Ryozuki> which is usually safer and faster than a hashmap after
+12:32 < bridge> [ddnet] <Learath2> Do you have one instance of the config and how does it handle concurrency?
+12:33 < bridge> [ddnet] <Learath2> I currently have a struct that I just clone to each thread but if performance starts being an issue I was thinking of putting it in an Arc<RwLock<>>
+12:34 < bridge> [ddnet] <Ryozuki> hmm im using actix-web which provides a rly nice way
+12:34 < bridge> [ddnet] <Ryozuki> i think it wraps it in a arc
+12:34 < bridge> [ddnet] <Ryozuki> i load it
+12:34 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851408759279321088/unknown.png
+12:34 < bridge> [ddnet] <Ryozuki> wrap it
+12:34 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851408769752760320/unknown.png
+12:34 < bridge> [ddnet] <Ryozuki> and pass it here
+12:34 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851408823041261598/unknown.png
+12:34 < bridge> [ddnet] <Ryozuki> and with some magick, i get it on my endpoint
+12:35 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851408890175815690/unknown.png
+12:35 < bridge> [ddnet] <Ryozuki> xd
+12:35 < bridge> [ddnet] <Learath2> I'm also doing another smaller project in rust where the config is so small and threads so infrequent that I actually don't care about the clone overhead
+12:36 < bridge> [ddnet] <Ryozuki> since i dont need to modify my data i dont need a lock iirc
+12:36 < bridge> [ddnet] <Learath2> Yeah I'd guess it's an Arc if that clone is cheap and safe.
+12:36 < bridge> [ddnet] <Ryozuki> my settings*
+12:36 < bridge> [ddnet] <Ryozuki> actually idk
+12:36 < bridge> [ddnet] <Ryozuki> i should look into this
+12:37 < bridge> [ddnet] <Ryozuki> i dont think it clones the data
+12:37 < bridge> [ddnet] <Ryozuki> since my struct is not Clone
+12:37 < bridge> [ddnet] <Learath2> You don't multiple readers is safe
+12:37 < bridge> [ddnet] <Ryozuki> yeah
+12:37 < bridge> [ddnet] <Ryozuki> if i wanted to modify it i would need to do this
+12:37 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851409612740886548/unknown.png
+12:37 < bridge> [ddnet] <Ryozuki> but i dont so
+12:37 < bridge> [ddnet] <Learath2> But you can only have immutable borrows of your struct iirc. Otherwise rust will complain
+12:38 < bridge> [ddnet] <Ryozuki> ye
+12:39 < bridge> [ddnet] <Ryozuki> btw calling a clone on an Arc<T> is not cloning the internal data
+12:39 < bridge> [ddnet] <Ryozuki> so its always cheap iirc
+12:39 < bridge> [ddnet] <Learath2> Yeah. Just an atomic increment
+12:39 < bridge> [ddnet] <Learath2> Fairly expensive but much cheaper than memcpying an entire struct full of string data
+12:40 < bridge> [ddnet] <Ryozuki> yeah, it only clones it initially when starting the threads
+12:40 < bridge> [ddnet] <Ryozuki> i think
+12:41 < bridge> [ddnet] <Learath2> I don't think so, doubt things live in thread local storage by default
+12:41 < bridge> [ddnet] <Learath2> An Arc should probably never cause a clone
+12:42 < bridge> [ddnet] <Ryozuki> i mean the arc clone
+12:42 < bridge> [ddnet] <Ryozuki> idk
+12:42 < bridge> [ddnet] <Ryozuki> what actix-web does is spun up x threads for each cpu core initially, thats why u clone the settings_data there
+12:43 < bridge> [ddnet] <Ryozuki> this runs 12 times for me
+12:43 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851410939772928070/unknown.png
+12:43 < bridge> [ddnet] <Ryozuki> :monkaS:
+12:43 < bridge> [ddnet] <Learath2> I'm using tokio for the small discord bot I'm making
+12:44 < bridge> [ddnet] <Learath2> I'll probably only ever need to run it single threaded but still need to keep it thread safe
+12:45 < bridge> [ddnet] <Ryozuki> @Learath2 can u show me how u added tokio to ur toml
+12:45 < bridge> [ddnet] <Ryozuki> if u added full it uses a multi threaded runtime btw
+12:45 < bridge> [ddnet] <Patiga> @Jupstar ✪ (or anyone else who might know this): do you happen to know the scale of the ingame emoticons?
+12:45 < bridge> [ddnet] <Ryozuki> so u are on a multithreaded enviroment already
+12:45 < bridge> [ddnet] <Learath2> Hm, the docs said the full version still uses the single threaded scheduler, you sure?
+12:46 < bridge> [ddnet] <Ryozuki> where do u see this?
+12:47 < bridge> [ddnet] <Ryozuki> i used tokio full with warp and it definitly shwoed me 12 threads
+12:47 < bridge> [ddnet] <Ryozuki> i have 12 virtual cores
+12:48 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851412322660122645/unknown.png
+12:49 < bridge> [ddnet] <Learath2> ah, I misread, yeah I guess it does use the mt scheduler
+12:49 < bridge> [ddnet] <Learath2> Oh btw, if any of you want to make a discord bot in rust I've already went through all the available libraries and I like twilight the best
+12:50 < bridge> [ddnet] <Ryozuki> i wanted to do one but i was always lazy
+12:50 < bridge> [ddnet] <Learath2> serenity is waay too idiomatic with it's frameworks
+12:50 < bridge> [ddnet] <Ryozuki> you mean it forces you to use the frameworks for commands e.g?
+12:51 < bridge> [ddnet] <Ryozuki> twilight logo looks better :poggers:
+12:51 < bridge> [ddnet] <Learath2> The way the framwork is set up with an abundance of macros is just unwieldy imo
+12:52 < bridge> [ddnet] <Learath2> You can indeed use it without a framework, but eeeh. I liked twilight better
+12:52 < bridge> [ddnet] <Ryozuki> yeah i definitly see why twilight looks better
+12:53 < bridge> [ddnet] <Ryozuki> starred
+12:53 < bridge> [ddnet] <Ryozuki> HN is so funny, i always see a wikipedia link there
+12:53 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851413638589448232/unknown.png
+12:54 < bridge> [ddnet] <Ryozuki> > This particular drive model was reported to have unusually high failure rates, approximately 5.7 times higher fail rates in comparison to other 3 TB drives.
+12:54 < bridge> [ddnet] <Ryozuki> ah
+15:12 < bridge> [ddnet] <Learath2> You can only skip a docker update on mac if you pay for the PRO version, LOL
+15:13 < bridge> [ddnet] <Learath2> I'm so glad we all embraced this obviously corporate company into our ecosystem
+15:13 < bridge> [ddnet] <Learath2> s\/(obviously|company)//g
+15:14 < bridge> [ddnet] <Learath2> sudden brain damage leading to loss of english skills
+15:28 < bridge> [ddnet] <Jupstar ✪> should be same as the body
+15:55 < bridge> [ddnet] <Ryozuki> lel
+16:23 < bridge> [ddnet] <fokkonaut> any electrician here?
+16:27 < bridge> [ddnet] <Learath2> Heh, I asked this a couple weeks ago, so nope
+16:28 < bridge> [ddnet] <Learath2> But I can try to answer simple things
+16:29 < bridge> [ddnet] <Ravie> you can make entities invisible if you try to recolor game layers using multi selection
+16:29 < bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/851467999818678292/screenshot_2021-06-07_16-28-30.png
+16:30 < bridge> [ddnet] <Learath2> I need to fix alot about multi selection :/
+16:30 < bridge> [ddnet] <Ravie> but at least if you do this then everything in entities is invisible
+16:31 < bridge> [ddnet] <Jupstar ✪> ah thx for the reminder,tsfreddie also found out you can do this(not in editor), guess we'll just not allow it before it gets abused on some mods xd
+16:33 < bridge> [ddnet] <Jupstar ✪> except this is wanted
+16:33 < bridge> [ddnet] <Jupstar ✪> bcs even front layer etc. respect these values, kinda strange
+16:34 < bridge> [ddnet] <fokkonaut> It's about connecting my router to the upper room via an old telephone cable
+16:35 < bridge> [ddnet] <fokkonaut> It works in the one room, even gigabit connection (we have 150mbit by ISP, so our full strength gets up there), but not in the room next to it...
+16:35 < bridge> [ddnet] <fokkonaut> cables are both the same
+16:36 < bridge> [ddnet] <fokkonaut> patched it all together the same way, in the second room it caps at 93 mbit, router interface says that connection is a 100MBit/s connection and the one thats working is a 1 Gbit/s connection
+16:37 < bridge> [ddnet] <fokkonaut> And no, I will not use dlan, i am trying to get away from it D:
+16:41 < bridge> [ddnet] <Learath2> gbit over phone cable? I'm guessing you mean ethernet
+16:42 < bridge> [ddnet] <fokkonaut> yes, but over a telephone cable
+16:42 < bridge> [ddnet] <fokkonaut> its an old cable in the walls of the house
+16:43 < bridge> [ddnet] <deen> then you're lucky it's even getting 100 mbit/s
+16:43 < bridge> [ddnet] <Learath2> ^^
+16:43 < bridge> [ddnet] <deen> you need some isolation, use cat5 or higher rated cables
+16:43 < bridge> [ddnet] <fokkonaut> well, the other room gets 150, which is our ISP limit and i dont know why it wouldnt work in the other room
+16:43 < bridge> [ddnet] <fokkonaut> its the same cable
+16:44 < bridge> [ddnet] <fokkonaut> i know about the isolation
+16:44 < bridge> [ddnet] <louis> ❌
+16:45 < bridge> [ddnet] <louis> then how will i play your maps
+16:46 < bridge> [ddnet] <Learath2> Uhm, can you show me the cable or atleast the jack? I don't think it's possible to run gbit over the 2 pairs inside a telephone cable
+16:46 < bridge> [ddnet] <Ravie> oh yeah I wasn't able to single out front layer tho
+16:46 < bridge> [ddnet] <fokkonaut> its 8 veins
+16:47 < bridge> [ddnet] <fokkonaut> its also correctly applied to the "Netzwerkdose"?
+16:47 < bridge> [ddnet] <fokkonaut> xD
+16:47 < bridge> [ddnet] <Ravie> maybe cause it was the same map file that was already messed up
+16:47 < bridge> [ddnet] <deen> There are larger telephone cables with multiple pairs inside, we have the same in the multi-apartment building I'm living in
+16:47 < bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/851472389270798366/unknown.png
+16:47 < bridge> [ddnet] <fokkonaut> such a thing
+16:47 < bridge> [ddnet] <Learath2> so 4 pairs, rj14 I guess
+16:47 < bridge> [ddnet] <fokkonaut> it has no pairs
+16:48 < bridge> [ddnet] <fokkonaut> 4 white veins and 4 colored ones, i am pretty sure the white veins arent set correctly, but i have tested that already... so idk
+16:49 < bridge> [ddnet] <fokkonaut> weird enough: fast ethernet (100 mbit) needs 4 veins (1,2,3 and 6)
+16:49 < bridge> [ddnet] <fokkonaut> for me, it just worked with 3 veins
+16:49 < bridge> [ddnet] <fokkonaut> and thats super weird
+16:49 < bridge> [ddnet] <fokkonaut> I really have no idea, i think i will need an eletrician for that
+16:49 < bridge> [ddnet] <fokkonaut> and gbit ethernet only works in the other room
+16:49 < bridge> [ddnet] <Ravie> oh the bugs continue xD
+16:49 < bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/851473053770448906/screenshot_2021-06-07_16-49-41.png
+16:50 < bridge> [ddnet] <fokkonaut> as i said, router interface shows connection between pc1 and router as 1 gbit/s and the otherroom as 100mbit/s, so that means it detects the cable strength or whatever, but its weird because the cable is identical
+16:51 < bridge> [ddnet] <Learath2> Anyway, @fokkonaut as far as I'm aware the devices will do autonegotiation to determine the speed to run at. iirc part of autonegotiation is also checking the line. If they don't like the SNR they might be falling back to fast ethernet
+16:51 < bridge> [ddnet] <fokkonaut> found something about that too, but the laptop i tested with couldnt select 1gbit full duplex
+16:51 < bridge> [ddnet] <fokkonaut> it wasnt listed, so i left it on auto negotiation
+16:52 < bridge> [ddnet] <fokkonaut> in the other room i got 150 also with the laptop, and it is a gigabit network adapter built in, so thats not the proiblem
+16:53 < bridge> [ddnet] <fokkonaut> SUPER WEIRD!!
+16:53 < bridge> [ddnet] <fokkonaut> fast ethernet requires 4 veins usually
+16:53 < bridge> [ddnet] <Jupstar ✪> i get 250mbits with 1 vein
+16:54 < bridge> [ddnet] <fokkonaut> thats not one vein xD
+16:54 < bridge> [ddnet] <Jupstar ✪> 1 vein download one upload
+16:54 < bridge> [ddnet] <Learath2> 250 mbits over a single twisted pair?
+16:54 < bridge> [ddnet] <Jupstar ✪> yes
+16:54 < bridge> [ddnet] <Learath2> what is this sorcery?
+16:54 < bridge> [ddnet] <Jupstar ✪> didnt i post my router results once
+16:55 < bridge> [ddnet] <Learath2> what standard even supports it?
+16:55 < bridge> [ddnet] <Jupstar ✪> its this new super vectoring
+16:55 < bridge> [ddnet] <Learath2> Ah, VDSL with super vectoring
+16:55 < bridge> [ddnet] <Learath2> We are talking about ethernet here though
+16:55 < bridge> [ddnet] <Jupstar ✪> yeah but in the end its same physics xd
+16:55 < bridge> [ddnet] <Jupstar ✪> u just need the components to build that
+16:56 < bridge> [ddnet] <Learath2> Well very different modes of operation, very different characteristics
+16:56 < bridge> [ddnet] <deen> DSL and ethernet work quite differently 😄
+16:56 < bridge> [ddnet] <Learath2> you could indeed have a DSLAM in your house 😛
+16:57 < bridge> [ddnet] <Jupstar ✪> they work differently but you just need to translate it for the computers using it
+16:57 < bridge> [ddnet] <Jupstar ✪> in the end they can send the same data
+16:57 < bridge> [ddnet] <deen> every method of communication can send the same data "in the end" 😄
+16:58 < bridge> [ddnet] <Jupstar ✪> so he needs a programmer that implements his hack xd
+16:58 < bridge> [ddnet] <Jupstar ✪> and ofc the hardware
+16:59 < bridge> [ddnet] <Jupstar ✪> did you try to give it a color animation?
+17:01 < bridge> [ddnet] <Learath2> @fokkonaut I couldn't really think of how to get 100baseT working over just 3 wires, maybe you have an odd device that supports 100BASE-T1 and can do 100mbit over a single pair
+17:02 < bridge> [ddnet] <Ravie> no it just different stuff happens either on a new file or different layer combos, not sure
+17:02 < bridge> [ddnet] <Ravie> no just different stuff happens either on a new file or different layer combos, not sure
+17:02 < bridge> [ddnet] <Jupstar ✪> ahh too bad
+17:02 < bridge> [ddnet] <Jupstar ✪> but i think its even possible to animate the game layers xD
+17:02 < bridge> [ddnet] <Jupstar ✪> u just need to hack an envelope id into it
+17:04 < bridge> [ddnet] <fokkonaut> i dont think so, i connected it as the standards say
+17:05 < bridge> [ddnet] <Learath2> well if you connected it as the standards say you need 2 pairs to do 100base-tx so that's 4 physical cables
+17:05 < bridge> [ddnet] <Learath2> which one did you omit to test with 3 cables?
+17:07 < bridge> [ddnet] <fokkonaut> mh?
+17:08 < bridge> [ddnet] <Learath2> Fast Ethernet (100BASE-TX) runs over 4 wires, terminated on pins 1, 2, 3, 6. If you ran it over 3 wires instead you need to have omited one
+17:11 < bridge> [ddnet] <Comrade> fast ethernet uses one RX pair and one TX pair = 4 wires, but both wires in one pair carry the same signal (one is inverted and the second one is not), so technically it can "work" with 3 wires only 😄
+17:12 < bridge> [ddnet] <Comrade> by the way, fast ethernet works just fine over telephone cable if it's not too long and there's nothing else around
+17:12 < bridge> [ddnet] <Learath2> it could, but I'm not sure many receivers would compensate for that well
+17:12 < bridge> [ddnet] <Comrade> yes
+17:13 < bridge> [ddnet] <Comrade> but gigabit ethernet over telephone cable.... you know, those wires are twisted for a reason 😄
+17:13 < bridge> [ddnet] <Comrade> but gigabit ethernet over telephone cable.... you know, those wires are twisted for some reason 😄
+17:14 < bridge> [ddnet] <Learath2> (fwiw I had a similar thing back in my parents house, I ended up pulling a cat6 cable through by tying it to the phone cable, very very risky but it worked out with a bit of soap to lubricate 😄
+17:15 < bridge> [ddnet] <Ravie> @Jupstar ✪ I guess if you had some tool to mess with map files you could make really funky stuff that editor doesn't allow?
+17:16 < bridge> [ddnet] <Jupstar ✪> yes, Patigas map tool reports, if you hit "undefined" behavior in a map, and some of these things can be abused
+17:16 < bridge> [ddnet] <Comrade> telephone cables must be removed from this world because they create ~~problems~~workarounds like xDSL
+17:16 < bridge> [ddnet] <Jupstar ✪> bcs the client doesnt check for correctness of the map
+17:17 < bridge> [ddnet] <Learath2> @Comrade well they give us better range than ethernet, so if they are going away we need fibre optics everywhere to replace it
+17:18 < bridge> [ddnet] <Jupstar ✪> myy router's telephone cable litterally goes outside so it has the shortest path from underground to router xd
+17:19 < bridge> [ddnet] <Jupstar ✪> for short distances inside the house it could probs still handle quite alot of bandwith
+17:20 < bridge> [ddnet] <Comrade> yes, xDSL should be considered as something wrong and disgusting, otherwise people get used to it and there will be no reason to put fibers everywhere 😄
+17:22 < bridge> [ddnet] <Comrade> cable television is quite common in some countries, so there must be a way to do one more upgrade to fiber
+17:23 < bridge> [ddnet] <Jupstar ✪> in our country it was prevented bcs the CEO from Sat.1 was good friend with a politican of that time, and Sat.1 is a television company xd
+17:26 < bridge> [ddnet] <Jupstar ✪> "Die sozialliberale Koalition unter Helmut Schmidt hatte bereits 1981 Pläne für einen bundesweiten Glasfaserausbau beschlossen. Ein Jahr später kam Helmut Kohl an die Macht, legte die Pläne aufs Eis und förderte lieber das Kabelfernsehen."
+17:26 < bridge> [ddnet] <Jupstar ✪> Means, we had a plan in 1981 from the SPD leader
+17:26 < bridge> [ddnet] <Jupstar ✪> but then corrupt CDU politican joined the chat xd
+17:27 < bridge> [ddnet] <Jupstar ✪> welcome to 2021 the future
+17:44 < bridge> [ddnet] <Learath2> @Ryozuki are you familiar with macros in rust?
+17:46 < bridge> [ddnet] <Ryozuki> quite a bit
+17:47 < bridge> [ddnet] <Ryozuki> https://github.com/edg-l/formy
+17:47 < bridge> [ddnet] <Ryozuki> here is something i made
+17:47 < bridge> [ddnet] <Ryozuki> dont ask me why
+17:47 < bridge> [ddnet] <Ryozuki> xd
+17:47 < bridge> [ddnet] <Learath2> Can you think of a way to have non-local effects? I need to generate code elsewhere for an annotated function
+17:48 < bridge> [ddnet] <Ryozuki> elsewhere?
+17:49 < bridge> [ddnet] <Ryozuki> derive macro?
+17:49 < bridge> [ddnet] <Ryozuki> sry im in the middle of a doto ranked
+17:49 < bridge> [ddnet] <Ryozuki> you probs can do it
+17:49 < bridge> [ddnet] <Ryozuki> macros can even connect to a database to check schemas
+17:49 < bridge> [ddnet] <Learath2> Like I annotate a function with `#[command]` I need to generate a line inside another function `fn register_commands` to register it
+17:50 < bridge> [ddnet] <Ryozuki> uhm idk rn
+17:51 < bridge> [ddnet] <Ryozuki> u can make command create code that automatically registers tyhis function
+17:51 < bridge> [ddnet] <Ryozuki> somehow
+17:51 < bridge> [ddnet] <Ryozuki> u know like python decorations
+17:51 < bridge> [ddnet] <Learath2> I probably can, but something needs to call all these registerers we generated
+17:52 < bridge> [ddnet] <Learath2> and that something needs to know what to call, so a list of all the functions I've annotated
+17:52 < bridge> [ddnet] <Ryozuki> when i made a discord api in python i had a array of event subscribers and a decorator to easily add a function there
+17:53 < bridge> [ddnet] <Ryozuki> you can make the decorator like this
+17:53 < bridge> [ddnet] <Ryozuki> impl_event!({
+17:53 < bridge> [ddnet] <Ryozuki> pub fn your_function() {}
+17:53 < bridge> [ddnet] <Ryozuki> });
+17:53 < bridge> [ddnet] <Ryozuki> brb 5 min
+18:07 < bridge> [ddnet] <Ryozuki> @Learath2 you probs need a derive macro, derive macros must be in their own crate and can only export derive macros, you probs can achieve this looking at how https://github.com/dtolnay/no-panic is implemented
+18:08 < bridge> [ddnet] <Learath2> this exact guy has a crate that does what I'm looking for using a rather nasty hack, it abuses ctor as the list of things to run
+18:08 < bridge> [ddnet] <Ryozuki> its a rly simple crate that shows how to modify a function
+18:08 < bridge> [ddnet] <Ryozuki> ah
+18:09 < bridge> [ddnet] <Ryozuki> this guy is a rust mastermind btw
+18:09 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851493022704074773/unknown.png
+18:09 < bridge> [ddnet] <Learath2> yeah he has very interesting repos
+18:09 < bridge> [ddnet] <Ryozuki> he literally made the most famous crates
+18:09 < bridge> [ddnet] <Learath2> I don't think what I'm looking for is possible :/
+18:10 < bridge> [ddnet] <Ryozuki> @Learath2 why do u need to generate code inside a function rather than call a function to register that command?
+18:10 < bridge> [ddnet] <Ryozuki> hmmm
+18:11 < bridge> [ddnet] <Learath2> Well I'm looking to do something like we do in teeworlds, where just defining a macro and including a file registers all the commands
+18:12 < bridge> [ddnet] <Ryozuki> @Learath2 do u know u can declare  functions inside functions right
+18:12 < bridge> [ddnet] <Learath2> I have a handful of commands now, so registering them one by one is no big trouble, but I just wanted to see if it was possible
+18:12 < bridge> [ddnet] <Learath2> yeah, I saw nested functions
+18:13 < bridge> [ddnet] <Ryozuki> idk rn
+18:13 < bridge> [ddnet] <Ryozuki> :monkaS:
+18:13 < bridge> [ddnet] <Learath2> me neither and I'm not crafty enough with the macros yet to achieve it
+18:14 < bridge> [ddnet] <Ryozuki> im sure thinking of a different way to architecture this is better
+18:14 < bridge> [ddnet] <Ryozuki> https://xkcd.com/974/
+18:14 < bridge> [ddnet] <Ryozuki> :monkalaugh:
+18:15 < bridge> [ddnet] <Learath2> Well there is no avoiding a list of all the functions I want to register if there is no way to do non-local code generation, or compile time storage
+18:15 < bridge> [ddnet] <Ryozuki> i think u can make a macro that creates a file at compile time maybe, i never tried that
+18:17 < bridge> [ddnet] <Learath2> ahahaha, someone worked around the fact that there is no compile time storage by using a file in /tmp
+18:19 < bridge> [ddnet] <Learath2> https://github.com/rust-lang/rust/issues/44034 meh
+18:25 < bridge> [ddnet] <Learath2> and serenity makes you use another macro to list all the annotated commands, if there was a way around it I guess they'd have implemented it
+18:27 < bridge> [ddnet] <Learath2> Oh I know a solution, running rust code through the C preprocessor 😛
+18:27 < bridge> [ddnet] <Ryozuki> :monkaS:
+18:35 < bridge> [ddnet] <Ryozuki> @Learath2 https://github.com/mattsse/cargo-memex
+18:38 < bridge> [ddnet] <Learath2> hm, I thought rust would be much more flexible at compile time but it's still fairly rigid
+18:39 < bridge> [ddnet] <Jupstar ✪> @Learath2 why u learn rust btw(i mean motivation wise)
+18:39 < bridge> [ddnet] <Jupstar ✪> or do you just want to test its limits 😄
+18:39 < bridge> [ddnet] <Learath2> nim and zig are probably as good as it gets compile time wise
+18:40 < bridge> [ddnet] <Learath2> Well I had a small project I wanted to implement and rust is all the hip right now
+18:40 < bridge> [ddnet] <Learath2> I wanted to see why so many people like it so much
+18:41 < bridge> [ddnet] <Jupstar ✪> i'd like to start too, but i'd prefer a non object orientated project as start, but dunno never really find anything interesting i want todo xd
+18:41 < bridge> [ddnet] <Learath2> so far I'm still on the fence, I like that it's safe and all but I find myself wasting far too much time thinking about edge error cases and borrow semantics
+18:41 < bridge> [ddnet] <Ryozuki> cuz u need to get more used to it
+18:42 < bridge> [ddnet] <Ryozuki> at the end u end up doing things directly in a way you know you wont have problems with the borrow
+18:42 < bridge> [ddnet] <Learath2> traits are not really a good implementation of OOP imo, so it's a good idea to start with some project that doesn't do OOP
+18:42 < bridge> [ddnet] <Learath2> Generics are among the best I've seen in a language though, by far
+18:43 < bridge> [ddnet] <Ryozuki> well i dont think rust claims to be oop
+18:43 < bridge> [ddnet] <Ryozuki> its data oriented
+18:43 < bridge> [ddnet] <Ryozuki> > A trait tells the Rust compiler about functionality a particular type has and can share with other types. We can use traits to define shared behavior in an abstract way. We can use trait bounds to specify that a generic can be any type that has certain behavior.
+18:43 < bridge> [ddnet] <Ryozuki> you dont have inheritance
+18:43 < bridge> [ddnet] <Jupstar ✪> i'd love to see a language beeing more aggressive on range checks(like defining what range a variable can have, to e.g. prevent more logic bugs
+18:44 < bridge> [ddnet] <Jupstar ✪> so it forces you to handle all cases urself 😄
+18:44 < bridge> [ddnet] <Learath2> The inability to specify fields inside traits is annoying, it pretty much forces the compiler to emit a virtual call
+18:44 < bridge> [ddnet] <Ryozuki> rust forces u to handle all enum cases
+18:44 < bridge> [ddnet] <Jupstar ✪> but u can still do out of bounds, it just panics instead of going undefined behavior
+18:44 < bridge> [ddnet] <Ryozuki> and e.g u can declare a let x and initialize it inside a if else
+18:45 < bridge> [ddnet] <Ryozuki> and it forces u to have it initialized on both
+18:45 < bridge> [ddnet] <Jupstar ✪> and i feel like most bugs i do are logic errors
+18:45 < bridge> [ddnet] <Ryozuki> thats not what statistics tell
+18:45 < bridge> [ddnet] <Ryozuki> :monkalaugh:
+18:45 < bridge> [ddnet] <Learath2> @Jupstar ✪ I saw an interesting RFC for rust a couple days ago for implementing ranged integer types like Ada
+18:45 < bridge> [ddnet] <Jupstar ✪> thats why i need personal programming language 😄
+18:46 < bridge> [ddnet] <Ryozuki> isnt this solved by those super logical languages
+18:46 < bridge> [ddnet] <Ryozuki> e.g prolog?
+18:46 < bridge> [ddnet] <Jupstar ✪> if they dont come in trade of usebility
+18:46 < bridge> [ddnet] <Jupstar ✪> i often feel like they have bad syntax or arent as powerful as like c++
+18:47 < bridge> [ddnet] <Ryozuki> whats not as powerfull?
+18:47 < bridge> [ddnet] <Jupstar ✪> i mean like, the things u can do in a matter of the language itself, e.g. templates
+18:47 < bridge> [ddnet] <Jupstar ✪> you can abuse so much stuff in c++, and i kinda like it many times
+18:48 < bridge> [ddnet] <Learath2> prolog is very declarative, not much you can do in it
+18:48 < bridge> [ddnet] <Jupstar ✪> main reason im interested in rust is, bcs it still tries todo zero cost stuff, even if some aren't like array index checking
+18:48 < bridge> [ddnet] <Jupstar ✪> but its still around as fast as c, thats nice
+18:49 < bridge> [ddnet] <Learath2> it's like C++ but safer
+18:49 < bridge> [ddnet] <Ryozuki> u can disable the index chewcking btw
+18:49 < bridge> [ddnet] <Ryozuki> checking*
+18:50 < bridge> [ddnet] <Ryozuki> iirc
+18:50 < bridge> [ddnet] <Jupstar ✪> in unsafe you can call non checking functions, cant u?
+18:50 < bridge> [ddnet] <Ryozuki> ye
+18:50 < bridge> [ddnet] <Jupstar ✪> like get_unchecked or smth
+18:50 < bridge> [ddnet] <Jupstar ✪> sure but if i'd use rust i'd prefer to minimize use of unsafe
+18:50 < bridge> [ddnet] <Jupstar ✪> else i could also use c++ xD
+18:50 < bridge> [ddnet] <Ryozuki> yea
+18:50 < bridge> [ddnet] <Ryozuki> i prefer it having bounds checking anyway
+18:51 < bridge> [ddnet] <Ryozuki> idk how much perfomance overhead ith as
+18:51 < bridge> [ddnet] <Jupstar ✪> for me its not about that
+18:51 < bridge> [ddnet] <Ryozuki> but its prob worth for 99.99% of software out there
+18:51 < bridge> [ddnet] <Jupstar ✪> its that the logic bug isnt prevented
+18:51 < bridge> [ddnet] <Jupstar ✪> if you have out of bounds, u still have a bug
+18:51 < bridge> [ddnet] <Jupstar ✪> doesnt matter if crash or not
+18:52 < bridge> [ddnet] <Jupstar ✪> i mean the "dream" would be ofc to have a closed perfect system
+18:52 < bridge> [ddnet] <Jupstar ✪> 
+18:52 < bridge> [ddnet] <Jupstar ✪> only input/output has to be checked
+18:53 < bridge> [ddnet] <Jupstar ✪> everything inside the system just works ™️
+18:53 < bridge> [ddnet] <Ryozuki> i think this is too hard to achieve
+18:53 < bridge> [ddnet] <Ryozuki> given how complex stuff can get
+18:53 < bridge> [ddnet] <Jupstar ✪> yeah, i dunno, hard to say
+18:53 < bridge> [ddnet] <Ryozuki> but hey if they ever find a way to do it i welcome it
+18:53 < bridge> [ddnet] <Ryozuki> :poggers:
+18:53 < bridge> [ddnet] <Jupstar ✪> maybe programming gets too unusable at some point 😄
+18:54 < bridge> [ddnet] <Jupstar ✪> imagine the optimization potential if the compiler has a garantuee of the flow of the program
+18:55 < bridge> [ddnet] <Jupstar ✪> would defs be interesting, even at the cost of slower programming
+18:57 < bridge> [ddnet] <Ryozuki> @Jupstar ✪ with rust thanks to the explicit mutability you can enable optimizations, and they try, but llvm has bugs (mutable noalias) cuz nobody ever used it (hehe c++)
+18:57 < bridge> [ddnet] <Ryozuki> so rust is making llvm improve
+18:57 < bridge> [ddnet] <Ryozuki> :poggers:
+18:58 < bridge> [ddnet] <Ryozuki> https://github.com/rust-lang/rust/issues/84958
+18:59 < bridge> [ddnet] <Jupstar ✪> well bugs are ok, aslong as the idea behind it isnt wrong
+19:00 < bridge> [ddnet] <Jupstar ✪> some day they fixed and then we've smth better
+19:00 < bridge> [ddnet] <Jupstar ✪> O3 in kernel:
+19:00 < bridge> [ddnet] <Jupstar ✪> https://lore.kernel.org/lkml/CAHk-=wjuoGyxDhAF8SsrTkN0-YfCx7E6jUN3ikC_tn2AKWTTsA@mail.gmail.com/
+19:00 < bridge> [ddnet] <Jupstar ✪> still considered "unsafe", ok kernel also does alot of weird hacks probably
+19:00 < bridge> [ddnet] <Jupstar ✪> but many projects already use O3 default, e.g. SDL21
+19:00 < bridge> [ddnet] <Jupstar ✪> but many projects already use O3 default, e.g. SDL2
+19:01 < bridge> [ddnet] <Ryozuki> > 
+19:01 < bridge> [ddnet] <Ryozuki> > I personally think -O3 in general is unsafe.
+19:01 < bridge> [ddnet] <Ryozuki> xd
+19:01 < bridge> [ddnet] <Ryozuki> yeah i think they are rly paranoid about this
+19:01 < bridge> [ddnet] <Ryozuki> but i guess rightly so
+19:01 < bridge> [ddnet] <Jupstar ✪> i even use ofast for my graphic driver xD
+19:01 < bridge> [ddnet] <Jupstar ✪> never really had a bug, and in ddnet it even helped finding undefined behavior 😄
+19:01 < bridge> [ddnet] <Jupstar ✪> but yeah
+19:02 < bridge> [ddnet] <Jupstar ✪> i understand for kernel somehow, if it crashes it's more horrible than e.g. a user space programm
+19:02 < bridge> [ddnet] <Ryozuki> well its what he says, if no one uses, bugs wont be found
+19:02 < bridge> [ddnet] <Ryozuki> so we should all use it :monkalaugh:
+19:03 < bridge> [ddnet] <Jupstar ✪> yeah, well i assume the compiler teams also test it xD
+19:49 < bridge> [ddnet] <Ryozuki> https://open.library.ubc.ca/cIRcle/collections/ubctheses/831/items/1.0079748
+19:49 < bridge> [ddnet] <Ryozuki> proof that u cant win tetris
+19:49 < bridge> [ddnet] <Ryozuki> :monkalaugh:
+19:53 < bridge> [ddnet] <TsFreddie (CHN Community Repost)> Sounds like the tetris player is at a slight disadvantage
+19:54 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851519397846974474/E3SHumsXoAQIhNz.png
+19:54 < bridge> [ddnet] <Ryozuki> lmao
+20:41 < bridge> [ddnet] <heinrich5991> @Jupstar ✪ there are some languages where you can write provably safe code. but I don't know if you want to use them
+20:41 < bridge> [ddnet] <heinrich5991> check e.g. idris
+20:41 < bridge> [ddnet] <heinrich5991> https://en.wikipedia.org/wiki/Idris_(programming_language)
+20:45 < bridge> [ddnet] <Jupstar ✪> but defs sounds interesting already
+20:50 < bridge> [ddnet] <heinrich5991> I was down that road too, once ^^
+20:50 < bridge> [ddnet] <heinrich5991> you can also try coq 🙂
+20:50 < bridge> [ddnet] <heinrich5991> I ended up proving some pre-first semester math in coq instead of writing useful code 😄
+20:50 < bridge> [ddnet] <Jupstar ✪> such languages would require alot of hype, so we'll see how good they actually can be 😄
+20:52 < bridge> [ddnet] <heinrich5991> you can try languages without hype, too 😉
+20:53 < bridge> [ddnet] <Jupstar ✪> yeah i mean like, that languages with these concepts are invented, until they reach a point of usefullness just like rust
+20:53 < bridge> [ddnet] <heinrich5991> it's not entirely clear that they could reach that level
+20:53 < bridge> [ddnet] <heinrich5991> e.g. I'd say that something along the lines of brainfuck can't
+20:53 < bridge> [ddnet] <TsFreddie (CHN Community Repost)> hype
+20:54 < bridge> [ddnet] <lynn> pog
+21:13 < bridge> [ddnet] <Ryozuki> poggers
+21:14 < bridge> [ddnet] <Ryozuki> i love urbandict
+21:14 < bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/851539607081713714/unknown.png
+21:15 < bridge> [ddnet] <jao> haha
