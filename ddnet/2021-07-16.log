@@ -1,0 +1,130 @@
+00:00 <+bridge> [ddnet] <heinrich5991> need something new, the old protocol doesn't have challenge-response
+00:02 <+bridge> [ddnet] <Learath2> @heinrich5991 okay, hm, this is a tad annoying to add but maybe just a large-ish packet similar to the 0.7 CONNECT?
+00:14 <+bridge> [ddnet] <heinrich5991> probably add some bytes that can be set by the game server so that the game server can see that it comes from a legitimate masterserver?
+00:21 <+bridge> [ddnet] <heinrich5991> why do you wnat to make it large? @Learath2
+00:22 <+bridge> [ddnet] <Learath2> I wanted to discourage people from spamming it
+00:22 <+bridge> [ddnet] <heinrich5991> it can include "authentication" in the form of bytes only known to the game server and the masterserver
+00:22 <+bridge> [ddnet] <Learath2> and it'd lead to a worse than 1 reflection ratio
+00:23 <+bridge> [ddnet] <heinrich5991> it wouldn't reflect at all if it doesn't include the "authentication"
+00:23 <+bridge> [ddnet] <Learath2> @heinrich5991 it should definitely include authentication, my initial implementation included a `secret` sent with the info to make sure
+00:27 <+bridge> [ddnet] <Learath2> You know what would be cute in rust? C++14s `operator""s`
+00:28 <+bridge> [ddnet] <heinrich5991> can you convince me of that? ^^
+00:29 <+bridge> [ddnet] <Learath2> `String::from("Test string")` vs `"Test string".to_owned()` vs `"Test string".to_str()` vs `"Test string"s`
+00:29 <+bridge> [ddnet] <Learath2> One is much much easier to type than the others 😄
+00:30 <+bridge> [ddnet] <Learath2> Especially when you need a lot of them to initialize say a default value for a struct with many Strings in it
+00:32 <+bridge> [ddnet] <heinrich5991> hm, not really convinced
+00:32 <+bridge> [ddnet] <heinrich5991> sounds like bloat
+00:32 <+bridge> [ddnet] <heinrich5991> can you do `.into()`?
+00:35 <+bridge> [ddnet] <Learath2> I mean it's not getting shorter than `""s`, into does work but it still looks meh imo
+00:36 <+bridge> [ddnet] <Learath2> Why do you think it is bloat? When there is a prettier way to do things it usually gets in. E.g. the unstable try blocks
+00:36 <+bridge> [ddnet] <Learath2> You can get their behaviour using a closure
+00:37 <+bridge> [ddnet] <heinrich5991> try blocks are unstable since forever
+00:38 <+bridge> [ddnet] <heinrich5991> also, there's something you can't do from a closure, returning from the outer function
+00:39 <+bridge> [ddnet] <Learath2> btw rust already has literals, I don't really see why extending them to some heap types hurts
+00:39 <+bridge> [ddnet] <heinrich5991> hm. dedicated syntax for .to_owned() for just strings is a bit underwhelming for a new language feature
+00:39 <+bridge> [ddnet] <heinrich5991> also, rust tries to make less efficient stuff more verbose, `String` is less efficient than `&'static str`
+00:40 <+bridge> [ddnet] <heinrich5991> (I realize you could theoretically use `operator""` for other stuff, but I don't know any)
+00:40 <+bridge> [ddnet] <Learath2> C++ thought so too, so they introduced `user defined literals` along with it. Maybe in that form it's more palatable to you
+00:42 <+bridge> [ddnet] <heinrich5991> also it kinda does away with namespacing
+00:42 <+bridge> [ddnet] <Learath2> I'm out of arguments, it looks pretty to me so that's enough for me 😄
+00:44 <+bridge> [ddnet] <heinrich5991> ok, about the masterserver forward check
+00:45 <+bridge> [ddnet] <heinrich5991> it doesn't really have to be large if it includes some bytes chosen by the game server, right?
+00:47 <+bridge> [ddnet] <Learath2> Yep
+00:54 <+bridge> [ddnet] <heinrich5991> how do I best format the challenge/response in JSON?
+00:54 <+bridge> [ddnet] <heinrich5991> should it be a zero-terminated string in the packet and a normal JSON string?
+00:54 <+bridge> [ddnet] <heinrich5991> or a byte array in the packet and a array of numbers < 256 in JSON?
+00:55 <+bridge> [ddnet] <Learath2> byte array in the packet and a base 64 encoded string in the json maybe?
+00:56 <+bridge> [ddnet] <Learath2> If you don't want to bother encoding your first suggestion would be what I do
+00:56 <+bridge> [ddnet] <heinrich5991> what about a hex string vs base64? ^^
+00:57 <+bridge> [ddnet] <heinrich5991> hex is already implemented in teeworlds ^^
+00:57 <+bridge> [ddnet] <Learath2> Sure that works too, b64 is just shorter is why I had it in mind
+00:57 <+bridge> [ddnet] <heinrich5991> I mean, time to write a b64 encoder/decoder I guess 😄
+00:57 <+bridge> [ddnet] <Learath2> a byte saved here and there doesn't really matter anyway for this, we don't do fwchecks all the time
+00:57 <+bridge> [ddnet] <heinrich5991> actually, we do (at least currently)
+00:57 <+bridge> [ddnet] <heinrich5991> ah, but I'll drop it, since the game server can continue to provide the proof
+00:58 <+bridge> [ddnet] <Learath2> hm, do we? I thought we only did simple heartbeats after the first fwcheck stuff
+00:58 <+bridge> [ddnet] <Learath2> how will the gameserver prove it is connectable if not continuous fwchecks actually?
+00:58 <+bridge> [ddnet] <heinrich5991> I'm assuming it won't go away immediately
+00:59 <+bridge> [ddnet] <heinrich5991> by replaying the secret I sent in the port forward challenge from the masterserver
+01:01 <+bridge> [ddnet] <Learath2> So wait the protocol is the server sends info with secret, master sends secret + challenge, the server sends response to some other endpoint on the master?
+01:15 <+bridge> [ddnet] <heinrich5991> the server sends info with secret + challenge @Learath2
+01:16 <+bridge> [ddnet] <heinrich5991> (at the end)
+01:17 <+bridge> [ddnet] <Learath2> Ah, okay. But you still need to keep challenges  to make sure the server is still alive, no?
+01:17 <+bridge> [ddnet] <Learath2> keep sending*
+01:18 <+bridge> [ddnet] <heinrich5991> hm, every few minutes might be enough, no?
+01:18 <+bridge> [ddnet] <Learath2> Yep, sounds good
+01:18 <+bridge> [ddnet] <heinrich5991> the server sends its heartbeats more often
+01:19 <+bridge> [ddnet] <heinrich5991> (I think the port forward check isn't relevant to security, it just helps people figure out that their servers are unreachable. in the end, the game server could just respond to port forward checks and nothing else, and it would be the same result for the user as elaborate "port forward faking")
+01:27 <+bridge> [ddnet] <Learath2> Yeah, sounds sane to me
+01:28 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/P2 does this not look very cute? 😄
+01:29 <+bridge> [ddnet] <heinrich5991> looks good
+01:29 <+bridge> [ddnet] <heinrich5991> maybe only retry on BUSY?
+01:30 <+bridge> [ddnet] <Learath2> I was considering that but there are 3 issues with that: 1) I want to retry on LOCKED too, 2) sqlx doesn't really expose it in a way I can match easily, maybe I can hard code a numeric code there, 3) it wouldn't be cute 😄
+01:30 <+bridge> [ddnet] <heinrich5991> ^^
+01:31 <+bridge> [ddnet] <Learath2> Maybe when I'm making a cleaner version I'll directly use the database library instead of an abstraction
+01:47 <+bridge> [ddnet] <GutZuFusss> hi, i added a field to the NETSOCK struct, and for some reason it gets mem_zero'd some times... any ideas why? cant find any explicit mem_zero calls
+01:48 <+bridge> [ddnet] <heinrich5991> no idea
+01:48 <+bridge> [ddnet] <heinrich5991> you could try setting a memory breakpoint in gdb
+01:49 <+bridge> [ddnet] <GutZuFusss> i was trying to dodge that, but it seems like i have no choice 😄 thanks
+01:50 <+bridge> [ddnet] <heinrich5991> doesn't seem too bad to me?
+01:50 <+bridge> [ddnet] <GutZuFusss> never done that with gcc...
+01:50 <+bridge> [ddnet] <GutZuFusss> learning something new every day 🙂
+01:50 <+bridge> [ddnet] <heinrich5991> `watch <address>`, I think
+01:50 <+bridge> [ddnet] <Learath2> it's actually extremely simple and a very useful tool to learn to use
+01:50 <+bridge> [ddnet] <GutZuFusss> how do i get hold of the address though?
+01:51 <+bridge> [ddnet] <heinrich5991> break somewhere where you have access to it
+01:51 <+bridge> [ddnet] <heinrich5991> probably in CNetClient initialization or so
+01:51 <+bridge> [ddnet] <Learath2> You can do `&sock.mynewfield` gdb will figure out the address of the field for you
+01:52 <+bridge> [ddnet] <heinrich5991> (if `sock` is in scope)
+01:53 <+bridge> [ddnet] <GutZuFusss> what was the cmake debug flag again?
+01:53 <+bridge> [ddnet] <GutZuFusss> sorry xd
+01:54 <+bridge> [ddnet] <heinrich5991> `-DDEV=ON`
+01:54 <+bridge> [ddnet] <heinrich5991> (for teeworlds/ddnet. in general it's `-DCMAKE_BUILD_TYPE=Debug`, I think)
+01:54 <+bridge> [ddnet] <Learath2> `-DCMAKE_BUILD_TYPE=Debug` is what I use, what does `-DDEV=ON` do?
+01:54 <+bridge> [ddnet] <heinrich5991> it's ddnet specific. saner defaults for developing IIRC
+01:55 <+bridge> [ddnet] <heinrich5991> the default configuration is for packaging
+01:58 <+bridge> [ddnet] <Learath2> @heinrich5991 I have another request for rust, compound literals
+01:58 <+bridge> [ddnet] <heinrich5991> is that "abc" "def"?
+01:59 <+bridge> [ddnet] <Learath2> No C99 ones `(struct foo){"foo", 3}`
+01:59 <+bridge> [ddnet] <heinrich5991> hm, rust has these, no?
+01:59 <+bridge> [ddnet] <heinrich5991> you need to name the fields though
+01:59 <+bridge> [ddnet] <Learath2> > consider using a `let` binding to create a longer lived value
+01:59 <+bridge> [ddnet] <Learath2> This is the issue I'd like to work around
+02:00 <+bridge> [ddnet] <heinrich5991> code sample pls
+02:00 <+bridge> [ddnet] <heinrich5991> @GutZuFusss how is it going?
+02:00 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/k6
+02:01 <+bridge> [ddnet] <Learath2> For this to be correct I need let bindings for the temporaries I create, which looks unpretty
+02:02 <+bridge> [ddnet] <Learath2> I even have a proposal for this new revolutionary language features name `LetLive`. Creates a temporary that will live through the entirety of it's parent block
+02:02 <+bridge> [ddnet] <Learath2> s\/features/feature/
+02:02 <+bridge> [ddnet] <heinrich5991> where is that a problem there?
+02:03 <+bridge> [ddnet] <heinrich5991> can you post the error? my brain rust compiler accepts your code
+02:03 <+bridge> [ddnet] <Learath2> `s.com_id.to_string()` is a temporary, `query!` wants a `&str`
+02:04 <+bridge> [ddnet] <Learath2> https://paste.pr0.tips/jq
+02:04 <+bridge> [ddnet] <Learath2> here is the error
+02:04 <+bridge> [ddnet] <Learath2> Actually I think it takes a `&String` not `&str` but same issue either way
+02:05 <+bridge> [ddnet] <heinrich5991> ah
+02:05 <+bridge> [ddnet] <heinrich5991> I don't know the exact rules around that. you might be able to cheat using a `match` statement 😄
+02:06 <+bridge> [ddnet] <heinrich5991> I guess that would be similar to a let binding
+02:06 <+bridge> [ddnet] <Learath2> C++ doesn't have compound literals either, it's so annoying 😦
+02:06 <+bridge> [ddnet] <heinrich5991> hah
+02:07 <+bridge> [ddnet] <heinrich5991> my base64 encoding code only had two bugs caught by the tests
+02:07 <+bridge> [ddnet] <Learath2> huh, none of the libraries we have has one?
+02:07 <+bridge> [ddnet] <Learath2> I thought curl would include one
+02:07 <+bridge> [ddnet] <heinrich5991> didn't check
+02:07 <+bridge> [ddnet] <heinrich5991> curl is extremely conservative with exposing features
+02:07 <+bridge> [ddnet] <heinrich5991> it didn't even have an URL parser until recently
+02:08 <+bridge> [ddnet] <heinrich5991> no, its base64 parser is private as well
+02:08 <+bridge> [ddnet] <heinrich5991> time to write a decoder 😛
+02:08 <+bridge> [ddnet] <Learath2> I shall draft a RFC for my `C Compliance Changes (CCC)`, introducing compound literals and (post/pre)crement operators
+02:09 <+bridge> [ddnet] <heinrich5991> does "compound literal" specify the lifetime?
+02:09 <+bridge> [ddnet] <heinrich5991> I thought it only meant that you can have struct literals. you can have that in rust
+02:10 <+bridge> [ddnet] <Learath2> C18: 6.5.2.5p5: ```The value of the compound literal is that of an unnamed object initialized by the initializer list. If
+02:10 <+bridge> [ddnet] <Learath2> the compound literal occurs outside the body of a function, the object has static storage duration; otherwise, it has automatic storage duration associated with the enclosing block.```
+02:10 <+bridge> [ddnet] <heinrich5991> the dictionary doesn't tell me that compound means something like "lives long"
+02:11 <+bridge> [ddnet] <Learath2> So my 3rd error would be fixed by `(i32){ s.state as i32}`
+02:12 <+bridge> [ddnet] <Learath2> Compound long-living literals just doesn't sound as catchy 😛
+02:12 <+bridge> [ddnet] <Learath2> I bet the compiler could even do some magic to figure out how long they are actually needed with all the lifetime information rust has associated with it's functions
+02:14 <+bridge> [ddnet] <Learath2> I have a more rusty syntax for it too `LetLive! { s.state as i32 }` ooor `(let s.state as i32)`
+02:48 <+bridge> [ddnet] <heinrich5991> yay, the decoder also only had two bugs
+03:20 <+bridge> [ddnet] <Learath2> \o/
+05:35 <+bridge> [ddnet] <TsFreddie> o(-`д´- ｡)
