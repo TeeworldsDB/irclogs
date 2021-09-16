@@ -1,0 +1,42 @@
+12:19 < bridge> [teeworlds] <Patiga> I have now released my python bindings for twmap https://gitlab.com/Patiga/twmap-py ! Every part of the map can be read, however only the map info is currently writable. You can try it out by installing it with `pip install twmap` and using `help` on the module and the different types. Currently you can only use it on linux, but I'm trying to figure out how to get them to windows as well
+12:39 < bridge> [teeworlds] <chillerdragon> first stargazer! fan #1
+15:32 < bridge> [teeworlds] <chillerdragon> anyone else having trouble to build on macOS ?
+15:33 < ChillerDragon> /Users/chillerdragon/Desktop/git/teeworlds/src/engine/external/pnglite/version:1:1: error: expected unqualified-id
+15:33 < ChillerDragon> 0.1.17
+15:33 < ChillerDragon> ^
+15:53 < bridge> [teeworlds] <jxsl13> hmhm, might take a look for reference for my Go package :0.
+15:54 < bridge> [teeworlds] <jxsl13> sounds?
+15:54 < bridge> [teeworlds] <jxsl13> why is there a sounds file Oo
+17:07 < bridge> [teeworlds] <Patiga> its also for ddnet maps, those can include audio files and place sounds into maps
+17:14 < bridge> [teeworlds] <chillerdragon> @jxsl13\: care the license axaxax if your code stealing gets to close u might have to inherirt lgpl or @Patiga will haunt you with lawyers
+17:15 < bridge> [teeworlds] <jxsl13> different language, different code
+17:15 < bridge> [teeworlds] <jxsl13> different structures
+18:02 < bridge> [teeworlds] <jxsl13> https://gitlab.com/Patiga/twmap
+18:02 < bridge> [teeworlds] <jxsl13> this :0
+18:39 < bridge> [teeworlds] <jxsl13> @Patiga could you explain this construct to me? ```rust
+18:39 < bridge> [teeworlds] <jxsl13> #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+18:39 < bridge> [teeworlds] <jxsl13> // for holding compressed data, since decompression is expensive
+18:39 < bridge> [teeworlds] <jxsl13> pub enum CompressedData<T, U> {
+18:39 < bridge> [teeworlds] <jxsl13>     Compressed(Vec<u8>, usize, U),
+18:39 < bridge> [teeworlds] <jxsl13>     Loaded(T),
+18:39 < bridge> [teeworlds] <jxsl13> }
+18:39 < bridge> [teeworlds] <jxsl13> ```
+18:39 < bridge> [teeworlds] <Patiga> sure!
+18:40 < bridge> [teeworlds] <Patiga> decompressing the zlib compressed data in the map file is the most time consuming process by far
+18:40 < bridge> [teeworlds] <Patiga> thats why I keep the tile map layer data and image/sound data compressed
+18:40 < bridge> [teeworlds] <Patiga> (until you need it, at which point you use the method `.load()`)
+18:41 < bridge> [teeworlds] <Patiga> the enum you see either holds the loaded type, for example RgbaImage or Array2<Tile>, or the compressed data with some information which is required to construct the loaded type
+18:42 < bridge> [teeworlds] <Patiga> `Vec<u8>` is the compressed data, `usize` is the expected decompressed size, `U` is the generic type which has the load info (for example width + height of image)
+18:44 < bridge> [teeworlds] <jxsl13> hm
+18:45 < bridge> [teeworlds] <Patiga> I think loading all ddnet maps is about ~10 times faster if you keep the those things compressed
+18:46 < bridge> [teeworlds] <jxsl13> gotta look at how this is used, I somehow fail to grasp the concept of that enum structure
+18:48 < bridge> [teeworlds] <jxsl13> if I was not caring about performance at all, what would be the equivalent?
+18:49 < bridge> [teeworlds] <Patiga> right after the parsing process, all layers will have CompressedData::Compressed(_, _, TilesLoadInfo). the zlib compressed data is just copied over
+18:49 < bridge> [teeworlds] <Patiga> when you want to use the tiles, you need to use the `load` method, which will go through the decompression and give you the CompressedData::Loaded(Tiles)
+18:49 < bridge> [teeworlds] <Patiga> the alternative would be `T` ^^
+18:50 < bridge> [teeworlds] <Patiga> you just would leave that enum out
+18:52 < bridge> [teeworlds] <jxsl13> I think it's ore of a syntactical issue that I don't get that, as those Compressed/Loaded look more like functions to me. maybe this thing is somewhat comparable to a C style union?
+18:53 < bridge> [teeworlds] <Patiga> yea, the equivalent of enum in c is a tagged union
+18:53 < bridge> [teeworlds] <jxsl13> I see
+18:53 < bridge> [teeworlds] <jxsl13> thanks
+18:53 < bridge> [teeworlds] <Patiga> yw :)

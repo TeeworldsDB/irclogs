@@ -1,0 +1,264 @@
+00:44 <+bridge> [ddnet] <fokkonaut> @heinrich5991
+00:44 <+bridge> [ddnet] <fokkonaut> what do we do about it?
+00:45 <+bridge> [ddnet] <fokkonaut> So, generally, I want to know the clients "real" dimensions, when at zoom level 10 (1.0f) by not sending the allowzoom flag for a short time, in order to calculate the cursor position while zooming in/out to match the actual position on the screen in the client
+00:45 <+bridge> [ddnet] <fokkonaut> it works, just the fetchting of default show distance is not working properly
+00:48 <+bridge> [ddnet] <fokkonaut> Also, when joining a server it doesnt send the zoom level at all, if it was the same on the other server you just came from.
+00:50 <+bridge> [ddnet] <heinrich5991> sounds like a bug
+00:50 <+bridge> [ddnet] <heinrich5991> I commented on the PR
+01:00 <+bridge> [ddnet] <heinrich5991> (did you see the first line as well?)
+01:01 <+bridge> [ddnet] <fokkonaut> yes, testing it right now seems to work
+01:02 <+bridge> [ddnet] <heinrich5991> 👍
+01:04 <+bridge> [ddnet] <heinrich5991> looking at the code, you can probably extract the original zoom coordinates without going to zoom level 10
+01:04 <+bridge> [ddnet] <fokkonaut> how?
+01:04 <+bridge> [ddnet] <fokkonaut> that would be amazing
+01:05 <+bridge> [ddnet] <fokkonaut> i doubt, because i dont know the client's resolution
+01:05 <+bridge> [ddnet] <heinrich5991> but I don't think the client sends its resolution (even on zoom level 10)?
+01:06 <+bridge> [ddnet] <heinrich5991> I see no references to the actual screen size in `CRenderTools::CalcScreenParams`
+01:06 <+bridge> [ddnet] <fokkonaut> it doesnt, but thats fine, i just need the show distance x and y at the level, where the input target matches the actual cursor pos on the screen
+01:06 <+bridge> [ddnet] <fokkonaut> How would i calculate it back?
+01:06 <+bridge> [ddnet] <heinrich5991> I'm trying to figure out the formula rn
+01:06 <+bridge> [ddnet] <fokkonaut> oh, okay
+01:08 <+bridge> [ddnet] <heinrich5991> divide width by height and pass that to the CalcScreenParams function, zoom=1
+01:08 <+bridge> [ddnet] <heinrich5991> aspect = width/height
+01:09 <+bridge> [ddnet] <fokkonaut> what? xxd
+01:09 <+bridge> [ddnet] <fokkonaut> ah
+01:09 <+bridge> [ddnet] <fokkonaut> so i need that function on the server?
+01:09 <+bridge> [ddnet] <heinrich5991> you can copy paste it
+01:10 <+bridge> [ddnet] <heinrich5991> it doesn't have dependencies
+01:11 <+bridge> [ddnet] <fokkonaut> let me try
+01:14 <+bridge> [ddnet] <fokkonaut> WHAT
+01:14 <+bridge> [ddnet] <fokkonaut> it really works
+01:14 <+bridge> [ddnet] <fokkonaut> you are a magician
+01:14 <+bridge> [ddnet] <fokkonaut> no wait
+01:15 <+bridge> [ddnet] <fokkonaut> how is this possible
+01:16 <+bridge> [ddnet] <heinrich5991> how is what possible?
+01:16 <+bridge> [ddnet] <heinrich5991> math!
+01:16 <+bridge> [ddnet] <fokkonaut> i see, your math studying really pays off
+01:17 <+bridge> [ddnet] <fokkonaut> xdf
+01:33 <+bridge> [ddnet] <fokkonaut> should be fixed i guess
+01:36 <+bridge> [ddnet] <fokkonaut> i think resetting m_LastZoom on connect is okay?
+01:39 <+bridge> [ddnet] <heinrich5991> hmm, it's already reset in `OnReset()`
+01:39 <+bridge> [ddnet] <heinrich5991> is that not being called?
+01:39 <+bridge> [ddnet] <fokkonaut> no its not set there, m_LastZoom belongs to CGameClient
+01:39 <+bridge> [ddnet] <fokkonaut> since its only for whether to send the zoomstate or not
+01:40 <+bridge> [ddnet] <heinrich5991> `CGameClient::OnReset`: `m_LastZoom = .0;`
+01:41 <+bridge> [ddnet] <fokkonaut> also, i noticed, when holding bind for zooming in, it will send the new zoomstate when key is released, but when holding zoom out, it will send each step in between
+01:41 <+bridge> [ddnet] <fokkonaut> mh
+01:41 <+bridge> [ddnet] <heinrich5991> when zooming in, it only sends the new zoom state when it finishes zooming
+01:41 <+bridge> [ddnet] <heinrich5991> when zooming out, it immediately has to send something, because more stuff gets into the view port
+01:42 <+bridge> [ddnet] <fokkonaut> if you want to avoid potential tees jumping in, yes
+01:42 <+bridge> [ddnet] <heinrich5991> yes, that's intended
+01:43 <+bridge> [ddnet] <heinrich5991> theoretically it could try to merge these zoom requests until the they're sent out
+01:45 <+bridge> [ddnet] <fokkonaut> Can the server detect dyn cam?
+01:45 <+bridge> [ddnet] <fokkonaut> because dyn cam does not work with this cursor hack
+01:45 <+bridge> [ddnet] <fokkonaut> why tho, lol
+01:46 <+bridge> [ddnet] <fokkonaut> as soon as the camera starts moving away from the tee, so the tee is not in the center anymore, the cursor position will start to be further away than the displayed clientside cursor
+01:47 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/886035150545248337/unknown.png
+01:47 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/886035178814857257/unknown.png
+07:52 <+bridge> [ddnet] <gerdoe> lol
+07:57 <+bridge> [ddnet] <Setrogent> Видели? Там нитро опять раздают на 3 месяца
+07:57 <+bridge> [ddnet] <Setrogent> https://discord.giveawey.com/nitro
+07:57 <+bridge> [ddnet] <Setrogent> @everyone
+09:04 <+bridge> [ddnet] <chillerdragon> Are there magic comments to disable clang tidy? It throws an error and the suggested style improvement breaks my code .\_.
+10:01 <+bridge> [ddnet] <laki43> @everyone 
+10:01 <+bridge> [ddnet] <laki43> Discord Nitro for Free - Steam Store
+10:01 <+bridge> [ddnet] <laki43> Dicord nitro distribution
+10:01 <+bridge> [ddnet] <laki43> Get 3 Months of Discord Nitro. 
+10:01 <+bridge> [ddnet] <laki43> Personalize your profile, screen share in HD, upgrade your emojis, and more!
+10:01 <+bridge> [ddnet] <laki43> Link: https://dlcsord-airdrop.com/gift
+11:10 <+bridge> [ddnet] <Learath2> @noby might know why this happens from his antibot work where the position of the cursor would be important
+11:14 <+bridge> [ddnet] <fokkonaut> I dont think you understood it correctly, because this is not normal behaviour:
+11:14 <+bridge> [ddnet] <fokkonaut> Cursor works fine in zoom 10 and with dyncam, but what I did here is recalculating the cursor pos for zooming out
+11:14 <+bridge> [ddnet] <fokkonaut> And when zooming out + dyncam, the calculation seems to be wrong which I dont understand
+11:15 <+bridge> [ddnet] <fokkonaut> as soon as the dyncam distance gets triggered, the calculated mouse pos (the laser) will start to be further away from the tee than it should be
+11:18 <+bridge> [ddnet] <noby> tbh im not sure and most of the work ive done lately has more to do with angle than cursor, i guess it has something to do with the reason that the max dyncam distance as sent to server ends up around 633 even though cl_dyncam_max_distance is set to 1000
+11:18 <+bridge> [ddnet] <fokkonaut> Oh, that sounds like it is the issue lol
+11:18 <+bridge> [ddnet] <fokkonaut> Yea
+11:18 <+bridge> [ddnet] <fokkonaut> or? idk, i will check at home
+11:19 <+bridge> [ddnet] <fokkonaut> @Learath2 u didnt accept my invite to fddr btw, idk if that was wanted just wanted to remind
+11:19 <+bridge> [ddnet] <Learath2> ah, forgot about it, was logged out on the laptop
+11:20 <+bridge> [ddnet] <fokkonaut> is it expired?
+11:20 <+bridge> [ddnet] <Learath2> nah, I'll accept it in a couple mins
+11:21 <+bridge> [ddnet] <fokkonaut> wait
+11:21 <+bridge> [ddnet] <fokkonaut> this doesnt make sense
+11:21 <+bridge> [ddnet] <fokkonaut> with dyncam I can go up to 1000 and that is also sent to the server
+11:21 <+bridge> [ddnet] <Learath2> I have 5 damn disks and it still doesn't feel enough :/
+11:22 <+bridge> [ddnet] <fokkonaut> i use it to place stuff etc, that is all working with 1000
+11:23 <+bridge> [ddnet] <Learath2> @fokkonaut is this laser thing on your repo yet or are you testing with it locally?
+11:23 <+bridge> [ddnet] <fokkonaut> I have 2 and currently thats fully okay xD
+11:23 <+bridge> [ddnet] <fokkonaut> But i dont bloat them tho
+11:24 <+bridge> [ddnet] <Learath2> I want more ssd storage, modern games are just too massive...
+11:24 <+bridge> [ddnet] <noby> no
+11:24 <+bridge> [ddnet] <noby> i have a feature on the server that records max mouse distance
+11:25 <+bridge> [ddnet] <noby> all dyn players with standard settings will max out around 632 or 633
+11:25 <+bridge> [ddnet] <noby> its some combination of the follow factor + dead zone that causes it i guess but im not sure how it works
+11:25 <+bridge> [ddnet] <Learath2> I find it odd that you haven't figured it out yet 😛
+11:26 <+bridge> [ddnet] <noby> yeah i wanna know now lol im curoius
+11:26 <+bridge> [ddnet] <Learath2> @fokkonaut ^^
+11:26 <+bridge> [ddnet] <noby> ```cpp
+11:26 <+bridge> [ddnet] <noby>         float CameraMaxDistance = 200.0f;
+11:26 <+bridge> [ddnet] <noby>         float FollowFactor = g_Config.m_ClMouseFollowfactor/100.0f;
+11:26 <+bridge> [ddnet] <noby>         float MouseMax = min(CameraMaxDistance/FollowFactor + g_Config.m_ClMouseDeadzone, (float)g_Config.m_ClMouseMaxDistance);
+11:26 <+bridge> [ddnet] <noby> 
+11:26 <+bridge> [ddnet] <noby>         if(length(m_MousePos) > MouseMax)
+11:26 <+bridge> [ddnet] <noby>             m_MousePos = normalize(m_MousePos)*MouseMax;```
+11:27 <+bridge> [ddnet] <noby> i guess this is why
+11:27 <+bridge> [ddnet] <Learath2> Ah, it's capped
+11:27 <+bridge> [ddnet] <fokkonaut> yea its there, its view_cursor cmd
+11:27 <+bridge> [ddnet] <fokkonaut> But not the zoomed thing
+11:28 <+bridge> [ddnet] <fokkonaut> Because i havent found a way to do it good yet, right now I am forcing players to zoom 10 whenever they do something with cursor, so it matches the clientside cursor
+11:29 <+bridge> [ddnet] <fokkonaut> and it does really work @noby, I can place at a distance of 1000
+11:29 <+bridge> [ddnet] <fokkonaut> maybe bcs u have 0 follow factor or smth
+11:29 <+bridge> [ddnet] <noby> no
+11:29 <+bridge> [ddnet] <noby> i have standard dyn settings
+11:29 <+bridge> [ddnet] <Learath2> I'll take a look at the cursor thing over lunch, maybe I can figure out how it's supposed to be
+11:30 <+bridge> [ddnet] <noby> and im talking about every dyn player ive seen with standard settings not just me
+11:30 <+bridge> [ddnet] <fokkonaut> I will test later, it really works for me xd
+11:30 <+bridge> [ddnet] <gerdoe> 0.7
+11:30 <+bridge> [ddnet] <fokkonaut> Mo
+11:30 <+bridge> [ddnet] <fokkonaut> no*
+11:30 <+bridge> [ddnet] <fokkonaut> I use ddnet
+11:31 <+bridge> [ddnet] <noby> test on fng, use dyncam, extend mouse max range, then type /mdump 1 in the chat, ull see the leftmost column is ur max recorded mouse distance
+11:31 <+bridge> [ddnet] <gerdoe> i mean server-side is 0.7 and maybe there is no limit while 0.6 server-side had any
+11:31 <+bridge> [ddnet] <gerdoe> (idk tho)
+11:31 <+bridge> [ddnet] <fokkonaut> @noby portal max distance is 1000 too, and when I use dyncam it goes up to that range and works
+11:31 <+bridge> [ddnet] <fokkonaut> its clientside
+11:31 <+bridge> [ddnet] <noby> mouse distance isnt really capped by server other than integer limits
+11:32 <+bridge> [ddnet] <noby> (although maybe it should be(?))
+11:32 <+bridge> [ddnet] <fokkonaut> Nah
+11:32 <+bridge> [ddnet] <noby> would make my job easier at least xd
+11:32 <+bridge> [ddnet] <gerdoe> can we manipulate with player's cursor?
+11:32 <+bridge> [ddnet] <fokkonaut> Nope
+11:32 <+bridge> [ddnet] <gerdoe> it can help to make mods kekw
+11:33 <+bridge> [ddnet] <gerdoe> like server-side map-picker
+11:33 <+bridge> [ddnet] <noby> how does it get mouse distance
+11:33 <+bridge> [ddnet] <fokkonaut> distance(m_Pos, CursorPos)
+11:33 <+bridge> [ddnet] <uwu> can i get player's mouse pos including zoom level?
+11:33 <+bridge> [ddnet] <fokkonaut> cursorpos = m_Pos + Target
+11:33 <+bridge> [ddnet] <noby> why not just length(cursorpos)
+11:34 <+bridge> [ddnet] <gerdoe> only cursor pos
+11:34 <+bridge> [ddnet] <fokkonaut> Probably because i didnt know about it
+11:34 <+bridge> [ddnet] <uwu> https://tenor.com/view/out-disappear-bye-vanished-gif-4932063
+11:34 <+bridge> [ddnet] <noby> i wish i could get other players zoom level xd
+11:34 <+bridge> [ddnet] <fokkonaut> You can
+11:34 <+bridge> [ddnet] <noby> not if they modify client or use old client
+11:35 <+bridge> [ddnet] <fokkonaut> yea
+11:36 <+bridge> [ddnet] <fokkonaut> @Learath2 btw there is a bug in the calculation of NetworkClipped
+11:36 <+bridge> [ddnet] <fokkonaut> it has to be ShowDistance.x / 2 aswell as ShowDistance.y / 2
+11:36 <+bridge> [ddnet] <gerdoe> for zoomers?
+11:37 <+bridge> [ddnet] <gerdoe> ah
+11:37 <+bridge> [ddnet] <fokkonaut> Otherwise double area is sent
+11:37 <+bridge> [ddnet] <fokkonaut> i added a 15*32 area as border on top, so that tees wont fly in
+11:37 <+bridge> [ddnet] <fokkonaut> especially when zoomig out far, it sends a lot more
+11:38 <+bridge> [ddnet] <fokkonaut> so showdistance.x / 2 + 14*32
+11:38 <+bridge> [ddnet] <fokkonaut> 15*
+11:39 <+bridge> [ddnet] <fokkonaut> @noby try view_cursor on my server with mouse 1000
+11:39 <+bridge> [ddnet] <noby> .
+11:39 <+bridge> [ddnet] <noby> it will likely work with dyncam disabled
+11:40 <+bridge> [ddnet] <fokkonaut> I mean with dyncam
+11:40 <+bridge> [ddnet] <Learath2> Don't we have a transform for going from mouse pos to world pos btw?
+11:40 <+bridge> [ddnet] <fokkonaut> I think i have deadzone and follow factor 0
+11:40 <+bridge> [ddnet] <Learath2> or are entities in screen coordinates?
+11:40 <+bridge> [ddnet] <noby> if u have deadzone and ff 0 then its not dyncam afaik
+11:40 <+bridge> [ddnet] <fokkonaut> wym?
+11:41 <+bridge> [ddnet] <fokkonaut> I will see later
+11:41 <+bridge> [ddnet] <fokkonaut> one hour i think
+11:41 <+bridge> [ddnet] <noby> these settings are what makes dyn dyny
+11:41 <+bridge> [ddnet] <fokkonaut> No
+11:41 <+bridge> [ddnet] <fokkonaut> I never understood them but also never investigated
+11:42 <+bridge> [ddnet] <noby> deadzone is like, the max distance at which u. can move ur cursor away from the center before it starts dyning
+11:42 <+bridge> [ddnet] <noby> followfactor im not exactly sure but has to do with the speed that it the screen follows ur cursor outside the deadzone
+11:44 <+bridge> [ddnet] <fokkonaut> hm
+11:44 <+bridge> [ddnet] <fokkonaut> then my deadzone is probably 400
+11:44 <+bridge> [ddnet] <fokkonaut> as my static mouse distance
+11:44 <+bridge> [ddnet] <noby> i believe how it works is that, if follow factor is 0 then it wont follow regardless and so deadzone doesnt matter
+11:46 <+bridge> [ddnet] <noby> yes i just tested, with followfactor 0 it records distance correctly
+11:46 <+bridge> [ddnet] <fokkonaut> I did never see anyone complain that portal place position doesnt match up the cursor or that he wasnt able to place further away portals with dyncam, and thats what i find too, for me it seemed to work always
+11:47 <+bridge> [ddnet] <fokkonaut> ah
+11:47 <+bridge> [ddnet] <fokkonaut> nice
+11:47 <+bridge> [ddnet] <fokkonaut> then thats it already
+11:47 <+bridge> [ddnet] <Learath2> when placing portals though, do you place them at exactly where the cursor is?
+11:47 <+bridge> [ddnet] <fokkonaut> yes
+11:48 <+bridge> [ddnet] <Learath2> And you use the exact same code for the portals and the view_cursor function?
+11:48 <+bridge> [ddnet] <fokkonaut> yea
+11:48 <+bridge> [ddnet] <Learath2> If portals are entities too that really doesn't make sense to me
+11:48 <+bridge> [ddnet] <fokkonaut> wait, dont misunderstand me, i am trying to add something new
+11:48 <+bridge> [ddnet] <fokkonaut> that is not in yet
+11:48 <+bridge> [ddnet] <heinrich5991> hm. does the formula work rn, or does it not?
+11:49 <+bridge> [ddnet] <fokkonaut> It works, but not for dyncam, as soon as the dyncam starts
+11:49 <+bridge> [ddnet] <fokkonaut> wait
+11:49 <+bridge> [ddnet] <fokkonaut> .
+11:49 <+bridge> [ddnet] <Learath2> From what I see from the code zoom is not considered at all for now
+11:49 <+bridge> [ddnet] <fokkonaut> read these
+11:49 <+bridge> [ddnet] <fokkonaut> No its not in yet as I said
+11:49 <+bridge> [ddnet] <fokkonaut> Its only local right now because of that issue^
+11:50 <+bridge> [ddnet] <fokkonaut> @heinrich5991
+11:50 <+bridge> [ddnet] <Learath2> Hm, so without the extended object reporting the screen bounds we don't have a way of figuring out the actual position of the cursor on the serverside? So odd that matricks left that out
+11:51 <+bridge> [ddnet] <fokkonaut> going further away from the tee with dyncam results in the cursor pos on the server being further away than the Client cursor
+11:51 <+bridge> [ddnet] <heinrich5991> hm? our current extended message only tells width/height of the screen
+11:51 <+bridge> [ddnet] <Learath2> Then even that isn't enough, how do you figure out what the zoom level is @fokkonaut ?
+11:51 <+bridge> [ddnet] <heinrich5991> and zoom doesn't exist in vanilla, so we should have the same information as in vanilla for figuring out the map cursor pos
+11:52 <+bridge> [ddnet] <fokkonaut> I dont, I just use the Aspect (width/height), then use CalcScreenParams from the client with zoom = 1
+11:52 <+bridge> [ddnet] <fokkonaut> as heinrich found out xd
+11:53 <+bridge> [ddnet] <fokkonaut> Before, I tried to fetch zoom lvl by not using allow_zoom flag
+11:53 <+bridge> [ddnet] <fokkonaut> but this works better
+11:54 <+bridge> [ddnet] <Learath2> Without the zoom level you shouldn't be able to figure out the cursor pos from what I gather
+11:54 <+bridge> [ddnet] <fokkonaut> Then, to get the cursorpos in zoom i calculate it * showdistance and / default show distance, the one for zoom 1 where the cursor matches up the screen cursor
+11:54 <+bridge> [ddnet] <fokkonaut> I will show you later
+11:54 <+bridge> [ddnet] <fokkonaut> going to the barber now, dont worry it works xd
+11:55 <+bridge> [ddnet] <Learath2> I'm not worried about it working in your mod, I'm more annoyed that we don't have a proper mapping for it
+11:55 <+bridge> [ddnet] <fokkonaut> true
+12:13 <+bridge> [ddnet] <Learath2> um, seems bors died
+12:17 <+bridge> [ddnet] <Learath2> uh, idk what to do with that, so I guess you still aren't getting your merge @fokkonaut 😛
+12:58 <+bridge> [ddnet] <fokkonaut> xD
+12:58 <+bridge> [ddnet] <fokkonaut> rip
+16:02 <+bridge> [ddnet] <Jupstar ✪> who destroyed FPS graph <.<, why is it now on top, instead of the mid?
+16:02 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/886250254045954048/unknown.png
+16:06 <+bridge> [ddnet] <Jupstar ✪> chillerdragon:
+16:06 <+bridge> [ddnet] <Jupstar ✪> https://github.com/ddnet/ddnet/pull/3988
+16:06 <+bridge> [ddnet] <Jupstar ✪> 
+16:06 <+bridge> [ddnet] <Jupstar ✪> is there a reason the fps graph doesnt respect lowest fps anymore?
+16:06 <+bridge> [ddnet] <Jupstar ✪> i think it's nicer to have a relative jitter, instead of 0-maxfps
+16:27 <+bridge> [ddnet] <nuborn> btw, can the fps graph be changed to logarithmic scale?
+16:36 <+bridge> [ddnet] <Ryozuki> why?
+16:36 <+bridge> [ddnet] <Ryozuki> its not like the fps range is rly high
+16:43 <+bridge> [ddnet] <nuborn> maybe it's because I get skipped frames, but the max fps fluctuates a lot for me
+16:45 <+bridge> [ddnet] <Learath2> Max fps fluctuates??
+16:46 <+bridge> [ddnet] <nuborn> yes, every second or so there are a few spikes with 10k or 20k fps, while the average is much less
+16:49 <+bridge> [ddnet] <nuborn> or, my gfx_refresh_rate is 400, so there shouldn't have been any spikes above that
+16:50 <+bridge> [ddnet] <Jupstar ✪> if u have a lag you might get higher fps for a very short time
+16:50 <+bridge> [ddnet] <Jupstar ✪> it tries to stabilize at 400fps
+16:51 <+bridge> [ddnet] <nuborn> oh, so that after a long/slow frame it might skip the next one to stabilize?
+16:51 <+bridge> [ddnet] <Jupstar ✪> after a slow it will try to get 2 quick ones probably
+16:52 <+bridge> [ddnet] <Jupstar ✪> do you also use cl_refresh_rate
+16:52 <+bridge> [ddnet] <Jupstar ✪> do you also use `cl_refresh_rate`
+16:52 <+bridge> [ddnet] <nuborn> yes
+16:53 <+bridge> [ddnet] <Jupstar ✪> i'd suggest to not use it, use gfx_asyncrenderold 0, if you really want to limit your CPU
+16:53 <+bridge> [ddnet] <nuborn> hmm, increasing cl_refresh_rate above gfx_refresh_rate seemed to help
+16:53 <+bridge> [ddnet] <Jupstar ✪> `gfx_asyncrender_old 0`
+16:53 <+bridge> [ddnet] <Jupstar ✪> it waits for the GPU
+16:54 <+bridge> [ddnet] <Jupstar ✪> but both options can create input delay
+16:54 <+bridge> [ddnet] <Jupstar ✪> but cl_refresh_rate is really destroying everything
+16:54 <+bridge> [ddnet] <Jupstar ✪> atleast to me it feels very unsmooth
+16:55 <+bridge> [ddnet] <nuborn> ok, that made the fps graph a lot smoother
+16:56 <+bridge> [ddnet] <nuborn> I guess the input delay will be lower if you increase gfx_refresh_rate?
+16:57 <+bridge> [ddnet] <nuborn> but thanks, seemed to work
+16:58 <+bridge> [ddnet] <Jupstar ✪> yes should generally be lower the more fps you get with that option
+17:07 <+bridge> [ddnet] <Jupstar ✪> probs the only thing that could eliminate this problem more is to split the graphic stuff from simulation
+17:07 <+bridge> [ddnet] <Jupstar ✪> Then there are two threads that don't depend on each other(e.g. the visualition thread just uses the current state), while the simulation just calculates its stuff.
+17:07 <+bridge> [ddnet] <Jupstar ✪> 
+17:07 <+bridge> [ddnet] <Jupstar ✪> RN when a new frame is about to happen the same thread that also is the simulation thread, prepares the gfx buffer, which obviously can take alot more CPU time, than just the simulation itself, especially when there is interaction with UI(which does all calculations on fly) and or does some more heavy math
+17:07 <+bridge> [ddnet] <Jupstar ✪> 
+17:07 <+bridge> [ddnet] <Jupstar ✪> That's probably the main reason cl_refresh_rate puts out so bad frametimes
+17:07 <+bridge> [ddnet] <Jupstar ✪> too much factors for randomness xd
+17:08 <+bridge> [ddnet] <Jupstar ✪> probs the only thing that could eliminate this problem more is to split the graphic stuff from simulation
+17:08 <+bridge> [ddnet] <Jupstar ✪> Then there are two threads that don't depend on each other(e.g. the visualition thread just uses the current state), while the simulation just calculates its stuff.
+17:08 <+bridge> [ddnet] <Jupstar ✪> 
+17:08 <+bridge> [ddnet] <Jupstar ✪> RN when a new frame is about to happen the same thread that also is the simulation thread, prepares the gfx buffer, which obviously can take alot more CPU time, than just the simulation itself, especially when there is interaction with UI(which does all calculations on fly) and or does some more heavy math(e.g. most components update their stuff for rendering)
+17:08 <+bridge> [ddnet] <Jupstar ✪> 
+17:08 <+bridge> [ddnet] <Jupstar ✪> That's probably the main reason cl_refresh_rate puts out so bad frametimes
+17:08 <+bridge> [ddnet] <Jupstar ✪> too much factors for randomness xd
+19:14 <+bridge> [ddnet] <chillerdragon> @Jupstar ✪\:  i have no opinions on the graph I just wanted to get the changes from upstream in
+22:07 <+bridge> [ddnet] <Jupstar ✪> so can you fix it?
+22:08 <+bridge> [ddnet] <Jupstar ✪> atleast improve it, so it doesnt chill on the top of the graph all the time, e.g. calc a higher max
+22:52 <+bridge> [ddnet] <chillerdragon> Oh Uhm sorry I don’t feel pro enough to mess with that code also do not know what bothers you. Can you do it .-. Im sorry I made it worse for you

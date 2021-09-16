@@ -1,0 +1,280 @@
+01:02 <+bridge> [ddnet] <BloodWod-513> #3960
+01:02 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/3960
+02:45 <+bridge> [ddnet] <lynn> cool changes
+09:08 <+bridge> [ddnet] <Learath2> @Jupstar ✪ #4003 works but it looks wrong
+09:08 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/4003
+09:08 <+bridge> [ddnet] <Jupstar ✪> can you specify or send screen?
+09:08 <+bridge> [ddnet] <Learath2> oh actually gl3 and gl2 both look wrong, only gl1 looks correct
+09:09 <+bridge> [ddnet] <Jupstar ✪> 😮
+09:09 <+bridge> [ddnet] <Learath2> gl1
+09:09 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/874912488263655454/Screenshot_2021-08-11_at_10.09.09.png
+09:10 <+bridge> [ddnet] <Learath2> gl2/3
+09:10 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/874912533872525312/Screenshot_2021-08-11_at_10.09.35.png
+09:10 <+bridge> [ddnet] <Learath2> the missing quad on the top also makes the animations look very weird
+09:10 <+bridge> [ddnet] <Jupstar ✪> and thats since the patch?
+09:10 <+bridge> [ddnet] <Learath2> causes these weird corners etc.
+09:10 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/874912758062284860/Screenshot_2021-08-11_at_10.10.32.png
+09:11 <+bridge> [ddnet] <Learath2> I will check
+09:13 <+bridge> [ddnet] <Learath2> gl3.3 looks correct, gl3 and gl2 were broken before 4003 anyway. So I guess it's not related to the patch
+09:13 <+bridge> [ddnet] <Jupstar ✪> still weird
+09:15 <+bridge> [ddnet] <Jupstar ✪> quads use triangles
+09:15 <+bridge> [ddnet] <Jupstar ✪> directly
+09:15 <+bridge> [ddnet] <Jupstar ✪> can you see how the HLS color sliders look like in tee settings?
+09:15 <+bridge> [ddnet] <Jupstar ✪> they also use triangles
+09:15 <+bridge> [ddnet] <Learath2> let me run my janky debug build in case we have unhandled gl errors still
+09:16 <+bridge> [ddnet] <Jupstar ✪> too bad nobody cares about older GL anymore, makes it just harder to find such errors
+09:16 <+bridge> [ddnet] <Learath2> sliders seem fine
+09:16 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/874914212659486760/Screenshot_2021-08-11_at_10.16.26.png
+09:16 <+bridge> [ddnet] <Jupstar ✪> really weird xD
+09:18 <+bridge> [ddnet] <Jupstar ✪> maybe the texture binding somehow fails
+09:18 <+bridge> [ddnet] <Learath2> okay, no such luck this time
+09:20 <+bridge> [ddnet] <Learath2> So unless there are gl calls outside backend_opengl your gl calls succeed
+09:20 <+bridge> [ddnet] <Jupstar ✪> mh yeah, and the map triangles also use the gl 1.x method of rendering them
+09:21 <+bridge> [ddnet] <Learath2> Maybe some z-ordering issue? my settings screenshot sort of suggests the quad is still there just behind the others
+09:22 <+bridge> [ddnet] <Jupstar ✪> depth buffer shouldnt be active, so first come first rendered
+09:22 <+bridge> [ddnet] <Learath2> maybe the render order is wrong?
+09:23 <+bridge> [ddnet] <Jupstar ✪> why shouldnt it reproducable in other contexts then 😄
+09:23 <+bridge> [ddnet] <Learath2> true, so that's not it
+09:23 <+bridge> [ddnet] <Jupstar ✪> wait
+09:23 <+bridge> [ddnet] <Jupstar ✪> are they even quads
+09:23 <+bridge> [ddnet] <Jupstar ✪> im not even that sure
+09:23 <+bridge> [ddnet] <Learath2> I haven't checked
+09:24 <+bridge> [ddnet] <Jupstar ✪> they are tiles
+09:25 <+bridge> [ddnet] <Jupstar ✪> in fact we only see quads
+09:25 <+bridge> [ddnet] <Jupstar ✪> normally quad rendering is checked
+09:25 <+bridge> [ddnet] <Jupstar ✪> can you try
+09:25 <+bridge> [ddnet] <Jupstar ✪> gfx_3d_texture_analysis_done 0
+09:25 <+bridge> [ddnet] <Jupstar ✪> and restart
+09:25 <+bridge> [ddnet] <Jupstar ✪> maybe your config is in some invalid state
+09:27 <+bridge> [ddnet] <Learath2> okay, it decided gl1.5 is the best idea
+09:27 <+bridge> [ddnet] <Jupstar ✪> so the fallback works?
+09:28 <+bridge> [ddnet] <Jupstar ✪> i wonder how it passed the fallback thing, can basically only happen if you copy config or change hardware, or the driver gets a nice downgrade
+09:28 <+bridge> [ddnet] <Learath2> Now all the versions work, so weird, I guess I had a broken config somehow
+09:29 <+bridge> [ddnet] <Jupstar ✪> yeah it doesnt allow u to use gl 2.x anymore
+09:29 <+bridge> [ddnet] <Jupstar ✪> it just downgrades the GL version
+09:29 <+bridge> [ddnet] <Learath2> idk why it decided on 1.5 either, 3.3 works fine on macOS, even better
+09:29 <+bridge> [ddnet] <Jupstar ✪> yeah strange
+09:29 <+bridge> [ddnet] <Jupstar ✪> gl 2.1+ - 3.0 work with extensions
+09:29 <+bridge> [ddnet] <Learath2> Anyway, it won't let me have a 2.1 context anymore, it will indeed fall back to 1.5
+09:29 <+bridge> [ddnet] <Jupstar ✪> maybe they are wrongly implemented and gl 3.3 just has it as core feature
+09:30 <+bridge> [ddnet] <Jupstar ✪> yeah
+09:30 <+bridge> [ddnet] <Jupstar ✪> thats why this
+09:30 <+bridge> [ddnet] <Jupstar ✪> it somehow passed it before, dunno how, almost impossible without a change
+09:31 <+bridge> [ddnet] <Learath2> And if I request a major 3 context it will properly choose 3.3 now, it used to pick 3.0 iirc
+09:31 <+bridge> [ddnet] <Jupstar ✪> ah yeah bcs minor is set to 5
+09:31 <+bridge> [ddnet] <Jupstar ✪> bcs it chooses 1.5
+09:32 <+bridge> [ddnet] <Learath2> Anyway, I was testing around many different versions/commits it is possible the config broke along the way
+09:32 <+bridge> [ddnet] <Jupstar ✪> maybe we should just remove these stupid broken GL versions and default to GL 3.3 and remove the texture unit optimization stuff so it won't break on some systems
+09:33 <+bridge> [ddnet] <Jupstar ✪> with gl 3.3 we have more debugging too
+09:33 <+bridge> [ddnet] <Jupstar ✪> renderdoc for example
+09:34 <+bridge> [ddnet] <Learath2> Eh, quite impossible we have to atleast keep gl1 support because broken drivers
+09:34 <+bridge> [ddnet] <Jupstar ✪> yeah
+09:34 <+bridge> [ddnet] <Jupstar ✪> gl 1.x and 3.3
+09:34 <+bridge> [ddnet] <Jupstar ✪> but no inbetween
+09:34 <+bridge> [ddnet] <Learath2> (or we are doing something wrong because I still think it's insane that we can't render a 2d game in 2021 😄 )
+09:34 <+bridge> [ddnet] <Jupstar ✪> i play with gl 3.3 since 4 years, all bugs we had were fixed
+09:35 <+bridge> [ddnet] <Learath2> Why did we introduce the gl2 stuff anyway?
+09:35 <+bridge> [ddnet] <Jupstar ✪> mipmaps
+09:35 <+bridge> [ddnet] <Learath2> Don't we still have that intel issue?
+09:35 <+bridge> [ddnet] <Jupstar ✪> for example yes
+09:35 <+bridge> [ddnet] <Jupstar ✪> they would then get gl 1.x
+09:35 <+bridge> [ddnet] <Jupstar ✪> which is slower than 2.0
+09:35 <+bridge> [ddnet] <Jupstar ✪> annoying af
+09:36 <+bridge> [ddnet] <Learath2> and iirc our gl1 backend is just flat out inferior, can't zoom out far even, no?
+09:36 <+bridge> [ddnet] <Jupstar ✪> yeah but gl 2.0 isnt much better
+09:36 <+bridge> [ddnet] <Jupstar ✪> 2.0 is basically vanilla 0.7 just a little bit different
+09:37 <+bridge> [ddnet] <Jupstar ✪> so it uses 3d textures, instead of 2d array textures, thus no mipmaps
+09:37 <+bridge> [ddnet] <Jupstar ✪> and iirc it also doesnt use VBOs
+09:37 <+bridge> [ddnet] <Learath2> Hm, I don't even remember what the initial issue was that required the hack of using 3d textures on vanilla
+09:39 <+bridge> [ddnet] <Jupstar ✪> do you know the border tools?
+09:39 <+bridge> [ddnet] <Jupstar ✪> they remove some pixels from the tile set images, bcs the UV coordinates aren't correctly calculated with mipmaps
+09:39 <+bridge> [ddnet] <Jupstar ✪> e.g. 1/1024 is less than 1/512
+09:40 <+bridge> [ddnet] <Jupstar ✪> so if you get the 512 mipmap the coordinate is wrong
+09:40 <+bridge> [ddnet] <Jupstar ✪> the problem on vanilla is, it's not worth it
+09:40 <+bridge> [ddnet] <Learath2> Ah the old borderfix mess
+09:40 <+bridge> [ddnet] <Jupstar ✪> 3d textures don't have mipmaps
+09:40 <+bridge> [ddnet] <Jupstar ✪> well not completly worthless tho tbf
+09:41 <+bridge> [ddnet] <Jupstar ✪> it still clamps the edges correctly
+09:41 <+bridge> [ddnet] <Jupstar ✪> but e.g. zoom in the vanilla 0.7 editor on Multimap(the original one)
+09:41 <+bridge> [ddnet] <Jupstar ✪> and do the same with gl 3.3 on our edtior
+09:41 <+bridge> [ddnet] <Jupstar ✪> then you see why ddnet's version is supirior
+09:42 <+bridge> [ddnet] <Learath2> How does the gl33 renderer handle the old borderfixed tilesets?
+09:43 <+bridge> [ddnet] <Jupstar ✪> they arent fixed, the mapres will look 2 pixels streetched if u zoom in very much
+09:43 <+bridge> [ddnet] <Jupstar ✪> but vanilla res for example isnt saved in the map
+09:43 <+bridge> [ddnet] <Jupstar ✪> so its not alot of maps where you will notice it
+09:44 <+bridge> [ddnet] <Learath2> hm, and the gl1 renderer? I assume that looks correct
+09:44 <+bridge> [ddnet] <Learath2> (for borderfixed tilesets)
+09:44 <+bridge> [ddnet] <Jupstar ✪> mhhhhhh
+09:45 <+bridge> [ddnet] <Jupstar ✪> you could say it looks more correct
+09:45 <+bridge> [ddnet] <Jupstar ✪> but the math is still wrong
+09:45 <+bridge> [ddnet] <Learath2> Only if you get the correct mipmap?
+09:45 <+bridge> [ddnet] <Jupstar ✪> gl 1.x doesnt have mipmaps anymore
+09:45 <+bridge> [ddnet] <Jupstar ✪> we could probably calculate the texel offset for that context too, but i assume only few ppl use 1.x and they probs have a poor resolution anyway to notice
+09:47 <+bridge> [ddnet] <Learath2> So Q: can't one disable mipmaps? Why did vanilla go with 3d textures if so?
+09:48 <+bridge> [ddnet] <Jupstar ✪> i dont get your first question
+09:48 <+bridge> [ddnet] <Jupstar ✪> 
+09:48 <+bridge> [ddnet] <Jupstar ✪> for the second:
+09:48 <+bridge> [ddnet] <Jupstar ✪> bcs 3d textures exists since gl 1.2
+09:48 <+bridge> [ddnet] <Jupstar ✪> and 2d array textures are core since 3.0( and over extension for gl 1.2)
+09:48 <+bridge> [ddnet] <Jupstar ✪> i dont get your first question
+09:48 <+bridge> [ddnet] <Jupstar ✪> 
+09:48 <+bridge> [ddnet] <Jupstar ✪> for the second:
+09:48 <+bridge> [ddnet] <Jupstar ✪> bcs 3d textures exists since gl 1.2
+09:48 <+bridge> [ddnet] <Jupstar ✪> and 2d array textures are core since 3.0( and over extension for gl 2.1)
+09:48 <+bridge> [ddnet] <Jupstar ✪> vanilla doesnt want modern things xd
+09:49 <+bridge> [ddnet] <Jupstar ✪> u can disable it by using gl 2.0 and lower, or maybe in ur driver, but else no
+09:50 <+bridge> [ddnet] <Learath2> Hm, I thought borderfix was needed to accomodate for mipmaps
+09:51 <+bridge> [ddnet] <Jupstar ✪> it was needed bcs the texel offset math in gl 1.x context is random
+09:51 <+bridge> [ddnet] <Jupstar ✪> you could say:
+09:52 <+bridge> [ddnet] <Jupstar ✪> it works for most cases, bcs most ppl have a resolution of something that only chooses a mipmap of 512x512pixels or more
+09:52 <+bridge> [ddnet] <nori> i think sdl 2.0.16 broke wayland backend on wlroots
+09:53 <+bridge> [ddnet] <Jupstar ✪> basically you can imagine it as, just adding an offset of 1/512
+09:53 <+bridge> [ddnet] <Jupstar ✪> so if you have low res screen it looks ok
+09:53 <+bridge> [ddnet] <Jupstar ✪> and on higher res it will remove too much from the texture, but the bordertool streetches these pixels, so in the end it looks fine too
+09:53 <+bridge> [ddnet] <Jupstar ✪> but removing 4 pixels of a 64 pixels tile is quite alot
+09:54 <+bridge> [ddnet] <Jupstar ✪> rip, have you reported it?
+09:54 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ do u use wayland
+09:54 <+bridge> [ddnet] <Jupstar ✪> but bcs its streetched it looks worse on lower res with boridertools.. thus random xd
+09:55 <+bridge> [ddnet] <Jupstar ✪> not rn, bcs i dont want forced vsync
+09:55 <+bridge> [ddnet] <Jupstar ✪> but i'd use it, once its stable
+09:55 <+bridge> [ddnet] <Jupstar ✪> so maybe 1-2 years
+09:55 <+bridge> [ddnet] <Ryozuki> yeah i hear they are obsessed with real fps or smth
+09:55 <+bridge> [ddnet] <Ryozuki> i dont know the word rn
+09:55 <+bridge> [ddnet] <Ryozuki> xd
+09:55 <+bridge> [ddnet] <Jupstar ✪> the performance is really nice
+09:55 <+bridge> [ddnet] <Ryozuki> everyone these days is using meson instead of cmake
+09:55 <+bridge> [ddnet] <Jupstar ✪> i get more fps, KDE's compositor doesnt destroy my fps too
+09:55 <+bridge> [ddnet] <Jupstar ✪> quite an improvement
+09:56 <+bridge> [ddnet] <Jupstar ✪> yeah i don't even get why xd
+09:57 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ https://gitlab.freedesktop.org/wayland/wayland-protocols/-/merge_requests/65
+09:57 <+bridge> [ddnet] <Jupstar ✪> yeah
+09:57 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/874924542005497866/unknown.png
+09:57 <+bridge> [ddnet] <Ryozuki> they want it "frame perfecT"
+09:57 <+bridge> [ddnet] <Jupstar ✪> yeah xD
+09:58 <+bridge> [ddnet] <Ryozuki> he probs doesnt play games
+09:58 <+bridge> [ddnet] <Jupstar ✪> rule number one
+09:58 <+bridge> [ddnet] <Jupstar ✪> if a gamer wants smth, they want it xD
+09:58 <+bridge> [ddnet] <Learath2> games are for kids tho
+09:59 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/874924849309569024/unknown.png
+10:00 <+bridge> [ddnet] <nori> @Jupstar ✪ found the pr that cause it, i'll report
+10:00 <+bridge> [ddnet] <Learath2> I sort of agree that tearing doesn't help much, but you leet gamers are very passionate about it and I've promised myself I won't get mad this month
+10:00 <+bridge> [ddnet] <Jupstar ✪> it makes insane difference xD
+10:00 <+bridge> [ddnet] <Ryozuki> :greenthing:
+10:00 <+bridge> [ddnet] <Ryozuki> ye
+10:00 <+bridge> [ddnet] <Jupstar ✪> for ddmax maps it might not matter
+10:00 <+bridge> [ddnet] <Jupstar ✪> but as soon as you have more action it it, rip
+10:00 <+bridge> [ddnet] <Jupstar ✪> for ddmax maps it might not matter
+10:00 <+bridge> [ddnet] <Jupstar ✪> but as soon as you have more action in it, rip
+10:01 <+bridge> [ddnet] <Learath2> I've been playing games almost as long as you and I've almost always played with vsync, there is a difference but calling it insane is a bit overreaching
+10:02 <+bridge> [ddnet] <Jupstar ✪> i get if you'd play on my setup you would never want to go back to another xD
+10:02 <+bridge> [ddnet] <Jupstar ✪> bet*
+10:02 <+bridge> [ddnet] <Learath2> anyway, wayland shouldn't be the one enforcing this, I agree on that
+10:03 <+bridge> [ddnet] <Jupstar ✪> my brother even uses 144hz just for desktop xD
+10:03 <+bridge> [ddnet] <Jupstar ✪> scrolling etc just smoother
+10:03 <+bridge> [ddnet] <Jupstar ✪> mobile phones also get 120hz screen nowadays
+10:03 <+bridge> [ddnet] <Learath2> I mean I played on many setups over the years, starting from a janky old crt tv all the way to a 4k 144hz monitor
+10:03 <+bridge> [ddnet] <Jupstar ✪> maybe vsync will work with 1000hz screens xd
+10:04 <+bridge> [ddnet] <Learath2> 60hz to 144hz is indeed a large change, but go back to 60hz and you'll forget about the jerkiness in a matter of days
+10:05 <+bridge> [ddnet] <Jupstar ✪> 60hz is nice, it made me not playing teeworlds in my holidays anymore
+10:05 <+bridge> [ddnet] <Learath2> (unless you obsess about it, then it will stay there forever, the brain is good at making the motion continuous, but if you keep looking for the gap it can't do it's job)
+10:05 <+bridge> [ddnet] <Jupstar ✪> i am obsess with such stuff
+10:06 <+bridge> [ddnet] <Learath2> Anyway, at 144hz vsync is even better for me
+10:06 <+bridge> [ddnet] <Jupstar ✪> if there would be an OS with lto and Ofast
+10:06 <+bridge> [ddnet] <Jupstar ✪> i'd use it for the 5-10% performance uplift xD
+10:06 <+bridge> [ddnet] <Ryozuki> https://www.nytimes.com/2021/08/10/world/europe/germany-covid-test.html
+10:06 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+10:07 <+bridge> [ddnet] <Learath2> You can compile most everything with Ofast and LTO on gentoo, I used such a system for a long time
+10:07 <+bridge> [ddnet] <Jupstar ✪> ah yeah i dont want to compile myself
+10:07 <+bridge> [ddnet] <Learath2> Sort of gave up on it tho since LTO was very immature back when I was using it
+10:07 <+bridge> [ddnet] <Jupstar ✪> takes too much time
+10:07 <+bridge> [ddnet] <Jupstar ✪> but yeah generally i like the idea
+10:08 <+bridge> [ddnet] <Learath2> Doesn't, unless you use a toaster. The initial setup is longer but after that modern compilers and linkers are quite fast
+10:08 <+bridge> [ddnet] <Ryozuki> i want to switch to gentoo so badly but im too lazy to redo my setup
+10:08 <+bridge> [ddnet] <Ryozuki> and i have accumulated lot of files
+10:08 <+bridge> [ddnet] <Ryozuki> i dont know which are important
+10:08 <+bridge> [ddnet] <Learath2> I even had distcc setup so I could compile packages on my desktop for my laptop 😛
+10:08 <+bridge> [ddnet] <Jupstar ✪> well i sometimes compile KDE, takes ages
+10:08 <+bridge> [ddnet] <Jupstar ✪> maybe if i'd use a home server, so it doesnt block my main setup
+10:09 <+bridge> [ddnet] <Ryozuki> lucky me i use a wm compiling that is probs way faster
+10:09 <+bridge> [ddnet] <Jupstar ✪> well next debian finally enables lto, thats already a nice step forward
+10:09 <+bridge> [ddnet] <Ryozuki> why have a desktop when rofi/dmenu is all u need
+10:09 <+bridge> [ddnet] <Ryozuki> :greenthing:
+10:09 <+bridge> [ddnet] <Jupstar ✪> arch probably already has quite alot lto packages i assume?
+10:10 <+bridge> [ddnet] <Ryozuki> https://github.com/davatorium/rofi
+10:10 <+bridge> [ddnet] <Jupstar ✪> i remember we had an compiler bug once, that destroyed the arch package, i could reprod with lto
+10:10 <+bridge> [ddnet] <Learath2> Have you tried the muqss patchset? I compile in the background all the time and my system stays fairly responsive
+10:10 <+bridge> [ddnet] <Ryozuki> you only compile packages from AUR
+10:10 <+bridge> [ddnet] <Jupstar ✪> ah yeah AUR is the thing
+10:10 <+bridge> [ddnet] <Ryozuki> i wonder how much more speed native arch compilation gives u
+10:10 <+bridge> [ddnet] <Ryozuki> -march=native
+10:11 <+bridge> [ddnet] <Jupstar ✪> never heard of it 😄
+10:11 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ what distro u use
+10:11 <+bridge> [ddnet] <Learath2> I think ck-sources includes the patch
+10:11 <+bridge> [ddnet] <Jupstar ✪> ah yeah thats the next step, an OS for AMD CPUs xD
+10:11 <+bridge> [ddnet] <Jupstar ✪> debian unstable
+10:11 <+bridge> [ddnet] <Jupstar ✪> mostly bcs i hate when KDE is buggy xD
+10:11 <+bridge> [ddnet] <Jupstar ✪> and its basically always buggy
+10:11 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ im surprised AAA games dont give out binaries with amd/intel cpu simd stuff
+10:11 <+bridge> [ddnet] <Jupstar ✪> ikr
+10:12 <+bridge> [ddnet] <Jupstar ✪> especially on steam it shouldnt be so hard
+10:12 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/874928141129383996/unknown.png
+10:12 <+bridge> [ddnet] <Ryozuki> stockfish does it
+10:12 <+bridge> [ddnet] <Ryozuki> they are years ahead
+10:12 <+bridge> [ddnet] <Jupstar ✪> maybe steam allows it, dunno, i dont have a dev account there
+10:12 <+bridge> [ddnet] <Learath2> Probably not much at all
+10:12 <+bridge> [ddnet] <Ryozuki> if i made a game i would add it as a custom version
+10:12 <+bridge> [ddnet] <Ryozuki> beta
+10:12 <+bridge> [ddnet] <Ryozuki> steam probs allows it that way
+10:14 <+bridge> [ddnet] <Jupstar ✪> https://openbenchmarking.org/embed.php?i=2106164-IB-CLANGOPTI18&sha=461cf373e986&p=2
+10:14 <+bridge> [ddnet] <Jupstar ✪> on clang 12
+10:15 <+bridge> [ddnet] <Ryozuki> o3 lto is slower
+10:15 <+bridge> [ddnet] <Ryozuki> than o3
+10:15 <+bridge> [ddnet] <Jupstar ✪> except for openmp clang is also often faster than gcc, thats also a nice battle
+10:15 <+bridge> [ddnet] <Ryozuki> xd
+10:16 <+bridge> [ddnet] <Jupstar ✪> yeah really weird
+10:16 <+bridge> [ddnet] <Jupstar ✪> i think phoronix also has benchmarks showing that O3 didnt change anything over the last 10 years xD
+10:16 <+bridge> [ddnet] <Jupstar ✪> so sad
+10:17 <+bridge> [ddnet] <Jupstar ✪> performance wise
+10:17 <+bridge> [ddnet] <Learath2> The linux kernel also fares better on gcc still iirc.
+10:17 <+bridge> [ddnet] <Jupstar ✪> yeah possibly
+10:18 <+bridge> [ddnet] <Jupstar ✪> still i wonder why gcc almost didnt improve, are the tricks over, or is it bcs gcc fears to break stuff or smth
+10:19 <+bridge> [ddnet] <Learath2> So what do you want to do about #4003 @Jupstar ✪?
+10:19 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/4003
+10:20 <+bridge> [ddnet] <Jupstar ✪> just merge i guess, it won't break anything, still better than having it wrong
+10:22 <+bridge> [ddnet] <Jupstar ✪> `GL_COPY_WRITE_BUFFER`
+10:22 <+bridge> [ddnet] <Jupstar ✪> So made for copy and writing
+10:22 <+bridge> [ddnet] <Jupstar ✪> 
+10:22 <+bridge> [ddnet] <Jupstar ✪> but we only bind one buffer at a time in <gl 3.0  context
+10:22 <+bridge> [ddnet] <Jupstar ✪> so should be fine
+11:16 <+bridge> [ddnet] <Jupstar ✪> @Learath2 
+11:16 <+bridge> [ddnet] <Jupstar ✪> https://github.com/Jupeyy/ddnet/commit/3b5eddbe4607f342c8931ff8601eb33220bf6434
+11:16 <+bridge> [ddnet] <Jupstar ✪> 
+11:16 <+bridge> [ddnet] <Jupstar ✪> This checks glError after every opengl call, and also checks the current attached shader for correct runtime(e.g. missing texture etc.)
+11:16 <+bridge> [ddnet] <Jupstar ✪> 
+11:17 <+bridge> [ddnet] <Jupstar ✪> If you want you could try to use it with GL 2.1(u gotta enable gfx_3d_texture_analysis_done 1 for that again)
+11:17 <+bridge> [ddnet] <Jupstar ✪> Maybe it shows why it cant render tile sets
+11:20 <+bridge> [ddnet] <Jupstar ✪> oh and its only in debug mode
+11:48 <+bridge> [ddnet] <Yousry> c
+11:57 <+bridge> [ddnet] <Learath2> @Jupstar ✪ I had a very similar patch, I checked the error log after each command and didn't find anything
+11:58 <+bridge> [ddnet] <Jupstar ✪> k
+13:42 <+bridge> [ddnet] <TT_Kaz> free node is wher
+13:42 <+bridge> [ddnet] <TT_Kaz> free node is where
+18:26 <+bridge> [ddnet] <louis> can someone remove this from being counted as worse time on ddnet
+18:26 <+bridge> [ddnet] <louis> https://cdn.discordapp.com/attachments/293493549758939136/875052493854375947/unknown.png
+18:26 <+bridge> [ddnet] <louis> its on Puzzle Partners, it has a 15min time penalty u can spam
+19:27 <+bridge> [ddnet] <gerdoe> u
+19:31 <+bridge> [ddnet] <Ryozuki> https://github.dev/ddnet/ddnet
+19:31 <+bridge> [ddnet] <Ryozuki> u dont need ur editor anymore
+19:32 <+bridge> [ddnet] <Ryozuki> just press "." on any github repo
+19:32 <+bridge> [ddnet] <Ryozuki> and it opens this editor
+19:41 <+bridge> [ddnet] <chillerdragon> is that new?
+19:42 <+bridge> [ddnet] <chillerdragon> if yes its suprisingly late considering how long ago ms bought github and gitlab already had a more solid IDE right? I mean wasnt vscode developed as web app and then later "ported" to desktop
+19:42 <+bridge> [ddnet] <chillerdragon> why is is white themed \:D
+20:42 <+bridge> [ddnet] <Ryozuki> i dont see it white themed
+20:45 <+bridge> [ddnet] <uwu> ddnet client white theme when
+21:16 <+bridge> [ddnet] <chillerdragon> @Ryozuki\:  do u use dark themed github?=
+21:16 <+bridge> [ddnet] <Ryozuki> y
+21:20 <+bridge> [ddnet] <Jupstar ✪> like everybody except chiller xD
+22:35 <+bridge> [ddnet] <Learath2> I used light github while working outside the last week
+22:37 <+bridge> [ddnet] <Learath2> I also use a light themed ide when out, it's actually fairly hard to see when the sun is out, we sort of forget how insanely overwhelming the sun can be compared to our puny indoor lighting 😛
+22:47 <+bridge> [ddnet] <Jupstar ✪> https://static.wikia.nocookie.net/spongebob/images/0/05/The_SpongeBob_SquarePants_Movie_209.png/revision/latest/scale-to-width-down/1920?cb=20190223034149

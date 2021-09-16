@@ -1,0 +1,510 @@
+00:02 <+bridge> [ddnet] <Learath2> I thought about this, I think I like it better per player, it'd be more flexible that way
+00:02 <+bridge> [ddnet] <fokkonaut> Thats the same, mod makers can change it depending on the snappingclient
+00:03 <+bridge> [ddnet] <Learath2> It's only the same if you send a single switch-list, which is fine with me too, if @nuborn thinks there is no value in the switch state of other tees
+00:04 <+bridge> [ddnet] <fokkonaut> It is, if something is needed when there is no character
+00:04 <+bridge> [ddnet] <nuborn> for other tees I think there is
+00:04 <+bridge> [ddnet] <Learath2> yeah, I thought so too, we can predict other tees using it
+00:04 <+bridge> [ddnet] <nuborn> for example, when switching back and forth between dummy or in/out of spec, then you wouldn't have a delay
+00:05 <+bridge> [ddnet] <fokkonaut> i dont think we need prediction of players in another team, anyways its not a big difference when sending it per player or per team, just per team makes more sense as the client has all information it needs then
+00:05 <+bridge> [ddnet] <fokkonaut> (all the time)
+00:05 <+bridge> [ddnet] <nuborn> in a way I also agree about doing it per character, if that could open up modding possibilities (if looking at only current ddnet source team is technically enough)
+00:06 <+bridge> [ddnet] <Learath2> @nuborn you can modify it per snappingclient as fokkonaut said, so it's not really any less flexible per team
+00:07 <+bridge> [ddnet] <fokkonaut> (just better, there could also be a client that displays all team states)
+00:07 <+bridge> [ddnet] <fokkonaut> then it is more flexible when its per team
+00:07 <+bridge> [ddnet] <Learath2> I honestly would prefer per character as the less ddnet specific the client is the better imho
+00:07 <+bridge> [ddnet] <fokkonaut> huh?
+00:07 <+bridge> [ddnet] <Learath2> Teams are a concept of ddnet after all
+00:07 <+bridge> [ddnet] <fokkonaut> I dont get it, it is as you would send gameinfoex per character
+00:08 <+bridge> [ddnet] <fokkonaut> Its not even possible to set players into another team without them being transparent
+00:08 <+bridge> [ddnet] <fokkonaut> (when speaking of modding etc)
+00:08 <+bridge> [ddnet] <Learath2> Okay, let's split the discussion, I'm talking about sending all switch states, not just one
+00:08 <+bridge> [ddnet] <fokkonaut> for color purpose
+00:09 <+bridge> [ddnet] <nuborn> I'm not sure I follow the part about the snappingclient
+00:09 <+bridge> [ddnet] <fokkonaut> Server can send different switch states to different clients
+00:09 <+bridge> [ddnet] <nuborn> was that still about per-team vs per-character?
+00:09 <+bridge> [ddnet] <fokkonaut> Yea, about more flexibility, which in this case is the same
+00:10 <+bridge> [ddnet] <nuborn> I see those two as the only two options, but don't see how you can do much with the snappingclient there
+00:10 <+bridge> [ddnet] <fokkonaut> on serverside
+00:11 <+bridge> [ddnet] <fokkonaut> depending on some player specific values you can choose to send number 1 as closed, for exmaple, while its opened for another client
+00:11 <+bridge> [ddnet] <Learath2> @nuborn when sending per-team you can still fake as if you are sending per-character
+00:11 <+bridge> [ddnet] <fokkonaut> Yea
+00:12 <+bridge> [ddnet] <Learath2> When snapping switch state for team n for client x you can pretend as if team n has a different switch state
+00:12 <+bridge> [ddnet] <fokkonaut> (and i dont see how it is not better to send it per team, because when sending per character the client doesnt always have correct information
+00:12 <+bridge> [ddnet] <fokkonaut> When there is no character around for example
+00:12 <+bridge> [ddnet] <nuborn> oh, I see
+00:12 <+bridge> [ddnet] <nuborn> so the "subjective" switch state can be different for each character in a team
+00:13 <+bridge> [ddnet] <fokkonaut> This is a general information the Client should have, regardless of anything else, also its not character specific so it doesnt make sense at all to me
+00:13 <+bridge> [ddnet] <Learath2> This is an interesting edge case
+00:13 <+bridge> [ddnet] <fokkonaut> Yea, and stuff like this can be easily avoided :D
+00:14 <+bridge> [ddnet] <Learath2> "easily" just need to introduce the concept of teams to the protocol, no biggie 😛
+00:14 <+bridge> [ddnet] <fokkonaut> xd
+00:14 <+bridge> [ddnet] <Learath2> We don't snap anything for teams yet
+00:15 <+bridge> [ddnet] <fokkonaut> I wanted to put this into teams::snap, knowing there is none xD then i thought it would fit (ddrace)controller
+00:15 <+bridge> [ddnet] <fokkonaut> so i put it to the gameinfoex, which is also something that has to be available all the time (and/or should be)
+00:15 <+bridge> [ddnet] <Learath2> I guess we should create a `CTeams::Snap` and snap it there
+00:16 <+bridge> [ddnet] <fokkonaut> From where we send it is not from matter for now, but yes
+00:16 <+bridge> [ddnet] <Learath2> And the client will need a `CTeams` of it's own with an array of switch states
+00:16 <+bridge> [ddnet] <fokkonaut> Why?
+00:16 <+bridge> [ddnet] <fokkonaut> they are in collision
+00:17 <+bridge> [ddnet] <fokkonaut> Or do you mean for a full refactor of teams including different gameworlds? xd
+00:17 <+bridge> [ddnet] <Learath2> collision knows nothing of teams
+00:17 <+bridge> [ddnet] <fokkonaut> Doesnt need to
+00:17 <+bridge> [ddnet] <nuborn> I tried putting a Snap in CTeams when first looking at this and the code for some reason ended up looking very ugly
+00:17 <+bridge> [ddnet] <fokkonaut> but the switchers are saved there
+00:17 <+bridge> [ddnet] <Cipy29> hey guys I just moved from windows to debian and did the basic $ apt-get install ddnet, but that means im on older version
+00:17 <+bridge> [ddnet] <Learath2> You are still thinking of sending a single switch state object
+00:17 <+bridge> [ddnet] <Cipy29> is it possible to do something to be on newset version?
+00:17 <+bridge> [ddnet] <fokkonaut> CTeams::Snap(int)
+00:17 <+bridge> [ddnet] <fokkonaut> for (int i = 0; i < 64; i++)
+00:17 <+bridge> [ddnet] <fokkonaut> SnapTeam(i, int);
+00:18 <+bridge> [ddnet] <fokkonaut> Me?
+00:18 <+bridge> [ddnet] <Cipy29> is it possible to do something to be on newest version?
+00:18 <+bridge> [ddnet] <Learath2> Yes, CCollision has space for one state, we are sending one per team
+00:18 <+bridge> [ddnet] <fokkonaut> no? it has space for 64 teams
+00:19 <+bridge> [ddnet] <fokkonaut> states*
+00:19 <+bridge> [ddnet] <nuborn> how about when a character is in solo? that would perhaps be a case where you have to send different states to different team members (when doing per-team instead of per-character)
+00:19 <+bridge> [ddnet] <Learath2> Oh, that's so ugly, I missed that 😛
+00:19 <+bridge> [ddnet] <fokkonaut> xd
+00:19 <+bridge> [ddnet] <fokkonaut> Thats how its saved on the serverside
+00:20 <+bridge> [ddnet] <Learath2> @nuborn you'd think so, solo people in teams share switches, it leads to some very INSANE behaviour
+00:20 <+bridge> [ddnet] <nuborn> haha
+00:20 <+bridge> [ddnet] <fokkonaut> xddd
+00:20 <+bridge> [ddnet] <fokkonaut> i still dont think people of other teams or solo players should be predicted at all
+00:20 <+bridge> [ddnet] <fokkonaut> because you dont interact with them
+00:20 <+bridge> [ddnet] <nuborn> yeah, when thinking about it I never saw any place where it would separate the players
+00:20 <+bridge> [ddnet] <fokkonaut> then, while watching, it would also be smooth, if you just have /showothers on
+00:21 <+bridge> [ddnet] <fokkonaut> same as we dont predict while spectating
+00:21 <+bridge> [ddnet] <nuborn> we dont predict other teams now
+00:21 <+bridge> [ddnet] <fokkonaut> no? thats good, should also be done for solo players
+00:22 <+bridge> [ddnet] <fokkonaut> (if not super)
+00:22 <+bridge> [ddnet] <Learath2> Only if unseen though, no?
+00:22 <+bridge> [ddnet] <nuborn> they are also considered as "other team"
+00:22 <+bridge> [ddnet] <fokkonaut> I think so too, not sure
+00:22 <+bridge> [ddnet] <nuborn> I removed the physics prediction as well
+00:22 <+bridge> [ddnet] <Learath2> If showothers is on and predict others are on it should still be predicted?
+00:23 <+bridge> [ddnet] <nuborn> @Learath2 I thought it would be worth trying it out to see how it worked
+00:24 <+bridge> [ddnet] <Learath2> @nuborn and how do you have the team information?
+00:25 <+bridge> [ddnet] <nuborn> we have it somewhere I think, I just remember using IsOtherTeam
+00:25 <+bridge> [ddnet] <fokkonaut> svteamsstate
+00:26 <+bridge> [ddnet] <Learath2> Anyway, if you don't think you'd use the switchstate of other teams for anything we can also send just a single one
+00:26 <+bridge> [ddnet] <nuborn> but we can use it
+00:26 <+bridge> [ddnet] <nuborn> since it means less delay when switching to/from spec/dummy
+00:26 <+bridge> [ddnet] <Learath2> How much less though? We snap fairly often
+00:27 <+bridge> [ddnet] <nuborn> yes, would just be limited to ping
+00:27 <+bridge> [ddnet] <Learath2> Hm, wouldn't the dummy also get its own switch state object actually?
+00:27 <+bridge> [ddnet] <fokkonaut> yes
+00:28 <+bridge> [ddnet] <nuborn> actually yes, but the other snapshot is never used
+00:28 <+bridge> [ddnet] <nuborn> or
+00:28 <+bridge> [ddnet] <nuborn> hmm, yeah
+00:28 <+bridge> [ddnet] <Learath2> It should be used at the very least to get the dummy client id 😛
+00:29 <+bridge> [ddnet] <Learath2> anyway, I think it'd only help when switching to spec if we don't predict other teams
+00:29 <+bridge> [ddnet] <nuborn> so the delay is not actually the whole ping, just the time until the next snapshot is read
+00:29 <+bridge> [ddnet] <Learath2> in that case we can just send one I guess
+00:30 <+bridge> [ddnet] <Learath2> I just had an idea for a very ugly optimization, if tees tell the server whose dummy they are, they can receive even lighter deltas 😛
+00:30 <+bridge> [ddnet] <nuborn> another possibility would perhaps be to only update the snapped state for the current player. but that would require some hacky code on the server
+00:31 <+bridge> [ddnet] <Learath2> I don't follow this
+00:33 <+bridge> [ddnet] <nuborn> the state would be sent for each team/character, but the server would not update the state that is sent for all the other characters other than the snapping client, and would just send the last cached state
+00:33 <+bridge> [ddnet] <fokkonaut> I think its okay to send it only for your own team. @Learath2, should m_Status from the ccollision array for other teams be reset, or can we just leave old information in there as they get updated when it needs?
+00:33 <+bridge> [ddnet] <fokkonaut> Hm? every character has their own snap
+00:34 <+bridge> [ddnet] <fokkonaut> SnappingClient iterates through every client
+00:34 <+bridge> [ddnet] <nuborn> you mean each client has, not each character
+00:34 <+bridge> [ddnet] <fokkonaut> yes, ofc
+00:34 <+bridge> [ddnet] <Learath2> This would be a very minor optimization though, since deltas are already extremely light
+00:35 <+bridge> [ddnet] <Learath2> An update of up to 8 switches will only cause 1 byte to be transmitted
+00:35 <+bridge> [ddnet] <fokkonaut> clientside
+00:36 <+bridge> [ddnet] <nuborn> yes, you could cache it clientside as well
+00:36 <+bridge> [ddnet] <Learath2> Hm, I guess we can keep garbage in there, the implementer just needs to keep in mind only the current team is valid
+00:36 <+bridge> [ddnet] <fokkonaut> I mean the info gets outdated fast
+00:36 <+bridge> [ddnet] <fokkonaut> good
+00:42 <+bridge> [ddnet] <Learath2> Sorry if I'm being annoying with the questions btw. Until someone gets in some compatibility code we only get one shot at netobjs, so I want to get it right
+00:43 <+bridge> [ddnet] <fokkonaut> Same as i think
+00:44 <+bridge> [ddnet] <fokkonaut> updated my pr
+00:44 <+bridge> [ddnet] <fokkonaut> #4114
+00:44 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/4114
+00:44 <+bridge> [ddnet] <fokkonaut> This even only changes the server code
+00:45 <+bridge> [ddnet] <fokkonaut> thats quite good i think
+00:47 <+bridge> [ddnet] <fokkonaut> If our own character doesnt exist we dont predict anything, so this seems to be okay
+00:47 <+bridge> [ddnet] <Learath2> mind if I review this tomorrow? I'm exhausted
+00:47 <+bridge> [ddnet] <fokkonaut> Sure, not much to review tho
+00:48 <+bridge> [ddnet] <fokkonaut> really small pr
+00:48 <+bridge> [ddnet] <fokkonaut> just geting netobj correct, i use item id as team
+00:48 <+bridge> [ddnet] <nuborn> seems correct to use team
+03:49 <+bridge> [ddnet] <Headshot> gtfo
+03:51 <+bridge> [ddnet] <Deëivid!> Headsh||ooo||t
+11:25 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/879657752983638017/20210824_112521.jpg
+11:26 <+bridge> [ddnet] <fokkonaut> chillerdragon: i am haunted aswell xD
+11:39 <+bridge> [ddnet] <Robyt3> :sendhelp:
+11:39 <+bridge> [ddnet] <Robyt3> https://cdn.discordapp.com/attachments/293493549758939136/879661186365399090/unknown.png
+11:41 <+bridge> [ddnet] <Ryozuki> white theme programmer
+11:41 <+bridge> [ddnet] <Ryozuki> send help
+11:41 <+bridge> [ddnet] <Ryozuki> :monkaS:
+11:42 <+bridge> [ddnet] <Robyt3> true lol
+11:42 <+bridge> [ddnet] <Robyt3> should install a dark notepad++ theme
+11:42 <+bridge> [ddnet] <Robyt3> I don't like sublime for some reason thou
+11:42 <+bridge> [ddnet] <Ryozuki> i use neovim
+11:42 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+11:43 <+bridge> [ddnet] <Robyt3> I use vim because I only use git bash
+11:44 <+bridge> [ddnet] <Ryozuki> :greenthing:
+11:44 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/879662372879466536/unknown.png
+11:44 <+bridge> [ddnet] <Ryozuki> tree-sitter based highlighting is the future <https://tree-sitter.github.io/tree-sitter/>
+11:45 <+bridge> [ddnet] <deen> @Robyt3 i don't know what's wrong but you can shorten `x ? true : false` to `x`
+11:45 <+bridge> [ddnet] <Ryozuki> lol thats true
+11:45 <+bridge> [ddnet] <Robyt3> yes, I don't know why that implementation was changed from vanilla to begin with 😄
+11:45 <+bridge> [ddnet] <Ryozuki> git blame
+11:45 <+bridge> [ddnet] <Ryozuki> :monkaS:
+11:46 <+bridge> [ddnet] <deen> I think Vanilla did a circle clip, which is a bit useless and expensive
+11:46 <+bridge> [ddnet] <Robyt3> I think in GameLayerClip it's the same
+11:46 <+bridge> [ddnet] <deen> so we instead do a rectangle, since we only support rectangular resolutions
+11:46 <+bridge> [ddnet] <uwu> :monkaS:
+11:46 <+bridge> [ddnet] <Ryozuki> imagine circular resolutions
+11:46 <+bridge> [ddnet] <Robyt3> this is vanilla (after refactoring)
+11:46 <+bridge> [ddnet] <Robyt3> https://cdn.discordapp.com/attachments/293493549758939136/879663054395166740/unknown.png
+11:47 <+bridge> [ddnet] <Ryozuki> looks more readable i guess
+11:47 <+bridge> [ddnet] <Robyt3> code style question: should I litter everything with const?
+11:48 <+bridge> [ddnet] <Ryozuki> for me yes
+11:48 <+bridge> [ddnet] <Robyt3> TileX and TileY could also be const but it does it make a difference to the compiler?
+11:48 <+bridge> [ddnet] <Robyt3> I try to make everything const when possible so I know it can't change
+11:49 <+bridge> [ddnet] <Ryozuki> i think it may help optimize stuff but idk im no expert
+11:53 <+bridge> [ddnet] <deen> @Robyt3 yeah, const should've been the default in C++ and a modifier been used for non-const
+11:53 <+bridge> [ddnet] <Jupstar ✪> compilers are pro
+11:53 <+bridge> [ddnet] <Jupstar ✪> they find it
+11:55 <+bridge> [ddnet] <Ryozuki> ye in rust everything is immutable unless specified
+11:56 <+bridge> [ddnet] <Ryozuki> ez for optimization
+11:57 <+bridge> [ddnet] <gerdoe> same thing in `CPlayer::IsReady()` as i remember xd
+11:58 <+bridge> [ddnet] <Learath2> I don't think the compiler is allowed to do much with the const in C++ but it's good to have for the programmer
+11:58 <+bridge> [ddnet] <deen> In Haskell everything is immutable, period. 🙂
+11:59 <+bridge> [ddnet] <deen> Yeah, mainly for documentation for programmer so you know this value will stay the same for the entire function
+11:59 <+bridge> [ddnet] <deen> / scope
+11:59 <+bridge> [ddnet] <Jupstar ✪> @Learath2 can you sumup what yours and nuborns discussion with fokkonout ended up with?
+11:59 <+bridge> [ddnet] <Learath2> That's also annoying to work with imo, default immutable and sprinkling in mutability as needed seems to maximize readability and optimizability
+11:59 <+bridge> [ddnet] <Jupstar ✪> @deen trml is @nuborn
+12:00 <+bridge> [ddnet] <deen> Yes, he told me on Discord
+12:00 <+bridge> [ddnet] <Learath2> @Jupstar ✪ we want to send a single switch state, that will be the state for the team of the player
+12:00 <+bridge> [ddnet] <deen> and has a letter on the way to him 😉
+12:00 <+bridge> [ddnet] <Ryozuki> :o
+12:00 <+bridge> [ddnet] <Jupstar ✪> yeah also not sure if i like it default 😄
+12:00 <+bridge> [ddnet] <Ryozuki> u know how much it takes?
+12:00 <+bridge> [ddnet] <Jupstar ✪> ez
+12:00 <+bridge> [ddnet] <Ryozuki> how long*
+12:00 <+bridge> [ddnet] <deen> I'm a bit annoyed everyone has a different name on Discord and GitHub, but can't complain since I'm part of the problem
+12:00 <+bridge> [ddnet] <Jupstar ✪> do you think somebody will do with within the next days?
+12:01 <+bridge> [ddnet] <Learath2> I have the same name on every single platform, so I can complain 😛
+12:01 <+bridge> [ddnet] <Ryozuki> i dont want to have a weeb name on github :monkalaugh:
+12:01 <+bridge> [ddnet] <Learath2> Already done, I'm reviewing it
+12:01 <+bridge> [ddnet] <Jupstar ✪> i have different name everywhere xd
+12:01 <+bridge> [ddnet] <deen> It's different for each country. You can choose a country here and check it: https://www.deutschepost.de/de/b/briefe-ins-ausland/laenderinformationen.html
+12:01 <+bridge> [ddnet] <gerdoe> yeah you e-mail is funny xd
+12:01 <+bridge> [ddnet] <gerdoe> your*
+12:02 <+bridge> [ddnet] <Ryozuki> spanien
+12:02 <+bridge> [ddnet] <Ryozuki> hmm my german is not good
+12:02 <+bridge> [ddnet] <Jupstar ✪> xddd
+12:02 <+bridge> [ddnet] <Jupstar ✪> we were in school, in a computer course, and started trible wars(a browser game) and i needed a name
+12:02 <+bridge> [ddnet] <Jupstar ✪> and my teenage pro brain comes up with it
+12:03 <+bridge> [ddnet] <gerdoe> heh
+12:03 <+bridge> [ddnet] <deen> @Ryozuki 2-4 working days
+12:03 <+bridge> [ddnet] <Ryozuki> :o
+12:35 <+bridge> [ddnet] <Jupstar ✪> ok github caching is really weird
+12:35 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/879675195902799882/unknown.png
+12:35 <+bridge> [ddnet] <Jupstar ✪> it still show the ci build for ubuntu 16
+12:35 <+bridge> [ddnet] <Jupstar ✪> probably because the branch wasnt rebased
+12:35 <+bridge> [ddnet] <Jupstar ✪> still weird xD
+13:00 <+bridge> [ddnet] <Jupstar ✪> @Learath2 do you time for a small debugging session with macos and newest SDL?
+13:00 <+bridge> [ddnet] <Jupstar ✪> ```
+13:00 <+bridge> [ddnet] <Jupstar ✪> #if defined(CONF_PLATFORM_MACOS) // Todo: remove this when fixed in SDL
+13:00 <+bridge> [ddnet] <Jupstar ✪>                 case SDL_WINDOWEVENT_MAXIMIZED:
+13:00 <+bridge> [ddnet] <Jupstar ✪>                     MouseModeAbsolute();
+13:00 <+bridge> [ddnet] <Jupstar ✪>                     MouseModeRelative();
+13:00 <+bridge> [ddnet] <Jupstar ✪>                     break;
+13:00 <+bridge> [ddnet] <Jupstar ✪> #endif
+13:00 <+bridge> [ddnet] <Jupstar ✪> ```
+13:00 <+bridge> [ddnet] <Jupstar ✪> 
+13:00 <+bridge> [ddnet] <Jupstar ✪> That should preferably removed and i also want to remove for focus changing
+13:01 <+bridge> [ddnet] <Learath2> Newest SDL as in master or newest release?
+13:02 <+bridge> [ddnet] <Jupstar ✪> in SDL master
+13:02 <+bridge> [ddnet] <Jupstar ✪> thats what we will use
+13:02 <+bridge> [ddnet] <Learath2> Mouse capture has been proper broken on macOS since forever, I need to click outside and back inside to get it to properly capture
+13:02 <+bridge> [ddnet] <Learath2> The main reason we haven't been upgrading sdl has been the massive performance drop on windows, is that fixed?
+13:03 <+bridge> [ddnet] <Jupstar ✪> yeah
+13:03 <+bridge> [ddnet] <Jupstar ✪> maybe its fixded for relative mouse mode i made a patch on sdl github
+13:03 <+bridge> [ddnet] <Jupstar ✪> you can try it too and merge 
+13:03 <+bridge> [ddnet] <Jupstar ✪> #4095
+13:03 <+bridge> [ddnet] <Jupstar ✪> i will force push it now
+13:03 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/4095
+13:05 <+bridge> [ddnet] <Jupstar ✪> https://github.com/libsdl-org/SDL/pull/4683
+13:05 <+bridge> [ddnet] <Jupstar ✪> thats also going to be merged by our SDL
+13:05 <+bridge> [ddnet] <Jupstar ✪> so
+13:05 <+bridge> [ddnet] <Jupstar ✪> SDL master + ^
+13:05 <+bridge> [ddnet] <Jupstar ✪> ddnet master + #4095
+13:05 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/4095
+13:08 <+bridge> [ddnet] <gerdoe> what happened with embeds?
+13:08 <+bridge> [ddnet] <Jupstar ✪> finally broken
+13:14 <+bridge> [ddnet] <Jupstar ✪> ok forced pushed once again, since i need to test now on windows too
+13:37 <+bridge> [ddnet] <Jupstar ✪> switching from windowed to fullscreen is still not perfect :/
+13:37 <+bridge> [ddnet] <Jupstar ✪> 
+13:37 <+bridge> [ddnet] <Jupstar ✪> need to unfocus once and refocus and it works, whyever this is needed xD
+13:37 <+bridge> [ddnet] <Jupstar ✪> so random
+13:39 <+bridge> [ddnet] <Learath2> At this rate we'll end up replacing sdl with our own wrapper 😛
+13:40 <+bridge> [ddnet] <Jupstar ✪> true xD
+13:41 <+bridge> [ddnet] <Jupstar ✪> but atleast the mouse stuff seems to work with windows thats nice
+13:41 <+bridge> [ddnet] <Jupstar ✪> then i can introduce windowed fullscreen once again xD
+13:42 <+bridge> [ddnet] <Jupstar ✪> multi monitor users will be happy
+13:48 <+bridge> [ddnet] <Ryozuki> sddl
+13:48 <+bridge> [ddnet] <Ryozuki> haha
+13:48 <+bridge> [ddnet] <Ryozuki> ok
+13:50 <+bridge> [ddnet] <Jupstar ✪> nothing
+13:50 <+bridge> [ddnet] <Jupstar ✪> more
+13:50 <+bridge> [ddnet] <Jupstar ✪> annoying
+13:50 <+bridge> [ddnet] <Jupstar ✪> than
+13:50 <+bridge> [ddnet] <Jupstar ✪> windows
+13:50 <+bridge> [ddnet] <Jupstar ✪> updates
+13:50 <+bridge> [ddnet] <Ryozuki> why u use windows
+13:50 <+bridge> [ddnet] <Jupstar ✪> "shutdown" ...
+13:50 <+bridge> [ddnet] <Jupstar ✪> please wait 5 hours
+13:50 <+bridge> [ddnet] <Jupstar ✪> i tested newest SDL
+14:17 <+bridge> [ddnet] <Jupstar ✪> Someone wants to review #3967 ?
+14:17 <+bridge> [ddnet] <Jupstar ✪> 
+14:17 <+bridge> [ddnet] <Jupstar ✪> I'd like to hit the milestone today, else we end up in a ever waiting loop xd
+14:17 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/3967
+14:20 <+bridge> [ddnet] <Learath2> Eeeeh, it looks fine to me but I really wanted heinrich to take a look at it instead :/
+14:20 <+bridge> [ddnet] <Jupstar ✪> but he is busy
+14:20 <+bridge> [ddnet] <Jupstar ✪> i doubt he's here any time soon
+14:20 <+bridge> [ddnet] <Jupstar ✪> we can still revert it, if its horrible xD
+14:20 <+bridge> [ddnet] <Learath2> Yeah, he is out for another week
+14:21 <+bridge> [ddnet] <Learath2> I guess it's safe enough and if @heinrich5991 wants to fix it better when he is back he is welcome to
+14:25 <+bridge> [ddnet] <Jupstar ✪> @Learath2 do you also have time to test SDL today?
+14:26 <+bridge> [ddnet] <Learath2> Um, I can sneak it in if I don't make any mistakes on this fourier series exercise
+14:26 <+bridge> [ddnet] <Jupstar ✪> @deen if you want to upgrade SDL
+14:26 <+bridge> [ddnet] <Jupstar ✪> please add
+14:27 <+bridge> [ddnet] <Jupstar ✪> https://github.com/libsdl-org/SDL/pull/4306
+14:27 <+bridge> [ddnet] <Jupstar ✪> and
+14:27 <+bridge> [ddnet] <Jupstar ✪> https://github.com/libsdl-org/SDL/pull/4683
+14:27 <+bridge> [ddnet] <deen> I don't *want* to
+14:27 <+bridge> [ddnet] <deen> If the upgrade fixes things I can do it though
+14:28 <+bridge> [ddnet] <Jupstar ✪> it fixes the relative mouse focus change bug on windows
+14:28 <+bridge> [ddnet] <Learath2> it should also fix quite a bit on macOS and let people compile on their own
+14:29 <+bridge> [ddnet] <Learath2> currently you can't compile and run on macOS unless you have an alien mac like @TsFreddie or build a patched sdl
+14:29 <+bridge> [ddnet] <deen> ok, I'll try it when I have time
+14:29 <+bridge> [ddnet] <Ts懒散> hi
+14:29 <+bridge> [ddnet] <deen> hi alien mac
+14:29 <+bridge> [ddnet] <Ts懒散> oh ye
+14:29 <+bridge> [ddnet] <Ts懒散> my alien mac
+14:29 <+bridge> [ddnet] <Ts懒散> still don't know why
+14:29 <+bridge> [ddnet] <Learath2> Oh and it should also let us build for a higher version of macOS, the building for the old sdk thing is quite annoying
+14:30 <+bridge> [ddnet] <Jupstar ✪> problem is really, we kinda have to upgrade, else we'll never be able to support fancy stuff like
+14:30 <+bridge> [ddnet] <Jupstar ✪> 3879
+14:30 <+bridge> [ddnet] <Jupstar ✪> #3879
+14:30 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/3879
+14:30 <+bridge> [ddnet] <I.K.U> is ddrace rom public?
+14:30 <+bridge> [ddnet] <Jupstar ✪> that even works on macOS @Learath2 xd
+14:30 <+bridge> [ddnet] <Learath2> rom?
+14:31 <+bridge> [ddnet] <Learath2> ddnet gameboy version
+14:31 <+bridge> [ddnet] <I.K.U> uhm
+14:31 <+bridge> [ddnet] <I.K.U> 1 sec
+14:32 <+bridge> [ddnet] <Ts懒散> oof
+14:32 <+bridge> [ddnet] <Ts懒散> long boi
+14:38 <+bridge> [ddnet] <I.K.U> ok
+14:38 <+bridge> [ddnet] <I.K.U> how tf fudgy made a tas for this 😢
+14:38 <+bridge> [ddnet] <Ryozuki> :poggers:
+14:38 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/879706295219912704/unknown.png
+14:38 <+bridge> [ddnet] <Ts懒散> you mod the server to have the ability to save and replay player inputs
+14:39 <+bridge> [ddnet] <Learath2> You can also project the results of your shots, noby had a tool to project rocket shots and stuff
+14:39 <+bridge> [ddnet] <Jupstar ✪> only thing missing is the stuff with the switches xd
+14:39 <+bridge> [ddnet] <Jupstar ✪> rest is all new SDL related
+14:39 <+bridge> [ddnet] <I.K.U> i see
+14:39 <+bridge> [ddnet] <Ts懒散> and hopefully you don't do any of that client-side
+14:40 <+bridge> [ddnet] <I.K.U> i just want to make cool runs
+14:40 <+bridge> [ddnet] <Ts懒散> ye, then server mod it is
+14:40 <+bridge> [ddnet] <I.K.U> but it looks like setting it up is harder than i antipacited
+14:40 <+bridge> [ddnet] <Ts懒散> ye, i think current tasers all uses their own server code
+14:40 <+bridge> [ddnet] <Learath2> it is quite difficult (thank god, I can't imagine dealing with every skiddy replaying runs)
+14:41 <+bridge> [ddnet] <Ts懒散> i wanted to make a server for making tas with a normal ddnet client
+14:41 <+bridge> [ddnet] <Ts懒散> but that wasn't really going anywhere soooo
+14:42 <+bridge> [ddnet] <I.K.U> and how do u mod a server
+14:42 <+bridge> [ddnet] <Ts懒散> you clone the source code and change it directly
+14:42 <+bridge> [ddnet] <Ts懒散> in C++
+14:43 <+bridge> [ddnet] <I.K.U> oh no
+14:43 <+bridge> [ddnet] <Ts懒散> but you made me want to make the tas server really bad. but i really don't have more free time to allocate for a new project right now
+14:44 <+bridge> [ddnet] <Learath2> don't make it open source
+14:44 <+bridge> [ddnet] <Ryozuki> or learath will hate u
+14:44 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+14:45 <+bridge> [ddnet] <gerdoe> i thought he had like
+14:45 <+bridge> [ddnet] <gerdoe> converter from teehistorian/demo format
+14:45 <+bridge> [ddnet] <gerdoe> to mp4 or another thing to see what happens
+15:22 <+bridge> [ddnet] <Jupstar ✪> mhh
+15:22 <+bridge> [ddnet] <Jupstar ✪> ddnet server under windows with steam writes into the steam directory?
+15:22 <+bridge> [ddnet] <Jupstar ✪> is that really wanted?
+15:22 <+bridge> [ddnet] <Jupstar ✪> permission problems pre programmed
+15:24 <+bridge> [ddnet] <deen> What does the server write?
+15:24 <+bridge> [ddnet] <deen> sqlite file?
+15:25 <+bridge> [ddnet] <deen> Do you propose to put it in the config_directory instead?
+15:25 <+bridge> [ddnet] <Jupstar ✪> i'd say so
+15:25 <+bridge> [ddnet] <deen> I agree with keeping the Binary dir clean, would be better
+15:25 <+bridge> [ddnet] <Jupstar ✪> steam dir is often in program files (x86)
+15:25 <+bridge> [ddnet] <Jupstar ✪> ddnet-server.sqlite
+15:25 <+bridge> [ddnet] <Jupstar ✪> is the file
+15:26 <+bridge> [ddnet] <Jupstar ✪> autoexec_server.log 
+15:26 <+bridge> [ddnet] <Jupstar ✪> too
+15:33 <+bridge> [ddnet] <louis> u can do 0.25x speed runs easily
+15:34 <+bridge> [ddnet] <louis> but u need smth to save inputs and im not sure if u can do it without downloading sketchy clients
+17:25 <+bridge> [ddnet] <Jupstar ✪> @Learath2 you are right, SDL_WINDOWEVENT_SIZE_CHANGED
+17:25 <+bridge> [ddnet] <Jupstar ✪> might be better to adjust the viewport then, instead of at the resize call, but sadly this doesnt fix the random resize stuff with windows fullscreen :/
+17:26 <+bridge> [ddnet] <Learath2> random resize?
+17:26 <+bridge> [ddnet] <Learath2> Are you getting spurious size changed events?
+17:26 <+bridge> [ddnet] <Jupstar ✪> no, i resize manually, wait for the SDL_WINDOWEVENT_SIZE_CHANGED
+17:26 <+bridge> [ddnet] <Jupstar ✪> to adjust the viewport and sometimes the viewport is still wrong until i once onfocus and refocus
+17:27 <+bridge> [ddnet] <Jupstar ✪> then its magically fixed xD
+17:29 <+bridge> [ddnet] <Jupstar ✪> screenshots also dont show this, so the viewport must be correct
+17:30 <+bridge> [ddnet] <Jupstar ✪> well maybe just a driver bug xDD, i'll try with dx12
+17:34 <+bridge> [ddnet] <Jupstar ✪> even happens with dx12 :/
+17:35 <+bridge> [ddnet] <Learath2> Is it that there is a missing event or that you get invalid size when you request the new size on the event
+17:35 <+bridge> [ddnet] <Learath2> ?
+17:35 <+bridge> [ddnet] <Learath2> Have you tried using the size sent along with the event?
+17:35 <+bridge> [ddnet] <Jupstar ✪> i change the size over the ingame menu
+17:35 <+bridge> [ddnet] <Jupstar ✪> and that calls
+17:35 <+bridge> [ddnet] <Jupstar ✪> SDL_SetWindowDisplayMode
+17:36 <+bridge> [ddnet] <Jupstar ✪> that is apparently made for fullscreen
+17:36 <+bridge> [ddnet] <Jupstar ✪> the when window got resized, i update the viewport, which works, bcs screenshots look correct
+17:40 <+bridge> [ddnet] <Jupstar ✪> i mean you dont resize too often in fullscreen, but would be nice if one version just works ™️
+17:41 <+bridge> [ddnet] <Jupstar ✪> in windowed mode everything works fine as intended
+17:43 <+bridge> [ddnet] <Learath2> Sounds so stupid, I wonder why it happens :/
+17:44 <+bridge> [ddnet] <Jupstar ✪> mhhh also happens in our current version tho
+17:44 <+bridge> [ddnet] <Jupstar ✪> still annoying af
+17:44 <+bridge> [ddnet] <Jupstar ✪> maybe i should test it with a software renderer, maybe its a driver thing after all xd
+17:46 <+bridge> [ddnet] <Learath2> NO enough driverblaming 😛
+17:46 <+bridge> [ddnet] <Jupstar ✪> happens with software renderer too
+17:46 <+bridge> [ddnet] <Jupstar ✪> so dunno
+17:46 <+bridge> [ddnet] <Learath2> This happens in real fullscreen, right?
+17:46 <+bridge> [ddnet] <Jupstar ✪> yes
+17:46 <+bridge> [ddnet] <Jupstar ✪> i start in lower resolution and update it
+17:46 <+bridge> [ddnet] <Learath2> So, what generates the resize event I wonder
+17:46 <+bridge> [ddnet] <Jupstar ✪> and then window is broken af
+17:46 <+bridge> [ddnet] <Jupstar ✪> the menu sends it
+17:47 <+bridge> [ddnet] <Jupstar ✪> to the graphic object and that calls SDL
+17:49 <+bridge> [ddnet] <Learath2> Nah, I mean inside SDL, what actually is the origin of the change size event, is it generated inside sdl since the window manager isn't in the way?
+17:49 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/879754316175519844/IMG_20210824_174919.jpg
+17:49 <+bridge> [ddnet] <Jupstar ✪> when i once onfocus and go in again, its normal
+17:49 <+bridge> [ddnet] <Jupstar ✪> so weird dxD
+17:50 <+bridge> [ddnet] <Learath2> Wait that looks like borderless fullscreen not real fullscreen?
+17:50 <+bridge> [ddnet] <Jupstar ✪> its real
+17:50 <+bridge> [ddnet] <Jupstar ✪> thats the weird thing
+17:50 <+bridge> [ddnet] <Jupstar ✪> i dunno why it shows half of the desktop
+17:50 <+bridge> [ddnet] <Jupstar ✪> thats part of the bug xD
+17:52 <+bridge> [ddnet] <Learath2> I am very very confused with that, there should be no window manager to render the half desktop
+17:52 <+bridge> [ddnet] <Jupstar ✪> yes, but it even goes black screen when i unfocus
+17:52 <+bridge> [ddnet] <Jupstar ✪> so there is a video change
+17:52 <+bridge> [ddnet] <Jupstar ✪> so it kinda must be fullscreen
+17:52 <+bridge> [ddnet] <Learath2> Mh, does the half desktop actually move? maybe it's just stale data in the framebuffer
+17:53 <+bridge> [ddnet] <Jupstar ✪> i assume so too, should test it 😄
+17:53 <+bridge> [ddnet] <Jupstar ✪> its updating indeed, really weird xD
+17:54 <+bridge> [ddnet] <Learath2> That is the oddest thing I've seen, this is windows right?
+17:54 <+bridge> [ddnet] <Jupstar ✪> yes
+17:54 <+bridge> [ddnet] <Jupstar ✪> i start with low resolution, click a high one and get it
+17:54 <+bridge> [ddnet] <Learath2> Windows has a weird mode where it can render over fullscreen applications but it looks awful, not crisp like this
+17:55 <+bridge> [ddnet] <Jupstar ✪> i dunno, when i start with high res and go low, then the window is not centered(but no desktop is shown)
+17:55 <+bridge> [ddnet] <Jupstar ✪> already tried forcing the window to be in mid, but doesnt help
+17:56 <+bridge> [ddnet] <Jupstar ✪> completly random, but atleast it always was like that, or my windows is broken somehow xD
+17:56 <+bridge> [ddnet] <Learath2> hm, how can we make sure it is actually in fullscreen mode?
+17:57 <+bridge> [ddnet] <Jupstar ✪> well it defs does a video change, so atleast windows assumes it is
+17:57 <+bridge> [ddnet] <Jupstar ✪> but no idea how to proof it actually is, in that moment
+17:58 <+bridge> [ddnet] <Learath2> does a video change imply fullscreen mode?
+17:58 <+bridge> [ddnet] <Jupstar ✪> real window can set the video mode normally
+17:58 <+bridge> [ddnet] <Jupstar ✪> would be annoying af if a windowed window can set desktop video mode
+17:59 <+bridge> [ddnet] <Learath2> I guess there is a reason why most games still require a restart when you change resolution, this is cancer
+17:59 <+bridge> [ddnet] <Jupstar ✪> yeah :/
+17:59 <+bridge> [ddnet] <Jupstar ✪> i should try with gfx_resizable 0
+18:00 <+bridge> [ddnet] <Jupstar ✪> ok no chance, same
+18:01 <+bridge> [ddnet] <Learath2> You could try asking in the sdl irc, but it's weird
+18:01 <+bridge> [ddnet] <Jupstar ✪> it somehow doesnt set the right window size in fullscreen
+18:01 <+bridge> [ddnet] <Jupstar ✪> thats what i assume
+18:01 <+bridge> [ddnet] <Jupstar ✪> bcs my mouse is also kinda clammped
+18:04 <+bridge> [ddnet] <Jupstar ✪> tested cs:go lmao, it resized like 3 times before having the right mode xD
+18:04 <+bridge> [ddnet] <Jupstar ✪> dont want to know what hacks they applied
+18:05 <+bridge> [ddnet] <Jupstar ✪> they also show the desktop for a moment xD
+18:05 <+bridge> [ddnet] <Jupstar ✪> almost looks like they fixed it, how i fix it manually xD
+18:05 <+bridge> [ddnet] <Jupstar ✪> maybe they go out of fullscreen first, i test that now xD
+18:07 <+bridge> [ddnet] <Jupstar ✪> haha funny, that actually works xDD
+18:08 <+bridge> [ddnet] <Jupstar ✪> ez hackz
+18:11 <+bridge> [ddnet] <Learath2> lol
+18:11 <+bridge> [ddnet] <Learath2> How do these engineers go to sleep is my question
+18:11 <+bridge> [ddnet] <Learath2> I make one silly mistake and I stay up the whole night to fix it
+18:12 <+bridge> [ddnet] <Jupstar ✪> xD
+19:07 <+bridge> [ddnet] <Ryozuki> https://www.tomshardware.com/news/samsung-reveals-ddr5-7200-512gb-ram
+19:07 <+bridge> [ddnet] <Ryozuki> lel
+19:08 <+bridge> [ddnet] <Ryozuki> > Samsung has announced at Hot Chips 33 that the company has developed the industry's first DDR5-7200 512GB memory module. In comparison to DDR4, Samsung's DDR5-7400 memory module offers 40% higher performance with twice the capacity at a mere 1.1V.
+19:12 <+bridge> [ddnet] <Jupstar ✪> lol nice
+19:12 <+bridge> [ddnet] <Jupstar ✪> finally that bottleneck gets some improvements
+20:04 <+bridge> [ddnet] <chillerdragon> you have trouble with std ? \:D
+20:04 <+bridge> [ddnet] <chillerdragon> (@fokkonaut)
+20:04 <+bridge> [ddnet] <fokkonaut> no xe
+20:04 <+bridge> [ddnet] <chillerdragon> isnt that some intimate diesease? \:D
+20:05 <+bridge> [ddnet] <chillerdragon> i posted my SDL license plate pic because i saw it afte rdebugging SDL for 2 days straight \:D
+20:05 <+bridge> [ddnet] <chillerdragon> when update to SDL 1.2 ?
+20:05 <+bridge> [ddnet] <chillerdragon> image.png
+20:05 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/879788540068777994/image.png
+20:06 <+bridge> [ddnet] <Jupstar ✪> since when does SDL2 use opengl? XD
+20:07 <+bridge> [ddnet] <Jupstar ✪> they have so many backends
+20:07 <+bridge> [ddnet] <Jupstar ✪> i bet they default is dx or vulkan
+20:08 <+bridge> [ddnet] <chillerdragon> i thought its good meme
+20:08 <+bridge> [ddnet] <chillerdragon> found in #sdl \:D
+20:08 <+bridge> [ddnet] <Jupstar ✪> where is that even from
+20:08 <+bridge> [ddnet] <Jupstar ✪> ah ok
+20:09 <+bridge> [ddnet] <chillerdragon> seems like a dead channel anyways
+20:09 <+bridge> [ddnet] <Jupstar ✪> funny thing is
+20:09 <+bridge> [ddnet] <Jupstar ✪> sdl 1.x uses sdl2 xD
+20:09 <+bridge> [ddnet] <chillerdragon> i idle in there to rant about fullscreen bugs
+20:09 <+bridge> [ddnet] <chillerdragon> ikr
+20:09 <+bridge> [ddnet] <chillerdragon> sdl compat
+20:09 <+bridge> [ddnet] <chillerdragon> its supported by sdlvm
+20:10 <+bridge> [ddnet] <chillerdragon> your sdl version manager of choice
+20:10 <+bridge> [ddnet] <Jupstar ✪> https://github.com/libsdl-org/sdl12-compat
+20:10 <+bridge> [ddnet] <chillerdragon> ye ik
+20:11 <+bridge> [ddnet] <chillerdragon> omagawd bridge delay is so troll
+20:11 <+bridge> [ddnet] <chillerdragon> when do you trolls migrate from discord to matirx?
+20:11 <+bridge> [ddnet] <chillerdragon> when do you trolls migrate from discord to matrix?
+20:11 <+bridge> [ddnet] <Jupstar ✪> does it have a webapp finally
+20:12 <+bridge> [ddnet] <Jupstar ✪> what even is the current normal client, last time i used it it was called element or smth
+20:13 <+bridge> [ddnet] <Headshot> when everyone does
+20:13 <+bridge> [ddnet] <chillerdragon> element is fakin electron i was told the webapp even has better support for screen sharing
+20:15 <+bridge> [ddnet] <Jupstar ✪> and who will host the matrix server we all join?
+20:15 <+bridge> [ddnet] <Jupstar ✪> if we all use matrix.org, we can also use signal
+20:16 <+bridge> [ddnet] <chillerdragon> fstd ofc
+20:16 <+bridge> [ddnet] <chillerdragon> hrhrhr
+20:17 <+bridge> [ddnet] <chillerdragon> i love the drive by signal rant btw \<3
+20:17 <+bridge> [ddnet] <chillerdragon> i love ranting messangers in general
+20:17 <+bridge> [ddnet] <Jupstar ✪> what rant
+20:17 <+bridge> [ddnet] <Jupstar ✪> matrix.org with a centralized server is like signal
+20:17 <+bridge> [ddnet] <Jupstar ✪> if everyone uses matrix.org nothing is won
+20:17 <+bridge> [ddnet] <chillerdragon> yea
+20:18 <+bridge> [ddnet] <chillerdragon> so you shoot agianst signal
+20:18 <+bridge> [ddnet] <chillerdragon> i like it
+20:18 <+bridge> [ddnet] <Jupstar ✪> actually i shot against not using matrix potential correctly 😄
+20:18 <+bridge> [ddnet] <chillerdragon> usually ppl like to praise signal cuz snowden fanbois them
+20:18 <+bridge> [ddnet] <chillerdragon> but drive by shoot signal
+20:18 <+bridge> [ddnet] <chillerdragon> matrix has no potential
+20:18 <+bridge> [ddnet] <chillerdragon> its bloat spyware
+20:19 <+bridge> [ddnet] <chillerdragon> but other than irc it has a proper iOS client \:D
+20:19 <+bridge> [ddnet] <chillerdragon> matrix is bad enough to be widley adopted \:D
+20:23 <+bridge> [ddnet] <chillerdragon> Watafak Debian11 wants to install updates when shutting it down?
+20:24 <+bridge> [ddnet] <chillerdragon> If I want that I use Ubuntu or windows xD
+21:02 <+bridge> [ddnet] <Jupstar ✪> what programm should even force it?
+22:16 <+bridge> [ddnet] <Jupstar ✪> ```
+22:16 <+bridge> [ddnet] <Jupstar ✪> void CClient::SwitchWindowScreen(int Index)
+22:16 <+bridge> [ddnet] <Jupstar ✪> {
+22:16 <+bridge> [ddnet] <Jupstar ✪>     // Todo SDL: remove this when fixed (changing screen when in fullscreen is bugged)
+22:16 <+bridge> [ddnet] <Jupstar ✪>     if(g_Config.m_GfxFullscreen)
+22:16 <+bridge> [ddnet] <Jupstar ✪>     {
+22:16 <+bridge> [ddnet] <Jupstar ✪>         SetWindowParams(0, g_Config.m_GfxBorderless);
+22:16 <+bridge> [ddnet] <Jupstar ✪>         if(Graphics()->SetWindowScreen(Index))
+22:16 <+bridge> [ddnet] <Jupstar ✪>             g_Config.m_GfxScreen = Index;
+22:16 <+bridge> [ddnet] <Jupstar ✪>         SetWindowParams(g_Config.m_GfxFullscreen, g_Config.m_GfxBorderless);
+22:16 <+bridge> [ddnet] <Jupstar ✪>     }
+22:16 <+bridge> [ddnet] <Jupstar ✪>     else
+22:16 <+bridge> [ddnet] <Jupstar ✪>     {
+22:17 <+bridge> [ddnet] <Jupstar ✪>         if(Graphics()->SetWindowScreen(Index))
+22:17 <+bridge> [ddnet] <Jupstar ✪>             g_Config.m_GfxScreen = Index;
+22:17 <+bridge> [ddnet] <Jupstar ✪>     }
+22:17 <+bridge> [ddnet] <Jupstar ✪> }
+22:17 <+bridge> [ddnet] <Jupstar ✪> ```
+22:17 <+bridge> [ddnet] <Jupstar ✪> not only that oy from 6 years ago
+23:52 <+bridge> [ddnet] <fokkonaut> @heinrich5991 https://github.com/ddnet/ddnet/pull/3928 doesnt fix the issue for me, i still need to define the functions in antibot_null.cpp as with ANTIBOTAPI, only having them in antibot_interface.h does not work.
+23:54 <+bridge> [ddnet] <fokkonaut> Ah wait, it does work indeed, but one has to include `antibot_interface.h` to antibot_null.cpp
