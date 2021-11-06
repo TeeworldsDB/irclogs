@@ -1,0 +1,128 @@
+00:09 <+bridge_> [ddnet] <Cipy29> About the coil whine from my GPU again: (it was constantly audible while in the editor with gfx_refresh_rate 0, no longer present gfx_refresh_rate 720) now I have it as a short burst (about 1 second, just slightly shorter than 1 s) after opening up the game window after it was previously in the background. The FPS (from cl_showfps 1) reading is: 720 fps when playing the game, 28-30 fps when in background, ~3000 fps when switching to the gam
+00:09 <+bridge_> [ddnet] <Cipy29> I'm mostly writing this to have it documented, maybe one of you know what it's about and can tell me
+00:09 <+bridge_> [ddnet] <Cipy29> im on linux btw
+00:10 <+bridge_> [ddnet] <Cipy29> with Xorg
+00:12 <+bridge_> [ddnet] <Cipy29> also the sound isn't THAT annoying, however it's not like you have to look for it (hear for it?) to notice it
+00:33 <+bridge_> [ddnet] <Jupstar ✪> coil whine is nothing special really, ever been near a power transformator? they also make a deep noise that is coil whine, its the copper vibritingWhat exactly do you want to know?
+00:33 <+bridge_> [ddnet] <Jupstar ✪> (@Cipy29)
+00:34 <+bridge_> [ddnet] <Cipy29> hmm how come my fps goes from 30 to my gpu's max framerate and then to the capped framerate
+00:34 <+bridge_> [ddnet] <Cipy29> shouldn't it go 30-720?
+00:35 <+bridge_> [ddnet] <Cipy29> does the 30 come from a game setting or from my display srv
+00:35 <+bridge_> [ddnet] <Jupstar ✪> bcs the calculation used too much time, and bcs SDL doesnt activate the input the moment you restore the window, so it calculates a wrong frame time worst case
+00:38 <+bridge_> [ddnet] <Jupstar ✪> ```c
+00:38 <+bridge_> [ddnet] <Jupstar ✪> int CGraphicsBackend_SDL_OpenGL::WindowActive()
+00:38 <+bridge_> [ddnet] <Jupstar ✪> {
+00:38 <+bridge_> [ddnet] <Jupstar ✪> 	return SDL_GetWindowFlags(m_pWindow) & SDL_WINDOW_INPUT_FOCUS;
+00:38 <+bridge_> [ddnet] <Jupstar ✪> }
+00:38 <+bridge_> [ddnet] <Jupstar ✪> ```This is our condition for when it uses the inactive refresh rate```c
+00:38 <+bridge_> [ddnet] <Jupstar ✪> 
+00:38 <+bridge_> [ddnet] <Jupstar ✪> 
+00:38 <+bridge_> [ddnet] <Jupstar ✪> int CGraphicsBackend_SDL_OpenGL::WindowOpen()
+00:38 <+bridge_> [ddnet] <Jupstar ✪> {
+00:38 <+bridge_> [ddnet] <Jupstar ✪> 	return SDL_GetWindowFlags(m_pWindow) & SDL_WINDOW_SHOWN;
+00:38 <+bridge_> [ddnet] <Jupstar ✪> }
+00:38 <+bridge_> [ddnet] <Jupstar ✪> 
+00:38 <+bridge_> [ddnet] <Jupstar ✪> ```And this is what is used, if the GPU should render if the window isnt shownSo you end up having very bad CPU frame times, which causes the GPU frametimes to try to keep up with it by firing more frames
+00:42 <+bridge_> [ddnet] <Jupstar ✪> the calculation could e.g. reset gpu frametimes if the inactive refresh rate is lower than the requsted gfx refresh rate
+00:43 <+bridge_> [ddnet] <Jupstar ✪> cl\_refresh\_rate\_inactive
+00:43 <+bridge_> [ddnet] <Jupstar ✪> (@Cipy29)
+00:47 <+bridge_> [ddnet] <Cipy29> hmm okay
+00:47 <+bridge_> [ddnet] <Cipy29> thanks for the answer :bluekitty:
+11:05 <+bridge_> [ddnet] <KoroshKv> Hi i have two questions
+11:05 <+bridge_> [ddnet] <KoroshKv> 1- in ddnet source in server side how can i change color of feet and body color
+11:05 <+bridge_> [ddnet] <KoroshKv> 2- how can i change healt of player?
+12:23 <+bridge_> [ddnet] <Learath2> Color you'd do by editing the color values in the CPlayer instance
+12:23 <+bridge_> [ddnet] <Learath2> The health you'd do in the CCharacter instance associated with the CPlayer
+12:54 <+bridge_> [ddnet] <KoroshKv> I cant find body color in Cplayer
+12:54 <+bridge_> [ddnet] <KoroshKv> https://cdn.discordapp.com/attachments/293493549758939136/895987577402818630/unknown.png
+12:55 <+bridge_> [ddnet] <KoroshKv> why there isn't good reference to how figure out ddnet source
+12:59 <+bridge_> [ddnet] <uwu> use get character
+12:59 <+bridge_> [ddnet] <Learath2> It's in m_TeeInfos
+13:00 <+bridge_> [ddnet] <KoroshKv> https://cdn.discordapp.com/attachments/293493549758939136/895989056775815168/unknown.png
+13:01 <+bridge_> [ddnet] <uwu> ah yes nvm get back to player and change m_TeeInfos
+13:02 <+bridge_> [ddnet] <uwu> pPlayer->m_TeeInfos.m_ColorFeet
+13:02 <+bridge_> [ddnet] <uwu> or whatever u need
+13:06 <+bridge_> [ddnet] <Learath2> No one wrote it, so no docs. Such is the nature of an organically growing codebase with only volunteer work
+13:06 <+bridge_> [ddnet] <KoroshKv> and how can i change healt?
+13:06 <+bridge_> [ddnet] <KoroshKv> thanks and how can i change healt?
+13:07 <+bridge_> [ddnet] <KoroshKv> thnks
+13:08 <+bridge_> [ddnet] <KoroshKv> : (
+13:08 <+bridge_> [ddnet] <KoroshKv> https://cdn.discordapp.com/attachments/293493549758939136/895990991880863784/unknown.png
+13:11 <+bridge_> [ddnet] <Learath2> Ah that color is sadly not a ColorRGBA or a ColorHSLA. Its a legacy tw color
+13:12 <+bridge_> [ddnet] <Learath2> You need to call the member method Pack. You can check out how I did it in teeinfo.cpp
+13:13 <+bridge_> [ddnet] <uwu> healt?
+13:13 <+bridge_> [ddnet] <Learath2> Health
+13:13 <+bridge_> [ddnet] <uwu> ah
+13:13 <+bridge_> [ddnet] <KoroshKv> yes
+13:13 <+bridge_> [ddnet] <uwu> pPlayer->GetCharacter()->IncreaseHealth(-5);
+13:14 <+bridge_> [ddnet] <uwu> pass negative to deal damage
+13:14 <+bridge_> [ddnet] <uwu> ok some kind of it
+13:16 <+bridge_> [ddnet] <KoroshKv> Don't work 😦
+13:16 <+bridge_> [ddnet] <KoroshKv> https://cdn.discordapp.com/attachments/293493549758939136/895993072888979486/unknown.png
+13:21 <+bridge_> [ddnet] <Fän> show your code
+13:24 <+bridge_> [ddnet] <KoroshKv> void ToggleSpecPause(IConsole::IResult *pResult, void *pUserData, int PauseType)
+13:24 <+bridge_> [ddnet] <KoroshKv> {
+13:24 <+bridge_> [ddnet] <KoroshKv>     if(!CheckClientID(pResult->m_ClientID))
+13:24 <+bridge_> [ddnet] <KoroshKv>         return;
+13:24 <+bridge_> [ddnet] <KoroshKv> 
+13:24 <+bridge_> [ddnet] <KoroshKv>     CGameContext *pSelf = (CGameContext *)pUserData;
+13:24 <+bridge_> [ddnet] <KoroshKv> 
+13:24 <+bridge_> [ddnet] <KoroshKv>     CPlayer *pPlayer = pSelf->m_apPlayers[pResult->m_ClientID];
+13:24 <+bridge_> [ddnet] <KoroshKv> 
+13:24 <+bridge_> [ddnet] <KoroshKv>     pPlayer->GetCharacter()->IncreaseHealth(-5);
+13:24 <+bridge_> [ddnet] <KoroshKv> }
+13:33 <+bridge_> [ddnet] <Learath2> Eh, I can take a look when I get back but there should be a loop somewhere  that keeps setting it back to 10
+13:34 <+bridge_> [ddnet] <KoroshKv> thnks
+14:48 <+bridge_> [ddnet] <gerdoe> afair increase health clamps input
+14:48 <+bridge_> [ddnet] <gerdoe> check it out
+14:49 <+bridge_> [ddnet] <KoroshKv> clamp(m_Health + Amount, 0, 10);?
+14:49 <+bridge_> [ddnet] <KoroshKv> clamp(-5, 0, 10);?
+14:49 <+bridge_> [ddnet] <gerdoe> no no
+14:50 <+bridge_> [ddnet] <gerdoe> okey wait i should check what increasehealth does
+14:50 <+bridge_> [ddnet] <KoroshKv> thnks
+14:52 <+bridge_> [ddnet] <gerdoe> yeah as i supposed
+14:53 <+bridge_> [ddnet] <gerdoe> you should set health manually instead of use increasehealth
+14:55 <+bridge_> [ddnet] <gerdoe> add new function to ccharacter named SetHealth(int Amount) with setting m_Health = clamp(m_Health + Amount, 0, 10);
+14:56 <+bridge_> [ddnet] <gerdoe> ir just delete first if statement in increasehealth if you don't want to add anything
+14:56 <+bridge_> [ddnet] <gerdoe> or*
+15:28 <+bridge_> [ddnet] <KoroshKv> thans i fixed this problem
+17:19 <+bridge_> [ddnet] <chillerdragon> bro @Jupstar ✪ can you just send correct code for https://github.com/ddnet/ddnet/pull/4173#issuecomment-938046483i am super confused. Why should the string getter be responsible for reallocating memory? Shouldn't that happen already when getting the data. And how is this no issue for the json version?
+17:27 <+bridge_> [ddnet] <heinrich5991> so a string needs a null termination in C
+17:28 <+bridge_> [ddnet] <heinrich5991> the json library is special in that it doesn't need that null termination
+17:28 <+bridge_> [ddnet] <gerdoe> hm, why?
+17:28 <+bridge_> [ddnet] <gerdoe> it stores length of string?
+17:29 <+bridge_> [ddnet] <heinrich5991> ```c++
+17:29 <+bridge_> [ddnet] <heinrich5991> json_value *CGet::ResultJson() const
+17:29 <+bridge_> [ddnet] <heinrich5991> {
+17:29 <+bridge_> [ddnet] <heinrich5991>     unsigned char *pResult = Result();
+17:29 <+bridge_> [ddnet] <heinrich5991>     if(!pResult)
+17:29 <+bridge_> [ddnet] <heinrich5991>     {
+17:29 <+bridge_> [ddnet] <heinrich5991>         return NULL;
+17:29 <+bridge_> [ddnet] <heinrich5991>     }
+17:29 <+bridge_> [ddnet] <heinrich5991>     return json_parse((char *)pResult, m_BufferLength);
+17:29 <+bridge_> [ddnet] <heinrich5991> }
+17:29 <+bridge_> [ddnet] <heinrich5991> ```
+17:29 <+bridge_> [ddnet] <heinrich5991> yes
+17:29 <+bridge_> [ddnet] <gerdoe> interesting move tho
+17:38 <+bridge_> [ddnet] <Jupstar ✪> well what should i fix?
+17:38 <+bridge_> [ddnet] <Jupstar ✪> I personally would just implement a Job that fetches text data, that also wouldnt require to be in the ddnet code
+17:38 <+bridge_> [ddnet] <Jupstar ✪> Else i would take a buffer, e.g. a std\:\:string and fill that on demandIf you absolutly dont want todo it, change the buffer reallocation as i said in the comment(imo the worst solution, bcs it's not intuitive)
+17:39 <+bridge_> [ddnet] <Jupstar ✪> well what should i fix?
+17:39 <+bridge_> [ddnet] <Jupstar ✪> I personally would just implement a Job that fetches text data, that also wouldnt require to be in the ddnet code
+17:39 <+bridge_> [ddnet] <Jupstar ✪> Else i would take a buffer as parameter, e.g. a std\:\:string and fill that on demandIf you absolutly dont want todo it, change the buffer reallocation as i said in the comment(imo the worst solution, bcs it's not intuitive)
+17:40 <+bridge_> [ddnet] <lynn> damn jupeyy has also graduated from discord
+17:40 <+bridge_> [ddnet] <lynn> in 2030 this entire channel will move from discord and we can remove the bridge :troll:
+17:40 <+bridge_> [ddnet] <Jupstar ✪> yes, but not bcs of ddnet ;)
+17:40 <+bridge_> [ddnet] <heinrich5991> if you put the null termination next to the buffer re-allocation, then it's not so bad
+17:41 <+bridge_> [ddnet] <heinrich5991> but leave a comment then why ResultStr() is safe ^^
+20:28 <+bridge_> [ddnet] <cagent> @heinrich5991
+20:28 <+bridge_> [ddnet] <cagent> you thereß
+20:28 <+bridge_> [ddnet] <cagent> you there?
+20:29 <+bridge_> [ddnet] <cagent> @Ryozuki
+20:29 <+bridge_> [ddnet] <Ryozuki> ?
+20:29 <+bridge_> [ddnet] <cagent> where do i change words
+20:29 <+bridge_> [ddnet] <cagent> for example
+20:29 <+bridge_> [ddnet] <cagent> https://cdn.discordapp.com/attachments/293493549758939136/896102129473822720/unknown.png
+20:30 <+bridge_> [ddnet] <cagent> "geist" to "cheats"
+20:31 <+bridge_> [ddnet] <cagent> found it
+20:32 <+bridge_> [ddnet] <uwu> https://tenor.com/view/drake-clapping-applause-fast-gif-15479460

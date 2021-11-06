@@ -1,0 +1,487 @@
+04:50 <+bridge> [ddnet] <heinrich5991> Jupstar ✪: @Learath2 @Ryozuki my take in rust:
+04:50 <+bridge> [ddnet] <heinrich5991> ```rs
+04:50 <+bridge> [ddnet] <heinrich5991> use std::mem;
+04:50 <+bridge> [ddnet] <heinrich5991> use std::sync::Mutex;
+04:50 <+bridge> [ddnet] <heinrich5991> use std::sync::atomic::AtomicI32;
+04:50 <+bridge> [ddnet] <heinrich5991> use std::sync::atomic::Ordering;
+04:50 <+bridge> [ddnet] <heinrich5991> 
+04:50 <+bridge> [ddnet] <heinrich5991> fn main() {
+04:50 <+bridge> [ddnet] <heinrich5991>     let protect_me = AtomicI32::new(0);
+04:50 <+bridge> [ddnet] <heinrich5991>     let m = Mutex::new(());
+04:50 <+bridge> [ddnet] <heinrich5991>     crossbeam::scope(|s| {
+04:50 <+bridge> [ddnet] <heinrich5991>         let t = s.spawn(|_| {
+04:50 <+bridge> [ddnet] <heinrich5991>             let mut break_loop = false;
+04:50 <+bridge> [ddnet] <heinrich5991>             while !break_loop {
+04:50 <+bridge> [ddnet] <heinrich5991>                 let guard = m.lock().unwrap();
+04:50 <+bridge> [ddnet] <heinrich5991>                 println!("test {}", protect_me.load(Ordering::Relaxed));
+04:50 <+bridge> [ddnet] <heinrich5991>                 if protect_me.load(Ordering::Relaxed) >= 1000 {
+04:50 <+bridge> [ddnet] <heinrich5991>                     break_loop = true;
+04:50 <+bridge> [ddnet] <heinrich5991>                 }
+04:50 <+bridge> [ddnet] <heinrich5991>                 mem::drop(guard); // optional
+04:50 <+bridge> [ddnet] <heinrich5991>             }
+04:50 <+bridge> [ddnet] <heinrich5991>         });
+04:50 <+bridge> [ddnet] <heinrich5991>         while protect_me.load(Ordering::Relaxed) < 1000 {
+04:50 <+bridge> [ddnet] <heinrich5991>             let guard = m.lock().unwrap();
+04:50 <+bridge> [ddnet] <heinrich5991>             protect_me.store(protect_me.load(Ordering::Relaxed) + 1, Ordering::Relaxed);
+04:50 <+bridge> [ddnet] <heinrich5991>             mem::drop(guard); // optional
+04:51 <+bridge> [ddnet] <heinrich5991>         }
+04:51 <+bridge> [ddnet] <heinrich5991>         t.join().unwrap(); // optional
+04:51 <+bridge> [ddnet] <heinrich5991>     }).unwrap();
+04:51 <+bridge> [ddnet] <heinrich5991> }
+04:51 <+bridge> [ddnet] <heinrich5991> ```
+04:51 <+bridge> [ddnet] <heinrich5991> needs `crossbeam = "0.8.1"` in Cargo.toml
+04:51 <+bridge> [ddnet] <heinrich5991> note that relaxed atomics use *exactly* the same instructions for loading/storing as normal variables on all platforms that I know of: https://www.cl.cam.ac.uk/~pes20/cpp/cpp0xmappings.html
+04:52 <+bridge> [ddnet] <Skeith> Don't know if known already, but for some reason when enabling super on LAN, the server closes / crashes
+04:53 <+bridge> [ddnet] <heinrich5991> doesn't look known
+04:53 <+bridge> [ddnet] <heinrich5991> care to submit a bug report?
+04:54 <+bridge> [ddnet] <Skeith> I don't use github, I should probably learn to
+04:55 <+bridge> [ddnet] <heinrich5991> I can walk you through creating an account, but that's probably not very hard if you've ever created an account somewhere
+04:55 <+bridge> [ddnet] <heinrich5991> afterwards you go here: https://github.com/ddnet/ddnet/issues
+04:55 <+bridge> [ddnet] <heinrich5991> (usually you'd use the search bar there to check whether your issue has already been reported, but in this case I already did it for you)
+04:56 <+bridge> [ddnet] <heinrich5991> then you click "New issue" and enter a title and a description, then click "Submit new issue"
+04:57 <+bridge> [ddnet] <Skeith> Hopefully that's fine
+04:57 <+bridge> [ddnet] <heinrich5991> perfect
+04:58 <+bridge> [ddnet] <Skeith> Thanks for the walkthrough :happy:
+05:08 <+bridge> [ddnet] <heinrich5991> @Skeith I couldn't reproduce the issue, can you tell me what version of the DDNet server you use and on which operating system the server runs?
+05:08 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/issues/4265
+05:09 <+bridge> [ddnet] <Skeith> Windows 10
+05:09 <+bridge> [ddnet] <Skeith> https://cdn.discordapp.com/attachments/293493549758939136/903480667558522890/unknown.png
+05:10 <+bridge> [ddnet] <Skeith> I could update my ddnet client and see if that fixes the issue
+05:11 <+bridge> [ddnet] <Skeith> Probably should've done that from the start, forgot to check if I was updated
+05:13 <+bridge> [ddnet] <heinrich5991> the ddnet server shouldn't crash no matter which ddnet client version connects
+05:14 <+bridge> [ddnet] <heinrich5991> ah, but the server is updated with the client (because it's from steam?)
+05:14 <+bridge> [ddnet] <Skeith> Yea, I have it via steam nightly
+05:15 <+bridge> [ddnet] <Skeith> @heinrich5991 Should I update and see if it fixes itself?
+05:15 <+bridge> [ddnet] <heinrich5991> if there's no inconvenience, yes
+05:15 <+bridge> [ddnet] <heinrich5991> if that's not inconvenient for you, yes
+05:17 <+bridge> [ddnet] <Skeith> Yep, doesn't crash me anymore
+05:18 <+bridge> [ddnet] <Skeith> My bad, I'll remember to update first before reporting. 😅
+05:18 <+bridge> [ddnet] <heinrich5991> nice, you can comment that it doesn't crash anymore on latest nightly and close the issue 🙂
+05:18 <+bridge> [ddnet] <heinrich5991> and you already have an account for the next time you find a bug ^^
+05:25 <+bridge> [ddnet] <heinrich5991> good night
+05:26 <+bridge> [ddnet] <Skeith> Good night :happy:
+07:15 <+bridge> [ddnet] <Learath2> I was wondering if you could avoid the atomic since that was one of jupeyy's requirements
+07:16 <+bridge> [ddnet] <Learath2> @heinrich5991 if you have a couple minutes can you take a look at this weird crash where we seem to be ticking on a zero'd out ccharacter instance (maybe zero'd due to static initialization)
+08:26 <+bridge> [ddnet] <ReiTW> have you ever heard of that bug, on one map with the latest ddnet some quads doesn't seem to work properly (iF|City, vanilla based mod). The left light quad on the other room seems to work properly, but not the room on the right
+08:26 <+bridge> [ddnet] <ReiTW> https://cdn.discordapp.com/attachments/293493549758939136/903530114841739284/unknown.png
+08:26 <+bridge> [ddnet] <ReiTW> Someone told me to disable mordern opengl as a fix
+08:28 <+bridge> [ddnet] <ReiTW> they're just different as if it was another client
+08:29 <+bridge> [ddnet] <ReiTW> they're just different looking, if you go check how it looks like with another client
+09:04 <+bridge> [ddnet] <chillerdragon> Is the quad animated ?
+09:53 <+bridge> [ddnet] <Ryozuki> https://github.blog/changelog/2021-10-27-pull-request-merge-queue-limited-beta/
+09:54 <+bridge> [ddnet] <Ryozuki> github making its own bors feature
+10:11 <+bridge> [ddnet] <Learath2> Yaaay
+10:12 <+bridge> [ddnet] <Learath2> Bors keeps ignoring fokkonauts prs
+10:12 <+bridge> [ddnet] <uwu> cuz if city sux😳
+10:12 <+bridge> [ddnet] <ReiTW> No u
+10:12 <+bridge> [ddnet] <ReiTW> Yea
+10:45 <+bridge> [ddnet] <Learath2> @deen I have an idea depending on how often we get this crash
+10:54 <+bridge> [ddnet] <deen> Often enough?
+10:54 <+bridge> [ddnet] <Learath2> I mean can I hope to get one in a day?
+10:55 <+bridge> [ddnet] <Learath2> I want to try what jupeyy suggested. I'll just allocate the character objects dynamically so we just get an asan use-after-free
+10:55 <+bridge> [ddnet] <deen> yes
+10:55 <+bridge> [ddnet] <deen> If you deploy it on all servers and run it for a day you'll get ~10 crashes
+12:22 <+bridge> [ddnet] <fokkonaut> I once had a bug where a quad looked normal ingame, but in the editor it was a black square. Probably not divisible by 4
+12:27 <+bridge> [ddnet] <fokkonaut> maybe because my branch doesnt exist anymore
+12:38 <+bridge> [ddnet] <heinrich5991> @Learath2 in this case, the same code is generated for atomics and normal variables (see the link, relaxed atomics are the same). for more complex data structures, I agree, it'd no longer be possible to use atomics. then you'd probably create a safe abstraction out of your weird mutex usage:
+12:39 <+bridge> [ddnet] <heinrich5991> ```rs
+12:39 <+bridge> [ddnet] <heinrich5991> use std::cell::UnsafeCell;
+12:39 <+bridge> [ddnet] <heinrich5991> use std::mem;
+12:39 <+bridge> [ddnet] <heinrich5991> use std::ops;
+12:39 <+bridge> [ddnet] <heinrich5991> use std::sync;
+12:39 <+bridge> [ddnet] <heinrich5991> 
+12:39 <+bridge> [ddnet] <heinrich5991> pub struct WeirdMutex<T> {
+12:39 <+bridge> [ddnet] <heinrich5991>     mutex: sync::Mutex<()>,
+12:39 <+bridge> [ddnet] <heinrich5991>     data: UnsafeCell<T>,
+12:39 <+bridge> [ddnet] <heinrich5991> }
+12:39 <+bridge> [ddnet] <heinrich5991> 
+12:39 <+bridge> [ddnet] <heinrich5991> pub struct WeirdMutexGuard<'a, T> {
+12:39 <+bridge> [ddnet] <heinrich5991>     _guard: sync::MutexGuard<'a, ()>,
+12:39 <+bridge> [ddnet] <heinrich5991>     data: &'a mut T,
+12:39 <+bridge> [ddnet] <heinrich5991> }
+12:39 <+bridge> [ddnet] <heinrich5991> 
+12:39 <+bridge> [ddnet] <heinrich5991> pub struct WeirdMutexRo<'a, T> {
+12:39 <+bridge> [ddnet] <heinrich5991>     inner: &'a WeirdMutex<T>,
+12:39 <+bridge> [ddnet] <heinrich5991> }
+12:39 <+bridge> [ddnet] <heinrich5991> 
+12:39 <+bridge> [ddnet] <heinrich5991> pub struct WeirdMutexRoGuard<'a, T> {
+12:39 <+bridge> [ddnet] <heinrich5991>     _guard: sync::MutexGuard<'a, ()>,
+12:39 <+bridge> [ddnet] <heinrich5991>     data: &'a T,
+12:39 <+bridge> [ddnet] <heinrich5991> }
+12:39 <+bridge> [ddnet] <heinrich5991> 
+12:39 <+bridge> [ddnet] <heinrich5991> unsafe impl<'a, T> Send for WeirdMutexRo<'a, T> {}
+12:39 <+bridge> [ddnet] <heinrich5991> unsafe impl<'a, T> Sync for WeirdMutexRo<'a, T> {}
+12:39 <+bridge> [ddnet] <heinrich5991> 
+12:39 <+bridge> [ddnet] <heinrich5991> impl<T> ops::Deref for WeirdMutex<T> {
+12:39 <+bridge> [ddnet] <heinrich5991>     type Target = T;
+12:39 <+bridge> [ddnet] <heinrich5991>     fn deref(&self) -> &T {
+12:39 <+bridge> [ddnet] <heinrich5991> ```rs
+12:39 <+bridge> [ddnet] <heinrich5991> fn main() {
+12:40 <+bridge> [ddnet] <heinrich5991>     let protect_me = WeirdMutex::new(0);
+12:40 <+bridge> [ddnet] <heinrich5991>     crossbeam::scope(|s| {
+12:40 <+bridge> [ddnet] <heinrich5991>         let ro = protect_me.ro();
+12:40 <+bridge> [ddnet] <heinrich5991>         let t = s.spawn(move |_| {
+12:40 <+bridge> [ddnet] <heinrich5991>             let mut break_loop = false;
+12:40 <+bridge> [ddnet] <heinrich5991>             while !break_loop {
+12:40 <+bridge> [ddnet] <heinrich5991>                 let guard = ro.lock();
+12:41 <+bridge> [ddnet] <heinrich5991> also Jupstar ✪: @Ryozuki this allows you to contain your unsafe code to a module unrelated to the application logic, this means that you don't introduce race conditions when you change application logic (this does use unsafe, but that's nothing bad per se, using unsafe to create safe abstractions, this is also how mutex etc. are implemented)
+13:11 <+bridge> [ddnet] <TeeFlowerFell-Sans> How to make sixup?
+13:17 <+bridge> [ddnet] <deen> Maps have to be converted with map_convert_07 and put into maps7 directory
+13:38 <+bridge> [ddnet] <Jupstar ✪> @heinrich5991\: mhh, my point really wasnt so much about performance, more about what is possible.
+13:38 <+bridge> [ddnet] <Jupstar ✪> Also i'd have thought the difference between relaxed atomics and non atomics is simply, that non atomics don't need to exist on the memory frame readable by other threads.
+13:38 <+bridge> [ddnet] <Jupstar ✪> So basically it could hold the value in a register all the time and only push the changes, but never read them back
+13:39 <+bridge> [ddnet] <Jupstar ✪> @ReiTW\: can you send the map, so i dont need to enter the if city mod
+13:39 <+bridge> [ddnet] <ReiTW> sure wait
+13:41 <+bridge> [ddnet] <ReiTW> https://cdn.discordapp.com/attachments/293493549758939136/903609449476931604/TeeTown_d908d0a7.map
+14:17 <+bridge> [ddnet] <Patiga> @deen I'm making my twmap library stricter to only allow external images that are actually valid (shipped with the vanilla client). there are 8 maps in ddnet that have faulty external images. only one of those maps actually used that image (mazepack). could you upload the fixes when you have the time?
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618540077191208/mazepack.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618544586068009/Hardstyle_2.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618547048132648/Crimson.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618549078183967/NUT_Hardcore_UNITED.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618549355020308/NUT_race7.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618550181290074/NUT_hardcore_race2.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618551519256596/Get_The_Gifts.map
+14:17 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618553566093343/Deadline_1.map
+14:17 <+bridge> [ddnet] <Patiga> hm couldve maybe zipped them, my bad
+14:18 <+bridge> [ddnet] <Patiga> the maps are
+14:18 <+bridge> [ddnet] <Patiga>  ```
+14:18 <+bridge> [ddnet] <Patiga> types/ddmax/maps/Deadline 1.map
+14:18 <+bridge> [ddnet] <Patiga> types/ddmax/maps/Get The Gifts.map
+14:18 <+bridge> [ddnet] <Patiga> types/ddmax/maps/NUT_hardcore_race2.map
+14:18 <+bridge> [ddnet] <Patiga> types/ddmax/maps/NUT Hardcore UNITED.map
+14:18 <+bridge> [ddnet] <Patiga> types/ddmax/maps/NUT_race7.map
+14:18 <+bridge> [ddnet] <Patiga> types/oldschool/maps/Crimson.map
+14:18 <+bridge> [ddnet] <Patiga> types/oldschool/maps/Hardstyle 2.map
+14:18 <+bridge> [ddnet] <Patiga> types/solo/maps/mazepack.map
+14:18 <+bridge> [ddnet] <Patiga> ```
+14:19 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/903618943586033714/maps.zip
+14:19 <+bridge> [ddnet] <deen> thanks
+14:19 <+bridge> [ddnet] <Patiga> (deleted the single map files to clutter the chat less, sry irc)
+14:19 <+bridge> [ddnet] <Patiga> @deen I'm making my twmap library stricter to only allow external images that are actually valid (shipped with the vanilla client). there are 8 maps in ddnet that have faulty external images. only one of those maps actually used that image (mazepack). could you upload the fixes when you have the time?
+14:25 <+bridge> [ddnet] <Jupstar ✪> @ReiTW\: i see, the mapper used an alpha value of \>10 (normally colors are clamped between 0 - 1) in the envelop \:D
+14:25 <+bridge> [ddnet] <Jupstar ✪> thanks for sharing
+14:26 <+bridge> [ddnet] <Jupstar ✪> @Patiga\: can your map tool fix that already? \:D
+14:27 <+bridge> [ddnet] <Jupstar ✪> else i have it as feature request \:P
+14:27 <+bridge> [ddnet] <Patiga> hm how would you go about fixing that? if you clamp it to 0-1, you would interpolate differently
+14:28 <+bridge> [ddnet] <Jupstar ✪> well the non gl 3.3 version litterally converts it to unsigned char, so not much better
+14:28 <+bridge> [ddnet] <Jupstar ✪> just disallow and clamp is my guess
+14:29 <+bridge> [ddnet] <Jupstar ✪> is that used so commonly or what?
+14:29 <+bridge> [ddnet] <Patiga> huh in blender values > 1 were also easy to do for colors
+14:29 <+bridge> [ddnet] <Jupstar ✪> bcs blender supports high dynamic color ranges
+14:29 <+bridge> [ddnet] <Patiga> well values >1, but very close to 1 will be very very common I think
+14:29 <+bridge> [ddnet] <Jupstar ✪> i doubt blender uses RGBA color spaces \:D
+14:29 <+bridge> [ddnet] <Patiga> above 2 I'm not sure, lemme check
+14:32 <+bridge> [ddnet] <Jupstar ✪> ok nvm, old backend defs clamps it before```
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		clampf(r, 0.f, 1.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		clampf(g, 0.f, 1.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		clampf(b, 0.f, 1.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		clampf(a, 0.f, 1.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		m_aColor[pArray[i].m_Index].r = (unsigned char)(r * 255.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		m_aColor[pArray[i].m_Index].g = (unsigned char)(g * 255.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		m_aColor[pArray[i].m_Index].b = (unsigned char)(b * 255.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> 		m_aColor[pArray[i].m_Index].a = (unsigned char)(a * 255.f);
+14:32 <+bridge> [ddnet] <Jupstar ✪> ```
+14:33 <+bridge> [ddnet] <Jupstar ✪> so values not in range of 0-1 are "invalid" in some way
+14:33 <+bridge> [ddnet] <Patiga> does it clamp before or after it gets multiplied with the original color value?
+14:33 <+bridge> [ddnet] <Patiga> looks like before?
+14:34 <+bridge> [ddnet] <Jupstar ✪> yeah
+14:35 <+bridge> [ddnet] <Jupstar ✪> but i dont want to clamp inside the GPU
+14:35 <+bridge> [ddnet] <Jupstar ✪> i guess this just is a flaw in the teeworlds universe
+14:36 <+bridge> [ddnet] <Jupstar ✪> mhh but it works on the other backend
+14:36 <+bridge> [ddnet] <Patiga> wait the function this is in is `SetColorVertex`, then it should already have calculated the influence of the envelope, no?
+14:36 <+bridge> [ddnet] <Jupstar ✪> strange, let me debug quick
+14:36 <+bridge> [ddnet] <Jupstar ✪> it did, i am bit confused right now, gimme a second
+14:37 <+bridge> [ddnet] <Patiga> ah yea I remember testing that. if you have a color where the for example green value is 0.5, you can use a envelope value of 2 to get it to 1.0 green, intensifying it
+14:39 <+bridge> [ddnet] <Jupstar ✪> ah right, doesnt matter where its clammped
+14:39 <+bridge> [ddnet] <Jupstar ✪> the other quad corners are 0
+14:39 <+bridge> [ddnet] <Jupstar ✪> and 0\*10 = 0
+14:39 <+bridge> [ddnet] <Jupstar ✪> with half transparent it would also break with older backend
+14:39 <+bridge> [ddnet] <Patiga> sounds about right ^^
+14:41 <+bridge> [ddnet] <Jupstar ✪> mhh that annoys me now, bcs it would only be "fixable" on the GPU side
+14:41 <+bridge> [ddnet] <Jupstar ✪> can your tool find out what maps also do it?
+14:41 <+bridge> [ddnet] <Jupstar ✪> i want to know if any ddnet map abuses it
+14:42 <+bridge> [ddnet] <Patiga> yeah I'm on it
+14:42 <+bridge> [ddnet] <Jupstar ✪> oh nice
+14:45 <+bridge> [ddnet] <Patiga> welp
+14:45 <+bridge> [ddnet] <Patiga> out of the ~2000 maps, 695 maps have used envelope that contains an envelope point with a value > 10.0
+14:46 <+bridge> [ddnet] <Patiga> *have a
+14:46 <+bridge> [ddnet] <Jupstar ✪> for colors?
+14:46 <+bridge> [ddnet] <Jupstar ✪> or generally
+14:46 <+bridge> [ddnet] <Patiga> generally, lemme check for colors
+14:46 <+bridge> [ddnet] <Patiga> ah right, for the others its irrelevant
+14:50 <+bridge> [ddnet] <Patiga> for color envelopes: 17 maps with values > 10, 43 with values > 2, 376 with values > 1
+14:50 <+bridge> [ddnet] <Jupstar ✪> ok but i guess \>1 can also be margin of error
+14:51 <+bridge> [ddnet] <Patiga> just so we are on the same page: the map stores the env color value as a i32. value 1 is 1024
+14:51 <+bridge> [ddnet] <Jupstar ✪> ok it only matters for alpha values, can you also check that? XD
+14:51 <+bridge> [ddnet] <Patiga> yeah >1 probably is mostly maps that wanted the value 1
+14:51 <+bridge> [ddnet] <Patiga> sure
+14:53 <+bridge> [ddnet] <Patiga> maps with color envelopes with a point with an alpha value > 2: 27
+14:53 <+bridge> [ddnet] <Jupstar ✪> ok
+14:53 <+bridge> [ddnet] <Patiga> if you want the list of maps for any of those I can paste it
+14:54 <+bridge> [ddnet] <Jupstar ✪> obviously that doesnt mean it braeks smth, if the quad doesnt use the alpha channel for example
+14:54 <+bridge> [ddnet] <Jupstar ✪> 
+14:54 <+bridge> [ddnet] <Jupstar ✪> but yeah you can show me a few
+14:55 <+bridge> [ddnet] <Patiga> first 10 of the 27:
+14:55 <+bridge> [ddnet] <Patiga> ```
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Agony.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Aim 11.0.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Aim 8.0.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Childs Play 1.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Nightly Tandem.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Space & Time 2.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/brutal/maps/Space & Time.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/ddmax/maps/Blue Sky.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/ddmax/maps/Cigarette.map"
+14:55 <+bridge> [ddnet] <Patiga> "types/ddmax/maps/DeadEnd.map"
+14:55 <+bridge> [ddnet] <Patiga> ```
+14:56 <+bridge> [ddnet] <Jupstar ✪> ah
+14:56 <+bridge> [ddnet] <Jupstar ✪> and they can be unused, like in Aim 8.0
+14:56 <+bridge> [ddnet] <Jupstar ✪> atleast the editor shows it "red"
+14:56 <+bridge> [ddnet] <Jupstar ✪> i guess that means unused?
+14:56 <+bridge> [ddnet] <Patiga> I should have already filtered the unused ones
+14:56 <+bridge> [ddnet] <Patiga> I think it was the unintuitive color
+14:56 <+bridge> [ddnet] <Jupstar ✪> ok then i dunno what the editor wants \:D
+14:56 <+bridge> [ddnet] <Patiga> yea red is used
+14:56 <+bridge> [ddnet] <Patiga> green unused
+14:58 <+bridge> [ddnet] <Jupstar ✪> thats some weird color choice xD
+14:58 <+bridge> [ddnet] <Patiga> agreed ^^
+14:59 <+bridge> [ddnet] <Jupstar ✪> mh i see, bcs all enveloppes use the same value it doesnt matter again
+14:59 <+bridge> [ddnet] <Learath2> I must have had a stroke while coding that
+15:02 <+bridge> [ddnet] <Jupstar ✪> i cant even tell what makes more sense tbh, multiply it in the interpolation or pre multiply itother than that it annoys me, bcs i bet 99.99% of the maps just use it without thinking about itIn @ReiTW example its not needed at all, the quad only uses corners with alpha 1 and alpha 0, which makes no difference with the env 10
+15:50 <+bridge> [ddnet] <heinrich5991> Jupstar ✪: relaxed atomics similarly have no guarantees on when the changes are visible from other threads
+15:50 <+bridge> [ddnet] <heinrich5991> the compiler can also keep them in a register until a synchronization point
+15:51 <+bridge> [ddnet] <Learath2> There is a very loose guarantee that the changes will be possible in finite time :P
+15:51 <+bridge> [ddnet] <Learath2> s\/possible/visible
+15:52 <+bridge> [ddnet] <heinrich5991> is there?
+15:52 <+bridge> [ddnet] <heinrich5991> it's there de-facto because cpus flush memory after some very short time
+15:52 <+bridge> [ddnet] <heinrich5991> but is it guaranteed anywhere?
+15:53 <+bridge> [ddnet] <Learath2> The C++11 standard does guarantee it iirc
+15:56 <+bridge> [ddnet] <heinrich5991> > 29.3.13 Implementations should make atomic stores visible to atomic loads within a reasonable amount of time.
+15:56 <+bridge> [ddnet] <heinrich5991> huh, TIL
+16:01 <+bridge> [ddnet] <Learath2> Yep \\○/
+16:06 <+bridge> [ddnet] <Learath2> @heinrich5991 wouldn't it be way too difficult to use relaxed atomics for anything without that guarantee?
+16:10 <+bridge> [ddnet] <heinrich5991> tell me a use case for relaxed atomics that doesn't use another form of synchronization @Learath2
+16:16 <+bridge> [ddnet] <Learath2> Hm, any use case where you just dont want a trap representation/an incomplete update
+16:18 <+bridge> [ddnet] <Learath2> Or where you dont care about the order w.r.t surrounding code. Getting unique ids using fetch_add or updating stats were common examples I found when researching atomics
+16:18 <+bridge> [ddnet] <heinrich5991> ah yea, I can see fetch_add being useful
+16:18 <+bridge> [ddnet] <heinrich5991> updating stats as well, I guess
+16:20 <+bridge> [ddnet] <Learath2> Though I'm not sure if any relevant platforms even tear writes anymore
+16:22 <+bridge> [ddnet] <heinrich5991> the CPUs themselves not (see the atomics mapping posted above, it's all normal stores)
+16:22 <+bridge> [ddnet] <heinrich5991> but the compiler doesn't give any guarantees that it's going to lower your int assignment to the CPU instruction
+16:45 <+bridge> [ddnet] <Ryozuki> what is a tear write
+16:45 <+bridge> [ddnet] <Ryozuki> can you explain
+16:45 <+bridge> [ddnet] <Ryozuki> this is hard to find with google xd
+16:45 <+bridge> [ddnet] <heinrich5991> e.g. writing a u32 as one byte at a time
+16:46 <+bridge> [ddnet] <heinrich5991> another thread might see a partial update
+16:46 <+bridge> [ddnet] <Ryozuki> ah
+16:46 <+bridge> [ddnet] <Ryozuki> thanks
+16:47 <+bridge> [ddnet] <Learath2> Now that I think about it fetch_add is useful true but only on platforms where the operation doesnt require a full fence
+16:47 <+bridge> [ddnet] <Learath2> I think on x86 a RMW operation always requires a lock, no?
+16:49 <+bridge> [ddnet] <Ryozuki> RMW = read modify write right?
+16:49 <+bridge> [ddnet] <Ryozuki> xd
+16:50 <+bridge> [ddnet] <Ryozuki> i should rly deep dive in atomics sometime
+16:50 <+bridge> [ddnet] <Ryozuki> i just havent had the need to do so xd
+16:52 <+bridge> [ddnet] <Learath2> Yep
+16:53 <+bridge> [ddnet] <Ryozuki> https://stackoverflow.com/questions/61744469/are-x86-atomic-rmw-instructions-wait-free
+16:53 <+bridge> [ddnet] <Learath2> Atomics are fairly simple. Memory order is where all the insanity is
+16:53 <+bridge> [ddnet] <Learath2> SeqCst atomics work as humans expect
+16:54 <+bridge> [ddnet] <Ryozuki> :o
+16:54 <+bridge> [ddnet] <Ryozuki> the answer to this question is long af
+16:56 <+bridge> [ddnet] <mind> Hi, would be cool to add custom colorization for some entities instead of having to edit the asset.
+16:58 <+bridge> [ddnet] <Ryozuki> applying a tint to the whole entity is probs easy but u probs dont want that
+16:58 <+bridge> [ddnet] <Ryozuki> i dont think its worth
+18:16 <+bridge> [ddnet] <Ryozuki> Jupstar ✪: you know if there is a way to render a label (or text) on a rect but that is not centered vertically
+18:16 <+bridge> [ddnet] <Ryozuki> e.g it starts from the top
+18:18 <+bridge> [ddnet] <Jupstar ✪> it is possible, but e.g. a g would go bellow it
+18:19 <+bridge> [ddnet] <Jupstar ✪> or from the top `|` might be above it
+18:19 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903679355392237629/tooltip.mp4
+18:19 <+bridge> [ddnet] <Ryozuki> im trying to do this
+18:19 <+bridge> [ddnet] <Ryozuki> a tooltip
+18:19 <+bridge> [ddnet] <Ryozuki> on hover
+18:19 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903679442189168700/unknown.png
+18:19 <+bridge> [ddnet] <Jupstar ✪> oh
+18:20 <+bridge> [ddnet] <Jupstar ✪> do label also has vertical alignment
+18:20 <+bridge> [ddnet] <Ryozuki> idk why it doesnt start on top
+18:20 <+bridge> [ddnet] <Ryozuki> xd
+18:20 <+bridge> [ddnet] <Jupstar ✪> let me see in code wait
+18:22 <+bridge> [ddnet] <Jupstar ✪> guess bcs of the margin?
+18:23 <+bridge> [ddnet] <Jupstar ✪> i guess it just wasnt made for multi lines, is it multi line?
+18:23 <+bridge> [ddnet] <Ryozuki> i added maxwidth so it becomes multiline
+18:23 <+bridge> [ddnet] <Ryozuki> i guess
+18:23 <+bridge> [ddnet] <Ryozuki> xd
+18:23 <+bridge> [ddnet] <Ryozuki> the text itself doesnt have \n
+18:24 <+bridge> [ddnet] <Ryozuki> the margin is 1
+18:24 <+bridge> [ddnet] <Ryozuki> on all sides
+18:24 <+bridge> [ddnet] <Jupstar ✪> ok
+18:24 <+bridge> [ddnet] <Ryozuki> if i make the rect height
+18:24 <+bridge> [ddnet] <Ryozuki> small enough it kinda starts
+18:25 <+bridge> [ddnet] <Ryozuki> but the text overflows
+18:25 <+bridge> [ddnet] <Jupstar ✪> i'd say add```
+18:25 <+bridge> [ddnet] <Jupstar ✪> else if(AlignVertically == 1)
+18:25 <+bridge> [ddnet] <Jupstar ✪> {
+18:25 <+bridge> [ddnet] <Jupstar ✪> 	AlignmentVert = pRect->y;
+18:25 <+bridge> [ddnet] <Jupstar ✪> }
+18:25 <+bridge> [ddnet] <Jupstar ✪> ```to DoLabel
+18:25 <+bridge> [ddnet] <Jupstar ✪> it just isnt implemented yet
+18:25 <+bridge> [ddnet] <Ryozuki> xd
+18:25 <+bridge> [ddnet] <Ryozuki> ok ill put it there
+18:25 <+bridge> [ddnet] <Ryozuki> btw
+18:25 <+bridge> [ddnet] <Ryozuki> Align
+18:25 <+bridge> [ddnet] <Ryozuki> to align on left
+18:25 <+bridge> [ddnet] <Ryozuki> is -1?
+18:25 <+bridge> [ddnet] <Ryozuki> i hecking love magic numbers
+18:25 <+bridge> [ddnet] <Jupstar ✪> ah sry
+18:25 <+bridge> [ddnet] <Jupstar ✪> -1
+18:26 <+bridge> [ddnet] <Jupstar ✪> yeah -1 is left i think
+18:26 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903681172595425371/unknown.png
+18:26 <+bridge> [ddnet] <Ryozuki> i added this
+18:26 <+bridge> [ddnet] <Ryozuki> i wonder if it works
+18:26 <+bridge> [ddnet] <Jupstar ✪> also pls add it to DoTextLabel, same code just without `pRect->`
+18:26 <+bridge> [ddnet] <Jupstar ✪> lamo so much code duplicates always
+18:26 <+bridge> [ddnet] <Ryozuki> xd
+18:27 <+bridge> [ddnet] <Jupstar ✪> yeah try it \:D
+18:27 <+bridge> [ddnet] <Jupstar ✪> but also add it to DoLabel
+18:27 <+bridge> [ddnet] <Jupstar ✪> there are 2 versions xD
+18:27 <+bridge> [ddnet] <Jupstar ✪> jhust search AlignVertically in the file
+18:27 <+bridge> [ddnet] <Ryozuki> ye xd
+18:27 <+bridge> [ddnet] <Ryozuki> done
+18:27 <+bridge> [ddnet] <Ryozuki> :w
+18:27 <+bridge> [ddnet] <Ryozuki> ups
+18:27 <+bridge> [ddnet] <Ryozuki> my vim lmao
+18:27 <+bridge> [ddnet] <Ryozuki> leaking
+18:27 <+bridge> [ddnet] <Jupstar ✪> the other uses pRect
+18:27 <+bridge> [ddnet] <Ryozuki> yeye
+18:28 <+bridge> [ddnet] <Ryozuki> it works nice
+18:28 <+bridge> [ddnet] <Jupstar ✪> epic gamer moment
+18:28 <+bridge> [ddnet] <Ryozuki> do u know
+18:28 <+bridge> [ddnet] <Ryozuki> if i can calculate the perfect font height
+18:28 <+bridge> [ddnet] <Jupstar ✪> but nice that you implement tooltips
+18:29 <+bridge> [ddnet] <Ryozuki> for a given width and height rect
+18:29 <+bridge> [ddnet] <Ryozuki> ?
+18:29 <+bridge> [ddnet] <Ryozuki> xd
+18:29 <+bridge> [ddnet] <Jupstar ✪> nope you cant
+18:29 <+bridge> [ddnet] <Ryozuki> ok
+18:30 <+bridge> [ddnet] <Jupstar ✪> freetype might round up  and down depending on the requiresments
+18:30 <+bridge> [ddnet] <Jupstar ✪> so you'd have to test all fontsizes
+18:30 <+bridge> [ddnet] <Jupstar ✪> but you can do an estimate theoretically and just subtract it by 1 or smth
+18:31 <+bridge> [ddnet] <Ryozuki> hmm maybe tooltips want to use more stuff than a simple text
+18:31 <+bridge> [ddnet] <Ryozuki> i guess i can leave dotooltip as a smart rect generator
+18:32 <+bridge> [ddnet] <Jupstar ✪> what is the current issue?
+18:33 <+bridge> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/issues/4212
+18:33 <+bridge> [ddnet] <Jupstar ✪> text is bigger than fontsize bcs of the outline for example
+18:33 <+bridge> [ddnet] <Ryozuki> ah no
+18:33 <+bridge> [ddnet] <Ryozuki> i dont have any issue right now
+18:33 <+bridge> [ddnet] <Jupstar ✪> oh ok
+18:33 <+bridge> [ddnet] <Ryozuki> i just thought a tooltip should be able to display buttons and anything
+18:33 <+bridge> [ddnet] <Ryozuki> so i wont render text on the dotooltip function
+18:33 <+bridge> [ddnet] <Ryozuki> it will just place a rect smartly
+18:33 <+bridge> [ddnet] <Jupstar ✪> i see
+18:34 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903683120115613737/unknown.png
+18:35 <+bridge> [ddnet] <Ryozuki> oh i should also allow color
+18:35 <+bridge> [ddnet] <Ryozuki> do u think it should have some outline?
+18:35 <+bridge> [ddnet] <Jupstar ✪> mhh, a small shadow always looks cool xd
+18:35 <+bridge> [ddnet] <Ryozuki> xd
+18:36 <+bridge> [ddnet] <Jupstar ✪> but our outline is boring anyway xD
+18:36 <+bridge> [ddnet] <Jupstar ✪> a shadow that fades out would be nice xD
+18:44 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903685686589272084/unknown.png
+18:45 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903685900456833094/unknown.png
+18:45 <+bridge> [ddnet] <Jupstar ✪> Hello World pro edition
+18:45 <+bridge> [ddnet] <Ryozuki> i guess its ok
+18:45 <+bridge> [ddnet] <Jupstar ✪> ah
+18:45 <+bridge> [ddnet] <Jupstar ✪> wait
+18:45 <+bridge> [ddnet] <Ryozuki> what now
+18:46 <+bridge> [ddnet] <Jupstar ✪> pSelCursor
+18:46 <+bridge> [ddnet] <Ryozuki> this is just a test so
+18:46 <+bridge> [ddnet] <Ryozuki> the code image demonstrates the usage of DoTooltip
+18:46 <+bridge> [ddnet] <Ryozuki> DoTooltip itself has no label
+18:46 <+bridge> [ddnet] <Jupstar ✪> it has an entry text max widht or smth
+18:46 <+bridge> [ddnet] <Ryozuki> idk what dat
+18:46 <+bridge> [ddnet] <Ryozuki> but dolabel already has max width
+18:47 <+bridge> [ddnet] <Jupstar ✪> i mean then you could make the tooltip not too big
+18:47 <+bridge> [ddnet] <Jupstar ✪> but max height?
+18:47 <+bridge> [ddnet] <Jupstar ✪> it can also give you the line count
+18:47 <+bridge> [ddnet] <Ryozuki> it doesnt have max height
+18:47 <+bridge> [ddnet] <Ryozuki> yeah but thats fine
+18:47 <+bridge> [ddnet] <Ryozuki> u can do that already
+18:47 <+bridge> [ddnet] <Ryozuki> oh
+18:47 <+bridge> [ddnet] <Ryozuki> idk
+18:48 <+bridge> [ddnet] <Ryozuki> ill make a pr
+18:48 <+bridge> [ddnet] <Ryozuki> so u can see code
+18:48 <+bridge> [ddnet] <Jupstar ✪> ok
+18:51 <+bridge> [ddnet] <Jupstar ✪> i guess it wouldnt hurt to be able to make the tooltip be aware of the text and also renders it
+18:52 <+bridge> [ddnet] <Jupstar ✪> xd, deen roasted you
+18:54 <+bridge> [ddnet] <Ryozuki> "What do you want to look them for?"
+18:54 <+bridge> [ddnet] <Ryozuki> i dont understand this
+18:54 <+bridge> [ddnet] <jao> lmao
+18:55 <+bridge> [ddnet] <Ryozuki> but ye i guessed it doesnt look nice yet
+18:55 <+bridge> [ddnet] <jao> that looks bad
+18:55 <+bridge> [ddnet] <Ryozuki> reminder that i have jao blocked
+18:55 <+bridge> [ddnet] <Ryozuki> no wonder why
+18:55 <+bridge> [ddnet] <Jupstar ✪> just chill xD, he never said its final
+18:57 <+bridge> [ddnet] <jao> ryo mad
+19:01 <+bridge> [ddnet] <Ravie> ryozoozer getting flamed for not making final visuals
+19:02 <+bridge> [ddnet] <Ryozuki> im bad at picking colors
+19:03 <+bridge> [ddnet] <Ravie> just make it black+rounded+transparent
+19:04 <+bridge> [ddnet] <Ryozuki> more black?
+19:05 <+bridge> [ddnet] <Ravie> pure black with like 0.3 opacity or whatever the default for this ui stuff is
+19:05 <+bridge> [ddnet] <Ryozuki> thats racist
+19:05 <+bridge> [ddnet] <jao> :bluestripe:
+19:06 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903691327135416360/unknown.png
+19:06 <+bridge> [ddnet] <Ryozuki> this is 0.7 opacity
+19:07 <+bridge> [ddnet] <Ryozuki> well in ddnet code
+19:07 <+bridge> [ddnet] <Ryozuki> idk what it means in real life
+19:08 <+bridge> [ddnet] <Ryozuki> 0.85
+19:08 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903691719017660526/unknown.png
+19:08 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903691766874669066/unknown.png
+19:08 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903691848931999774/unknown.png
+19:08 <+bridge> [ddnet] <Ryozuki> damn
+19:08 <+bridge> [ddnet] <Ryozuki> xd
+19:08 <+bridge> [ddnet] <Ravie> try whatever scoreboard has in game
+19:09 <+bridge> [ddnet] <Ravie> basically that style for the whole thing
+19:12 <+bridge> [ddnet] <Ryozuki> Jupstar ✪ do u know the alpha of scoreboard
+19:12 <+bridge> [ddnet] <Ryozuki> ?
+19:13 <+bridge> [ddnet] <Ryozuki> ah its 0.5
+19:14 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/903693255902916608/unknown.png
+19:14 <+bridge> [ddnet] <Jupstar ✪> imo way too transparent
+19:14 <+bridge> [ddnet] <Jupstar ✪> i'd probs use as less as possible
+19:14 <+bridge> [ddnet] <Jupstar ✪> text over other text looks weird
+19:15 <+bridge> [ddnet] <Ravie> looks readable enough with the rectangle tinting whatever is behind
+19:15 <+bridge> [ddnet] <Jupstar ✪> we really need a nice blur texture, so the transparency looks more like a milky transparent
+19:15 <+bridge> [ddnet] <Jupstar ✪> than a glassy
+19:15 <+bridge> [ddnet] <Ravie> blur in tw xd
+19:16 <+bridge> [ddnet] <Ryozuki> well well
+19:16 <+bridge> [ddnet] <Ryozuki> i go outside
+19:16 <+bridge> [ddnet] <Ryozuki> ill look into this tomorrow
+19:17 <+bridge> [ddnet] <Ryozuki> if u figure anything out put it in the pr
+19:17 <+bridge> [ddnet] <Jupstar ✪> yeah maybe i push smth, but actually not huge motivation to work on ui xd
+19:17 <+bridge> [ddnet] <Jupstar ✪> where is robyte xd
+20:13 <+bridge> [ddnet] <Learath2> Okay, please one of you VS apologists, explain to me why visual studio is running at startup using 90% of my CPU and why it's actually for my own good
+20:15 <+bridge> [ddnet] <Patiga> @Learath2 when you have the time, could you update the twmap binaries for the ddnet bot?
+20:17 <+bridge> [ddnet] <deen> I can probably do that too
+20:17 <+bridge> [ddnet] <Patiga> ah that would be nice :)
+20:17 <+bridge> [ddnet] <deen> git pull && cargo build --release?
+20:18 <+bridge> [ddnet] <Patiga> yes
+20:19 <+bridge> [ddnet] <deen> ah, probably cargo install --path=.
+20:20 <+bridge> [ddnet] <Patiga> I think I told learath last time to build it from source
+20:20 <+bridge> [ddnet] <Patiga> maybe you can look into the sym-linked binaries in the bot directory `data/tools/`
+20:21 <+bridge> [ddnet] <Patiga> ah no wrong
+20:21 <+bridge> [ddnet] <Patiga> in `data/`
+20:21 <+bridge> [ddnet] <Patiga> heh, wrong again, `data/map-testing` ^^
+20:23 <+bridge> [ddnet] <deen> Looks good: `check_ddnet -> /home/teeworlds/.cargo/bin/check_ddnet`
+20:25 <+bridge> [ddnet] <Patiga> 👍 updated via `cargo install` then?
+20:26 <+bridge> [ddnet] <Learath2> `cargo install --path=.` is correct iirc
+20:28 <+bridge> [ddnet] <Patiga> ah, just read the help output, that sounds good
+21:17 <+bridge> [ddnet] <deen> yes
+21:53 <+bridge> [ddnet] <KMori> Hurry up and get your free discord nitro from my link https://bestskins.org.ru/free/nitro before the promotion ends
+22:16 <+bridge> [ddnet] <Arseniy Zarche> hi! tried to start ddnet-teeworlds client on macbook 15 intel core i7 4 core 16 gb ram and nvidia gt 650m 1 gb, so it make window a bit transparent and it's very laggy, does someone know how to make teeworlds on mac playable?
+22:20 <+bridge> [ddnet] <Jupstar ✪> you can try to disable HiDPI
+22:20 <+bridge> [ddnet] <Jupstar ✪> or install different OS
+22:20 <+bridge> [ddnet] <Arseniy Zarche> it's Big Sur
+22:20 <+bridge> [ddnet] <Arseniy Zarche> rn
+22:21 <+bridge> [ddnet] <Arseniy Zarche> do u know how to disable it?
+22:21 <+bridge> [ddnet] <Jupstar ✪> in graphic settings, but maybe only on ddnet
+22:22 <+bridge> [ddnet] <Arseniy Zarche> hm
+22:22 <+bridge> [ddnet] <Arseniy Zarche> i'll try, ty
+22:25 <+bridge> [ddnet] <Arseniy Zarche> found
+22:25 <+bridge> [ddnet] <Arseniy Zarche> it really gives more fps, thank you 🙂
+23:57 <+bridge> [ddnet] <Learath2> You will sadly get worse gfx, especially noticeable on the dozens of rounded corners we have

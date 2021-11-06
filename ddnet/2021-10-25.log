@@ -1,0 +1,862 @@
+00:06 <+bridge> [ddnet] <HappyFray> Ive just red your blogpost deen and the problems with ddos attacks is hardly to handle. Ive had a lot experience with it in the past. on my experience was Living-bots extremely good at his ddosprot with cheap vservers. You can even go on the Teamspeak and talk to Oliver directly. Should be worth a try
+00:10 <+bridge> [ddnet] <deen> I hosted with living-bots and some other brands from the same hoster before, didn't work well
+00:11 <+bridge> [ddnet] <deen> The DoS protection either didn't protect at all, or blocked lots of legitimate traffic too, couldn't get it right
+00:12 <+bridge> [ddnet] <HappyFray> thought about link11?
+00:12 <+bridge> [ddnet] <deen> Yes, was really expensive
+00:13 <+bridge> [ddnet] <deen> I asked them and they were starting at > 300 € / month
+00:13 <+bridge> [ddnet] <deen> for the DoS protection, and > 100 € / month for the server
+00:13 <+bridge> [ddnet] <HappyFray> Basic plan 240per
+00:13 <+bridge> [ddnet] <HappyFray> but they have a free plan now
+00:14 <+bridge> [ddnet] <deen> That sounds like it's for "web"
+00:14 <+bridge> [ddnet] <deen> so not udp
+00:14 <+bridge> [ddnet] <deen> same as the basic
+00:41 <+bridge> [ddnet] <HappyFray> ive send them an email to ask if the freeplan is only web. have you tried a10networks. havent found any prices on their website guess they configure the price for the customer.
+00:42 <+bridge> [ddnet] <deen> No, but I've asked a few large companies that offer custom DoS protection solutions, and they were all multi-thousand dollars per month per location
+00:48 <+bridge> [ddnet] <HappyFray> have you an idea on how strong the ddos attacks are?
+01:21 <+bridge> [ddnet] <Avolicious> I can tell you from KoG, which is somewhere around 25 mbit/s & up to 2,5 Gbit/s. Mostly ~250 mbit/s
+01:21 <+bridge> [ddnet] <HappyFray> why are then so many problems with big hoster protections?
+01:22 <+bridge> [ddnet] <Avolicious> Because they mostly dont care about it
+01:23 <+bridge> [ddnet] <Avolicious> As we dont host on dedicated servers ( because of the price ), we have to use kvms
+01:35 <+bridge> [ddnet] <nuborn> is there a way to reset the compiler flags with cmake?
+01:36 <+bridge> [ddnet] <nuborn> like, if one added -O0 some time, and then forgot about it
+10:05 <+bridge> [ddnet] <Ryozuki> @aodq hi
+10:06 <+bridge> [ddnet] <Ryozuki> this guy knows a lot about graphics rendering he told me some stuff about optimizing
+10:06 <+bridge> [ddnet] <Ryozuki> @aodq do u mind if i copy some stuff here
+10:06 <+bridge> [ddnet] <Ryozuki> xd
+10:08 <+bridge> [ddnet] <Learath2> @nuborn you can just delete your build dir and generate it again
+10:09 <+bridge> [ddnet] <Ryozuki> > yeah so when you render the map, it renders each tile it seems
+10:09 <+bridge> [ddnet] <Ryozuki> > maybe depends on map tho
+10:09 <+bridge> [ddnet] <Ryozuki> > ...
+10:09 <+bridge> [ddnet] <Ryozuki> > i think if you'e under a certain draw call count, it doesn't matter too much. What you want to avoid is forcing the driver to flush out draw calls
+10:09 <+bridge> [ddnet] <Ryozuki> > this is sort of where compute-based stuff can come in handy with 2D, you could submit the entire scene (at least the static portions) and then do the tile-culling in the compute shader
+10:09 <+bridge> [ddnet] <Ryozuki> > i assume each tile is drawn individually so you can check if the tile is on screen or not
+10:09 <+bridge> [ddnet] <Ryozuki> > ...
+10:09 <+bridge> [ddnet] <Ryozuki> > for less vertex shader calls, though really if you submit the entire geometry it might be faster processing those vertices than it is submitting a draw call for each tile.
+10:09 <+bridge> [ddnet] <Ryozuki> > yeah exactly xd
+10:09 <+bridge> [ddnet] <Ryozuki> > I think the driver in this case might be able to flatten that entire list of glDrawElements. hopefully
+10:09 <+bridge> [ddnet] <Ryozuki> > if you run this on an older piece of hardware and just toggle things to render / not-render and look at frame times that would be a good way to optimize
+10:09 <+bridge> [ddnet] <Ryozuki> > at least for rendering stuff specifically
+10:09 <+bridge> [ddnet] <Ryozuki> > there's a lot of micro-optimizations too that wouldn't make any difference but are fun to think about
+10:09 <+bridge> [ddnet] <Ryozuki> > it seems you guys use a depth-buffer so you could render front-to-back to discard fragments early
+10:09 <+bridge> [ddnet] <Ryozuki> > in terms of GPU time, that background is the most expensive
+10:09 <+bridge> [ddnet] <Ryozuki> > but this is like fractions of a millisecond, it doesn't matter
+10:09 <+bridge> [ddnet] <Ryozuki> interesting stuff
+10:10 <+bridge> [ddnet] <Learath2> The thing with our stack is that we target 3 different versions of ogl, so we have to be a tad more conservative with our optimizations
+10:11 <+bridge> [ddnet] <Learath2> I'm fairly sure all the compute shader stuff is locked to > gl33
+10:13 <+bridge> [ddnet] <Learath2> But we also target gl2 and gl1, so doing this sort of optimization only applicable to gl33 requires some very meh restructuring. Though you are free to give it a try, Jupeyy loves all extra fps 😄
+10:13 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+10:14 <+bridge> [ddnet] <Ryozuki> @Learath2 the main thing is
+10:14 <+bridge> [ddnet] <Ryozuki> we do a lot of drawcalls which could be sent all in 1
+10:14 <+bridge> [ddnet] <Ryozuki> just before the swap
+10:14 <+bridge> [ddnet] <Learath2> can it be sent all in 1?
+10:15 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/902107988297416705/unknown.png
+10:15 <+bridge> [ddnet] <Ryozuki> > stuff like this that could be collapsed to just one draw call
+10:15 <+bridge> [ddnet] <Ryozuki> > there's no state change here
+10:15 <+bridge> [ddnet] <Learath2> I don't see an easy way to batch it together, but I'm no graphics person
+10:16 <+bridge> [ddnet] <Learath2> (I don't see an easy way, without keeping extra state in the gl33 case so we can keep supporting the immediate mode/fixed function pipeline)
+10:17 <+bridge> [ddnet] <Ryozuki> > you can write an optimal immediate-mode style of renderer. You'd have to build up a gigantic list of things to render and submit it to the GPU. The unoptimal part here is the pressure put on by uploading that list of things, often times you do at the 'very last' second too (when you want to blit / swap-buffers)
+10:17 <+bridge> [ddnet] <Ryozuki> > there's a trade-off here bc you basically want to support older hardware but also you want to use newer features that will let you remove this overhead
+10:17 <+bridge> [ddnet] <Ryozuki> well i think thats all
+10:18 <+bridge> [ddnet] <Learath2> I'm all for making the >gl33 renderer better, it's just that it makes our gfx interface looks fairly ugly each time we add some optimization only applicable to modern gl
+10:19 <+bridge> [ddnet] <Ryozuki> > in general glDrawElements can be collapsed bc indices can be re arranged ahead-of-time.
+10:19 <+bridge> [ddnet] <Ryozuki> :o
+10:19 <+bridge> [ddnet] <Ryozuki> xd
+10:19 <+bridge> [ddnet] <Learath2> Maybe we should do a LTS version sometime and just have a single VK renderer after a certain version
+10:20 <+bridge> [ddnet] <Ryozuki> :o
+10:20 <+bridge> [ddnet] <Ryozuki> im all for modern stuff
+10:20 <+bridge> [ddnet] <Ryozuki> btw modenr opengl is 4.6
+10:20 <+bridge> [ddnet] <Learath2> People with a windows xp toaster can stick to ddnet15 and we can move into the future without branches everywhere on the hot path
+10:20 <+bridge> [ddnet] <Ryozuki> not 3.3
+10:20 <+bridge> [ddnet] <Learath2> Well after 3.3 we don't really need much of anything
+10:21 <+bridge> [ddnet] <Learath2> So when I say "modern" I mean when the core profile is introduced
+10:21 <+bridge> [ddnet] <Ryozuki> haha
+10:21 <+bridge> [ddnet] <Ryozuki> this is quoting him too
+10:21 <+bridge> [ddnet] <Ryozuki> > when ppl say modern opengl they usually mean 3.3, but 'actual' modern opengl is 4.6
+10:21 <+bridge> [ddnet] <Ryozuki> > yeah exactly
+10:21 <+bridge> [ddnet] <Ryozuki> > all it really means is you have to be more creative with optimizations 😦
+10:21 <+bridge> [ddnet] <Ryozuki> > you can't use the shortcuts lol
+10:22 <+bridge> [ddnet] <Ryozuki> so sad i had the convo in another sv and not here
+10:22 <+bridge> [ddnet] <Learath2> Oh lets do tessellated tees using 4.6 😄
+10:22 <+bridge> [ddnet] <Ryozuki> :poggers:
+10:23 <+bridge> [ddnet] <Learath2> But if we are to support a single renderer I'd probably be for doing a VK backend
+10:24 <+bridge> [ddnet] <Ryozuki> ye me too
+10:24 <+bridge> [ddnet] <Learath2> GL is deprecated on macOS and VK has very performant translators nowadays
+10:24 <+bridge> [ddnet] <Learath2> moltenVK is almost one to one since Metal is close to VK
+10:35 <+bridge> [ddnet] <Ts懒散> 🤔
+10:35 <+bridge> [ddnet] <Ts懒散> has anyone looked into "Unity Networking Libraries" communities?
+10:36 <+bridge> [ddnet] <Ts懒散> man is it the most toxic place i've ever seen
+10:37 <+bridge> [ddnet] <Ryozuki> duh unity
+10:37 <+bridge> [ddnet] <Ts懒散> everyone just shit on other libs for the tiniest things.
+10:37 <+bridge> [ddnet] <Ts懒散> :justatest:
+10:37 <+bridge> [ddnet] <Ryozuki> :monkaS:
+10:37 <+bridge> [ddnet] <Ts懒散> they have discords
+10:38 <+bridge> [ddnet] <Ts懒散> and their members are almost exclusive to that discord
+10:38 <+bridge> [ddnet] <Ts懒散> cuz you support other libs you get banned
+10:38 <+bridge> [ddnet] <Learath2> Lolwat?
+10:38 <+bridge> [ddnet] <Learath2> Library politics?
+10:38 <+bridge> [ddnet] <Ts懒散> lol
+10:39 <+bridge> [ddnet] <Learath2> If you dont like C you will be banned from this server btw. So tread lightly
+10:39 <+bridge> [ddnet] <Ryozuki> if you dont like rust i will curse you
+10:39 <+bridge> [ddnet] <Ryozuki> :greenthing:
+10:39 <+bridge> [ddnet] <Ts懒散> i like it
+10:39 <+bridge> [ddnet] <Ts懒散> i just don't want to touch it
+10:39 <+bridge> [ddnet] <Ryozuki> i know right, its too sacred
+10:40 <+bridge> [ddnet] <Ts懒散> also btw, almost all networking libs in the current days for unity suck.
+10:40 <+bridge> [ddnet] <Ryozuki> i dont like unity itself
+10:40 <+bridge> [ddnet] <Ryozuki> i prefer doing stuff myself
+10:40 <+bridge> [ddnet] <Ryozuki> more fun
+10:40 <+bridge> [ddnet] <Ts懒散> ye
+10:40 <+bridge> [ddnet] <Ts懒散> but i've spent two months of networking stuff
+10:40 <+bridge> [ddnet] <Ts懒散> not even remotely close to usable
+10:43 <+bridge> [ddnet] <Ts懒散> and now i can't even choose a network lib cuz all of them just shit on other libs that it boggles my mind and i don't want to think about them ever.
+10:43 <+bridge> [ddnet] <Ts懒散> 🫂
+10:43 <+bridge> [ddnet] <Ts懒散> send help
+10:43 <+bridge> [ddnet] <Ryozuki> 🫂
+10:44 <+bridge> [ddnet] <Ryozuki> @Learath2  i just realized the guy i mentioned couldnt talk cuz 10 min cooldown xd
+10:45 <+bridge> [ddnet] <Ryozuki> @Learath2 also he says he got softlocked at min 00 lol
+10:45 <+bridge> [ddnet] <Ryozuki> hmmm
+10:45 <+bridge> [ddnet] <Ryozuki> oh u can talk now?
+10:45 <+bridge> [ddnet] <Ryozuki> :monkaS:
+10:45 <+bridge> [ddnet] <aodq> heyy My phone works, my machine doesnt 🤷‍♂️
+10:45 <+bridge> [ddnet] <Ryozuki> discord kek
+10:45 <+bridge> [ddnet] <Ts懒散> maybe just restart it
+10:45 <+bridge> [ddnet] <aodq> says 0 seconds remaining
+10:46 <+bridge> [ddnet] <aodq> Never
+10:46 <+bridge> [ddnet] <Ryozuki> u never restart ur pc?
+10:46 <+bridge> [ddnet] <aodq> `pkill -9 Discord` didnt work i guess theres some cache on my machine
+10:46 <+bridge> [ddnet] <Ts懒散> lol
+10:46 <+bridge> [ddnet] <Ryozuki> welcome to electron based apps
+10:47 <+bridge> [ddnet] <aodq> `rm -r ~/.config/discord/Cache` worked
+10:47 <+bridge> [ddnet] <aodq> for the 1 other person in the world that will also run into this issue
+10:48 <+bridge> [ddnet] <Learath2> Make your own, sell it, we can all do a propaganda campaign to shit on other libs
+10:49 <+bridge> [ddnet] <Ts懒散> it isn't working
+10:49 <+bridge> [ddnet] <Ts懒散> my brain isn't big enough
+10:49 <+bridge> [ddnet] <Ryozuki> this reminded me of this https://xkcd.com/927/
+10:50 <+bridge> [ddnet] <Learath2> Can they please just let me be the divine authority on all standards?
+10:50 <+bridge> [ddnet] <aodq> ENet is still my favorite networking library
+10:50 <+bridge> [ddnet] <Learath2> I promise to pick the correct ones
+10:51 <+bridge> [ddnet] <Ryozuki> the only networking library i ever used is sdl_net
+10:51 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+10:51 <+bridge> [ddnet] <aodq> yojimbo is probably the best modern network library tho
+10:51 <+bridge> [ddnet] <aodq> or valve's one but i dont like how they write libraries
+10:51 <+bridge> [ddnet] <Learath2> The only networking lib I used is teeworlds/src/base/system.c
+10:51 <+bridge> [ddnet] <Ts懒散> tbh, unity's network lib does everything more clean, even if the lib itself is a mess
+10:51 <+bridge> [ddnet] <Ryozuki> based
+10:52 <+bridge> [ddnet] <Ts懒散> especially for the two noob dev we hired
+10:52 <+bridge> [ddnet] <Ts懒散> i can't just let them write bytes themselves cuz that's gonna suck for me
+10:52 <+bridge> [ddnet] <aodq> you have to say you're hiring an engine developer and then 'surprise' them that theyre going to work on Unity
+10:52 <+bridge> [ddnet] <Ryozuki> :admiralGOTTEM:
+10:52 <+bridge> [ddnet] <Learath2> I find generic solutions to specific problems like this end up having the ugliest interfaces or metaprogramming messes
+10:53 <+bridge> [ddnet] <Ts懒散> ye, for 8k/month in beijing which barely gets you a rented apartment of 5m^2
+10:53 <+bridge> [ddnet] <aodq> I almost was going to work with UE at one job but I was able to quit before they transitioned :^)
+10:53 <+bridge> [ddnet] <Ts懒散> engine dev lol
+10:53 <+bridge> [ddnet] <aodq> 8k USD?
+10:53 <+bridge> [ddnet] <Ts懒散> cny
+10:53 <+bridge> [ddnet] <Ts懒散> i'm chinese
+10:53 <+bridge> [ddnet] <Ryozuki> 1,253.23 United States Dollar
+10:53 <+bridge> [ddnet] <aodq> yeah that turned from a decent amount to nothing
+10:53 <+bridge> [ddnet] <Ts懒散> yep
+10:54 <+bridge> [ddnet] <Learath2> Is there govt housing in beijing?
+10:54 <+bridge> [ddnet] <Ryozuki> 1,076.07 Euro
+10:54 <+bridge> [ddnet] <Ryozuki> :monkaS:
+10:54 <+bridge> [ddnet] <Ts懒散> wdym govt housing
+10:54 <+bridge> [ddnet] <aodq> is that a contract job? they might have a couple other projects theyre working on
+10:54 <+bridge> [ddnet] <Ts懒散> full time
+10:54 <+bridge> [ddnet] <aodq> the based thing to do during 'pandemic' is to have like 3 jobs
+10:54 <+bridge> [ddnet] <Learath2> Cheaper housing for people not earning quite enough
+10:55 <+bridge> [ddnet] <Ts懒散> 8k is pretty standard for grads that isn't capable of getting into tencent or microsoft or something
+10:55 <+bridge> [ddnet] <Ryozuki> for the slaves*
+10:55 <+bridge> [ddnet] <Ts懒散> doubt it
+10:55 <+bridge> [ddnet] <Learath2> (Or in the case of enlightened vienna, housing for everyone subsidized by the govt)
+10:56 <+bridge> [ddnet] <Learath2> Interesting so china is just posing as communist? :/ Where social housing and housing subsidies?
+10:56 <+bridge> [ddnet] <Ts懒散> what's communism
+10:57 <+bridge> [ddnet] <Ts懒散> :kek:
+10:57 <+bridge> [ddnet] <aodq> Ts cant say anything, Jinping is watching
+10:57 <+bridge> [ddnet] <Ts懒散> i can
+10:57 <+bridge> [ddnet] <Ryozuki> he shouldnt even be in this discord
+10:57 <+bridge> [ddnet] <Ts懒散> no one can stop me
+10:57 <+bridge> [ddnet] <aodq> rip Ts
+10:58 <+bridge> [ddnet] <Ts懒散> the only thing that scares me is https://ddnet.tw/irclogs/
+10:58 <+bridge> [ddnet] <Ryozuki> :monkaS:
+10:58 <+bridge> [ddnet] <aodq> LOL
+10:58 <+bridge> [ddnet] <Ryozuki> my convos are there too
+10:58 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+10:58 <+bridge> [ddnet] <aodq> cursed
+10:58 <+bridge> [ddnet] <Ts懒散> time to rip Ryozuki's statement and use them are weapons
+10:59 <+bridge> [ddnet] <Ts懒散> it's probably more juicy than others'
+10:59 <+bridge> [ddnet] <Ryozuki> :monkaS:
+10:59 <+bridge> [ddnet] <Ryozuki> just found some text from 2015
+10:59 <+bridge> [ddnet] <Ts懒散> what about it
+11:00 <+bridge> [ddnet] <Ryozuki> about makinga video compilation of just fly 1
+11:00 <+bridge> [ddnet] <Ryozuki> making*
+11:00 <+bridge> [ddnet] <Ryozuki> speedruns
+11:00 <+bridge> [ddnet] <aodq> ```
+11:00 <+bridge> [ddnet] <aodq> wget --no-parent -r https://ddnet.tw/irclogs
+11:00 <+bridge> [ddnet] <aodq> rg Ryozuki
+11:00 <+bridge> [ddnet] <aodq> ```
+11:00 <+bridge> [ddnet] <Ryozuki> no pls
+11:00 <+bridge> [ddnet] <aodq> too late
+11:00 <+bridge> [ddnet] <Ryozuki> i was 15y old
+11:00 <+bridge> [ddnet] <aodq> too late
+11:01 <+bridge> [ddnet] <aodq> ```
+11:01 <+bridge> [ddnet] <aodq> 2015-04-19.log
+11:01 <+bridge> [ddnet] <aodq> 62:09:29 < Ryozuki> hi
+11:01 <+bridge> [ddnet] <aodq> ```
+11:01 <+bridge> [ddnet] <Ryozuki> :monkaS:
+11:02 <+bridge> [ddnet] <Learath2> Dont do it
+11:03 <+bridge> [ddnet] <aodq> you said nothing interesting smh
+11:03 <+bridge> [ddnet] <Ryozuki> ye lot of bad things happened
+11:03 <+bridge> [ddnet] <Ryozuki> maybe it wasnt on #developer but on #general xd
+11:03 <+bridge> [ddnet] <Ryozuki> there were some heated days... to say
+11:03 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+11:03 <+bridge> [ddnet] <aodq> you said like 10 things in 2015 and nothing since
+11:04 <+bridge> [ddnet] <aodq> only downloadedu p to 2017
+11:04 <+bridge> [ddnet] <Ryozuki> well on 2016 everyone moved to discord
+11:04 <+bridge> [ddnet] <aodq> ah
+11:04 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/902120470852280350/unknown.png
+11:04 <+bridge> [ddnet] <Ryozuki> :monkaS:
+11:04 <+bridge> [ddnet] <aodq> `2017-04-22.log:22:23 < ddnet-discord> <CookieAlex> http://teeporn.com/ `
+11:04 <+bridge> [ddnet] <Ryozuki> lmao
+11:05 <+bridge> [ddnet] <aodq> the site is real
+11:06 <+bridge> [ddnet] <aodq> 64000 results damn get a life smh
+11:06 <+bridge> [ddnet] <Ts懒散> https://cdn.discordapp.com/attachments/293493549758939136/902121014434086942/unknown.png
+11:07 <+bridge> [ddnet] <Ryozuki> :feelsbadman:
+11:07 <+bridge> [ddnet] <Ryozuki> @aodq i joined this sv the day it was created
+11:07 <+bridge> [ddnet] <Ts懒散> the og
+11:07 <+bridge> [ddnet] <Ryozuki> https://discord.com/channels/252358080522747904/252358080522747904/252543872444530689
+11:08 <+bridge> [ddnet] <Ryozuki> click here
+11:08 <+bridge> [ddnet] <Ryozuki> and scroll up
+11:08 <+bridge> [ddnet] <Ts懒散> so is off-topic the og general?
+11:08 <+bridge> [ddnet] <Ryozuki> ye
+11:08 <+bridge> [ddnet] <Ts懒散> let me guess cuz it went off-topic
+11:08 <+bridge> [ddnet] <Ryozuki> https://media.discordapp.net/attachments/211301957023956992/750041254774964254/pig-eating-medium.gif
+11:09 <+bridge> [ddnet] <aodq> I joined this server the last day it has existed
+11:09 <+bridge> [ddnet] <Ryozuki> :poggers:
+11:09 <+bridge> [ddnet] <aodq> i fucking hate electron
+11:09 <+bridge> [ddnet] <Ts懒散> bruh, my first message is a freaking melon
+11:09 <+bridge> [ddnet] <Ts懒散> https://cdn.discordapp.com/attachments/293493549758939136/902121725397983272/unknown.png
+11:09 <+bridge> [ddnet] <Ryozuki> 2020 nobo
+11:09 <+bridge> [ddnet] <Ts懒散> 🤔
+11:10 <+bridge> [ddnet] <Ryozuki> nobody wants top use irc sad
+11:10 <+bridge> [ddnet] <Ryozuki> to*
+11:10 <+bridge> [ddnet] <aodq> My last message is this message
+11:10 <+bridge> [ddnet] <aodq> just kidding
+11:10 <+bridge> [ddnet] <aodq> I hate vulkan reee
+11:11 <+bridge> [ddnet] <Ts懒散> hater
+11:11 <+bridge> [ddnet] <aodq> un hello metal is the best one
+11:11 <+bridge> [ddnet] <Ryozuki> noo
+11:11 <+bridge> [ddnet] <Ryozuki> vulkan best
+11:11 <+bridge> [ddnet] <Ryozuki> apple bad
+11:11 <+bridge> [ddnet] <aodq> apple good
+11:11 <+bridge> [ddnet] <Ryozuki> :saddo:
+11:12 <+bridge> [ddnet] <Ts懒散> i heard songs about this
+11:12 <+bridge> [ddnet] <Ryozuki> bad apple
+11:12 <+bridge> [ddnet] <aodq> ew bad apple is bad
+11:12 <+bridge> [ddnet] <Ryozuki> https://www.youtube.com/watch?v=FtutLA63Cp8
+11:12 <+bridge> [ddnet] <Ts懒散> ass
+11:12 <+bridge> [ddnet] <Ryozuki> weeb
+11:12 <+bridge> [ddnet] <aodq> Bad Apple... more like... Steve Apple.  👍
+11:13 <+bridge> [ddnet] <Ts懒散> minecraft steve or isteve
+11:13 <+bridge> [ddnet] <aodq> the man named Steve Apple
+11:13 <+bridge> [ddnet] <aodq> father of Tim Apple
+11:13 <+bridge> [ddnet] <Cellegen | HU> :pepedead: 👆
+11:13 <+bridge> [ddnet] <Cellegen | HU> wtf is this
+11:13 <+bridge> [ddnet] <Ryozuki> steve
+11:14 <+bridge> [ddnet] <Ryozuki> reminded me of this
+11:14 <+bridge> [ddnet] <Ryozuki> https://www.youtube.com/watch?v=Vhh_GeBPOhs
+11:14 <+bridge> [ddnet] <aodq> cousin of Bill Microsoft
+11:14 <+bridge> [ddnet] <Ryozuki> DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS DEVELOPERS !
+11:14 <+bridge> [ddnet] <Ts懒散> that's your username
+11:14 <+bridge> [ddnet] <Cellegen | HU> correct
+11:14 <+bridge> [ddnet] <Cellegen | HU> that's the only normal thing you see
+11:14 <+bridge> [ddnet] <aodq> that video makes 1000x more sense when you read this
+11:14 <+bridge> [ddnet] <Cellegen | HU> :pepekek:
+11:14 <+bridge> [ddnet] <aodq> https://cdn.discordapp.com/attachments/293493549758939136/902122982309240882/ballmer_peak.png
+11:14 <+bridge> [ddnet] <Ryozuki> lmao
+11:14 <+bridge> [ddnet] <Ryozuki> but -1 for u for not linking to xkcd directly
+11:15 <+bridge> [ddnet] <Ryozuki> the alt text is the best
+11:15 <+bridge> [ddnet] <Ryozuki> https://xkcd.com/323/
+11:17 <+bridge> [ddnet] <aodq> Apple is a great company, employees dont drink on the job
+11:17 <+bridge> [ddnet] <Ryozuki> :admiralGOTTEM:
+11:17 <+bridge> [ddnet] <Learath2> We should make it illegal for apple to make any more software or hardware
+11:17 <+bridge> [ddnet] <aodq> 😦
+11:18 <+bridge> [ddnet] <Ryozuki> actually their new m1 processor
+11:18 <+bridge> [ddnet] <Ryozuki> looks like its a revolution
+11:18 <+bridge> [ddnet] <Learath2> They've had their peak, now it's time to let other people do good engineering
+11:18 <+bridge> [ddnet] <Ryozuki> https://www.youtube.com/watch?v=VpXLX0xF2rM
+11:18 <+bridge> [ddnet] <Ryozuki> i just watched this vid tho
+11:18 <+bridge> [ddnet] <Ryozuki> idk details
+11:18 <+bridge> [ddnet] <aodq> Why woulid you get ur info from that guy
+11:18 <+bridge> [ddnet] <Ryozuki> i was bored one night
+11:18 <+bridge> [ddnet] <Ryozuki> and checked it
+11:18 <+bridge> [ddnet] <Learath2> Apple is such a weird company. Somethings they engineer extremely well, then they have the coding practices of a monkey overdosing on opiates
+11:19 <+bridge> [ddnet] <Ryozuki> otheerwise i watch anime or play dota
+11:19 <+bridge> [ddnet] <Ryozuki> thats my life
+11:19 <+bridge> [ddnet] <aodq> 2x cpu perf, up to 4x gpu perf, 1000-1500 nits display, and much better memory bandwidth
+11:20 <+bridge> [ddnet] <Ryozuki> > much better memory bandwidth
+11:20 <+bridge> [ddnet] <Cellegen | HU> same with league
+11:20 <+bridge> [ddnet] <Ryozuki> insanely much better
+11:20 <+bridge> [ddnet] <Learath2> There seems to be a core team of extremely good engineers at apple being held back by business practices and dimwitted newfangled engineers
+11:20 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/902124556754489364/unknown.png
+11:20 <+bridge> [ddnet] <aodq> memory bandwidth is probably the biggest win other than the nits thing
+11:21 <+bridge> [ddnet] <aodq> keep in mind you don't get best bandwidth unless you get 64 gb ram
+11:21 <+bridge> [ddnet] <Ryozuki> ez for apple guys who like to waste their money on brand
+11:22 <+bridge> [ddnet] <Ryozuki> Max Bandwidth    47.68 GiB/s 82.963 GB/s 48,824.32 MiB/s 0.0466 TiB/s 0.0512 TB/s
+11:22 <+bridge> [ddnet] <Ryozuki> this is the bandwidth of my 5600x
+11:22 <+bridge> [ddnet] <aodq> wdym by business practices? All the swift stuff sucks but most the good shit still is in mostly C/C++ with Obj-C frontend
+11:22 <+bridge> [ddnet] <Ryozuki> copied from google
+11:22 <+bridge> [ddnet] <Ryozuki> xd
+11:22 <+bridge> [ddnet] <Learath2> @Ryozuki M1 macs might be the one thing where apple might be worth it's premium price tag. It really is IMO the best mobile chip ever released
+11:23 <+bridge> [ddnet] <aodq> the M1 mini is my favorite.
+11:24 <+bridge> [ddnet] <Learath2> Business practices as in keeping the ecosystem locked down, artificially hindering older platforms to get people to upgrade, not letting people repair their devices, refusing to move to usb-c on iphones to keep selling lightning licenses
+11:24 <+bridge> [ddnet] <aodq> oh yeah that's hardware stuff tho 🤷‍♂️
+11:24 <+bridge> [ddnet] <Learath2> All of these are requiring them to make shitty engineering decisions for the sake of more profit
+11:25 <+bridge> [ddnet] <Learath2> In the software side it's their newfangled engineering team and the desire of some for some for computers to be programmable by monkeys that's hindering them
+11:26 <+bridge> [ddnet] <aodq> wdym?
+11:26 <+bridge> [ddnet] <Learath2> If you ever have some free time on your hand I suggest you take a look at the assembly generated by Obj-C code
+11:27 <+bridge> [ddnet] <aodq> yeah that's been there since forever though. It sucks but you have to write C/C++ and make OS/framework calls using ObjC.
+11:27 <+bridge> [ddnet] <aodq> perf wise you can still be on the cutting edge
+11:27 <+bridge> [ddnet] <aodq> the whole ObjC has always been a mess sadly
+11:28 <+bridge> [ddnet] <Learath2> Or if you want to see another piece of "brilliant" engineering I suggest you take a look at AppKit, not a lot of people are aware of how weird appkit can get with it trying to support applications compiled for any version of macOS
+11:29 <+bridge> [ddnet] <aodq> yeah i haven't worked with AppKit, MetalKit i think is the proper replacement?
+11:29 <+bridge> [ddnet] <Ryozuki> im so lucky to never touch macos stuff
+11:29 <+bridge> [ddnet] <Ryozuki> im living in the superior plane of linux
+11:29 <+bridge> [ddnet] <Ryozuki> :bluekitty:
+11:29 <+bridge> [ddnet] <Learath2> I reverse engineered a fair bit of AppKit while fixing an SDL bug, it turns out appkit is full of branches, so running a 10.13 executable on 10.15 will disable some asserts, enable others
+11:29 <+bridge> [ddnet] <aodq> it's a lot like linux tho
+11:29 <+bridge> [ddnet] <aodq> I just use `cmake` to generate projects & `xcodebuild` to build themn
+11:30 <+bridge> [ddnet] <Ryozuki> can u build with anything other than xcodebuild?
+11:30 <+bridge> [ddnet] <Ryozuki> imagine having choices
+11:30 <+bridge> [ddnet] <Ryozuki> ah thats linux
+11:30 <+bridge> [ddnet] <aodq> yeah you can use clang
+11:30 <+bridge> [ddnet] <Ryozuki> apple clang
+11:30 <+bridge> [ddnet] <aodq> you dont need xcodebuild
+11:30 <+bridge> [ddnet] <aodq> I think GCC is still being ported to M1 hardware
+11:31 <+bridge> [ddnet] <Learath2> Some parts of the original engineering that went into OSX is brilliant though. I love Mach-O, I love mach kernel ports, it's IPC capabilties. launchd is absolutely brilliant, it is what systemd should have been
+11:31 <+bridge> [ddnet] <aodq> yeah with ObjC a lot of features will be enabled/disabled at run-time by introspecting what OS version you are running, along with HW capabilities for metal
+11:32 <+bridge> [ddnet] <aodq> i should say 'apple libraries with ObjC / swift'
+11:32 <+bridge> [ddnet] <aodq> you shouldn't be running into asserts though 🤔
+11:33 <+bridge> [ddnet] <Learath2> I love how they handle highdpi too. Anway, point is it seems macOS is mostly a pile of shit poured onto a pile of gold
+11:33 <+bridge> [ddnet] <Learath2> Great engineering covered by a decade of garbage added by sub par engineers
+11:35 <+bridge> [ddnet] <aodq> I think the ecosystem overall is pretty bad yeah
+11:36 <+bridge> [ddnet] <aodq> Metal is the best 'modern' graphics API under a pretty nightmare ecosystem
+11:36 <+bridge> [ddnet] <aodq> though the debug tools are great
+11:36 <+bridge> [ddnet] <aodq> the documentation is always what kills me tho
+11:37 <+bridge> [ddnet] <aodq> lack of it
+11:37 <+bridge> [ddnet] <aodq> documentation = WWDC + maybe an example if youre lucky
+11:37 <+bridge> [ddnet] <Learath2> But why did they have to make their own? VK is just as flexible, I know they started working on it before but they should have just adopted vk
+11:38 <+bridge> [ddnet] <aodq> Apple makes their own HW, so if they want to add a feature they have to argue in front of a whole committee etc just to get support for their own HW. It slows down both HW and SW.
+11:39 <+bridge> [ddnet] <aodq> right now if a new feature is added, it's all done internally. There is limited amount of waiting. And for most features they develop to be in parity with Dx12 or Vk anyway
+11:40 <+bridge> [ddnet] <aodq> I think in the future Apple might try to write their own HLSL (or SPIR-V) -> LLVM IR compiler, which will address a lot of issues with MoltenVK, but we'll see
+11:40 <+bridge> [ddnet] <Learath2> Um, VK allows manufacturer extensions which later get standardized
+11:40 <+bridge> [ddnet] <Learath2> (which CAN later get standardized)
+11:41 <+bridge> [ddnet] <aodq> 🤷‍♂️ I can ask / look into it more but for sure the answer will be to have full control over everything
+11:42 <+bridge> [ddnet] <aodq> Another thing i've considered is that Vk targets a lot of different HW platforms, but Metal only targets one (M1)
+11:42 <+bridge> [ddnet] <aodq> oh yeah and their older stuff too ofc
+11:45 <+bridge> [ddnet] <aodq> Here's another example, Metal language is in C++ and not Swift bc Swift wasn't out yet at the time lol
+11:46 <+bridge> [ddnet] <aodq> but yeah to switch from Metal to Vulkan several years in, to effectively lose ownership of your whole graphics stack, doesn't sound smart
+11:50 <+bridge> [ddnet] <aodq> Just wish Apple would take Vk->Mtl more seriously
+11:50 <+bridge> [ddnet] <aodq> Just wish Apple would take Vk/Dx->Mtl more seriously
+11:51 <+bridge> [ddnet] <Learath2> It doesn't sound smart business-wise indeed 🙂
+11:53 <+bridge> [ddnet] <Learath2> All of apples engineering decisions lately are all heavily skewed by the profit motive. Implementing a flexible standard that closely maps to your hardware and is extensible in proprietary ways if need be is a no-brainer as long as you don't consider the profit motive
+11:53 <+bridge> [ddnet] <aodq> Vk doesn't map close to the hardware tho. The most obvious example is that SPIR-V is fundamentally different from AIR.
+11:55 <+bridge> [ddnet] <Learath2> moltenVK is very good at mapping vk almost 1 to 1 to metal, iirc only small trivialities remain
+11:55 <+bridge> [ddnet] <aodq> at a user-level, Metal is extremely convenient, easier to use while remaining low-level, consistently designed, etc
+11:56 <+bridge> [ddnet] <aodq> actually there are some big issues (in particular with SPIR-V) that is basically un-addressable
+11:57 <+bridge> [ddnet] <Learath2> Um, did I miss something along the way? iirc the SPIRV -> MSL conversion was like one of the most robust parts of moltenVK
+11:59 <+bridge> [ddnet] <aodq> basically the runtime shader conversion, there was some specific list of things I'd have to go see if I can find
+12:00 <+bridge> [ddnet] <aodq> The primary issue iirc is it's `spir-v -> metal` and not `spir-v -> air`
+12:01 <+bridge> [ddnet] <aodq> basically only Apple could do this
+12:02 <+bridge> [ddnet] <aodq> For fun, write a renderer in Metal then try to write that same renderer in Vulkan
+12:02 <+bridge> [ddnet] <aodq> :^)
+12:03 <+bridge> [ddnet] <Learath2> What is AIR? I'm not very familiar with the lower levels of apples graphics stack
+12:04 <+bridge> [ddnet] <aodq> apple IR. Just LLVM IR. It's like if `metal -> GLSL` instead of `metal -> AIR`. But I remember there was a list of setbacks with MoltenVK and as well any Dx/hlsl -> metal converter
+12:04 <+bridge> [ddnet] <aodq> apple IR. Just LLVM IR. It's like if `metal -> GLSL` instead of `metal -> SPIR-V`. But I remember there was a list of setbacks with MoltenVK and as well any Dx/hlsl -> metal converter
+12:05 <+bridge> [ddnet] <Learath2> I wish I had the time to write anything let alone VK code nowadays, but I'm fairly sure apple could write an abstraction around VK if they are so concerned with usability by developers
+12:06 <+bridge> [ddnet] <aodq> eh the Vk -> Metal thing seems to be better than trying to do something like that
+12:06 <+bridge> [ddnet] <Learath2> Well you can take a look at moltenVKs known limitations list, they have very few and they look mostly unimportant to me. There is SPIRV-Cross which does the actual conversion and their issue list also has a couple small open issues
+12:06 <+bridge> [ddnet] <aodq> like at the end of the day, Vulkan tries to target a ton of HW, Metal basically only targets M1
+12:07 <+bridge> [ddnet] <aodq> yeah i dont think they would put 'performance issue' there
+12:07 <+bridge> [ddnet] <Learath2> You think they'd lie? 😄
+12:08 <+bridge> [ddnet] <aodq> No ofc not but theyre not going to put everything there
+12:09 <+bridge> [ddnet] <aodq> they just don't plan on porting SPIR-V to AIR.
+12:09 <+bridge> [ddnet] <Learath2> Okay but why is that important?
+12:09 <+bridge> [ddnet] <aodq> same reason why SPIR-V is important to glsl
+12:10 <+bridge> [ddnet] <Learath2> There was a SPIR-V -> LLVM translator iirc btw. No idea if apple is using even more proprietary stuff to break that aswell
+12:10 <+bridge> [ddnet] <Learath2> Not just -> iirc it was <->
+12:11 <+bridge> [ddnet] <aodq> LLVM doesn't just run on GPU by itself
+12:11 <+bridge> [ddnet] <Learath2> So your issue is that SPIR-V -> MSL -> AIR is not as good as SPIR-V -> AIR ?
+12:11 <+bridge> [ddnet] <aodq> I think preferrably it'd be `SPIR-V -> DXIL -> AIR` or something like that
+12:12 <+bridge> [ddnet] <Learath2> DXIL? Why would you want DXIL in there?
+12:12 <+bridge> [ddnet] <aodq> so you can support HLSL/Dx
+12:12 <+bridge> [ddnet] <aodq> DXIL is just a form of LLVM IR
+12:13 <+bridge> [ddnet] <aodq> `SPIR-V -> DXIL` already exist btw
+12:13 <+bridge> [ddnet] <Learath2> But why is that better than SPIR-V -> MSL -> AIR?
+12:13 <+bridge> [ddnet] <aodq> I think it does at least
+12:14 <+bridge> [ddnet] <aodq> so you can avoid compiling MSL to AIR
+12:14 <+bridge> [ddnet] <aodq> if you are using Metal right now you can compile MSL to AIR and then ship that as a metallib along with your executable
+12:15 <+bridge> [ddnet] <Learath2> I mean I can see it being a little faster when compiling the shaders and I can maybe see it being easier for the implementors but I don't see how it changes performance at all unless apple is horrible at compiling MSL to AIR
+12:15 <+bridge> [ddnet] <aodq> might not sound like a huge deal but it's not a very complicated thing to fix
+12:16 <+bridge> [ddnet] <aodq> Well the whole point of SPIR-V and DXIL etc is to avoid having to compile anything when you run the application
+12:16 <+bridge> [ddnet] <Learath2> I'll be honest with you. It sounds absolutely useless to me to get like a second saved on your startup times when the hdd will be the bottleneck anyway
+12:16 <+bridge> [ddnet] <aodq> at least you avoid source-code issues etc
+12:18 <+bridge> [ddnet] <aodq> It wouldn't be just that though. If apple were to do the conversion themselves they could product optimal AIR targeted for their HW
+12:19 <+bridge> [ddnet] <aodq> with SPIR-V/DXIL it's just a best-guess
+12:19 <+bridge> [ddnet] <Learath2> And furthermore I don't see how it's impossible to do this right now either. It could be a little messy but you could do your SPIR-V -> MSL at compile-time, then compile it to AIR just as you would with regular MSL
+12:19 <+bridge> [ddnet] <aodq> not unless you are apple
+12:20 <+bridge> [ddnet] <aodq> well i should say, that's what happens right now. At run-time, SPIR-V -> MSL -> AIR.
+12:20 <+bridge> [ddnet] <Learath2> This is the only issue I can see, you could maybe squeeze out a bit more performance if you don't risk producing MSL that might not be optimizable
+12:21 <+bridge> [ddnet] <Learath2> Okay, and what stops you from doing SPIR-V -> MSL -> AIR at compile time?
+12:22 <+bridge> [ddnet] <aodq> right it's both and maybe some other smaller issues. Think about it like this. Most GPU vendors will take SPIR-V and compile/optimize it for something native for their HW. That overall means they can spend more time optimizing, and less time parsing or worrying about corner-cases etc. So you would just take the same benefit (the entire point of SPIR-V) and apply it as well to Apple by letting them translate SPIR-V to their preferred format
+12:22 <+bridge> [ddnet] <aodq> this sort of 'who-gives-a-shit' level of optimization is basically the entire Vulkan stack lol
+12:23 <+bridge> [ddnet] <aodq> @Learath2 ; MoltenVK occurs at run-time. Not compile-time. Games don't ship with MoltenVK-'compiled' binaries/shaders
+12:24 <+bridge> [ddnet] <aodq> once you compile the SPIR V to MSL and that gets compiled to AIR, then it's cached and metal should re-use that AIR
+12:25 <+bridge> [ddnet] <Learath2> They don't but theoretically there isn't anything really stopping you engineering-wise. If those handful of seconds are important to you `SPIRV-Cross` doesn't mind running at compile-time, nor is anyone stopping you from using whatever `MSL -> AIR` compiler you'd use at compile-time if you were coding a metal renderer
+12:26 <+bridge> [ddnet] <aodq> I'm talking about writing a game in Vulkan and then using MoltenVK to run it.
+12:27 <+bridge> [ddnet] <Learath2> Well I'm saying Apple using Metal is imo nothing more than a business decision to control the entire stack themselves
+12:27 <+bridge> [ddnet] <aodq> Yeah they own the entire HW and SW stack, why would they give it up
+12:28 <+bridge> [ddnet] <aodq> that is sort of the whole point
+12:28 <+bridge> [ddnet] <Learath2> Because it's good engineering? I don't go around inventing my own language to write my game in
+12:28 <+bridge> [ddnet] <aodq> if they run into an issue or need X etc, they can do it all internally
+12:29 <+bridge> [ddnet] <aodq> that's not really a good argument lol
+12:29 <+bridge> [ddnet] <Learath2> Okay, we are circling back. They can have all the VK extensions they want if they want non-standard things.
+12:30 <+bridge> [ddnet] <aodq> I get where you are coming from though. I just think it was bad timing. Vulkan is a different direction than Metal when it comes to modern gfx programming, and that it came years after Metal was established, and Apple was already working on their own HW w/ their own drivers etc
+12:30 <+bridge> [ddnet] <aodq> nah it's not just extensions though
+12:32 <+bridge> [ddnet] <aodq> like you'd have to write a renderer in Metal than a renderer in Vk to understand they are very approaches to graphics programming. One assumes it can run on any piece of HW so you need to write driver-level code for every piece of HW. The other assumes it's only going to run on one piece of HW so it's a lot more comfortable to work with. It makes sense to have Vk run on top of Metal for cross platform apps
+12:32 <+bridge> [ddnet] <aodq> it would also make sense to allow Vk on the HW natively but that would go against business interest obviously
+12:33 <+bridge> [ddnet] <aodq> also developer interest, basically doubles the amount of work needed
+12:34 <+bridge> [ddnet] <Learath2> Metal could have easily been a subset of Vk. Vulkan is low level enough for them to implement whatever best practices they want
+12:34 <+bridge> [ddnet] <aodq> The target audience I suppose really is Apple interally (for their own apps running on top of metal), and also mobile apps. I don't really expect either to be writing Vulkan lol
+12:34 <+bridge> [ddnet] <aodq> eh nah not really
+12:35 <+bridge> [ddnet] <aodq> there's like 1 or 2 AAA games that run natively on Metal
+12:35 <+bridge> [ddnet] <Learath2> Okay, I can't work with that one. Is Vk not low level enough?
+12:35 <+bridge> [ddnet] <aodq> I mean, already there are a lot of apps like Maya that just straight up use OpenGL and refuse to goto vulkan, let alone metal
+12:37 <+bridge> [ddnet] <aodq> @Learath2 it's hard to explain but it's not about the 'low level' but just completely different take on rendering
+12:38 <+bridge> [ddnet] <aodq> there are feature parities between the two and then just differences that no Vulkan extension could fix
+12:39 <+bridge> [ddnet] <Learath2> So are you telling me metal api calls can't be translated to a bunch of vulkan calls, yet a highly performant translation layer can exist between the two which only has a handful of known limitations that seem to be unsolvable?
+12:39 <+bridge> [ddnet] <aodq> Vk was designed to run on a ton of HW, so each thing is much more specific. Metal is more 'general', in how you use it. So it makes sense that Vk -> Metal is possible, but Metal -> Vk is basically not possible
+12:40 <+bridge> [ddnet] <aodq> for example, when you render stuff with MSL, it's more like a compute/OpenCL/CUDA approach. With Vulkan, it's more of your traditional rendering pipeline with specific stages for each thing. Ofc the latter fits in the former, but not vise versa
+12:41 <+bridge> [ddnet] <aodq> Bc if you're running Vk, you might be targeting HW that really only supports a rasterizer, and not something more general compute-based like M1/Metal
+12:42 <+bridge> [ddnet] <aodq> let's say, in terms of OpenGL, if you are familiar with passing in attributes-per-vertex (normals/positions/UV coords etc), in Metal you just pass in buffers and then what you do with them is up to you. So you could do `myNormals[triangleId/3]` or `myNormals[triangleId]` etc
+12:44 <+bridge> [ddnet] <aodq> another example, there is no HW-tessellation in Metal like there is for OpenGL/Vk (where you have specific geometry and tess-control/tess-eval), instead you can just implement that yourself however you like in Metal.
+12:45 <+bridge> [ddnet] <aodq> sorry if im not being very clear it's pretty late for me.
+12:45 <+bridge> [ddnet] <aodq> I do think you bring up a lot of good points though, it's pretty shit-show all-around to be expected to implement a backend for both DirectX/Vulkan/Metal.
+12:45 <+bridge> [ddnet] <aodq> sorry if im not being very clear it's pretty late for me.
+12:45 <+bridge> [ddnet] <aodq> I do think you bring up a lot of good points though, it's pretty shit-show all-around to be expected to implement a backend for  DirectX/Vulkan/Metal.
+12:50 <+bridge> [ddnet] <Learath2> I must be missing something fundamental here. Vulkan is completely capable of the compute approach, I don't see how you would have any issue implementing metal in terms of vulkan compute. Especially given a dumb translator can get you almost all the way there. Anyway, we seem to have a different set of values when it comes to development which seems to be why we seem to disagree here
+12:51 <+bridge> [ddnet] <aodq> you'd have to implement a rasterizer on top of compute rather than rasterizer capable of compute-like 'power'
+12:51 <+bridge> [ddnet] <aodq> it's why NVIDIA has mesh shaders now, but this is just one example why they are different
+12:53 <+bridge> [ddnet] <aodq> Here's a good thing tho, the two APIs push each other to be better.
+12:54 <+bridge> [ddnet] <aodq> though, I haven't seen much yet to allow Vulkan to be more accessible to a broader audience but hopefully we will see that one day
+12:56 <+bridge> [ddnet] <Learath2> But isn't that what you'll already have to do with Metal on macs? A hypothetical Metal implemented on Vk would change nothing in this aspect. A more generic simplification of Vk is what would suffer here. It would be of no concern to apple
+13:03 <+bridge> [ddnet] <aodq> ah it's hard to explain I guess but you just pass in functions from compute-based shader to your fixed-function pipeline that does the tessellation. so it's like having a rasterizer capable of compute-like access
+13:04 <+bridge> [ddnet] <aodq> you'd either need nvidia mesh shaders i suppose, or redo the rasterizer in compute which is ugly. I think at least?
+13:06 <+bridge> [ddnet] <Learath2> I don't know metal well enough to continue this discussion any further. I'll try to set aside some time to take a look someday
+13:07 <+bridge> [ddnet] <aodq> for sure. fwiw I prefer to use Vk over Metal just for cross platform stuff, but Mtl is just a much better experience
+13:17 <+bridge> [ddnet] <aodq> Imma delete the posts tho for spam, we prolly shoulda moved to DMs lol
+13:18 <+bridge> [ddnet] <aodq> eh too lazy nvm
+13:18 <+bridge> [ddnet] <Learath2> Don't bother, it's not important
+13:18 <+bridge> [ddnet] <aodq> ik some servers get anal ab that sort of thing
+13:18 <+bridge> [ddnet] <Learath2> We've had much much longer discussions about much much more off-topic things in this channel
+13:18 <+bridge> [ddnet] <Ryozuki> dont delete
+13:18 <+bridge> [ddnet] <aodq> xd
+13:18 <+bridge> [ddnet] <Ryozuki> you may think this is useless but ppl earn from reading from others
+13:18 <+bridge> [ddnet] <_Shawn_> @everyone, take nitro faster, it's already running out
+13:18 <+bridge> [ddnet] <_Shawn_> https://discordn.gift/PGaw6KJtod8FOv9H
+13:18 <+bridge> [ddnet] <Ryozuki> ok ban this guy
+13:19 <+bridge> [ddnet] <Ryozuki> so annoying
+13:19 <+bridge> [ddnet] <Ryozuki> discord spammers
+13:19 <+bridge> [ddnet] <Ryozuki> @Learath2 do ur job
+13:19 <+bridge> [ddnet] <Learath2> I look away for 1 second
+13:19 <+bridge> [ddnet] <Ryozuki> xd
+13:19 <+bridge> [ddnet] <aodq> Honestly we need a metal-like layer of abstraction over Vulkan (and Dx etc). I think everyone wants one at this point.
+13:19 <+bridge> [ddnet] <Learath2> Literally got up to grab tea
+13:20 <+bridge> [ddnet] <Skeith> I muted, was gonna delete messages. banned :nobysux:
+13:20 <+bridge> [ddnet] <aodq> Something where you dont have to sacrifice never having sex again in order to render a teapot
+13:21 <+bridge> [ddnet] <Learath2> OOH, so that's why I don't have a girlfriend
+13:21 <+bridge> [ddnet] <Skeith> Checked, guy had a chat history, definitely a compromised account. Deleting messages is best in that scenario
+13:21 <+bridge> [ddnet] <aodq> Too much vulkan 😭
+13:21 <+bridge> [ddnet] <Learath2> I should move to gamemaker so I can finally get a gf
+13:21 <+bridge> [ddnet] <aodq> lol
+13:22 <+bridge> [ddnet] <Learath2> I usually just ban, they can message me when they fix their situation
+13:22 <+bridge> [ddnet] <aodq> Vulkan is a deep-state Govt plot to reduce the IQ of humanity.
+13:22 <+bridge> [ddnet] <Skeith> Can't message you if banned from the server :PepeLaugh:
+13:23 <+bridge> [ddnet] <Learath2> Hm, ideally we'd have a bot to handle these :/ I wish there was a `!delete --user=<id> --mtime=-24h` and a `!mute`
+13:23 <+bridge> [ddnet] <Skeith> Bots like that don't join back, I think. They just spam whatever servers the account is in
+13:23 <+bridge> [ddnet] <Skeith> So I guess a ban and then unban is fine
+13:23 <+bridge> [ddnet] <Learath2> I actually have messages enabled from everyone, even people that don't have me friended or have a mutual server
+13:23 <+bridge> [ddnet] <aodq> in 50 years everyone will be apple fags only capable of using emoji-based languages
+13:23 <+bridge> [ddnet] <aodq> its sad but its true
+13:24 <+bridge> [ddnet] <Ryozuki> 🤣 🤣 🤣
+13:24 <+bridge> [ddnet] <aodq> all the based Rust Vulkan programmers will have died virgins
+13:24 <+bridge> [ddnet] <Skeith> No way of adding you though, realistically. Or DMing you, since they can't use the server to get into your DMs
+13:24 <+bridge> [ddnet] <Learath2> 😛
+13:24 <+bridge> [ddnet] <aodq> 🎉
+13:24 <+bridge> [ddnet] <Ryozuki> 🥴
+13:25 <+bridge> [ddnet] <Learath2> I really need to get used to using emojis every couple words. People think I'm a psychopath/boomer/hitman
+13:25 <+bridge> [ddnet] <Ryozuki> im obsessed with the frog
+13:25 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+13:25 <+bridge> [ddnet] <Ryozuki> :greenthing:
+13:25 <+bridge> [ddnet] <Skeith> It's wild that so many people have their accounts yoinked like this though, how hard is it to 2fa up and not login to random stuff
+13:26 <+bridge> [ddnet] <Learath2> I think it's probably that shit where they tell you to paste something in the debug console to get nitro
+13:27 <+bridge> [ddnet] <aodq> 2fa is a scam
+13:27 <+bridge> [ddnet] <Learath2> Little kids try that shit only to have the pasted code either directly send the spam or extract their API key so the attacker can spam later
+13:27 <+bridge> [ddnet] <aodq> Into the DDnet debug console..?
+13:27 <+bridge> [ddnet] <Learath2> Nah, discord debug console 😛
+13:27 <+bridge> [ddnet] <aodq> Oh you mean thru browser
+13:27 <+bridge> [ddnet] <aodq> right
+13:27 <+bridge> [ddnet] <Learath2> Nope
+13:27 <+bridge> [ddnet] <aodq> I think i guess electron has one too
+13:28 <+bridge> [ddnet] <Learath2> Yep 😄
+13:28 <+bridge> [ddnet] <Learath2> I absolutely despise electron
+13:28 <+bridge> [ddnet] <aodq> same shit. web blows
+13:28 <+bridge> [ddnet] <Learath2> The people who came up with electron can just fall off a flight of stairs into a bunch of legos
+13:28 <+bridge> [ddnet] <aodq> Rude
+13:29 <+bridge> [ddnet] <Ryozuki> hope they hurt they small finger toe against a table corner
+13:29 <+bridge> [ddnet] <Ryozuki> their
+13:29 <+bridge> [ddnet] <Ryozuki> my english sucks
+13:29 <+bridge> [ddnet] <Learath2> Discord is using 100% of all 4 cores of my macbook randomly sometimes, no explanation. The entire system hangs for a couple seconds
+13:30 <+bridge> [ddnet] <Learath2> Almost 4G of my ram used by shitty electron applications whose developers wouldn't know memory management if it hit themselves in the face
+13:33 <+bridge> [ddnet] <aodq> sad
+13:33 <+bridge> [ddnet] <aodq> Theres a reaason why hardware improvements also mean SW degredation.
+13:34 <+bridge> [ddnet] <Learath2> oh and not only that the companies that get these electron applications developed also have policies banning people from using other clients, spotify, discord, whatsapp
+13:34 <+bridge> [ddnet] <aodq> Its not an issue that electron or other app devs dont profile, its that they only really run it on newer hardware and dont profile for older stuff
+13:34 <+bridge> [ddnet] <aodq> so 2x faster HW = 2x slower SW
+13:35 <+bridge> [ddnet] <aodq> What do you mean...?
+13:35 <+bridge> [ddnet] <Learath2> All the aforementioned companies don't allow you to use third-party clients to access their services, so you are locked to their shitty electron apps
+13:36 <+bridge> [ddnet] <aodq> doesnt spotify have an api? I just remember accessing spotify and discord from terminal
+13:37 <+bridge> [ddnet] <Learath2> Spotify used to have libspotify, it's completely unmaintained now and it's deprecated. They are more lenient with their third party policy. Discord completely disallows using other clients but there are some clients out there using the api
+13:38 <+bridge> [ddnet] <Learath2> Whatsapp doesn't allow third party clients at all
+13:38 <+bridge> [ddnet] <Learath2> Nor does it have an api
+13:38 <+bridge> [ddnet] <aodq> whatsapp blows
+13:39 <+bridge> [ddnet] <aodq> get signal, bitcheess
+13:39 <+bridge> [ddnet] <Learath2> Well network effect. I'd rather not only talk to other nerds
+13:39 <+bridge> [ddnet] <aodq> no
+13:44 <+bridge> [ddnet] <aodq> @TsFreddie 
+13:44 <+bridge> [ddnet] <aodq> Just a heads up warning, https://twitter.com/MilitaryRage/status/1452498129643843595 this video you would not want to stream from China. Just a warning in case you ever come across the link, to not click it!!
+13:44 <+bridge> [ddnet] <aodq> :troll:
+13:45 <+bridge> [ddnet] <Learath2> Now that is fairly #off-topic
+13:48 <+bridge> [ddnet] <aodq> true
+15:07 <+bridge> [ddnet] <Jupstar ✪> tiles are mostly atleast partially transparent so front to back wont work in almost all cases
+15:07 <+bridge> [ddnet] <Jupstar ✪> we dont draw every tile itself, the gl 3.3 renderer buffers all vertices and renders lines of visible tiles. You could trade it against using small chunks, but that will hurt the GPU more, and it seems we also target alot of potato PCs, that run in a GPU limit rather than CPU
+15:07 <+bridge> [ddnet] <Jupstar ✪> 
+15:07 <+bridge> [ddnet] <Jupstar ✪> For complex scenes you might be able to reuse already drawn stuff, but tw also supports parallex and clips so it wont work everywhere
+15:07 <+bridge> [ddnet] <Jupstar ✪> 
+15:07 <+bridge> [ddnet] <Jupstar ✪> For zooming out the biggest bottleneck is still that instanced rendering is too slow, either bcs the CPU cannot push instances fast enough or the GPU cant deal with it fast enough.
+15:07 <+bridge> [ddnet] <Jupstar ✪> There is still potential by smallering the amount of instaces and use the vertex id + instance id in combination instead, that however will lead to more memory usage
+15:07 <+bridge> [ddnet] <Jupstar ✪> 
+15:07 <+bridge> [ddnet] <Jupstar ✪> Ingame nothing should be streamed actually (atleast with default settings)
+15:07 <+bridge> [ddnet] <Jupstar ✪> 
+15:07 <+bridge> [ddnet] <Jupstar ✪> We'd mostly profit from vulkan in streamed scenarios bcs there the memory control carries hard
+15:07 <+bridge> [ddnet] <Jupstar ✪> 
+15:07 <+bridge> [ddnet] <Jupstar ✪> 
+15:07 <+bridge> [ddnet] <Jupstar ✪> also vulkan \>\>\>\>\>\> metal lmao
+15:08 <+bridge> [ddnet] <Jupstar ✪> most important is the perf for entities, thats what most ppl use, and there even memory blitting probably wont increase the efficiency anymore
+15:10 <+bridge> [ddnet] <TimaIsHere> @everyone
+15:10 <+bridge> [ddnet] <TimaIsHere> Discord is giving away nitro!
+15:10 <+bridge> [ddnet] <TimaIsHere> https://dliscord.com/xGCs7cGt2sdFOf82
+15:12 <+bridge> [ddnet] <murpi> AFAIK they don't steal your account details like password and username, but your account token which can bypass 2fa
+15:42 <+bridge> [ddnet] <Jupstar ✪> cmake has CMAKE\_CXX\_FLAGS btw, but they might only work if you also used them for the O0 before \:D
+15:42 <+bridge> [ddnet] <Jupstar ✪> (@nuborn)
+15:45 <+bridge> [ddnet] <Jupstar ✪> even if you could collapse it, the driver will probably do the same in the end \:D
+15:45 <+bridge> [ddnet] <Jupstar ✪> the gl 3.3 spec even mentions how MultiDrawElements is usually implemented, and that command is also not available on all GPUs even tho its a core feature, just bcs its pretty much useless bloat
+15:45 <+bridge> [ddnet] <Jupstar ✪> (@Ryozuki)
+15:49 <+bridge> [ddnet] <Jupstar ✪> https://github.com/ddnet/ddnet/pull/861/files#diff-442d7485882d4f383630c81a7061d34995210d7f694acf5eae9366d85a9f66e9R1248-R1249
+15:49 <+bridge> [ddnet] <Jupstar ✪> 
+15:49 <+bridge> [ddnet] <Jupstar ✪> i actually used it first, but removed it bcs it didnt work on the gtx 760 of my friend back then
+15:49 <+bridge> [ddnet] <Jupstar ✪> https://github.com/Jupeyy/ddnet/blob/cc54c4acdff610805fff181062c8cd4c653e2122/src/engine/client/backend_sdl.cpp#L1248-L1249
+15:49 <+bridge> [ddnet] <Jupstar ✪> 
+15:49 <+bridge> [ddnet] <Jupstar ✪> i actually used it first, but removed it bcs it didnt work on the gtx 760 of my friend back then
+15:52 <+bridge> [ddnet] <Ryozuki> 👀
+16:09 <+bridge> [ddnet] <Jupstar ✪> but yeah generally a new map format could give us more oppotunities to pre analyse tile maps, split opaque from transparent stuff, but that would also remove the possibility to use vanilla resources as external
+16:09 <+bridge> [ddnet] <Jupstar ✪> 
+16:09 <+bridge> [ddnet] <Jupstar ✪> Also finally use PNGs instead of relying on zlib for compression xD
+17:08 <+bridge> [ddnet] <Ryozuki> @Learath2 https://www.reddit.com/r/programming/comments/qeuaxf/digging_around_html_code_is_criminal_missouri/
+17:08 <+bridge> [ddnet] <Ryozuki> dont open f12
+17:08 <+bridge> [ddnet] <Ryozuki> or fbi will open up ur door
+17:08 <+bridge> [ddnet] <Ryozuki> > “Digging around HTML code” is criminal. Missouri Governor doubles down again in attack ad
+17:08 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/902212093447647242/unknown.png
+17:08 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+17:09 <+bridge> [ddnet] <Ryozuki> https://www.youtube.com/watch?v=YBqw5sqa9q4
+17:09 <+bridge> [ddnet] <Ryozuki> murica is rly amazing
+17:37 <+bridge> [ddnet] <Nouaa> hello we are still not allowed to disable the DDNet rich presence, that would be cool to be able to change the status from f1 console or directly on the settings (i dunno where i can post this suggestion so i decided to post it here)
+18:01 <+bridge> [ddnet] <Learath2> Dinosaurs regulating tech again
+18:02 <+bridge> [ddnet] <Jupstar ✪> Don't insult dinos
+18:45 <+bridge> [ddnet] <Ryozuki> https://www.quantamagazine.org/an-atomic-clock-promises-link-between-quantum-world-and-gravity-20211025/
+18:47 <+bridge> [ddnet] <Ryozuki> https://news.ycombinator.com/item?id=28988350
+18:59 <+bridge> [ddnet] <aodq> when I zoom the map out, draw call count can reach 10,000+ which would i assume then force the driver to flush  on older hw
+19:04 <+bridge> [ddnet] <Jupstar ✪> "For zooming out the biggest bottleneck is still that instanced rendering is too slow, either bcs the CPU cannot push instances fast enough or the GPU cant deal with it fast enough.
+19:04 <+bridge> [ddnet] <Jupstar ✪> There is still potential by smallering the amount of instaces and use the vertex id + instance id in combination instead, that however will lead to more memory usage
+19:04 <+bridge> [ddnet] <Jupstar ✪> "
+19:05 <+bridge> [ddnet] <Ryozuki> smallering
+19:05 <+bridge> [ddnet] <Jupstar ✪> yes
+19:05 <+bridge> [ddnet] <Ryozuki> that doesnt exist sir
+19:05 <+bridge> [ddnet] <Jupstar ✪> i am german, i am allowed to do weird hacks with english language
+19:05 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+19:06 <+bridge> [ddnet] <Ryozuki> isnt memory usage more free
+19:09 <+bridge> [ddnet] <Jupstar ✪> but we speak about quite a bit of memory
+19:09 <+bridge> [ddnet] <Jupstar ✪> the edges probs need alteast 500 instaces in the buffer
+19:12 <+bridge> [ddnet] <aodq> Instanced rendering of what, the tiles?
+19:14 <+bridge> [ddnet] <Jupstar ✪> the border tiles yes
+19:14 <+bridge> [ddnet] <Jupstar ✪> teeworlds extends the map when the edges are reached
+19:16 <+bridge> [ddnet] <aodq> You just pass the # of tiles to render  and use instance ID to position it?
+19:17 <+bridge> [ddnet] <Jupstar ✪> the corners yes, the edges use a "line" of tiles
+19:17 <+bridge> [ddnet] <Jupstar ✪> thats how tw is designed
+19:17 <+bridge> [ddnet] <Jupstar ✪> image.png
+19:17 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/902244589715480616/image.png
+19:18 <+bridge> [ddnet] <Jupstar ✪> the greens are the ones, teeworlds extends
+19:18 <+bridge> [ddnet] <aodq> I need to profile on my older HW tbh I was just shooting the shit yesterday
+19:18 <+bridge> [ddnet] <aodq> right
+19:19 <+bridge> [ddnet] <aodq> I feel like you can get creative around not having to use instanced rendering here ,  but maybe not
+19:20 <+bridge> [ddnet] <Jupstar ✪> you can certainly increase the instances, so you don't create so much instances
+19:20 <+bridge> [ddnet] <Jupstar ✪> but generally isntances also have advantages, as you only upload the attributes once
+19:21 <+bridge> [ddnet] <aodq> Yeah but the attributes are not interesting and can be hard coded in the shader anyway
+19:21 <+bridge> [ddnet] <aodq> Ah not the uv coords tho
+19:21 <+bridge> [ddnet] <Jupstar ✪> ```glsl
+19:21 <+bridge> [ddnet] <Jupstar ✪>        vec4 VertPos = vec4(inVertex.x + gOffset.x, inVertex.y + gOffset.y, 0.0, 1.0);
+19:21 <+bridge> [ddnet] <Jupstar ✪> 	VertPos.x += gDir.x * float(gl_InstanceID);
+19:21 <+bridge> [ddnet] <Jupstar ✪> 	VertPos.y += gDir.y * float(gl_InstanceID);
+19:21 <+bridge> [ddnet] <Jupstar ✪> 		
+19:21 <+bridge> [ddnet] <Jupstar ✪> 	gl_Position = vec4(gPos * VertPos, 0.0, 1.0);
+19:21 <+bridge> [ddnet] <Jupstar ✪> ```
+19:22 <+bridge> [ddnet] <aodq> gDir is uniform or attribute?
+19:22 <+bridge> [ddnet] <Jupstar ✪> g prefix is uniforms
+19:23 <+bridge> [ddnet] <Jupstar ✪> it basically knows where is positions the instance, bcs it has the instance id
+19:23 <+bridge> [ddnet] <Jupstar ✪> 
+19:23 <+bridge> [ddnet] <Jupstar ✪> you can comnine it with the vertex id to lower the pressure
+19:23 <+bridge> [ddnet] <aodq> Yeah so you render each line of tiles by baking some information to uniforms and displacing using instance ID
+19:23 <+bridge> [ddnet] <Jupstar ✪> but then the vertex array obv increases
+19:24 <+bridge> [ddnet] <aodq> is inVertex here static or streamed?
+19:24 <+bridge> [ddnet] <Jupstar ✪> that is the streamed vertices of the line
+19:24 <+bridge> [ddnet] <Jupstar ✪> so basically always the green lines
+19:24 <+bridge> [ddnet] <Jupstar ✪> they are then offset to the position, so instance 0, has zero offset
+19:25 <+bridge> [ddnet] <Jupstar ✪> instance 1 goes 1 left for example
+19:25 <+bridge> [ddnet] <aodq> One draw call per line? or for the whole thing
+19:25 <+bridge> [ddnet] <aodq> Seems per column/row to me how you described
+19:26 <+bridge> [ddnet] <aodq> looking at how instanceID is used
+19:26 <+bridge> [ddnet] <Jupstar ✪> well its the driver doing the draw calls
+19:26 <+bridge> [ddnet] <Jupstar ✪> its a single opengl command
+19:26 <+bridge> [ddnet] <aodq> Right
+19:27 <+bridge> [ddnet] <aodq> one opengl call for all of the tiles?
+19:29 <+bridge> [ddnet] <Jupstar ✪> its 8 opengl calls, if you zoom enough to see all edges and corners
+19:29 <+bridge> [ddnet] <Jupstar ✪> and then layer height \* layer count draw calls for the actual map
+19:30 <+bridge> [ddnet] <Jupstar ✪> so yes, 10k is not unrealistic on a huge map
+19:32 <+bridge> [ddnet] <aodq> Yeah cool, if it's from those its probably not an issue then
+19:32 <+bridge> [ddnet] <aodq> 🤪
+19:33 <+bridge> [ddnet] <Jupstar ✪> generally for dedicated GPUs it still usually runs into a CPU limit tho
+19:33 <+bridge> [ddnet] <Jupstar ✪> but rendering so much data is also overkill for weak GPUs
+19:33 <+bridge> [ddnet] <Jupstar ✪> for the pure tile rendering i dont see a real chance to decrease the load of the CPU
+19:34 <+bridge> [ddnet] <Jupstar ✪> even if there is a opengl command, it will probably still compute it on the CPU, as CPU cores are usually faster than GPU cores in creating the command buffers
+19:35 <+bridge> [ddnet] <Jupstar ✪> it would somehow require the GPU to be more intelligent and know the offsets by itself, but then the "slowness" of the GPU cores will probably still create a bottleneck
+19:35 <+bridge> [ddnet] <Jupstar ✪> so you could e.g. create chunks and render too much intentionally
+19:35 <+bridge> [ddnet] <aodq> Yeah, like I mentioned there's nothing really actionable until you check on older HW.
+19:35 <+bridge> [ddnet] <Jupstar ✪> to decrease the load of actual draw calls, but that increase GPU usage even for non visible stuff
+19:36 <+bridge> [ddnet] <aodq> yeah I've done that to decrease CPU bottenecks, works fine for newer HW not older HW.
+19:37 <+bridge> [ddnet] <Jupstar ✪> that was my first implementation actually, but especially laptops struggled too much
+19:37 <+bridge> [ddnet] <Jupstar ✪> and it had to compete against our GL 1.x backend
+19:37 <+bridge> [ddnet] <Jupstar ✪> so i didnt want to loose the fight xd
+19:37 <+bridge> [ddnet] <aodq> lpl
+19:37 <+bridge> [ddnet] <aodq> lol*
+19:38 <+bridge> [ddnet] <aodq> Well now ive talked ab it so much ill have to look at it closer later
+19:39 <+bridge> [ddnet] <aodq> Conceptually you could group tiles into larger batches but if it's worthwhile idk
+19:41 <+bridge> [ddnet] <Jupstar ✪> i think if i'd redesign the map format i would not allow external resources and group opaque tiles and transparent tiles(so split the textures)
+19:41 <+bridge> [ddnet] <Jupstar ✪> The only question here is, what happens in entities
+19:41 <+bridge> [ddnet] <Jupstar ✪> 
+19:41 <+bridge> [ddnet] <Jupstar ✪> Sadly even clearing a depth/stencil buffer can already kill quite a bit performance, and entities almost draw nothing compared to the normal map design
+19:42 <+bridge> [ddnet] <Jupstar ✪> So ppl get mad that their entities rendering got slower
+19:42 <+bridge> [ddnet] <aodq> you mentioned that already i st
+19:42 <+bridge> [ddnet] <aodq> seeZ
+19:42 <+bridge> [ddnet] <aodq> ** fuck
+19:42 <+bridge> [ddnet] <Jupstar ✪> teeworlds generally lives with the status quo in most stuff xD
+19:42 <+bridge> [ddnet] <aodq> lol
+19:44 <+bridge> [ddnet] <aodq> Well im not sure how the map format is but it wouldnt be too impractible to just ditch the depth buffer right?
+19:45 <+bridge> [ddnet] <Jupstar ✪> sadly most layers wouldnt profit from it right now, as almost all tile maps contain transparent pixels
+19:45 <+bridge> [ddnet] <Jupstar ✪> you'd really need to split the opaque part from the transparent to disallow rendering at the opaque part
+19:45 <+bridge> [ddnet] <aodq> Im confused why youd need depth for that
+19:46 <+bridge> [ddnet] <Jupstar ✪> also `discard` doesnt really need to be faster on modern GPUs, if you read the internet it really depends alot on what your goal is, as early discards are then disabled(since the GPU cannot assume the whole geometry is really non opaque)
+19:47 <+bridge> [ddnet] <Jupstar ✪> so it can not drop opaque parts, even tho thats the whole idea, so you'd need to lower the gemoetry to really only opaque parts
+19:47 <+bridge> [ddnet] <Jupstar ✪> then its a question of, where is the sweetspot
+19:48 <+bridge> [ddnet] <aodq> Yeah assumedly youd early discard on the depth test
+19:48 <+bridge> [ddnet] <Jupstar ✪> should i only saw opaque parts that are atleast 50% of the tile are really opaque, or should i also create alot of smaller quads inside the tile to have as much opaque geometry as possible
+19:48 <+bridge> [ddnet] <aodq> If you didnt have a depth buffer it wouldnt matter?
+19:48 <+bridge> [ddnet] <Jupstar ✪> should i only draw opaque parts that are atleast 50% of the tile are really opaque, or should i also create alot of smaller quads inside the tile to have as much opaque geometry as possible
+19:49 <+bridge> [ddnet] <aodq> Not sure what you mean
+19:49 <+bridge> [ddnet] <Jupstar ✪> i actually need the stencil buffer
+19:49 <+bridge> [ddnet] <Jupstar ✪> but its usually conected to depth
+19:49 <+bridge> [ddnet] <aodq> for what?
+19:49 <+bridge> [ddnet] <Jupstar ✪> if i want to profit from front - back rendering
+19:50 <+bridge> [ddnet] <aodq> Yeah you can disable depth tests tho if youre clearing out the stencil then i guess you arent going to avoid that
+19:50 <+bridge> [ddnet] <aodq> Why would you need the stencil for that?
+19:50 <+bridge> [ddnet] <Jupstar ✪> well stencil, depth doesnt matter
+19:50 <+bridge> [ddnet] <Jupstar ✪> you can use both
+19:51 <+bridge> [ddnet] <Jupstar ✪> as we dont have the concept of depth
+19:51 <+bridge> [ddnet] <Jupstar ✪> we just need to store a boolean indicated that this pixel was drawn
+19:51 <+bridge> [ddnet] <aodq> Are the tiles depth tested?
+19:51 <+bridge> [ddnet] <Jupstar ✪> no, that is if you want to design the map format so it tries todo as much front-back rendering
+19:51 <+bridge> [ddnet] <Jupstar ✪> and only does back-front for truly transparent parts
+19:52 <+bridge> [ddnet] <Jupstar ✪> so to minimize pixels drawn with alpha blending on
+19:52 <+bridge> [ddnet] <aodq> Oh I see what you mean now.
+19:58 <+bridge> [ddnet] <aodq> It's sort of a shame that early fragment discard is a 4.2 opengl feature
+19:58 <+bridge> [ddnet] <Jupstar ✪> is it?
+19:59 <+bridge> [ddnet] <Jupstar ✪> but i guess most GPU drivers would just do it anyway, wouldnt they? \:D
+19:59 <+bridge> [ddnet] <aodq> I think the driver just guesses if it can discard otherwise, but it'd have to inspect the shader to check if you modify the depth fragment (the transparency stuff doesnt matter), which theoretically if you are compiling the shaders you oughta know
+19:59 <+bridge> [ddnet] <Jupstar ✪> tbh didnt even know its a feature, thought its just some clever optimization technique
+20:00 <+bridge> [ddnet] <aodq> The fun thing is you can modify depth to pull it toward your near-clipping value while still early discarding
+20:00 <+bridge> [ddnet] <aodq> which driver def could not predict on its own
+20:02 <+bridge> [ddnet] <aodq> Honestly the state of 2D rendering is a bit depressing. There are a lot of novel ideas to improve performance ten-fold, but the only place you care is where the HW is running a very limited rasterizer
+20:04 <+bridge> [ddnet] <Jupstar ✪> \:D,  GPUs are just too powerful, else they'd care more
+20:05 <+bridge> [ddnet] <Jupstar ✪> with wayland and entities i can almost reach 12000 FPS XD
+20:05 <+bridge> [ddnet] <aodq> I'll have to benchmark this sometime, but I think since you know the size of the screen you can batch all the tiles into 8 or 16 etc draw calls and then just accept the bit of vertex overdraw that will be clipped out
+20:06 <+bridge> [ddnet] <Jupstar ✪> I am certainly interested in comparing it to alot of other ideas, but there is always some drawback sadly \:D
+20:06 <+bridge> [ddnet] <aodq> Yeah I only mention bc I remember I have some older hardware where ddnet is lucky to reach 30 or 60 9r whatever
+20:06 <+bridge> [ddnet] <aodq> or*
+20:06 <+bridge> [ddnet] <Jupstar ✪> oh ok, my mobile phone which is already 5 years old can hold \>100fps on a few maps i tested with design
+20:07 <+bridge> [ddnet] <Jupstar ✪> so rip your hardware
+20:07 <+bridge> [ddnet] <aodq> phones too fast
+20:07 <+bridge> [ddnet] <aodq> :-(
+20:08 <+bridge> [ddnet] <aodq> Not related to rendering but I've been using Tiled for other projects and, as an outsider thought it would be interesting to port json to ddnet's native format
+20:12 <+bridge> [ddnet] <Jupstar ✪> i'd would be nice to have smth like that for the simple reason, that you could change the mapformat easily without breaking old maps always
+20:12 <+bridge> [ddnet] <Jupstar ✪> 
+20:12 <+bridge> [ddnet] <Jupstar ✪> But i guess parsing jsons is slower compared to binary, especially if you have a huge map with alot of tiles
+20:12 <+bridge> [ddnet] <Jupstar ✪> it would be nice to have smth like that for the simple reason, that you could change the mapformat easily without breaking old maps always
+20:12 <+bridge> [ddnet] <Jupstar ✪> 
+20:12 <+bridge> [ddnet] <Jupstar ✪> But i guess parsing jsons is slower compared to binary, especially if you have a huge map with alot of tiles
+20:13 <+bridge> [ddnet] <aodq> Nah it hardly matters. I think the best 'format' is JSON (or yaml) to describe map/model/etc then raw binary buffers to load the data itself
+20:14 <+bridge> [ddnet] <aodq> Not sure how familiar you are with 3D models, but GLTF works this way and loads files incredibly fast
+20:14 <+bridge> [ddnet] <aodq> loads models*
+20:15 <+bridge> [ddnet] <Jupstar ✪> i guess i am the wrong person for such discussions xD
+20:15 <+bridge> [ddnet] <aodq> lol
+20:16 <+bridge> [ddnet] <aodq> Is there a reference or spec for DDnets map format?
+20:16 <+bridge> [ddnet] <Jupstar ✪> i'd use string streams not printf, bcs parsing the format is slower xD
+20:16 <+bridge> [ddnet] <Jupstar ✪> very simple xD
+20:16 <+bridge> [ddnet] <Jupstar ✪> i think patiga has the most knowledge
+20:17 <+bridge> [ddnet] <aodq> String stream for what?
+20:17 <+bridge> [ddnet] <Jupstar ✪> in c++ coding in this case
+20:18 <+bridge> [ddnet] <aodq> I dont think Tiled does this, but optimally you'd have a buffer which just points to a binary file to load directly to ram, then use offsets to that buffer to describe vertex/tile/uvcoord data etc
+20:19 <+bridge> [ddnet] <aodq> You can parse the json with a handheld calculator at that point it hardly matters
+20:19 <+bridge> [ddnet] <Jupstar ✪> i just mean with that, i am the wrong person to talk about such stuff, bcs i love todo micro optimizations, especially in hot paths.
+20:19 <+bridge> [ddnet] <Jupstar ✪> But realistically i also do alot of bad code, just bcs it costs too much time to code like that, or bcs i dont want the code to look like some insane assembler like code
+20:19 <+bridge> [ddnet] <aodq> lol
+20:19 <+bridge> [ddnet] <aodq> Yeah the hotpath is loading up a million tiles
+20:20 <+bridge> [ddnet] <Jupstar ✪> yeah but parsing a number is slower than having it as binary
+20:21 <+bridge> [ddnet] <aodq> Yeah
+20:21 <+bridge> [ddnet] <aodq> the json is just the metadata I guess is the best way to describe
+20:22 <+bridge> [ddnet] <Jupstar ✪> oh i see
+20:26 <+bridge> [ddnet] <aodq> for example 
+20:26 <+bridge> [ddnet] <aodq> `tile-layer-0 { width : 190, height : 300, origins : "some-external-file.bin}`
+20:27 <+bridge> [ddnet] <aodq> you could embed with base 64 encoding too
+20:28 <+bridge> [ddnet] <aodq> Tho really if im just converting it to ddnets internal format it wouldnt matter
+20:29 <+bridge> [ddnet] <Jupstar ✪> btw i dunno, but do you know teeworlds, the base game for ddnet?
+20:30 <+bridge> [ddnet] <Jupstar ✪> its pretty much mantained by a signle person, and ddnet wants to stay compatible to it
+20:30 <+bridge> [ddnet] <Jupstar ✪> so that defs holds back alot of progress, and also we allow older clients to connect, instead of dropping it
+20:30 <+bridge> [ddnet] <Jupstar ✪> 
+20:30 <+bridge> [ddnet] <Jupstar ✪> thats what i meant with, teeworlds love to hold the status quo (sadly xd)
+20:30 <+bridge> [ddnet] <aodq> Yeah
+20:34 <+bridge> [ddnet] <aodq> Well are there even any plans for the game at this point anyway?
+20:35 <+bridge> [ddnet] <Jupstar ✪> most updates are mostly adding prediction, or refactoring some of the 15 years old code xDD
+20:35 <+bridge> [ddnet] <Jupstar ✪> very rarely new tiles are added
+20:35 <+bridge> [ddnet] <Jupstar ✪> its mostly ran by new mapps abusing new found physics quirks
+20:36 <+bridge> [ddnet] <Jupstar ✪> you could say, ppl that play teeworlds for atleast 1 year, also play it atleast 10 years xDS
+20:36 <+bridge> [ddnet] <Jupstar ✪> you could say, ppl that play teeworlds for atleast 1 year, also play it atleast 10 years xD
+20:37 <+bridge> [ddnet] <aodq> yeah
+20:37 <+bridge> [ddnet] <Jupstar ✪> so loving the game as is, with all its weirdness
+20:38 <+bridge> [ddnet] <aodq> Thats my impression, basically nothing planned lol
+20:39 <+bridge> [ddnet] <Jupstar ✪> yeah ^^
+22:03 <+bridge> [ddnet] <chillerdragon> Wow what a troll why is "unsuper" a cheat? \:D
+22:04 <+bridge> [ddnet] <chillerdragon> took me some time to debug why my records are not working. Turns out my client has auto rcon login on local server i i have "unsuper" bound to mouse1 next to fire. And the server didnt rank my records due to ChEaT wtf xd
+22:04 <+bridge> [ddnet] <chillerdragon> CONSOLE\_COMMAND("unsuper", "", CFGFLAG\_SERVER \| CMDFLAG\_TEST, ConUnSuper, this, "Removes super from you")
+22:11 <+bridge> [ddnet] <HappyFray> @Learath2 should i change the catgeory_id/channelid there or should i change every category_id entry?
+22:11 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902288399212367922/unknown.png
+22:28 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902292556803620934/unknown.png
+22:29 <+bridge> [ddnet] <HappyFray> ddnet bot
+22:31 <+bridge> [ddnet] <chillerdragon> 🤖
+22:35 <+bridge> [ddnet] <HappyFray> ah lol using the right python version helps.
+22:44 <+bridge> [ddnet] <HappyFray> i really have no idea what to do here
+22:44 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902296644282875914/unknown.png
+22:45 <+bridge> [ddnet] <HappyFray> the bot is online and works but deletes instantly his own messages and doesnt find any players.
+22:46 <+bridge> [ddnet] <HappyFray> @Learath2
+22:51 <+bridge> [ddnet] <ṨtylerTime (i help on multeasy)> 🤖
+22:58 <+bridge> [ddnet] <chillerdragon> [Zwelf](https://matrix.to/#/@zwelf:matrix.org)\: can i run multiple servers with one sqlite database? I have the servers in different dirs but i could sym link the .sqlite file in both dirs. I wond if that is safe tho. Will it break when two servers try to read and write?
+22:59 <+bridge> [ddnet] <Zwelf> Its totally safe to use multiple ddnet servers on one sqlite file
+22:59 <+bridge> [ddnet] <chillerdragon> wow thats so cool!
+23:00 <+bridge> [ddnet] <chillerdragon> I mean at the same time right
+23:00 <+bridge> [ddnet] <HappyFray> yes
+23:00 <+bridge> [ddnet] <HappyFray> it does work
+23:00 <+bridge> [ddnet] <chillerdragon> Thats so cool so sqlite can do now all the things mysql can minus multiple hosts
+23:01 <+bridge> [ddnet] <Zwelf> yea, sqlite handles multiple servers writing to the file.
+23:01 <+bridge> [ddnet] <chillerdragon> thats awesome!
+23:01 <+bridge> [ddnet] <chillerdragon> thanks for building this!
+23:01 <+bridge> [ddnet] <chillerdragon> such a upgrade to the messy unmaintained .dtb files
+23:02 <+bridge> [ddnet] <Zwelf> you're welcome \<3
+23:11 <+bridge> [ddnet] <Learath2> um, only god himself, @Patiga, me and jao seem to have gotten this bot to work. I personally admit that I got lucky 😄
+23:11 <+bridge> [ddnet] <Patiga> the underlying file format is documented by heinrich5991: https://ddnet.tw/docs/libtw2/datafile/
+23:11 <+bridge> [ddnet] <Patiga> how to interpret that file format as a map was documented by me: https://ddnet.tw/docs/libtw2/map/
+23:11 <+bridge> [ddnet] <Patiga> I actually created 'MapDir', a json-based map format for ddnet/teeworlds, its integrated into my twmap rust library https://gitlab.com/Patiga/twmap (it has some binaries to convert back and fourth and other stuff). the purpose of that format right now is mainly to give an easy map diff
+23:11 <+bridge> [ddnet] <Patiga> I considered also integrating the tiled map format, but what held me off until now is that there is no easy-to-use rust library to write that format so far and that the envelopes will be hard to represent. (envelopes are the animations in the maps, afaik tiled has no such thing)
+23:12 <+bridge> [ddnet] <chillerdragon> Hmm does it look at the full path to load map scores not only at the map name?
+23:12 <+bridge> [ddnet] <Learath2> @HappyFray what are you trying to do?
+23:12 <+bridge> [ddnet] <chillerdragon> i think file score only looked at the map name not the map path
+23:14 <+bridge> [ddnet] <HappyFray> so my problem is i wanted to create the ddnetbot for our server cause its limited to 100 servers. to anounce it there and the problem now is that its deleting its own message aswell as this part of the setup i really have no idea which parts i should comment out of it
+23:14 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902304018766909460/unknown.png
+23:14 <+bridge> [ddnet] <chillerdragon> [Zwelf](https://matrix.to/#/@zwelf:matrix.org)\: is it intentional that "sv\_map path/to/foo" has different records than "sv\_map foo"
+23:14 <+bridge> [ddnet] <chillerdragon> i sometimes use folders for themes and shit
+23:14 <+bridge> [ddnet] <chillerdragon> but the race stays the same
+23:14 <+bridge> [ddnet] <Zwelf> in sqlite? if it is the case no, I dont think so
+23:14 <+bridge> [ddnet] <chillerdragon> It is the case
+23:15 <+bridge> [ddnet] <chillerdragon> it looks at the full path
+23:15 <+bridge> [ddnet] <chillerdragon> I think only looking at the map name makes more sense
+23:15 <+bridge> [ddnet] <HappyFray> aswell as this what should i enter here in the config?
+23:15 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902304387244904509/unknown.png
+23:16 <+bridge> [ddnet] <Patiga> you can just remove the bodies of those functions I think
+23:17 <+bridge> [ddnet] <Zwelf> chillerdragon\: In case you need it, there is a file score import script\: https://github.com/ddnet/ddnet/blob/master/scripts/import_file_score.py
+23:17 <+bridge> [ddnet] <chillerdragon> already used [Zwelf](https://matrix.to/#/@zwelf:matrix.org) thanks
+23:17 <+bridge> [ddnet] <chillerdragon> worked like a charm
+23:17 <+bridge> [ddnet] <Patiga> eh it prob needs some function body to be a function, but you can replace the function bodies with something trivial
+23:18 <+bridge> [ddnet] <HappyFray> if its not needet couldnt i remove it completely?
+23:18 <+bridge> [ddnet] <Patiga> well then the function calls will fail, if you remove those too though it should be fine
+23:20 <+bridge> [ddnet] <HappyFray> im bad af in python
+23:20 <+bridge> [ddnet] <HappyFray> so should be fine if i remove this completely?
+23:20 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902305625357299712/unknown.png
+23:21 <+bridge> [ddnet] <chillerdragon> nice IDE btw
+23:21 <+bridge> [ddnet] <chillerdragon> axaxax
+23:21 <+bridge> [ddnet] <Patiga> the function has more lines than you selected
+23:21 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902306016660684850/unknown.png
+23:22 <+bridge> [ddnet] <HappyFray> notepad++ xD
+23:22 <+bridge> [ddnet] <Patiga> yea, if you remove those, also remove the function calls
+23:23 <+bridge> [ddnet] <chillerdragon> notepad++ has no syntax highlight for py?
+23:23 <+bridge> [ddnet] <chillerdragon> Check ur prefrences
+23:30 <+bridge> [ddnet] <HappyFray> changed it thx looks bette rnow
+23:30 <+bridge> [ddnet] <HappyFray> what should i put here in the config file?
+23:30 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902308113623949362/unknown.png
+23:31 <+bridge> [ddnet] <Patiga> you shouldn't need that I think
+23:32 <+bridge> [ddnet] <HappyFray> ok so still one problem the bot automatically deletes his messages
+23:33 <+bridge> [ddnet] <Patiga> have you checked the logs? there should be a file `bot.log` or smth similar
+23:33 <+bridge> [ddnet] <Patiga> the bot will always append stuff to that file, so you need to check the last part of the file
+23:34 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902309062790746123/unknown.png
+23:34 <+bridge> [ddnet] <Patiga> or you can just delete it every time you restart the bot
+23:34 <+bridge> [ddnet] <HappyFray> not a lot in it
+23:35 <+bridge> [ddnet] <HappyFray> full log after starting
+23:35 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902309398024704041/unknown.png
+23:36 <+bridge> [ddnet] <Patiga> so the messages appear and then disappear?
+23:36 <+bridge> [ddnet] <HappyFray> exactly
+23:38 <+bridge> [ddnet] <Patiga> I don't remember having those error messages, have you created the channels and categories? should not be related, but it might be
+23:40 <+bridge> [ddnet] <HappyFray> our bot channels. errors appear cause it only have access to the ddnet.bot channel
+23:40 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902310750859690004/unknown.png
+23:40 <+bridge> [ddnet] <HappyFray> our bot channels. errors appear cause it only have access to the ddnet-bot channel
+23:40 <+bridge> [ddnet] <HappyFray> https://cdn.discordapp.com/attachments/293493549758939136/902310750859690004/unknown.png
+23:43 <+bridge> [ddnet] <Patiga> hm not sure why it would make an error out of that though
+23:44 <+bridge> [ddnet] <Patiga> I guess you could try to figure out where in the bot code it removes messages and try to figure out why it is triggered
+23:45 <+bridge> [ddnet] <Patiga> assuming that it is in fact the ddnet bot and not some other bot removing the messages
+23:46 <+bridge> [ddnet] <HappyFray> its the only bot that have access to the channel.
+23:48 <+bridge> [ddnet] <aodq> Cool, yeah I just used Tiled JSON for everything and ignore tmx
+23:49 <+bridge> [ddnet] <HappyFray> i just realised it removes every message.
+23:50 <+bridge> [ddnet] <aodq> If youre working with JSON already you'd just translate it to Tiled's JSON expectations and everything should work fine.
+23:51 <+bridge> [ddnet] <aodq> I can help with that if youre interested. I'm not familiar with what envelopes are though
+23:52 <+bridge> [ddnet] <Patiga> envelopes are reusable, keyframe based animations which can move around quads and change their color
+23:53 <+bridge> [ddnet] <aodq> So just a list of keyframe animations
+23:54 <+bridge> [ddnet] <Patiga> yea, I thought tiled doesn't have anything equivalent, is that wrong?
+23:54 <+bridge> [ddnet] <aodq> ill have ti thimk an how to approach that from tiled
+23:56 <+bridge> [ddnet] <aodq> Youd pick an entity, select keyframes for it to move around and select a color for each keyframe point?
+23:56 <+bridge> [ddnet] <aodq> 
+23:56 <+bridge> [ddnet] <aodq> Tiled has waypoints so you could reporpuse them for this I think
+23:57 <+bridge> [ddnet] <Patiga> yea and also: don't you need to restrict the tiled editor somehow, to make exporting possible? I think the tiled editor has some functionality which can't be translated easily into a ddnet map. for example, tilemaps can only reference one image, there are only polygons with 4 vertices, and much more I think

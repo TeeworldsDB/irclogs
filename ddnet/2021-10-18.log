@@ -1,0 +1,186 @@
+14:37 <+bridge> [ddnet] <chillerdragon> how does cmake work \:c
+14:38 <+bridge> [ddnet] <chillerdragon> does order matter when i want to link a lib?
+14:38 <+bridge> [ddnet] <chillerdragon> cant feed md5 as dependency to the auth manager \:c
+14:38 <+bridge> [ddnet] <Learath2> Ofc the order matters when linking
+14:38 <+bridge> [ddnet] <Learath2> Sometimes :D
+14:39 <+bridge> [ddnet] <chillerdragon> \:D
+14:41 <+bridge> [ddnet] <chillerdragon> image.png
+14:41 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/899638214816583741/image.png
+14:41 <+bridge> [ddnet] <chillerdragon> i mean all md5 occurences looksi fine
+14:41 <+bridge> [ddnet] <chillerdragon> so it has to be the order
+14:41 <+bridge> [ddnet] <Learath2> I mean we already link it properly in ddnet, maybe just check that?
+14:42 <+bridge> [ddnet] <chillerdragon> right is ddnet
+14:42 <+bridge> [ddnet] <chillerdragon> i just cant find the diff to my crappy forks cmakelist
+14:42 <+bridge> [ddnet] <chillerdragon> what to look at
+14:42 <+bridge> [ddnet] <chillerdragon> everything i look at is the same
+14:42 <+bridge> [ddnet] <chillerdragon> except the position in the file
+14:43 <+bridge> [ddnet] <Learath2> I dont exactly remember where we build authmanager, maybe ENGINE_SERVER
+14:43 <+bridge> [ddnet] <chillerdragon> yes
+14:43 <+bridge> [ddnet] <Learath2> So did you add md5 as a dep to engine server target?
+14:43 <+bridge> [ddnet] <chillerdragon> how
+14:43 <+bridge> [ddnet] <Learath2> Yeah idk, I'm on phone
+14:44 <+bridge> [ddnet] <chillerdragon> set(DEPS ${DEP\_SQLITE3} ${DEP\_JSON} ${DEP\_MD5} ${ZLIB\_DEP})
+14:44 <+bridge> [ddnet] <chillerdragon> 
+14:44 <+bridge> [ddnet] <chillerdragon> 
+14:44 <+bridge> [ddnet] <chillerdragon> add\_executable(${TARGET\_SERVER}
+14:44 <+bridge> [ddnet] <chillerdragon>   ${DEPS}
+14:44 <+bridge> [ddnet] <chillerdragon>   ${SERVER\_SRC}
+14:44 <+bridge> [ddnet] <chillerdragon>   ${SERVER\_ICON}
+14:44 <+bridge> [ddnet] <chillerdragon>   $\<TARGET\_OBJECTS\:engine-shared\>
+14:45 <+bridge> [ddnet] <chillerdragon>   $\<TARGET\_OBJECTS\:game-shared\>
+14:45 <+bridge> [ddnet] <chillerdragon> )
+14:45 <+bridge> [ddnet] <chillerdragon> i did that
+14:45 <+bridge> [ddnet] <Learath2> Hm, show error maybe?
+14:46 <+bridge> [ddnet] <chillerdragon> ```
+14:46 <+bridge> [ddnet] <chillerdragon> /usr/bin/ld: authmanager.cpp:(.text+0x552): undefined reference to `md5_append'
+14:46 <+bridge> [ddnet] <chillerdragon> 
+14:46 <+bridge> [ddnet] <chillerdragon> 
+14:46 <+bridge> [ddnet] <chillerdragon> ```
+14:47 <+bridge> [ddnet] <Learath2> Mh
+14:47 <+bridge> [ddnet] <chillerdragon> I added md5 years ago already and got it working in hash\_bundled.c
+14:47 <+bridge> [ddnet] <chillerdragon> it works there but not in the new authmanager
+14:47 <+bridge> [ddnet] <chillerdragon> cmake is so unclear to me
+14:49 <+bridge> [ddnet] <Learath2> Yeah the only one who understands cmake is heinrich :D
+14:49 <+bridge> [ddnet] <chillerdragon> time to bruteforce then
+14:56 <+bridge> [ddnet] <Jupstar ✪> i'd start with message(FATAL\_ERROR "Test ${DEPDS}")
+14:56 <+bridge> [ddnet] <Jupstar ✪> then you know what the content of DEPS is
+14:57 <+bridge> [ddnet] <Jupstar ✪> [Edit](https://discord.com/channels/252358080522747904/293493549758939136/899642172591194142): i'd start with message(FATAL\_ERROR "Test ${DEPS}")
+14:57 <+bridge> [ddnet] <chillerdragon> smort
+14:57 <+bridge> [ddnet] <chillerdragon> i like log driven debugging \:D
+14:58 <+bridge> [ddnet] <chillerdragon> Test $\<TARGET\_OBJECTS\:sqlite3\>;$\<TARGET\_OBJECTS\:json\>
+14:58 <+bridge> [ddnet] <chillerdragon> hue
+14:58 <+bridge> [ddnet] <chillerdragon> where did md5 go
+14:58 <+bridge> [ddnet] <Jupstar ✪> rip
+14:59 <+bridge> [ddnet] <chillerdragon> set(DEP\_SQLITE3 $\<TARGET\_OBJECTS\:sqlite3\>)
+14:59 <+bridge> [ddnet] <chillerdragon> set(DEP\_JSON $\<TARGET\_OBJECTS\:json\>)
+14:59 <+bridge> [ddnet] <chillerdragon> set(DEP\_MD5)
+14:59 <+bridge> [ddnet] <chillerdragon> i guess it makes sense
+14:59 <+bridge> [ddnet] <chillerdragon> its set to nothing
+15:00 <+bridge> [ddnet] <chillerdragon> weird that it worked for the files in base/ tho
+15:01 <+bridge> [ddnet] <chillerdragon> if i add 
+15:01 <+bridge> [ddnet] <chillerdragon> 
+15:01 <+bridge> [ddnet] <chillerdragon> set(DEP\_MD5 $\<TARGET\_OBJECTS\:md5\>)
+15:01 <+bridge> [ddnet] <chillerdragon> 
+15:01 <+bridge> [ddnet] <chillerdragon> it breaks because then i get it defined twice for the base stuff omawgd
+15:01 <+bridge> [ddnet] <chillerdragon> can this be a c vs c++ thing?
+15:03 <+bridge> [ddnet] <Jupstar ✪> ```cmake
+15:03 <+bridge> [ddnet] <Jupstar ✪> if(NOT CRYPTO_FOUND)
+15:03 <+bridge> [ddnet] <Jupstar ✪>   set(DEP_MD5 $<TARGET_OBJECTS:md5>)
+15:03 <+bridge> [ddnet] <Jupstar ✪> endif()
+15:03 <+bridge> [ddnet] <Jupstar ✪> ```
+15:03 <+bridge> [ddnet] <chillerdragon> yee saw tha
+15:03 <+bridge> [ddnet] <Jupstar ✪> i guess if you have crypto you shouldnt also define MD5
+15:04 <+bridge> [ddnet] <Jupstar ✪> have you tried to delete CMakeCache, solves all problems xd
+15:04 <+bridge> [ddnet] <chillerdragon> yas
+15:08 <+bridge> [ddnet] <Jupstar ✪> find\_package(Crypto)
+15:08 <+bridge> [ddnet] <Jupstar ✪> did you remove it?
+15:08 <+bridge> [ddnet] <chillerdragon> more like never added it xd
+15:08 <+bridge> [ddnet] <chillerdragon> nah but i got it
+15:11 <+bridge> [ddnet] <Jupstar ✪> do you meantion authmanager.cpp somewhere?
+15:11 <+bridge> [ddnet] <chillerdragon> ?
+15:11 <+bridge> [ddnet] <Jupstar ✪> what do you even compile, ddnet or own project?
+15:12 <+bridge> [ddnet] <chillerdragon> ddnet++
+15:12 <+bridge> [ddnet] <chillerdragon> own
+15:12 <+bridge> [ddnet] <Jupstar ✪> is authmanager in the server source?
+15:12 <+bridge> [ddnet] <chillerdragon> yes
+15:13 <+bridge> [ddnet] <Jupstar ✪> mhh, maybe you somehow changed the order of libs somewhere?
+15:13 <+bridge> [ddnet] <Jupstar ✪> normally you append the libs you need for each cpp object after you mention it
+15:14 <+bridge> [ddnet] <Jupstar ✪> is your repo up to date?
+15:14 <+bridge> [ddnet] <chillerdragon> haha
+15:14 <+bridge> [ddnet] <Jupstar ✪> i mean can i compile it
+15:14 <+bridge> [ddnet] <Jupstar ✪> and have the same error xD
+15:14 <+bridge> [ddnet] <chillerdragon> ?
+15:15 <+bridge> [ddnet] <chillerdragon> oh u mean pushed to git?
+15:15 <+bridge> [ddnet] <chillerdragon> oh u mean pushed to github?
+15:15 <+bridge> [ddnet] <Jupstar ✪> yes
+15:15 <+bridge> [ddnet] <chillerdragon> nah
+15:15 <+bridge> [ddnet] <Jupstar ✪> its easier than guessing xd
+15:15 <+bridge> [ddnet] <chillerdragon> its in no pushable state \:D
+15:15 <+bridge> [ddnet] <chillerdragon> i currently try to crack in latest cmakelists from ddnet master
+15:15 <+bridge> [ddnet] <Jupstar ✪> push it into your chillerdragon github
+15:16 <+bridge> [ddnet] <Jupstar ✪> i can clone it from there
+15:16 <+bridge> [ddnet] <chillerdragon> im in the middle of merge conflict \:D
+15:16 <+bridge> [ddnet] <chillerdragon> gimme sec finish this try
+15:23 <+bridge> [ddnet] <chillerdragon> i slowly feel like its  a src not a cmake issue
+15:27 <+bridge> [ddnet] <chillerdragon> [Jupstar ✪](https://matrix.to/#/@jupeyy:matrix.org)\:  pushed to master https://github.com/DDNetPP/DDNetPP🤭
+15:31 <+bridge> [ddnet] <Jupstar ✪> how did you even get to the linking step xD
+15:31 <+bridge> [ddnet] <chillerdragon> ah right
+15:31 <+bridge> [ddnet] <chillerdragon> first u gotta run "bam"
+15:31 <+bridge> [ddnet] <chillerdragon> then cmake
+15:31 <+bridge> [ddnet] <chillerdragon> \:D
+15:31 <+bridge> [ddnet] <Jupstar ✪> bam5?
+15:32 <+bridge> [ddnet] <chillerdragon> yes
+15:32 <+bridge> [ddnet] <chillerdragon> or 4
+15:32 <+bridge> [ddnet] <chillerdragon> both should work
+15:32 <+bridge> [ddnet] <Jupstar ✪> biggest troll
+15:32 <+bridge> [ddnet] <chillerdragon> ikr
+15:45 <+bridge> [ddnet] <Jupstar ✪> tbh i think its broken in ddnet repo too
+15:45 <+bridge> [ddnet] <Jupstar ✪> ddnet just doesnt use md5\_append
+15:46 <+bridge> [ddnet] <chillerdragon> yea i think so too
+15:46 <+bridge> [ddnet] <chillerdragon> im currently trying to crack in latest crypto code into old ddnet
+15:46 <+bridge> [ddnet] <Jupstar ✪> i guess you are supposed to use md5\_update
+15:47 <+bridge> [ddnet] <Jupstar ✪> ```c
+15:47 <+bridge> [ddnet] <Jupstar ✪> // Hash the password and the salt
+15:47 <+bridge> [ddnet] <Jupstar ✪> 	MD5_CTX Md5;
+15:47 <+bridge> [ddnet] <Jupstar ✪> 	md5_init(&Md5);
+15:47 <+bridge> [ddnet] <Jupstar ✪> 	md5_update(&Md5, (unsigned char *)pPassword, str_length(pPassword));
+15:47 <+bridge> [ddnet] <Jupstar ✪> 	md5_update(&Md5, aSalt, SALT_BYTES);
+15:47 <+bridge> [ddnet] <Jupstar ✪> 	return md5_finish(&Md5);
+15:47 <+bridge> [ddnet] <Jupstar ✪> ```example ddnet code
+15:47 <+bridge> [ddnet] <Jupstar ✪> so not broken, just missused
+15:48 <+bridge> [ddnet] <chillerdragon> image.png
+15:49 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/899655302595637278/image.png
+15:49 <+bridge> [ddnet] <chillerdragon> ich bin ein junger gott
+15:49 <+bridge> [ddnet] <chillerdragon> thanks a lot [Jupstar ✪](https://matrix.to/#/@jupeyy:matrix.org)  \:)
+15:50 <+bridge> [ddnet] <chillerdragon> wtf it doesnt even segfault nor does it break rcon
+15:50 <+bridge> [ddnet] <chillerdragon> not bad
+15:50 <+bridge> [ddnet] <Jupstar ✪> it mixes bam and cmake and works
+15:50 <+bridge> [ddnet] <Jupstar ✪> thats more impressive
+15:50 <+bridge> [ddnet] <chillerdragon> haha yea \:D
+15:50 <+bridge> [ddnet] <Jupstar ✪> but i guess just for the generated sources? \:D
+15:51 <+bridge> [ddnet] <chillerdragon> yes
+15:51 <+bridge> [ddnet] <chillerdragon> but now since i have new cmake
+15:51 <+bridge> [ddnet] <chillerdragon> i might not need bam anymore
+15:51 <+bridge> [ddnet] <chillerdragon> lets see
+15:51 <+bridge> [ddnet] <chillerdragon> yup i just casually droped bam dependency
+16:12 <+bridge> [ddnet] <chillerdragon> @murpi\: still get an occasional weapon switch when switching dummy any idea?
+16:20 <+bridge> [ddnet] <murpi> Nope :/
+16:21 <+bridge> [ddnet] <chillerdragon> u dont have it?
+16:21 <+bridge> [ddnet] <murpi> No, I don't
+16:21 <+bridge> [ddnet] <chillerdragon> unfair
+18:00 <+bridge> [ddnet] <murpi> Does anyone else have issues with alt-tabbing with console open on nightly makes the cursor invisible?
+18:17 <+bridge> [ddnet] <Ryozuki> no cuz i alt tabbing doesnt exist in my linux
+18:17 <+bridge> [ddnet] <Ryozuki> 🥱
+18:18 <+bridge> [ddnet] <Ryozuki> no cuz alt tabbing doesnt exist in my linux
+18:21 <+bridge> [ddnet] <Jupstar ✪> f1 console?
+18:21 <+bridge> [ddnet] <Jupstar ✪> (@murpi)
+18:21 <+bridge> [ddnet] <murpi> yes
+18:22 <+bridge> [ddnet] <murpi> can't reproduce, but I had this like a couple of times today
+18:24 <+bridge> [ddnet] <Jupstar ✪> are you on fullsreen or borderless or desktop fullscreen?
+18:25 <+bridge> [ddnet] <murpi> fullscreen
+18:25 <+bridge> [ddnet] <Jupstar ✪> lol for me under windows it crashes when i join a server
+18:26 <+bridge> [ddnet] <murpi> I think I know what it is
+18:26 <+bridge> [ddnet] <murpi> copy pasting breaks the game
+18:26 <+bridge> [ddnet] <murpi> (ctrl+v)
+18:28 <+bridge> [ddnet] <Jupstar ✪> past in console?
+18:28 <+bridge> [ddnet] <Jupstar ✪> paste\*
+18:29 <+bridge> [ddnet] <murpi> yes
+18:31 <+bridge> [ddnet] <murpi> ok thats not it
+18:31 <+bridge> [ddnet] <murpi> it's something else
+18:35 <+bridge> [ddnet] <murpi> Jupstar: are you on windows right now?
+18:37 <+bridge> [ddnet] <murpi> Start game > join any server > tab out > tab in > open console > tab out > tab in > cursor gone
+18:38 <+bridge> [ddnet] <murpi> (f1 console)
+18:41 <+bridge> [ddnet] <Jupstar ✪> ok thx
+18:41 <+bridge> [ddnet] <Jupstar ✪> (@murpi)
+19:03 <+bridge> [ddnet] <Jupstar ✪> oh yeah shit xd
+19:32 <+bridge> [ddnet] <Jupstar ✪> @deen\: hey, a bit trouble for you, but can you rebuild all SDL shared libs with the forced push SDL pryou can also ignore the 2nd pr(the one with wayland over x11) since we dont use it yet anyway
+19:49 <+bridge> [ddnet] <Ts懒散> burh notch on laptop is so dumb
+19:50 <+bridge> [ddnet] <Ts懒散> https://cdn.discordapp.com/attachments/293493549758939136/899716003385196564/IMG_20211019_014423_833.jpg
+19:50 <+bridge> [ddnet] <Ts懒散> who asked for this
+19:52 <+bridge> [ddnet] <Jupstar ✪> since it was released, apple fans asked for it
+20:00 <+bridge> [ddnet] <Ts懒散> i actually wanted a new apple sillicon macbook tho
+20:00 <+bridge> [ddnet] <Ts懒散> 🙃 this is so hard to look at.
+20:08 <+bridge> [ddnet] <Ts懒散> omfg i can't get over how ugly it is
+20:09 <+bridge> [ddnet] <ScReeNy> imagine it hiding timer in tw
+20:09 <+bridge> [ddnet] <Ts懒散> omfg youre right
+21:25 <+bridge> [ddnet] <Cipy29> lol I thought that laptop with a notch was edited before I looked it up xd

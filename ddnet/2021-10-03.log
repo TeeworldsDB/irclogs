@@ -1,0 +1,263 @@
+09:49 <+bridge> [ddnet] <Fän> Lesson for today: If you're going to allocate a bpf map entry **for each unverified packet**, make sure it's atleast limited to a certain size so it won't fill up the entire RAM, rendering the entire logic for said filter unusable 😉
+09:50 <+bridge> [ddnet] <Fän> Easy solution is BPF_MAP_TYPE_LRU_HASH
+09:53 <+bridge> [ddnet] <Learath2> Or avoid any allocation for unverified packets if at all possible
+09:54 <+bridge> [ddnet] <Fän> We allocate the entries to verify challenge
+09:54 <+bridge> [ddnet] <Fän> ```cpp
+09:54 <+bridge> [ddnet] <Fän> if(check_ddnet_handshake_header(udp_bytes, data_end)){
+09:54 <+bridge> [ddnet] <Fän> uint32_t challenge = bpf_get_prandom_u32();
+09:54 <+bridge> [ddnet] <Fän> bpf_map_update_elem(&ddnet_hashes_list, &challenge, &val BPF_ANY);
+09:54 <+bridge> [ddnet] <Fän> ```
+09:55 <+bridge> [ddnet] <Fän> then once we receive the challenge reply, it checks that map to match ip addr & challenge, then deletes the hash from the list
+09:55 <+bridge> [ddnet] <Fän> I've simply changed the type to LRU HASH, that way if the map fills up, it won't cause huge issues
+09:55 <+bridge> [ddnet] <Fän> and instead "recycle" old entries
+09:56 <+bridge> [ddnet] <Fän> Speaking about xdp
+09:56 <+bridge> [ddnet] <Fän> $ddos
+09:57 <+bridge> [ddnet] <Fän> ._. FRA is most certainly under attack right now
+09:57 <+bridge> [ddnet] <deen> Nope, it's not
+09:58 <+bridge> [ddnet] <Fän> Had trouble connecting & staying on
+09:58 <+bridge> [ddnet] <Fän> but I guess it got mitigated
+09:58 <+bridge> [ddnet] <deen> No, there is no mitigation active right now and I saw no attack
+09:58 <+bridge> [ddnet] <Fän> 🤷
+09:58 <+bridge> [ddnet] <Fän> Just judging by the fact I couldn't connect at all really
+10:01 <+bridge> [ddnet] <chillerdragon> I am currently hacking around with freeze textures because i tend to confuse frozen tees with ninjajetpack or normal ninja does the client know if other tees are frozen?
+10:07 <+bridge> [ddnet] <chillerdragon> got it https://github.com/ddnet/ddnet/blob/4ee5aa585b6bd11f4e12522ca9d6572db460ce05/src/game/client/gameclient.h#L353
+10:07 <+bridge> [ddnet] <Fän> Is this server-sync'ed too?
+10:08 <+bridge> [ddnet] <chillerdragon> i think the client started at some point to reimplement server logic for better prediction
+10:08 <+bridge> [ddnet] <Fän> Just asking as otherwise players could just compile the client, and force isFrozen to false, no?
+10:08 <+bridge> [ddnet] <chillerdragon> I would be very suprised if the client could sync up to the server and tell it about state
+10:08 <+bridge> [ddnet] <chillerdragon> no \:D
+10:09 <+bridge> [ddnet] <Fän> Good good
+10:09 <+bridge> [ddnet] <chillerdragon> this is not minecraft haha
+10:09 <+bridge> [ddnet] <Fän> Just wondering as i've actually seen cheat clients for this
+10:09 <+bridge> [ddnet] <Fän> (mainly people complaining about it in #reports
+10:09 <+bridge> [ddnet] <Fän> (mainly people complaining about it in #reports)
+10:09 <+bridge> [ddnet] <chillerdragon> i doubt that
+10:09 <+bridge> [ddnet] <chillerdragon> what did you send?
+10:09 <+bridge> [ddnet] <chillerdragon> image.png
+10:09 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/894134069724581928/image.png
+10:09 <+bridge> [ddnet] <Fän> # reports
+10:10 <+bridge> [ddnet] <Fän> Anyway, time for work.
+10:10 <+bridge> [ddnet] <Fän> 👋
+10:10 <+bridge> [ddnet] <chillerdragon> the tw protocol is pretty safe regarding cheats by passing physics
+10:34 <+bridge> [ddnet] <denkbar> iirc, the protocol is mostly just the client sending keyboard input to the server and the server returning a gamestate
+10:34 <+bridge> [ddnet] <chillerdragon> ye
+10:34 <+bridge> [ddnet] <chillerdragon> how it should be in any sane game
+10:36 <+bridge> [ddnet] <Itube> chillerdragon: uwu
+10:36 <+bridge> [ddnet] <chillerdragon> OwO
+10:37 <+bridge> [ddnet] <chillerdragon> screenshot\_2021-10-03\_10-36-55.png
+10:37 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/894141028032983070/screenshot_2021-10-03_10-36-55.png
+10:37 <+bridge> [ddnet] <chillerdragon> send halp itube they bully me while coding .-.
+10:53 <+bridge> [ddnet] <Ryozuki> [236/236] Linking CXX executable DDNet
+10:53 <+bridge> [ddnet] <Ryozuki> 
+10:53 <+bridge> [ddnet] <Ryozuki> real    0m13.971s
+10:53 <+bridge> [ddnet] <Ryozuki> user    1m55.663s
+10:53 <+bridge> [ddnet] <Ryozuki> sys    0m7.239s
+10:53 <+bridge> [ddnet] <Ryozuki> compile time on r5 5600x
+10:53 <+bridge> [ddnet] <Ryozuki> with clang
+10:53 <+bridge> [ddnet] <deen> congrats on the update
+10:54 <+bridge> [ddnet] <Ryozuki> thanks
+10:54 <+bridge> [ddnet] <deen> Release build?
+10:54 <+bridge> [ddnet] <Ryozuki> cmake .. -GNinja -DMYSQL=ON -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo \
+10:54 <+bridge> [ddnet] <Ryozuki>     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DVIDEORECORDER=ON -DDOWNLOAD_GTEST=ON \
+10:54 <+bridge> [ddnet] <Ryozuki>     -D_CMAKE_TOOLCHAIN_PREFIX=llvm-
+10:54 <+bridge> [ddnet] <Ryozuki> ye
+10:54 <+bridge> [ddnet] <Ryozuki> i think my old cpu was bottlenecking the gpu
+10:54 <+bridge> [ddnet] <Ryozuki> on dota i got nearly 50 more fps
+10:55 <+bridge> [ddnet] <Ryozuki> well i also got new ram at 3200mhz
+10:55 <+bridge> [ddnet] <Ryozuki> from 2933
+10:55 <+bridge> [ddnet] <Ryozuki> but i doubt it matters much
+10:55 <+bridge> [ddnet] <deen> Twice as fast as my i7 6700k (28s)
+10:55 <+bridge> [ddnet] <Ryozuki> :o
+10:56 <+bridge> [ddnet] <Ryozuki> with clang?
+10:56 <+bridge> [ddnet] <deen> yes, same command as you
+10:56 <+bridge> [ddnet] <Ryozuki> ill try with gcc
+10:56 <+bridge> [ddnet] <Ryozuki> well i had this too export CXX=/usr/bin/clang++
+10:56 <+bridge> [ddnet] <deen> ah, llvm- is not enough
+10:56 <+bridge> [ddnet] <Ryozuki> ye
+10:57 <+bridge> [ddnet] <deen> 20 s then
+10:57 <+bridge> [ddnet] <Ryozuki> 17.7s for me with gcc
+10:57 <+bridge> [ddnet] <Ryozuki> so gcc is slower
+10:58 <+bridge> [ddnet] <Ryozuki> which means clang is even better for development
+10:58 <+bridge> [ddnet] <Ryozuki> faster iterations
+11:01 <+bridge> [ddnet] <Itube> I come in 1 hour
+15:20 <+bridge> [ddnet] <fokkonaut> @Learath2 weird behaviour on GER1 server
+15:20 <+bridge> [ddnet] <fokkonaut> everyone got connection problems
+15:21 <+bridge> [ddnet] <fokkonaut> without attacks :D after i rejoined it was also fully okay again
+15:26 <+bridge> [ddnet] <gerdoe> should i think about endianness while using std streams?
+15:32 <+bridge> [ddnet] <Learath2> You should almost never think about endianness
+15:32 <+bridge> [ddnet] <gerdoe> okeey
+15:33 <+bridge> [ddnet] <Learath2> A teeworlds data file will have a magic at the top. From which you can determine whether you need to flip or not
+15:34 <+bridge> [ddnet] <Learath2> (idk why that approach was taken instead of always saving datafiles little endian and swapping on big endian or vice versa)
+15:35 <+bridge> [ddnet] <Fän> Might be caused by handshake timeout(?)
+15:35 <+bridge> [ddnet] <gerdoe> yeah, no sane in this thing
+15:40 <+bridge> [ddnet] <Fän> meh, 130 clients handshaked
+15:58 <+bridge> [ddnet] <Shiro.> chillerdragon: send ur client version
+16:02 <+bridge> [ddnet] <fokkonaut> ger1 is so laggy rn
+16:02 <+bridge> [ddnet] <fokkonaut> @Fän
+16:13 <+bridge> [ddnet] <Fän> dont think i caught it on time
+16:15 <+bridge> [ddnet] <Fän> got it
+16:17 <+bridge> [ddnet] <fokkonaut> why is it laggy?
+16:18 <+bridge> [ddnet] <Fän> 1 moment
+16:25 <+bridge> [ddnet] <fokkonaut> wow
+16:25 <+bridge> [ddnet] <fokkonaut> connection problems again
+16:26 <+bridge> [ddnet] <fokkonaut> wtf
+16:26 <+bridge> [ddnet] <Fän> that's me recompiling the code
+16:26 <+bridge> [ddnet] <fokkonaut> DUDE
+16:26 <+bridge> [ddnet] <fokkonaut> D:
+16:26 <+bridge> [ddnet] <fokkonaut> omg
+16:26 <+bridge> [ddnet] <fokkonaut> i tohught saves are gone
+16:26 <+bridge> [ddnet] <Fän> well, if people wouldnt throw attacks using protocols from 1998
+16:26 <+bridge> [ddnet] <Fän> o it
+16:26 <+bridge> [ddnet] <Fän> towards it
+16:26 <+bridge> [ddnet] <Fän> this wouldnt happen
+16:26 <+bridge> [ddnet] <Fän> anyway, there we go
+16:26 <+bridge> [ddnet] <fokkonaut> xd
+16:26 <+bridge> [ddnet] <Fän> just dropping any unknown protocol now
+16:26 <+bridge> [ddnet] <fokkonaut> :D
+16:27 <+bridge> [ddnet] <Fän> ok, good to go now
+16:28 <+bridge> [ddnet] <fokkonaut> you probably fucked a lot of runs with this btw
+16:28 <+bridge> [ddnet] <Fän> and saved a lot of them in the future
+16:28 <+bridge> [ddnet] <Fän> Rather have it taken care of now than never
+16:28 <+bridge> [ddnet] <Fän> Rather have it taken care of now than never tbh
+16:30 <+bridge> [ddnet] <Fän> I'm surprised how protocols from literally 1998 are being used to attack stuff nowadays
+16:31 <+bridge> [ddnet] <fokkonaut> who attacked, do you know that?
+16:31 <+bridge> [ddnet] <Fän> nope, doesnt matter anyway
+16:31 <+bridge> [ddnet] <fokkonaut> is there an attack running rn?
+16:31 <+bridge> [ddnet] <Fän> nope
+16:31 <+bridge> [ddnet] <fokkonaut> but was?
+16:31 <+bridge> [ddnet] <Fän> any attack that would affect the server should show up @ $ddos
+16:31 <+bridge> [ddnet] <Fän> and yes
+16:32 <+bridge> [ddnet] <Fän> and yes, until I patched that flaw
+16:32 <+bridge> [ddnet] <fokkonaut> oh okay
+16:33 <+bridge> [ddnet] <Fän> Code in germany is really far behind as it's quite outdated
+16:33 <+bridge> [ddnet] <Fän> and can't be updated to up2date until the new router comes on
+16:33 <+bridge> [ddnet] <Fän> and can't be updated to up2date until the new router comes in
+16:33 <+bridge> [ddnet] <fokkonaut> still lagging
+16:33 <+bridge> [ddnet] <Fän> no attack here
+16:33 <+bridge> [ddnet] <fokkonaut> well
+16:34 <+bridge> [ddnet] <fokkonaut> its lagging :D
+16:34 <+bridge> [ddnet] <Fän> Might be you?
+16:34 <+bridge> [ddnet] <Fän> like i said, no attack running
+16:34 <+bridge> [ddnet] <Fän> $ddos
+16:34 <+bridge> [ddnet] <Fän> ^
+16:34 <+bridge> [ddnet] <fokkonaut> more likely the server
+16:34 <+bridge> [ddnet] <fokkonaut> ^^
+16:34 <+bridge> [ddnet] <fokkonaut> i am not lagging
+16:36 <+bridge> [ddnet] <fokkonaut> then it has to be the CPu
+16:37 <+bridge> [ddnet] <Fän> You mean the CPU running at 10%?
+16:37 <+bridge> [ddnet] <fokkonaut> or some other hardware
+16:37 <+bridge> [ddnet] <fokkonaut> idk
+16:37 <+bridge> [ddnet] <fokkonaut> its definitely the server
+16:37 <+bridge> [ddnet] <Fän> https://ddnet.tw/status/
+16:38 <+bridge> [ddnet] <Fän> considering that most ppl are 19-40ms, atleast as of right now, I don't think anything major is going on
+16:38 <+bridge> [ddnet] <fokkonaut> have you ever joined and tested yourself?
+16:38 <+bridge> [ddnet] <Fän> I am in it right now.
+16:38 <+bridge> [ddnet] <fokkonaut> its not unplayable but there are stutters
+16:38 <+bridge> [ddnet] <Fän> jumping around with no lags whatsoever.
+16:38 <+bridge> [ddnet] <fokkonaut> xD
+16:39 <+bridge> [ddnet] <Fän> You're also at 38ms
+16:39 <+bridge> [ddnet] <Fän> 🙂
+16:39 <+bridge> [ddnet] <Fän> Have you tried reconnecting?
+16:39 <+bridge> [ddnet] <fokkonaut> wont help lol
+16:39 <+bridge> [ddnet] <Fän> Check.
+16:39 <+bridge> [ddnet] <fokkonaut> no im in the run
+16:39 <+bridge> [ddnet] <Fän> I'm jumping around with no lags whatsoever
+16:40 <+bridge> [ddnet] <Fän> Only thing i could think of is that it somehow messed up packet sync or whatever during the time I had to recompile / restart filtering
+16:41 <+bridge> [ddnet] <Fän> which i've seen a
+16:41 <+bridge> [ddnet] <Fän> which i've seen happening in source games a lot
+16:54 <+bridge> [ddnet] <fokkonaut> zooming out a lot makes the game lag
+16:54 <+bridge> [ddnet] <fokkonaut> only on ger1
+16:55 <+bridge> [ddnet] <fokkonaut> (not the game, but it looks like the traffic doesnt work correctly, still > 500fps)
+16:55 <+bridge> [ddnet] <SPYRES> Making changes is production just hits differently 😉 😉
+16:55 <+bridge> [ddnet] <SPYRES> Making changes in production just hits differently 😉 😉
+16:55 <+bridge> [ddnet] <fokkonaut> @Fän seems like ur firewall is not working correctly yet
+16:56 <+bridge> [ddnet] <SPYRES> Maybe its anti fokkonaut 😜
+16:56 <+bridge> [ddnet] <fokkonaut> u
+16:56 <+bridge> [ddnet] <Fän> Didn't affect much in this case, but we usually only do this during "emergencies"
+16:56 <+bridge> [ddnet] <Fän> or well, in this case, getting things to run ok
+16:57 <+bridge> [ddnet] <SPYRES> Yeah ik. I'm just messing with yah. I do it as well on our firewall. Waste time in CAB.
+16:57 <+bridge> [ddnet] <Fän> idk how that would be related to game traffic / filtering. Once you are connected, you're whitelisted to send / receive traffic. There's no "traffic blocking" at that point
+16:57 <+bridge> [ddnet] <Fän> Like I said, try rejoining. Chances are something messed up during the reconnect.
+16:58 <+bridge> [ddnet] <fokkonaut> When you zoom out, you tell the server your zoom level
+16:58 <+bridge> [ddnet] <fokkonaut> maybe it's because you receive too many objects then?
+16:58 <+bridge> [ddnet] <Fän> Ok, like I said, you're either whitelisted to send traffic, or not. There's no in-between.
+16:58 <+bridge> [ddnet] <fokkonaut> Reconnecting doesnt help
+16:58 <+bridge> [ddnet] <fokkonaut> Maybe try it yourself ^^
+16:58 <+bridge> [ddnet] <Fän> I did a while ago
+16:58 <+bridge> [ddnet] <fokkonaut> Again?
+16:58 <+bridge> [ddnet] <Fän> sure
+16:58 <+bridge> [ddnet] <SPYRES> If I could I'd let deen host at where I work. 20GB links and we own a /16 on the internet. Pitty I dont own the organisation 😩
+16:58 <+bridge> [ddnet] <fokkonaut> On my own server with way more objects it doesnt lag at all
+16:59 <+bridge> [ddnet] <Fän> Even with "20gbps" links, if your server can't handle the l7 load, there's not much you can do
+16:59 <+bridge> [ddnet] <Fän> from deen's blog post, the server literally dies at < 100mbps
+17:00 <+bridge> [ddnet] <fokkonaut> @Fän just tried it again, it really is only on your server
+17:00 <+bridge> [ddnet] <Fän> hm, maybe fragment-related?
+17:00 <+bridge> [ddnet] <Fän> i just started dropping fragmented responses as this would bypass the filtering
+17:00 <+bridge> [ddnet] <Fän> but i can just let whitelisted clients send fragments, shouldnt be an issue
+17:01 <+bridge> [ddnet] <fokkonaut> it seems to be only on jao shooter
+17:01 <+bridge> [ddnet] <Fän> Any other GER1 server works ok?
+17:01 <+bridge> [ddnet] <Fän> that's odd, maybe map-related or something?
+17:01 <+bridge> [ddnet] <fokkonaut> i guess, but this is also the one with most players
+17:01 <+bridge> [ddnet] <Fän> other players have no impact on your network performance
+17:01 <+bridge> [ddnet] <Fän> or mitigation
+17:01 <+bridge> [ddnet] <Fän> or anything
+17:01 <+bridge> [ddnet] <Fän> or anything really
+17:01 <+bridge> [ddnet] <Fän> We've kept that in mind
+17:02 <+bridge> [ddnet] <fokkonaut> of course, more objects to be sent, i dont know how your firewall is constructed
+17:02 <+bridge> [ddnet] <Fän> We do not perform any rate limiting.
+17:02 <+bridge> [ddnet] <SPYRES> True but we got ddos mitigation upstream as well by our ISP before it comes to us over the 20Gbps links. I dont see why it wouldnt not handle it. We got a proper VMware infrastructure. But things like XDP and reading cloudflare blogs is more interesting.
+17:02 <+bridge> [ddnet] <Fän> like i said, once you're validated, you're ok to throw as much traffic as you want
+17:02 <+bridge> [ddnet] <fokkonaut> then it seems like i am a psyhco
+17:02 <+bridge> [ddnet] <fokkonaut> then it seems like i am a psycho
+17:02 <+bridge> [ddnet] <fokkonaut> and there is no lag
+17:03 <+bridge> [ddnet] <Fän> maybe a bug?
+17:03 <+bridge> [ddnet] <Fän> I have no idea, but i'm on there just fine
+17:03 <+bridge> [ddnet] <Fän> surely odd though
+17:03 <+bridge> [ddnet] <fokkonaut> zoom out
+17:03 <+bridge> [ddnet] <fokkonaut> max
+17:03 <+bridge> [ddnet] <fokkonaut> with opengl 3 on, there should be a limit in zooming out
+17:03 <+bridge> [ddnet] <fokkonaut> and that state is still playable with 500 fps at least
+17:03 <+bridge> [ddnet] <fokkonaut> for me, but the network is lagging, and thats only on this server
+17:04 <+bridge> [ddnet] <Fän> "ddos mitigation" which is based on best-effort.
+17:04 <+bridge> [ddnet] <Fän> You will still see >1Gbps leaks every now and then.
+17:04 <+bridge> [ddnet] <Fän> 
+17:04 <+bridge> [ddnet] <Fän> There's not just packet size to consider, but also the rate of those coming in.
+17:04 <+bridge> [ddnet] <Fän> From what i can see, ddnet can handle about 300k pps with a decent CPU
+17:04 <+bridge> [ddnet] <Fän> tried any other ger1 server though?
+17:05 <+bridge> [ddnet] <Fän> I'll check, my mac won't let me zoom out though, so it might take a while
+17:05 <+bridge> [ddnet] <fokkonaut> i'll check if thats the map, because it has an unusual amount of draggers and @deen changed the networkclipping to always send all objects in your area zoom distance (which on my server again works fine with wwaaaay more objects (so many that the snap fills up to max size when zooming out completely))
+17:06 <+bridge> [ddnet] <Fän> Maybe it is fragment-related after all.
+17:06 <+bridge> [ddnet] <Fän> We'll see in a moment
+17:07 <+bridge> [ddnet] <fokkonaut> its a bit too on another server with this map, but the current server seems to be the worst (probably due to all the players)
+17:08 <+bridge> [ddnet] <Fän> check again?
+17:09 <+bridge> [ddnet] <fokkonaut> still
+17:09 <+bridge> [ddnet] <Fän> Doesn't seem filter-related then.
+17:10 <+bridge> [ddnet] <SPYRES> My palo alto seems to be doing a decent enough job. No complains yet. We dont go as in depth as XDP at where I work. We pay for things to work out the box and let someone else handle development! :p
+17:10 <+bridge> [ddnet] <fokkonaut> client restart also didnt help, must be the full snap then
+17:10 <+bridge> [ddnet] <Fän> hmm actually
+17:11 <+bridge> [ddnet] <Fän> what about now?
+17:12 <+bridge> [ddnet] <fokkonaut> still
+17:12 <+bridge> [ddnet] <Fän> yeah sorry, i can't really tell what it is then
+17:12 <+bridge> [ddnet] <Fän> 1 mom
+17:12 <+bridge> [ddnet] <Fän> oh dang
+17:12 <+bridge> [ddnet] <Fän> might've fat fingered there
+17:13 <+bridge> [ddnet] <Fän> -_-
+17:13 <+bridge> [ddnet] <fokkonaut> yea seems like it did you crash the server?=
+17:13 <+bridge> [ddnet] <Fän> no
+17:13 <+bridge> [ddnet] <fokkonaut> the fuck is happening then
+17:13 <+bridge> [ddnet] <Fän> give it a second
+17:13 <+bridge> [ddnet] <Fän> I fat fingered
+17:13 <+bridge> [ddnet] <fokkonaut> connection problems, out of game back to back
+17:13 <+bridge> [ddnet] <Fän> ok, give it another try now
+17:14 <+bridge> [ddnet] <fokkonaut> same
+17:14 <+bridge> [ddnet] <Fän> can't really tell then
+17:14 <+bridge> [ddnet] <fokkonaut> im pretty sure its all the draggers when zooming out
+17:14 <+bridge> [ddnet] <Fän> I'll check this out when on pc
+18:23 <+bridge> [ddnet] <chillerdragon> the client i use includes bots \:-. so im not sharing it
+18:23 <+bridge> [ddnet] <chillerdragon> (@Shiro.)
+18:23 <+bridge> [ddnet] <chillerdragon> @ddnet staff pls no ban
+18:28 <+bridge> [ddnet] <Shiro.> its ok, bot is nice
+19:02 <+bridge> [ddnet] <gerdoe> chillerbot confirmed
+19:09 <+bridge> [ddnet] <Robyt3> nice, you can now generate mostly redundant comments automatically for your school projects :greenthing:
+19:09 <+bridge> [ddnet] <Robyt3> https://cdn.discordapp.com/attachments/293493549758939136/894269910128164904/unknown.png
+23:10 <+bridge> [ddnet] <heinrich5991> looks like the comments are incorrect

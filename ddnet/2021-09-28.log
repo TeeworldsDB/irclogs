@@ -1,0 +1,247 @@
+00:00 <+bridge> [ddnet] <chillerdragon> its just a tw mod
+00:00 <+bridge> [ddnet] <Learath2> well stalin's kind could solve ddos, shoot anyone who ddoses 😛
+00:00 <+bridge> [ddnet] <chillerdragon> heinrichs dissector is mentioned pog!
+00:00 <+bridge> [ddnet] <chillerdragon> such a good dissector \:)
+00:01 <+bridge> [ddnet] <chillerdragon> @fokkonaut\: maybe u want to read about ddos too \:D
+00:05 <+eeeee> and again i don't have the latest context about how many players are vanilla vs ddnet client, but if ignoring vanilla is an option then you could drop all packets in iptables by default and when a client wants to connect make it first make a http request which would punch the hole for specific ip and port in the firewall to let the udp in
+00:06 <+eeeee> might be simpler than XDP
+00:06 <+bridge> [ddnet] <Learath2> eeeee: That is what we did last tournament and I started automating it using ipset today, just didn't quite finish it yet
+00:07 <+eeeee> yeah that's nice. pretty obvious idea but didnt see it mentioned in the post
+00:07 <+bridge> [ddnet] <deen> Oh yeah, I forgot to mention that in the blog post actually
+00:07 <+bridge> [ddnet] <chillerdragon> @noby\: onbgy mentioned in hackernews trending article hrhrhr
+00:07 <+bridge> [ddnet] <Arie> For Team Fortress 2 I've implemented something similar as what eeeee is suggesting
+00:07 <+bridge> [ddnet] <Kigen> Yeah, I came over after seeing the ycombinator article.  I have extensive experience in dealing with DDoS and DoS attacks against game servers (specifically the Source engine).
+00:09 <+bridge> [ddnet] <Kigen> I've been trying to dig into the open source code to understand the packet structure, but a packet capture would be better, especially of the attack if that is available.
+00:09 <+bridge> [ddnet] <chillerdragon> @deen\: "We know the real name of the main DoS attacker" do you mean vali? where did you get his name from?
+00:10 <+bridge> [ddnet] <Learath2> Yeah, you might have a bit of trouble understanding the base part of the netcode as it's a bit of a mess supporting 3 different versions of the protocol. I don't have an anonymized tcpdump I can share currently, but I can try to create a sample tomorrow
+00:11 <+bridge> [ddnet] <Kigen> That would be appreciated.  As I maybe able to develop something similar to the tools that I currently use to protect Source engine games.
+00:12 <+bridge> [ddnet] <Kigen> Though some quick questions, when the client makes a request for server info, how many bytes do they have to send vs how many do they receive?
+00:12 <+bridge> [ddnet] <Arie> @Kigen can you share some info on what you're working on for source engine games?
+00:12 <+bridge> [ddnet] <Kigen> Its a query cache and filter that used BPF and emulated networking to the Source engine server.
+00:13 <+bridge> [ddnet] <Arie> query cache to stop a2s player/info like attacks?
+00:14 <+bridge> [ddnet] <Kigen> Yeah, but also it filtered everything else out from reaching the server.  So either it handled it, or it knew the client was legitimate to pass on to the game server.
+00:14 <+bridge> [ddnet] <Arie> Ah right, I have something dumber where I severely rate limit unknown clients
+00:14 <+bridge> [ddnet] <Kigen> An important thing is to make sure the client has to send as many bytes as they receive to prevent usefulness in reflection attacks.
+00:14 <+bridge> [ddnet] <Arie> and whitelist players after connect
+00:17 <+bridge> [ddnet] <Arie> regarding having your service used as an amplifier, TF2 has a global query limit per second/window and a challenge/response system for larger replies, which made it uninteresting for people looking for ddos amplifiers
+00:17 <+bridge> [ddnet] <Arie> regarding having your service used as an amplifier, TF2-server has a global query limit per second/window and a challenge/response system for larger replies, which made it uninteresting for people looking for ddos amplifiers
+00:18 <+bridge> [ddnet] <Learath2> Depends on how full the server is and whether the server thinks it's getting flooded with requests. Under attack the server will send a minimal serverinfo about 380~b. The request is 30~b iirc
+00:18 <+bridge> [ddnet] <chillerdragon> @Kigen\: i have a ddos dump but i am not sure how to censor ips and stuff before i can post it here
+00:18 <+bridge> [ddnet] <Arie> a ddos dump will be full of spoofed IPs anyway 😁
+00:18 <+bridge> [ddnet] <chillerdragon> yea true
+00:18 <+bridge> [ddnet] <Kigen> Yeah, but some legit clients maybe in there so I understand the concern.
+00:19 <+bridge> [ddnet] <Learath2> iptables rules will also agressively limit the reflection ratio
+00:19 <+bridge> [ddnet] <chillerdragon> ips are not too sensitive but still
+00:19 <+bridge> [ddnet] <Kigen> If you want to find some way to get it to me privately via DMs if you also have Discord it'd work.
+00:19 <+bridge> [ddnet] <Learath2> ips are not exactly what is senstive, there might be rcon passwords in there
+00:19 <+bridge> [ddnet] <chillerdragon> nah i do not have discord
+00:20 <+bridge> [ddnet] <chillerdragon> i grepped for the rcon password but not sure if grep works against pcap files \:D
+00:20 <+bridge> [ddnet] <Kigen> Wireshark is very good about scanning things if you use that.  But it also depends on if the game transforms the password any.
+00:21 <+bridge> [ddnet] <Kigen> Such as via hashing it.
+00:21 <+bridge> [ddnet] <Kigen> Though most game protocols I'm aware of don't.
+00:22 <+bridge> [ddnet] <Learath2> Anyway, I'm not completely sure what you'll get out of a dump. Attacks vary, so some days we get NTP amplification, some days we get SYN, some days we'll just get random garbage, some days we'll get packets resembling game packets to try get deeper into the netcode before getting dropped
+00:22 <+bridge> [ddnet] <Arie> aren't you also globally rate limiting replies? a 380b reply to a 30b request is still valuable to someone looking for amplification
+00:22 <+bridge> [ddnet] <chillerdragon> nah passwords are sent as plaintext
+00:22 <+bridge> [ddnet] <Arie> Been dealing with very similar attack patterns over the past few months @Learath2
+00:22 <+bridge> [ddnet] <Learath2> ^^, we do globally limit
+00:22 <+bridge> [ddnet] <Arie> Get the kitchen sink thrown at me daily
+00:23 <+bridge> [ddnet] <Arie> NTP, DNS, memcached, and bespoke TF2-like packets
+00:23 <+bridge> [ddnet] <Kigen> I honestly would suggest increasing the required bytes for the client to send.  Obviously doesn't need to be anything useful but that way the server can simply discard a packet that isn't of the correct length.  And, of course, usefulness in reflection is reduced.
+00:24 <+bridge> [ddnet] <Kigen> For NTP, DNS, memcached, etc it is pretty easy to filter those out via blocking source ports.
+00:24 <+bridge> [ddnet] <Arie> if you can filter upstream, yes
+00:24 <+bridge> [ddnet] <Kigen> Since the vast majority run on default ports.
+00:24 <+bridge> [ddnet] <Learath2> An updated version of the protocol (0.7) already requires 512b request packets, we could indeed move towards that. It just hasn't been a priority since reflection isn't the main issue we have right now
+00:25 <+eeeee> know any good hosters who let you easily filter upstream by source port?
+00:25 <+bridge> [ddnet] <Kigen> OVH is the easiest if you have to acquire a server today that can deal with these type of attacks.
+00:25 <+bridge> [ddnet] <Arie> For dedis, hetzner and mach5 allow you to configure upstream rules
+00:26 <+bridge> [ddnet] <Arie> For dedis, hetzner and psychz allow you to configure upstream rules
+00:26 <+bridge> [ddnet] <Arie> And I agree with Kigen on OVH
+00:26 <+bridge> [ddnet] <Arie> Their soyoustart line is limited in what you can do
+00:26 <+bridge> [ddnet] <Arie> although their game anti ddos is decent, but won't support your game
+00:26 <+bridge> [ddnet] <Learath2> Google Cloud lets you set filters on the hypervisor/upstream and they have great connections, we used it extensively on the tournament day. nfoservers also seems to have large uplinks on their hypervisors, though they are not really fond of us as customers anymore
+00:26 <+bridge> [ddnet] <Arie> also won't filter out the bespoke game-specific attacks
+00:26 <+eeeee> Learath2: if you only support ddnet client then why not keep only the http server info and delete the udp one? and if vanilla support is still needed then protocol upgrade isn't a good option, right?
+00:27 <+bridge> [ddnet] <Kigen> I've been working on a service I'm hoping to offer people, but acquiring the IPv4 addresses it quite a challenge these days.
+00:27 <+bridge> [ddnet] <heinrich5991> I think you can still keep an aggressively rate limited backward compatibility for the info
+00:28 <+bridge> [ddnet] <heinrich5991> @ eeeee
+00:28 <+bridge> [ddnet] <Arie> @Learath2 guess you've gotten a few of those "a very large ddos attack on your server overwhelmed our filtering capactity" emails too huh? 🙂
+00:28 <+bridge> [ddnet] <Learath2> eeeee: heinrich is working on getting the servers registered over http aswell, so when that is here we can more agressively filter out people that don't go through the modern channel
+00:28 <+bridge> [ddnet] <Learath2> @Arie yep, followed by either a massive blanket rule or a null-route for hours/days/weeks
+00:28 <+bridge> [ddnet] <Arie> yeah been there, even though I mostly  use their Chicago location
+00:29 <+bridge> [ddnet] <Arie> which supposedly has the most capacity
+00:29 <+bridge> [ddnet] <Learath2> funnily enough hetzner has been the only ones to let us use the 1g dedicated link they promise, all other hosters seem to get their noses into the kind of traffic you receive
+00:29 <+bridge> [ddnet] <Arie> hetzner does these days, they used to null route quite soon
+00:29 <+bridge> [ddnet] <Learath2> Yep, back in the day they would null route you before you could notice the ddos even
+00:30 <+bridge> [ddnet] <Arie> also their "firewall" rules are nice to have now
+00:30 <+bridge> [ddnet] <Arie> filters a lot of the big and easy crap
+00:32 <+eeeee> i think it would be ideal if you could accept inbound traffic through google cloud or some other huge hoster, have multiple scrubber vpses in there on multiple ips which forward only legit traffic to real server (which is not at google) which then sends outbound traffic through spoofed ips (of the scrubbers) to save on bandwidth costs (which is quite $$$ at google)
+00:33 <+bridge> [ddnet] <Kigen> Hmm, that is basically what I'm building right now. lol
+00:33 <+bridge> [ddnet] <Arie> Aka steam datagram relay
+00:33 <+eeeee> could be a good startup idea if any of these games had any money to spend on this tech -_-
+00:34 <+bridge> [ddnet] <Kigen> Like I said, I'm literally building that network now.  Just wish it was ready today.
+00:34 <+bridge> [ddnet] <Learath2> eeeee: Hm, scrubbers would be on google cloud too, no? If all the traffic goes through there I don't see where we are saving the money
+00:34 <+bridge> [ddnet] <Arie> only incoming traffic
+00:34 <+eeeee> google cloud only charges for outbound traffic, inbound is free
+00:35 <+eeeee> so you'd only be charged for the legit traffic from scrubbers to real server
+00:36 <+bridge> [ddnet] <Learath2> Hm, but we only had a good experience at google cloud because we were agressively filtering traffic from all non-players. I think unless we run a whole lot of scrubbers they would easily be overwhelmed
+00:36 <+bridge> [ddnet] <Kigen> Curious if Google Clould allows BGP announcement.  So far I've only run across their Cloud Router.
+00:37 <+bridge> [ddnet] <Learath2> If they are to survive they will need to interface with the google api to set upstream firewall rules
+00:37 <+bridge> [ddnet] <Arie> Global rate limit for non-players is a good idea anyway
+00:37 <+bridge> [ddnet] <Arie> saves a lot of packets hitting userland code in the gameserver
+00:38 <+bridge> [ddnet] <Learath2> Anyway, I'll get some sleep. I'll try to get a working version of the player filter tomorrow and a new set of iptables rules
+00:38 <+bridge> [ddnet] <Learath2> Nice to see new faces around, it's always good to get fresh minds on problems
+00:39 <+bridge> [ddnet] <Learath2> Especially opinions from people experienced in the topic 🙂
+00:39 <+bridge> [ddnet] <Arie> Hope to get some more ideas from here too, looks like you guys have similar problems as me with TF2
+00:39 <+bridge> [ddnet] <Kigen> Just wish I had something to offer you today.  Have a nice sleep.
+01:08 <+bridge> [ddnet] <heinrich5991> interesting, didn't know the article that you posted @Learath2 http://ithare.com/udp-for-games-security-encryption-and-ddos-protection/
+01:09 <+bridge> [ddnet] <Learath2> Huh, I'm sure I mentioned it here once. I think someone recently linked it in a github issue aswell
+02:05 <+bridge> [ddnet] <heinrich5991> `traceroute -m40 hand.bb0.nl`
+02:06 <+bridge> [ddnet] <heinrich5991> (needs ipv6)
+02:13 <+bridge> [ddnet] <Fän> If the entire point if the article is to "encrypt" udp traffic, it won't make a difference.
+02:13 <+bridge> [ddnet] <Fän> Encrypting initial handshake packet as example, will make it way harder to seperate legitimate from malicious traffic.
+02:13 <+bridge> [ddnet] <Fän> If the entire point of the article is to "encrypt" udp traffic, it won't make a difference.
+02:17 <+bridge> [ddnet] <Kigen> Yes.  At the filtering level encrypting will make it that much harder to tell a legitimate packet apart.  But with all things there would still need to be a handshake.  As long as there is a handshake that can be emulated at an upstream level it will make the game more easy to protect.  CF for instance emulates a handshake for TLS for customers that don't want CF to see their traffic.
+02:21 <+bridge> [ddnet] <Kigen> But encrypting UDP packets at the game level may become messy.  Since often encryption changes based on previous bytes sent and also a video game does not care to resend a stale game world state so the encryption could fail.
+02:23 <+bridge> [ddnet] <Fän> The game is pretty damn easy to protect to begin with.
+02:23 <+bridge> [ddnet] <Fän> Everything you need is there, an initial UDP handshake challenge is sufficient.
+02:23 <+bridge> [ddnet] <Fän> (We've already made a filter, took about 2 minutes of looking at traffic in wireshark)
+02:24 <+bridge> [ddnet] <Kigen> Yes.  I was just pointing out problems with encrypting.  But also that it probably won't affect filtering that much.
+02:25 <+bridge> [ddnet] <Fän> It could affect filtering, depending on how well the encryption is handled.
+02:25 <+bridge> [ddnet] <Fän> If there's still an easily recognizable handshake packet, no problem.
+02:25 <+bridge> [ddnet] <Fän> But again, "encrypting" packets will not solve ddos attacks.
+02:25 <+bridge> [ddnet] <Fän> It will stop users from messing with the game on network-level, but it won't really affect ddos attacks at all.
+02:26 <+bridge> [ddnet] <Kigen> Encryption of this type does require a handshake process unless they have a pre-shared key.
+02:26 <+bridge> [ddnet] <Kigen> And yeah, encrypting has no effect on DDoS protection.  Encrypting should be for the purposes of privacy or tamper protection to sensitive communications.
+02:27 <+bridge> [ddnet] <Fän> I agree, what I am trying to say is that if you introduced game-specific ddos filtering, and the initial handshake packet is being messed with by the encryption, filtering will just become way harder.
+02:27 <+bridge> [ddnet] <Fän> (Talking about the initial challenge packet (10\00\00\01\TKEN)
+02:27 <+bridge> [ddnet] <Fän> (Talking about the initial challenge packet (10\00\00\01\TKEN))
+02:28 <+bridge> [ddnet] <Fän> Regardless,  as you already said, encrypting will not "protect" you from ddos attacks.
+02:28 <+bridge> [ddnet] <Kigen> I haven't had a chance to look at packet captures of this game's communication yet.  But I am familiar with the concepts from building such filtering for the Source engine.
+02:28 <+bridge> [ddnet] <Fän> Well, with source engine, you'd still have to cache A2S_INFO packets
+02:29 <+bridge> [ddnet] <Fän> with this server application, you do not have to
+02:29 <+bridge> [ddnet] <Kigen> There are a lot more attack vectors.
+02:29 <+bridge> [ddnet] <Fän> Not if your filtering works properly.
+02:29 <+bridge> [ddnet] <Fän> I'm not talking about just caching info packets, I'm trying to point out that this is not necessary with this game
+02:29 <+bridge> [ddnet] <Fän> I'm not talking about just caching info packets, I'm trying to point out that this is not necessary with this game/mod
+02:29 <+bridge> [ddnet] <Fän> therefore it is even easier to craft a filter than for e.g. SRCDS
+02:29 <+bridge> [ddnet] <Fän> therefore it is even easier to craft a filter than for e.g. SRCDS, which is already fairly trivial
+02:29 <+bridge> [ddnet] <Kigen> A2S_CHALLENGE, the connect 'k' packet. etc
+02:30 <+bridge> [ddnet] <Fän> A2S_CHALLENGE is handled pretty easily
+02:30 <+bridge> [ddnet] <Kigen> The servers I worked on protecting got hit with everything under the sun.
+02:31 <+bridge> [ddnet] <Fän> Our SRCDS filter is ~100 lines of C, and I am fairly confident that it'd work flawlessly
+02:31 <+bridge> [ddnet] <Kigen> I basically just fully emulated every unauthenticated communication.
+02:31 <+bridge> [ddnet] <Kigen> And built in a ban and rate limit system.
+02:32 <+bridge> [ddnet] <Kigen> Due to a dude that kept using so many VPNs to connect and attack the server that way.
+02:32 <+bridge> [ddnet] <Fän> Do not allow any packets except for A2S_INFO, which you'll respond to from a cache instead.
+02:32 <+bridge> [ddnet] <Fän> Listen for SRCDS challenge header, reply with a crafted packet, and validate that.
+02:32 <+bridge> [ddnet] <Fän> 
+02:32 <+bridge> [ddnet] <Fän> Now, you start accepting other packets from that source ip & source port. Otherwise, drop.
+02:32 <+bridge> [ddnet] <Fän> Bam, there you go. Only thing limiting you now is capacity.
+02:33 <+bridge> [ddnet] <Kigen> I built that quite a few years ago.
+02:33 <+bridge> [ddnet] <Kigen> And the capacity problem is something I'm trying to address now.  But the issue is waiting for ARIN to give me a IPv4 /22.
+02:34 <+bridge> [ddnet] <Fän> Also, for the love of god, do not go with Cogent.
+02:34 <+bridge> [ddnet] <Kigen> lol
+02:34 <+bridge> [ddnet] <Fän> I've seen someone mention Cogent in here, horrible choice.
+02:34 <+bridge> [ddnet] <Kigen> My main issues have been with HE.net lately.  They keep screwing up their BGP.
+02:34 <+bridge> [ddnet] <Fän> Should talk to Cogent Customer Support
+02:35 <+bridge> [ddnet] <Fän> "Sorry sir, BGP is not something we offer"
+02:35 <+bridge> [ddnet] <Fän> Cheap? Sure.
+02:35 <+bridge> [ddnet] <Fän> Quality? If you stay within Cogent yes. If Cogent starts handing off packets to GTT / whatever other isp, you will start seeing packet loss. a lot.
+02:36 <+bridge> [ddnet] <Kigen> Well, I've already been approved for an ASN, on a wait list for IPv4, and getting some IPv6 for giggles).
+02:36 <+bridge> [ddnet] <Fän> IPv4 should be handed out in a few days
+02:36 <+bridge> [ddnet] <Fän> IPv4 should be handed out in a few days, if you're with ARIN
+02:36 <+bridge> [ddnet] <Kigen> Yes, Oct 1.
+02:36 <+bridge> [ddnet] <Fän> if you're lucky, that is.
+02:36 <+bridge> [ddnet] <Kigen> If I'm lucky.  So far they've been able to fully fulfill their quarterly wait lists.
+02:36 <+bridge> [ddnet] <Fän> If you're lucky. Last time we've received an allocation was 10 days after allocations were given out
+02:37 <+bridge> [ddnet] <Kigen> So I am quite hopeful.
+02:37 <+bridge> [ddnet] <Fän> and that was for a single /24
+02:37 <+bridge> [ddnet] <Kigen> They do say it takes them a week after Oct 1 to fully distribute IPs.
+02:37 <+bridge> [ddnet] <Kigen> Not including weekends.
+02:37 <+bridge> [ddnet] <Kigen> But I became aware of the need.
+02:38 <+bridge> [ddnet] <Fän> If I can tell you one thing, then it is to always request a /22
+02:38 <+bridge> [ddnet] <Fän> We've requested /24's in the past, horrible choice
+02:38 <+bridge> [ddnet] <Kigen> Since a gaming community I'm with rents a /24 for a stupid price so they can host 5 servers with an anycast network.
+02:38 <+bridge> [ddnet] <Kigen> Oh I definitely will stick with /22.  I got approved for it.
+02:38 <+bridge> [ddnet] <Kigen> And once I can justify another block I'll definitely do it as a /22 if possible.
+02:39 <+bridge> [ddnet] <Fän> IPv4 is also a ridiculous investment.
+02:39 <+bridge> [ddnet] <Fän> a month ago, a /22 was worth $40k, now it'S worth $60k
+02:39 <+bridge> [ddnet] <Fän> IPv4 is also a ridiculous investment.
+02:39 <+bridge> [ddnet] <Fän> a month ago, a /22 was worth $40k, now it's worth $60k
+02:39 <+bridge> [ddnet] <Kigen> ARIN sets a limit on transfers for 5 years to prevent people from using their wait list to resell the blocks.
+02:40 <+bridge> [ddnet] <Fän> I'm aware
+02:40 <+bridge> [ddnet] <Kigen> And that is something I did think of in case things don't work out with my plan.
+02:40 <+bridge> [ddnet] <Fän> I'm just pointing it out
+02:41 <+bridge> [ddnet] <Kigen> But I just want to solve some waste I've seen with a gaming community I'm apart of and another that we worked with.  Renting entire /24 from prager-it for stupid prices to host 5 to 20 servers.
+02:43 <+bridge> [ddnet] <Fän> Which Com is it?
+02:44 <+bridge> [ddnet] <Fän> I know a few who are renting from Prager-IT
+02:44 <+bridge> [ddnet] <Fän> (Panda & GFL as example)
+02:44 <+bridge> [ddnet] <Kigen> GFL and HG.
+02:44 <+bridge> [ddnet] <Fän> gfl it is
+02:44 <+bridge> [ddnet] <Fän> ok
+02:44 <+bridge> [ddnet] <Kigen> I'm apart of HG.
+02:44 <+bridge> [ddnet] <Fän> Ah, I see
+02:44 <+bridge> [ddnet] <Kigen> And we had a partnership with GFL for a Jailbreak server while Roy was there.
+02:44 <+bridge> [ddnet] <Fän> He *was*
+02:45 <+bridge> [ddnet] <Kigen> Yup.  "while Roy was there"
+02:45 <+bridge> [ddnet] <Kigen> Learned a little bit about their network but I never directly interacted with Roy.
+02:45 <+bridge> [ddnet] <Kigen> Or had access.
+02:45 <+bridge> [ddnet] <Fän> If you have questions, dm me
+02:46 <+bridge> [ddnet] <Fän> I worked with Roy for a while
+02:46 <+bridge> [ddnet] <Fän> GFL stopped doing anycast btw.
+02:47 <+bridge> [ddnet] <Kigen> Yeah, I know since I think Jailbreak is becoming an HG only server as well now.
+02:47 <+bridge> [ddnet] <Kigen> HG rebuilt the anycast network with Vultr.
+02:47 <+bridge> [ddnet] <Kigen> Though I remember Roy used another provider as well.
+02:47 <+bridge> [ddnet] <Fän> GSK
+02:47 <+bridge> [ddnet] <Fän> Vultr is a horrible choice, but it's hard to find good providers that do BGP
+02:47 <+bridge> [ddnet] <Fän> Vultr is a horrible choice, but it's hard to find good providers that do BGP in many locations
+02:48 <+bridge> [ddnet] <Kigen> Yes, I need a provider that allows me to announce and control a BGP.
+02:48 <+bridge> [ddnet] <Kigen> If you know of any others I'd appreciate it.
+02:50 <+bridge> [ddnet] <Kigen> What's even harder seems to be ones that support flowspec.
+02:50 <+bridge> [ddnet] <Fän> We provide BGP free of charger
+02:50 <+bridge> [ddnet] <Fän> We provide BGP free of charge
+02:51 <+bridge> [ddnet] <Kigen> We?  Gameserverkings?
+02:51 <+bridge> [ddnet] <Fän> No
+02:51 <+bridge> [ddnet] <Fän> I'll hit you up in DMs.
+04:51 <+bridge> [ddnet] <pamonha1487777> hi, i wanted to know who are the brazilian admins
+05:01 <+bridge> [ddnet] <Skeith> @pamonha1487777 https://ddnet.tw/staff/
+05:02 <+bridge> [ddnet] <Skeith> I'm assuming you meant moderators, there are no admins from brazil.
+05:51 <+bridge> [ddnet] <trycatch> I've hit up Dean in DM about the blog post, if there's somebody else I should speak with about helping - my DM's should be open.
+07:38 <+bridge> [ddnet] <Ryozuki> ddnet on hackernews
+07:38 <+bridge> [ddnet] <Ryozuki> and i missed it rip
+07:45 <+bridge> [ddnet] <Ryozuki> > Another server hoster called noby
+07:45 <+bridge> [ddnet] <Ryozuki> hahaha
+07:45 <+bridge> [ddnet] <Ryozuki> i laughed at this xd
+07:49 <+bridge> [ddnet] <Ryozuki> how to identify learath on hn, he says the word "cute" rly often
+07:55 <+bridge> [ddnet] <gerdoe> lol
+07:56 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/892288639915155486/unknown.png
+07:56 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+07:57 <+bridge> [ddnet] <Ryozuki> oh
+07:57 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/892288887458779176/unknown.png
+07:57 <+bridge> [ddnet] <gerdoe> nice
+07:57 <+bridge> [ddnet] <Ryozuki> valve reached out to deen?
+07:57 <+bridge> [ddnet] <Ryozuki> :poggers:
+07:57 <+bridge> [ddnet] <gerdoe> wow, great news
+08:01 <+bridge> [ddnet] <Ryozuki> but relying on propietary is not the best
+08:01 <+bridge> [ddnet] <Ryozuki> as the user leath said in hn
+08:01 <+bridge> [ddnet] <Ryozuki> wonder who he is :admiralMC:
+08:12 <+eeeee> neat, ddnet is getting serious
+08:13 <+eeeee> whos the mod now, #teeworlds
+13:07 <+bridge> [ddnet] <Learath2> We did get a couple ideas and a couple offers for help, so overall the post did reach it’s intended goal 😄
+18:02 <+bridge> [ddnet] <Ryozuki> i always thought about the video recorder limitation of it not being able to record a 60fps video faster than what it would take in real time
+18:03 <+bridge> [ddnet] <Ryozuki> i know the audio is a issue but that just is weird
+18:03 <+bridge> [ddnet] <Ryozuki> shouldnt there be a way to process the data faster without real time affecting it
+18:03 <+bridge> [ddnet] <Ryozuki> why is it tied to real time anyway
+18:04 <+bridge> [ddnet] <Ryozuki> you shouldnt even need to render to screen to create the video
+18:09 <+bridge> [ddnet] <Learath2> I think the audio issue was the only issue remaining
+21:29 <+bridge> [ddnet] <Ryozuki> https://doom-portal-in-webgl.vercel.app/
+21:29 <+bridge> [ddnet] <Ryozuki> stunning
+21:29 <+bridge> [ddnet] <Ryozuki> but not that perfomant imho
+21:39 <+bridge> [ddnet] <Jupstar ✪> do u have angle enabled or what?
+21:40 <+bridge> [ddnet] <Ryozuki> gotta google that
+21:40 <+bridge> [ddnet] <Jupstar ✪> its opengl wrapped, instead of just using "real" opengl
+21:40 <+bridge> [ddnet] <Ryozuki> idk
+21:40 <+bridge> [ddnet] <Ryozuki> whathever default firefox dev edition on arch has
+21:40 <+bridge> [ddnet] <Jupstar ✪> with chrome it runs really smooth for me, with firefox not really xd
+21:40 <+bridge> [ddnet] <Ryozuki> xd
+21:42 <+bridge> [ddnet] <Jupstar ✪> ok set `webgl.disable-angle` to true and still sucks, but my firefox is also pretty outdated xd

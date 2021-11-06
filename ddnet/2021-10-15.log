@@ -1,0 +1,228 @@
+09:33 <+bridge> [ddnet] <chillerdragon> @Nouaa\:  the ping worked fine. It just would be nice if one runs "bam" that no errors occur. You can also simply disable client in the bam.lua or if you want to work a on a modded client fixxing this small issue and get it to build should be an easy task. But id really recommend basing clients on latest ddnet source and keep merging into it because its the best.
+09:52 <+bridge> [ddnet] <Nouaa> that why i wanted to do, i have some free time soon
+09:53 <+bridge> [ddnet] <Nouaa> merging to the latest code is a good idea and that will fix some bugs like the 15/16 players in the server list
+11:52 <+bridge> [ddnet] <Ryozuki> @heinrich5991 do u know if we use volatile to define atomic variables in our code?
+11:53 <+bridge> [ddnet] <Ryozuki> cuz apparently  The volatile types do not provide inter-thread synchronization, memory ordering, or atomicity.
+11:53 <+bridge> [ddnet] <Ryozuki> we should use _Atomic or std::atomic
+11:53 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/898508872615079946/unknown.png
+11:54 <+bridge> [ddnet] <Ryozuki> <https://en.cppreference.com/w/c/language/atomic>
+11:54 <+bridge> [ddnet] <heinrich5991> yes, I know that volatile for thread synchronization is wrong
+11:54 <+bridge> [ddnet] <heinrich5991> I eliminated some in the job code when reworking it
+11:55 <+bridge> [ddnet] <heinrich5991> ```
+11:55 <+bridge> [ddnet] <heinrich5991> > rg volatile src/ | cat
+11:55 <+bridge> [ddnet] <heinrich5991> src/game/server/gamecontext.cpp:    static volatile int ReentryGuard = 0;
+11:55 <+bridge> [ddnet] <heinrich5991> src/game/server/gamecontext.cpp:    static volatile int ReentryGuard = 0;
+11:55 <+bridge> [ddnet] <heinrich5991> src/base/system.cpp:    *((volatile unsigned *)0) = 0x0;
+11:55 <+bridge> [ddnet] <heinrich5991> src/engine/server/server.cpp:    static volatile int s_ReentryGuard = 0;
+11:55 <+bridge> [ddnet] <heinrich5991> src/engine/client/client.h:    volatile int m_GfxState;
+11:55 <+bridge> [ddnet] <heinrich5991> src/engine/client/sound.cpp:static volatile int m_SoundVolume = 100;
+11:55 <+bridge> [ddnet] <heinrich5991> src/engine/client/backend_sdl.h:    CCommandBuffer *volatile m_pBuffer;
+11:55 <+bridge> [ddnet] <heinrich5991> src/engine/client/backend_sdl.h:    volatile bool m_Shutdown;
+11:55 <+bridge> [ddnet] <heinrich5991> ```
+11:55 <+bridge> [ddnet] <heinrich5991> 3) is UB anyway, 1,2,4) volatile can be dropped
+11:56 <+bridge> [ddnet] <Ryozuki> :o
+11:56 <+bridge> [ddnet] <heinrich5991> 5) `m_GfxState` is unused, can be removed
+11:57 <+bridge> [ddnet] <heinrich5991> 6) `m_SoundVolume` should be an atomic, its access weirdly but not completely locked
+11:58 <+bridge> [ddnet] <heinrich5991> 7) `m_pBuffer` I don't know
+11:59 <+bridge> [ddnet] <heinrich5991> 8) `m_Shutdown` just replace with an `std::atomic_bool`
+11:59 <+bridge> [ddnet] <heinrich5991> @Ryozuki pull request when? 😉
+11:59 <+bridge> [ddnet] <Ryozuki> making a issue first
+11:59 <+bridge> [ddnet] <heinrich5991> xd
+11:59 <+bridge> [ddnet] <Ryozuki> to remember
+11:59 <+bridge> [ddnet] <Ryozuki> xd
+12:00 <+bridge> [ddnet] <Ryozuki> ill try looks like something ez
+12:03 <+bridge> [ddnet] <Ryozuki> @heinrich5991
+12:03 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/898511418616315964/unknown.png
+12:03 <+bridge> [ddnet] <Ryozuki> what do i do here
+12:03 <+bridge> [ddnet] <Ryozuki> i think this is used to remove
+12:03 <+bridge> [ddnet] <Ryozuki> a compiler warning
+12:04 <+bridge> [ddnet] <Ryozuki> i think we can use abort
+12:05 <+bridge> [ddnet] <Nouaa> that what i wanted to do, i have some free time soon
+12:05 <+bridge> [ddnet] <Ryozuki> <https://stackoverflow.com/questions/35734759/builtin-trap-when-to-use-it>
+12:06 <+bridge> [ddnet] <Ryozuki> > abort would be a more portable way in regular of killing the process immediately due to a bug; __builtin_trap, I suspect, is there because abort is a library function and GCC can't always count on linking on the standard library.
+12:15 <+bridge> [ddnet] <Ryozuki> @Jupstar ✪ src/engine/client/backend_sdl.h:    CCommandBuffer *volatile m_pBuffer;
+12:16 <+bridge> [ddnet] <Ryozuki> maybe u know how to fix this
+12:17 <+bridge> [ddnet] <Ryozuki> @heinrich5991 i found about this from this post xD <https://www.reddit.com/r/rust/comments/q7wys2/how_to_translate_c_volatile_to_rust/>
+12:22 <+bridge> [ddnet] <heinrich5991> also saw that thread
+12:40 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/Steam/comments/q7imkz/officially_grand_theft_auto_iii_san_andreas_and/
+12:40 <+bridge> [ddnet] <Ryozuki> lol
+12:40 <+bridge> [ddnet] <Ryozuki> i had gta san andreas
+12:40 <+bridge> [ddnet] <Ryozuki> but they removed it
+12:40 <+bridge> [ddnet] <Ryozuki> Officially Grand Theft Auto: III, San Andreas and Vice City were removed today by Rockstar Games to release the remaster of these games, as far as is known, only in their own launcher.
+12:41 <+bridge> [ddnet] <Ryozuki> oh i still have it
+12:41 <+bridge> [ddnet] <Ryozuki> xd
+12:41 <+bridge> [ddnet] <Ryozuki> but u cant buy it anymore
+13:06 <+bridge> [ddnet] <Learath2> Hm that whole `CCommandBuffer` thing looks rather over engineered
+13:06 <+bridge> [ddnet] <Learath2> I think(tm) it's safe to replace the whole thing with a condition variable and an atomic-compare-exchange
+13:08 <+bridge> [ddnet] <Learath2> Hm, we don't seem to have condition variables in the code, so weird
+13:18 <+bridge> [ddnet] <Ryozuki> <https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange>
+13:18 <+bridge> [ddnet] <Ryozuki> :o
+13:18 <+bridge> [ddnet] <Ryozuki> c++20 changed some stuff from object representation to value representation
+13:18 <+bridge> [ddnet] <Ryozuki> whathever that means xd
+13:19 <+bridge> [ddnet] <Learath2> why are you surprised that there is a compare_exchange? 😄
+13:19 <+bridge> [ddnet] <Ryozuki> i knew it existed in rust but i thought it was some modern stuff
+13:19 <+bridge> [ddnet] <Ryozuki> xd
+13:19 <+bridge> [ddnet] <Ryozuki> well i dont know much about atomics so idk
+13:19 <+bridge> [ddnet] <Learath2> Ah, it's one of the fundamental atomic operations
+13:20 <+bridge> [ddnet] <Ryozuki> https://doc.rust-lang.org/std/sync/atomic/struct.AtomicBool.html#method.compare_and_swap
+13:20 <+bridge> [ddnet] <Ryozuki> better naming imho xd
+13:20 <+bridge> [ddnet] <Learath2> As far as I remember from the standard this is not an issue for trivial types
+13:20 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/898530868388323328/unknown.png
+13:20 <+bridge> [ddnet] <Ryozuki> oh lol
+13:20 <+bridge> [ddnet] <Ryozuki> they use same name now then
+13:20 <+bridge> [ddnet] <Ryozuki> xd
+13:21 <+bridge> [ddnet] <Learath2> iirc it only affects things like NaNs or padding bits
+13:21 <+bridge> [ddnet] <Ryozuki> :o
+13:21 <+bridge> [ddnet] <Ryozuki> so do u want to do it
+13:22 <+bridge> [ddnet] <Learath2> Mh, not really 😛
+13:22 <+bridge> [ddnet] <Learath2> Maybe tonight
+13:23 <+bridge> [ddnet] <Learath2> idk, I'm not feeling the best, don't really feel like doing anything
+13:23 <+bridge> [ddnet] <Ryozuki> no problem its not a priority anyway
+13:24 <+bridge> [ddnet] <Ryozuki> maybe ill take a look at it later
+13:24 <+bridge> [ddnet] <Learath2> If I do tho, would you prefer I expose C++ condition variables through a C like interface as we do for everything else or should I just break tradition and use std directly?
+13:24 <+bridge> [ddnet] <Ryozuki> im for using std
+13:24 <+bridge> [ddnet] <Learath2> Directly? I'd be using std either way
+13:24 <+bridge> [ddnet] <Ryozuki> ye directly
+13:25 <+bridge> [ddnet] <Ryozuki> the c like interface seems like waste of dev time
+13:25 <+bridge> [ddnet] <Ryozuki> unless some stuff is not cross-platform
+13:25 <+bridge> [ddnet] <Ryozuki> and requires lot of platform specific code
+13:25 <+bridge> [ddnet] <Learath2> I think we target > C++11 already, so dont need anything platform specific here
+13:25 <+bridge> [ddnet] <Ryozuki> :bluekitty:
+13:26 <+bridge> [ddnet] <Ryozuki> yay using stuff from 2011
+13:26 <+bridge> [ddnet] <Ryozuki> :greenthing:
+13:26 <+bridge> [ddnet] <Ryozuki> we living the modern dream
+13:26 <+bridge> [ddnet] <Learath2> The only reason I proposed the C like interface was to keep with the style. I think I prefer directly using it aswell
+13:26 <+bridge> [ddnet] <Ryozuki> c++17 is already 4 years old
+13:26 <+bridge> [ddnet] <Ryozuki> 👀
+13:27 <+bridge> [ddnet] <Learath2> If only all platforms supported 17 there is that one hack I really want to drop
+13:27 <+bridge> [ddnet] <Ryozuki> which one doesnt
+13:27 <+bridge> [ddnet] <Learath2> Mh, heinrich posted a list in an issue once. I dont remember
+13:28 <+bridge> [ddnet] <Ryozuki> https://en.cppreference.com/w/cpp/compiler_support
+13:28 <+bridge> [ddnet] <Ryozuki> gcc clang msvc support it
+13:28 <+bridge> [ddnet] <Ryozuki> apple clang too
+13:28 <+bridge> [ddnet] <Learath2> Now that we have system.cpp I think we can turn some of our wrappers into better raii ones
+13:29 <+bridge> [ddnet] <Learath2> The issue is that one LTS distro shipped a gcc too old iirc
+13:29 <+bridge> [ddnet] <Learath2> Could be CentOS
+13:30 <+bridge> [ddnet] <Ryozuki> well CentOS is essentially dead
+13:30 <+bridge> [ddnet] <Ryozuki> since that thing hapened
+13:30 <+bridge> [ddnet] <Ryozuki> iirc
+13:30 <+bridge> [ddnet] <Ryozuki> CentOS Linux 8 will reach End of Life on December 31, 2021.
+13:31 <+bridge> [ddnet] <Ryozuki> centos comes with gcc 8
+13:31 <+bridge> [ddnet] <Ryozuki> which supports c++17
+13:31 <+bridge> [ddnet] <Learath2> Is it just me that doesn't like this new modern "search" we have nowadays?
+13:31 <+bridge> [ddnet] <Ryozuki> wdym
+13:32 <+bridge> [ddnet] <Learath2> I search for C++17 in our issues and I honestly have no confidence in the results anymore
+13:32 <+bridge> [ddnet] <Learath2> In the past before things like ElasticSearch you used to get a nice clean match when you search for stuff
+13:32 <+bridge> [ddnet] <Ryozuki> c++17 would allow use to use the filesystem api too
+13:32 <+bridge> [ddnet] <Ryozuki> xd
+13:32 <+bridge> [ddnet] <Ryozuki> https://en.cppreference.com/w/cpp/filesystem
+13:36 <+bridge> [ddnet] <Learath2> I wonder if that simple situation could be made lockless now
+13:40 <+bridge> [ddnet] <Learath2> Hm, you could but it'd use a spinlock, which is very undesirable
+13:54 <+bridge> [ddnet] <Jupstar ✪> To use the equivalent to what volatile is under x86, you have to use relaxed memory order
+13:54 <+bridge> [ddnet] <Jupstar ✪> https://github.com/ddnet/ddnet/blob/fdf265bc4f26bb10325936a87cc7128d0b9c166b/src/engine/client/backend/opengl/backend_opengl.cpp#L604-L605
+13:56 <+bridge> [ddnet] <Learath2> C++20 adds a cute atomic::wait, wrapping it in a mutex and a cv all for you, wish we could use C++20 😛
+13:58 <+bridge> [ddnet] <Jupstar ✪> writting to m\_SoundVolume is locked, and reading is fine
+13:58 <+bridge> [ddnet] <Jupstar ✪> i doubt you need atomic or volatile
+14:00 <+bridge> [ddnet] <Learath2> Yep, that one is safe without either. You could also try to get rid of that lock, but don't need to
+14:00 <+bridge> [ddnet] <Jupstar ✪> maybe just use a bool smth like HasBuffer
+14:00 <+bridge> [ddnet] <Jupstar ✪> (@Ryozuki)
+14:00 <+bridge> [ddnet] <Jupstar ✪> instead of checking if(m\_pBuffer)
+14:01 <+bridge> [ddnet] <Jupstar ✪> but i guess you could somehow also fix it more elegant
+14:01 <+bridge> [ddnet] <Jupstar ✪> if no buffer is there the thread has to wait anyway
+14:07 <+bridge> [ddnet] <Learath2> There are some gfx commands that are unused for some reason 😛
+14:08 <+bridge> [ddnet] <Learath2> CMD_SIGNAL, CMD_RUNBUFFER
+14:23 <+bridge> [ddnet] <Learath2> And the processor fragments don't have a pointer back to the processor processing them, this design is quite odd
+14:30 <+bridge> [ddnet] <Jupstar ✪> never even noticed them xDwe also do a full hardware fence in the threadfunc in the backend, doesn't look like thats really a good idea
+14:30 <+bridge> [ddnet] <Jupstar ✪> (@Learath2)
+14:32 <+bridge> [ddnet] <Learath2> Eh, the fence is probably getting emitted whether we like it or not due to the semaphores around
+14:32 <+bridge> [ddnet] <Learath2> I will get rid of the volatile and just use a cv and a mutex. Don't really want to bother with making this lock-free
+14:55 <+bridge> [ddnet] <Learath2> Mh, I want to re-do way too much of this, maybe someone else should do it, or we should just get rid of the volatile and call it a day
+14:57 <+bridge> [ddnet] <Learath2> Like why is `CMD_SWAP` part of `CMDGROUP_CORE` while it's clearly handled by SDL and thus belongs in `CMDGROUP_PLATFORM_SDL`?
+14:58 <+bridge> [ddnet] <Learath2> Or why do we have 2 different `CMD_SHUTDOWN`s?
+15:22 <+bridge> [ddnet] <Learath2> Yeah, ok I don't want to touch this 😛
+15:22 <+bridge> [ddnet] <Learath2> <@!197371090471747584> you are more familiar with this part, I think you should do it
+15:24 <+bridge> [ddnet] <Jupstar ✪> cmd swap should theoretically stay out of SDL, e.g. vulkan doesn use the SDL function
+15:24 <+bridge> [ddnet] <Jupstar ✪> and actually its also a opengl function, wglSwapBuffers or glxSwapBuffers
+15:27 <+bridge> [ddnet] <Jupstar ✪> these commands are specific commands not related to command buffer i think
+15:27 <+bridge> [ddnet] <Jupstar ✪> (@Learath2)
+15:27 <+bridge> [ddnet] <Jupstar ✪> well not part of the original class atleast
+15:28 <+bridge> [ddnet] <Learath2> My initial plan was to also get rid of m_Shutdown, and replace it with a shutdown command, but that's not easy to get in there either
+15:29 <+bridge> [ddnet] <Learath2> I think you can just nuke the volatile there and it'll be fine due to both the semaphores on either side emiting a full memory fence and us force emiting one in the middle
+15:29 <+bridge> [ddnet] <Jupstar ✪> let me look
+15:29 <+bridge> [ddnet] <Learath2> Is it pretty or efficient, no, will it work, I think so
+15:29 <+bridge> [ddnet] <Jupstar ✪> IsIdle is the problem
+15:31 <+bridge> [ddnet] <Jupstar ✪> i think i'd just not set m\_pBuffer in the graphic thread
+15:31 <+bridge> [ddnet] <Jupstar ✪> and just redesign it to only check such stuff in the main thread
+15:31 <+bridge> [ddnet] <Learath2> Use the `RunBuffer` command instead to set it inside the thread?
+15:31 <+bridge> [ddnet] <Learath2> Mh actually that won't work as it'd need to be inside a buffer 😄
+15:32 <+bridge> [ddnet] <Learath2> Ah I see what you mean, well how will the gfx thread signal that it's done with this buffer? A new member variable?
+15:34 <+bridge> [ddnet] <Jupstar ✪> i dunno xd
+15:34 <+bridge> [ddnet] <Jupstar ✪> probs  still need it, but a boolean defs has an advatange over using a pointer
+15:36 <+bridge> [ddnet] <Learath2> You could lock while checking isidle
+15:36 <+bridge> [ddnet] <Learath2> futexes are fairly fast
+15:37 <+bridge> [ddnet] <Learath2> in this case we also have fairly low contention, maybe just spin on an atomic `CCommandBuffer *`?
+15:38 <+bridge> [ddnet] <Learath2> Though than the gfx thread could preempt the main thread, causing large lags
+15:50 <+bridge> [ddnet] <Jupstar ✪> well atomic with relaxed memory order is pretty much volatile under x86
+15:50 <+bridge> [ddnet] <Jupstar ✪> so that would work
+16:07 <+bridge> [ddnet] <Jupstar ✪> maybe i'd rethink the whole work flow of the threads,
+16:07 <+bridge> [ddnet] <Jupstar ✪> e.g. have one sync point, and try to minimize all kinds of atomic/locks at all, most stuff
+16:07 <+bridge> [ddnet] <Jupstar ✪> only write changes there, so no fences in the normal executation path
+16:07 <+bridge> [ddnet] <Jupstar ✪> 
+16:07 <+bridge> [ddnet] <Jupstar ✪> I generally like this pipeline design, very much like GPUs like it
+16:07 <+bridge> [ddnet] <Jupstar ✪> swapping buffers at one point and then work with the other buffer in a read-only mode \:D
+16:47 <+bridge> [ddnet] <Ryozuki> how does one make lock-free stuff
+16:47 <+bridge> [ddnet] <Jupstar ✪> abuse atomics
+16:48 <+bridge> [ddnet] <Ryozuki> there must be a downside right
+16:48 <+bridge> [ddnet] <Jupstar ✪> they can garantuee memory order
+16:48 <+bridge> [ddnet] <Ryozuki> otherwise everything would be lock free
+16:48 <+bridge> [ddnet] <Jupstar ✪> it doesnt need to be faster than locking
+16:48 <+bridge> [ddnet] <Learath2> lock-free algorithms usually turn out slower
+16:48 <+bridge> [ddnet] <Ryozuki> :o
+16:48 <+bridge> [ddnet] <Learath2> it's also more complex to design them
+16:48 <+bridge> [ddnet] <Jupstar ✪> yeah its really use case specific
+16:48 <+bridge> [ddnet] <Ryozuki> i see
+16:49 <+bridge> [ddnet] <Ryozuki> > A memory barrier, also known as a membar, memory fence or fence instruction, is a type of barrier instruction that causes a central processing unit (CPU) or compiler to enforce an ordering constraint on memory operations issued before and after the barrier instruction. This typically means that operations issued prior to the barrier are guaranteed to be performed before operations issued after the barrier.
+16:49 <+bridge> [ddnet] <Ryozuki> is this what u mean by fences?
+16:49 <+bridge> [ddnet] <Ryozuki> learning here kek
+16:49 <+bridge> [ddnet] <Jupstar ✪> yeah its more like a memory barrier true
+16:49 <+bridge> [ddnet] <Jupstar ✪> a fence is more like an object i think
+16:50 <+bridge> [ddnet] <Jupstar ✪> in a pipeline for example u put a fence and can know when your implementation arrived at it
+16:50 <+bridge> [ddnet] <Jupstar ✪> e.g. see if the fence was signaled
+16:50 <+bridge> [ddnet] <Ryozuki> :o
+16:52 <+bridge> [ddnet] <Jupstar ✪> "A memory barrier, also known as a membar, memory fence or fence instruction, is a type of barrier instruction that causes a central processing unit (CPU) or compiler to enforce an ordering constraint on memory operations issued before and after the barrier instruction."
+16:52 <+bridge> [ddnet] <Ryozuki> nice u copied what i copied
+16:52 <+bridge> [ddnet] <Jupstar ✪> oh yeah
+16:52 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+16:52 <+bridge> [ddnet] <Jupstar ✪> rip
+16:53 <+bridge> [ddnet] <Ryozuki> why did u migrate to matrix btw
+16:53 <+bridge> [ddnet] <Jupstar ✪> i play hide and seek discord edition
+16:53 <+bridge> [ddnet] <Ryozuki> 👀
+16:54 <+bridge> [ddnet] <Jupstar ✪> and chillerdragon forced me xd
+16:56 <+bridge> [ddnet] <Ryozuki> pow
+17:01 <+bridge> [ddnet] <Jupstar ✪> @Ryozuki\:
+17:01 <+bridge> [ddnet] <Jupstar ✪> read and understand this
+17:01 <+bridge> [ddnet] <Jupstar ✪> https://en.cppreference.com/w/cpp/atomic/memory_orderthen the rest is clear automatically
+17:03 <+bridge> [ddnet] <Ryozuki> Brokenlink
+17:04 <+bridge> [ddnet] <Jupstar ✪> did it remove some newline ?
+17:04 <+bridge> [ddnet] <Jupstar ✪> https://en.cppreference.com/w/cpp/atomic/memory_order
+18:17 <+bridge> [ddnet] <FOSS Human> How do i get some ez hax
+18:45 <+bridge> [ddnet] <Learath2> memory orders are annoying to learn
+18:45 <+bridge> [ddnet] <Learath2> I found https://gcc.gnu.org/wiki/Atomic/GCCMM/AtomicSync fairly helpful in grasping them
+18:46 <+bridge> [ddnet] <Patiga> I wrote a blender add-on for importing Teeworlds/DDNet maps :) https://gitlab.com/Patiga/twmap-blender
+18:46 <+bridge> [ddnet] <Learath2> heh, that's cool
+18:50 <+bridge> [ddnet] <Learath2> @Ryozuki it's quite hard to reason about even the simplest things with the actual formal descriptions
+18:51 <+bridge> [ddnet] <Learath2> Like why locks cause modifications to be visible on both sides
+18:51 <+bridge> [ddnet] <Ryozuki> :o
+18:51 <+bridge> [ddnet] <Ryozuki> ill save this link on my obsidian vault
+18:52 <+bridge> [ddnet] <Learath2> > While it is indeed correct that we can drop volatile here, it's only safe because the lock is there forcing the compiler to emit a fence and the locking operations synchronize. The read happens-before the write because the write is sequenced before the unlock, which happens-before the lock (as it synchronizes with it) that is sequenced before the read. You don't need to assume anything about the compilers behaviour. The abstract machine 
+18:52 <+bridge> [ddnet] <Learath2> Here is the one I did for `m_SoundVolume`
+18:52 <+bridge> [ddnet] <Ryozuki> :o
+18:53 <+bridge> [ddnet] <Learath2> > While it is indeed correct that we can drop volatile here, it's only safe because the lock is there forcing the compiler to emit a fence and the locking operations synchronize. The read `happens-before` the write because the write is `sequenced-before` the unlock, which `happens-before` the lock (as it `synchronizes-with` it) that is `sequenced-before` the read. You don't need to assume anything about the compilers behaviour. The abstrac
+18:53 <+bridge> [ddnet] <Learath2> Here is the one I did for `m_SoundVolume`
+18:57 <+bridge> [ddnet] <Learath2> and fwiw while I have a vague idea why things happen the way they do, I can't possibly reason about stuff like this off the top of my head. I usually open the standard when I'm not sure if something really happens in the order I expect
+19:27 <+bridge> [ddnet] <Jupstar ✪> nice, show some example \:D
+19:27 <+bridge> [ddnet] <Jupstar ✪> (@Patiga)
+19:27 <+bridge> [ddnet] <Patiga> https://www.youtube.com/watch?v=88xtJ_jLVM8
+19:27 <+bridge> [ddnet] <Patiga> https://www.youtube.com/watch?v=gVWF1N1e-xo
+19:28 <+bridge> [ddnet] <Patiga> two animations I made with it, they are also linked in the readme
+19:28 <+bridge> [ddnet] <Jupstar ✪> ah nice \:D
