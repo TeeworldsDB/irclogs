@@ -1,0 +1,266 @@
+14:10 <+bridge> [ddnet] <Ryozuki> @heinrich5991 im doing the tar zstd thing
+14:10 <+bridge> [ddnet] <Ryozuki> sadly doing it streaming losses parallelization
+14:10 <+bridge> [ddnet] <Ryozuki> but i could paralelize it from day to day instead from file to file
+14:10 <+bridge> [ddnet] <Ryozuki> but i dont think i have enough ram to hold all that
+14:10 <+bridge> [ddnet] <Ryozuki> xd
+14:11 <+bridge> [ddnet] <Ryozuki> actually maybe i can
+14:12 <+bridge> [ddnet] <Ryozuki> or maybe not
+14:13 <+bridge> [ddnet] <Ryozuki> > Construct an iterator over the entries in this archive.
+14:13 <+bridge> [ddnet] <Ryozuki> > 
+14:13 <+bridge> [ddnet] <Ryozuki> > Note that care must be taken to consider each entry within an archive in sequence. If entries are processed out of sequence (from what the iterator returns), then the contents read for each entry may be corrupted.
+14:16 <+bridge> [ddnet] <Ryozuki> https://github.com/alexcrichton/tar-rs/issues/160
+14:27 <+bridge> [ddnet] <Ryozuki> :monkaS:
+14:27 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928278627768995840/unknown.png
+14:28 <+bridge> [ddnet] <Ryozuki> 12 cores = to much memory i guess
+14:31 <+bridge> [ddnet] <Ryozuki> damn my pc froze and had to hard reset
+14:32 <+bridge> [ddnet] <Ryozuki> idk how to do this streaming properly, from my understand you need to decompress everything first to get the tar files
+14:33 <+bridge> [ddnet] <Learath2> zstd can decompress in a stream aswell, no?
+14:33 <+bridge> [ddnet] <Ryozuki> @Learath2 ye but how do i know when to stop to get the entire tar entry
+14:33 <+bridge> [ddnet] <Ryozuki> or im misunderstanding this
+14:34 <+bridge> [ddnet] <Learath2> Hm, idk enough about tar to know this but isn't there some entry header telling you when to stop?
+14:34 <+bridge> [ddnet] <Ryozuki> oh
+14:34 <+bridge> [ddnet] <Ryozuki> currently im using decode_all
+14:34 <+bridge> [ddnet] <Ryozuki> let me check one thing
+14:34 <+bridge> [ddnet] <Ryozuki> xd
+14:35 <+bridge> [ddnet] <Ryozuki> ok
+14:35 <+bridge> [ddnet] <Ryozuki> i think i figured it out
+14:35 <+bridge> [ddnet] <Learath2> I'd probably do something like decompress one header -> parse it to learn when to stop -> decompress entire file -> parse file -> repeat
+14:36 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928280684445982720/unknown.png
+14:36 <+bridge> [ddnet] <Ryozuki> this should work
+14:36 <+bridge> [ddnet] <Ryozuki> so beautiful
+14:36 <+bridge> [ddnet] <Ryozuki> yep it does
+14:36 <+bridge> [ddnet] <Learath2> Oh that's even nicer
+14:36 <+bridge> [ddnet] <Ryozuki> 12 cores
+14:36 <+bridge> [ddnet] <Learath2> Good API design
+14:36 <+bridge> [ddnet] <Ryozuki> yes the io api from rust is beautiful
+14:36 <+bridge> [ddnet] <Ryozuki> read write
+14:37 <+bridge> [ddnet] <Learath2> Does it even parallelize that well? I'd expect the decompression to completely overwhelm the time it takes to parse
+14:37 <+bridge> [ddnet] <Ryozuki> im at 3gb ram (idk how much i had when the script wasnt running)
+14:37 <+bridge> [ddnet] <Ryozuki> before i got to 16gb and swapped and crashed
+14:37 <+bridge> [ddnet] <Ryozuki> xd
+14:37 <+bridge> [ddnet] <Ryozuki> im paralelizing by day
+14:37 <+bridge> [ddnet] <Ryozuki> not by file
+14:37 <+bridge> [ddnet] <Ryozuki> each day has 17k json files
+14:37 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928281159111172096/unknown.png
+14:38 <+bridge> [ddnet] <Ryozuki> it still tkes quite some time xd
+14:39 <+bridge> [ddnet] <Learath2> What is a par_bridge? 😄
+14:39 <+bridge> [ddnet] <Ryozuki> @Learath2 a rayon trait
+14:39 <+bridge> [ddnet] <Ryozuki> it turns any iterator into a paralel iterator
+14:39 <+bridge> [ddnet] <Ryozuki> using a thread pool
+14:39 <+bridge> [ddnet] <Ryozuki> magic
+14:39 <+bridge> [ddnet] <Ryozuki> its thread safe thanks to rust
+14:39 <+bridge> [ddnet] <Ryozuki> https://docs.rs/rayon/latest/rayon/iter/trait.ParallelBridge.html
+14:41 <+bridge> [ddnet] <Learath2> Looks like a cool library
+14:43 <+bridge> [ddnet] <Ryozuki> hm maybe i should check my cpu thermal paste xd
+14:43 <+bridge> [ddnet] <Ryozuki> 100% for a long time gets to 86C
+14:43 <+bridge> [ddnet] <Ryozuki> ryzen 5600x
+15:11 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928289690887540806/unknown.png
+15:14 <+bridge> [ddnet] <Ryozuki> hmm idk it takes a stupidly long time to parse 1 day
+15:15 <+bridge> [ddnet] <Ryozuki> when i did it before, where all the files where decompressed in a folder it processed everything in 3 seconds (concurrently)
+15:15 <+bridge> [ddnet] <Ryozuki> maybe streaming is not that efficient
+15:17 <+bridge> [ddnet] <Learath2> Um, how did you even have the entire thing decompressed? It would be insanely large, no?
+15:19 <+bridge> [ddnet] <Ryozuki> ye xd
+15:20 <+bridge> [ddnet] <Learath2> The duration it takes to parse an entire day shouldn't have changed, so maybe your parallel iterator is doing sth wrong?
+15:20 <+bridge> [ddnet] <Ryozuki> ye im looking into it
+15:20 <+bridge> [ddnet] <Ryozuki> im paralelizing the wrong thing
+15:20 <+bridge> [ddnet] <Avolicious> Try on 1 hour basis? And sum up the data you want after 1 day
+15:22 <+bridge> [ddnet] <Avolicious> Whats the data about?
+15:22 <+bridge> [ddnet] <Avolicious> Teehistorian data?
+15:24 <+bridge> [ddnet] <Ryozuki> no
+15:24 <+bridge> [ddnet] <Ryozuki> https://ddnet.tw/stats/master/
+15:25 <+bridge> [ddnet] <Ryozuki> each tar file has a json file for every minute(?)
+15:25 <+bridge> [ddnet] <Ryozuki> around 17k json files
+15:25 <+bridge> [ddnet] <Avolicious> So my guess is you wanna summarize / visualize server stats?
+15:26 <+bridge> [ddnet] <Learath2> Smaller time intervals could help you utilize the cpu better
+15:26 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928293407988797440/unknown.png
+15:26 <+bridge> [ddnet] <Ryozuki> im making this plot
+15:26 <+bridge> [ddnet] <Ryozuki> for every day
+15:27 <+bridge> [ddnet] <Ryozuki> generating the plot isnt the issue here i think
+15:27 <+bridge> [ddnet] <Ryozuki> its reading the data in an efficient way
+15:27 <+bridge> [ddnet] <Avolicious> Mhmmm, do you need the data based on such high detail?
+15:28 <+bridge> [ddnet] <Ryozuki> the thing is to get to the next minute
+15:28 <+bridge> [ddnet] <Ryozuki> i have to iterate thrhough every second
+15:28 <+bridge> [ddnet] <Ryozuki> well 5 seconds
+15:28 <+bridge> [ddnet] <Ryozuki> cuz there is a file every 5 seconds
+15:28 <+bridge> [ddnet] <Ryozuki> and they are sequential
+15:29 <+bridge> [ddnet] <Ryozuki> the thing is processing the data in each file is not the issue
+15:29 <+bridge> [ddnet] <Ryozuki> its reading those
+15:29 <+bridge> [ddnet] <Ryozuki> there are just to many
+15:29 <+bridge> [ddnet] <Ryozuki> well ill try to skip
+15:29 <+bridge> [ddnet] <Ryozuki> maybe it improves
+15:29 <+bridge> [ddnet] <Learath2> It should help a bit atleast
+15:30 <+bridge> [ddnet] <Avolicious> Get rid of json & go for msgpack ( if you wanna rely on key-value patterns )
+15:30 <+bridge> [ddnet] <Ryozuki> <https://github.com/edg-l/teemasterparser/blob/master/src/main.rs>
+15:30 <+bridge> [ddnet] <Ryozuki> here is the code
+15:30 <+bridge> [ddnet] <Ryozuki> @Avolicious i dont have control over the data origin xd
+15:30 <+bridge> [ddnet] <Ryozuki> i mean i dont decide whether its json
+15:30 <+bridge> [ddnet] <Avolicious> Yeah, parse the json data & write it in msgpack xD
+15:31 <+bridge> [ddnet] <Avolicious> So you can skip a lot of overhead
+15:31 <+bridge> [ddnet] <Ryozuki> but the overhead is not it being json
+15:31 <+bridge> [ddnet] <Ryozuki> i think
+15:31 <+bridge> [ddnet] <Avolicious> JSON adds a bunch
+15:31 <+bridge> [ddnet] <Ryozuki> most cpu time is spent decompressing
+15:31 <+bridge> [ddnet] <Ryozuki> look here
+15:31 <+bridge> [ddnet] <Ryozuki> the flamegraph
+15:31 <+bridge> [ddnet] <Avolicious> But CPU shouldnt be the issue, or is it time relevant?
+15:31 <+bridge> [ddnet] <Avolicious> It looks like the core problem is RAM
+15:32 <+bridge> [ddnet] <Avolicious> If you open too much files, too much data will be loaded & ram gets killed
+15:32 <+bridge> [ddnet] <Learath2> @Ryozuki This flamegraph is for the main thread, right?
+15:32 <+bridge> [ddnet] <Ryozuki> ram is non issue cuz its streaming
+15:32 <+bridge> [ddnet] <Learath2> How busy are your cores?
+15:32 <+bridge> [ddnet] <Avolicious> But its not time relevant, just leave it open
+15:32 <+bridge> [ddnet] <Avolicious> Keep it running for 3 - 4 hours
+15:33 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928295175002931260/unknown.png
+15:33 <+bridge> [ddnet] <Ryozuki> xd
+15:33 <+bridge> [ddnet] <Ryozuki> @Learath2 a lot
+15:33 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+15:34 <+bridge> [ddnet] <Learath2> Okay, so maybe take a look at the threads flamegraphs?
+15:34 <+bridge> [ddnet] <Learath2> It might be that the children are just not parsing these fast enough, in that case how fast the decompression goes wouldn't really matter
+15:34 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928295444017201152/unknown.png
+15:34 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928295487113658388/flamegraph.svg
+15:34 <+bridge> [ddnet] <Ryozuki> open it in desktop
+15:34 <+bridge> [ddnet] <Ryozuki> it allows click
+15:34 <+bridge> [ddnet] <Ryozuki> xd
+15:35 <+bridge> [ddnet] <Ryozuki> idk how to check threads
+15:35 <+bridge> [ddnet] <Ryozuki> i just run this  CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph
+15:35 <+bridge> [ddnet] <Ryozuki> xd
+15:38 <+bridge> [ddnet] <Ryozuki> im gonna try to filter to every min instead every 5 secs
+15:41 <+bridge> [ddnet] <Learath2> @Ryozuki you could try to make the children do nothing and see how fast that goes
+15:43 <+bridge> [ddnet] <Learath2> Hm, the goal is to basically always have another chunk of data ready when a child thread is free
+15:44 <+bridge> [ddnet] <Ryozuki> skipping 12 files seems to make it faster
+15:44 <+bridge> [ddnet] <Ryozuki> if a file exists every 5 seconds 5 * 12 = 60 seconds
+15:44 <+bridge> [ddnet] <Ryozuki> so its every 1 minute
+15:44 <+bridge> [ddnet] <Ryozuki> why im so smart
+15:45 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928298043806195732/unknown.png
+15:45 <+bridge> [ddnet] <Ryozuki> this is way faster
+15:45 <+bridge> [ddnet] <Ryozuki> wait i can skip 1 map xd
+15:46 <+bridge> [ddnet] <Learath2> Is this skipping in the child threads?
+15:46 <+bridge> [ddnet] <Ryozuki> now
+15:46 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928298485776809994/unknown.png
+15:46 <+bridge> [ddnet] <Ryozuki> yeah
+15:46 <+bridge> [ddnet] <Ryozuki> i cant paralelize this entries()
+15:46 <+bridge> [ddnet] <Ryozuki> because its not Send
+15:47 <+bridge> [ddnet] <Learath2> If that is helping the problem wasn't the speed of decompression
+15:47 <+bridge> [ddnet] <Ryozuki> decompressing in stream and that
+15:47 <+bridge> [ddnet] <Ryozuki> maybe thats true
+15:47 <+bridge> [ddnet] <Ryozuki> maybe its the json parsing
+15:47 <+bridge> [ddnet] <Ryozuki> thats the slow thing
+15:47 <+bridge> [ddnet] <Ryozuki> but
+15:47 <+bridge> [ddnet] <Ryozuki> ye i guess
+15:47 <+bridge> [ddnet] <Learath2> I remember reading some performance issues with buffered readers and serde_json, maybe research that a bit?
+15:48 <+bridge> [ddnet] <Ryozuki> i could hack it and do a regex match
+15:48 <+bridge> [ddnet] <Ryozuki> xd
+15:48 <+bridge> [ddnet] <Learath2> This is a cheat that I sometimes resort to, it's not very elegant but it does work
+15:48 <+bridge> [ddnet] <Ryozuki> but that wont be future proof
+15:49 <+bridge> [ddnet] <Ryozuki> cuz rn i only plot max players
+15:49 <+bridge> [ddnet] <Ryozuki> but i may want to plot more stuff
+15:49 <+bridge> [ddnet] <Ryozuki> and then it will look horrible
+15:49 <+bridge> [ddnet] <Learath2> Yep, it's really something you do when you want quick results one time
+15:49 <+bridge> [ddnet] <Ryozuki> @Learath2 why was json the chosen format to serve this info?
+15:50 <+bridge> [ddnet] <Learath2> It's extremely cross-compatible I guess. People can easily make webtools for it
+15:50 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928299526127751218/serialization-formats-conversion-times-10k-cpp.png
+15:51 <+bridge> [ddnet] <Learath2> I personally would have gone for a completely custom format
+15:51 <+bridge> [ddnet] <Ryozuki> i wonder if protobuf fits well in this
+15:51 <+bridge> [ddnet] <Ryozuki> xd
+15:53 <+bridge> [ddnet] <Ryozuki> it takes about 10-20 secs now
+15:53 <+bridge> [ddnet] <Ryozuki> to generate a image
+15:54 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928300338140835880/unknown.png
+15:54 <+bridge> [ddnet] <Ryozuki> this is using every minute
+15:54 <+bridge> [ddnet] <Ryozuki> maybe i can do it every 5 minutes
+15:54 <+bridge> [ddnet] <Learath2> I wonder if a json parser like jq exists that is efficient. Parsing the data you won't use isn't very efficient
+15:55 <+bridge> [ddnet] <Learath2> e.g. you basically only use the players array, it could technically discard everything else possibly avoiding allocations
+15:56 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928300920054362162/unknown.png
+15:56 <+bridge> [ddnet] <Ryozuki> every 5 minutes
+15:56 <+bridge> [ddnet] <Ryozuki> hardly any difference
+15:56 <+bridge> [ddnet] <Ryozuki> and way faster
+15:56 <+bridge> [ddnet] <Ryozuki> now it takes like 3 seconds
+15:57 <+bridge> [ddnet] <Ryozuki> so its definitly the parsing
+15:57 <+bridge> [ddnet] <Learath2> it could also be your plotting lib
+15:57 <+bridge> [ddnet] <Ryozuki> oh maybe
+15:57 <+bridge> [ddnet] <Learath2> that's why I wanted a flamegraph on a child thread, I was curious about that 😄
+15:57 <+bridge> [ddnet] <Ryozuki> but i coudlnt see anything on the flamegraph
+15:58 <+bridge> [ddnet] <Learath2> I guess you could parse the file and just not do anything with the result, see how much of a difference that makes
+15:58 <+bridge> [ddnet] <Ryozuki> ok
+15:58 <+bridge> [ddnet] <Learath2> don't skip too many so the difference is obv
+15:59 <+bridge> [ddnet] <Ryozuki> nah its not the plot
+16:00 <+bridge> [ddnet] <Ryozuki> ill try not deserializing and just giving a number
+16:00 <+bridge> [ddnet] <Ryozuki> yep
+16:00 <+bridge> [ddnet] <Ryozuki> its the deserialization
+16:01 <+bridge> [ddnet] <Ryozuki> that takes way to much
+16:02 <+bridge> [ddnet] <Ryozuki> maybe i can use https://docs.rs/simd-json/latest/simd_json/
+16:02 <+bridge> [ddnet] <Learath2> I now am curious if one could generate an optimized json parser
+16:03 <+bridge> [ddnet] <Learath2> Like say you only wanted the location of all servers, it is much cheaper to just immediately break after you parse the location entry which is near the start of the json object
+16:03 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928302748569583626/unknown.png
+16:03 <+bridge> [ddnet] <Ryozuki> i guess i need to enable native arch
+16:03 <+bridge> [ddnet] <Ryozuki> xd
+16:05 <+bridge> [ddnet] <Ryozuki> lol
+16:05 <+bridge> [ddnet] <Ryozuki> indeaad it is fast af
+16:05 <+bridge> [ddnet] <Ryozuki> simd_json wins
+16:08 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928303960270438420/images.tar.zst
+16:08 <+bridge> [ddnet] <Ryozuki> all the images
+16:08 <+bridge> [ddnet] <Ryozuki> since http master existed
+16:08 <+bridge> [ddnet] <Learath2> simdjson is very fast indeed
+16:08 <+bridge> [ddnet] <Ryozuki> now i just gotta display it on a web somehow
+16:16 <+bridge> [ddnet] <Ryozuki> https://github.com/edg-l/teemasterparser/blob/master/PLAYER_COUNT.md
+16:16 <+bridge> [ddnet] <Ryozuki> all images displayed here
+16:16 <+bridge> [ddnet] <Ryozuki> xd
+16:16 <+bridge> [ddnet] <Ryozuki> i wonder why the time looks fucked on the first images
+16:19 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928306705446604830/unknown.png
+16:19 <+bridge> [ddnet] <Ryozuki> that looks funny
+16:20 <+bridge> [ddnet] <deen> broken json generation for a few hours
+16:20 <+bridge> [ddnet] <Learath2> That's when out of space broke the masterserver a couple days ago 😄
+16:20 <+bridge> [ddnet] <Learath2> Train a neural network on the rest of the dataset then use that to reconstruct the missing part
+16:22 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+16:23 <+bridge> [ddnet] <Learath2> This one looks like a player flood attack
+16:23 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/928307708602503260/2021-09-27.png
+16:23 <+bridge> [ddnet] <Ryozuki> lol
+16:24 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928307862432776232/unknown.png
+16:24 <+bridge> [ddnet] <Ryozuki> this maybe is ddos?
+16:26 <+bridge> [ddnet] <deen> or just network problems of the master server
+16:55 <+bridge> [ddnet] <Ryozuki> https://docs.rs/plotters/latest/plotters/
+16:55 <+bridge> [ddnet] <Ryozuki> @Learath2 this lib looks way better xd
+17:27 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928323953636810752/unknown.png
+17:28 <+bridge> [ddnet] <Ryozuki> using the new library
+17:29 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/928324307854188634/unknown.png
+17:29 <+bridge> [ddnet] <Ryozuki> xd
+17:29 <+bridge> [ddnet] <Ryozuki> i just have to format a bit the dates
+17:51 <+bridge> [ddnet] <Ryozuki> ok im done <https://github.com/edg-l/teemasterparser/blob/master/PLAYER_COUNT.md>
+17:51 <+bridge> [ddnet] <Ryozuki> thats it for today :greenthing:
+17:53 <+bridge> [ddnet] <Robin720> I will try to ask one moe time. Idk if it is a bug in code or something but whenever i press mouse1 which may fire instantly, it has a few milisecs delay. And it happens even on my own server and only with fire so it should not be high ping. Could you please check if you didnt make any mistake in coding for version on mac? It has been happening since last update
+17:53 <+bridge> [ddnet] <Cellegen | HU> Local delays... hmm pretty sus
+19:16 <+bridge> [ddnet] <Ryozuki> https://godotengine.org/article/godot-engine-receiving-new-grant-meta-reality-labs
+19:16 <+bridge> [ddnet] <Ryozuki> meta is here :monkalaugh:
+19:16 <+bridge> [ddnet] <Ryozuki> > Godot Engine receiving a new grant from Meta's Reality Labs
+19:16 <+bridge> [ddnet] <Learath2> Finally, maybe I can find happiness in VR
+19:17 <+bridge> [ddnet] <Ryozuki> i rly rly hope godot becomes the blender of games
+19:17 <+bridge> [ddnet] <Ryozuki> its on good track i think
+19:17 <+bridge> [ddnet] <Ryozuki> they just need to release 4.0
+19:17 <+bridge> [ddnet] <Ryozuki> which overhauls 3d
+19:32 <+bridge> [ddnet] <Ryozuki> @Learath2 did u know js has iterators
+19:33 <+bridge> [ddnet] <Ryozuki> but its pointless since most useful functions in arrays like map() dont return iterators
+19:33 <+bridge> [ddnet] <Ryozuki> and arent lazily evaluated like rust
+19:33 <+bridge> [ddnet] <Ryozuki> xd
+19:36 <+bridge> [ddnet] <louis> meta exists so zucky can have anime catgirls
+19:37 <+bridge> [ddnet] <Ryozuki> tell him to share them
+19:37 <+bridge> [ddnet] <Ryozuki> https://cdn.betterttv.net/emote/60dce35c8ed8b373e421bd92/3x.gif
+19:38 <+bridge> [ddnet] <Souly> i have them irl
+19:38 <+bridge> [ddnet] <Souly> its called schizophrenia
+19:38 <+bridge> [ddnet] <Ryozuki> :monkaS:
+20:24 <+bridge> [ddnet] <heinrich5991> @Ryozuki have you tried looking for a streaming json parser?
+20:27 <+bridge> [ddnet] <Ryozuki> @heinrich5991 what would that solve?
+20:27 <+bridge> [ddnet] <Ryozuki> memory is not an issue anymore
+20:28 <+bridge> [ddnet] <heinrich5991> it would potentially solve not looking at data you don't need
+20:28 <+bridge> [ddnet] <heinrich5991> you'd have to try whether it's faster though
+20:28 <+bridge> [ddnet] <Ryozuki> hmm if you know any
+20:33 <+bridge> [ddnet] <Learath2> @heinrich5991 do you know of a keyword I can google for to look for a json parser I can compile ahead?
+20:33 <+bridge> [ddnet] <Learath2> Like a regex program of sorts
+20:33 <+bridge> [ddnet] <heinrich5991> like what jq maybe does?
+20:34 <+bridge> [ddnet] <Learath2> Yeah, I looked whether libjq exposes that kind of functionality but didnt see it
+21:00 <+bridge> [ddnet] <Ryozuki> @deen is last year a moving window or fixed on 2021
+21:01 <+bridge> [ddnet] <Learath2> Fixed probably
+21:08 <+bridge> [ddnet] <deen> moving window
+21:09 <+bridge> [ddnet] <deen> last 365 days, same as the last month and week
+21:11 <+bridge> [ddnet] <Learath2> Oh, cool
+22:53 <+bridge> [ddnet] <heinrich5991> the last year ryozuki was talking about is on the rank page https://ddnet.tw/ranks/
+23:12 <+bridge> [ddnet] <heinrich5991> @Learath2 so you want a specialized json info extractor?
+23:13 <+bridge> [ddnet] <heinrich5991> perhaps json xpath or so?
