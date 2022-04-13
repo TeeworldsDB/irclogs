@@ -1,0 +1,423 @@
+00:05 <+bridge_> [ddnet] <Wohoo> If server send you your position, this feature should work
+00:06 <+bridge_> [ddnet] <Tater> that didn't really answer my question, does the server already do that or it needs to be changed?
+00:07 <+bridge_> [ddnet] <Cellegen | HU> Yo, unrelated topic, but can you guys give me a coordinated example on how Celeste handles movement, such as walking force and jump? I'm trying to replicate it with similar functions, such as stable force (no limitations, the force will always be the same) and increasing force (force value will add with itself, every frame, until it reaches a limit, or goes infinitely)
+00:07 <+bridge_> [ddnet] <Cellegen | HU> Here's an example on how I plan on accomplishing gravity
+00:07 <+bridge_> [ddnet] <Cellegen | HU> https://cdn.discordapp.com/attachments/293493549758939136/957762725528875039/unknown.png
+00:07 <+bridge_> [ddnet] <Cellegen | HU> Do I need to be aware of any different methods on simulating gravity?
+00:11 <+bridge_> [ddnet] <Wohoo> Idk, others can answer 🙂
+08:33 <+bridge_> [ddnet] <Jupstar> @bencie did you encounter any problems with RC2 yet, or didnt really play last days?
+08:34 <+bridge_> [ddnet] <bencie> i didn't
+08:34 <+bridge_> [ddnet] <bencie> have any problems
+08:34 <+bridge_> [ddnet] <Jupstar> ok^^
+10:34 <+bridge_> [ddnet] <deen> @車魄 Can you check if https://github.com/ddnet/ddnet/pull/4906/files is an improvement?
+10:36 <+bridge_> [ddnet] <車魄> that's I uploaded
+10:37 <+bridge_> [ddnet] <deen> ok 😄
+10:37 <+bridge_> [ddnet] <車魄> It's my first pull request, did I do right?
+10:38 <+bridge_> [ddnet] <deen> yes, maybe next time try to keep all changed in a single commit, but it's fine
+10:39 <+bridge_> [ddnet] <車魄> thanks
+10:46 <+bridge_> [ddnet] <車魄> ok, thanks 🥰
+11:36 <+bridge_> [ddnet] <Scrumplex> https://scrumplex.rocks/img/1648460158.png
+11:36 <+bridge_> [ddnet] <Scrumplex> the frametimes are interesting when `cl_refresh_rate == gfx_refresh_rate`
+11:36 <+bridge_> [ddnet] <Scrumplex> (Vulkan btw)
+11:37 <+bridge_> [ddnet] <Scrumplex> it seems like its just desync between the actual refresh rate, and the refresh rate defined by cl_refresh_rate (if I toggle focus for DDnet I can sometimes get them to sync)
+11:38 <+bridge_> [ddnet] <Scrumplex> https://scrumplex.rocks/img/1648460301.png
+11:38 <+bridge_> [ddnet] <Jupstar> this is expected
+11:38 <+bridge_> [ddnet] <Scrumplex> this is after toggling focus a few times (because of cl_refresh_rate_inactive)
+11:39 <+bridge_> [ddnet] <Jupstar> cl refresh rate only cares about refresh rate of the CPU (how often it wakes up)
+11:39 <+bridge_> [ddnet] <Jupstar> if it misses a gfx frame, it will do a much faster cycle than when it hits a gfx frame
+11:39 <+bridge_> [ddnet] <Scrumplex> hmm i was always wondering, why it even existed. Is there any recommended value for it?
+11:40 <+bridge_> [ddnet] <Scrumplex> like 2× gfx_refresh_rate or something?
+11:40 <+bridge_> [ddnet] <Jupstar> i set it to 0, one CPU core normally doesnt use much energy / my fans dont start to spin
+11:40 <+bridge_> [ddnet] <Jupstar> 
+11:40 <+bridge_> [ddnet] <Jupstar> gfx_refresh_rate on the other side is the one you should set to your target fps
+11:41 <+bridge_> [ddnet] <Jupstar> its not really predictable what else you can set it to, 2x gfx refresh rate can theoretically work.
+11:41 <+bridge_> [ddnet] <Jupstar> Tho it can still happen that you miss a gfx cycle
+11:42 <+bridge_> [ddnet] <Jupstar> you can try
+11:42 <+bridge_> [ddnet] <Jupstar> gfx_asyncrenderold 0
+11:42 <+bridge_> [ddnet] <Scrumplex> gfx_refresh_rate is 150 (a little above my monitors actual refresh rate)
+11:42 <+bridge_> [ddnet] <Jupstar> then the cpu waits for the GPU
+11:42 <+bridge_> [ddnet] <Jupstar> `gfx_asyncrender_old 0`
+11:42 <+bridge_> [ddnet] <Scrumplex> yep. Never seen a more straight frametime graph :D
+11:42 <+bridge_> [ddnet] <Scrumplex> is there a performance/latency penalty?
+11:43 <+bridge_> [ddnet] <Jupstar> well with 150 there generally is a latency impact xD
+11:43 <+bridge_> [ddnet] <Jupstar> your mouse probs has 1000hz
+11:43 <+bridge_> [ddnet] <Jupstar> but it should be ok, since u have pretty high end hardware
+11:43 <+bridge_> [ddnet] <Jupstar> just test it out and see if its ok for you
+11:44 <+bridge_> [ddnet] <Scrumplex> hmm nvm. I now have `gfx_asyncrender_old 0` but it didn't really change anything (was 1 before)
+11:44 <+bridge_> [ddnet] <Scrumplex> I guess I was just lucky there
+11:45 <+bridge_> [ddnet] <Jupstar> ah you have to use gfx_refresh_rate 0 then
+11:45 <+bridge_> [ddnet] <Jupstar> and only use cl_refresh_rate iirc
+11:45 <+bridge_> [ddnet] <Scrumplex> other way around also seems to work?
+11:45 <+bridge_> [ddnet] <Jupstar> i think its this way around, even if it sounds weird
+11:45 <+bridge_> [ddnet] <Scrumplex> (you said that the CPU waits for GPU?=
+11:45 <+bridge_> [ddnet] <Scrumplex> (you said that the CPU waits for GPU?)
+11:46 <+bridge_> [ddnet] <Jupstar> it **must** enter the GPU check
+11:46 <+bridge_> [ddnet] <Jupstar> so gfx_refresh_rate 0 makes sense
+11:46 <+bridge_> [ddnet] <Jupstar> but it will always swap the GPU then
+11:46 <+bridge_> [ddnet] <Jupstar> and then it also waits for it
+11:46 <+bridge_> [ddnet] <Scrumplex> okay something is weird
+11:46 <+bridge_> [ddnet] <Scrumplex> All refresh_rates are 0 now
+11:46 <+bridge_> [ddnet] <Scrumplex> OH WAIT MANGOHUD
+11:46 <+bridge_> [ddnet] <Scrumplex> I got a 150fps limit there as well
+11:46 <+bridge_> [ddnet] <Scrumplex> lmao
+11:46 <+bridge_> [ddnet] <Jupstar> xd
+11:47 <+bridge_> [ddnet] <Scrumplex> well, I guess that's the best option?
+11:47 <+bridge_> [ddnet] <Jupstar> all to 0?
+11:47 <+bridge_> [ddnet] <Scrumplex> https://scrumplex.rocks/img/1648460836.png#
+11:47 <+bridge_> [ddnet] <Scrumplex> yes, MangoHud limits to 150
+11:47 <+bridge_> [ddnet] <Jupstar> well if you have that hud always enabled
+11:47 <+bridge_> [ddnet] <Jupstar> sure xd
+11:48 <+bridge_> [ddnet] <Scrumplex> I configured it to be hidden by default, can toggle it with a hotkey
+11:48 <+bridge_> [ddnet] <Jupstar> ok
+11:48 <+bridge_> [ddnet] <Jupstar> guess then its fine yeah
+11:48 <+bridge_> [ddnet] <Scrumplex> (btw this is also the recommended way for the Steam Deck, never use in-game frame limits, but rather use the frame limits forced by MangoHud, makes a huge difference in power consumption)
+11:49 <+bridge_> [ddnet] <Jupstar> ok, dunno what mangohud injects to the vulkan runtime, but it defs can make sense
+11:49 <+bridge_> [ddnet] <Jupstar> similar to how vsync is implemented on windows
+11:49 <+bridge_> [ddnet] <Scrumplex> Btw. should I be worried if my GPUs coil whine is VERY LOUD with unlocked frames?
+11:50 <+bridge_> [ddnet] <Jupstar> it doesnt damage ur hardware
+11:50 <+bridge_> [ddnet] <Jupstar> if u mean that
+11:50 <+bridge_> [ddnet] <Scrumplex> I need to get a dB meter
+11:50 <+bridge_> [ddnet] <Scrumplex> I hope so, don't really wanna buy a GPU now 👀
+11:51 <+bridge_> [ddnet] <Jupstar> yeah should be ok
+11:51 <+bridge_> [ddnet] <Jupstar> its just vibriting copper
+11:51 <+bridge_> [ddnet] <Jupstar> similar to electricity converts in your town
+11:51 <+bridge_> [ddnet] <Jupstar> if u ever seen one xd
+11:51 <+bridge_> [ddnet] <Scrumplex> but those generally don't vibrate with >1000Hz
+11:52 <+bridge_> [ddnet] <Scrumplex> (I assume that the pitch of the coil whine correlates to the framerate)
+11:52 <+bridge_> [ddnet] <Scrumplex> OMG I AM GOING TO PLAY MIDIs WITH COIL WHINE
+11:52 <+bridge_> [ddnet] <Jupstar> probs to power consumption
+11:52 <+bridge_> [ddnet] <Jupstar> i also dont know what component directly causes it
+11:53 <+bridge_> [ddnet] <Jupstar> but it doubt its the GPU cores that cause it
+11:53 <+bridge_> [ddnet] <Jupstar> other tripple A titles dont do it and they use like 5 times the energy ddnet uses on my GPU 😄
+11:54 <+bridge_> [ddnet] <Scrumplex> I always assumed that the power delivery is the culprit. rendering a DDnet should be very fast, so I guess the power consumption rapidly jumps multiple thousand times per second, (but that's just a game theory)
+11:54 <+bridge_> [ddnet] <Scrumplex> I always assumed that the power delivery is the culprit. rendering a DDnet should be very fast, so I guess the power consumption rapidly jumps multiple thousand times per second (but that's just a game theory)
+11:54 <+bridge_> [ddnet] <Jupstar> yeah quite possible and reasonable
+11:54 <+bridge_> [ddnet] <Scrumplex> I always assumed that the power delivery is the culprit. rendering a DDnet frame (with no cap) should be very fast, so I guess the power consumption rapidly jumps multiple thousand times per second (but that's just a game theory)
+11:56 <+bridge_> [ddnet] <Scrumplex> I am going to play around with Vulkan today. Maybe I can write a MIDI player that works with coil whine
+11:56 <+bridge_> [ddnet] <Jupstar> sounds good, play teeworlds background music
+11:56 <+bridge_> [ddnet] <Jupstar> in high pitch
+11:56 <+bridge_> [ddnet] <Scrumplex> lol
+11:56 <+bridge_> [ddnet] <Jupstar> who needs a soundcard if u have a GPU
+11:58 <+bridge_> [ddnet] <Ryozuki> im making a skin renderer in rust and noticed something in tee.js:
+11:58 <+bridge_> [ddnet] <Ryozuki> ```js
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,192,64,64,32,10,33,60,30); //back feet shadow
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,192,32,64,32,8,32,64,32); //back feet
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,96,0,96,96,16,0,64,64); //body shadow
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,0,0,96,96,16,0,64,64); //body
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,192,64,64,32,26,33,60,30); //front feet shadow
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,192,32,64,32,24,32,64,32); //front feet
+11:58 <+bridge_> [ddnet] <Ryozuki>     ctx.drawImage(skin,64,96,32,32,36,14,24,24); //left eye
+11:58 <+bridge_> [ddnet] <Ryozuki> ```
+11:58 <+bridge_> [ddnet] <Ryozuki> all the sahdows should be drawn before anything else
+11:59 <+bridge_> [ddnet] <Ryozuki> feet, body shadow should come before right? xd
+11:59 <+bridge_> [ddnet] <Ryozuki> my result so far xd
+11:59 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957942015163785237/result.png
+11:59 <+bridge_> [ddnet] <Ryozuki> this is from tee.js
+11:59 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957942091504316426/unknown.png
+12:00 <+bridge_> [ddnet] <Ryozuki> u can notice its dark on the top side of feet
+12:00 <+bridge_> [ddnet] <Ryozuki> his is ingame
+12:00 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957942177445593088/unknown.png
+12:00 <+bridge_> [ddnet] <Ryozuki> this is ingame
+12:00 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957942177445593088/unknown.png
+12:01 <+bridge_> [ddnet] <Ryozuki> it also does an unnecesary scaling of the feet shadow (on tee.js)
+12:02 <+bridge_> [ddnet] <Ryozuki> @Not Keks do u know what filtering method is used when scaling?
+12:02 <+bridge_> [ddnet] <Ryozuki> gaussian?
+12:02 <+bridge_> [ddnet] <Ryozuki> xd
+12:07 <+bridge_> [ddnet] <Jupstar> what kind of scaling?
+12:07 <+bridge_> [ddnet] <Jupstar> u mean when the GPU fetches the pixels?
+12:07 <+bridge_> [ddnet] <Jupstar> or when u resize an image
+12:07 <+bridge_> [ddnet] <Jupstar> i never really looked into tee.js
+12:08 <+bridge_> [ddnet] <Ryozuki> @Not Keks the tee body on default.png is bigger than whats rendered ingame
+12:08 <+bridge_> [ddnet] <Ryozuki> what is the scaling filtering method used
+12:08 <+bridge_> [ddnet] <Ryozuki> xd
+12:09 <+bridge_> [ddnet] <Jupstar> ah thats done on GPU
+12:09 <+bridge_> [ddnet] <Jupstar> so in ddnet its simply tri linear filtering
+12:09 <+bridge_> [ddnet] <Ryozuki> hm
+12:09 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957944442206167100/unknown.png
+12:09 <+bridge_> [ddnet] <Ryozuki> what do u think is the best
+12:09 <+bridge_> [ddnet] <Ryozuki> idk xd
+12:09 <+bridge_> [ddnet] <Jupstar> i mean all under cubic(trilinear) are better
+12:09 <+bridge_> [ddnet] <Jupstar> higher quality
+12:09 <+bridge_> [ddnet] <Jupstar> i'd use them
+12:09 <+bridge_> [ddnet] <Ryozuki> ok
+12:11 <+bridge_> [ddnet] <Jupstar> ok they all have their advantages it seems... i mean thats always the case
+12:11 <+bridge_> [ddnet] <Jupstar> i'd say just test it out
+12:12 <+bridge_> [ddnet] <Jupstar> https://i.stack.imgur.com/AaIAW.png
+12:12 <+bridge_> [ddnet] <Jupstar> xd
+12:13 <+bridge_> [ddnet] <Jupstar> sinc and lanczos look good imo xd
+12:22 <+bridge_> [ddnet] <Scrumplex> use FSR :troll:
+12:27 <+bridge_> [ddnet] <Jupstar> use ai upscaling to native resolution
+12:28 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957949289068372019/result.png
+12:28 <+bridge_> [ddnet] <Ryozuki> trying to get the eyes right
+12:28 <+bridge_> [ddnet] <Ryozuki> @Not Keks do u know what values direction.x has?
+12:28 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957949367015309332/unknown.png
+12:28 <+bridge_> [ddnet] <Ryozuki> its a float
+12:29 <+bridge_> [ddnet] <Jupstar> its a normalized value
+12:29 <+bridge_> [ddnet] <Jupstar> so if its 1, y is 0
+12:29 <+bridge_> [ddnet] <Ryozuki> if x is 1 it means ->
+12:29 <+bridge_> [ddnet] <Ryozuki> ?
+12:29 <+bridge_> [ddnet] <Jupstar> yes
+12:30 <+bridge_> [ddnet] <Jupstar> tho im not sure about y
+12:30 <+bridge_> [ddnet] <Jupstar> i think teeworlds goes down if y increases
+12:30 <+bridge_> [ddnet] <Jupstar> but honestly doesnt matter for your purpose xd
+12:34 <+bridge_> [ddnet] <Ryozuki> hmm
+12:34 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957950787391217694/unknown.png
+12:34 <+bridge_> [ddnet] <Ryozuki> xd
+12:34 <+bridge_> [ddnet] <Jupstar> +-
+12:35 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957951046112653312/unknown.png
+12:35 <+bridge_> [ddnet] <Ryozuki> xd
+12:35 <+bridge_> [ddnet] <Jupstar> :monkaS:
+12:35 <+bridge_> [ddnet] <Patiga> this document should have all the relevant values for tee rendering
+12:35 <+bridge_> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/957951128400695316/tee_notes.txt
+12:35 <+bridge_> [ddnet] <Jupstar> ez
+12:36 <+bridge_> [ddnet] <Jupstar> @Patiga what is webgpu doing xd
+12:36 <+bridge_> [ddnet] <Ryozuki> pog
+12:37 <+bridge_> [ddnet] <Ryozuki> maybe we can add this to the wiki
+12:37 <+bridge_> [ddnet] <Ryozuki> xd
+12:37 <+bridge_> [ddnet] <Ryozuki> honestly its rly hard to figure out the tee rendering code
+12:37 <+bridge_> [ddnet] <Patiga> have a complete map viewer without the mipmapping. currently trying to set it up to run with opengl, wanna do the first release after :)
+12:37 <+bridge_> [ddnet] <Jupstar> nice
+12:38 <+bridge_> [ddnet] <Jupstar> mipmapping in vulkan is rather hard
+12:38 <+bridge_> [ddnet] <Jupstar> i dunno if webgpu splits the idea of vulkan and opengl
+12:38 <+bridge_> [ddnet] <Jupstar> or if it allows both
+12:38 <+bridge_> [ddnet] <Patiga> in vulkan you at least have blit, in webgpu you don't even have that ;(
+12:38 <+bridge_> [ddnet] <Jupstar> oh yeah
+12:38 <+bridge_> [ddnet] <Jupstar> that sucks
+12:39 <+bridge_> [ddnet] <Patiga> there is a mipmapping example you can try to copy over that uses a compute shader, however I didn't have the motivation yet. in the future I think they wanna have either blit or automatic mipmapping
+12:40 <+bridge_> [ddnet] <Patiga> https://github.com/gpuweb/gpuweb/issues/386
+12:41 <+bridge_> [ddnet] <Jupstar> i mean shaders can even improve it, but your texture needs to be set as render target, i dunno if this is more unlikely to be supported by all GPUs
+12:42 <+bridge_> [ddnet] <Ryozuki> @Patiga what does 4/64 up exactly mean?
+12:42 <+bridge_> [ddnet] <Jupstar> 64 is the body size
+12:42 <+bridge_> [ddnet] <Ryozuki> and up?
+12:42 <+bridge_> [ddnet] <Patiga> uh, up in space? along the y-axis
+12:43 <+bridge_> [ddnet] <Jupstar> ah yeah
+12:43 <+bridge_> [ddnet] <Jupstar> body is always a bit higher than the rendering coordinates
+12:43 <+bridge_> [ddnet] <Jupstar> yeah tee rendering is a bit unintuitive, lot of random values xd
+12:44 <+bridge_> [ddnet] <Jupstar> and 0.7 didnt fix it T_T
+12:44 <+bridge_> [ddnet] <Jupstar> we stuck with it forever
+12:44 <+bridge_> [ddnet] <Patiga> ouch
+12:45 <+bridge_> [ddnet] <Patiga> it always bothered me that when I zoom in the tee looks off-center
+12:45 <+bridge_> [ddnet] <Patiga> wouldn't it just look more correct (at least to a new player), if we move the tee body to the center, along with everything else
+12:46 <+bridge_> [ddnet] <Jupstar> it would break all skins
+12:46 <+bridge_> [ddnet] <Patiga> ah then the feet might seem too low?
+12:46 <+bridge_> [ddnet] <Jupstar> yeah the body is in the ground then
+12:46 <+bridge_> [ddnet] <Patiga> meh
+12:46 <+bridge_> [ddnet] <Jupstar> it could have been fixed by fixing the textures
+12:47 <+bridge_> [ddnet] <Jupstar> make better rules on how a tee is built in general
+12:47 <+bridge_> [ddnet] <Patiga> welp, I guess we are doomed
+12:47 <+bridge_> [ddnet] <Jupstar> defs
+12:48 <+bridge_> [ddnet] <Jupstar> but at this point any change would probs look weird to most ppl anyway
+12:49 <+bridge_> [ddnet] <Jupstar> 0.7 eyes are also weird xD
+12:49 <+bridge_> [ddnet] <Ryozuki> i still dont understand it
+12:49 <+bridge_> [ddnet] <Ryozuki> xd
+12:49 <+bridge_> [ddnet] <Ryozuki> > feet:
+12:49 <+bridge_> [ddnet] <Ryozuki> >         10/64 down
+12:49 <+bridge_> [ddnet] <Ryozuki> >         7/64 left/right
+12:49 <+bridge_> [ddnet] <Ryozuki> down from what?
+12:49 <+bridge_> [ddnet] <Jupstar> imagine you have a rendering coordinate
+12:49 <+bridge_> [ddnet] <Jupstar> thats the mid of a body
+12:50 <+bridge_> [ddnet] <Patiga> yea
+12:51 <+bridge_> [ddnet] <Patiga> you put all the different parts into space, with their center point on the same spot, and move everything according to those values
+13:54 <+bridge_> [ddnet] <Wohoo> If I want to wait 1 sec. 
+13:54 <+bridge_> [ddnet] <Wohoo> I should count up to GameTicksSpeed?
+13:54 <+bridge_> [ddnet] <Wohoo> It seems that I have to wait 15*GameTicksSpeed
+14:05 <+bridge_> [ddnet] <Wohoo> Maybe it's related with fps?
+14:05 <+bridge_> [ddnet] <Jupstar> gametickspeed is correct, if you also use tick
+14:05 <+bridge_> [ddnet] <Jupstar> if u want to wait client side
+14:05 <+bridge_> [ddnet] <Jupstar> use time_get_microseconds
+14:05 <+bridge_> [ddnet] <Jupstar> or time_get() and time_freq
+14:49 <+bridge_> [ddnet] <Ryozuki> i still couldnt tell how to use that text
+14:49 <+bridge_> [ddnet] <Ryozuki> so im trying by myself
+14:49 <+bridge_> [ddnet] <Ryozuki> but the eye is still weird
+14:50 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957984930862882856/unknown.png
+14:50 <+bridge_> [ddnet] <Jupstar> xd
+14:50 <+bridge_> [ddnet] <Jupstar> do u understand what he meant when he said all quads share the same center?
+14:53 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957985783132852234/unknown.png
+14:53 <+bridge_> [ddnet] <Ryozuki> i tried it
+14:53 <+bridge_> [ddnet] <Ryozuki> but 10/64 down
+14:53 <+bridge_> [ddnet] <Ryozuki> idk from the center, its plain wrong
+14:54 <+bridge_> [ddnet] <Jupstar> imagine u have a quad
+14:54 <+bridge_> [ddnet] <Jupstar> it goes -0.5 in left and top
+14:54 <+bridge_> [ddnet] <Jupstar> and +0.5 in right and down
+14:54 <+bridge_> [ddnet] <Jupstar> then u have a quad with center 0,0
+14:54 <+bridge_> [ddnet] <Ryozuki> ah im working with pixels directly
+14:54 <+bridge_> [ddnet] <Jupstar> ok but thats how u have to imagine it
+14:54 <+bridge_> [ddnet] <Jupstar> all eyes etc are individual quads
+14:55 <+bridge_> [ddnet] <Jupstar> and all share the same center at start
+14:55 <+bridge_> [ddnet] <Ryozuki> so 10/64 means the value of the division right
+14:55 <+bridge_> [ddnet] <Ryozuki> ok i guess ill have to work with opengl coords
+14:55 <+bridge_> [ddnet] <Jupstar> yeah, the body quad u can imagine as 64 pixels
+14:56 <+bridge_> [ddnet] <Jupstar> so if that is the case u move 10/64 pixels
+14:56 <+bridge_> [ddnet] <Ryozuki> all quad coords are from their centers right?
+14:56 <+bridge_> [ddnet] <Jupstar> yes
+14:57 <+bridge_> [ddnet] <Jupstar> (*64) bcs u use 64pixels
+14:57 <+bridge_> [ddnet] <Jupstar> just to be clear
+14:57 <+bridge_> [ddnet] <Jupstar> so basically the ratio as u said
+15:01 <+bridge_> [ddnet] <Ryozuki> xd
+15:01 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957987736407658566/unknown.png
+15:04 <+bridge_> [ddnet] <Jupstar> getting closer xd
+15:27 <+bridge_> [ddnet] <Rockus> why doesn't the tee hide the old hookthrough entity?
+15:28 <+bridge_> [ddnet] <Jupstar> this only depends on how the mapper put the game layers
+15:28 <+bridge_> [ddnet] <Jupstar> if the front layer is before the game layer it should also be rendered first
+15:29 <+bridge_> [ddnet] <Rockus> ahhh, i see. thanks
+15:31 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957995274578591804/unknown.png
+15:31 <+bridge_> [ddnet] <Ryozuki> @Not Keks i updated the js script
+15:31 <+bridge_> [ddnet] <Ryozuki> i think this looks way better
+15:31 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957995310985134080/unknown.png
+15:31 <+bridge_> [ddnet] <Ryozuki> than this old one
+15:31 <+bridge_> [ddnet] <Jupstar> yeah much better
+15:32 <+bridge_> [ddnet] <Rockus> nice one
+15:38 <+bridge_> [ddnet] <Jupstar> eyes are still too small right?
+15:39 <+bridge_> [ddnet] <Ryozuki> true
+15:43 <+bridge_> [ddnet] <Ryozuki> @Not Keks
+15:43 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957998249560637440/unknown.png
+15:43 <+bridge_> [ddnet] <Ryozuki> now?
+15:43 <+bridge_> [ddnet] <Ryozuki> xd
+15:43 <+bridge_> [ddnet] <Jupstar> just any value that is not divisible by 8 is wrong
+15:43 <+bridge_> [ddnet] <Ryozuki> it doesnt matter tho cuz its just a web render
+15:43 <+bridge_> [ddnet] <Ryozuki> im just trying values randomly xd
+15:44 <+bridge_> [ddnet] <Jupstar> xd
+15:44 <+bridge_> [ddnet] <Jupstar> look pretty much like ingame now, but need to see when its finished
+15:44 <+bridge_> [ddnet] <Jupstar> but defs much better than the old one
+15:44 <+bridge_> [ddnet] <Ryozuki> wdym when its finished
+15:44 <+bridge_> [ddnet] <Jupstar> when its online
+15:44 <+bridge_> [ddnet] <Ryozuki> @Not Keks merge it
+15:44 <+bridge_> [ddnet] <Ryozuki> so we see it
+15:44 <+bridge_> [ddnet] <Ryozuki> :PepeA:
+15:45 <+bridge_> [ddnet] <Ryozuki> i think the web updates auto
+15:45 <+bridge_> [ddnet] <Ryozuki> better than this for sure
+15:45 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/957998908779405352/unknown.png
+15:45 <+bridge_> [ddnet] <Ryozuki> <a:YEPJAM:866369792670695494>
+15:46 <+bridge_> [ddnet] <Jupstar> xd
+16:03 <+bridge_> [ddnet] <Voxel> so is there anything super specific that i need to account for when making a grayscale tee that's easy for recoloring?
+16:03 <+bridge_> [ddnet] <Voxel> i tried to make an alternate glow_cammo skin for PlantKnight, but even if the colors seem to be identical, the coloring completely changes
+16:03 <+bridge_> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/958003328137191474/unknown.png
+16:03 <+bridge_> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/958003328325931071/unknown.png
+16:14 <+bridge_> [ddnet] <Ryozuki> i hecking love the ddnet.tw web source code
+16:14 <+bridge_> [ddnet] <Ryozuki> :fuckyousnail:
+16:15 <+bridge_> [ddnet] <Jupstar> @Ryozuki why the d
+16:15 <+bridge_> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/958006386044829726/unknown.png
+16:15 <+bridge_> [ddnet] <Jupstar> is that intendet?
+16:15 <+bridge_> [ddnet] <Ryozuki> no
+16:15 <+bridge_> [ddnet] <Ryozuki> xd
+16:15 <+bridge_> [ddnet] <Jupstar> xddd
+16:16 <+bridge_> [ddnet] <Ryozuki> fixed
+16:16 <+bridge_> [ddnet] <Ryozuki> i noticed this
+16:16 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/958006615406161950/160417652-69b34380-274b-4797-a15d-d44f615925c8.png
+16:16 <+bridge_> [ddnet] <Ryozuki> im doing this to fix it
+16:16 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/958006644053245992/160417673-27971c52-f037-4d0e-8581-a7675152c405.png
+16:16 <+bridge_> [ddnet] <Ryozuki> power of flexbox
+16:17 <+bridge_> [ddnet] <Jupstar> ez
+16:17 <+bridge_> [ddnet] <Ryozuki> nothing beats my uniqueclan.net maps page
+16:17 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/958007014217383946/unknown.png
+16:17 <+bridge_> [ddnet] <Ryozuki> tho
+16:17 <+bridge_> [ddnet] <Ryozuki> :greenthing:
+16:17 <+bridge_> [ddnet] <Ryozuki> so clean
+16:18 <+bridge_> [ddnet] <Ryozuki> but trying to do this in ddnet.tw is hard cuz everything is a python 2 mess
+16:19 <+bridge_> [ddnet] <Jupstar> when webview for ddnet client
+16:19 <+bridge_> [ddnet] <Jupstar> +300mbytes
+16:19 <+bridge_> [ddnet] <Ryozuki> :monkalaugh:
+16:45 <+bridge_> [ddnet] <Ryozuki> pog
+16:45 <+bridge_> [ddnet] <Ryozuki> when does the web rebuild?
+17:02 <+bridge_> [ddnet] <Ryozuki> ill try to slowly modernize the web
+17:02 <+bridge_> [ddnet] <Ryozuki> first step, migrate to python 3
+17:02 <+bridge_> [ddnet] <Ryozuki> :monkalaugh:
+17:03 <+bridge_> [ddnet] <Ryozuki> its a bit hard to edit it, cuz i can't reproduce a build of the web locally
+17:03 <+bridge_> [ddnet] <Ryozuki> and lots of links are hardlinked to ddnet.tw
+17:04 <+bridge_> [ddnet] <Ryozuki> so after porting to python 3 the website should try to be more easier to setup up locally
+17:04 <+bridge_> [ddnet] <Ryozuki> thus making dev easier
+17:04 <+bridge_> [ddnet] <Ryozuki> :PepeA:
+17:05 <+bridge_> [ddnet] <Jupstar> yes pls xd
+17:05 <+bridge_> [ddnet] <Ryozuki> xd
+17:59 <+bridge_> [ddnet] <Learath2> I don't think even deen has a local copy of that site running. Production = master :D
+18:05 <+bridge_> [ddnet] <Ryozuki> @Not Keks its updated
+18:06 <+bridge_> [ddnet] <Ryozuki> https://ddnet.tw/skins/
+18:06 <+bridge_> [ddnet] <Jupstar> nice, finally not so ugly skins xd
+18:11 <+bridge_> [ddnet] <Jupstar> https://ddnet.tw/map/
+18:11 <+bridge_> [ddnet] <Jupstar> 
+18:11 <+bridge_> [ddnet] <Jupstar> back when deen was pro xd
+18:13 <+bridge_> [ddnet] <Chairn> he's not anymore?
+18:13 <+bridge_> [ddnet] <Jupstar> i doubt he still plays does he
+18:13 <+bridge_> [ddnet] <Jupstar> https://ddnet.tw/client/dummyhookfly.mp4
+18:13 <+bridge_> [ddnet] <Jupstar> 
+18:13 <+bridge_> [ddnet] <Jupstar> XDD his dynamic camera dead zone
+18:14 <+bridge_> [ddnet] <Jupstar> these videos are really old
+18:14 <+bridge_> [ddnet] <Jupstar> 6 years xd
+18:14 <+bridge_> [ddnet] <Jupstar> 8 years even
+18:15 <+bridge_> [ddnet] <Chairn> i answered on your pr
+18:15 <+bridge_> [ddnet] <Chairn> not sure if you've seen it
+18:15 <+bridge_> [ddnet] <Chairn> yet
+18:15 <+bridge_> [ddnet] <Jupstar> yeah u said u have no time xd
+18:15 <+bridge_> [ddnet] <Jupstar> why u here then xddd
+18:16 <+bridge_> [ddnet] <Jupstar> "Undo function in editor (initial work by MAP94)"
+18:16 <+bridge_> [ddnet] <Jupstar> 
+18:16 <+bridge_> [ddnet] <Jupstar> lie xdd
+18:16 <+bridge_> [ddnet] <Chairn> still running away from work
+18:16 <+bridge_> [ddnet] <Jupstar> ez
+18:16 <+bridge_> [ddnet] <Jupstar> @Chairn well thanks btw for all the testing
+18:17 <+bridge_> [ddnet] <Chairn> i need to find some music to push me to work
+18:46 <+bridge_> [ddnet] <Wohoo> Should I proceed with smart pause feature commit?
+18:46 <+bridge_> [ddnet] <Wohoo> Any pro/cons/suggestions?
+18:50 <+bridge_> [ddnet] <Jupstar> when do you think it is useful btw?
+18:50 <+bridge_> [ddnet] <Jupstar> 
+18:50 <+bridge_> [ddnet] <Jupstar> how about adding a new chat command instead of config /spause or smth
+18:51 <+bridge_> [ddnet] <Jupstar> i'd say /spec sounds more useful, then nobody can touch u, if thats what u fear
+18:51 <+bridge_> [ddnet] <bencie> spec is not allowed on many maps though
+18:51 <+bridge_> [ddnet] <bencie> smart pause would be a solution to that
+18:51 <+bridge_> [ddnet] <bencie> map has no /spec -> turn on smart pause
+18:52 <+bridge_> [ddnet] <Jupstar> could just fix /spec to not allow spawn inside another tee, then u can enable it on all maps
+18:52 <+bridge_> [ddnet] <Wohoo> Yeah, people become tired to wait if they fail and go spect other teams
+18:52 <+bridge_> [ddnet] <Jupstar> (create exception for the 5 maps that need old behavior ofc)
+18:52 <+bridge_> [ddnet] <Jupstar> i dont even have a pause bind xD
+18:53 <+bridge_> [ddnet] <Wohoo> On server side we could add a check that need enough space before unspec.
+18:53 <+bridge_> [ddnet] <Wohoo> There are a lot of collision helper functions
+18:54 <+bridge_> [ddnet] <Jupstar> on a second thought, that would allow trolls to block u from going out of spec
+18:54 <+bridge_> [ddnet] <Jupstar> also annoying
+18:56 <+bridge_> [ddnet] <gerdoe> its optional
+18:56 <+bridge_> [ddnet] <gerdoe> so you can turn it on only in your team
+18:56 <+bridge_> [ddnet] <gerdoe> while your newschool bud tries to do solo part
+18:56 <+bridge_> [ddnet] <Jupstar> i meant it relating to spec not allowing u if there is someone standing inside u
+18:56 <+bridge_> [ddnet] <gerdoe> it also affects /spec?
+18:56 <+bridge_> [ddnet] <Jupstar> no
+18:56 <+bridge_> [ddnet] <Jupstar> just read convo xd
+18:57 <+bridge_> [ddnet] <gerdoe> ah
+18:57 <+bridge_> [ddnet] <gerdoe> convo + your thoughts xd
+18:57 <+bridge_> [ddnet] <Jupstar> from here
+18:58 <+bridge_> [ddnet] <bencie> why not allow people to stand inside eachother using /spec?
+18:58 <+bridge_> [ddnet] <Jupstar> lmao
+18:58 <+bridge_> [ddnet] <Jupstar> just read the convo
+18:58 <+bridge_> [ddnet] <Jupstar> here
+18:59 <+bridge_> [ddnet] <Jupstar> then i said maybe we can fix /spec
+18:59 <+bridge_> [ddnet] <Jupstar> and then i said
+18:59 <+bridge_> [ddnet] <Jupstar> ah wait, there is a problem with trolls xD
+19:00 <+bridge_> [ddnet] <Jupstar> but generally, i dunno if you new to teeworlds, shotgun bug and collision bugs
+19:00 <+bridge_> [ddnet] <bencie> if that was an actual issue then why aren't cheatable maps have spec disabled already
+19:00 <+bridge_> [ddnet] <bencie> for example Unbalanced
+19:00 <+bridge_> [ddnet] <bencie> if that was an actual issue then why don't cheatable maps have spec disabled already
+19:00 <+bridge_> [ddnet] <Jupstar> bcs map testers are potatos? i dunno
+19:02 <+bridge_> [ddnet] <Jupstar> why not always protect spawn so there is never a startline skip
+19:02 <+bridge_> [ddnet] <gerdoe> cuz fun
+19:02 <+bridge_> [ddnet] <Jupstar> bcs someone apparently likes creating cheats xd
+19:03 <+bridge_> [ddnet] <Jupstar> and now we have weird work arounds that tell you to start or you cannot finish the map xd
+19:05 <+bridge_> [ddnet] <louis> a lot do
+19:20 <+bridge_> [ddnet] <c0d3d3v> not only trolls. Can also be that he is afk or timeout, and some are under him in /spec can then no longer get out of spec.
+19:21 <+bridge_> [ddnet] <c0d3d3v> but in that case you could also vote him in spec
+19:22 <+bridge_> [ddnet] <n000b> Not sure how old that map is. But removing spec influence top ranks, because of strong weak changing position
+19:22 <+bridge_> [ddnet] <n000b> Can't disable when it is enabled for long
+19:22 <+bridge_> [ddnet] <bencie> top ranks are all cheated
+19:23 <+bridge_> [ddnet] <bencie> https://cdn.discordapp.com/attachments/293493549758939136/958053612355993660/unknown.png
+19:23 <+bridge_> [ddnet] <bencie> top ranks are all skipped
+19:24 <+bridge_> [ddnet] <n000b> Well you could decide to change it but we had lots of discussions about this and the conclusion was you cannot change skips like these if it is used already a lot
+19:25 <+bridge_> [ddnet] <Chairn> at least map name checks out
+19:25 <+bridge_> [ddnet] <n000b> Median time doesn't sound like a brutal map :p
+19:26 <+bridge_> [ddnet] <bencie> yeah of course, it's really hard to get a middleground in a sitatuon like this. fixing /spec would make some maps uncheatable, and then you'd have to remove every skipped rank that used /spec
+19:26 <+bridge_> [ddnet] <bencie> or else it'd be unfair
+19:27 <+bridge_> [ddnet] <bencie> Unbalanced absolutely uses /spec, so if you don't remove these ranks, then noone else can cheat the map anymore which would be an unfair advantage to the current finishers
+19:27 <+bridge_> [ddnet] <n000b> We don't remove ranks except if it is cheated or we remove a critical skip (one u dont need skills for).
+19:28 <+bridge_> [ddnet] <n000b> Besides it is difficult to touch these ranks. Because the players in the current top5 won't like this idea now.
+19:28 <+bridge_> [ddnet] <bencie> yeah
+19:29 <+bridge_> [ddnet] <n000b> I talk like i am still a moderator lol:pepeH:
+19:34 <+bridge_> [ddnet] <Knuski> U will remain one forever in our hearts <a:catKiss:933098278499794974>
+19:37 <+bridge_> [ddnet] <deen> @Not Keks Should we wait for someone to test https://github.com/ddnet/ddnet/pull/4907 before 16.0 release?
+19:41 <+bridge_> [ddnet] <Jupstar> I guess it would be safer to do so yeah
+22:01 <+bridge_> [ddnet] <Brokecdx-> dont change, make it better in future maps instead

@@ -1,0 +1,84 @@
+08:51 <+bridge_> [ddnet] <Ryozuki> :monkalaugh:
+10:37 <+bridge_> [ddnet] <perks> can someone send me the documentation of the source
+10:42 <+bridge_> [ddnet] <deen> https://wiki.ddnet.tw/wiki/Development
+10:42 <+bridge_> [ddnet] <deen> https://wiki.ddnet.tw/docs/
+11:17 <+bridge_> [ddnet] <chillerdragon> who needs docs when you got source code \:brain\:
+11:19 <+ChillerDragon> Btw i latley realized that one can have multiple build directorys :D I mean i always kinda knew but it never came to my mind when i needed it. I even used to copy the whole repo for a short time haha
+11:20 <+ChillerDragon> So nice to have release for playing a debug for development and a headless one for testing and also a clang-tidy one for testing the CI
+11:20 <+ChillerDragon> might be even better than bam
+11:20 <+bridge_> [ddnet] <deen> yeah, that's the proper cmake way, having multiple build directories
+11:21 <+ChillerDragon> kinda cool
+11:22 <+ChillerDragon> is there any chance we will ever get str_endswith_nocase? :(
+11:22 <+bridge_> [ddnet] <deen> if you need it add it yourself?
+11:23 <+bridge_> [ddnet] <deen> actally all the usages of str_endswith look kind of wrong
+11:23 <+bridge_> [ddnet] <deen> like they should be endswith_nocase
+11:23 <+bridge_> [ddnet] <deen> I'll make a PR
+11:24 <+ChillerDragon> Implement a string compare supporting multibyte my self? nah i dont think that would happen or get merged xd
+11:25 <+ChillerDragon> talkin baut this issue https://github.com/ddnet/ddnet/pull/4818#discussion_r825480847
+11:26 <+ChillerDragon> got even merged into upstream -.-
+11:26 <+ChillerDragon> not saying ddnet has lower standards but is usually merge happier
+11:31 <+bridge_> [ddnet] <deen> Next time make it clear faster that you are talking about an existing PR: D
+11:31 <+bridge_> [ddnet] <deen> I mised that one, so just started reimplementing it 😄
+11:44 <+ChillerDragon> Yea i noticed thats why i posted the link
+11:44 <+ChillerDragon> didnt mean to be pushy but i feelt like this pr would stale forever
+11:45 <+bridge_> [ddnet] <deen> just ping in the pr after a week or so
+11:45 <+bridge_> [ddnet] <deen> or answer the remaining questions, which was the reason why I didn't look into it
+11:45 <+ChillerDragon> well heinrich said its broken and i got no solution for it :(
+11:46 <+bridge_> [ddnet] <deen> none of our str_ (without utf8) handle unicode well
+11:47 <+bridge_> [ddnet] <deen> but you could implement a utf8 version by converting to unicode codepoints
+11:48 <+bridge_> [ddnet] <deen> if you have no solution, still write an answer why it doesn't apply or that it should still be merged, but you'll open a new issue etc
+11:49 <+bridge_> [ddnet] <deen> as long as there are unanswered comments the PR is on you basically
+11:51 <+ChillerDragon> yea ik
+11:51 <+ChillerDragon> I think heinrich has a valid point i didnt want to write "its broken but just merge it pls" on github xd
+11:52 <+ChillerDragon> Wowo what is this black magic? https://github.com/ddnet/ddnet/blob/f7e0d4d5c687281c9d68fef16cb8b3ffb1e0f00a/src/game/client/components/chat.cpp#L700
+11:52 <+ChillerDragon> casting a const char * to a CLine *
+11:53 <+ChillerDragon> does the server just send the struct fields as a string? :D
+11:53 <+ChillerDragon> only if its a new enough ddnet client whos receiving it i guess
+11:53 <+bridge_> [ddnet] <deen> Where is the cast?
+11:54 <+bridge_> [ddnet] <deen> `auto &&FChatMsgCheckAndPrint = [this](CLine *pLine) {...}` this generates a lambda function and stores it in FChatMsgCheckAndPrint (The F stands for function), the function takes a pLine parameter
+11:56 <+ChillerDragon> ah right i read it wrong
+11:56 <+ChillerDragon> still getting used to lambdas
+11:56 <+ChillerDragon> i just saw pLine a few lines above and thought its the same
+11:58 <+bridge_> [ddnet] <deen> I'll try to enable -Wshadow
+11:59 <+ChillerDragon> Ou yea that sounds helpful
+12:22 <+bridge_> [ddnet] <deen> I think I found an actual bug by going through the shadowing: https://github.com/ddnet/ddnet/blob/master/src/engine/client/graphics_threaded.cpp#L1124
+12:22 <+bridge_> [ddnet] <deen> CC @Not Keks by not assigning to the old Data we are not using the alloc result after kicked command buffer at all, so basically no retry
+12:27 <+bridge_> [ddnet] <Jupstar> yeah thats a bug, would be nice to enable wshadow
+12:27 <+bridge_> [ddnet] <Jupstar> our codebase is full of it
+12:27 <+bridge_> [ddnet] <deen> I'm doing so right now, lots of stuff to fix
+12:27 <+bridge_> [ddnet] <Jupstar> i found another bug a while ago when i enabled it
+12:28 <+bridge_> [ddnet] <Jupstar> or at least a code path that makes no sense
+12:29 <+bridge_> [ddnet] <Jupstar> I started a while ago
+12:29 <+bridge_> [ddnet] <Jupstar> https://github.com/Jupeyy/ddnet/commit/8593e8e2cc6f4e7cfdbb81c6eff6483eba4bf2ab
+12:29 <+bridge_> [ddnet] <Jupstar> but never finished it
+12:29 <+bridge_> [ddnet] <deen> ah, I'm only doing Wshadow=local
+12:29 <+bridge_> [ddnet] <deen> that's easier
+12:29 <+bridge_> [ddnet] <deen> about 50% through
+12:30 <+bridge_> [ddnet] <Jupstar> https://github.com/ddnet/ddnet/blob/12b7ff3d4cc11acc699e15a9d4c2e3ec5cd80276/src/game/client/prediction/entities/projectile.cpp#L144-L147
+12:31 <+bridge_> [ddnet] <Jupstar> TeamMask is used before, so i dunno if this is unintendent
+12:31 <+bridge_> [ddnet] <Jupstar> also dunno what the code acutually does 😄
+12:31 <+bridge_> [ddnet] <deen> that's prediction code, it's always a weird copy of server code
+12:31 <+bridge_> [ddnet] <Jupstar> the branch always results in -1
+12:31 <+bridge_> [ddnet] <Jupstar> but yeah
+12:32 <+bridge_> [ddnet] <deen> on the server side this looks more reasonable
+12:32 <+bridge_> [ddnet] <Jupstar> ok
+12:33 <+bridge_> [ddnet] <deen> I'll remove the teammask there
+12:55 <+ChillerDragon> c++ is a bitsh :D 
+12:56 <+ChillerDragon> i was using the same source and destination for str_truncate() and it worked fine forever until 8 days ago i merged with upstream and it broke :D 
+13:47 <+ChillerDragon> @deen you still on https://github.com/ddnet/ddnet/issues/4816 or should i look into it?
+13:52 <+bridge_> [ddnet] <deen> since you can reproduce it you can try to fix it
+13:56 <+ChillerDragon> oke
+13:57 <+bridge_> [ddnet] <deen> If you want, you can also build some test scenarios with headless client, then we can run them in CI as a basic sanity check
+13:58 <+ChillerDragon> wowo new icons!
+13:58 <+ChillerDragon> @deen its on my todo since forever .. but ya know procrastination
+14:19 <+ChillerDragon> Lmao all the backtraces refrencing the first few issues https://github.com/ddnet/ddnet/issues/1
+16:37 <+bridge_> [ddnet] <Rockus> are useless visual bugs important to fix? if so i can talk about one that i found
+16:37 <+bridge_> [ddnet] <Rockus> it's quite irrelevant but
+16:59 <+bridge_> [ddnet] <Voxel> You can report it in #bugs !
+18:37 <+bridge_> [ddnet] <Ryozuki> https://twitter.com/WillyrexYT/status/1505599188393938953
+18:37 <+bridge_> [ddnet] <Ryozuki> ups wrong chat
+20:30 <+bridge_> [ddnet] <ѕα∂ℓσνє🖤> hi anyone can send me sqlite3 pls
+20:30 <+bridge_> [ddnet] <ѕα∂ℓσνє🖤> i need it for a friend
+20:40 <+bridge_> [ddnet] <chillerdragon> ?xd
+20:40 <+bridge_> [ddnet] <chillerdragon> asking for a friend doi u have sume sql?
+20:40 <+bridge_> [ddnet] <chillerdragon> here u go https://sqlite.org/index.html

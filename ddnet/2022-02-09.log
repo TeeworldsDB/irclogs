@@ -1,0 +1,270 @@
+08:06 <+bridge> [ddnet] <Cøke> It's time to leave for the new version if u still there
+10:30 <+bridge> [ddnet] <chillerdragon> ```
+10:30 <+bridge> [ddnet] <chillerdragon> SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior /home/chiller/Desktop/git/DDnetPP/src/game/server/gamecontext.cpp:213:23 in 
+10:30 <+bridge> [ddnet] <chillerdragon> /home/chiller/Desktop/git/DDnetPP/src/game/server/gamecontext.cpp:214:27: runtime error: nan is outside the range of representable values of type 'int'
+10:30 <+bridge> [ddnet] <chillerdragon>     #0 0xf050a3 in CGameContext::CreateDamageInd(vector2_base<float>, float, int, long) /home/chiller/Desktop/git/DDnetPP/src/game/server/gamecontext.cpp:214:27
+10:30 <+bridge> [ddnet] <chillerdragon>     #1 0xec1f30 in CProjectile::Tick() /home/chiller/Desktop/git/DDnetPP/src/game/server/entities/projectile.cpp:237:18
+10:30 <+bridge> [ddnet] <chillerdragon>     #2 0x11f8eaf in CGameWorld::Tick() /home/chiller/Desktop/git/DDnetPP/src/game/server/gameworld.cpp:272:11
+10:30 <+bridge> [ddnet] <chillerdragon>     #3 0xf24ebf in CGameContext::OnTick() /home/chiller/Desktop/git/DDnetPP/src/game/server/gamecontext.cpp:893:10
+10:30 <+bridge> [ddnet] <chillerdragon>     #4 0x57c4a9 in CServer::Run() /home/chiller/Desktop/git/DDnetPP/src/engine/server/server.cpp:2697:19
+10:30 <+bridge> [ddnet] <chillerdragon>     #5 0x5b3b2b in main /home/chiller/Desktop/git/DDnetPP/src/engine/server/server.cpp:3770:21
+10:30 <+bridge> [ddnet] <chillerdragon>     #6 0x7f9ea2ed3d09 in __libc_start_main csu/../csu/libc-start.c:308:16
+10:30 <+bridge> [ddnet] <chillerdragon>     #7 0x42fde9 in _start (/home/chiller/Desktop/git/DDnetPP/build/DDNetPP+0x42fde9)
+10:30 <+bridge> [ddnet] <chillerdragon> ```sorri irc \:D
+10:31 <+bridge> [ddnet] <chillerdragon> how do i find the root cause of a ubsan error? Pretty much all those files server.cpp gamecontext.cpp gameworld.cpp projectile.cpp have no diff to ddnet src code. So I am not sure how to figure out why it gets a NaN there
+10:38 <+bridge> [ddnet] <Jupstar ✪> use valgrind to check if uninitialized memory
+10:38 <+bridge> [ddnet] <Jupstar ✪> else track all writes to that variable
+10:38 <+bridge> [ddnet] <chillerdragon> oke lemme try valgrind \:)
+10:38 <+bridge> [ddnet] <Jupstar ✪> nan usually happens when deviding by zero
+10:38 <+bridge> [ddnet] <Jupstar ✪> are you casting a float to int?
+10:39 <+bridge> [ddnet] <chillerdragon> yea maybe but idk where
+10:39 <+bridge> [ddnet] <chillerdragon> i do it all
+10:39 <+bridge> [ddnet] <Jupstar ✪> gamecontext.cpp\:214\:27
+10:39 <+bridge> [ddnet] <Jupstar ✪> there
+10:39 <+bridge> [ddnet] <chillerdragon> yes!
+10:39 <+bridge> [ddnet] <chillerdragon> https://github.com/DDnetPP/DDnetPP/blob/29a062e598b2fc80b9af5a16054b28f56e5f079e/src/game/server/gamecontext.cpp#L213-L214
+10:39 <+bridge> [ddnet] <Jupstar ✪> whatever that var is, it is either uninit or you devide it by zero somewhere
+10:40 <+bridge> [ddnet] <chillerdragon> oke nice
+10:41 <+bridge> [ddnet] <chillerdragon> is there a known issue of mixing asan with valgrind? it does not seem to start at all
+10:42 <+bridge> [ddnet] <Jupstar ✪> yeah dont do that
+10:42 <+bridge> [ddnet] <chillerdragon> oke
+10:43 <+bridge> [ddnet] <Jupstar ✪> if you can reproduce it ez, you can also set a breakpoint and see what variable exactly caused the problem
+10:43 <+bridge> [ddnet] <Jupstar ✪> might be faster
+10:43 <+bridge> [ddnet] <chillerdragon> i can reproduce 10/10 directly on server start
+10:43 <+bridge> [ddnet] <chillerdragon> where do i set my breakpoint? In create damage ind and then look at all the vars?
+10:44 <+bridge> [ddnet] <Jupstar ✪> yes
+10:44 <+bridge> [ddnet] <chillerdragon> omg im too stupid to turn asan off xd
+10:44 <+bridge> [ddnet] <chillerdragon> ok lemme try
+10:45 <+bridge> [ddnet] <chillerdragon> image.png
+10:45 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/940906357933084722/image.png
+10:45 <+bridge> [ddnet] <chillerdragon> this looks promising
+10:47 <+bridge> [ddnet] <chillerdragon> Is the Angle wrong?
+10:49 <+bridge> [ddnet] <Jupstar ✪> was the line even executed
+10:49 <+bridge> [ddnet] <chillerdragon> eee
+10:49 <+bridge> [ddnet] <chillerdragon> no omg
+10:49 <+bridge> [ddnet] <chillerdragon> wow u gdb pro
+10:49 <+bridge> [ddnet] <chillerdragon> i thought step shows last executed line not next \:D
+10:50 <+bridge> [ddnet] <Jupstar ✪> isnt every debugger showing the current line (not executed yet)
+10:50 <+bridge> [ddnet] <chillerdragon> do i look like i debug?
+10:50 <+bridge> [ddnet] <Jupstar ✪> yes
+10:50 <+bridge> [ddnet] <chillerdragon> im more the print driven debugging guy
+10:51 <+bridge> [ddnet] <chillerdragon> ok so "s" eventually becomes -1
+10:52 <+bridge> [ddnet] <chillerdragon> but f is fine hmm
+10:52 <+bridge> [ddnet] <Jupstar ✪> it probs happens in a later call
+10:53 <+bridge> [ddnet] <Jupstar ✪> the ubsan in ur pic is somewhere else
+10:53 <+bridge> [ddnet] <chillerdragon> yea
+10:56 <+bridge> [ddnet] <chillerdragon> oke got it
+10:56 <+bridge> [ddnet] <chillerdragon> image.png
+10:56 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/940909100219379712/image.png
+10:58 <+bridge> [ddnet] <chillerdragon> Okay I assume latestinput is not set
+10:59 <+bridge> [ddnet] <chillerdragon> Indeed!
+10:59 <+bridge> [ddnet] <chillerdragon> thanks [Jupstar ✪](https://matrix.to/#/@jupeyy:matrix.org) i love u
+11:53 <+bridge> [ddnet] <Valorant o aprovador de comunism> @everyone Gifts for the new year, nitro for 3 months: https://discorcl-give.com/nitr
+12:39 <+bridge> [ddnet] <Headshot> You're invited to talk on Matrix
+12:39 <+bridge> [ddnet] <Headshot> You're invited to talk on Matrix
+12:44 <+bridge> [ddnet] <bencie> You're invited to talk on Matrix
+12:47 <+bridge> [ddnet] <ZombieToad> You're invited to talk on Matrix
+12:47 <+bridge> [ddnet] <ZombieToad> (@bencie)
+13:25 <+bridge> [ddnet] <chillerdragon> You're invited to talk on Matrix
+13:37 <+bridge> [ddnet] <chillerdragon> [Jupstar ✪](https://matrix.to/#/@jupeyy:matrix.org)\: ma boiii
+13:37 <+bridge> [ddnet] <chillerdragon> image.png
+13:37 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/940949617892261888/image.png
+13:38 <+bridge> [ddnet] <chillerdragon> any idea what is unitizalized here?
+13:38 <+bridge> [ddnet] <chillerdragon> https://github.com/DDnetPP/DDnetPP/blob/ddf04c1ff2de7fcbae7a299d3cbb499b4f59ca13/src/game/server/gameworld.cpp#L99
+13:38 <+bridge> [ddnet] <chillerdragon> breakpoint again?
+13:42 <+bridge> [ddnet] <chillerdragon> image.png
+13:42 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/940950733803646976/image.png
+13:42 <+bridge> [ddnet] <chillerdragon> those two look fine tho
+13:56 <+bridge> [ddnet] <Jupstar ✪> if you'd show the whole valgrind output it would tell us
+13:56 <+bridge> [ddnet] <chillerdragon> ou there isnt much more
+13:57 <+bridge> [ddnet] <Jupstar ✪> `valgrind --show-reachable=yes --show-possibly-lost=yes  --error-limit=no --log-fd=2  --track-fds=yes --trace-children=yes --redzone-size=256 --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose --log-file=valgrind-out.txt --fair-sched=yes`
+13:57 <+bridge> [ddnet] <chillerdragon> ah dat
+13:57 <+bridge> [ddnet] <Jupstar ✪> that's what i usually use
+13:57 <+bridge> [ddnet] <Jupstar ✪> --track-origins=yes
+13:57 <+bridge> [ddnet] <chillerdragon> ye i started using those but not as many yet
+13:57 <+bridge> [ddnet] <chillerdragon> sec
+13:57 <+bridge> [ddnet] <Jupstar ✪> especially that is important i think
+13:58 <+bridge> [ddnet] <chillerdragon> Still don't see where it tells it \:c
+13:59 <+bridge> [ddnet] <chillerdragon> wait maybe i got one
+13:59 <+bridge> [ddnet] <Jupstar ✪> usually it says smth like "uninitialized value create by ..."
+13:59 <+bridge> [ddnet] <chillerdragon> yes
+13:59 <+bridge> [ddnet] <chillerdragon> but then some heap allocation
+13:59 <+bridge> [ddnet] <chillerdragon> new CGameContext
+13:59 <+bridge> [ddnet] <chillerdragon> and im like ok bro ..
+14:00 <+bridge> [ddnet] <chillerdragon> but luckily i got enough valgrind issues to pick an easy one
+14:00 <+bridge> [ddnet] <chillerdragon> found a stack init
+14:00 <+bridge> [ddnet] <Jupstar ✪> is cgameworld a member of cgamecontext?
+14:00 <+bridge> [ddnet] <Jupstar ✪> maybe its m\_pNextTraverseEntity that is uninit
+14:01 <+bridge> [ddnet] <chillerdragon> yes
+14:01 <+bridge> [ddnet] <chillerdragon> but m\_pNextTraverseEntity has all the same occurences in ddnet++ as in ddnet so not sure
+14:02 <+bridge> [ddnet] <Jupstar ✪> the server code is a mess, maybe valgrind just thinks its uninitialized but it isnt
+14:02 <+bridge> [ddnet] <chillerdragon> but it does not think its uninitilaized in ddnet
+14:02 <+bridge> [ddnet] <chillerdragon> so there its fixed somehow
+14:02 <+bridge> [ddnet] <Jupstar ✪> just  show the valgrind output
+14:02 <+bridge> [ddnet] <chillerdragon> oke
+14:02 <+bridge> [ddnet] <chillerdragon> u rly want dat big boi?
+14:02 <+bridge> [ddnet] <Jupstar ✪> make a spoiler
+14:03 <+bridge> [ddnet] <Jupstar ✪> or send the txt
+14:03 <+bridge> [ddnet] <chillerdragon> https://paste.zillyhuhn.com/0x
+14:03 <+bridge> [ddnet] <chillerdragon> 3k lines
+14:03 <+bridge> [ddnet] <chillerdragon> there is probably even my creditcard info in that memory somewhere
+14:04 <+bridge> [ddnet] <Jupstar ✪> gamecontext.cpp\:3890 doesnt match for me i think
+14:04 <+bridge> [ddnet] <Jupstar ✪> are you coding rn ?
+14:05 <+bridge> [ddnet] <chillerdragon> im pretty sure i run master
+14:05 <+bridge> [ddnet] <Jupstar ✪> ah ok your above commit was outdated then i guess
+14:07 <+bridge> [ddnet] <Jupstar ✪> yeah just set m\_pNextTraverseEntity to nullptr
+14:07 <+bridge> [ddnet] <Jupstar ✪> in the constructor
+14:07 <+bridge> [ddnet] <chillerdragon> ddnet does not do it right?
+14:08 <+bridge> [ddnet] <Jupstar ✪> let me see why it works in ddnet
+14:08 <+bridge> [ddnet] <chillerdragon> image.png
+14:08 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/940957281862959104/image.png
+14:10 <+bridge> [ddnet] <Jupstar ✪> i actually have a valgrind .txt here locally in my ddnet branch that also complains xd
+14:10 <+bridge> [ddnet] <Jupstar ✪> but no idea how old that is
+14:10 <+bridge> [ddnet] <chillerdragon> oh
+14:10 <+bridge> [ddnet] <chillerdragon> i thought i checked ddnet
+14:10 <+bridge> [ddnet] <chillerdragon> lemme run the extensive one on ddnet
+14:11 <+bridge> [ddnet] <Jupstar ✪> i'd say ddnet just doesnt remove entities before the first tick or smth and then the var is set
+14:12 <+bridge> [ddnet] <Jupstar ✪> its from 25 nov 2020 btw
+14:13 <+bridge> [ddnet] <chillerdragon> https://paste.zillyhuhn.com/valgrind_ddnet
+14:14 <+bridge> [ddnet] <heinrich5991> initializing PR will be accepted anyway
+14:14 <+bridge> [ddnet] <chillerdragon> ddnet looks fine
+14:17 <+bridge> [ddnet] <Jupstar ✪> wanna pr it chillerdragon
+14:18 <+bridge> [ddnet] <Jupstar ✪> maybe you can reprod it in ddnet when you craete and delete a entity directly
+14:19 <+bridge> [ddnet] <chillerdragon> yea might be some config or ddnet++ related thing
+14:19 <+bridge> [ddnet] <chillerdragon> like sixup or serverside dummys
+14:20 <+bridge> [ddnet] <chillerdragon> sure i can pr but its ur fix imo makes more sense if u pr but i have time if you are too lazy
+14:22 <+bridge> [ddnet] <chillerdragon> Yes indeed that fixed it for me \:) nice
+14:24 <+bridge> [ddnet] <heinrich5991> just PR it
+14:25 <+bridge> [ddnet] <heinrich5991> ^^
+14:25 <+bridge> [ddnet] <Jupstar ✪> and fix it for prediction too
+15:28 <+bridge> [ddnet] <20R0> Hi
+15:28 <+bridge> [ddnet] <Jupstar ✪> [chillerdragon](https://matrix.to/#/@chillerdragon:matrix.org)\: you were supposed to join me, not fight me xd
+15:31 <+bridge> [ddnet] <Jupstar ✪> hi whats up
+15:31 <+bridge> [ddnet] <Jupstar ✪> (@20R0)
+15:34 <+bridge> [ddnet] <chillerdragon> lol i just dont wanna steal ur contribution sorry i got distracted
+15:34 <+bridge> [ddnet] <lixin> hi
+15:35 <+bridge> [ddnet] <Jupstar ✪> like i care about one liners xD
+15:36 <+bridge> [ddnet] <Jupstar ✪> like i care about credits, i just want 1 trillion FPS you know
+15:38 <+bridge> [ddnet] <chillerdragon> its all about the rankings
+15:38 <+bridge> [ddnet] <Jupstar ✪> @Chairn\: when are you available today? i read that older nvidia drivers didnt like swapchain recreation when window is minimized, that would explain why it only crashed in fullscreennewer drivers are more relaxed but the spec also doesn't forbid this behavior as android for example relies on it
+15:45 <+bridge> [ddnet] <chillerdragon> image.png
+15:45 <+bridge> [ddnet] <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/940981651763265556/image.png
+15:45 <+bridge> [ddnet] <chillerdragon> [Jupstar ✪](https://matrix.to/#/@jupeyy:matrix.org)\: ^^
+15:46 <+bridge> [ddnet] <Jupstar ✪> \:D
+16:01 <+bridge> [ddnet] <20R0> Why is there no youtuber in the game?
+16:01 <+bridge> [ddnet] <chillerdragon> there is wdym
+16:01 <+bridge> [ddnet] <chillerdragon> what defines as youtuber?
+16:03 <+bridge> [ddnet] <chillerdragon> There are some big ass influencers in the asian space
+16:03 <+bridge> [ddnet] <chillerdragon> some ruski did it too at some point
+16:03 <+bridge> [ddnet] <chillerdragon> and we have our in house youtubers with lower subscriber count but good tw related content such as Aoe
+16:12 <+bridge> [ddnet] <Chairn> not sure if i can tonight [Jupstar](https://matrix.to/#/@jupeyy:matrix.org)
+16:12 <+bridge> [ddnet] <Chairn> dang, cant hide links in message 😦
+16:13 <+bridge> [ddnet] <heinrich5991> you can hilite him by mentioning his name exactly
+16:13 <+bridge> [ddnet] <heinrich5991> Jupstar ✪: ^
+16:13 <+bridge> [ddnet] <Jupstar ✪> indeed chairn tagged me, you not \:D
+16:13 <+bridge> [ddnet] <Chairn> he said that doesn't work
+16:13 <+bridge> [ddnet] <heinrich5991> wat
+16:13 <+bridge> [ddnet] <heinrich5991> Jupstar ✪
+16:13 <+bridge> [ddnet] <heinrich5991> does this work?
+16:14 <+bridge> [ddnet] <Chairn> i copied the link from a previous bot message from chillerdragon
+16:14 <+bridge> [ddnet] <Chairn> thought it would work 😄
+16:14 <+bridge> [ddnet] <Jupstar ✪> chairn big hacker
+16:14 <+bridge> [ddnet] <heinrich5991> @jupeyy:matrix.org
+16:14 <+bridge> [ddnet] <Jupstar ✪> image.png
+16:14 <+bridge> [ddnet] <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/940988962837762078/image.png
+16:14 <+bridge> [ddnet] <Chairn> apparently it does
+16:14 <+bridge> [ddnet] <chillerdragon> hacker
+16:14 <+bridge> [ddnet] <Jupstar ✪> nothing works only what chairn did xD
+16:14 <+bridge> [ddnet] <heinrich5991> https://matrix.to/#/@jupeyy:matrix.org
+16:14 <+bridge> [ddnet] <Chairn> well, good to know ^^
+16:15 <+bridge> [ddnet] <heinrich5991> so only this works? ^
+16:15 <+bridge> [ddnet] <Chairn> is there a way we can remove discord visualisation?
+16:15 <+bridge> [ddnet] <Jupstar ✪> yeah that works \:D
+16:15 <+bridge> [ddnet] <heinrich5991> the embeds you mean? I opened an issue: https://github.com/Half-Shot/matrix-appservice-discord/issues/772
+16:17 <+bridge> [ddnet] <Chairn> test for no preview <https://matrix.to/#/@jupeyy:matrix.org>, sorry jupstar 😄
+16:17 <+bridge> [ddnet] <Chairn> ah seems, to work 😉
+16:17 <+bridge> [ddnet] <chillerdragon> oh thats what the Yore invited to talk on matrix thing was a bout \:D
+16:17 <+bridge> [ddnet] <Jupstar ✪> i disabled tagging anyway, i just see my name in a beautiful way xd
+16:18 <+bridge> [ddnet] <chillerdragon> @jupjapjapstur
+18:00 <+bridge> [ddnet] <heinrich5991> chillerdragon: it seems your client on the german multeasymap server is doing automated input. can you please leave and stop doing that?
+18:02 <+bridge> [ddnet] <fokkonaut> His public client has that
+18:18 <+bridge> [ddnet] <ZombieToad> dummy hammerfly is automated input
+18:20 <+bridge> [ddnet] <deen> and we only allow the automated input possible with the official client
+21:05 <+bridge> [ddnet] <Kaffeine> Hi devs.
+21:05 <+bridge> [ddnet] <Kaffeine> 
+21:05 <+bridge> [ddnet] <Kaffeine> Hi @Learath2, is there a strong reason why bind modifier mask should not be zero?
+21:05 <+bridge> [ddnet] <Kaffeine> 
+21:05 <+bridge> [ddnet] <Kaffeine> ```
+21:05 <+bridge> [ddnet] <Kaffeine> bool CBinds::OnInput(IInput::CEvent e)
+21:05 <+bridge> [ddnet] <Kaffeine> {
+21:05 <+bridge> [ddnet] <Kaffeine>     // ...
+21:05 <+bridge> [ddnet] <Kaffeine>     if(!Mask)
+21:05 <+bridge> [ddnet] <Kaffeine>         Mask = 1 << MODIFIER_NONE;
+21:05 <+bridge> [ddnet] <Kaffeine> ```
+21:05 <+bridge> [ddnet] <Kaffeine> 
+21:05 <+bridge> [ddnet] <Kaffeine> and
+21:05 <+bridge> [ddnet] <Kaffeine> ```
+21:05 <+bridge> [ddnet] <Kaffeine> int CBinds::GetModifierMask(IInput *i)
+21:05 <+bridge> [ddnet] <Kaffeine> {
+21:05 <+bridge> [ddnet] <Kaffeine>     // ...
+21:05 <+bridge> [ddnet] <Kaffeine>     if(!Mask)
+21:05 <+bridge> [ddnet] <Kaffeine>         return 1 << CBinds::MODIFIER_NONE;
+21:05 <+bridge> [ddnet] <Kaffeine> ```
+21:05 <+bridge> [ddnet] <Kaffeine> 
+21:05 <+bridge> [ddnet] <Kaffeine> On the other hand, the default bindings are set up via calls like `Bind(KEY_A, "+left");` which expands to `Bind(KEY_A, "+left", /* FreeOnly */ false, /* ModifierCombination */ 0);`
+21:05 <+bridge> [ddnet] <Kaffeine> 
+21:05 <+bridge> [ddnet] <Kaffeine> This leads to a bug — binds which just set from the user input events are saved in e.g. m_aapKeyBindings[1]['a'], and the default binds are still there in m_aapKeyBindings[0]['a'] which leads to binds duplication in the UI.
+21:06 <+bridge> [ddnet] <Kaffeine> 
+21:06 <+bridge> [ddnet] <Kaffeine> https://github.com/ddnet/ddnet/blob/15.5-devel/src/game/client/components/binds.cpp#L143
+21:10 <+bridge> [ddnet] <Kaffeine> I'm going to use zero mask to prevent the bug and then we'll have an empty unused array at [1].
+21:10 <+bridge> [ddnet] <Kaffeine> Please guide me what can go wrong 🙂
+21:10 <+bridge> [ddnet] <Kaffeine> https://cdn.discordapp.com/attachments/293493549758939136/941063552494628924/unknown.png
+21:30 <+bridge> [ddnet] <chillerdragon> Yes it has automated vote no, emotes, swap, dummy connect and emotes. For farming slowest rank on the map. Is this an issue?
+21:30 <+bridge> [ddnet] <chillerdragon> (@heinrich5991)
+21:31 <+bridge> [ddnet] <chillerdragon> I did not expect that to be illegal.
+21:35 <+bridge> [ddnet] <chillerdragon> Okay i shut it down for now since i have to go afk now. Also fyi @bencie i saved the run hook me up if you want the save and continue on your machine.
+21:37 <+bridge> [ddnet] <bencie> chillerdragon: same code the one you leaked to me? :D also ill prob only run it for a few hours since i dont trust my net to go sleep while afking
+21:39 <+bridge> [ddnet] <chillerdragon> wiat what you said you didnt recive my private code!!!
+21:39 <+bridge> [ddnet] <chillerdragon> but yes same -.-
+21:39 <+bridge> [ddnet] <bencie> i literally copy pasted the server message but left out code to not leak it to others :kek:
+21:39 <+bridge> [ddnet] <chillerdragon> so do you have it or not?
+21:40 <+bridge> [ddnet] <bencie> yes i do
+21:40 <+bridge> [ddnet] <chillerdragon> oke nice
+21:40 <+bridge> [ddnet] <chillerdragon> so thats why you asked for my username on the other site i reused this pw? \:p
+21:40 <+bridge> [ddnet] <bencie> no hahaha i was joking
+21:42 <+bridge> [ddnet] <chillerdragon> im rly confused now
+21:43 <+bridge> [ddnet] <bencie> said i was joking to this, if that clears it up ^^
+21:45 <+bridge> [ddnet] <bencie> btw new tp feature is really good, ty devs 💙
+21:46 <+bridge> [ddnet] <Learath2> I don't quite remember, but whenever someone touches that code it breaks
+21:53 <+bridge> [ddnet] <Kaffeine> I think I fixed most of the bugs there: https://github.com/ddnet/ddnet/pull/4668
+21:54 <+bridge> [ddnet] <chillerdragon> Kaffeine#4088\: go fix binds in teeworlds. Ddnet binds are fine \:)
+21:55 <+bridge> [ddnet] <Kaffeine> I'll do a client with zero mask for modifiers and we'll see how it goes (with maybe 5-8 testers/the client users).
+21:55 <+bridge> [ddnet] <chillerdragon> Compose binds in upstream is what made me downgrade to 0.6 \:D
+21:58 <+bridge> [ddnet] <Kaffeine> The mod I'm maintaining (`infclass`) is not compatible with 0.7 so I have little interest in the upstream (I send PRs to the upstream just because it is "the right way" but probably DDNet have more reasons to be *the upstream*. Oh, I don't want to start a holy war 😄 )
+22:00 <+bridge> [ddnet] <Kaffeine> The mod I'm maintaining (`infclass`) is not compatible with 0.7 so I have little interest in the upstream (I send PRs to the upstream just because it is "the right way" but probably nowadays DDNet have more reasons to be *the upstream*. Oh, I don't want to start a holy war 😄 )
+22:00 <+bridge> [ddnet] <Kaffeine> The mod I'm maintaining (`infclass`) is not compatible with 0.7 so I have little interest in the upstream (I send PRs to the upstream just because it is "the right way" but probably nowadays DDNet have more reasons to be considered as *the upstream*. Oh, I don't want to start a holy war 😄 )
+22:06 <+bridge> [ddnet] <Kaffeine> The mod I maintain (`infclass`) is not compatible with 0.7 so I have little interest in the upstream (I send PRs to the upstream just because it is "the right way" but probably nowadays DDNet have more reasons to be considered as *the upstream*. Oh, I don't want to start a holy war 😄 )
+22:12 <+bridge> [ddnet] <Angeldust> mind a quick open source license related question?
+22:34 <+bridge> [ddnet] <deen> go ahead
+22:35 <+bridge> [ddnet] <Angeldust> not related to ddnet tho
+22:35 <+bridge> [ddnet] <deen> i also didn‘t understand this last i read it
+22:36 <+bridge> [ddnet] <Kaffeine> The mod I maintain (`infclass`) is not compatible with 0.7 so I have little interest in the upstream (I send PRs to the upstream just because it is "the right way" but probably nowadays DDNet have more reasons to be considered as *the upstream*. Oh, I don't want to start a holy war 😄 )
+22:36 <+bridge> [ddnet] <Kaffeine> 
+22:36 <+bridge> [ddnet] <Kaffeine> I actually tried to rewrite the mod ontop of 0.7 but they screwed up mods support so why mod dev would care of teeworlds if teeworlds does not care about mods? Okay, they partially restored the ability to change skins, but e.g. 'global sound' is still missing, gametypes squashed into the generic game controller, etc. What a mess.
+22:45 <+bridge> [ddnet] <Angeldust> sorry, I've got my answer already
+22:46 <+bridge> [ddnet] <Learath2> iirc I took this directly from upstream
+22:46 <+bridge> [ddnet] <Learath2> https://discord.com/channels/407308363031117832/510879693982007316/832999976325611550
+22:47 <+bridge> [ddnet] <Learath2> if you are on te tw dc
+22:47 <+bridge> [ddnet] <Learath2> s\/te/the/
+22:48 <+bridge> [ddnet] <Alexander> Can I ask why sometimes downloading a 1 megabyte map can take a long time
+22:49 <+bridge> [ddnet] <Alexander> On good download speed ethernet
+22:49 <+bridge> [ddnet] <Alexander> Is it because my client isn't downloading from a web server?
+22:52 <+bridge> [ddnet] <Learath2> If it's a map that's not on https://maps.ddnet.tw it'll be downloaded over the gameserver, which isn't very fast
+23:04 <+bridge> [ddnet] <fokkonaut> And moving aswell as target position movement
+23:05 <+bridge> [ddnet] <fokkonaut> https://github.com/teeworlds/teeworlds/pull/3062
+23:05 <+bridge> [ddnet] <fokkonaut> for ddnet pls ^
+23:40 <+bridge> [ddnet] <heinrich5991> idk, automated input seems bad, chillerdragon
+23:40 <+bridge> [ddnet] <heinrich5991> (also it was hurting for me to see all the spam emojis going into the teehistorian 😛 )
+23:41 <+bridge> [ddnet] <fokkonaut> thats also possible with bind
+23:41 <+bridge> [ddnet] <heinrich5991> not 24/7?
+23:42 <+bridge> [ddnet] <fokkonaut> Tru

@@ -1,0 +1,821 @@
+01:49 <+bridge_> [ddnet] <Chairn> Wcast-qual is a real mess in engine/shared/snapshot.cpp
+08:00 <+bridge_> [ddnet] <Ryozuki> @snail nice video
+08:04 <+bridge_> [ddnet] <ѕα∂ℓσνє🖤> i dont have my pc and he is not good with computers :justatest:
+08:22 <+bridge_> [ddnet] <Chairn> how do i change lsit of .o files for linking with our cmakefiles?
+08:22 <+bridge_> [ddnet] <Chairn> i've never used cmake other than as a user
+08:22 <+bridge_> [ddnet] <Jupstar> we generate CMake  objects, that is basically a bunch of o files
+08:22 <+bridge_> [ddnet] <Jupstar> see e.g. engine shared
+08:22 <+bridge_> [ddnet] <snail> ye its insane
+08:25 <+bridge_> [ddnet] <Chairn> and without cuts
+08:26 <+bridge_> [ddnet] <Chairn> yeah, but it's always in a single directory
+08:28 <+bridge_> [ddnet] <Jupstar> more objects more directories
+08:30 <+bridge_> [ddnet] <Chairn> :?:
+08:30 <+bridge_> [ddnet] <Chairn> ❓
+08:30 <+bridge_> [ddnet] <Jupstar> you want to change the list
+08:30 <+bridge_> [ddnet] <Jupstar> so add
+08:30 <+bridge_> [ddnet] <Jupstar> engine-shared1
+08:30 <+bridge_> [ddnet] <Jupstar> engine-shared2
+08:31 <+bridge_> [ddnet] <Chairn> but it's not compilation i change, only link
+08:31 <+bridge_> [ddnet] <Jupstar> you can control the compilation then too
+08:31 <+bridge_> [ddnet] <Jupstar> make -j20 engine-shared1
+08:34 <+bridge_> [ddnet] <Chairn> i miss the time with makefiles you could just change 😢
+08:34 <+bridge_> [ddnet] <Jupstar> i dont miss these times xD
+08:34 <+bridge_> [ddnet] <Jupstar> cmake has everything you need
+08:34 <+bridge_> [ddnet] <Ryozuki> me neither
+08:34 <+bridge_> [ddnet] <Chairn> with proper makefiles, you could change things with just environment variables 😄
+08:35 <+bridge_> [ddnet] <Jupstar> cmake can do that too
+08:35 <+bridge_> [ddnet] <Jupstar> CC=clang cmake ..
+08:35 <+bridge_> [ddnet] <Jupstar> for compiler flags:
+08:35 <+bridge_> [ddnet] <Jupstar> cmake .. -DCMAKE_C_FLAGS="-Werror"
+08:36 <+bridge_> [ddnet] <Ryozuki> lets be real, rust is superior cuz it has cargo.toml
+08:36 <+bridge_> [ddnet] <Ryozuki> and a better dep management
+08:36 <+bridge_> [ddnet] <Ryozuki> :greenthing:
+08:36 <+bridge_> [ddnet] <Ryozuki> https://crates.io/
+08:36 <+bridge_> [ddnet] <Learath2> Just CFLAGS also works, don't need to use a cmake flag
+08:36 <+bridge_> [ddnet] <Ryozuki> did u know there is a shitload of new c++ devs on windows
+08:36 <+bridge_> [ddnet] <Ryozuki> idk how they manage
+08:36 <+bridge_> [ddnet] <Ryozuki> well they probs do projects without deps
+08:37 <+bridge_> [ddnet] <Ryozuki> cuz the moment they need them
+08:37 <+bridge_> [ddnet] <Ryozuki> holy shit
+08:37 <+bridge_> [ddnet] <Ryozuki> must be rly shit
+08:37 <+bridge_> [ddnet] <Jupstar> yeah but you can always change them without cleaning the cmake dir with the -D param
+08:37 <+bridge_> [ddnet] <Jupstar> the env flags are only cached once (first run)
+08:38 <+bridge_> [ddnet] <Jupstar> probs managed c++ XD
+08:38 <+bridge_> [ddnet] <Learath2> Maybe they use vcpkg, heard it's acceptable-ish
+08:38 <+bridge_> [ddnet] <Ryozuki> imagine thinking u need a 12gb ram ide when u have vim with cmake
+08:38 <+bridge_> [ddnet] <Ryozuki> :greenthing:
+08:38 <+bridge_> [ddnet] <Ryozuki> bloat
+08:39 <+bridge_> [ddnet] <Learath2> I prefer my ide to use 32g, 12g is child numbers, what is that a puny browser?
+08:48 <+bridge_> [ddnet] <Chairn> i think i managed to do it 🙂
+11:45 <+bridge_> [ddnet] <Chairn> lol, the bot is faster to link that than my browser to load the issue after posting it 😄
+12:05 <+bridge_> [ddnet] <Jupstar> @Learath2 
+12:05 <+bridge_> [ddnet] <Jupstar> deen on macos has a weird bug:
+12:05 <+bridge_> [ddnet] <Jupstar> 
+12:05 <+bridge_> [ddnet] <Jupstar> his main and graphic thread both wait on the same condition variable
+12:05 <+bridge_> [ddnet] <Jupstar> 
+12:05 <+bridge_> [ddnet] <Jupstar> both (and all calls made on them, wait, notify) are protected by a mutex
+12:05 <+bridge_> [ddnet] <Jupstar> 
+12:05 <+bridge_> [ddnet] <Jupstar> the only way this can happen imo is, that a wakeup is lost:
+12:05 <+bridge_> [ddnet] <Jupstar> But this shouldnt happen with a mutex protecting the condition variable
+12:05 <+bridge_> [ddnet] <Jupstar> 
+12:05 <+bridge_> [ddnet] <Jupstar> Another possibility is that the graphics thread does not notify the main thread when it started
+12:05 <+bridge_> [ddnet] <Jupstar> but i purposly added a check
+12:05 <+bridge_> [ddnet] <Jupstar> 
+12:05 <+bridge_> [ddnet] <Jupstar> https://github.com/ddnet/ddnet/blob/68a4404701d53d5ce6d50db19eb0f3337bd67cec/src/engine/client/backend_sdl.cpp
+12:06 <+bridge_> [ddnet] <Jupstar> 
+12:06 <+bridge_> [ddnet] <Jupstar> I don't see how both threads should ever wait on the condition variable at the same time
+12:06 <+bridge_> [ddnet] <Jupstar> 
+12:06 <+bridge_> [ddnet] <Jupstar> `m_BufferSwapCond`
+12:06 <+bridge_> [ddnet] <Jupstar> 
+12:06 <+bridge_> [ddnet] <Jupstar> Graphic thread waits on:
+12:06 <+bridge_> [ddnet] <Jupstar> https://github.com/ddnet/ddnet/blob/68a4404701d53d5ce6d50db19eb0f3337bd67cec/src/engine/client/backend_sdl.cpp#L74
+12:06 <+bridge_> [ddnet] <Jupstar> 
+12:06 <+bridge_> [ddnet] <Jupstar> main in call of:
+12:06 <+bridge_> [ddnet] <Jupstar> https://github.com/ddnet/ddnet/blob/68a4404701d53d5ce6d50db19eb0f3337bd67cec/src/engine/client/backend_sdl.cpp#L1112
+12:12 <+bridge_> [ddnet] <Jupstar> mhh maybe its bcs of the fallback not cleaning up something correctly
+12:14 <+bridge_> [ddnet] <Learath2> Hm, why is there 2 condvars?
+12:15 <+bridge_> [ddnet] <c0d3d3v> I just noticed that many client components use both "m_pClient" and "GameClient()" although "GameClient()" just returns "m_pClient" 😄 Lacks a little consistency. Although "GameClient()" is used significantly less, especially it is used often when also accessing the textures that are loaded in gameclient.
+12:17 <+bridge_> [ddnet] <Learath2> @Not Keks ^^
+12:17 <+bridge_> [ddnet] <Jupstar> mh yeah not needed, but i doubt that causes the bug
+12:17 <+bridge_> [ddnet] <Learath2> It makes it a bit hard for me to reason about the flow, maybe if we clean that up the issue would be more obvious?
+12:18 <+bridge_> [ddnet] <Learath2> A notify before wait would also be lost, I was trying to look for that but it's not obvious at all
+12:18 <+bridge_> [ddnet] <Jupstar> possible, but i kinda start to believe we forget to cleanup a thread or smth
+12:21 <+bridge_> [ddnet] <Learath2> Anyway, first thing I'd do would be to reduce this to one condvar if possible just so it's easier to reason about
+12:22 <+bridge_> [ddnet] <Learath2> Sorry, I can't look more into it right now, I can take another look when I get home
+12:24 <+bridge_> [ddnet] <Learath2> Oh and luckily this happens at the very start of the initialization so it should be easier to debug
+12:25 <+bridge_> [ddnet] <Jupstar> yeah thanks, weird its not reproducable for me 😦
+12:25 <+bridge_> [ddnet] <Learath2> Have you checked that you are both on the same sdl version?
+12:26 <+bridge_> [ddnet] <Ryozuki> i think GameClient was added later
+12:26 <+bridge_> [ddnet] <Ryozuki> GameClient should be used imho
+12:27 <+bridge_> [ddnet] <Jupstar> im not, but since its inside our code i assume its our bug 😄
+12:27 <+bridge_> [ddnet] <Jupstar> or deen didnt rebase correclty or smth xD
+12:28 <+bridge_> [ddnet] <Learath2> Well the only thing that comes to my mind from a cursory glance is that 2 condvars 1 mutex being sus
+12:28 <+bridge_> [ddnet] <Learath2> Especially when they are guarding just one condition
+12:28 <+bridge_> [ddnet] <Jupstar> but doesnt this make it safe
+12:28 <+bridge_> [ddnet] <Jupstar> that its only one condition
+12:28 <+bridge_> [ddnet] <Jupstar> the same condition
+12:29 <+bridge_> [ddnet] <Jupstar> the one is simple the waiter for main thread
+12:29 <+bridge_> [ddnet] <Jupstar> the other the waiter for other thread
+12:29 <+bridge_> [ddnet] <Jupstar> that's how they split
+12:29 <+bridge_> [ddnet] <Learath2> It sounds safe, but it definitely throws of my in-brain concurrency analyzer 😛
+12:30 <+bridge_> [ddnet] <Jupstar> 😄
+12:30 <+bridge_> [ddnet] <Learath2> s\/of/off/
+12:30 <+bridge_> [ddnet] <c0d3d3v> but why m_pClient is a protected member variable, all components have access to it, why the indirect way over the function call? For access from outside I understand that. Is it about readability or is there another reason?
+12:31 <+bridge_> [ddnet] <Learath2> @Not Keks Oh you are checking m_Started, so it's 2 conds 2 condvars but one is sorta guarding 2 conds
+12:32 <+bridge_> [ddnet] <Learath2> Maybe just assume best case and spin on m_Started? That's what a futex would do aswell
+12:32 <+bridge_> [ddnet] <Chairn> if both wait for the same condition, maybe it's because the lock order is not the same in both?
+12:33 <+bridge_> [ddnet] <Learath2> Since it's a one direction change you can also sleep if you don't want to be busy waiting for it, though it might be better not to yield to the scheduler anyway since the gfx thread will come up very quickly anyway, might aswell keep the cpu
+12:34 <+bridge_> [ddnet] <Jupstar> i'll just use 1 cond, its not unsafe to have 2 conditions. they are chronological split
+12:34 <+bridge_> [ddnet] <Jupstar> 
+12:34 <+bridge_> [ddnet] <Jupstar> started never occurs afterwards anymore
+12:37 <+bridge_> [ddnet] <Ryozuki> easier refactoring is usually the reason
+12:44 <+bridge_> [ddnet] <Jupstar> now that i think about it, i think thats exactly the problem
+12:44 <+bridge_> [ddnet] <Jupstar> so you are right
+12:44 <+bridge_> [ddnet] <Jupstar> i forgot that condition variables only work bcs they are atomic as soon as you call notify or wait
+12:44 <+bridge_> [ddnet] <Jupstar> and this isnt given with 2 different ones
+12:44 <+bridge_> [ddnet] <Learath2> \\o/
+12:44 <+bridge_> [ddnet] <Jupstar> independent of the mutex
+12:46 <+bridge_> [ddnet] <Learath2> If you are looking to do m_Started another way, maybe craft an empty buffer and the gfx thread can immediately finish it and set the buffer to nullptr letting you know it's ready for more
+12:46 <+bridge_> [ddnet] <Learath2> One less variable too
+12:47 <+bridge_> [ddnet] <Jupstar> xd i think i'll let deen test for now
+12:47 <+bridge_> [ddnet] <Jupstar> dont want to overkill for now
+12:47 <+bridge_> [ddnet] <Learath2> Makes sense, hopefully that fixes it up
+13:00 <+bridge_> [ddnet] <Learath2> @Not Keks do you happen to know why this happens?
+13:00 <+bridge_> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/955435748323106856/screenshot_2022-03-12_19-33-42.png
+13:00 <+bridge_> [ddnet] <Jupstar> what opengl
+13:02 <+bridge_> [ddnet] <Learath2> Apparently happens with gl3, @Cøke suggested disabling it would fix it in his map testing channel
+13:02 <+bridge_> [ddnet] <Jupstar> then its the asset itself i'd say
+13:02 <+bridge_> [ddnet] <Learath2> I was just a bit concerned whether a lot of maps exhibit this and testers just disable gl3 instead 😄
+13:02 <+bridge_> [ddnet] <Jupstar> or driver
+13:02 <+bridge_> [ddnet] <Cøke> Nothing wrong with the tileset lol
+13:02 <+bridge_> [ddnet] <Cøke> It's Client side
+13:03 <+bridge_> [ddnet] <Learath2> Can you post the tileset so @Not Keks can take a look?
+13:03 <+bridge_> [ddnet] <Cøke> U can exteact
+13:03 <+bridge_> [ddnet] <Cøke> I'm not at PC rn
+13:03 <+bridge_> [ddnet] <Cøke> U can extract
+13:03 <+bridge_> [ddnet] <Learath2> I wonder if we have an issue with borderfix or dilate
+13:04 <+bridge_> [ddnet] <Cøke> It happens for some more ppl who got a old client or opengl3
+13:04 <+bridge_> [ddnet] <Cøke> It happens for some more ppl who got a old client or opengl
+13:04 <+bridge_> [ddnet] <Cøke> It happens for some more ppl who got a old client or opengl on
+13:06 <+bridge_> [ddnet] <Cøke> It's normal 1024x1024
+13:06 <+bridge_> [ddnet] <Cøke> 64x64 tiles
+13:06 <+bridge_> [ddnet] <Cøke> It's the same I used in multeasy btw
+13:10 <+bridge_> [ddnet] <Ravie> it's 960x960, looks messed up only on gl1 for me
+13:11 <+bridge_> [ddnet] <Learath2> Looking messed up on gl1 sounds like it hasn't been borderfixed, but honestly I don't even know if you are supposed to borderfix now
+13:12 <+bridge_> [ddnet] <Learath2> @Not Keks I keep forgetting, what is the state of the two renderers? Are they supposed to be giving identical results on a frame by frame basis?
+13:12 <+bridge_> [ddnet] <Ravie> nope, borderfixed tilesets will look messed up on anything newer than gl1
+13:13 <+bridge_> [ddnet] <Learath2> And non-borderfixed ones look broken on gl1 still?
+13:13 <+bridge_> [ddnet] <Ravie> ofc
+13:13 <+bridge_> [ddnet] <Ravie> but in this case it looks more messed up than just no borderadd
+13:13 <+bridge_> [ddnet] <Ravie> gl must have difficulty with this resolution for some reason
+13:14 <+bridge_> [ddnet] <Ravie> closer look
+13:14 <+bridge_> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/955439244686549033/screenshot_2022-03-21_13-13-56.png
+13:14 <+bridge_> [ddnet] <Learath2> Yeah that's why this caught my eye. It looked very wrong for some reason
+13:15 <+bridge_> [ddnet] <Cøke> I used normal 1024x1024
+13:15 <+bridge_> [ddnet] <Cøke> Idk why this happens
+13:15 <+bridge_> [ddnet] <Ravie> pipou must have exported at the wrong resolution when he edited it I guess
+13:15 <+bridge_> [ddnet] <Learath2> Only Jupstar, master of all 3 gfx backends can save the world
+13:15 <+bridge_> [ddnet] <Jupstar> yeah trust opengl 3.3 xd
+13:15 <+bridge_> [ddnet] <Cøke> That idk, I just fixed the bugged spikes
+13:16 <+bridge_> [ddnet] <Ravie> looks similar to skins that aren't divisible btw, pixelly af
+13:16 <+bridge_> [ddnet] <Jupstar> so
+13:16 <+bridge_> [ddnet] <Jupstar> opengl 3.3
+13:16 <+bridge_> [ddnet] <Jupstar> 3.0
+13:16 <+bridge_> [ddnet] <Jupstar> and 2.x 
+13:16 <+bridge_> [ddnet] <Jupstar> should all render it correclty
+13:16 <+bridge_> [ddnet] <Jupstar> 
+13:16 <+bridge_> [ddnet] <Jupstar> 2.x has no mipmaps so it might look oversharp
+13:16 <+bridge_> [ddnet] <Jupstar> 
+13:16 <+bridge_> [ddnet] <Jupstar> gl 1.x defs looks shit
+13:16 <+bridge_> [ddnet] <Cøke> But why it's fine for me?
+13:16 <+bridge_> [ddnet] <Cøke> Just don't use the 3.3
+13:16 <+bridge_> [ddnet] <Cøke> XD
+13:16 <+bridge_> [ddnet] <Jupstar> what is your GPU?
+13:16 <+bridge_> [ddnet] <eeetadam> my opengl 1.0
+13:16 <+bridge_> [ddnet] <Jupstar> buy new pc xd
+13:17 <+bridge_> [ddnet] <Jupstar> use software opengl renderer
+13:17 <+bridge_> [ddnet] <eeetadam> no
+13:17 <+bridge_> [ddnet] <Learath2> 3.3 is the reference btw, that's what you should be testing on as it's probably going to become the default soon-ish
+13:17 <+bridge_> [ddnet] <eeetadam> directx 10
+13:17 <+bridge_> [ddnet] <eeetadam> plz add
+13:17 <+bridge_> [ddnet] <eeetadam> XD
+13:17 <+bridge_> [ddnet] <Jupstar> we have vulkan, thats enough
+13:17 <+bridge_> [ddnet] <Cøke> Why should we test 3.3 when I don't even use this
+13:17 <+bridge_> [ddnet] <Cøke> Xf
+13:18 <+bridge_> [ddnet] <Jupstar> @Cøke open client, press f1 and see what your GPU is
+13:18 <+bridge_> [ddnet] <Jupstar> in purple
+13:19 <+bridge_> [ddnet] <Ravie> gl1 looks shit on all newer maps tbh
+13:19 <+bridge_> [ddnet] <Jupstar> its 1% of users xd
+13:19 <+bridge_> [ddnet] <Jupstar> and they probs have some weird 4:3 monitors
+13:19 <+bridge_> [ddnet] <Learath2> Because gl1 renderer is almost never the one chosen, so we want the maps to look correct for everyone not the few people that has to use gl1 because of hw/driver issues
+13:19 <+bridge_> [ddnet] <Jupstar> just ignore xd
+13:19 <+bridge_> [ddnet] <Cøke> It's like I have to test a map for ppl with weak PC :troll: idk if they can load it or not, how should I check it
+13:19 <+bridge_> [ddnet] <eeetadam> :troll:
+13:20 <+bridge_> [ddnet] <Learath2> I bet you also use atleast the gl3 renderer. Almost no one ends up with 1 or even 2 picked
+13:20 <+bridge_> [ddnet] <Jupstar> only intel GPUs on windows doent use GL 3.0 thats true
+13:20 <+bridge_> [ddnet] <Jupstar> default is 3.0
+13:20 <+bridge_> [ddnet] <Cøke> I used nothing, I just fixed the spike
+13:20 <+bridge_> [ddnet] <Learath2> Not the 3.3 if you unchecked it I guess. Idk how the settings work now
+13:20 <+bridge_> [ddnet] <eeetadam> many do not have open-angle version 3.3
+13:20 <+bridge_> [ddnet] <eeetadam> YAY
+13:20 <+bridge_> [ddnet] <Jupstar> yeah unchecking makes it 3.0
+13:20 <+bridge_> [ddnet] <Ravie> maybe it's possible to make a workaround in gl1 to fix this borderadd bug? seems like just some issue with texture coords
+13:20 <+bridge_> [ddnet] <Cøke> Ich habe aber AMD @Not Keks
+13:21 <+bridge_> [ddnet] <Jupstar> latest client?
+13:21 <+bridge_> [ddnet] <Cøke> Ne aber relativ neu
+13:21 <+bridge_> [ddnet] <Jupstar> anyway, then its a driver bug 3.0 and 3.3 use the same shader
+13:21 <+bridge_> [ddnet] <Jupstar> i dont see why they should look different at all
+13:22 <+bridge_> [ddnet] <Jupstar> (for tile maps to be precise)
+13:22 <+bridge_> [ddnet] <Learath2> Wym? For a gpu not to support opengl 3.3 you need to go back like 3 decades
+13:23 <+bridge_> [ddnet] <eeetadam> no
+13:23 <+bridge_> [ddnet] <Jupstar> can you post your hardware?
+13:23 <+bridge_> [ddnet] <eeetadam> oka
+13:23 <+bridge_> [ddnet] <Cøke> But I wonder why the old tileset works, just for a few ppl with very old client doesn't work
+13:23 <+bridge_> [ddnet] <Cøke> The tileset from Multeasy
+13:24 <+bridge_> [ddnet] <Jupstar> old client = broken
+13:24 <+bridge_> [ddnet] <Jupstar> anything before ddnet 14 should be broken
+13:24 <+bridge_> [ddnet] <eeetadam> https://cdn.discordapp.com/attachments/293493549758939136/955441706239660072/unknown.png
+13:24 <+bridge_> [ddnet] <Jupstar> win7 is out of life
+13:24 <+bridge_> [ddnet] <eeetadam> no
+13:24 <+bridge_> [ddnet] <eeetadam> NO
+13:24 <+bridge_> [ddnet] <Jupstar> just accept the truth
+13:24 <+bridge_> [ddnet] <Jupstar> the industry doesnt wait for win7 for ever
+13:24 <+bridge_> [ddnet] <eeetadam> NOOO
+13:25 <+bridge_> [ddnet] <Learath2> @eeetadam so you don’t have a gpu? Just integrated gfx?
+13:25 <+bridge_> [ddnet] <eeetadam> ye
+13:25 <+bridge_> [ddnet] <eeetadam> pc 2007 year
+13:25 <+bridge_> [ddnet] <eeetadam> 2008*
+13:25 <+bridge_> [ddnet] <Jupstar> intel says its form 2009, it should actually atleast have GL 2.1
+13:25 <+bridge_> [ddnet] <Cøke> So many blocked massages lol
+13:26 <+bridge_> [ddnet] <eeetadam> :cammo:
+13:26 <+bridge_> [ddnet] <Ravie> no it's edited and the one with new spikes is 960x960
+13:26 <+bridge_> [ddnet] <Jupstar> switch to linux then it might work xd
+13:26 <+bridge_> [ddnet] <Cøke> Ok idk why pipou did this
+13:26 <+bridge_> [ddnet] <eeetadam> no
+13:27 <+bridge_> [ddnet] <Jupstar> then use software rendering or accept that your pc is dead
+13:27 <+bridge_> [ddnet] <Jupstar> i bet the integrated GPU isnt much faster than the CPU
+13:27 <+bridge_> [ddnet] <Learath2> I guess there are iGPUs that are 1.5 decades old that don’t support 3.3
+13:27 <+bridge_> [ddnet] <Cøke> What u mean edited
+13:27 <+bridge_> [ddnet] <eeetadam> tried
+13:27 <+bridge_> [ddnet] <Learath2> But 2.1 still renders the same way so mappers should test on 3.3
+13:28 <+bridge_> [ddnet] <Jupstar> https://github.com/pal1000/mesa-dist-win/releases/download/22.0.0-2/mesa3d-22.0.0-r2-release-msvc.7z
+13:28 <+bridge_> [ddnet] <Jupstar> 
+13:28 <+bridge_> [ddnet] <Jupstar> unpack this, copy all .dll into ddnet directory
+13:28 <+bridge_> [ddnet] <Jupstar> 
+13:28 <+bridge_> [ddnet] <Jupstar> x86 for 32bit
+13:28 <+bridge_> [ddnet] <Jupstar> x64 for 64bit
+13:28 <+bridge_> [ddnet] <Ravie> @Cøke it was opened, altered and saved again
+13:28 <+bridge_> [ddnet] <coldrun> >DDraceNetwork always welcomes creative maps you made and ideas for new DDRace features you have.
+13:28 <+bridge_> [ddnet] <coldrun> https://github.com/ddnet/ddnet/issues/4855
+13:29 <+bridge_> [ddnet] <eeetadam> why not use directix instead of opengle?
+13:29 <+bridge_> [ddnet] <Cøke> I have used another for clues, but deleted the complete old one
+13:30 <+bridge_> [ddnet] <eeetadam> why not use directx instead of opengl?
+13:30 <+bridge_> [ddnet] <eeetadam> :troll:
+13:30 <+bridge_> [ddnet] <Ravie> when jupstar finishes vulkan and is bored again :troll:
+13:30 <+bridge_> [ddnet] <Jupstar> we have vulkan,  why bother with dx
+13:30 <+bridge_> [ddnet] <Ryozuki> intel core 2 duo lmao
+13:30 <+bridge_> [ddnet] <Jupstar> why downgrade rendering for a person that wants to stick to win7 so desperatly xd
+13:31 <+bridge_> [ddnet] <Cøke> Bei mir kommt morgens auch immer der Vulkan aufn pott
+13:31 <+bridge_> [ddnet] <Ryozuki> u can buy a raspberry pi 4 for 50€ and have a better pc
+13:31 <+bridge_> [ddnet] <Jupstar> ttrue xd
+13:32 <+bridge_> [ddnet] <Ryozuki> we do not embrace propietary
+13:32 <+bridge_> [ddnet] <eeetadam> HEHEHEHA
+13:32 <+bridge_> [ddnet] <Ryozuki> iif u have a pc from 2008 its ur fault
+13:32 <+bridge_> [ddnet] <Ryozuki> xd
+13:32 <+bridge_> [ddnet] <Jupstar> i am always suprised these machines still work
+13:33 <+bridge_> [ddnet] <Jupstar> i'd assume the coolers fail at some point
+13:33 <+bridge_> [ddnet] <Ryozuki> well maybe rly old processors dont heat that much
+13:33 <+bridge_> [ddnet] <eeetadam> yes
+13:33 <+bridge_> [ddnet] <Ryozuki> @Not Keks https://www.youtube.com/watch?v=C4YPcDeyYd0
+13:33 <+bridge_> [ddnet] <eeetadam> 120
+13:33 <+bridge_> [ddnet] <Ryozuki> there u have
+13:33 <+bridge_> [ddnet] <Jupstar> ok and 2008 is also "just" 14 years xd
+13:33 <+bridge_> [ddnet] <eeetadam> degrees
+13:33 <+bridge_> [ddnet] <eeetadam> 120 degrees
+13:34 <+bridge_> [ddnet] <Learath2> I wonder if he can even run win10 tbf. What even is a core2duo at this point
+13:34 <+bridge_> [ddnet] <Ryozuki> its better to use linux
+13:34 <+bridge_> [ddnet] <eeetadam> no
+13:34 <+bridge_> [ddnet] <Jupstar> yeah for old hardware its a must have
+13:34 <+bridge_> [ddnet] <Ryozuki> yes
+13:34 <+bridge_> [ddnet] <eeetadam> n
+13:34 <+bridge_> [ddnet] <Jupstar> except you playing win98 games xD
+13:34 <+bridge_> [ddnet] <eeetadam> Wtf
+13:34 <+bridge_> [ddnet] <Ryozuki> this guy is just trolling
+13:35 <+bridge_> [ddnet] <Jupstar> i know
+13:35 <+bridge_> [ddnet] <Learath2> I can’t upgrade to win11 because my mobo from 2014 doesn’t have a TPM
+13:35 <+bridge_> [ddnet] <Ryozuki> there is no benefit anyway
+13:35 <+bridge_> [ddnet] <eeetadam> yay
+13:35 <+bridge_> [ddnet] <eeetadam> 200 degrees
+13:35 <+bridge_> [ddnet] <Ryozuki> u will get #ads in ur file browser
+13:35 <+bridge_> [ddnet] <eeetadam> nice
+13:35 <+bridge_> [ddnet] <Learath2> Win98 games work like a charm under wine
+13:35 <+bridge_> [ddnet] <Jupstar> yeah except if they have CD lock
+13:35 <+bridge_> [ddnet] <Jupstar> that always sucks hard
+13:35 <+bridge_> [ddnet] <Learath2> I don’t want to anyway, so it’s good that there is something stopping it from auto upgrading while I sleep
+13:35 <+bridge_> [ddnet] <Ryozuki> @Learath2 use https://reactos.org/
+13:35 <+bridge_> [ddnet] <Ryozuki> to play old win games
+13:35 <+bridge_> [ddnet] <Ryozuki> xd
+13:36 <+bridge_> [ddnet] <Learath2> I remember downloading NoCD patches when I was a young lad
+13:36 <+bridge_> [ddnet] <Cøke> https://cdn.discordapp.com/attachments/293493549758939136/955444829515567134/2022-03-21_13_36_29-DDNet_Client.png
+13:36 <+bridge_> [ddnet] <Cøke> https://cdn.discordapp.com/attachments/293493549758939136/955444840068444160/2022-03-21_13_35_45-DDNet_Client.png
+13:36 <+bridge_> [ddnet] <eeetadam> WTF HOLY JESUS
+13:36 <+bridge_> [ddnet] <Cøke> modern opengl OFF
+13:37 <+bridge_> [ddnet] <Ryozuki> whats with this guy reaction
+13:37 <+bridge_> [ddnet] <eeetadam> hehehe
+13:37 <+bridge_> [ddnet] <eeetadam> https://cdn.discordapp.com/attachments/293493549758939136/955444993387028490/unknown.png
+13:37 <+bridge_> [ddnet] <eeetadam> oka
+13:37 <+bridge_> [ddnet] <Learath2> How is he getting 4.6 with modern gl off @Not Keks?
+13:37 <+bridge_> [ddnet] <Ryozuki> :greenthing:
+13:37 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/955445013339316254/unknown.png
+13:37 <+bridge_> [ddnet] <eeetadam> im dead
+13:37 <+bridge_> [ddnet] <eeetadam> .
+13:38 <+bridge_> [ddnet] <Ryozuki> why r u on rc
+13:38 <+bridge_> [ddnet] <Ryozuki> when 15.9.1 is out
+13:38 <+bridge_> [ddnet] <Cøke> i dont like manual update
+13:39 <+bridge_> [ddnet] <Cøke> and a new version was bugged for me so i changed back
+13:39 <+bridge_> [ddnet] <Ryozuki> whats the bug
+13:41 <+bridge_> [ddnet] <Cøke> it's been a while i don't know exactly, but what i can remember is that the editor crashed often
+13:41 <+bridge_> [ddnet] <Cøke> worked over hours on a map -> crash -> all for nothing so i changed to the better version :justatest:
+13:41 <+bridge_> [ddnet] <eeetadam> bruhs
+13:41 <+bridge_> [ddnet] <eeetadam> https://cdn.discordapp.com/attachments/293493549758939136/955446117397581904/unknown.png
+13:42 <+bridge_> [ddnet] <Ryozuki> this reminded me of https://www.gamingonlinux.com/2021/10/58-sales-and-over-38-of-bug-reports-from-linux-said-one-dev-but-its-been-helpful/
+13:47 <+bridge_> [ddnet] <Cøke> @Not Keks come on test server
+13:48 <+bridge_> [ddnet] <Cøke> i changed to 1024x1024 and looks like the same
+13:48 <+bridge_> [ddnet] <Cøke> still opengl off
+14:21 <+bridge_> [ddnet] <Jupstar> wtf how did it try directx 12 first, guess mesa 22 changed smth 😄 sry didnt know
+14:22 <+bridge_> [ddnet] <eeetadam> ok
+14:22 <+bridge_> [ddnet] <Jupstar> its just a string reported by the driver, not the chosen backend
+14:22 <+bridge_> [ddnet] <Jupstar> ok
+14:26 <+bridge_> [ddnet] <Jupstar> ogl 1.x
+14:26 <+bridge_> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/955457366441222214/screenshot_2022-03-21_14-25-10.png
+14:26 <+bridge_> [ddnet] <Jupstar> 3.0
+14:26 <+bridge_> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/955457379389022259/screenshot_2022-03-21_14-25-31.png
+14:26 <+bridge_> [ddnet] <Jupstar> 3.3
+14:26 <+bridge_> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/955457402134736976/screenshot_2022-03-21_14-25-48.png
+14:26 <+bridge_> [ddnet] <Jupstar> vulkan (not implemented by AMD, so maybe interesting)
+14:26 <+bridge_> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/955457454089588826/screenshot_2022-03-21_14-26-07.png
+14:27 <+bridge_> [ddnet] <Jupstar> except 1.x i dont really see a difference
+14:27 <+bridge_> [ddnet] <Jupstar> @Cøke
+14:32 <+bridge_> [ddnet] <Voxel> are they meant to look any different? or being the same the best route?
+14:32 <+bridge_> [ddnet] <Learath2> Being same is good
+14:39 <+bridge_> [ddnet] <Smetanolub> ?
+14:39 <+bridge_> [ddnet] <Smetanolub> what should i look at
+15:14 <+bridge_> [ddnet] <ReiTW> hllo I didn't use the leak command on f1 but my client seem to use the old way (I don't see EUR, etc.. but ping), any idea?
+15:15 <+bridge_> [ddnet] <Learath2> After you connect once to a server the ping will be cached, maybe that's what you are seeing
+15:17 <+bridge_> [ddnet] <ReiTW> @Learath2 I didn't connect to all servers from the list
+15:20 <+bridge_> [ddnet] <Cøke> and why is this now bugged?
+15:20 <+bridge_> [ddnet] <Cøke> used now 1024x1024
+15:20 <+bridge_> [ddnet] <Jupstar> wait i come
+15:35 <+bridge_> [ddnet] <Chairn> @deen i think we need to select which switch statement we want to assert and which are inoffensive
+15:37 <+bridge_> [ddnet] <deen> yeah, probably
+15:38 <+bridge_> [ddnet] <deen> that's the difficult choice 😄
+15:40 <+bridge_> [ddnet] <Chairn> can't you set a grep to look for all the dbg_msg to see if they are often triggerred?
+15:43 <+bridge_> [ddnet] <The World> how do i reset mouse sensor value back to normal
+15:43 <+bridge_> [ddnet] <The World> i used bind x "+toggle inp_mousesens 1 100000000"
+15:44 <+bridge_> [ddnet] <deen> in practice no one does that, but when server crashes it gets noticed
+15:44 <+bridge_> [ddnet] <deen> inp_mousesens 200
+15:44 <+bridge_> [ddnet] <deen> and with just a dbg_msg it can be difficult to debug, a coredump helps more
+15:46 <+bridge_> [ddnet] <Chairn> ♥️
+15:47 <+bridge_> [ddnet] <Jupstar> :heartw: :heartw:
+15:47 <+bridge_> [ddnet] <Jupstar> finally xd
+15:47 <+bridge_> [ddnet] <Jupstar> now i can rebase all my stuff xD
+15:48 <+bridge_> [ddnet] <Jupstar> @deen for the changelog you can also add that the video renderer got an upgrade, wanna see if it runs correctly for everyone
+15:48 <+bridge_> [ddnet] <Jupstar> then they might purposly test it
+15:49 <+bridge_> [ddnet] <Learath2> Oooh we have a VK backend now
+15:50 <+bridge_> [ddnet] <Jupstar> @Cellegen | HU do you own the generic unhookable as SVG? and if, are they accurate?
+16:09 <+bridge_> [ddnet] <Cellegen | HU> :justatest:
+16:09 <+bridge_> [ddnet] <Cellegen | HU> i can make it today if you want
+16:11 <+bridge_> [ddnet] <Ryozuki> poggers
+16:11 <+bridge_> [ddnet] <Ryozuki> vulkan by jupstar
+16:11 <+bridge_> [ddnet] <Ryozuki> :BASED: 🍷
+16:11 <+bridge_> [ddnet] <Ryozuki> time to celebrate
+16:11 <+bridge_> [ddnet] <Ryozuki> <a:aPES_Wine:678210604464603146>
+16:12 <+bridge_> [ddnet] <Ryozuki> and also time to find broken drivers
+16:13 <+bridge_> [ddnet] <Ryozuki> doesnt it build artifacts
+16:13 <+bridge_> [ddnet] <Ryozuki> the checks
+16:13 <+bridge_> [ddnet] <Ryozuki> i dont to compile on windows
+16:14 <+bridge_> [ddnet] <Ryozuki> wanna compare
+16:15 <+bridge_> [ddnet] <Ryozuki> found it
+16:15 <+bridge_> [ddnet] <Ryozuki> https://github.com/ddnet/ddnet/suites/5738919643/artifacts/190259741
+16:16 <+bridge_> [ddnet] <Ryozuki> i dont want to compile on windows
+16:17 <+bridge_> [ddnet] <Ryozuki> is it normal i defaults to opengl 3?
+16:18 <+bridge_> [ddnet] <Ryozuki> 2200 fps on a full mult server
+16:19 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/955485716207534120/unknown.png
+16:19 <+bridge_> [ddnet] <Ryozuki> its poggers
+16:20 <+bridge_> [ddnet] <Ryozuki> @Not Keks does it give more fps to increase the render thread count
+16:20 <+bridge_> [ddnet] <Jupstar> more consistent frames probs
+16:20 <+bridge_> [ddnet] <Ryozuki> mine is at 3
+16:21 <+bridge_> [ddnet] <Ryozuki> i guess u set it at half of real cores
+16:23 <+bridge_> [ddnet] <Voxel> thinking about making accurate gameskin svg
+16:23 <+bridge_> [ddnet] <Voxel> thinking about making accurate gameskin svg today
+16:25 <+bridge_> [ddnet] <Cellegen | HU> ah yes, finally somebody helps 😛
+16:26 <+bridge_> [ddnet] <Jupstar> no i set it to 3 always
+16:26 <+bridge_> [ddnet] <Jupstar> 3 gives really good results already
+16:26 <+bridge_> [ddnet] <Jupstar> on ARM theoretically it can improve efficiency to use more cores
+16:26 <+bridge_> [ddnet] <Ryozuki> @Not Keks
+16:26 <+bridge_> [ddnet] <Jupstar> since its not more work
+16:26 <+bridge_> [ddnet] <Ryozuki> a intel core 2 duo
+16:27 <+bridge_> [ddnet] <Jupstar> just same work on all cores
+16:27 <+bridge_> [ddnet] <Ryozuki> with 3 render threads
+16:27 <+bridge_> [ddnet] <Ryozuki> :monkalaugh:
+16:27 <+bridge_> [ddnet] <Jupstar> XD
+17:07 <+bridge_> [ddnet] <deen> @Not Keks I'm installing https://github.com/KhronosGroup/glslang manually since glslang tools are not available on Debian 9
+17:07 <+bridge_> [ddnet] <deen> Version differences shouldn't matter, right? I just took the latest
+17:22 <+bridge_> [ddnet] <Jupstar> ok
+17:22 <+bridge_> [ddnet] <Jupstar> should be fine
+17:29 <+bridge_> [ddnet] <deen> vulkan_core.h does not exist in Debian 9's libvulkan-dev
+17:30 <+bridge_> [ddnet] <Jupstar> does it compile without?
+17:31 <+bridge_> [ddnet] <deen> Yes, well that was easy 😄
+17:31 <+bridge_> [ddnet] <deen> ah no
+17:31 <+bridge_> [ddnet] <deen> just failed a bit later
+17:32 <+bridge_> [ddnet] <deen> ```
+17:32 <+bridge_> [ddnet] <deen> /ddnet-source/src/engine/client/backend/vulkan/backend_vulkan.cpp:983:2: error: ‘VkDebugUtilsMessengerEXT’ does not name a type
+17:32 <+bridge_> [ddnet] <deen>   VkDebugUtilsMessengerEXT m_DebugMessenger;
+17:32 <+bridge_> [ddnet] <deen>   ^~~~~~~~~~~~~~~~~~~~~~~~
+17:32 <+bridge_> [ddnet] <deen> /ddnet-source/src/engine/client/backend/vulkan/backend_vulkan.cpp:3932:56: error: ‘VkDebugUtilsMessageSeverityFlagBitsEXT’ has not been declared
+17:32 <+bridge_> [ddnet] <deen>   static VKAPI_ATTR VkBool32 VKAPI_CALL VKDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity, VkDebugUtilsMessageTypeFlagsEXT MessageType, const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, void *pUserData)
+17:32 <+bridge_> [ddnet] <deen>                                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+17:32 <+bridge_> [ddnet] <deen> ```
+17:32 <+bridge_> [ddnet] <Jupstar> there is VK_EXT_debug_utils
+17:32 <+bridge_> [ddnet] <Jupstar> a define
+17:33 <+bridge_> [ddnet] <Jupstar> let me add that check
+17:43 <+bridge_> [ddnet] <Jupstar> ddnet 16 changelog really has alot of various contributors doesnt it?
+17:51 <+bridge_> [ddnet] <Chairn> lol, and some people mocked me for using gcc 7 😄
+17:52 <+bridge_> [ddnet] <deen> yes
+17:53 <+bridge_> [ddnet] <Jupstar> its actually more sad that this is legit c++17 code
+17:53 <+bridge_> [ddnet] <deen> Hm, I guess GCC 6.3.0 doesn't support C++17 as well as expected
+17:54 <+bridge_> [ddnet] <Jupstar> anyway
+17:54 <+bridge_> [ddnet] <Jupstar> 2023 debian 9 dies
+17:54 <+bridge_> [ddnet] <Jupstar> then we upgrade xdd
+17:54 <+bridge_> [ddnet] <deen> yeah
+17:54 <+bridge_> [ddnet] <Jupstar> mark these words
+17:54 <+bridge_> [ddnet] <deen> 😄
+17:56 <+bridge_> [ddnet] <Ryozuki> noted
+17:56 <+bridge_> [ddnet] <Ryozuki> <a:aPES4_Noted:838744541497393152>
+18:01 <+bridge_> [ddnet] <Tater> is it possible to see the changelog already?
+18:01 <+bridge_> [ddnet] <Jupstar> not as a log, but as commits
+18:01 <+bridge_> [ddnet] <Tater> ah ok
+18:01 <+bridge_> [ddnet] <Jupstar> https://github.com/ddnet/ddnet/compare/15.9.1...master
+18:09 <+bridge_> [ddnet] <deen> You can check the list here: https://github.com/ddnet/ddnet-web/pull/181/files
+18:09 <+bridge_> [ddnet] <deen> https://cdn.discordapp.com/attachments/293493549758939136/955513420839546990/Screenshot_2022-03-21_at_18.09.06.png
+18:12 <+bridge_> [ddnet] <Jupstar> nice i already enjoy the 1 trillion crash logs we'll get now xd
+18:13 <+bridge_> [ddnet] <deen> Better than crash reports without crash logs
+18:13 <+bridge_> [ddnet] <Jupstar> 😉
+18:13 <+bridge_> [ddnet] <deen> "It crashed, I did nothing special" is pretty annoying to debug
+18:13 <+bridge_> [ddnet] <Jupstar> true
+18:14 <+bridge_> [ddnet] <Jupstar> lets hope drmingw works good enough. I only tested it a bit yet with a friend^^
+18:50 <+bridge_> [ddnet] <Voxel> WIP accurate gameskin SVG
+18:50 <+bridge_> [ddnet] <Voxel> building from the ground up to make it as grounded and close as possible
+18:50 <+bridge_> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/955523706837434468/unknown.png
+18:50 <+bridge_> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/955523707110039652/unknown.png
+18:50 <+bridge_> [ddnet] <nori> woah vulkan backend :D
+18:51 <+bridge_> [ddnet] <Jupstar> cool, @mind ^ 😄
+18:51 <+bridge_> [ddnet] <nori> @Not Keks i can use it on wayland without any tweak right?
+18:51 <+bridge_> [ddnet] <Jupstar> should just work ™️ i had crashes tho
+18:51 <+bridge_> [ddnet] <Jupstar> but not in the driver
+18:51 <+bridge_> [ddnet] <Jupstar> in the window manager xD
+18:52 <+bridge_> [ddnet] <nori> lol
+18:52 <+bridge_> [ddnet] <Jupstar> well kde wayland is not really finished
+18:52 <+bridge_> [ddnet] <Jupstar> so i guess thats fair
+18:52 <+bridge_> [ddnet] <Ryozuki> wayland bloat X ez
+18:52 <+bridge_> [ddnet] <Jupstar> xd
+18:52 <+bridge_> [ddnet] <Ryozuki> do u rly use wayland
+18:52 <+bridge_> [ddnet] <Ryozuki> with locked vsync
+18:53 <+bridge_> [ddnet] <Jupstar> yeah thats the K.O. argument still xd
+18:53 <+bridge_> [ddnet] <mind> @Voxel  you only need to do the hammer, I already have all the other stuff 😄 (I even have a hammer, but I used the old 0.6 game.png for it)
+18:53 <+bridge_> [ddnet] <nori> @Ryozuki yeah i don't feel any lag
+18:53 <+bridge_> [ddnet] <Ryozuki> i do
+18:53 <+bridge_> [ddnet] <Jupstar> xd
+18:53 <+bridge_> [ddnet] <Jupstar> vsync war
+18:53 <+bridge_> [ddnet] <nori> @Ryozuki i use sway with freesync i dunno does it makes difference
+18:53 <+bridge_> [ddnet] <Voxel> Oh alright! Thanks for telling
+18:53 <+bridge_> [ddnet] <Ryozuki> @Learath2 join the war
+18:54 <+bridge_> [ddnet] <Jupstar> @mind team up xd
+18:54 <+bridge_> [ddnet] <Learath2> What are we fighting about?
+18:54 <+bridge_> [ddnet] <Ryozuki> vsync
+18:54 <+bridge_> [ddnet] <Jupstar> ah nothing special. the old ppl like vsync xd
+18:54 <+bridge_> [ddnet] <Jupstar> or dont notice xd
+18:54 <+bridge_> [ddnet] <Learath2> I don't want to, because Jupstar is too mean
+18:54 <+bridge_> [ddnet] <Ryozuki> old ppl aka 27y old +
+18:55 <+bridge_> [ddnet] <Jupstar> the old "ppl like vsync"
+18:55 <+bridge_> [ddnet] <Ryozuki> ah
+18:55 <+bridge_> [ddnet] <Ryozuki> xd
+18:55 <+bridge_> [ddnet] <murpi> Would it be possible to add a option to sort the scoreboard by ID? It would help identifying people right next to eachother more easily
+18:55 <+bridge_> [ddnet] <murpi> https://cdn.discordapp.com/attachments/293493549758939136/955525074499293184/unknown.png
+18:55 <+bridge_> [ddnet] <Learath2> died to the bird ahead
+18:56 <+bridge_> [ddnet] <Ryozuki> @Not Keks make a algorithm that adds arrows to names in a smart way and names are separated
+18:56 <+bridge_> [ddnet] <Ryozuki> 2222 ddnet
+18:56 <+bridge_> [ddnet] <Ryozuki> hud
+18:56 <+bridge_> [ddnet] <Patiga> or maybe just that the tee you hover over has its nameplate on top
+18:56 <+bridge_> [ddnet] <Jupstar> yeah a cursor mode would be nice
+18:56 <+bridge_> [ddnet] <Jupstar> for scoreboard and spectating
+18:58 <+bridge_> [ddnet] <Ryozuki> https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Released
+18:58 <+bridge_> [ddnet] <Ryozuki> pog
+18:58 <+bridge_> [ddnet] <Ryozuki> :poggers:
+18:58 <+bridge_> [ddnet] <Jupstar> amd is such a huge contributor in linux kernel xd
+18:58 <+bridge_> [ddnet] <Ryozuki> xD
+18:58 <+bridge_> [ddnet] <Ryozuki> nvidia should take notes
+18:59 <+bridge_> [ddnet] <Jupstar> amdgpu is like 2-3mios isnt it
+18:59 <+bridge_> [ddnet] <Ryozuki> :monkaS:
+18:59 <+bridge_> [ddnet] <Ryozuki> > - Most significant on the AMD side is the new AMD P-State driver for Zen 2 and newer systems with ACPI CPPC support exposed by the platform. AMD P-State is aimed to provide greater desktop/mobile power efficiency than the ACPI CPUFreq driver. I'll have out some fresh benchmarks soon.
+19:00 <+bridge_> [ddnet] <Jupstar> for me my motherboard is still the most unefficient thing xD
+19:00 <+bridge_> [ddnet] <Jupstar> cpu and gpu are ok
+19:01 <+bridge_> [ddnet] <Ryozuki> if u own a M1 mac turn to freedom with https://asahilinux.org/
+19:01 <+bridge_> [ddnet] <Ryozuki> stallman will smile at you
+19:01 <+bridge_> [ddnet] <Jupstar> xd
+19:01 <+bridge_> [ddnet] <Ryozuki> https://www.reddit.com/r/linux/comments/tj12vw/hugo_runs_twice_as_fast_in_asahi_linux_than_macos/
+19:01 <+bridge_> [ddnet] <Ryozuki> xd
+19:01 <+bridge_> [ddnet] <Jupstar> yeah i hope they have a working vulkan driver soon xddd
+19:02 <+bridge_> [ddnet] <Jupstar> finally gotta see what M1 can do
+19:04 <+bridge_> [ddnet] <Jupstar> ngl best feature of ddnet 16 is select search string on CTRL+F XD
+19:04 <+bridge_> [ddnet] <Jupstar> i use it so often
+19:04 <+bridge_> [ddnet] <Tater> is that for the server browser search?
+19:04 <+bridge_> [ddnet] <Jupstar> yes
+19:21 <+bridge_> [ddnet] <HappyFray> is the New Vulkan graphics renderer in nightly ?
+19:21 <+bridge_> [ddnet] <HappyFray> i dont have it yet
+19:22 <+bridge_> [ddnet] <deen> no
+19:22 <+bridge_> [ddnet] <deen> only in rc1, will be in nightly in 6 hours 😉
+19:22 <+bridge_> [ddnet] <HappyFray> alright thanks! i really want try it out
+19:22 <+bridge_> [ddnet] <deen> since we build nightly at fixed times, but release candidates when we prepare for a new release
+19:23 <+bridge_> [ddnet] <HappyFray> so its in the release canditates now? ok ill try it out
+19:26 <+bridge_> [ddnet] <deen> yes
+19:28 <+bridge_> [ddnet] <HappyFray> ok i have like 10% more fps and they are waaaaay more stable! i like that!
+19:28 <+bridge_> [ddnet] <Jupstar> yeah the 2nd point is where vulkan shines
+19:28 <+bridge_> [ddnet] <Jupstar> much better frame times
+19:30 <+bridge_> [ddnet] <Jupstar> more fps in CPU bound scenarios mostly
+19:30 <+bridge_> [ddnet] <Jupstar> 
+19:30 <+bridge_> [ddnet] <Jupstar> so opening scoreboard or many tees visible
+19:30 <+bridge_> [ddnet] <HappyFray> another mate has from 2.5k fps to 4-5k
+19:30 <+bridge_> [ddnet] <Jupstar> 😮
+19:30 <+bridge_> [ddnet] <Jupstar> LETS GO
+19:34 <+bridge_> [ddnet] <Paralix> i have a problem with the client, after some time i get fps lags, but if i switch resolution it fixes itselfi have a problem with the client, after some time i get fps lags, but if i switch resolution it fixes itself
+19:34 <+bridge_> [ddnet] <Ryozuki> :BASED:
+19:34 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/955534914265157682/unknown.png
+19:34 <+bridge_> [ddnet] <Paralix> i have a problem with the client, after some time i get fps lags, but if i switch resolution it fixes itselfi have a problem with the client, after some time i get fps lags, but if i switch resolution it fixes itself
+19:35 <+bridge_> [ddnet] <Jupstar> ryozucki posted the solution
+19:35 <+bridge_> [ddnet] <Jupstar> xd
+19:35 <+bridge_> [ddnet] <Ryozuki> xd
+19:35 <+bridge_> [ddnet] <Paralix> WHERE D.D
+19:36 <+bridge_> [ddnet] <Jupstar> use release candinate see #announcements
+19:39 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/955536251988103188/unknown.png
+19:39 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/955536252369764423/unknown.png
+19:39 <+bridge_> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/955536251988103188/unknown.png
+19:41 <+bridge_> [ddnet] <furo> Enabling Vulkan and then opening DDNet with DDNET\_DRIVER=GLES. A new "custom (Vulkan 3.0.0)" pops up
+19:41 <+bridge_> [ddnet] <furo> image.png
+19:41 <+bridge_> [ddnet] <furo> https://cdn.discordapp.com/attachments/293493549758939136/955536618901602305/image.png
+19:41 <+bridge_> [ddnet] <Ryozuki> @Not Keks
+19:41 <+bridge_> [ddnet] <Ryozuki> :monkalaugh:
+19:41 <+bridge_> [ddnet] <Jupstar> yeeah not really a bug
+19:41 <+bridge_> [ddnet] <Jupstar> you are free to set the driver version
+19:41 <+bridge_> [ddnet] <Jupstar> since DDNET_DRIVER is set manually
+19:42 <+bridge_> [ddnet] <Jupstar> you can also do gfx_backend Ryo-OS
+19:43 <+bridge_> [ddnet] <Chairn> is it called vulkan because your computer will melt afterwards?
+19:43 <+bridge_> [ddnet] <Jupstar> if you are german yes
+19:43 <+bridge_> [ddnet] <Jupstar> or is vulkan also french?
+19:43 <+bridge_> [ddnet] <Ryozuki> @Not Keks vulkan logo is made by AMD and DICE
+19:43 <+bridge_> [ddnet] <Ryozuki> xd
+19:43 <+bridge_> [ddnet] <Jupstar> nice xd
+19:44 <+bridge_> [ddnet] <Jupstar> vulkan is generally made by AMD
+19:44 <+bridge_> [ddnet] <Jupstar> mental api
+19:44 <+bridge_> [ddnet] <Ryozuki> mantle
+19:44 <+bridge_> [ddnet] <Paralix> but is it normal that I have sti lag with the good pc?
+19:44 <+bridge_> [ddnet] <Ryozuki> https://en.wikipedia.org/wiki/Mantle_(API)
+19:44 <+bridge_> [ddnet] <Chairn> well vulkan sounds and looks like volcan in french
+19:44 <+bridge_> [ddnet] <Jupstar> ez
+19:44 <+bridge_> [ddnet] <Chairn> and vulcanology is volcano science
+19:44 <+bridge_> [ddnet] <Jupstar> in german its literally vulkan xd
+19:45 <+bridge_> [ddnet] <Chairn> literally cast from the hell forge 😄
+19:45 <+bridge_> [ddnet] <Jupstar> can happen thorugh:
+19:45 <+bridge_> [ddnet] <Jupstar> overheating
+19:45 <+bridge_> [ddnet] <Jupstar> bad PSU
+19:45 <+bridge_> [ddnet] <Jupstar> broken hardware(not correctly attached)
+19:45 <+bridge_> [ddnet] <Jupstar> update drivers
+19:45 <+bridge_> [ddnet] <Jupstar> ah
+19:45 <+bridge_> [ddnet] <Jupstar> and i read disable discord on windows
+19:45 <+bridge_> [ddnet] <Jupstar> few ppl swear on it
+19:46 <+bridge_> [ddnet] <Paralix> now i try the beta client
+19:46 <+bridge_> [ddnet] <Jupstar> yeah maybe vulkan can fix it
+19:46 <+bridge_> [ddnet] <Jupstar> opengl support is really dated
+19:49 <+bridge_> [ddnet] <Chairn> do i need to install a lib to compile new version?
+19:49 <+bridge_> [ddnet] <Jupstar> git submodule update
+19:49 <+bridge_> [ddnet] <Chairn> i just made a fresh clone
+19:50 <+bridge_> [ddnet] <Chairn> with recurse-submodules
+19:50 <+bridge_> [ddnet] <Jupstar> what does it complain about
+19:50 <+bridge_> [ddnet] <Chairn> COMMAND;GLSLANG_VALIDATOR_PROGRAM-NOTFOUND;
+19:50 <+bridge_> [ddnet] <Jupstar> ah
+19:50 <+bridge_> [ddnet] <Jupstar> i see the bug
+19:51 <+bridge_> [ddnet] <Jupstar> do 
+19:51 <+bridge_> [ddnet] <Jupstar> git revert ed9f285071ac0296ac5545c5769b70fe46908238
+19:51 <+bridge_> [ddnet] <Jupstar> and tell me if it works
+19:51 <+bridge_> [ddnet] <deen> that's my hash 😦
+19:52 <+bridge_> [ddnet] <Chairn> nope
+19:52 <+bridge_> [ddnet] <Chairn> doesnt work
+19:52 <+bridge_> [ddnet] <Jupstar> ok weird
+19:52 <+bridge_> [ddnet] <deen> what OS are you on @Chairn ?
+19:52 <+bridge_> [ddnet] <deen> On Linux, yes, dependencies required
+19:52 <+bridge_> [ddnet] <deen> they are in README.md
+19:53 <+bridge_> [ddnet] <Ryozuki> i think chairn is on old debian
+19:53 <+bridge_> [ddnet] <Jupstar> he is on windows
+19:53 <+bridge_> [ddnet] <Ryozuki> ah
+19:53 <+bridge_> [ddnet] <Jupstar> at least last time we talked xd
+19:53 <+bridge_> [ddnet] <Chairn> no, im on ubuntu18.04 right no
+19:53 <+bridge_> [ddnet] <Ryozuki> :weird:
+19:53 <+bridge_> [ddnet] <Jupstar> ubuntu 20 needed
+19:53 <+bridge_> [ddnet] <Chairn> 😦
+19:53 <+bridge_> [ddnet] <Jupstar> or install glslangvalidator manually
+19:53 <+bridge_> [ddnet] <Jupstar> ubuntu 18 dies in april
+19:53 <+bridge_> [ddnet] <Jupstar> no need to support xd
+19:54 <+bridge_> [ddnet] <Jupstar> ok 2023
+19:54 <+bridge_> [ddnet] <Jupstar> but still xd
+19:54 <+bridge_> [ddnet] <Jupstar> why old stable on desktop pc
+19:55 <+bridge_> [ddnet] <Chairn> this one?
+19:55 <+bridge_> [ddnet] <Chairn> https://github.com/KhronosGroup/glslang/releases/tag/11.7.0
+19:55 <+bridge_> [ddnet] <Chairn> yup 5years LTS
+19:55 <+bridge_> [ddnet] <Jupstar> yes i think so
+19:57 <+bridge_> [ddnet] <deen> yeah, I also built that @Chairn
+19:57 <+bridge_> [ddnet] <deen> for the official build vms
+20:00 <+bridge_> [ddnet] <Chairn> ah it seems to work
+20:00 <+bridge_> [ddnet] <Chairn> building ddnet now
+20:02 <+bridge_> [ddnet] <Chairn> well run_tests still fail
+20:03 <+bridge_> [ddnet] <Jupstar> we used ubuntu 18 ci until 2h ago
+20:03 <+bridge_> [ddnet] <Jupstar> what does fail?
+20:03 <+bridge_> [ddnet] <Chairn> src/test/scores.cpp
+20:04 <+bridge_> [ddnet] <Chairn> https://github.com/ddnet/ddnet/issues/4853
+20:04 <+bridge_> [ddnet] <Chairn> just tried with the fresh clone and same results 😦
+20:04 <+bridge_> [ddnet] <Jupstar> just update to ubuntu 20 xD
+20:16 <+bridge_> [ddnet] <Voxel> update on the hammer: so far the fault% is very subtle, but still noticeable when comparing in game
+20:16 <+bridge_> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/955545378156056586/unknown.png
+20:17 <+bridge_> [ddnet] <Voxel> ~~this is extremely difficult LOL~~
+20:26 <+bridge_> [ddnet] <Ravie> that doesn't look too accurate :justatest:
+20:30 <+bridge_> [ddnet] <murpi> timakro are you there?
+20:33 <+ChillerDragon> https://zillyhuhn.com/cs/.1647891174.png
+20:33 <+ChillerDragon> aaaaaaaaaaaaaaaaaaaaaaaaa
+20:34 <+ChillerDragon> someone forgot to gitignore dat bitsh
+20:35 <+ChillerDragon> @jupjapjatsur
+20:35 <+ChillerDragon> SOS
+20:36 <+bridge_> [ddnet] <Astramast> #questions come 2s
+21:03 <+bridge_> [ddnet] <Tater> :o the vulkan renderer is fast 5000 fps -> 8500fps
+21:04 <+bridge_> [ddnet] <Jupstar> wtf 8500 is good, are you on windows or linux?
+21:04 <+bridge_> [ddnet] <Tater> windows
+21:04 <+bridge_> [ddnet] <Tater> I have a 3070 and 5600x
+21:05 <+bridge_> [ddnet] <Jupstar> ok nice
+21:06 <+bridge_> [ddnet] <Tater> it's a bit overkill for teeworlds xD
+21:06 <+bridge_> [ddnet] <Jupstar> true, but nice fps xd
+21:07 <+bridge_> [ddnet] <Tater> 0.075ms less input delay
+21:08 <+bridge_> [ddnet] <Jupstar> ez xd
+21:29 <+bridge_> [ddnet] <Jupstar> chillerdragon how fast are u
+21:29 <+bridge_> [ddnet] <Jupstar> what bot do you have xD
+21:29 <+bridge_> [ddnet] <Jupstar> one that write poggers on linked issues xDDD
+21:31 <+bridge_> [ddnet] <Voxel> i wish there was an easier way to compare the base and the svg with inkscape ...
+21:36 <+bridge_> [ddnet] <Voxel> i know exactly what type of thing id want but its too much to ask for tbh
+21:41 <+ChillerDragon> @Jupstar i always got github open on 2nd monitor and mostly there is my last issue/pr the power of ajax gives me instant feedback even while playing tw xd
+21:42 <+bridge_> [ddnet] <n000b> The big jupstar update:poggers:
+21:42 <+ChillerDragon> pogstar
+21:43 <+bridge_> [ddnet] <Ta!zenyuki> DDNet (Teeworlds) runnin with Lua script right?
+21:44 <+ChillerDragon> ?
+21:44 <+bridge_> [ddnet] <Jupstar> xD now comes the programming language war
+21:44 <+ChillerDragon> fak irc got no reply support 
+21:44 <+bridge_> [ddnet] <Jupstar> @Ryozuki @Learath2 come
+21:44 <+bridge_> [ddnet] <Ta!zenyuki> :D
+21:44 <+ChillerDragon> bash > lua
+21:44 <+ChillerDragon> change my mind
+21:44 <+bridge_> [ddnet] <Jupstar> rust > lua
+21:44 <+bridge_> [ddnet] <Jupstar> change ryos mind
+21:44 <+ChillerDragon> bash > rust
+21:44 <+bridge_> [ddnet] <Ryozuki> lua is like a bad dream
+21:44 <+bridge_> [ddnet] <Ryozuki> factorio uses lua for modding
+21:45 <+bridge_> [ddnet] <Ryozuki> thats why i never modded factorio
+21:45 <+bridge_> [ddnet] <Ryozuki> sad life
+21:45 <+bridge_> [ddnet] <Jupstar> xD
+21:45 <+ChillerDragon> bam uses lua so lua is great
+21:45 <+bridge_> [ddnet] <Jupstar> xdd
+21:45 <+ChillerDragon> #makeddnetbamagain
+21:45 <+bridge_> [ddnet] <Jupstar> chillerdragon still bam support
+21:45 <+bridge_> [ddnet] <Jupstar> til the end
+21:45 <+ChillerDragon> yes
+21:45 <+bridge_> [ddnet] <Ta!zenyuki> i just was wandering
+21:45 <+bridge_> [ddnet] <Ta!zenyuki> :greenthing:
+21:45 <+ChillerDragon> i wish we had 3 build systems
+21:45 <+ChillerDragon> bam, autoconf and cmake
+21:46 <+ChillerDragon> autoconf is nice because it uses shell
+21:46 <+bridge_> [ddnet] <Jupstar> auto make
+21:46 <+bridge_> [ddnet] <Jupstar> bro
+21:46 <+bridge_> [ddnet] <Jupstar> plsss
+21:46 <+ChillerDragon> shell is always good
+21:46 <+bridge_> [ddnet] <Ryozuki> i only say that if we used rust we wouldnt see deen creating issues with segfaults
+21:47 <+bridge_> [ddnet] <Ryozuki> :BASED:
+21:47 <+ChillerDragon> lol
+21:47 <+bridge_> [ddnet] <Jupstar> but with panics xd
+21:47 <+bridge_> [ddnet] <Ryozuki> way easier to debug
+21:47 <+ChillerDragon> its not a c++ issue
+21:47 <+ChillerDragon> its a deen issue
+21:47 <+bridge_> [ddnet] <Jupstar> xD
+21:47 <+ChillerDragon> if he wouldnt create them all would be good
+21:47 <+bridge_> [ddnet] <Jupstar> xd
+21:47 <+bridge_> [ddnet] <Ryozuki> well its cuz its only deen who makes issues with segfaults
+21:47 <+bridge_> [ddnet] <Jupstar> ez
+21:47 <+bridge_> [ddnet] <Ryozuki> cuz he has the servers
+21:48 <+bridge_> [ddnet] <nori> well, i get lower fps on vulkan strange :d
+21:48 <+bridge_> [ddnet] <Ryozuki> wayland :monkalaugh:
+21:48 <+ChillerDragon> how to test da vulkan that gave me so many headache during merge ?
+21:49 <+bridge_> [ddnet] <nori> what is wayland relevant ? :D
+21:49 <+bridge_> [ddnet] <Ryozuki> cuz it locks ur vsync
+21:49 <+bridge_> [ddnet] <Vy0x2> You guys know why i get
+21:49 <+bridge_> [ddnet] <Vy0x2> ```
+21:49 <+bridge_> [ddnet] <Vy0x2> CMake Error at CMakeLists.txt:614 (message):
+21:49 <+bridge_> [ddnet] <Vy0x2>  You must install Vulkan libraries to compile the DDNet client
+21:49 <+bridge_> [ddnet] <Vy0x2> ```
+21:49 <+bridge_> [ddnet] <Vy0x2> even tho i installed it and the env flag is set?
+21:49 <+bridge_> [ddnet] <Ryozuki> :monkalaugh:
+21:49 <+bridge_> [ddnet] <Jupstar> i get pretty much same fps between x and wayland for vk
+21:49 <+ChillerDragon> i use X11 BTW
+21:50 <+bridge_> [ddnet] <Jupstar> nori u had AMDGPU right?
+21:50 <+bridge_> [ddnet] <Jupstar> radeonsi is simply better in GPU bound
+21:50 <+bridge_> [ddnet] <Ryozuki> rly?
+21:50 <+bridge_> [ddnet] <Ryozuki> i use amdgpu too
+21:50 <+bridge_> [ddnet] <nori> no i mean it's lower then my display speed
+21:50 <+bridge_> [ddnet] <nori> yeah i use amdgpu
+21:50 <+bridge_> [ddnet] <Jupstar> https://www.phoronix.com/scan.php?page=article&item=radv-radeonsi-13&num=2
+21:50 <+bridge_> [ddnet] <Jupstar> bit dated
+21:51 <+bridge_> [ddnet] <Jupstar> but probs never caught up
+21:51 <+bridge_> [ddnet] <Ryozuki> i feel thats a lie
+21:51 <+bridge_> [ddnet] <Jupstar> so to sum up depends on the task
+21:51 <+bridge_> [ddnet] <Ryozuki> 2017 is old
+21:52 <+bridge_> [ddnet] <Jupstar> yeah but open scoreboard on 64p server with vulkan and OGL
+21:52 <+bridge_> [ddnet] <Jupstar> then u see how vulkan crushes OGL
+21:52 <+bridge_> [ddnet] <nori> i just zoomout to test it
+21:52 <+bridge_> [ddnet] <nori> i had 300 fps on opengl and 30 fps on vulkan
+21:52 <+bridge_> [ddnet] <Jupstar> zoom out is gpu bound, but thats really bad fps
+21:53 <+bridge_> [ddnet] <Jupstar> i have almost identical
+21:53 <+bridge_> [ddnet] <Jupstar> dunno, try to update driver i guess xd
+21:53 <+bridge_> [ddnet] <nori> it's rolling release distro so latest :D
+21:53 <+bridge_> [ddnet] <Jupstar> then downgrade xD
+21:53 <+bridge_> [ddnet] <Jupstar> or try x xD
+21:54 <+bridge_> [ddnet] <nori> nah i am very happy with wayland
+21:54 <+bridge_> [ddnet] <nori> no compositor configuration or no tearing
+21:54 <+bridge_> [ddnet] <nori> happy
+21:54 <+bridge_> [ddnet] <Jupstar> ok lets not start this again xD
+21:54 <+bridge_> [ddnet] <Ryozuki> lmao vsync
+21:54 <+bridge_> [ddnet] <Jupstar> just file a bug report
+21:54 <+bridge_> [ddnet] <Jupstar> on amd's freedesktop gitlab
+21:55 <+bridge_> [ddnet] <nori> it doesn't matter vsync or not if you don't feel lag
+21:55 <+bridge_> [ddnet] <Ryozuki> :PES_Old:
+21:55 <+bridge_> [ddnet] <Jupstar> :frozen:
+21:56 <+bridge_> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/955570684648632370/unknown.png
+21:56 <+bridge_> [ddnet] <nori> btw i also bought amdgpu to use wayland so i am never gonna back to xorg xD
+21:57 <+bridge_> [ddnet] <Jupstar> yeah idc tbh xD
+21:57 <+bridge_> [ddnet] <Ryozuki> u cant buy amdgpu
+21:57 <+bridge_> [ddnet] <Ryozuki> its a free driver
+21:57 <+bridge_> [ddnet] <Jupstar> but i have amdgpu and good fps xdd
+21:57 <+bridge_> [ddnet] <Jupstar> troll
+21:58 <+bridge_> [ddnet] <Ryozuki> the wayland devs not allowing to disable vsync is just being jerks
+21:58 <+bridge_> [ddnet] <Learath2> You know automake is called autohell for a reason right? 😄
+21:58 <+bridge_> [ddnet] <Jupstar> they just trolls xd
+22:00 <+bridge_> [ddnet] <Learath2> It's "I know better than the user syndrome", I bet wayland is a freedesktop.org project
+22:00 <+bridge_> [ddnet] <Jupstar> "It won't break the principle of "every frame is perfect" for anything but games; any sane non-game application will never even consider an immediate presentation mode and most compositors will ignore the request for any non-fullscreen windows. "
+22:00 <+bridge_> [ddnet] <Jupstar> 
+22:00 <+bridge_> [ddnet] <Jupstar> This is simply a k.o. argument
+22:00 <+bridge_> [ddnet] <Jupstar> not like my compositor doesnt also do vsync, it just gets disabled on games
+22:01 <+bridge_> [ddnet] <Learath2> I know another freedesktop.org project that knows better than all users
+22:01 <+bridge_> [ddnet] <Jupstar> go ahead
+22:01 <+bridge_> [ddnet] <Jupstar> i love these flame wars xd
+22:01 <+bridge_> [ddnet] <Ryozuki> its initrc
+22:01 <+bridge_> [ddnet] <Learath2> s*stemd
+22:01 <+bridge_> [ddnet] <Ryozuki> right
+22:01 <+bridge_> [ddnet] <Jupstar> xDD
+22:01 <+bridge_> [ddnet] <Ryozuki> gentoo is bloat cuz u have to download sources
+22:01 <+bridge_> [ddnet] <Ryozuki> so it bloats
+22:01 <+bridge_> [ddnet] <Ryozuki> :troll:
+22:02 <+bridge_> [ddnet] <Learath2> jokes on you, you can actually not keep sources with a simple portage patch
+22:02 <+bridge_> [ddnet] <Ryozuki> its actually a bit bloat because with the 3rd stage u get manuals in shitload of languages u dont know
+22:03 <+bridge_> [ddnet] <Ryozuki> half the unzip time is manual lang files
+22:03 <+bridge_> [ddnet] <Ryozuki> xd
+22:03 <+bridge_> [ddnet] <Learath2> :troll:
+22:04 <+bridge_> [ddnet] <Ryozuki> :troll1:
+22:04 <+bridge_> [ddnet] <bencie> heyo, is this a new update with 16.0 where if you spectate someone, you can still see yourself on scoreboard, you dont go into Spectators section
+22:04 <+bridge_> [ddnet] <bencie> intentional or bug?
+22:05 <+bridge_> [ddnet] <louis> probably something to do with [Server] Fix specteam 1 not showing teammates while spectating/freecam in solo [sjrc6]
+22:06 <+bridge_> [ddnet] <Tater> for me it still puts me in the spectators
+22:06 <+bridge_> [ddnet] <louis> i think that's a good change anyways tho
+22:06 <+bridge_> [ddnet] <bencie> in rc1
+22:06 <+bridge_> [ddnet] <Tater> rc1?
+22:07 <+bridge_> [ddnet] <bencie> release candidates, #announcements
+22:07 <+bridge_> [ddnet] <Tater> yeah
+22:07 <+bridge_> [ddnet] <Tater> I'm using that
+22:08 <+bridge_> [ddnet] <bencie> for reference
+22:08 <+bridge_> [ddnet] <bencie> new vs old
+22:08 <+bridge_> [ddnet] <bencie> https://cdn.discordapp.com/attachments/293493549758939136/955573658003308554/unknown.png
+22:10 <+bridge_> [ddnet] <Tater> oh
+22:10 <+bridge_> [ddnet] <Tater> you're right huh
+22:16 <+bridge_> [ddnet] <Tater> if I build the client myself I don't get this issue, only from the steam version
+22:17 <+bridge_> [ddnet] <Jupstar> lol true
+22:17 <+bridge_> [ddnet] <Jupstar> weird stuff
+22:21 <+bridge_> [ddnet] <Faulty> Hi, do you know, is it possible to create by default disabled laser doors, disabled laser hooks, etc. on switch layer? I know that it is possible to set a turn off tile on way earlier on the map, but this is not suitable in my case. 
+22:21 <+bridge_> [ddnet] <Faulty> If this is not possible, maybe someone knows how incompatible it would be to add a switch button (default on/of) (same way as number and delay field placed) for this behavior to the editor? Or maybe add one more door tile that disabled by default. Does it make sense to create an issue?
+22:22 <+bridge_> [ddnet] <T tee> yes
+22:22 <+bridge_> [ddnet] <T tee> there's a command for that
+22:22 <+bridge_> [ddnet] <T tee> wait 1min
+22:22 <+bridge_> [ddnet] <T tee> https://cdn.discordapp.com/attachments/293493549758939136/955577213040877568/unknown.png
+22:22 <+bridge_> [ddnet] <T tee> look the last line
+22:23 <+bridge_> [ddnet] <T tee> switch_open [number of the switch]
+22:23 <+bridge_> [ddnet] <Faulty> aha, so it's configurable for whole map
+22:23 <+bridge_> [ddnet] <T tee> yea
+22:23 <+bridge_> [ddnet] <T tee> https://ddnet.tw/settingscommands/ here if u need some others stuff like this one
+22:23 <+bridge_> [ddnet] <Faulty> thank you
+22:24 <+bridge_> [ddnet] <T tee> https://ddnet.tw/settingscommands/ here if u need some other infos like this one
+22:27 <+bridge_> [ddnet] <T tee> @deen I added the 3 missing lines for the french translation.
+22:27 <+bridge_> [ddnet] <T tee> Feel free to ping me if I missed something c(^-^c)
+22:27 <+bridge_> [ddnet] <T tee> https://cdn.discordapp.com/attachments/293493549758939136/955578440856256562/french.txt
+22:41 <+bridge_> [ddnet] <Jupstar> @c0d3d3v is this intentinal?
+22:43 <+bridge_> [ddnet] <Jupstar> ah yeah it is
+22:45 <+bridge_> [ddnet] <Jupstar> @bencie here are his thoughts, if you crazy enough to read all xdddd
+22:45 <+bridge_> [ddnet] <Jupstar> https://github.com/ddnet/ddnet/pull/4802#issue-1166372231
+22:45 <+bridge_> [ddnet] <bencie> oh my
+22:45 <+bridge_> [ddnet] <bencie> its a whole speech about spectator mode
+22:45 <+bridge_> [ddnet] <bencie> :justatest:
+22:49 <+bridge_> [ddnet] <Tater> huh, so why isn't that change included when I build, do you get the same result @Not Keks ?
+22:49 <+bridge_> [ddnet] <Jupstar> its only activated for ddnet16 version codes
+22:49 <+bridge_> [ddnet] <Tater> oh ok
+22:50 <+bridge_> [ddnet] <Tater> why tho xD
+22:58 <+bridge_> [ddnet] <Jupstar> its a server side feature
+22:59 <+bridge_> [ddnet] <Jupstar> or check
