@@ -24,6 +24,8 @@ mkdir -p ddnet/ || exit 1
 mkdir -p teeworlds/ || exit 1
 cd tmp/ || exit 1
 
+git pull
+
 wget -r -np -nH --cut-dirs=1 -R index.html https://ddnet.tw/irclogs/ || exit 1
 mv *.log ../ddnet
 mv teeworlds/*.log ../teeworlds
