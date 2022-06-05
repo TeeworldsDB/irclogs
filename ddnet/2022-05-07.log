@@ -1,0 +1,389 @@
+00:00 <+bridge> [ddnet] <deen> But yeah, making it safer is still a good idea
+00:04 <+bridge> [ddnet] <Kaffeine> No, it does not track anything. It is (a very cheap) way to get compile-time information which is lost during `char aVar[N]` to `char *pVar` conversion.
+00:04 <+bridge> [ddnet] <Kaffeine> So we'll still have to use the current functions (in about 10% of cases, as I see).
+00:04 <+bridge> [ddnet] <Kaffeine> No, it does not track anything. It is a (very cheap) way to get compile-time information which is lost during `char aVar[N]` to `char *pVar` conversion.
+00:04 <+bridge> [ddnet] <Kaffeine> So we'll still have to use the current functions (in about 10% of cases, as I see).
+00:07 <+bridge> [ddnet] <Kaffeine> The compiler just know the type of passed variable.
+00:07 <+bridge> [ddnet] <Kaffeine> 
+00:07 <+bridge> [ddnet] <Kaffeine> In
+00:07 <+bridge> [ddnet] <Kaffeine> ```cpp
+00:07 <+bridge> [ddnet] <Kaffeine> char aNameTry[MAX_NAME_LENGTH];
+00:07 <+bridge> [ddnet] <Kaffeine> str_copy(aNameTry, aTrimmedName, sizeof(aNameTry));
+00:07 <+bridge> [ddnet] <Kaffeine> ```
+00:07 <+bridge> [ddnet] <Kaffeine> the type of `aNameTry` is `char[16]`. Our new `str_copy()` can accept `char[N]` as the first argument and know the `N` at compile time.
+00:07 <+bridge> [ddnet] <Kaffeine> So we can replace it with `str_copy(aNameTry, aTrimmedName);`, which 'll compile *only* if it is safe.
+00:13 <+bridge> [ddnet] <Kaffeine> My suggestion is: add five lines, remove an extra argument in 300+ places (probably 400 of 477). Start with `str_copy()`, repeat where it makes sense.
+00:13 <+bridge> [ddnet] <Kaffeine> 
+00:13 <+bridge> [ddnet] <Kaffeine> What is the benefit of replacing C arrays with `std::array<char, N>`? I'm sure there are (e.g. we'll be able to use `std::array::size()` instead of `std::size`), but probably it won't be that lightweight change.
+00:13 <+bridge> [ddnet] <Kaffeine> I'll prepare a PR then (not really soon).
+00:14 <+bridge> [ddnet] <Ryozuki> > It has friendly value semantics, so that it can be passed to or returned from functions by value. Its interface makes it more convenient to find the size, and use with STL-style iterator-based algorithms.
+00:15 <+bridge> [ddnet] <Ryozuki> >  Unlike a C-style array, it doesn't decay to T* automatically. As an aggregate type, it can be initialized with aggregate-initialization given at most N initializers that are convertible to T: std::array<int, 3> a = {1,2,3};.
+00:15 <+bridge> [ddnet] <Kaffeine> I've read it at https://en.cppreference.com/w/cpp/container/array too. But what's the practice side of that?
+00:16 <+bridge> [ddnet] <Ryozuki> i believe modern c++ should have no c like arrays
+00:17 <+bridge> [ddnet] <Kaffeine> E.g. we have
+00:17 <+bridge> [ddnet] <Kaffeine> ```cpp
+00:17 <+bridge> [ddnet] <Kaffeine> char aNameTry[MAX_NAME_LENGTH];
+00:17 <+bridge> [ddnet] <Kaffeine> str_copy(aNameTry, aTrimmedName, sizeof(aNameTry));
+00:17 <+bridge> [ddnet] <Kaffeine> ```
+00:17 <+bridge> [ddnet] <Kaffeine> 
+00:17 <+bridge> [ddnet] <Kaffeine> We'll replace it with `std::array<char, MAX_NAME_LENGTH> aNameTry;`. Now what? `str_copy` won't be more convenient (or we'll need another template for that).
+00:19 <+bridge> [ddnet] <Ryozuki> well its already wrong to not use std::string for strings in modern c++
+00:19 <+bridge> [ddnet] <Kaffeine> Take a note that we can't just do `aNameTry = aTrimmedName;`, because they can have diff size and we do `str_utf8_fix_truncation` on the result.
+00:19 <+bridge> [ddnet] <Learath2> Why not? C++ arrays are ugly asf to begin with
+00:19 <+bridge> [ddnet] <Kaffeine> Allocated on heap? Yeah, thanks. 😄
+00:19 <+bridge> [ddnet] <Ryozuki> c and c++ are ugly asf to begin with
+00:19 <+bridge> [ddnet] <Learath2> C is sooo pretty ❤️
+00:20 <+bridge> [ddnet] <Ryozuki> ah true
+00:20 <+bridge> [ddnet] <Ryozuki> std::strings suck
+00:20 <+bridge> [ddnet] <Ryozuki> if it were rust i would use smallstr for stack allocated strings
+00:21 <+bridge> [ddnet] <Ryozuki> but pulling in libs on c++ sucks
+00:21 <+bridge> [ddnet] <Ryozuki> xd
+00:23 <+bridge> [ddnet] <Learath2> Another `base/tl` component gone \\o/
+00:24 <+bridge> [ddnet] <Robyt3> base/tl/threading.h also looks unused
+00:25 <+bridge> [ddnet] <Learath2> `tl/array` is the most annoying to do :/
+00:25 <+bridge> [ddnet] <Learath2> I had it mostly done, but the sorted arrays we have get a bit annoying to handle
+00:32 <+bridge> [ddnet] <Chairn> any cmake pro here?
+00:33 <+bridge> [ddnet] <Chairn> how do i add a file into our cmake with extension `.c` without it being compiled?
+00:33 <+bridge> [ddnet] <Kaffeine> `EXCLUDE_FROM_ALL` won't help?
+00:34 <+bridge> [ddnet] <Chairn> how do i use it?
+00:35 <+bridge> [ddnet] <ReiTW> oof is that normal tohave 30fps with vulkan on 1920x1080
+00:36 <+bridge> [ddnet] <Kaffeine> Another option:
+00:36 <+bridge> [ddnet] <Kaffeine> ```cmake
+00:36 <+bridge> [ddnet] <Kaffeine> add_custom_target(my-extra-c-files SOURCES
+00:36 <+bridge> [ddnet] <Kaffeine>     my-file.c
+00:36 <+bridge> [ddnet] <Kaffeine> )
+00:36 <+bridge> [ddnet] <Kaffeine> ```
+00:36 <+bridge> [ddnet] <ReiTW> nvm my screen was buggy
+00:38 <+bridge> [ddnet] <Kaffeine> You can either add a regular target with `EXCLUDE_FROM_ALL` option:
+00:38 <+bridge> [ddnet] <Kaffeine> ```cmake
+00:38 <+bridge> [ddnet] <Kaffeine> add_executable(my-extra-c-files EXCLUDE_FROM_ALL my-file.c)
+00:38 <+bridge> [ddnet] <Kaffeine> ```
+00:38 <+bridge> [ddnet] <Kaffeine> 
+00:38 <+bridge> [ddnet] <Kaffeine> or use the custom target (which is excluded from ALL by default, and can be included using `ALL` argument).
+00:38 <+bridge> [ddnet] <Kaffeine> You can either add a regular target with `EXCLUDE_FROM_ALL` option:
+00:38 <+bridge> [ddnet] <Kaffeine> ```cmake
+00:38 <+bridge> [ddnet] <Kaffeine> add_executable(my-extra-c-files EXCLUDE_FROM_ALL my-file.c)
+00:38 <+bridge> [ddnet] <Kaffeine> ```
+00:38 <+bridge> [ddnet] <Kaffeine> or use the custom target (which is excluded from ALL by default, and can be included using `ALL` argument).
+00:39 <+bridge> [ddnet] <Kaffeine> You can either add a regular target with `EXCLUDE_FROM_ALL` option:
+00:39 <+bridge> [ddnet] <Kaffeine> ```cmake
+00:39 <+bridge> [ddnet] <Kaffeine> add_executable(my-extra-c-files EXCLUDE_FROM_ALL my-file.c)
+00:39 <+bridge> [ddnet] <Kaffeine> ```
+00:39 <+bridge> [ddnet] <Kaffeine> or use the custom target (which is excluded from ALL by default, and can be included using `ALL` argument).
+00:39 <+bridge> [ddnet] <Kaffeine> 
+00:39 <+bridge> [ddnet] <Kaffeine> I would suggest to try the custom target first, and then maybe add a fake executable or library if this won't work for some reason.
+00:39 <+bridge> [ddnet] <Kaffeine> You can either add a regular target with `EXCLUDE_FROM_ALL` option:
+00:39 <+bridge> [ddnet] <Kaffeine> ```cmake
+00:39 <+bridge> [ddnet] <Kaffeine> add_executable(my-extra-c-files EXCLUDE_FROM_ALL my-file.c)
+00:39 <+bridge> [ddnet] <Kaffeine> ```
+00:39 <+bridge> [ddnet] <Kaffeine> or use the custom target (which is excluded from ALL by default, and can be included using `ALL` argument).
+00:39 <+bridge> [ddnet] <Kaffeine> 
+00:39 <+bridge> [ddnet] <Kaffeine> I would suggest to try the custom target first, and then maybe add a fake executable or library (excluded from `ALL`) if this won't work for some reason.
+00:40 <+bridge> [ddnet] <Chairn> what does the exclude_from_all do?
+00:40 <+bridge> [ddnet] <Chairn> i'd like to add a file to the BASE variable, but the file gets compiled on its own
+00:40 <+bridge> [ddnet] <Chairn> i just want it to be added to the list of files that cmake tracks
+00:41 <+bridge> [ddnet] <Kaffeine> When you press `Build` button in IDE, or do `cmake --build .`, the default CMake target is `ALL`.
+00:41 <+bridge> [ddnet] <Kaffeine> `EXCLUDE_FROM_ALL` means that the (sub)target won't be a part of the default build. IOW it will be build only if something else depends on this target, or if you manually ask CMake to build it (e.g. `cmake --build . --target my-extra-c-files`).
+00:42 <+bridge> [ddnet] <Chairn> but it is a dependency of all the executables (i think)
+00:42 <+bridge> [ddnet] <Chairn> i dont use IDE, just command line
+00:42 <+bridge> [ddnet] <Chairn> im talking ddnet's cmakelist files btw
+00:45 <+bridge> [ddnet] <Kaffeine> Okay, so you want to add a file to a target (`BASE` is the list of source files for target `engine-shared`) and yet you want to exclude that file from the target.
+00:45 <+bridge> [ddnet] <Kaffeine> I don't think this is possible in the intended way.
+00:45 <+bridge> [ddnet] <Kaffeine> You can remove the file from `BASE` later on, but then it'll also disappear e.g. from target source files in IDEs.
+00:46 <+bridge> [ddnet] <Kaffeine> Why do you want this? You want to suppress the warning? But the warning is here exactly to not let you do what you're trying to do.
+00:46 <+bridge> [ddnet] <Chairn> im trying to circumvent this <https://github.com/ddnet/ddnet/runs/6327607215?check_suite_focus=true#step:7:176>
+00:47 <+bridge> [ddnet] <Kaffeine> then — this
+00:47 <+bridge> [ddnet] <Chairn> i guess the easiest way would just be to have it in `.h` extension
+00:48 <+bridge> [ddnet] <Chairn> tbf, i don't understand the purpose of this warning
+00:48 <+bridge> [ddnet] <Chairn> i'll go with renaming the file to .h
+00:53 <+bridge> [ddnet] <deen> Why have a file which we don't use?
+00:55 <+bridge> [ddnet] <Chairn> it is used
+00:55 <+bridge> [ddnet] <Chairn> it must be included in another file uniquely
+00:56 <+bridge> [ddnet] <Chairn> btw, im sure there's a file that is not used anywhere, i still have to find it
+00:56 <+bridge> [ddnet] <Kaffeine> https://cmake.org/cmake/help/latest/prop_sf/HEADER_FILE_ONLY.html
+00:56 <+bridge> [ddnet] <Chairn> anyway, i updated my pr
+00:56 <+bridge> [ddnet] <Chairn> i still don't get how to link to the issue properly
+00:56 <+bridge> [ddnet] <Chairn> i tried full url and just `#5017`, but it doesn't link to it
+00:56 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/5017
+00:56 <+bridge> [ddnet] <Kaffeine> You can mark your `.c` file as a header file which can/should be included by other files but should not be compiled on its own.
+00:57 <+bridge> [ddnet] <Kaffeine> You can mark your `.c` file as a header file which can/should be included by other files but should not be compiled on its own.
+00:57 <+bridge> [ddnet] <Kaffeine> 
+00:57 <+bridge> [ddnet] <Kaffeine> https://cmake.org/cmake/help/latest/prop_sf/HEADER_FILE_ONLY.html
+00:57 <+bridge> [ddnet] <Kaffeine> You can mark your `.c`(or `.cpp`, or any other type) file as a header file which can/should be included by other files but should not be compiled on its own.
+00:57 <+bridge> [ddnet] <Kaffeine> 
+00:57 <+bridge> [ddnet] <Kaffeine> https://cmake.org/cmake/help/latest/prop_sf/HEADER_FILE_ONLY.html
+00:57 <+bridge> [ddnet] <Kaffeine> You can mark your `.c` (or `.cpp`, or any other type) file as a header file which can/should be included by other files but should not be compiled on its own.
+00:57 <+bridge> [ddnet] <Kaffeine> 
+00:57 <+bridge> [ddnet] <Kaffeine> https://cmake.org/cmake/help/latest/prop_sf/HEADER_FILE_ONLY.html
+00:59 <+bridge> [ddnet] <Chairn> lol, now it complains about hearder guard, but the file never had any...
+00:59 <+bridge> [ddnet] <Kaffeine> https://cmake.org/cmake/help/latest/command/set_source_files_properties.html
+00:59 <+bridge> [ddnet] <Kaffeine> ```cmake
+00:59 <+bridge> [ddnet] <Kaffeine> set_source_files_properties(src/base/confusables_data.c PROPERTIES
+00:59 <+bridge> [ddnet] <Kaffeine>     HEADER_FILE_ONLY ON)
+00:59 <+bridge> [ddnet] <Kaffeine> ```
+01:01 <+bridge> [ddnet] <Kaffeine> I think this needs CMake newer than `2.8.12`.
+01:01 <+bridge> [ddnet] <Kaffeine> 
+01:01 <+bridge> [ddnet] <Kaffeine> I also think that it makes sense to bump CMake version e.g. to `3.8` because it is the first version with declared C++17 support (and we need this support because we use `std::size`).
+01:01 <+bridge> [ddnet] <Kaffeine> I think this requires CMake newer than `2.8.12`.
+01:01 <+bridge> [ddnet] <Kaffeine> I also think that it makes sense to bump CMake version e.g. to `3.8` because it is the first version with declared C++17 support (and we need this support because we use `std::size`).
+01:02 <+bridge> [ddnet] <Kaffeine> I think this requires CMake much newer than `2.8.12`.
+01:02 <+bridge> [ddnet] <Kaffeine> I also think that it makes sense to bump CMake version e.g. to `3.8` because it is the first version with declared C++17 support (and we need this support because we use `std::size`).
+01:02 <+bridge> [ddnet] <Kaffeine> I think this requires CMake much newer than the current minimum `2.8.12`.
+01:02 <+bridge> [ddnet] <Kaffeine> I also think that it makes sense to bump CMake version e.g. to `3.8` because it is the first version with declared C++17 support (and we need this support because we use `std::size`).
+01:02 <+bridge> [ddnet] <deen> Something to include and not compile standalone should have a .h file ending imo
+01:03 <+bridge> [ddnet] <Kaffeine> Okay, I just checked, this is a valid code for CMake 3.0.
+01:05 <+bridge> [ddnet] <Chairn> i changed it finally
+01:05 <+bridge> [ddnet] <Chairn> is there a ninja target to run the clang-tidy thing from github?
+01:05 <+bridge> [ddnet] <Chairn> i thought `everything` would mean everything
+01:07 <+bridge> [ddnet] <Kaffeine> https://github.com/ddnet/ddnet/blob/master/.github/workflows/clang-tidy.yml#L28-L29
+01:07 <+bridge> [ddnet] <Kaffeine> https://github.com/ddnet/ddnet/blob/master/.github/workflows/clang-tidy.yml#L28-L29
+01:07 <+bridge> [ddnet] <Kaffeine> ```sh
+01:07 <+bridge> [ddnet] <Kaffeine> cmake -G Ninja -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*" -DCMAKE_C_CLANG_TIDY="clang-tidy;-warnings-as-errors=*" -DCMAKE_BUILD_TYPE=Debug -Werror=dev -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=. ..
+01:07 <+bridge> [ddnet] <Kaffeine>         cmake --build . --config Debug --target everything -- -k 0
+01:07 <+bridge> [ddnet] <Kaffeine> ```
+01:07 <+bridge> [ddnet] <Kaffeine> https://github.com/ddnet/ddnet/blob/master/.github/workflows/clang-tidy.yml#L28-L29
+01:07 <+bridge> [ddnet] <Kaffeine> ```sh
+01:07 <+bridge> [ddnet] <Kaffeine> cmake -G Ninja -DCMAKE_CXX_CLANG_TIDY="clang-tidy;-warnings-as-errors=*" -DCMAKE_C_CLANG_TIDY="clang-tidy;-warnings-as-errors=*" -DCMAKE_BUILD_TYPE=Debug -Werror=dev -DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=. ..
+01:07 <+bridge> [ddnet] <Kaffeine> cmake --build . --config Debug --target everything -- -k 0
+01:07 <+bridge> [ddnet] <Kaffeine> ```
+01:07 <+bridge> [ddnet] <deen> you can also add a -fix there, it c an fix some things automatically, but then you have to compile with -j 1
+01:08 <+bridge> [ddnet] <Kaffeine> It means everything, but for clang-tidy we have to setup CMake configuration differently.
+01:09 <+bridge> [ddnet] <Kaffeine> (wrong spacing in `EXCEPTIONS = [`)
+01:10 <+bridge> [ddnet] <Kaffeine> (inconsistent spacing in `EXCEPTIONS = [`)
+01:10 <+bridge> [ddnet] <Chairn> sorry, i meant the `check-style`, but i guess i could also run the `clang-tidy`oneas well 😉
+01:12 <+bridge> [ddnet] <deen> scripts/fix_style.py
+01:13 <+bridge> [ddnet] <Chairn> check-style has more than fix_style
+01:13 <+bridge> [ddnet] <Chairn> each commit i discover new things 😄
+01:14 <+bridge> [ddnet] <Chairn> i had the check_header_guards, now the pylint
+01:54 <+bridge> [ddnet] <Chairn> @heinrich5991  what's the purpose of this file `CMakeFiles/DDNet.dir/src/game/generated/checksum.cpp.o` ?
+02:58 <+bridge> [ddnet] <Learath2> voodoo
+10:18 <+bridge> [ddnet] <Jupstar> wow, i think we should maybe switch to nanoseconds
+10:18 <+bridge> [ddnet] <Jupstar> an update takes 4 microseconds times 0.1 = 0 casted to int xd
+11:37 <+bridge> [ddnet] <Jupstar> did anyone ever use DbgHitch?
+11:44 <+bridge> [ddnet] <Jupstar> @heinrich5991 is the antibot always compiled when ddnet server compiles?
+11:46 <+bridge> [ddnet] <deen> I think we just put the .so file there, don't recompile it
+11:46 <+bridge> [ddnet] <Jupstar> ok
+11:46 <+bridge> [ddnet] <Jupstar> too bad, bcs would be easier if system would allow c++ signatures
+11:47 <+bridge> [ddnet] <Jupstar> @bencie do you have a github account?
+11:47 <+bridge> [ddnet] <Jupstar> maybe u can try #5075 later
+11:47 <+bridge> [ddnet] <Jupstar> 
+11:47 <+bridge> [ddnet] <Jupstar> i dunno if that fixes the video rendering bug, but at least worth a try
+11:47 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/5075
+11:47 <+bridge> [ddnet] <bencie> Yeah the username is bencie.
+11:48 <+bridge> [ddnet] <Jupstar> u can download the assets from the github action once its ready https://github.com/ddnet/ddnet/actions/runs/2285982902
+11:49 <+bridge> [ddnet] <bencie> Sure
+12:05 <+bridge> [ddnet] <hot girl> real bencie???
+12:05 <+bridge> [ddnet] <bencie> No.
+12:05 <+bridge> [ddnet] <hot girl> oh
+12:05 <+bridge> [ddnet] <hot girl> cat🍴
+12:11 <+bridge> [ddnet] <ReiTW> Doesn't noby just provides the so to avoid sharing the code?
+12:11 <+bridge> [ddnet] <ReiTW> Or ur in his trusted list xd
+12:11 <+bridge> [ddnet] <ReiTW> (supposing you're using noby's ab)
+12:11 <+bridge> [ddnet] <Jupstar> heinrich is in his trusted list
+12:11 <+bridge> [ddnet] <ReiTW> Ah
+12:13 <+bridge> [ddnet] <ReiTW> Afterall noby's ab is written in C
+12:13 <+bridge> [ddnet] <ReiTW> nobyC*
+12:13 <+bridge> [ddnet] <Jupstar> nobys code is more like random hex numbers xd
+12:13 <+bridge> [ddnet] <Jupstar> that magically work
+12:14 <+bridge> [ddnet] <ReiTW> I mean idk how he can fcking work on that, even me when I look at his ab code I give up instantly
+12:14 <+bridge> [ddnet] <ReiTW> He's not even using any obfuscator
+12:14 <+bridge> [ddnet] <ReiTW> He's obfuscating by himself, that's why I call that nobyC
+12:14 <+bridge> [ddnet] <Jupstar> true 😄
+12:31 <+bridge> [ddnet] <Ryozuki> lmao
+13:41 <+bridge> [ddnet] <Learath2> one of the few pieces of code that I gave up on reading instantly
+13:47 <+bridge> [ddnet] <n000b> Lol, noby madman
+13:48 <+bridge> [ddnet] <ReiTW> he's good but too lazy to write properly xD
+13:49 <+bridge> [ddnet] <Ryozuki> doesnt he use a file based database
+13:49 <+bridge> [ddnet] <Ryozuki> for fng
+13:50 <+bridge> [ddnet] <ReiTW> ah u mean simple txt file, not even sqlite?
+13:50 <+bridge> [ddnet] <ReiTW> probably, that's the easiest for him
+13:51 <+bridge> [ddnet] <ReiTW> probably, that's the easiest for him & fastest thing to do for him
+13:54 <+bridge> [ddnet] <Jupstar> ah yeah i remember the start of his server always took a while
+13:54 <+bridge> [ddnet] <Jupstar> 
+13:55 <+bridge> [ddnet] <Jupstar> but i guess he already changed it
+16:29 <+bridge> [ddnet] <Learath2> Figured out the performance issue, I was testing out a a cpufreq governor before I left for 2 weeks, I apparently never deleted that kernel I was testing out
+16:35 <+bridge> [ddnet] <Jupstar> gg
+16:49 < ***> Buffer Playback...
+16:49 <+bridge> [16:44:05] [ddnet] <Nagi01 {LAN}> lmao wtf
+16:49 <+bridge> [16:44:14] [ddnet] <Nagi01 {LAN}> why
+16:49 <+bridge> [16:44:33] [ddnet] <Ryozuki> cuz he is noby
+16:49 <+bridge> [16:45:09] [ddnet] <Ryozuki> isnt gnu gold slower than lld
+16:49 <+bridge> [16:45:30] [ddnet] <Jupstar> thought the same, but have no benchmarks for lto
+16:49 <+bridge> [16:45:58] [ddnet] <Jupstar> but mold wins tho
+16:49 <+bridge> [16:46:04] [ddnet] <Nagi01 {LAN}> u mean ld ?
+16:49 <+bridge> [16:46:08] [ddnet] <Jupstar> bcs it can do lto multi threaded afaik
+16:49 <+bridge> [16:46:12] [ddnet] <Jupstar> lld
+16:49 <+bridge> [16:46:14] [ddnet] <Jupstar> is from clang
+16:49 <+bridge> [16:46:16] [ddnet] <Jupstar> or llvm
+16:49 <+bridge> [16:46:21] [ddnet] <Nagi01 {LAN}> oh y llvm
+16:49 <+bridge> [16:48:07] [ddnet] <Nagi01 {LAN}> so you guys have change the built in linker ?
+16:49 <+bridge> [16:48:18] [ddnet] <Jupstar> no why
+16:49 <+bridge> [16:48:27] [ddnet] <Nagi01 {LAN}> i mean by default i have ld, not lld
+16:49 <+bridge> [16:48:34] [ddnet] <Jupstar> yes but we dont change anything
+16:49 <+bridge> [16:48:36] [ddnet] <Jupstar> use what u want
+16:49 <+bridge> [16:48:46] [ddnet] <Jupstar> i also doubt that pr goes through
+16:49 <+bridge> [16:48:59] [ddnet] <Jupstar> tho LTO is nice, i also use it for my client 😄
+16:49 <+bridge> [16:49:03] [ddnet] <Jupstar> with ofast
+16:49 <+bridge> [16:49:08] [ddnet] <Jupstar> legendary compile options
+16:49 < ***> Playback Complete.
+16:49 <+bridge> [ddnet] <Nagi01 {LAN}> xd
+16:50 <+bridge> [ddnet] <Nagi01 {LAN}> ofast is the equivalent of o3 no ?
+16:50 <+bridge> [ddnet] <Ryozuki> no
+16:50 <+bridge> [ddnet] <Nagi01 {LAN}> isnt exactly the same thing ?
+16:50 <+bridge> [ddnet] <Jupstar> its even more aggressive
+16:50 <+bridge> [ddnet] <Ryozuki> ofast enables fast math
+16:50 <+bridge> [ddnet] <Jupstar> ofast also allows non standard stuff
+16:50 <+bridge> [ddnet] <Nagi01 {LAN}> mmh okok
+16:50 <+bridge> [ddnet] <Jupstar> "Disregard strict standards compliance. -Ofast enables all -O3 optimizations. It also enables optimizations that are not valid for all standard-compliant programs. It turns on -ffast-math, -fallow-store-data-races and the Fortran-specific -fstack-arrays, unless -fmax-stack-var-size is specified, and -fno-protect-parens. It turns off -fsemantic-interposition."
+16:50 <+bridge> [ddnet] <Jupstar> here the description from GCC
+16:51 <+bridge> [ddnet] <Nagi01 {LAN}> ok there are some additional features
+16:51 <+bridge> [ddnet] <Jupstar> its nice to find bugs in your code xd
+16:51 <+bridge> [ddnet] <Jupstar> bcs UB is often compiled differently with ofast
+16:55 <+bridge> [ddnet] <Jupstar> https://raw.githubusercontent.com/rui314/mold/main/docs/htop.gif
+16:55 <+bridge> [ddnet] <Jupstar> 
+16:55 <+bridge> [ddnet] <Jupstar> lld vs mold
+16:55 <+bridge> [ddnet] <Jupstar> lmao i love gifs like these
+16:55 <+bridge> [ddnet] <Jupstar> they are kinda art
+16:56 <+bridge> [ddnet] <Nagi01 {LAN}> same
+16:56 <+bridge> [ddnet] <Nagi01 {LAN}> mold looks way faster wtf
+16:56 <+bridge> [ddnet] <Ryozuki> ofc
+16:56 <+bridge> [ddnet] <Ryozuki> mold is the state of the art linker
+16:56 <+bridge> [ddnet] <Jupstar> https://raw.githubusercontent.com/rui314/mold/main/docs/comparison.png
+16:56 <+bridge> [ddnet] <Ryozuki> made by the lld author
+16:57 <+bridge> [ddnet] <Nagi01 {LAN}> y i just saw this
+16:57 <+bridge> [ddnet] <Ryozuki> the bigger ur program the faster it is
+16:57 <+bridge> [ddnet] <Ryozuki> on ddnet it probs make little diff
+16:57 <+bridge> [ddnet] <Nagi01 {LAN}> lmao `shorted is better`
+16:57 <+bridge> [ddnet] <Nagi01 {LAN}> lmao `shorter is better`
+16:57 <+bridge> [ddnet] <Nagi01 {LAN}> imagine you need to read it
+16:57 <+bridge> [ddnet] <Ryozuki> gnu gold sucks hard xd
+16:58 <+bridge> [ddnet] <Jupstar> might be imagination but feels a bit faster 😄
+16:58 <+bridge> [ddnet] <Nagi01 {LAN}> who use gnu gold ?
+16:59 <+bridge> [ddnet] <Ryozuki> idk
+16:59 <+bridge> [ddnet] <Ryozuki> before lld existed it was the best i guess
+16:59 <+bridge> [ddnet] <Jupstar> GPL enjoyers xd
+16:59 <+bridge> [ddnet] <Ryozuki> lld and mold are from the same author
+16:59 <+bridge> [ddnet] <Ryozuki> tthat guy is a genius
+16:59 <+bridge> [ddnet] <Nagi01 {LAN}> `gold was about 3x/4x faster than LD.`
+16:59 <+bridge> [ddnet] <Jupstar> ah yeah
+16:59 <+bridge> [ddnet] <Nagi01 {LAN}> kinda cringe
+16:59 <+bridge> [ddnet] <Jupstar> ld
+16:59 <+bridge> [ddnet] <Jupstar> xd
+17:00 <+bridge> [ddnet] <Ryozuki> > Why does the speed of linking matter?
+17:00 <+bridge> [ddnet] <Ryozuki> > 
+17:00 <+bridge> [ddnet] <Ryozuki> > If you are using a compiled language such as C, C++ or Rust, a build consists of two phases. In the first phase, a compiler compiles source files into object files (.o files). In the second phase, a linker takes all object files to combine them into a single executable or a shared library file.
+17:00 <+bridge> [ddnet] <Ryozuki> lmao
+17:00 <+bridge> [ddnet] <Ryozuki> the github repo mentions rust
+17:00 <+bridge> [ddnet] <Ryozuki> based
+17:00 <+bridge> [ddnet] <Ryozuki> > mold is written in C++20, so if you build mold yourself, you need a recent version of a C++ compiler and a C++ standard library. GCC 10.2 or Clang 12.0.0 (or later) as well as libstdc++ 10 or libc++ 7 (or later) are recommended.
+17:00 <+bridge> [ddnet] <Ryozuki> more based
+17:01 <+bridge> [ddnet] <Nagi01 {LAN}> y the linking step is important too
+17:01 <+bridge> [ddnet] <Nagi01 {LAN}> i have gcc 11.2.0
+17:01 <+bridge> [ddnet] <Nagi01 {LAN}> ez
+17:02 <+bridge> [ddnet] <Jupstar> i have clang 15
+17:02 <+bridge> [ddnet] <Ryozuki> @Not Keks mold is agpl
+17:03 <+bridge> [ddnet] <Jupstar> uff
+17:03 <+bridge> [ddnet] <Ryozuki> thats good
+17:03 <+bridge> [ddnet] <Ryozuki> no reason to use gnu gold
+17:04 <+bridge> [ddnet] <Jupstar> he has to be dead for 70 years before copyright lifts
+17:04 <+bridge> [ddnet] <Jupstar> there is nothing good about copyrights
+17:05 <+bridge> [ddnet] <Ryozuki> u live in germany
+17:05 <+bridge> [ddnet] <Jupstar> but most software today wont be used in 20 years anyway
+17:05 <+bridge> [ddnet] <Ryozuki> they dislike public domain there
+17:05 <+bridge> [ddnet] <Jupstar> so who cares xd
+17:05 <+bridge> [ddnet] <Ryozuki> so agpl is the next best thing
+17:05 <+bridge> [ddnet] <Jupstar> CC0 or nub
+17:05 <+bridge> [ddnet] <Ryozuki> to contribute to sqlite
+17:05 <+bridge> [ddnet] <Ryozuki> u have to sign things
+17:05 <+bridge> [ddnet] <Jupstar> xD
+17:05 <+bridge> [ddnet] <Ryozuki> cuz public domain
+17:05 <+bridge> [ddnet] <Ryozuki> countries suck at public domain
+17:06 <+bridge> [ddnet] <Nagi01 {LAN}> how the fuck can i know which linker im using ?
+17:06 <+bridge> [ddnet] <Jupstar> what compiler do u use?
+17:07 <+bridge> [ddnet] <Nagi01 {LAN}> i mean its obvious im using ld but how can i find the version
+17:07 <+bridge> [ddnet] <Jupstar> -DCMAKE_EXE_FLAGS="-v"
+17:07 <+bridge> [ddnet] <Jupstar> should tell you i guess
+17:07 <+bridge> [ddnet] <Kaffeine> Who use CMake 2.8.12? It is nine years old. Who use `0` instead of `nullptr`? Even `nullptr` is 11 years old. Who use `virtual` instead of `override`?
+17:07 <+bridge> [ddnet] <Kaffeine> 
+17:07 <+bridge> [ddnet] <Kaffeine> You know, there are some projects...
+17:07 <+bridge> [ddnet] <Jupstar> xd
+17:07 <+bridge> [ddnet] <Jupstar> who doesnt use c++23
+17:07 <+bridge> [ddnet] <Ryozuki> dont u have to use virtual with override?
+17:07 <+bridge> [ddnet] <Nagi01 {LAN}> y wtf
+17:07 <+bridge> [ddnet] <Jupstar> no
+17:08 <+bridge> [ddnet] <Nagi01 {LAN}> true story
+17:08 <+bridge> [ddnet] <Jupstar> u only need virtual for the base instance
+17:08 <+bridge> [ddnet] <Jupstar> all others just use override
+17:08 <+bridge> [ddnet] <Jupstar> no virtual keyword is needed
+17:08 <+bridge> [ddnet] <Ryozuki> u need
+17:08 <+bridge> [ddnet] <Ryozuki> for the base
+17:08 <+bridge> [ddnet] <Ryozuki> u said it
+17:08 <+bridge> [ddnet] <Nagi01 {LAN}> y just for the base
+17:08 <+bridge> [ddnet] <Jupstar> y but someone added virtual ... override into our codebase
+17:08 <+bridge> [ddnet] <Jupstar> i saw that recently xd
+17:10 <+bridge> [ddnet] <Jupstar> anyway, from the devs except maybe chrain most use arch i think (except me xd)
+17:10 <+bridge> [ddnet] <Kaffeine> It made some sense 10 years ago — when someone still used to place `virtual` to the overridden methods. Yet, having `override` allows to catch some bugs (and thus simplify refactoring).
+17:10 <+bridge> [ddnet] <Jupstar> just use c++17
+17:10 <+bridge> [ddnet] <Jupstar> deen also upgraded to debian 10
+17:10 <+bridge> [ddnet] <Jupstar> 😮
+17:10 <+bridge> [ddnet] <Ryozuki> who uses c++? use rust
+17:11 <+bridge> [ddnet] <Ryozuki> should have added
+17:11 <+bridge> [ddnet] <Ryozuki> at the end
+17:11 <+bridge> [ddnet] <Jupstar> yes pls start
+17:11 <+bridge> [ddnet] <Jupstar> we need a leader
+17:11 <+bridge> [ddnet] <Nagi01 {LAN}> xd
+17:11 <+bridge> [ddnet] <Ryozuki> xd
+17:12 <+bridge> [ddnet] <Jupstar> and ddnet is from 2013 xd
+17:12 <+bridge> [ddnet] <Ryozuki> @Not Keks replace gameworld with https://github.com/skypjack/entt
+17:12 <+bridge> [ddnet] <Jupstar> so 9 years
+17:12 <+bridge> [ddnet] <Jupstar> find the error xddd
+17:13 <+bridge> [ddnet] <Jupstar> yes minecraft components
+17:13 <+bridge> [ddnet] <Jupstar> lets go
+17:13 <+bridge> [ddnet] <Nagi01 {LAN}> 😊
+17:13 <+bridge> [ddnet] <Ryozuki> not c omponents
+17:13 <+bridge> [ddnet] <Ryozuki> its a ECS
+17:13 <+bridge> [ddnet] <Ryozuki> imagine using all cores
+17:13 <+bridge> [ddnet] <Jupstar> sounds cool
+17:13 <+bridge> [ddnet] <Jupstar> but look at our codebase
+17:13 <+bridge> [ddnet] <Jupstar> how can u not break everything xD
+17:13 <+bridge> [ddnet] <Jupstar> even changing 1 line often causes bugs xD
+17:14 <+bridge> [ddnet] <Ryozuki> ye
+17:50 <+bridge> [ddnet] <bencie> ddnet.tw offline, is that intentional?
+17:51 <+bridge> [ddnet] <Jupstar> i doubt also just saw it
+17:55 <+bridge> [ddnet] <Jupstar> @deen u are needed
+17:55 <+bridge> [ddnet] <Jupstar> deen: ^
+17:59 <+bridge> [ddnet] <Jupstar> btw @deen  @heinrich5991 
+17:59 <+bridge> [ddnet] <Jupstar> 
+17:59 <+bridge> [ddnet] <Jupstar> https://master1.ddnet.tw/ddnet/15/servers.json failed. libcurl error: Operation too slow. Less than 8000 bytes/sec transferred the last 10 seconds
+17:59 <+bridge> [ddnet] <Jupstar> 
+17:59 <+bridge> [ddnet] <Jupstar> in this rare case my browser does not fail to download it (just takes over 10 seconds) while the client does
+18:00 <+bridge> [ddnet] <Jupstar> maybe it should still keep trying or smth but already act like it failed
+18:40 <+bridge> [ddnet] <Itube / Mustafa> its possible to change the ping (server side) ?
+18:50 <+bridge> [ddnet] <everestkio> why 0 server?
+19:00 <+bridge> [ddnet] <Im 'corneum> Is it possible to have clipping feature work like a tileset? So that you can cut out round shapes, corners and areas that aren't connected to each other?
+19:06 <+bridge> [ddnet] <Jupstar> u can do anything, just need to break compability with old clients and vanilla
+19:26 <+bridge> [ddnet] <Gewinum> i know how it sad is to maintain legacy code
+19:35 <+bridge> [ddnet] <Chairn> i almost made a pr for this 😄
+19:35 <+bridge> [ddnet] <Chairn> then i thought that it was kinda useless
+19:36 <+bridge> [ddnet] <Chairn> please don't scorch my name 😢
+19:36 <+bridge> [ddnet] <Jupstar> its not ur fault
+19:36 <+bridge> [ddnet] <Jupstar> its your work place xd
+19:37 <+bridge> [ddnet] <Chairn> uh?
+19:37 <+bridge> [ddnet] <Jupstar> werent u forced to use ubuntu 18?
+19:38 <+bridge> [ddnet] <Chairn> ah, i won't upgrade before finishing my manuscript
+19:38 <+bridge> [ddnet] <Chairn> too many risks
+19:39 <+bridge> [ddnet] <Chairn> but i still compiled gcc12 and clang12 somewhere
+19:39 <+bridge> [ddnet] <Jupstar> 👍
+19:39 <+bridge> [ddnet] <Ryozuki> arch chad
+19:39 <+bridge> [ddnet] <Jupstar> xd
+19:39 <+bridge> [ddnet] <Chairn> the problem is that gcc12 links to its own lib and then the binary wont find them if i don't change LD_LIBRARY_PATH
+19:54 <+bridge> [ddnet] <Nagi01 {LAN}> imagine not using arch
+19:55 <+bridge> [ddnet] <Nagi01 {LAN}> in 2022
+19:55 <+bridge> [ddnet] <Nagi01 {LAN}> bruh
+20:04 <+bridge> [ddnet] <gerdoe> fr
+21:21 <+bridge> [ddnet] <louis> u can edjt the tileset
+21:23 <+bridge> [ddnet] <Ryozuki> https://dollchan.net/bytebeat/#v3b64q1ZKzk9JVbJSKtHSKFEzNDO2MLE3szLV1NIw0dUwVCuxs7PQ1LSz0zBW0wWyLTVrgKSZUi0A
+21:27 <+bridge> [ddnet] <Ryozuki> http://us.metamath.org/mpeuni/mmset.html
+22:19 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/linuxmemes/comments/ukgr2i/_/?utm_medium=android_app&utm_source=share
+22:19 <+bridge> [ddnet] <Ryozuki> @Not Keks xd
+22:26 <+bridge> [ddnet] <Jupstar> u are my beta tester thanks 😉

@@ -1,0 +1,467 @@
+00:29 <+bridge> [ddnet] <Learath2> An atomic really sounds like the least impacting of all the available options
+00:30 <+bridge> [ddnet] <Learath2> The other options I can think of are far worse like locking
+00:31 <+bridge> [ddnet] <heinrich5991> https://www.cl.cam.ac.uk/~pes20/cpp/cpp0xmappings.html it compiles down to the same instructions even, just a source complexity
+00:31 <+bridge> [ddnet] <heinrich5991> at least on x86 or if we used relaxed memory order
+00:32 <+bridge> [ddnet] <Learath2> Don't think relaxed would be what we want here
+00:33 <+bridge> [ddnet] <heinrich5991> it's basically the current behavior, just without the UB
+00:33 <+bridge> [ddnet] <heinrich5991> for console_log_level, it'd probably be okay, at least I can't think of any weird stuff
+00:33 <+bridge> [ddnet] <Learath2> Ah yep
+00:36 <+bridge> [ddnet] <Chairn> is there any risk of conflict? I don't think people change config that often, otherwise, just declare it volatile?
+00:36 <+bridge> [ddnet] <heinrich5991> volatile is wrong there
+00:36 <+bridge> [ddnet] <heinrich5991> volatile is not a thread synchronization primitive
+00:37 <+bridge> [ddnet] <Ryozuki> oh this discussion again haha
+00:37 <+bridge> [ddnet] <Ryozuki> @Learath2 i remember ur rant
+00:37 <+bridge> [ddnet] <Learath2> Volatile is definitely wrong here :D
+00:37 <+bridge> [ddnet] <Learath2> It won't even emit a fence
+00:37 <+bridge> [ddnet] <heinrich5991> relaxed won't emit a fence either
+00:37 <+bridge> [ddnet] <Ryozuki> https://wiki.sei.cmu.edu/confluence/display/c/CON02-C.+Do+not+use+volatile+as+a+synchronization+primitive
+00:38 <+bridge> [ddnet] <Learath2> Hence I said I don't think relaxed is the best idea here
+00:38 <+bridge> [ddnet] <Learath2> But it will definitely fix the UB
+00:40 <+bridge> [ddnet] <Chairn> i do believe volatile is enough for this use case
+00:40 <+bridge> [ddnet] <Chairn> it forces to reload the value from memory
+00:40 <+bridge> [ddnet] <Chairn> let hardware cohenrecy do its job
+00:40 <+bridge> [ddnet] <Chairn> let hardware coherency/ do its job
+00:40 <+bridge> [ddnet] <Chairn> let hardware coherency do its job
+00:41 <+bridge> [ddnet] <Ryozuki> bad bad bad
+00:41 <+bridge> [ddnet] <Learath2> It doesn't actually fix the UB as far as the standard is concerned
+00:42 <+bridge> [ddnet] <Learath2> Volatile doesnt provide a synchronization point, so the two threads will be accessing memory out of sync
+00:42 <+bridge> [ddnet] <Chairn> config variable change once every 36 of the month, not a big deal
+00:43 <+bridge> [ddnet] <heinrich5991> @Chairn you get the same behavior with relaxed atomics, except it's without the UB
+00:46 <+bridge> [ddnet] <Learath2> Why would you want to invoke nasal demons when you can avoid them?
+00:47 <+bridge> [ddnet] <Learath2> Even compiler people can't agree on what the hell volatile can guarantee, I doubt the standards people are sure either. Relaxed atomics on the other hand have very well defined semantics
+00:47 <+bridge> [ddnet] <Chairn> https://www.youtube.com/watch?v=KJW_DLaVXIY
+00:48 <+bridge> [ddnet] <Chairn> if you have one hour of free tile
+00:48 <+bridge> [ddnet] <Chairn> if you have one hour of free time
+01:08 <+bridge> [ddnet] <lynn> anyone think it would be fixable to patch "Please balance teams!" for more than just race modes?
+01:08 <+bridge> [ddnet] <lynn> heinrich suggested MACRO_CONFIG_INT for it
+01:08 <+bridge> [ddnet] <heinrich5991> no MACRO_CONFIG_INT pls
+01:08 <+bridge> [ddnet] <lynn> wait what should we use
+01:08 <+bridge> [ddnet] <heinrich5991> I suggested making it a flag the server can send
+01:08 <+bridge> [ddnet] <lynn> i guess i assumed you meant sv_
+01:08 <+bridge> [ddnet] <lynn> but maybe you mean just in snap
+01:09 <+bridge> [ddnet] <heinrich5991> just in snap, I meant
+01:09 <+bridge> [ddnet] <lynn> ye makes sense
+01:09 <+bridge> [ddnet] <lynn> i guess so
+01:09 <+bridge> [ddnet] <lynn> what netobj
+01:17 <+bridge> [ddnet] <Tater> Hey what do you guys think of this pr? I think deen wants some more opinions before merging
+01:17 <+bridge> [ddnet] <Tater> <https://github.com/ddnet/ddnet/pull/4997>
+01:17 <+bridge> [ddnet] <heinrich5991> we have some game info object
+01:19 <+bridge> [ddnet] <lynn> wow so nice but margins in a more square ratio look kinda small
+01:19 <+bridge> [ddnet] <lynn> https://cdn.discordapp.com/attachments/293493549758939136/967202934922297374/unknown.png
+01:19 <+bridge> [ddnet] <lynn> like with feet and above
+01:19 <+bridge> [ddnet] <Rene(Killer)> OT: maybe some of u can help
+01:19 <+bridge> [ddnet] <Rene(Killer)> saved a game and cant remember save name...
+01:19 <+bridge> [ddnet] <Rene(Killer)> where i can find it?
+01:20 <+bridge> [ddnet] <lynn> #questions and it's in ddnet-saves.txt
+01:20 <+bridge> [ddnet] <Tater> Yeah that could be bigger
+01:20 <+bridge> [ddnet] <Rene(Killer)> ty
+01:20 <+bridge> [ddnet] <lynn> hard to work with existing space already. i suggest making them a lot smaller
+01:21 <+bridge> [ddnet] <lynn> and adding a label "Default eyes"
+01:21 <+bridge> [ddnet] <lynn> unclear maybe at first what it does
+01:21 <+bridge> [ddnet] <Learath2> Hm I'm actually a little intrigued whether a better answer exists to this kind of synchronization problem where writes are much less frequent than reads
+01:21 <+bridge> [ddnet] <heinrich5991> I mean on x86, it works perfectly fine with AcqRel semantics of atomics
+01:23 <+bridge> [ddnet] <heinrich5991> @Learath2 https://github.com/ddnet/ddnet/pull/5013#pullrequestreview-950687001 asked some questions if you're interested
+01:33 <+bridge> [ddnet] <Learath2> I can answer some tomorrow, I really need to sleep asap but I have atomics on my mind
+01:34 <+bridge> [ddnet] <Chairn> <https://www.ctan.org/pkg/minted> best package to include some code in your latex
+01:35 <+bridge> [ddnet] <lynn> ngl it was so weird to come here and see "emit a fence" without context
+01:35 <+bridge> [ddnet] <lynn> i was like wtf is that
+01:36 <+bridge> [ddnet] <Chairn> this a fence
+01:36 <+bridge> [ddnet] <Chairn> https://cdn.discordapp.com/attachments/293493549758939136/967207270666612756/unknown.png
+01:38 <+bridge> [ddnet] <Chairn> now imagine your computer throwing this at your face because you didn't synchronize your thread
+01:38 <+bridge> [ddnet] <Chairn> now imagine your computer throwing this at your face because you didn't synchronize your threads
+05:18 <+bridge> [ddnet] <Chairn> ubuntu 22 released <https://ubuntu.com/blog/ubuntu-22-04-lts-released>
+07:26 <+bridge> [ddnet] <c0d3d3v> I agree with lynn smaller and a label would also be good.
+07:26 <+bridge> [ddnet] <c0d3d3v> 
+07:26 <+bridge> [ddnet] <c0d3d3v> But I find this version also good https://user-images.githubusercontent.com/22122579/163871026-3845e192-547d-498c-a8cd-5752dadc8ea6.png 
+07:26 <+bridge> [ddnet] <c0d3d3v> You could also solve the lable problam possibly by adding to each button a tooltip, like "Set Angry eyes as default eyes", you would have to test how that comes out.
+07:27 <+bridge> [ddnet] <c0d3d3v> I agree with lynn smaller and a label would also be good.
+07:27 <+bridge> [ddnet] <c0d3d3v> 
+07:27 <+bridge> [ddnet] <c0d3d3v> But I find this version also good https://user-images.githubusercontent.com/22122579/163871026-3845e192-547d-498c-a8cd-5752dadc8ea6.png 
+07:27 <+bridge> [ddnet] <c0d3d3v> You could also solve the label problem possibly by adding to each button a tooltip, like "Set Angry eyes as default eyes", you would have to test how that comes out.
+07:27 <+bridge> [ddnet] <Tater> Thats how it normally looks, it only shows below in the sqaureish aspect ratios
+07:28 <+bridge> [ddnet] <Tater> I think the tooltip is a good idea, adding a label might be hard when its squeezed in between
+07:32 <+bridge> [ddnet] <Tater> The icon size is the same in all the images the aspect ratio is all that changes
+09:13 <+bridge> [ddnet] <Jupstar> maybe put skin prefix to the search filters as popup or smth
+09:15 <+bridge> [ddnet] <Jupstar> how about have the last selected emote of the emote wheel
+09:15 <+bridge> [ddnet] <Jupstar> and alawys try that on any server
+09:15 <+bridge> [ddnet] <Jupstar> thats probably what the user wants anyway
+09:22 <+bridge> [ddnet] <heinrich5991> TIL in C++, static variables get destructed after main finishes!?
+09:23 <+bridge> [ddnet] <heinrich5991> that seems insane in the context of multi-threading to me
+09:23 <+bridge> [ddnet] <Ryozuki> Rly?
+09:23 <+bridge> [ddnet] <heinrich5991> other threads might still use those global variables
+09:24 <+bridge> [ddnet] <Ryozuki> I'm the only one who thinks that eye thing shouldnt be added? I like eyes to have a meaning
+09:25 <+bridge> [ddnet] <Ryozuki> @heinrich5991 does rust, or llvm do the same?
+09:26 <+bridge> [ddnet] <Ryozuki> Also is this for just main or for any entry point (embedded?)
+09:26 <+bridge> [ddnet] <heinrich5991> I only know of main, no further details
+09:26 <+bridge> [ddnet] <heinrich5991> no, rust does the (IMO sane) other thing
+09:27 <+bridge> [ddnet] <Jupstar> why do you want to kill the main thread without joining the other threads tho
+09:29 <+bridge> [ddnet] <heinrich5991> ddnet does that, for example
+09:29 <+bridge> [ddnet] <heinrich5991> other threads might be stuck
+09:29 <+bridge> [ddnet] <heinrich5991> I guess you have to call _Exit in that case
+09:30 <+bridge> [ddnet] <heinrich5991> ah no, `quick_exit`
+09:30 <+bridge> [ddnet] <heinrich5991> ah no, _Exit, nvm
+09:31 <+bridge> [ddnet] <Jupstar> what threads do we keep open
+09:31 <+bridge> [ddnet] <Jupstar> when signaling or smth?
+09:31 <+bridge> [ddnet] <Learath2> I don't quite see when else C++ would destruct the statics
+09:32 <+bridge> [ddnet] <Jupstar> guess there is always a way xd
+09:32 <+bridge> [ddnet] <Learath2> I guess the sql thread and the curl thread could possibly live past main, if I recall correctly
+09:32 <+bridge> [ddnet] <Jupstar> ok
+09:32 <+bridge> [ddnet] <Jupstar> we should fix that regardless
+09:32 <+bridge> [ddnet] <heinrich5991> why?
+09:33 <+bridge> [ddnet] <Jupstar> i dont think its nice style to leave stuff open u opened
+09:33 <+bridge> [ddnet] <heinrich5991> the OS closes it
+09:33 <+bridge> [ddnet] <heinrich5991> faster than you can do. you only slow things down by closing it yourself
+09:33 <+bridge> [ddnet] <Jupstar> u also dont need to deallocate memory
+09:33 <+bridge> [ddnet] <Jupstar> the os does that
+09:33 <+bridge> [ddnet] <heinrich5991> weren't you the person obsessed with performance? ^^
+09:33 <+bridge> [ddnet] <heinrich5991> yea, but at program exit, it's literally doing no useful work ^^
+09:33 <+bridge> [ddnet] <Jupstar> correctness is still the most important thing
+09:33 <+bridge> [ddnet] <heinrich5991> it is correct to not free memory at program exit
+09:34 <+bridge> [ddnet] <heinrich5991> and never freeing memory is also correct, probably, it's just not useful because you might run out of it
+09:34 <+bridge> [ddnet] <Learath2> It's still probably a trivial amount of time lost if we join all threads before dying
+09:34 <+bridge> [ddnet] <Ryozuki> oh, then why do u use c++
+09:34 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+09:34 <+bridge> [ddnet] <Ryozuki> joke joke
+09:34 <+bridge> [ddnet] <heinrich5991> @Learath2 only if we have some way to guarantee that they're done
+09:35 <+bridge> [ddnet] <heinrich5991> the score threads in particular have a timeout for joining precisely because they do not terminate
+09:35 <+bridge> [ddnet] <Jupstar> xd
+09:35 <+bridge> [ddnet] <Jupstar> 
+09:35 <+bridge> [ddnet] <Jupstar> a language that prevents logic errros would fix all errors xd
+09:35 <+bridge> [ddnet] <Ryozuki> but its true that closing stuff at exit doesnt pose a perfomance impact during the most critical parts of the program
+09:35 <+bridge> [ddnet] <Ryozuki> e.g when playing
+09:35 <+bridge> [ddnet] <heinrich5991> yes, if it comes for free, it's fine. or if it's useful for other stuff
+09:36 <+bridge> [ddnet] <Jupstar> anyway, i'd also argument that using static is bad
+09:36 <+bridge> [ddnet] <heinrich5991> but we don't have to go to great lengths to do that. "useful for other stuff" might e.g. be "better readable valgrind output"
+09:36 <+bridge> [ddnet] <Ryozuki> yee
+09:36 <+bridge> [ddnet] <Jupstar> in rare cases u might need them e.g. signaling states
+09:36 <+bridge> [ddnet] <Jupstar> but else u can always solve it in a better way
+09:36 <+bridge> [ddnet] <heinrich5991> my PR introduces a new static
+09:36 <+bridge> [ddnet] <heinrich5991> what's the better way?
+09:36 <+bridge> [ddnet] <heinrich5991> the global logging instance
+09:37 <+bridge> [ddnet] <Jupstar> allocate it on main start
+09:37 <+bridge> [ddnet] <Ryozuki> wtf they updated github
+09:37 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/967328243688538143/unknown.png
+09:37 <+bridge> [ddnet] <heinrich5991> and where do I put it? @Not Keks
+09:37 <+bridge> [ddnet] <Learath2> On timeout, it'll be done. I don't see much harm to the main thread waiting for the sql thread to timeout, especially when we have no idea of the consequences of two servers running with the exact same settings at the same time
+09:37 <+bridge> [ddnet] <Jupstar> does matter use a shared pointer or smth like that
+09:37 <+bridge> [ddnet] <Jupstar> doesnt
+09:37 <+bridge> [ddnet] <heinrich5991> do you expect to pass it to every function so it can log?
+09:37 <+bridge> [ddnet] <Ryozuki> we should use unique_ptr and shared_ptr everywhere
+09:37 <+bridge> [ddnet] <Learath2> What if the dangling sql thread causes some database issue?
+09:37 <+bridge> [ddnet] <Ryozuki> isnt that c++11
+09:38 <+bridge> [ddnet] <heinrich5991> @Learath2 I think we have a timeout for waiting for sql threads. if you're sure that it isn't needed, remove it
+09:38 <+bridge> [ddnet] <Jupstar> i'd not call it from a global context if u mean that yes
+09:38 <+bridge> [ddnet] <Learath2> How about a shared_ptr at the very start of the thread?
+09:38 <+bridge> [ddnet] <Jupstar> Client()->LOG
+09:38 <+bridge> [ddnet] <Jupstar> 
+09:38 <+bridge> [ddnet] <Jupstar> or Server()->Log
+09:38 <+bridge> [ddnet] <Jupstar> 
+09:38 <+bridge> [ddnet] <Jupstar> or for specific components Log() as a function inside the class
+09:38 <+bridge> [ddnet] <heinrich5991> @Not Keks sounds impractical *and* performance sensitive
+09:39 <+bridge> [ddnet] <Learath2> You can keep the shared_ptr in TLS
+09:39 <+bridge> [ddnet] <Jupstar> i doubt that tbh
+09:39 <+bridge> [ddnet] <heinrich5991> I do @Learath2
+09:39 <+bridge> [ddnet] <heinrich5991> passing a parameter to each function does have performance implications
+09:39 <+bridge> [ddnet] <heinrich5991> Client()->Log, Server()->Log, less so
+09:39 <+bridge> [ddnet] <Ryozuki> maybe logs can live in Client() and Server() from the engine?
+09:39 <+bridge> [ddnet] <heinrich5991> but they're still impractical because not everything knows about Client(), Server()
+09:40 <+bridge> [ddnet] <Jupstar> they would' need to explicitly get the pointer then
+09:40 <+bridge> [ddnet] <heinrich5991> logging is a global concern in all languages I know of
+09:40 <+bridge> [ddnet] <heinrich5991> can you show me a project that doesn't have a global logger, so I can see that it is at least a little bit practical?
+09:40 <+bridge> [ddnet] <Jupstar> but then also use the language logging xD
+09:40 <+bridge> [ddnet] <Jupstar> not a custom one
+09:40 <+bridge> [ddnet] <Ryozuki> what about a thread holding the logger and using channels :monkalaugh:
+09:41 <+bridge> [ddnet] <heinrich5991> @Not Keks but the "language logging" is also just a static variable
+09:41 <+bridge> [ddnet] <heinrich5991> or another case for a global variable:
+09:41 <+bridge> [ddnet] <heinrich5991> in rust, if a file is opened, the stdlib dynamically determines if the kernel has a bug
+09:41 <+bridge> [ddnet] <heinrich5991> if it doesn't, it'll never do the duplicate system call again
+09:41 <+bridge> [ddnet] <heinrich5991> that's a good use for a global variable
+09:41 <+bridge> [ddnet] <Ryozuki> ah c++ doesnt support channels in the std
+09:42 <+bridge> [ddnet] <heinrich5991> how would you solve that in a better way?
+09:42 <+bridge> [ddnet] <Ryozuki> > dynamically determines if the kernel has a bug
+09:42 <+bridge> [ddnet] <Ryozuki> how does it do that?
+09:42 <+bridge> [ddnet] <Ryozuki> and what would that bug be
+09:42 <+bridge> [ddnet] <heinrich5991> it checks whether the returned file descriptor has the CLOEXEC flag set after opening it with O_CLOEXEC
+09:42 <+bridge> [ddnet] <heinrich5991> there's old kernels that don't know the flag, and apparently some less old kernels where this flag didn't work
+09:43 <+bridge> [ddnet] <Ryozuki> ah ok
+09:43 <+bridge> [ddnet] <Ryozuki> but that looks like just holding a bool, doesnt logging have side effects or whathever it is called
+09:44 <+bridge> [ddnet] <Learath2> @heinrich5991 can't we have the actual instance on heap and only keep the shared_ptr in the static/thread_local?
+09:44 <+bridge> [ddnet] <heinrich5991> but the theory was that "all global variables are bad" @Ryozuki
+09:44 <+bridge> [ddnet] <heinrich5991> and I'm arguing that "absolutely not!"
+09:44 <+bridge> [ddnet] <Ryozuki> ah ok
+09:45 <+bridge> [ddnet] <Jupstar> the badness comes in the design already, why is the std lib function not part of a class
+09:45 <+bridge> [ddnet] <Ryozuki> are u suggesting java?
+09:45 <+bridge> [ddnet] <heinrich5991> why would it? less performance
+09:45 <+bridge> [ddnet] <Ryozuki> xd
+09:45 <+bridge> [ddnet] <Jupstar> depends, the OS has to be redesigned for that too
+09:45 <+bridge> [ddnet] <heinrich5991> why would you need to do this check over and over again, just because some part of the code needs to construct the file opening object again
+09:46 <+bridge> [ddnet] <heinrich5991> global variables have a performance benefit
+09:47 <+bridge> [ddnet] <heinrich5991> @Learath2 not sure what you mean. currently, we keep a raw pointer in the global variable/thread local variable
+09:47 <+bridge> [ddnet] <Jupstar> they need to check if the variable was allocated in certain scenarious
+09:47 <+bridge> [ddnet] <Jupstar> e.g. if u use static inside a function
+09:47 <+bridge> [ddnet] <Jupstar> if we stay with "static"
+09:47 <+bridge> [ddnet] <Learath2> And where does the logger instance itself get allocated?
+09:47 <+bridge> [ddnet] <heinrich5991> yes. let's say "you can use global variables for a performance benefit" @Not Keks
+09:47 <+ChillerDragon> oh no major log rewrite... i can smell conflicts in my 100 ddnet forks :c
+09:47 <+bridge> [ddnet] <heinrich5991> @Learath2 the global loggers on the heap, getting leaked
+09:48 <+bridge> [ddnet] <heinrich5991> @ChillerDragon I tried to keep the diff minimal. all existing logging code should continue to work, only the logging initialization is different
+09:48 <+ChillerDragon> pog
+09:48 <+bridge> [ddnet] <heinrich5991> continue to work (even better!)
+09:48 <+bridge> [ddnet] <Ryozuki> btw is dbg_msg active in release builds? i always wanted to leave some more detail logging with dbg_msg but always feared it might pollute release
+09:48 <+bridge> [ddnet] <heinrich5991> because now you can see output from other threads in f1 and rcon
+09:49 <+bridge> [ddnet] <heinrich5991> we could make LOG_TRACE only active in debug builds @Ryozuki (if we add a macro for it)
+09:49 <+bridge> [ddnet] <Learath2> I may have missed the issue here (just woke up), I thought your logger got destructed before the threads were done, if you aren't concerned about the leak, then I don't see any issue here
+09:49 <+bridge> [ddnet] <Ryozuki> ye that would be cool
+09:50 <+bridge> [ddnet] <Ryozuki> it would be even more cool to also enable scoped logs via env vars
+09:50 <+bridge> [ddnet] <heinrich5991> no issue. it was just an unrelated post I saw on reddit @Learath2 ^^
+09:50 <+bridge> [ddnet] <Ryozuki> so if i want to debug some client specific thing i can get detailed logs on that
+09:50 <+bridge> [ddnet] <Ryozuki> like any decent app
+09:50 <+bridge> [ddnet] <heinrich5991> check my PR and comment on the design questions I have @Ryozuki
+09:50 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/pull/5013
+09:51 <+bridge> [ddnet] <Ryozuki> ill check
+09:52 <+bridge> [ddnet] <Learath2> @heinrich5991 how does rust go about destructing it's statics? Just using the compilers knowledge of usage?
+09:52 <+bridge> [ddnet] <heinrich5991> it doesn't destruct statics
+09:52 <+bridge> [ddnet] <Learath2> Borrow checker blackmagic
+09:53 <+bridge> [ddnet] <Ryozuki> statics live for 'static :BASED:
+09:53 <+bridge> [ddnet] <heinrich5991> that's how I learned about the issue in C++, because someone complained about missing destruction in /r/rust
+09:54 <+bridge> [ddnet] <Learath2> That sounds more concerning to me. How would you do cleanup in a static then?
+09:54 <+bridge> [ddnet] <Ryozuki> "log_log_impl" "log_log_color" honestly i prefer more the classes style instead of c style
+09:54 <+bridge> [ddnet] <Ryozuki> also it would be cool if u used doxygen style docs
+09:54 <+bridge> [ddnet] <heinrich5991> commet in the PR pls
+09:54 <+bridge> [ddnet] <Ryozuki> so i dont need to parse this in the future :(
+09:55 <+bridge> [ddnet] <Jupstar> anyway, independent of good or bad
+09:55 <+bridge> [ddnet] <Jupstar> before we put _Exit now everywhere, keep in mind that other OS rely on global cleanup, e.g. Android
+09:55 <+bridge> [ddnet] <Jupstar> 
+09:55 <+bridge> [ddnet] <Jupstar> It would else just leak there
+09:55 <+bridge> [ddnet] <Ryozuki> <https://github.com/ddnet/ddnet/pull/4732>
+09:55 <+bridge> [ddnet] <Jupstar> anyway, independent of good or bad
+09:55 <+bridge> [ddnet] <Jupstar> before we put _Exit now everywhere, keep in mind that other OS rely on global cleanup, e.g. Android
+09:55 <+bridge> [ddnet] <Jupstar> 
+09:55 <+bridge> [ddnet] <Jupstar> It would else just not deallocate there
+09:55 <+bridge> [ddnet] <heinrich5991> can you elaborate @Not Keks?
+09:55 <+bridge> [ddnet] <Jupstar> i edited
+09:55 <+bridge> [ddnet] <Jupstar> i meant not deallocate
+09:56 <+bridge> [ddnet] <heinrich5991> I still don't quite get it. if your app leaks memory, it affects the whole system even after the app is closed?
+09:56 <+bridge> [ddnet] <Jupstar> e.g. the java interface calls the .so file
+09:56 <+bridge> [ddnet] <Jupstar> lets say 
+09:56 <+bridge> [ddnet] <Jupstar> libDDNet.so
+09:56 <+bridge> [ddnet] <Jupstar> 
+09:56 <+bridge> [ddnet] <Jupstar> and we use some static variables that require specific intialization objects
+09:56 <+bridge> [ddnet] <Jupstar> 
+09:56 <+bridge> [ddnet] <Jupstar> if its not deallocated
+09:56 <+bridge> [ddnet] <Jupstar> 
+09:56 <+bridge> [ddnet] <Jupstar> it also isnt allocated
+09:56 <+bridge> [ddnet] <Jupstar> and that creates unwanted behavior for our android port
+09:57 <+bridge> [ddnet] <heinrich5991> you mean that if a dynamic library is loaded and then not used anymore at some point, the memory is still leaked?
+09:57 <+bridge> [ddnet] <Jupstar> not leaked, but its still as is
+09:57 <+bridge> [ddnet] <Jupstar> the global variables are untouched
+09:58 <+bridge> [ddnet] <Jupstar> and they wont get to initlaize again
+09:58 <+bridge> [ddnet] <heinrich5991> by explicitly writing code for it. I guess I don't see a use case rn so I can't really say how to handle it
+09:58 <+bridge> [ddnet] <heinrich5991> yea, makes sense if the dynamic library isn't unloaded
+09:59 <+bridge> [ddnet] <Jupstar> yes but as said, since we rely on the intiialization sometimes we have to unload it explicitly
+09:59 <+bridge> [ddnet] <Jupstar> else opening the client agian in android will not work
+10:00 <+bridge> [ddnet] <heinrich5991> the problem there is code that's not written in mind with something that's executed twice, if I understand it correctly? @Not Keks
+10:00 <+bridge> [ddnet] <Ryozuki> i see you use a lot of shared_ptr in the cpp files, but then some functions return `ILogger *l` as is, is it common practice?
+10:00 <+bridge> [ddnet] <Jupstar> yes
+10:00 <+bridge> [ddnet] <heinrich5991> I see
+10:03 <+bridge> [ddnet] <heinrich5991> @Ryozuki where do I see example doxygen docs?
+10:03 <+bridge> [ddnet] <Ryozuki> here
+10:03 <+bridge> [ddnet] <Ryozuki> or u mean rendered?
+10:03 <+bridge> [ddnet] <heinrich5991> no
+10:05 <+bridge> [ddnet] <Ryozuki> doxygen has supports for groups
+10:05 <+bridge> [ddnet] <Ryozuki> so free functions can be grouped
+10:05 <+bridge> [ddnet] <Ryozuki> its nice for new ppl
+10:07 <+bridge> [ddnet] <heinrich5991> I think I did that because I sometimes need them as `std::unique_ptr`, sometimes as `std::shared_ptr` and sometimes as raw pointer
+10:07 <+bridge> [ddnet] <Ryozuki> > std::unique_ptr is the C++11 way to express exclusive ownership, but one of its most attractive features is that it easily and efficiently converts to a std::shared_ptr.
+10:07 <+bridge> [ddnet] <Ryozuki> > 
+10:07 <+bridge> [ddnet] <Ryozuki> > This is a key part of why std::unique_ptr is so well suited as a factory function return type.
+10:08 <+bridge> [ddnet] <heinrich5991> ah, interesting
+10:08 <+bridge> [ddnet] <heinrich5991> TIL
+10:08 <+bridge> [ddnet] <Ryozuki> https://stackoverflow.com/questions/37884728/does-c11-unique-ptr-and-shared-ptr-able-to-convert-to-each-others-type
+10:08 <+bridge> [ddnet] <heinrich5991> comment on the PR with that please, so it doesn't get lost
+10:09 <+bridge> [ddnet] <Ryozuki> ok
+10:09 <+bridge> [ddnet] <heinrich5991> > Once you’ve turned lifetime management of a resource over to a `std::shared_ptr`, there’s no changing your mind. Even if the reference count is one, you can’t reclaim ownership of the resource in order to, say, have a `std::unique_ptr` manage it.
+10:09 <+bridge> [ddnet] <heinrich5991> weird, with a reference count of 1, it should be safe to turn back
+10:09 <+bridge> [ddnet] <Ryozuki> hmm
+10:10 <+bridge> [ddnet] <heinrich5991> ah, I guess it's because multiple threads might have a reference to the same `std::shared_ptr`
+10:10 <+bridge> [ddnet] <heinrich5991> makes sense, nvm me
+10:10 <+bridge> [ddnet] <heinrich5991> (with rust, you can still turn it back though! 😛 )
+10:11 <+bridge> [ddnet] <Ryozuki> :o
+10:11 <+bridge> [ddnet] <Ryozuki> what do u think about doxygen?
+10:12 <+bridge> [ddnet] <Ryozuki> btw we have docs generated every day (or week i dont remember): https://codedoc.ddnet.tw/
+10:12 <+bridge> [ddnet] <Ryozuki> i also started this some time ago https://wiki.ddnet.tw/wiki/Development
+10:12 <+bridge> [ddnet] <Ryozuki> if any time u want to add something
+10:12 <+bridge> [ddnet] <heinrich5991> I like docs that say something
+10:13 <+bridge> [ddnet] <Ryozuki> well the doxygen is just porting the system.h docs
+10:13 <+bridge> [ddnet] <heinrich5991> yes
+10:13 <+bridge> [ddnet] <Ryozuki> so idk what that has to do here
+10:13 <+bridge> [ddnet] <Ryozuki> :PES2_Pray:
+10:14 <+bridge> [ddnet] <heinrich5991> I don't like redundant docs that are just restating the function name or the parameter names. I've seen such docs added in the past in projects that tried to increase some documentation metric
+10:14 <+bridge> [ddnet] <heinrich5991> you asked me what I think about adding doxygen
+10:14 <+bridge> [ddnet] <Ryozuki> ah well
+10:14 <+bridge> [ddnet] <Ryozuki> i meant about system.h
+10:14 <+bridge> [ddnet] <Ryozuki> but ye
+10:14 <+bridge> [ddnet] <heinrich5991> I think those redundant docs are worse than no docs
+10:14 <+bridge> [ddnet] <heinrich5991> ah
+10:14 <+bridge> [ddnet] <Ryozuki> we already had this discussion
+10:14 <+bridge> [ddnet] <Ryozuki> u can have it ur way
+10:14 <+bridge> [ddnet] <Jupstar> xDDDD
+10:14 <+bridge> [ddnet] <heinrich5991> ❤️
+10:15 <+bridge> [ddnet] <Ryozuki> if we agree then
+10:15 <+bridge> [ddnet] <Ryozuki> try to use doxygen style docs on ur pr when u can
+10:15 <+bridge> [ddnet] <heinrich5991> yea, the huge diff isn't optimal, but I don't see a better way to do it
+10:16 <+bridge> [ddnet] <Ryozuki> i dislike that diff is always taken into account, this removes interest in large refactors that might be optimal
+10:16 <+bridge> [ddnet] <Ryozuki> why does the vcs get in the way of dev interests
+10:17 <+bridge> [ddnet] <heinrich5991> I don't like huge diffs because it makes it harder for mods and vanilla patch porting
+10:17 <+bridge> [ddnet] <heinrich5991> so I'd say it's not related to the vcs
+10:17 <+bridge> [ddnet] <Ryozuki> i dont think many mods change system.h
+10:17 <+bridge> [ddnet] <Ryozuki> so it shouldnt be hard to merge
+10:17 <+bridge> [ddnet] <Jupstar> one could arguee that this is the main reason ddnet (and teeworlds) is so mod unfriendly in fact
+10:17 <+bridge> [ddnet] <Jupstar> bcs nobody changes it bad design
+10:17 <+bridge> [ddnet] <Ryozuki> true
+10:18 <+bridge> [ddnet] <heinrich5991> I don't think mod friendly design is being held back by that ^^
+10:18 <+bridge> [ddnet] <Ryozuki> the gamecontroller is essentially useless, u cant make a mod just adding one
+10:18 <+bridge> [ddnet] <Ryozuki> which was the main intended way
+10:18 <+bridge> [ddnet] <heinrich5991> people explicitly refactored that, IIRC
+10:18 <+bridge> [ddnet] <heinrich5991> ask chillerdragon whether that contains merge conflicts for him
+10:19 <+bridge> [ddnet] <Ryozuki> tbh idc if it does
+10:19 <+bridge> [ddnet] <Jupstar> xD
+10:19 <+bridge> [ddnet] <Ryozuki> even if it sounds rude
+10:19 <+bridge> [ddnet] <Jupstar> true, the 2 users that use chillerbot
+10:19 <+bridge> [ddnet] <heinrich5991> but you just claimed that it doesn't
+10:19 <+bridge> [ddnet] <heinrich5991> so you admit that statement might have been bullshit? ^^
+10:20 <+bridge> [ddnet] <Ryozuki> i didnt claim it doesnt
+10:20 <+bridge> [ddnet] <Ryozuki> > i dont think many mods change system.h
+10:20 <+bridge> [ddnet] <Ryozuki> > so it shouldnt be hard to merge
+10:20 <+bridge> [ddnet] <Ryozuki> i said many mods dont change this
+10:20 <+ChillerDragon> i guess spamming system.h with comments should be fine. Its def conflicts but not too dramatic. But would be nice if we can also get it in teeworlds :D 
+10:20 <+bridge> [ddnet] <heinrich5991> what mods do you think about here @Ryozuki?
+10:20 <+bridge> [ddnet] <heinrich5991> name some examples so I can check
+10:20 <+bridge> [ddnet] <Ryozuki> simple mods that change gameplay only
+10:20 <+bridge> [ddnet] <Ryozuki> e.g im porting xpanic to modern ddnet
+10:20 <+bridge> [ddnet] <Ryozuki> that mod didnt touch system.h ever iirc
+10:20 <+bridge> [ddnet] <heinrich5991> got a link?
+10:21 <+bridge> [ddnet] <Ryozuki> i only have a link to the original xpanic
+10:21 <+bridge> [ddnet] <Ryozuki> i still havent uploaded mine
+10:21 <+bridge> [ddnet] <heinrich5991> fine
+10:21 <+ChillerDragon> i would also claim that as a mod it is good style to not touch system.h
+10:21 <+bridge> [ddnet] <heinrich5991> have a link to the original?
+10:21 <+bridge> [ddnet] <Ryozuki> https://github.com/kaitlynia/xpanic
+10:21 <+bridge> [ddnet] <Ryozuki> well this one is updated
+10:21 <+bridge> [ddnet] <Ryozuki> idk the original
+10:21 <+bridge> [ddnet] <Ryozuki> https://github.com/teeworldsmods/teeworlds-xpanic
+10:21 <+bridge> [ddnet] <Jupstar> its good style to use boost and not use system.h
+10:21 <+bridge> [ddnet] <Ryozuki> maybe its this one
+10:21 <+bridge> [ddnet] <Ryozuki> ye lets use boost
+10:22 <+bridge> [ddnet] <Ryozuki> do they enforce shared_ptr and unique_ptr?
+10:22 <+bridge> [ddnet] <heinrich5991> no, please don't. exploding build times
+10:22 <+bridge> [ddnet] <Ryozuki> xd
+10:22 <+bridge> [ddnet] <Jupstar> xddd
+10:22 <+bridge> [ddnet] <heinrich5991> e.g. factorio ripped it out due to that reason
+10:22 <+bridge> [ddnet] <Ryozuki> is it just ddnet or do most codebases not adopt shared_ptr unique_ptr etc
+10:22 <+bridge> [ddnet] <Jupstar> depends
+10:23 <+bridge> [ddnet] <heinrich5991> it's not that simple to adopt it, I think. you could try to do it
+10:23 <+bridge> [ddnet] <heinrich5991> there are some nonobvious relationships, I think
+10:23 <+bridge> [ddnet] <Ryozuki> @heinrich5991 <https://github.com/timazuki/TeeSmash>
+10:23 <+bridge> [ddnet] <Ryozuki> another mod for u to check
+10:24 <+bridge> [ddnet] <Ryozuki> maybe this one modified system.h but its cuz it was rly old and lacked utf8 support
+10:24 <+bridge> [ddnet] <Ryozuki> but i dont see any reason why most gameplay related mods modify system.h
+10:24 <+bridge> [ddnet] <Ryozuki> chiller likes to do weird stuff
+10:24 <+bridge> [ddnet] <heinrich5991> because there's OS abstractions that you need, probably
+10:25 <+ChillerDragon> idk i think in most cases i tried to push those changes upstream like str_startswith_nocase and shit
+10:25 <+bridge> [ddnet] <heinrich5991> or stuff that's buggy. I mean we only recently fixed `str_copy` to not produce invalid UTF-8
+10:25 <+ChillerDragon> but for my curses client for example i had to wrap dbg_msg() into some macros
+10:25 <+bridge> [ddnet] <Ryozuki> u can wrap c apis around unique_ptr
+10:25 <+bridge> [ddnet] <Ryozuki> ```cpp
+10:25 <+bridge> [ddnet] <Ryozuki> struct SDLWindowDestroyer
+10:25 <+bridge> [ddnet] <Ryozuki> {
+10:25 <+bridge> [ddnet] <Ryozuki>     void operator()(SDL_Window* w) const
+10:25 <+bridge> [ddnet] <Ryozuki>     {
+10:25 <+bridge> [ddnet] <Ryozuki>         SDL_DestroyWindow(w);
+10:25 <+bridge> [ddnet] <Ryozuki>     }
+10:25 <+bridge> [ddnet] <Ryozuki> };
+10:25 <+bridge> [ddnet] <Ryozuki> 
+10:25 <+bridge> [ddnet] <Ryozuki> std::unique_ptr<SDL_Window, SDLWindowDestroyer> window_;
+10:25 <+bridge> [ddnet] <Ryozuki> ```
+10:26 <+bridge> [ddnet] <heinrich5991> I encourage you to grep for `operator()` in our source 😉
+10:27 <+bridge> [ddnet] <Ryozuki> ye i see
+10:57 <+bridge> [ddnet] <Learath2> This would be one of the biggest steps to mod friendliness, if we could concentrate our changes into a gamecontroller it'd be amazing
+10:59 <+bridge> [ddnet] <Learath2> I actually had quite a few attempts at this, I kept getting stuck when doing entities and tiles iirc
+11:00 <+bridge> [ddnet] <Learath2> It needs something like getting the collision code to depend on the controller somehow, I just never quite figured it out
+13:03 <+bridge> [ddnet] <heinrich5991> https://youtu.be/kPRA0W1kECg
+13:03 <+ChillerDragon> > 15:28:24*       +bridge | [ddnet] <Ryozuki> is protobuf used in games?
+13:03 <+ChillerDragon> irc reply be like :D 
+13:03 <+ChillerDragon> @Ryozuki they seem to use it https://github.com/cxong/cdogs-sdl/wiki/Developer-Getting-Started:-Linux
+13:29 <+bridge> [ddnet] <Jupstar> https://openbenchmarking.org/embed.php?i=2204214-PTS-NVIDIASM12&sha=7f11011ebcfd&p=2
+13:29 <+bridge> [ddnet] <Jupstar> 
+13:29 <+bridge> [ddnet] <Jupstar> lol mesa drivers best
+13:29 <+bridge> [ddnet] <Jupstar> too bad phoronix didnt include rx 6900 xt
+13:29 <+bridge> [ddnet] <Jupstar> would be cool to see amd on top
+13:29 <+bridge> [ddnet] <Jupstar> 
+13:29 <+bridge> [ddnet] <Jupstar> but funny how good drivers can overcome hardware limits
+14:47 <+ChillerDragon> Any rustian knows why my channel is not recieving data? :)
+14:48 <+ChillerDragon> This code is run https://github.com/chidraqul/chidraqul5/blob/bd4bb4d506459b343e8c1689ba9877b9317e0dd0/src/client.rs#L153
+14:48 <+ChillerDragon> this not :c https://github.com/chidraqul/chidraqul5/blob/bd4bb4d506459b343e8c1689ba9877b9317e0dd0/src/client.rs#L198
+15:11 <+ChillerDragon> @heinrich5991 could you ellaborate on that? How does one implement a logger backend? https://github.com/chillerbot/chillerbot-ux/issues/94#issuecomment-1107453760
+15:15 <+bridge> [ddnet] <gerdoe> https://cdn.discordapp.com/attachments/293493549758939136/967413364395474985/gigasort.mp4
+15:21 <+ChillerDragon> ^ rust thing is fixed
+15:51 <+bridge> [ddnet] <Ryozuki> xd
+18:05 <+bridge> [ddnet] <everestkio> TextRender()->TextColor
+18:05 <+bridge> [ddnet] <everestkio> 
+18:05 <+bridge> [ddnet] <everestkio> i must set rgb like a value getted by color picker
+18:05 <+bridge> [ddnet] <everestkio> but i can't do                     TextRender()->TextColor(g_Config.m_colorSIUMMMMMMMM);
+18:05 <+bridge> [ddnet] <everestkio> some tips?
+18:05 <+bridge> [ddnet] <Jupstar> convert HSL to RGB
+18:06 <+bridge> [ddnet] <Jupstar> look how other color config variables did it
+18:06 <+bridge> [ddnet] <everestkio> color_cast<ColorRGBA> ?
+18:06 <+bridge> [ddnet] <Jupstar> just look how other color vars did it xD
+18:06 <+bridge> [ddnet] <Jupstar> just copy paste
+18:07 <+bridge> [ddnet] <everestkio> lets search
+18:10 <+bridge> [ddnet] <everestkio> maybe found
+18:53 <+bridge> [ddnet] <everestkio> rand() not work 😦
+18:56 <+bridge> [ddnet] <Jupstar> why do u need it
+18:56 <+bridge> [ddnet] <everestkio> random color
+18:56 <+bridge> [ddnet] <Jupstar> maybe u are using it wrongly
+18:59 <+bridge> [ddnet] <everestkio> i must gen a number from 0.0 to 1.0
+18:59 <+bridge> [ddnet] <everestkio> rand() % 2 give 0 or 1
+18:59 <+bridge> [ddnet] <everestkio> 😦
+19:01 <+bridge> [ddnet] <Jupstar> well
+19:01 <+bridge> [ddnet] <Jupstar> so what is the answer
+19:02 <+bridge> [ddnet] <nouaa> it's much simpler to just use <random>
+19:02 <+bridge> [ddnet] <Jupstar> simply dont use % 2 but smth very high
+19:02 <+bridge> [ddnet] <Jupstar> and then divide
+19:02 <+bridge> [ddnet] <Chairn> <https://www.reddit.com/r/ProgrammerHumor/comments/ua25eb/why/>
+19:02 <+bridge> [ddnet] <Jupstar> e.g. use 2001 and divide by 2000.0f
+19:03 <+bridge> [ddnet] <Ryozuki> just return 4
+19:03 <+bridge> [ddnet] <Ryozuki> every time
+19:03 <+bridge> [ddnet] <Ryozuki> https://xkcd.com/221/
+19:06 <+bridge> [ddnet] <everestkio> rand() / (RAND_MAX + 1.) this work but where i must place srand(time(NULL));
+19:06 <+bridge> [ddnet] <Jupstar> but nice exists
+19:07 <+bridge> [ddnet] <Jupstar> at the program start
+19:07 <+bridge> [ddnet] <everestkio> mh
+19:07 <+bridge> [ddnet] <everestkio> where O.O
+19:07 <+bridge> [ddnet] <Jupstar> int main()
+19:07 <+bridge> [ddnet] <everestkio> yes but in the client
+19:07 <+bridge> [ddnet] <Jupstar> who cares, do u even need a seed?
+19:07 <+bridge> [ddnet] <everestkio> https://cdn.discordapp.com/attachments/293493549758939136/967471848637988874/unknown.png
+19:07 <+bridge> [ddnet] <Jupstar> client.cpp
+19:07 <+bridge> [ddnet] <Jupstar> if its client side
+19:07 <+bridge> [ddnet] <Jupstar> else server.cpp
+19:08 <+bridge> [ddnet] <everestkio> else it give always the same number
+19:09 <+bridge> [ddnet] <Jupstar> well then put it somewhere xd
+19:10 <+bridge> [ddnet] <Jupstar> its not truly random anyway xd
+19:11 <+bridge> [ddnet] <everestkio> ok work
+19:11 <+bridge> [ddnet] <everestkio> ❤️
+19:11 <+bridge> [ddnet] <everestkio> im nub
+19:11 <+bridge> [ddnet] <Assa> can sb. reopen this issue, it's probably the same bug: https://github.com/ddnet/ddnet/issues/4438
+19:12 <+bridge> [ddnet] <Jupstar> i think it was never centered with days shown
+19:12 <+bridge> [ddnet] <Jupstar> just reload the server xd
+19:12 <+bridge> [ddnet] <Assa> thats a workaround, not a fix 🙂
+19:13 <+bridge> [ddnet] <Assa> there was actually a bug there with the wrong fontsize
+19:16 <+bridge> [ddnet] <Jupstar> do u compile urself?
+19:16 <+bridge> [ddnet] <Assa> I _could_
+19:22 <+bridge> [ddnet] <Jupstar> ah i see yeah
+19:22 <+bridge> [ddnet] <Jupstar> its bcs it uses 00d instead of single digit
+19:22 <+bridge> [ddnet] <Ravie> @c0d3d3v isn't that what u fixed for the hud thing?
+22:22 <+bridge> [ddnet] <Ryozuki> https://www.reddit.com/r/europe/comments/ua3n01/google_meta_and_others_will_have_to_explain_their/?utm_medium=android_app&utm_source=share
+22:25 <+bridge> [ddnet] <Learath2> 🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺🇪🇺

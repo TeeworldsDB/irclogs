@@ -1,0 +1,189 @@
+03:22 <+bridge> [ddnet] <Patiga> @Not Keks wanted to figure out how the camera width/height is calculated from the aspect ratio. is `CRenderTools::CalcScreenParams` the correct function, and `WMax`/32 and `HMax`32 are the amounts of tiles horizontally/vertically?
+03:24 <+bridge> [ddnet] <Patiga> if so, what is `Amount` supposed to be and what is `f` with that weird calculation
+08:14 <+bridge> [ddnet] <Jupstar> Amount is clear I guess. You want resolution independent scaling.
+08:14 <+bridge> [ddnet] <Jupstar> The backend's screen mapping will scale down all variables so we have normalized values across all resolutions, so that you end up in a NDC.
+08:14 <+bridge> [ddnet] <Jupstar> Basically how pretty much all projection matrices would also do it.
+08:14 <+bridge> [ddnet] <Jupstar> Now sqrt(Amount) is the length of one side of the new resolution. I guess this is clear too?
+08:14 <+bridge> [ddnet] <Jupstar> Pretty basic geometric math.
+08:14 <+bridge> [ddnet] <Jupstar> 
+08:14 <+bridge> [ddnet] <Jupstar> Now lets do some math. Imagine we subsitute the `Amount` at the very last step, even if it breaks math.
+08:14 <+bridge> [ddnet] <Jupstar> But we want to transform into a different resolution anyway.. in the resolution of Amount:
+08:14 <+bridge> [ddnet] <Jupstar> ```
+08:14 <+bridge> [ddnet] <Jupstar> x * y = x * y | / y
+08:15 <+bridge> [ddnet] <Jupstar> (x * y) / y = x | * x
+08:15 <+bridge> [ddnet] <Jupstar> (x * y) * (x / y) = x^2 | sqrt
+08:15 <+bridge> [ddnet] <Jupstar> sqrt(x * y) * sqrt(x / y) = x
+08:15 <+bridge> [ddnet] <Jupstar> ```
+08:15 <+bridge> [ddnet] <Jupstar> 
+08:15 <+bridge> [ddnet] <Jupstar> At this point it's clear where our journey ends xd
+08:15 <+bridge> [ddnet] <Jupstar> x / y is the Aspect ratio.. The function takes the Aspect ratio as parameter
+08:15 <+bridge> [ddnet] <Jupstar> so our new x is:
+08:15 <+bridge> [ddnet] <Jupstar> 
+08:15 <+bridge> [ddnet] <Jupstar> ```
+08:15 <+bridge> [ddnet] <Jupstar> x = sqrt(Amount) * sqrt(AspectRatio) 
+08:15 <+bridge> [ddnet] <Jupstar> and y is
+08:15 <+bridge> [ddnet] <Jupstar> y = sqrt(Amount) / sqrt(AspectRatio)
+08:15 <+bridge> [ddnet] <Jupstar> now look at the original formular
+08:15 <+bridge> [ddnet] <Jupstar> 
+08:15 <+bridge> [ddnet] <Jupstar> float f = sqrtf(Amount) / sqrtf(Aspect);
+08:15 <+bridge> [ddnet] <Jupstar> *w = f * Aspect;
+08:15 <+bridge> [ddnet] <Jupstar> *h = f;
+08:15 <+bridge> [ddnet] <Jupstar> 
+08:15 <+bridge> [ddnet] <Jupstar> its the exact same. f is basically = y
+08:15 <+bridge> [ddnet] <Jupstar> and we go from y to x by multipling AspectRatio
+08:26 <+bridge> [ddnet] <chillerdragon> There is Patigas twmap which can turn maps into json and back. Do you can track json files in git.
+08:26 <+bridge> [ddnet] <chillerdragon> (@cauldron)
+08:31 <+bridge> [ddnet] <Jupstar> Maybe a tip for imagination:
+08:31 <+bridge> [ddnet] <Jupstar> You want make the new resolution (Amount) fit into our aspect ration
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> So side_length * sqrt(Aspect)
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> and sqrt bcs the AspectRatio is on the "full" old resolution. But you only do the ratio multiplikation on one side of the new resolution not on the full length.
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> E.g. lets say you take 1920x1080
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> thats the full mass.. EVERYTHING XD
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> if you only want the amount of everything that was created by the width
+08:31 <+bridge> [ddnet] <Jupstar> u basicall do
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> (1920×1080) × 16/9
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> now you have a new mass, the mass of the width
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> do now get the side length of that new mass u simply put a sqrt around it
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> sqrt((1920×1080) × 16/9)
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> and tada. You are back to 1920
+08:31 <+bridge> [ddnet] <Jupstar> 
+08:31 <+bridge> [ddnet] <Jupstar> See hard to explain but kinda makes sense if u imagine it somehow
+08:32 <+bridge> [ddnet] <Jupstar> thus the name Aspect `Ratio`
+08:32 <+bridge> [ddnet] <Jupstar> It is the Ratio between the two sides
+08:32 <+bridge> [ddnet] <Jupstar> xd
+08:32 <+bridge> [ddnet] <Jupstar> ok i stop now
+10:53 <+bridge> [ddnet] <cauldron> well you could even track binary files with git, couldn't you? i was thinking of managing soundpacks for ddnet with git, to just checkout another branch and have another soundpack
+10:56 <+bridge> [ddnet] <cauldron> but json converter could make building a ddnet map history feature "natively" without git easy
+10:57 <+bridge> [ddnet] <Jupstar> we had an undo manager before just saving the map, its simply very slow
+10:57 <+bridge> [ddnet] <Jupstar> calculating the diff is not much faster
+10:58 <+bridge> [ddnet] <Jupstar> would be cleaner to seperate all changes on a map from the editor and do undo events there
+10:59 <+bridge> [ddnet] <cauldron> what do you mean very slow
+10:59 <+bridge> [ddnet] <cauldron> even if its super slow i would use it
+11:00 <+bridge> [ddnet] <Jupstar> as said there was one it was made async bcs it was too slow probs
+11:00 <+bridge> [ddnet] <cauldron> just saving would be slow, right?
+11:01 <+bridge> [ddnet] <cauldron> anyway, i am not into this. its too big for me. soundpack or color feature keep me busy xD
+11:02 <+bridge> [ddnet] <cauldron> but is the web collabo editor built from scratch?
+11:02 <+bridge> [ddnet] <cauldron> maybe it could have it
+11:02 <+bridge> [ddnet] <Jupstar> i cannot say smth about the actual performance, but e.g. adding a layer somewhere on a 4kx4k map would require quite a lot of processing
+11:02 <+bridge> [ddnet] <Jupstar> be it diff or just saving
+11:03 <+bridge> [ddnet] <Jupstar> bcs it would shift all bytes after the layer at least
+11:03 <+bridge> [ddnet] <cauldron> why?? after all its just the tiles mapped to locations or not?
+11:03 <+bridge> [ddnet] <cauldron> i mean does the res play a role?
+11:04 <+bridge> [ddnet] <cauldron> ah you mean 4k tiles
+11:04 <+bridge> [ddnet] <cauldron> still
+11:04 <+bridge> [ddnet] <Jupstar> see
+11:04 <+bridge> [ddnet] <Jupstar> 
+11:04 <+bridge> [ddnet] <Jupstar> you either have an undo manager that knows about the file format (then you can also just make it very efficient, bcs all actions you do in the editor can be cleanly seperated)
+11:04 <+bridge> [ddnet] <Jupstar> or you have an undo manager doing smth like git: binary comparision... that can result in a full check in worst case
+11:04 <+bridge> [ddnet] <cauldron> ok
+11:05 <+bridge> [ddnet] <Jupstar> for git its obviously not annoying, bcs it does that exactly when u expect it
+11:05 <+bridge> [ddnet] <Jupstar> but a weird lag everytime u add new tiles or stuiff like that can be really annoying
+11:05 <+bridge> [ddnet] <cauldron> yes it has to be seamless
+11:05 <+bridge> [ddnet] <cauldron> off
+12:04 <+bridge> [ddnet] <Patiga> thank you a lot, your explanation was very good :)
+13:21 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/982605095093030952/unknown.png
+13:22 <+bridge> [ddnet] <cauldron> hah
+13:31 <+bridge> [ddnet] <jao> lmao
+15:08 <+bridge> [ddnet] <ReiTW> only retards uses -fr
+15:09 <+bridge> [ddnet] <c0d3d3v> I have never build a good undo manager, but I would think if every possible action in the editor has a corresponding inverse action, you could just put the actions on a stack and revert them on a undo command one by one.
+15:09 <+bridge> [ddnet] <Jupstar> yes
+15:26 <+bridge> [ddnet] <cauldron> btw colemak user
+15:26 <+bridge> [ddnet] <cauldron> _ 😎
+16:38 <+bridge> [ddnet] <Chairn> I think i reached a new low with windows
+16:38 <+bridge> [ddnet] <Chairn> a simple copy paste literally crashed all opened applications simulatenously
+16:43 <+bridge> [ddnet] <Wohoo> I think save full state is easier than create inverse action to recover state
+16:44 <+bridge> [ddnet] <cauldron> are you using windows as main os or just for gaming / compiling?
+16:44 <+bridge> [ddnet] <Chairn> windows on my pc, linux for work and dev
+16:45 <+bridge> [ddnet] <Chairn> i sometimes dev on windows like right now
+16:45 <+bridge> [ddnet] <Chairn> requires mome memory if you have to save few MB every action
+16:48 <+bridge> [ddnet] <cauldron> aha
+16:48 <+bridge> [ddnet] <k2d222> I planned on doing that for the web editor although I'm not there yet
+16:49 <+bridge> [ddnet] <k2d222> plus multi editor brings a lot of additional pain like concurrent edits
+16:49 <+bridge> [ddnet] <cauldron> are you writing it from scratch? adding feature after feature
+16:50 <+bridge> [ddnet] <cauldron> is it like etherpad if you know it?
+16:50 <+bridge> [ddnet] <k2d222> yea no choice really bc there is a lot of specifics with the way you handle multiple users
+16:50 <+bridge> [ddnet] <k2d222> huh no
+16:51 <+bridge> [ddnet] <cauldron> etherpad is multiple user online text editor
+16:51 <+bridge> [ddnet] <k2d222> oh like google docs
+16:51 <+bridge> [ddnet] <k2d222> I went multiple times already to try and understand how they handle undo in case of conflicts
+16:52 <+bridge> [ddnet] <cauldron> yeah but open source i think
+16:52 <+bridge> [ddnet] <k2d222> I'll have a look then thx
+16:53 <+bridge> [ddnet] <cauldron> theres also ethercalc
+16:53 <+bridge> [ddnet] <cauldron> and more ethers idk
+17:39 <+bridge> [ddnet] <Nagi01 {LAN}> true story
+17:40 <+bridge> [ddnet] <ReiTW> Nagi best javascript developer :sue:
+17:42 <+bridge> [ddnet] <Nagi01 {LAN}> js is for kiddos
+17:43 <+bridge> [ddnet] <Nagi01 {LAN}> real chads use rust
+17:43 <+bridge> [ddnet] <Nagi01 {LAN}> :greenthing:
+17:44 <+bridge> [ddnet] <Chairn> @heinrich5991 is there a difference between
+17:44 <+bridge> [ddnet] <Chairn> ```c++
+17:44 <+bridge> [ddnet] <Chairn> std::atomic<uint64_t> *m_pTextureMemoryUsage
+17:44 <+bridge> [ddnet] <Chairn> ```
+17:44 <+bridge> [ddnet] <Chairn> and 
+17:44 <+bridge> [ddnet] <Chairn> ```c++
+17:44 <+bridge> [ddnet] <Chairn> std::atomic<uint64_t*> m_pTextureMemoryUsage
+17:44 <+bridge> [ddnet] <Chairn> ```
+17:44 <+bridge> [ddnet] <Chairn> and 
+17:44 <+bridge> [ddnet] <Chairn> ```c++
+17:44 <+bridge> [ddnet] <Chairn> std::atomic<uint64_t*> m_pTextureMemoryUsage;
+17:44 <+bridge> [ddnet] <Chairn> ```
+17:44 <+bridge> [ddnet] <Chairn> @heinrich5991 is there a difference between
+17:45 <+bridge> [ddnet] <Chairn> ```c++
+17:45 <+bridge> [ddnet] <Chairn> std::atomic<uint64_t> *m_pTextureMemoryUsage;
+17:45 <+bridge> [ddnet] <Chairn> ```
+17:45 <+bridge> [ddnet] <Jupstar> yes
+17:45 <+bridge> [ddnet] <Chairn> which is?
+17:45 <+bridge> [ddnet] <Jupstar> one is a pointer of atomic
+17:46 <+bridge> [ddnet] <Jupstar> the other an atomic ptr
+17:46 <+bridge> [ddnet] <Chairn> thanks...
+17:46 <+bridge> [ddnet] <Jupstar> np
+17:46 <+bridge> [ddnet] <Jupstar> u cannot just change it
+17:47 <+bridge> [ddnet] <Chairn> because i see both in the code, so i wonder if it's intentional
+17:47 <+bridge> [ddnet] <Jupstar> where is the 2nd?
+17:48 <+bridge> [ddnet] <Chairn> there ```c++
+17:48 <+bridge> [ddnet] <Chairn> std::atomic<ILogger *> m_pLogger;
+17:48 <+bridge> [ddnet] <Chairn> ```
+17:48 <+bridge> [ddnet] <Jupstar> there its probs intendet
+17:48 <+bridge> [ddnet] <Chairn> mostly in the new log code
+17:49 <+bridge> [ddnet] <Chairn> i was mostly wondering if i should init `std::atomic` variables
+17:57 <+bridge> [ddnet] <Swarfey> only french use -fr
+17:59 <+bridge> [ddnet] <ReiTW> I'm french I use -rf
+18:06 <+bridge> [ddnet] <Chairn> im french and i use -rf
+18:56 <+bridge> [ddnet] <cauldron> im german and i use -rf
+18:57 <+bridge> [ddnet] <cauldron> ls -alh
+18:58 <+bridge> [ddnet] <Jupstar> real pros use GUIs
+18:59 <+bridge> [ddnet] <cauldron> eaglemode nice fs "gui"
+19:00 <+bridge> [ddnet] <cauldron> http://eaglemode.sourceforge.net/
+19:04 <+bridge> [ddnet] <cauldron> https://eaglemode.sourceforge.net/screenshots/em_b02.jpg
+19:05 <+bridge> [ddnet] <cauldron> http://eaglemode.sourceforge.net/screenshots/em_b02.html
+19:05 <+bridge> [ddnet] <cauldron> http://eaglemode.sourceforge.net/screenshots/em_b02.jpeg
+19:37 <+bridge> [ddnet] <Chairn> heretic !!
+21:27 <+bridge> [ddnet] <cauldron> nice
+21:27 <+bridge> [ddnet] <cauldron> 😅
+23:23 <+bridge> [ddnet] <cauldron> i switched to windows after like 9 years of arch, cause
+23:25 <+bridge> [ddnet] <cauldron> challenge to use opensource on windows, like alacritty, nvim, co
+23:25 <+bridge> [ddnet] <cauldron> # outcoming
+23:26 <+bridge> [ddnet] <cauldron> i mean i was editing /etc/netctl profiles for every new wifi i was connecting
+23:28 <+bridge> [ddnet] <cauldron> not working for me. rather use windows than spend a weekend to make blietooth headset work on arch.
+23:28 <+bridge> [ddnet] <cauldron> sorry opensource, ill try
+23:30 <+bridge> [ddnet] <cauldron> choosing react over vuejs
+23:30 <+bridge> [ddnet] <cauldron> im outta here
+23:34 <+bridge> [ddnet] <cauldron> 🙈
+23:36 <+bridge> [ddnet] <Wohoo> @Ryozuki
+23:36 <+bridge> [ddnet] <Wohoo> What about testing this tool with DDnet, to have full dump execution?
+23:36 <+bridge> [ddnet] <Wohoo> https://rr-project.org/
+23:36 <+bridge> [ddnet] <Wohoo> It's on HN front page.
+23:36 <+bridge> [ddnet] <Wohoo> I've never tested it, it should probably dump network packets too, since it is mainly used with Firefox.
+23:36 <+bridge> [ddnet] <Wohoo> Reverse execution feels like magic to me
+23:49 <+bridge> [ddnet] <deen> Those are projects are very cool, but slow down execution by a lot
+23:50 <+bridge> [ddnet] <deen> So it's something you can use in your central tests sometimes to try and catch hard to reproduce bugs
