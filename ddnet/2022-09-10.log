@@ -1,0 +1,279 @@
+00:21 <+bridge> [ddnet] <Voxel> https://media.discordapp.net/attachments/557260368867622932/1017820535616458772/unknown.png
+00:30 <+bridge> [ddnet] <Learath2> It's mind boggling how annoying implementing a parser for a custom type is in clap
+00:31 <+bridge> [ddnet] <Patiga> @Learath2 are you using the derive method of using clap?
+00:31 <+bridge> [ddnet] <Patiga> with that one it was much easier for me
+00:31 <+bridge> [ddnet] <Learath2> I was using the builder method
+00:32 <+bridge> [ddnet] <Learath2> How do you ever return a proper error from your custom parser?
+00:33 <+bridge> [ddnet] <Patiga> ```
+00:33 <+bridge> [ddnet] <Patiga> fn parse_tuple<T: FromStr, const SEPARATOR: char>(
+00:33 <+bridge> [ddnet] <Patiga>     s: &str,
+00:33 <+bridge> [ddnet] <Patiga> ) -> Result<(T, T), Box<dyn Error + Send + Sync + 'static>>
+00:33 <+bridge> [ddnet] <Patiga> where
+00:33 <+bridge> [ddnet] <Patiga>     T::Err: Error + Send + Sync + 'static,
+00:33 <+bridge> [ddnet] <Patiga> {
+00:33 <+bridge> [ddnet] <Patiga>     if s.matches(SEPARATOR).count() != 1 {
+00:33 <+bridge> [ddnet] <Patiga>         return Err(format!("Expected 2 values separated by '{}'", SEPARATOR).into());
+00:33 <+bridge> [ddnet] <Patiga>     }
+00:33 <+bridge> [ddnet] <Patiga>     let mut values = s.split(SEPARATOR).map(|str| str.parse::<T>());
+00:33 <+bridge> [ddnet] <Patiga>     Ok((values.next().unwrap()?, values.next().unwrap()?))
+00:33 <+bridge> [ddnet] <Patiga> }
+00:33 <+bridge> [ddnet] <Patiga> ```
+00:33 <+bridge> [ddnet] <Patiga> ```rs
+00:33 <+bridge> [ddnet] <Patiga>     #[clap(long, short = 'p', value_parser = parse_tuple::<f32, ','>)]
+00:33 <+bridge> [ddnet] <Patiga>     position: Vec<(f32, f32)>,
+00:33 <+bridge> [ddnet] <Patiga> ```
+00:33 <+bridge> [ddnet] <Patiga> thats all it takes with the derive method
+00:34 <+bridge> [ddnet] <Patiga> (from one of my twgpu tools)
+00:35 <+bridge> [ddnet] <Patiga> without the derive method it was a lot of hassle and at the end I didn't even have the clap coloring in my error. this way everything just worked
+00:36 <+bridge> [ddnet] <Learath2> I think I'll just try another library
+00:36 <+bridge> [ddnet] <Learath2> I'm just very annoyed at it making something so trivial so long and insufferable
+00:37 <+bridge> [ddnet] <Patiga> yeah :/
+00:37 <+bridge> [ddnet] <Patiga> but now that the derive thingy is integrated into the clap crate directly, I liked it
+00:38 <+bridge> [ddnet] <Learath2> But then I have to use the weird one off struct way of getting arguments which just feels wrong
+00:42 <+bridge> [ddnet] <Patiga> apart from a little weird first it is also very darn simple :p
+00:42 <+bridge> [ddnet] <Patiga> and having it as an explicit type also gave the certainty that I didn't mess up some parameters somewhere
+00:42 <+bridge> [ddnet] <Learath2> I'm very much considering just calling out to getopt, that's how annoyed I am at wasting half an hour trying to parse a stupid uri properly
+00:44 <+bridge> [ddnet] <Learath2> Okay, one last try, I'll give it a go with the derive version
+01:06 <+bridge> [ddnet] <Learath2> ```     = note: expected trait `for<'r> <for<'r> fn(&'r str) -> Result<URI<'r>, URIError> {parse_url} as FnOnce<(&'r str,)>>`
+01:06 <+bridge> [ddnet] <Learath2>                 found trait `for<'r> <for<'r> fn(&'r str) -> Result<URI<'r>, URIError> {parse_url} as FnOnce<(&'r str,)>>`
+01:06 <+bridge> [ddnet] <Learath2> ```
+01:06 <+bridge> [ddnet] <Learath2> I think this is enough rust for one night
+01:06 <+bridge> [ddnet] <Learath2> The compiler seems to be smoking something
+01:06 <+bridge> [ddnet] <heinrich5991> I see no difference?
+01:07 <+bridge> [ddnet] <Patiga> neither
+01:07 <+bridge> [ddnet] <Learath2> Neither do I
+01:07 <+bridge> [ddnet] <Learath2> I think I got the lifetime wrong somehow
+01:08 <+bridge> [ddnet] <heinrich5991> I see two `'r`s
+01:11 <+bridge> [ddnet] <Learath2> I think it has sth to do with the weird way uriparse just doesn't have a version that takes ownership of the string
+01:12 <+bridge> [ddnet] <heinrich5991> can you show the code line that produces it?
+01:12 <+bridge> [ddnet] <Learath2> `#[derive(Parser, Debug)]`
+01:14 <+bridge> [ddnet] <heinrich5991> probably also a URI member?
+01:15 <+bridge> [ddnet] <Ryozuki> use the url crate
+01:15 <+bridge> [ddnet] <Ryozuki> from mozilla
+01:15 <+bridge> [ddnet] <Ryozuki> they use it
+01:15 <+bridge> [ddnet] <Ryozuki> on firefox iirc
+01:15 <+bridge> [ddnet] <Ryozuki> https://crates.io/crates/url
+01:15 <+bridge> [ddnet] <Ryozuki> https://github.com/servo/rust-url
+01:16 <+bridge> [ddnet] <Ryozuki> cant get better than this
+01:17 <+bridge> [ddnet] <Learath2> I'm sure that'll work since it looks like it uses a clone of the string so it's lifetime doesn't look like it depends on the initial string
+01:20 <+bridge> [ddnet] <Learath2> @heinrich5991 https://paste.pr0.tips/Wno
+01:20 <+bridge> [ddnet] <Learath2> I just don't know how to tell the compiler that the argument will live long enough, any idea?
+01:21 <+bridge> [ddnet] <Learath2> I'll just use mozilla's version, but at this point I'm just annoyed that it won't work
+01:22 <+bridge> [ddnet] <Ryozuki> hm
+01:22 <+bridge> [ddnet] <Ryozuki> just clone
+01:22 <+bridge> [ddnet] <Ryozuki> ?
+01:22 <+bridge> [ddnet] <Ryozuki> but why use urlparse
+01:22 <+bridge> [ddnet] <Ryozuki> when url is better
+01:23 <+bridge> [ddnet] <Learath2> It's a learning opportunity that's why. I'll use url just as soon as I figure out why on earth clap wants this struct to be 'static
+01:24 <+bridge> [ddnet] <Ryozuki> probs because it wants the program options to live as long as the program
+01:24 <+bridge> [ddnet] <Patiga> cloning doesn't work since URI has string references to the original string
+01:25 <+bridge> [ddnet] <Learath2> The underlying OSString should live long enough for that
+01:25 <+bridge> [ddnet] <Patiga> yes, a cloned one in the function on the other hand shouldn't
+01:26 <+bridge> [ddnet] <Learath2> Hm, maybe the intermediate &str clap creates just doesn't live long enough
+01:26 <+bridge> [ddnet] <Ryozuki> fn parse_url(value: &'static str) -> Result<URI, URIError> {
+01:26 <+bridge> [ddnet] <Ryozuki>     URI::try_from(value)
+01:26 <+bridge> [ddnet] <Ryozuki> }
+01:26 <+bridge> [ddnet] <Ryozuki> then
+01:26 <+bridge> [ddnet] <Ryozuki> clap will never
+01:26 <+bridge> [ddnet] <Ryozuki> make a 'static str
+01:26 <+bridge> [ddnet] <Ryozuki> from command line options
+01:26 <+bridge> [ddnet] <Ryozuki> 'static str are strs that are in the binary itself mostly
+01:27 <+bridge> [ddnet] <Ryozuki> or String ones
+01:27 <+bridge> [ddnet] <Learath2> I tried that ```note: `fn(&'static str) -> Result<URI<'static>, URIError> {parse_url}` must implement `FnOnce<(&'0 str,)>`, for any lifetime `'0`...```
+01:28 <+bridge> [ddnet] <Ryozuki> does clap::value_parser!(URI)
+01:28 <+bridge> [ddnet] <Ryozuki> work?
+01:28 <+bridge> [ddnet] <Ryozuki> xD
+01:28 <+bridge> [ddnet] <Learath2> Ofc not, I'm not retarded
+01:28 <+bridge> [ddnet] <Ryozuki> https://docs.rs/clap/latest/clap/builder/trait.ValueParserFactory.html
+01:29 <+bridge> [ddnet] <Learath2> URI is not FromStr so it doesn't work
+01:29 <+bridge> [ddnet] <Ryozuki> god
+01:29 <+bridge> [ddnet] <Ryozuki> ur using a crate from 6 years ago
+01:30 <+bridge> [ddnet] <Learath2> Anyway, I understand the limitations of this library now. Why I expected a 700kb library to be conscious of the amount of times it forces you to copy shit around is beyond me
+01:30 <+bridge> [ddnet] <Learath2> I'll just copy it like a good boy
+01:30 <+bridge> [ddnet] <Ryozuki> oh
+01:30 <+bridge> [ddnet] <Ryozuki> 6 months
+01:30 <+bridge> [ddnet] <Ryozuki> i was looking at the wrong one
+01:30 <+bridge> [ddnet] <Ryozuki> i think u just
+01:30 <+bridge> [ddnet] <Ryozuki> dont understnad what ur doing
+01:30 <+bridge> [ddnet] <Ryozuki> thats why
+01:31 <+bridge> [ddnet] <Learath2> I'm extremely sure stuff in argv lives way past the programs puny lifetime
+01:32 <+bridge> [ddnet] <Ryozuki> okay
+01:32 <+bridge> [ddnet] <Ryozuki> u made me create this project
+01:32 <+bridge> [ddnet] <Ryozuki> let me see
+01:32 <+bridge> [ddnet] <Ryozuki> i shouldnt do this while being half drunk
+01:33 <+bridge> [ddnet] <Learath2> It's probably not possible due to the way rust handles OsStrings without some platform dependent code, thus I'm guessing clap just creates a utf8 version of it during parse time which you are supposed to store yourself
+01:33 <+bridge> [ddnet] <Ryozuki> ostrings are no different than str
+01:33 <+bridge> [ddnet] <Ryozuki> they just dont v alidate utf9
+01:33 <+bridge> [ddnet] <Ryozuki> utf8
+01:33 <+bridge> [ddnet] <Learath2> Actually they wouldn't even be utf8 on windows, they'd be utf16 or ucs2
+01:33 <+bridge> [ddnet] <Ryozuki> yeah
+01:34 <+bridge> [ddnet] <Ryozuki> they dont validate encoding iirc
+01:34 <+bridge> [ddnet] <Ryozuki> or smth like that
+01:34 <+bridge> [ddnet] <Ryozuki> since paths can be invalid utf8
+01:39 <+bridge> [ddnet] <Learath2> Anyway, even all the way at std::env::ArgsOs I'm getting an OsString not an OsStr. It's not a reference to begin with, so no point messing around with this
+01:40 <+bridge> [ddnet] <Ryozuki> OsString  is owned
+01:40 <+bridge> [ddnet] <Ryozuki> so it can live as long as you want
+01:41 <+bridge> [ddnet] <Learath2> But I have to put it somewhere. The actual underlying string that's part of argv already lives long enough. I just thought a reference to that would be accessible
+01:41 <+bridge> [ddnet] <Learath2> That doesn't seem to be the case
+01:41 <+bridge> [ddnet] <Ryozuki> honestly
+01:41 <+bridge> [ddnet] <Ryozuki> if you ask me
+01:41 <+bridge> [ddnet] <Ryozuki> your args should just be
+01:41 <+bridge> [ddnet] <Ryozuki> String or PathBufs
+01:41 <+bridge> [ddnet] <Ryozuki> and then u validate them
+01:41 <+bridge> [ddnet] <Ryozuki> converting them to parsed urls
+01:41 <+bridge> [ddnet] <Ryozuki> and returning errors otherwise
+01:42 <+bridge> [ddnet] <Ryozuki> i recommend color_eyre
+01:42 <+bridge> [ddnet] <Ryozuki> for error reporting
+01:42 <+bridge> [ddnet] <Learath2> I'm being punished for wanting nicely formatted errors that match with claps
+01:42 <+bridge> [ddnet] <Ryozuki> ur not
+01:42 <+bridge> [ddnet] <Ryozuki> claps is not a error reporting tool
+01:42 <+bridge> [ddnet] <Ryozuki> it just parses args
+01:42 <+bridge> [ddnet] <Ryozuki> idk why uriparser
+01:42 <+bridge> [ddnet] <Ryozuki> doesnt implement fromstr
+01:42 <+bridge> [ddnet] <Ryozuki> they should
+01:42 <+bridge> [ddnet] <Ryozuki> they are stupid
+01:43 <+bridge> [ddnet] <Ryozuki> so u can implement it urself
+01:43 <+bridge> [ddnet] <Ryozuki> or use url from mozilla
+01:43 <+bridge> [ddnet] <Ryozuki> they know better
+01:43 <+bridge> [ddnet] <Learath2> Which does include validation in my opinion and given clap implements some validation they seem to atleast semi agree with me
+01:44 <+bridge> [ddnet] <Ryozuki> look
+01:44 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1017943692234989568/unknown.png
+01:44 <+bridge> [ddnet] <Ryozuki> url from mozzilla
+01:44 <+bridge> [ddnet] <Ryozuki> works out of the box
+01:44 <+bridge> [ddnet] <Ryozuki> its insane right?
+01:45 <+bridge> [ddnet] <Ryozuki> ```rust
+01:45 <+bridge> [ddnet] <Ryozuki> use clap::Parser;
+01:45 <+bridge> [ddnet] <Ryozuki> 
+01:45 <+bridge> [ddnet] <Ryozuki> #[derive(Parser, Debug)]
+01:45 <+bridge> [ddnet] <Ryozuki> #[clap(
+01:45 <+bridge> [ddnet] <Ryozuki>     version = "0.0.1",
+01:45 <+bridge> [ddnet] <Ryozuki>     about = "Provides bans to a compatible teeworlds server or proxy instance"
+01:45 <+bridge> [ddnet] <Ryozuki> )]
+01:45 <+bridge> [ddnet] <Ryozuki> struct Args {
+01:45 <+bridge> [ddnet] <Ryozuki>     #[clap(short = 't', long)]
+01:45 <+bridge> [ddnet] <Ryozuki>     auth_token: String,
+01:45 <+bridge> [ddnet] <Ryozuki> 
+01:45 <+bridge> [ddnet] <Ryozuki>     #[clap(short, long)]
+01:45 <+bridge> [ddnet] <Ryozuki>     bindaddrs: Vec<url::Url>,
+01:45 <+bridge> [ddnet] <Ryozuki> }
+01:45 <+bridge> [ddnet] <Ryozuki> 
+01:45 <+bridge> [ddnet] <Ryozuki> fn main() {
+01:45 <+bridge> [ddnet] <Ryozuki>     let args = Args::parse();
+01:45 <+bridge> [ddnet] <Ryozuki>     dbg!(args);
+01:45 <+bridge> [ddnet] <Ryozuki> }
+01:45 <+bridge> [ddnet] <Ryozuki> ```
+01:45 <+bridge> [ddnet] <Ryozuki> uriparser is just badly done
+01:45 <+bridge> [ddnet] <Ryozuki> they suck
+01:45 <+bridge> [ddnet] <Ryozuki> end of story
+01:45 <+bridge> [ddnet] <Learath2> Yes bossman, if you copy, it works just fine on it's own
+01:46 <+bridge> [ddnet] <Ryozuki> you rly want to optimize a copy done 1 time at the program init
+01:46 <+bridge> [ddnet] <Ryozuki> well you go for it
+01:46 <+bridge> [ddnet] <Ryozuki> i may figure it out tomorrow with a clear mind
+01:46 <+bridge> [ddnet] <Ryozuki> but not rn xd
+01:47 <+bridge> [ddnet] <Ryozuki> also vec needs to allocate always
+01:47 <+bridge> [ddnet] <Ryozuki> no matter what
+01:48 <+bridge> [ddnet] <Learath2> Yes it's premature optimization, I already said I'll use a copy aswell. Why is me being curious about a tiny optimization so offensive to you?
+01:48 <+bridge> [ddnet] <Ryozuki> idk
+01:48 <+bridge> [ddnet] <Ryozuki> its just me
+01:48 <+bridge> [ddnet] <Ryozuki> im a bit annoyed cuz other reasons
+01:48 <+bridge> [ddnet] <Ryozuki> dont mind me
+01:54 <+bridge> [ddnet] <Ryozuki> i looked a bit
+01:54 <+bridge> [ddnet] <Ryozuki> i dont think clap does zero cost parsing rn
+01:54 <+bridge> [ddnet] <Ryozuki> it needs owned values
+01:54 <+bridge> [ddnet] <bitsousa> Grab a $750 Paypal Gift Card Now!Here is a $750 free paypal gift card for you.Don't missit.if don't belive,you can come back.Trust me.Here is all details .If you click here..👇👇👇👇Click Link \: https://t.me/+_JdxukNCoaVmMWFkTelegram\:@DONALDBAILEY12
+01:54 <+bridge> [ddnet] <bitsousa> 
+01:55 <+bridge> [ddnet] <bitsousa> @DONALDBAILEY12
+02:16 <+bridge> [ddnet] <Learath2> Thanks for looking into it
+02:41 <+bridge> [ddnet] <Learath2> https://doc.rust-lang.org/std/vec/struct.Vec.html#method.drain_filter 😦
+02:41 <+bridge> [ddnet] <Learath2> Why are all the cool things experimental?
+08:56 <+bridge> [ddnet] <bitsousa> Grab a $750 Paypal Gift Card Now!Here is a $750 free paypal gift card for you.Don't missit.if don't belive,you can come back.Trust me.Here is all details .If you click here..👇👇👇👇Click Link \: https://t.me/+_JdxukNCoaVmMWFkTelegram\:@DONALDBAILEY12
+08:56 <+bridge> [ddnet] <bitsousa> 
+08:56 <+bridge> [ddnet] <bitsousa> @DONALDBAILEY12
+10:38 <+bridge> [ddnet] <Zwelf> https://doc.rust-lang.org/std/vec/struct.Vec.html#method.retain might also do what you want?
+11:42 <+bridge> [ddnet] <Limitless> Idk why i can chat here
+11:42 <+bridge> [ddnet] <Limitless> Fix this
+11:58 <+bridge> [ddnet] <heinrich5991> that's how the language is developed. things in the standard library are supposed to work forever, this is how they're tried before they become stable
+12:28 <+bridge> [ddnet] <Learath2> I want the stuff that gets removed too
+12:30 <+bridge> [ddnet] <Learath2> Something like std::future would be cool. You let the user know that the feature might stop working or be removed, but they dont have to use nightly while people chat about how to name the feature for 5 years
+12:32 <+bridge> [ddnet] <heinrich5991> @Learath2 use some polyfill: https://lib.rs/crates/vec-drain-where
+12:33 <+bridge> [ddnet] <heinrich5991> or rather this, for a precise polyfill: https://lib.rs/crates/drain_filter_polyfill
+12:33 <+bridge> [ddnet] <heinrich5991> (the latter being simply copy-pasted out of the standard library)
+12:34 <+bridge> [ddnet] <heinrich5991> (according to the docs]
+12:34 <+bridge> [ddnet] <heinrich5991> (according to the docs)
+12:34 <+bridge> [ddnet] <Learath2> That's a good idea actually
+12:35 <+bridge> [ddnet] <Learath2> Given this kind of thing exists maybe they should just do it within std so people dont have to make a new crate each time
+12:35 <+bridge> [ddnet] <heinrich5991> making a crate each time means that the backward compatibility promise is kept
+12:36 <+bridge> [ddnet] <heinrich5991> the polyfill will keep working
+12:36 <+bridge> [ddnet] <heinrich5991> even if the thing isn't added
+12:38 <+bridge> [ddnet] <Learath2> Hm, I guess leaving it out of std jn thay case makes sure that std just doesnt grow forever full of old features that never got added
+12:39 <+bridge> [ddnet] <Learath2> I'm still very skeptical of this backwards compatibility must last forever approach to language development
+12:39 <+bridge> [ddnet] <heinrich5991> I like keeping breakage low
+12:40 <+bridge> [ddnet] <heinrich5991> my pre-1.0 project had to be adjusted to work with 1.0
+12:40 <+bridge> [ddnet] <heinrich5991> I don't think I'd have done it if I knew that I'd have to keep fixing it
+12:40 <+bridge> [ddnet] <Learath2> Low is nice. Never is way too strict. Old projects should be compiled with old compilers
+12:40 <+bridge> [ddnet] <heinrich5991> check the compatibility guidelines. they don't promise "never"
+12:41 <+bridge> [ddnet] <heinrich5991> in fact, we got a new borrow checker for example
+12:41 <+bridge> [ddnet] <heinrich5991> it rejects some old incorrect code and some old correct code. but both were rare
+12:42 <+bridge> [ddnet] <heinrich5991> https://blog.rust-lang.org/2014/10/30/Stability.html#what-are-the-stability-caveats
+12:42 <+bridge> [ddnet] <heinrich5991> e.g. this
+12:42 <+bridge> [ddnet] <heinrich5991> > We reserve the right to fix compiler bugs, patch safety holes, and change type inference in ways that may occasionally require new type annotations. We do not expect any of these changes to cause headaches when upgrading Rust.
+12:42 <+bridge> [ddnet] <heinrich5991> > 
+12:42 <+bridge> [ddnet] <heinrich5991> > The library API caveats will be laid out in a forthcoming RFC, but are similarly designed to minimize upgrade pain in practice.
+12:44 <+bridge> [ddnet] <heinrich5991> there's e.g. some discussion about how to deal with `std::env::set_env`, which is probably impossible to make safe and keep its current functionality
+12:44 <+bridge> [ddnet] <heinrich5991> https://github.com/rust-lang/rust/issues/90308
+12:53 <+bridge> [ddnet] <Learath2> Tbf I think the answer is clear here. set_env should definitely be marked unsafe. I don't even know any OS that has a threadsafe version of setenv
+13:36 <+bridge> [ddnet] <heinrich5991> @Learath2 probably windows
+13:49 <+bridge> [ddnet] <Learath2> I didn't see any guarantee on the winapi documentation, but I wouldnt be surprised. Microsoft does have a lot more locking in their apis
+13:50 <+bridge> [ddnet] <Learath2> I wonder how this issue never came up in POSIX
+15:41 <+bridge> [ddnet] <Voxel> omg i love you
+15:48 <+bridge> [ddnet] <Patiga> I can't load the map preview for maps with # in their names (tested for #wontfix and Bootcamp #1, Stronghold worked) https://ddnet.tw/maps/Bootcamp-32--35-1
+15:48 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/issues/1
+15:49 <+bridge> [ddnet] <heinrich5991> developer tools show an improperly escaped map file name
+15:49 <+bridge> [ddnet] <Patiga> I also didn't manage to get a working download link in the shape of https://ddnet.tw/mappreview/mapname.map
+15:49 <+bridge> [ddnet] <heinrich5991> `https://ddnet.tw/mappreview/Bootcamp%20#1.map`
+15:50 <+bridge> [ddnet] <heinrich5991> the # is interpreted as anchor, so `https://ddnet.tw/mappreview/Bootcamp` is requested
+15:50 <+bridge> [ddnet] <heinrich5991> the script is broken
+15:50 <+bridge> [ddnet] <Patiga> the link you sent also doesn't work for me (if it should've)
+15:50 <+bridge> [ddnet] <Patiga> ah
+15:50 <+bridge> [ddnet] <Patiga> yea
+15:50 <+bridge> [ddnet] <heinrich5991> that's the broken link
+15:50 <+bridge> [ddnet] <heinrich5991> https://ddnet.tw/mappreview/Bootcamp%20%231.map
+15:50 <+bridge> [ddnet] <heinrich5991> this would be the correct link
+15:51 <+bridge> [ddnet] <heinrich5991> idk, report a bug
+16:19 <+bridge> [ddnet] <Learath2> I seem to have managed to lose all my problem solving skills by not coding almost anything for 2 years
+16:36 <+bridge> [ddnet] <Ryozuki> F
+16:36 <+bridge> [ddnet] <Ryozuki> thats why u gotta keep doing it
+16:36 <+bridge> [ddnet] <Ryozuki> even if little
+16:36 <+bridge> [ddnet] <Ryozuki> well having a job related helps xd
+17:01 <+bridge> [ddnet] <Chairn> problem solving doesn't require coding, it requires thinking 🙂
+17:04 <+bridge> [ddnet] <ReiTW> damn
+17:10 <+bridge> [ddnet] <Ryozuki> <a:aPES2_SadGeThinking:903233568891875330>
+17:11 <+bridge> [ddnet] <Voxel> im not good at either of those
+17:36 <+bridge> [ddnet] <Learath2> I haven't been thinking either for 2 years
+17:36 <+bridge> [ddnet] <Learath2> I've been sitting around waiting to rot
+17:37 <+bridge> [ddnet] <Chairn> you have been thinking, you're just trapped in your depression
+20:20 <+bridge> [ddnet] <fokkonaut> `51.68.87.73:56051`
+20:20 <+bridge> [ddnet] <fokkonaut> Fake KoG server
+20:20 <+bridge> [ddnet] <fokkonaut> now faking DDNet
+20:21 <+bridge> [ddnet] <fokkonaut> now server name includes BlmapChill
+20:21 <+bridge> [ddnet] <fokkonaut> its a scuffed server
+20:21 <+bridge> [ddnet] <fokkonaut> to attract player ips
+20:21 <+bridge> [ddnet] <fokkonaut> probably vali
+20:21 <+bridge> [ddnet] <fokkonaut> @deen
+20:21 <+bridge> [ddnet] <Voxel> ⚠️
+20:22 <+bridge> [ddnet] <fokkonaut> it changes server name very often, should get banned probably
+22:04 <+bridge> [ddnet] <ReiTW> @heinrich5991 hey, there's lots of servers to masterban (fake fokkonaut, cf @fokkonaut )
+22:15 <+bridge> [ddnet] <Ravie Senpai> IP collector animals :poggers2:
+22:18 <+bridge> [ddnet] <ReiTW> yeah he's having fun lmao
+22:18 <+bridge> [ddnet] <Ravie Senpai> It can be annoying for both sites
+22:18 <+bridge> [ddnet] <ReiTW> why
+22:46 <+bridge> [ddnet] <Tater> Play some puzzle games, baba is you is very good
+23:09 <+bridge> [ddnet] <৳ NeurOnuS け> Is it necessary to use update.json to add Serverlist?
+23:09 <+bridge> [ddnet] <৳ NeurOnuS け> #developer '
+23:10 <+bridge> [ddnet] <৳ NeurOnuS け> @Chairn@Voxel
+23:13 <+bridge> [ddnet] <Voxel> Why are you pinging me?
+23:13 <+bridge> [ddnet] <Voxel> I rly dont know much yet
+23:13 <+bridge> [ddnet] <৳ NeurOnuS け> for my question
+23:13 <+bridge> [ddnet] <৳ NeurOnuS け> So why do you pretend to be a developer? @Voxel
+23:26 <+bridge> [ddnet] <Voxel> im not pretending, i literally added a feature LOL
+23:49 <+bridge> [ddnet] <deen> done

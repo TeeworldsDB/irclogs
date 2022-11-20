@@ -1,0 +1,280 @@
+08:56 <+bridge> [ddnet] <Izanagi> i just got this window after i closed ddnet, what is this?
+08:56 <+bridge> [ddnet] <Izanagi> https://cdn.discordapp.com/attachments/293493549758939136/988336480894201856/unknown.png
+09:12 <+bridge> [ddnet] <Jupstar> Nightly? RC? Current release?
+09:12 <+bridge> [ddnet] <Jupstar> Sounds to me like it wants to create a crash dump and searches the missing symbols ^^
+09:13 <+bridge> [ddnet] <Izanagi> i have nightly
+09:13 <+bridge> [ddnet] <Izanagi> i just closed that window lol
+10:22 <+bridge> [ddnet] <deen> @Lukamane happens each time you quit ddnet?
+10:22 <+bridge> [ddnet] <deen> @Not Keks if it only fails on crashdump then I guess I broke drmingw by building it myself
+10:24 <+bridge> [ddnet] <Izanagi> no, just this one time
+10:24 <+bridge> [ddnet] <deen> and you closed it normally or it crashed?
+10:25 <+bridge> [ddnet] <Izanagi> alt f4
+10:26 <+bridge> [ddnet] <deen> do we have a known crash to test if it still works @?
+10:26 <+bridge> [ddnet] <deen> @Not Keks
+10:54 <+bridge> [ddnet] <Robyt3> bors got stuck on #5453
+10:54 <+bridge> [ddnet] <DDNet> https://github.com/ddnet/ddnet/pull/5453
+13:33 <+bridge> [ddnet] <Patiga> @deen open this map in the editor for a crash ^^
+13:33 <+bridge> [ddnet] <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/988406142931730462/timeout.map
+13:54 <+bridge> [ddnet] <c0d3d3v> I'm wondering if there are nowadays better ways to compress our snapshots, than based on zeros in ints.
+13:54 <+bridge> [ddnet] <c0d3d3v> https://github.com/ddnet/ddnet/blob/master/src/engine/shared/compression.cpp#L9-L39
+13:57 <+bridge> [ddnet] <Learath2> Mh, they compress pretty well. Why mess with it?
+13:58 <+bridge> [ddnet] <Learath2> This + huffman coding + delta gives us pretty small snapshots
+14:00 <+bridge> [ddnet] <c0d3d3v> Do we use huffman coding? I did not find it in the code path
+14:00 <+bridge> [ddnet] <c0d3d3v> I only found it for demos
+14:00 <+bridge> [ddnet] <c0d3d3v> I do not want to mess with it... just philosophy about it
+14:02 <+bridge> [ddnet] <c0d3d3v> I do not want to mess with it... simply philosophize about it
+14:04 <+bridge> [ddnet] <Learath2> every packet gets huffman coded if it results in a smaller packet
+14:07 <+bridge> [ddnet] <c0d3d3v> mh, I have not seen it somehow... now I have found it in the data path... https://github.com/ddnet/ddnet/blob/master/src/engine/shared/network.cpp#L145-L146
+14:07 <+bridge> [ddnet] <c0d3d3v> yes should be pretty good compression
+17:55 <+bridge> [ddnet] <BloodWod-513> need to replace for(int i = 0; i < MAX_CLIENTS; i++) to (auto & m_apPlayer : GameServer()->m_apPlayers)?
+17:55 <+bridge> [ddnet] <BloodWod-513> https://cdn.discordapp.com/attachments/293493549758939136/988472118821912636/unknown.png
+17:56 <+bridge> [ddnet] <heinrich5991> @BloodWod-513 to `for(const auto &pPlayer : GameServer()->m_apPlayers)`
+17:56 <+bridge> [ddnet] <BloodWod-513> Is this a new code style or why is it necessary?
+17:57 <+bridge> [ddnet] <c0d3d3v> its C++14
+17:57 <+bridge> [ddnet] <BloodWod-513> ok
+17:57 <+bridge> [ddnet] <heinrich5991> code style, basically
+17:57 <+bridge> [ddnet] <heinrich5991> the other thing works just as well, but someone activated a check that we always use the foreach loop where possible
+17:58 <+bridge> [ddnet] <c0d3d3v> Personally, I think the loops are easier to understand this way, quicker to keep track of.
+17:59 <+bridge> [ddnet] <heinrich5991> the only downside of this check that I can see is that it requires more round trips with the PR author in some cases
+18:00 <+bridge> [ddnet] <c0d3d3v> ^^ PR authors want to learn new stuff too
+18:00 <+bridge> [ddnet] <c0d3d3v> I guess
+18:01 <+bridge> [ddnet] <c0d3d3v> I guess, or what do you say  @BloodWod-513
+18:01 <+bridge> [ddnet] <BloodWod-513> I rarely program in C++ and first of all I look at how people designed it so that everything was in the same style, so at first I was confused
+18:02 <+bridge> [ddnet] <BloodWod-513> is pListedPlayer fine name?
+18:02 <+bridge> [ddnet] <BloodWod-513> https://cdn.discordapp.com/attachments/293493549758939136/988473891469000795/unknown.png
+18:02 <+bridge> [ddnet] <c0d3d3v> We have a lot of old code, that could use for each loops if we would refactor it.
+18:02 <+bridge> [ddnet] <heinrich5991> `pListedPlayer` is fine, but I don't understand what `Listed` is supposed to mean
+18:02 <+bridge> [ddnet] <c0d3d3v> We have a lot of old code, that could use for each loops if we would refactor it. But it is not always possible to use for each loops
+18:03 <+bridge> [ddnet] <heinrich5991> @c0d3d3v so it's not a simple replacement in this case ^^
+18:03 <+bridge> [ddnet] <BloodWod-513> The variable is iterated through in a loop. I can't use pPlayer
+18:03 <+bridge> [ddnet] <heinrich5991> I don't think so, the clang-tidy check forbids use of for loops that can be translated into a foreach loop
+18:04 <+bridge> [ddnet] <heinrich5991> @BloodWod-513 yea, whatever, `pListedPlayer` is fine. I can't come up with a better name
+18:06 <+bridge> [ddnet] <c0d3d3v> for example this loop for time bonus if we would use `GameServer()->m_apPlayers[i]->GetTeam()` instead of `Teams()->m_Core.Team(i)` it could be replaced with a for each... that is possible in many places
+18:06 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/988474845039820820/unknown.png
+18:06 <+bridge> [ddnet] <c0d3d3v> xD I think your probosed `pPlayer` is better 😄 but ...
+18:07 <+bridge> [ddnet] <heinrich5991> `pPlayer` is already used in the function
+18:07 <+bridge> [ddnet] <heinrich5991> (and we forbid name shadowing, also the outer `pPlayer` is also used inside the loop)
+18:08 <+bridge> [ddnet] <c0d3d3v> Could refactor `pPlayer` to `pOriginPlayer` but I'm also ok with `pListedPlayer`
+18:14 <+bridge> [ddnet] <BloodWod-513> my rebase accidentally caused 5 extra commits
+18:14 <+bridge> [ddnet] <BloodWod-513> lmao
+18:17 <+bridge> [ddnet] <BloodWod-513> how can i fix it?
+18:49 <+bridge> [ddnet] <c0d3d3v> somehow you added https://github.com/ddnet/ddnet/pull/5445 to your PR.
+18:49 <+bridge> [ddnet] <c0d3d3v> maybe reset to only your commits and then rebase to latest master.
+18:49 <+bridge> [ddnet] <c0d3d3v> somehow you added <https://github.com/ddnet/ddnet/pull/5445> to your PR.
+18:49 <+bridge> [ddnet] <c0d3d3v> maybe reset to only your commits and then rebase to latest master.
+18:51 <+bridge> [ddnet] <heinrich5991> @BloodWod-513 did you mark the first commit as `fixup` or `squash` in the interactive git-rebase?
+18:51 <+bridge> [ddnet] <heinrich5991> try `git rebase -i upstream/master`
+18:51 <+bridge> [ddnet] <heinrich5991> and then mark all committs that are not yours as `drop`
+18:51 <+bridge> [ddnet] <BloodWod-513> rebase head~5
+18:51 <+bridge> [ddnet] <BloodWod-513> p
+18:51 <+bridge> [ddnet] <BloodWod-513> p
+18:51 <+bridge> [ddnet] <BloodWod-513> p
+18:51 <+bridge> [ddnet] <BloodWod-513> p
+18:52 <+bridge> [ddnet] <BloodWod-513> s
+18:52 <+bridge> [ddnet] <BloodWod-513> ok i try
+19:03 <+bridge> [ddnet] <BloodWod-513> idk how but i do it, fetch to master and rebase fetch_head
+19:04 <+bridge> [ddnet] <heinrich5991> you could squash the latest commit
+19:04 <+bridge> [ddnet] <heinrich5991> (only annotate the commits you don't want to see with `squash` or `fixup`
+19:04 <+bridge> [ddnet] <heinrich5991> (only annotate the commits you don't want to see with `squash` or `fixup`)
+19:04 <+bridge> [ddnet] <heinrich5991> the very first commit should never be `squash` or `fixup`
+19:06 <+bridge> [ddnet] <BloodWod-513> I think the problem was that I used rebase HEAD~2 -> rebase HEAD~5 instead and it turned out like this
+19:06 <+bridge> [ddnet] <BloodWod-513> pick not my commit
+19:06 <+bridge> [ddnet] <BloodWod-513> pick not my commit
+19:06 <+bridge> [ddnet] <BloodWod-513> pick not my commit
+19:06 <+bridge> [ddnet] <BloodWod-513> pick my commit
+19:06 <+bridge> [ddnet] <BloodWod-513> squash my commit
+19:07 <+bridge> [ddnet] <BloodWod-513> idk how but i fix it, fetch to master and rebase fetch_head
+19:08 <+bridge> [ddnet] <heinrich5991> ah, I don't know what happens when you do that with merge commits
+19:09 <+bridge> [ddnet] <c0d3d3v> for example this loop for time bonus if we would use `GameServer()->m_apPlayers[i]->GetCharacter()->Team()` instead of `Teams()->m_Core.Team(i)` it could be replaced with a for each... that is possible in many places
+19:09 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/988474845039820820/unknown.png
+19:43 <+bridge> [ddnet] <Jupstar> tbh i've never seen this ever, maybe he simply has visual studio installed, and that catches such things globally?
+20:03 <+bridge> [ddnet] <Ryozuki> soon ill have 4 days off maybe i can code some pr
+20:03 <+bridge> [ddnet] <Ryozuki> :monkalaugh:
+20:04 <+bridge> [ddnet] <Jupstar> web or server/client?
+20:04 <+bridge> [ddnet] <Ryozuki> whats new on the web?
+20:04 <+bridge> [ddnet] <Jupstar> the skin database needs pages
+20:04 <+bridge> [ddnet] <Ryozuki> honestly the way the web is built makes me wanna stay away
+20:04 <+bridge> [ddnet] <Jupstar> or some kind of lazy< loading
+20:04 <+bridge> [ddnet] <Jupstar> or some kind of lazy loading
+20:04 <+bridge> [ddnet] <Jupstar> yeah xD
+20:05 <+bridge> [ddnet] <Ryozuki> https://github.com/edg-l/ddnet-web-modern
+20:05 <+bridge> [ddnet] <Ryozuki> i started this 2 months ago
+20:05 <+bridge> [ddnet] <Ryozuki> xd
+20:05 <+bridge> [ddnet] <Jupstar> when do we get some epic site like kog or skins.tw
+20:05 <+bridge> [ddnet] <Ryozuki> i want to do that but first i need a good organized project
+20:05 <+bridge> [ddnet] <Ryozuki> not some python prints spread over 2 repos
+20:05 <+bridge> [ddnet] <Ryozuki> its hell
+20:05 <+bridge> [ddnet] <Jupstar> xD
+20:07 <+bridge> [ddnet] <Ryozuki> btw
+20:07 <+bridge> [ddnet] <Ryozuki> if u wanna remove the php dependency on the index.php page
+20:07 <+bridge> [ddnet] <Ryozuki> u can use this
+20:07 <+bridge> [ddnet] <Ryozuki> ```js
+20:07 <+bridge> [ddnet] <Ryozuki> // This script detects the host os and shows the correct download.
+20:07 <+bridge> [ddnet] <Ryozuki> window.addEventListener('DOMContentLoaded', (event) => {
+20:07 <+bridge> [ddnet] <Ryozuki>     const downloadButton = document.querySelector("#download-link");
+20:07 <+bridge> [ddnet] <Ryozuki> 
+20:07 <+bridge> [ddnet] <Ryozuki>     function getDownloadLinkEnd() {
+20:07 <+bridge> [ddnet] <Ryozuki>         const userAgent = navigator.userAgent;
+20:07 <+bridge> [ddnet] <Ryozuki>         var osPlatform = "unk";
+20:07 <+bridge> [ddnet] <Ryozuki> 
+20:07 <+bridge> [ddnet] <Ryozuki>         if (userAgent.match(/android/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'and';
+20:07 <+bridge> [ddnet] <Ryozuki>         else if (userAgent.match(/wow64/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'win64';
+20:07 <+bridge> [ddnet] <Ryozuki>         else if (userAgent.match(/win64/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'win64';
+20:07 <+bridge> [ddnet] <Ryozuki>         else if (userAgent.match(/windows/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'win32';
+20:07 <+bridge> [ddnet] <Ryozuki>         else if (userAgent.match(/linux.*x86_64/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'lin64';
+20:07 <+bridge> [ddnet] <Ryozuki>         else if (userAgent.match(/linux.*i686/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'lin32';
+20:07 <+bridge> [ddnet] <Ryozuki>         else if (userAgent.match(/macintosh|mac os/i))
+20:07 <+bridge> [ddnet] <Ryozuki>             osPlatform = 'mac';
+20:07 <+bridge> [ddnet] <Ryozuki>         
+20:07 <+bridge> [ddnet] <Ryozuki>         const linkEnds = {
+20:08 <+bridge> [ddnet] <Ryozuki>             "win64": ["win64.zip", "Windows (64bit)"],
+20:08 <+bridge> [ddnet] <Ryozuki>             "win32": ["win32.zip", "Windows (32bit)"],
+20:08 <+bridge> [ddnet] <Ryozuki>             "lin64": ["linux_x86_64.tar.xz", "Linux x86"],
+20:08 <+bridge> [ddnet] <Ryozuki>             "lin32": ["linux_x86.tar.xz", "Linux x86_64"],
+20:08 <+bridge> [ddnet] <Ryozuki>             "mac": ["macos.dmg", "macOs"],
+20:08 <+bridge> [ddnet] <Ryozuki>             "unk": false,
+20:08 <+bridge> [ddnet] <Jupstar> it doesnt require php anymore
+20:08 <+bridge> [ddnet] <Ryozuki> oh
+20:08 <+bridge> [ddnet] <Ryozuki> ok
+20:08 <+bridge> [ddnet] <Jupstar> i just didnt rename it, bcs i dont want to fix the links xD
+20:08 <+bridge> [ddnet] <Ryozuki> xD
+20:08 <+bridge> [ddnet] <Jupstar> but the script behind the database still uses php
+20:08 <+bridge> [ddnet] <Jupstar> imagine u could use rust or other compiled languages
+20:08 <+bridge> [ddnet] <Ryozuki> you can
+20:08 <+bridge> [ddnet] <Ryozuki> with webasm
+20:08 <+bridge> [ddnet] <Jupstar> but it runs on the server
+20:08 <+bridge> [ddnet] <Jupstar> not client 😄
+20:09 <+bridge> [ddnet] <Jupstar> i mean sure there is some webserver in rust
+20:09 <+bridge> [ddnet] <Jupstar> but i doubt deen would use it xD
+20:09 <+bridge> [ddnet] <Ryozuki> ??
+20:09 <+bridge> [ddnet] <Ryozuki> there is
+20:09 <+bridge> [ddnet] <Ryozuki> and they are fast
+20:09 <+bridge> [ddnet] <Jupstar> apache2 module?
+20:09 <+bridge> [ddnet] <Jupstar> or ngnix or what ddnet uses
+20:09 <+bridge> [ddnet] <Ryozuki> nah
+20:09 <+bridge> [ddnet] <Ryozuki> u put them behind a reverse proxy
+20:09 <+bridge> [ddnet] <Ryozuki> like any person does nowadays
+20:10 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/988506055849938984/unknown.png
+20:10 <+bridge> [ddnet] <Ryozuki> https://www.techempower.com/benchmarks/
+20:10 <+bridge> [ddnet] <Ryozuki> rs is rust
+20:10 <+bridge> [ddnet] <Ryozuki> but benchmarks are hard
+20:10 <+bridge> [ddnet] <Ryozuki> and real world is different
+20:10 <+bridge> [ddnet] <Jupstar> tbh for me in this case is also more about syntax
+20:10 <+bridge> [ddnet] <Ryozuki> php syntax sucks
+20:10 <+bridge> [ddnet] <Jupstar> php is really on of the strangest languages
+20:11 <+bridge> [ddnet] <Ryozuki> and they dont use a unified naming sense
+20:11 <+bridge> [ddnet] <Jupstar> it's like nothing else 😄
+20:11 <+bridge> [ddnet] <Ryozuki> sometimes they use _ and then not
+20:11 <+bridge> [ddnet] <Jupstar> . for string concat
+20:11 <+bridge> [ddnet] <Jupstar> $ everywhere xd
+20:11 <+bridge> [ddnet] <Ryozuki> yeah
+20:11 <+bridge> [ddnet] <Ryozuki> bash age
+20:11 <+bridge> [ddnet] <Ryozuki> and they use ->
+20:11 <+bridge> [ddnet] <Ryozuki> xd
+20:11 <+bridge> [ddnet] <Jupstar> ez
+20:11 <+bridge> [ddnet] <Jupstar> xd
+20:12 <+bridge> [ddnet] <Ryozuki> one thing top http server benchmarks have in common is
+20:12 <+bridge> [ddnet] <Ryozuki> that they use postgres
+20:12 <+bridge> [ddnet] <Ryozuki> so we should migrate to postgres
+20:12 <+bridge> [ddnet] <Ryozuki> :BASEDHALT:
+20:13 <+bridge> [ddnet] <Jupstar> do u want postgress bcs of the class like structures?
+20:13 <+bridge> [ddnet] <Jupstar> or is there other reason?
+20:13 <+bridge> [ddnet] <Jupstar> i am no db expert
+20:13 <+bridge> [ddnet] <Ryozuki> because its the best honestly
+20:13 <+bridge> [ddnet] <Ryozuki> idk if u can define ur own types in mysql
+20:14 <+bridge> [ddnet] <Jupstar> maybe i just never had a use for such complex databases yet 😄
+20:14 <+bridge> [ddnet] <Jupstar> i mean it sounds cool
+20:14 <+bridge> [ddnet] <Jupstar> no doubt
+20:14 <+bridge> [ddnet] <Jupstar> probs size of project matters lot
+20:15 <+bridge> [ddnet] <Ryozuki> https://www.postgresqltutorial.com/postgresql-tutorial/postgresql-vs-mysql/
+20:15 <+bridge> [ddnet] <Jupstar> well i find mariadb very intuitive
+20:15 <+bridge> [ddnet] <Jupstar> i write SQL and it just works
+20:15 <+bridge> [ddnet] <Jupstar> xd
+20:15 <+bridge> [ddnet] <Ryozuki> same on psql
+20:15 <+bridge> [ddnet] <Ryozuki> xd
+20:16 <+bridge> [ddnet] <Jupstar> ok 😄
+20:16 <+bridge> [ddnet] <Ryozuki> but for example
+20:16 <+bridge> [ddnet] <Ryozuki> psql has a data type of ips
+20:16 <+bridge> [ddnet] <Ryozuki> it also supports json
+20:16 <+bridge> [ddnet] <Ryozuki> with json search
+20:16 <+bridge> [ddnet] <Jupstar> maria db not?
+20:16 <+bridge> [ddnet] <Ryozuki> no
+20:16 <+bridge> [ddnet] <Jupstar> even ms sql does xd
+20:17 <+bridge> [ddnet] <Ryozuki> i dont think it does
+20:17 <+bridge> [ddnet] <Ryozuki> ```sql
+20:17 <+bridge> [ddnet] <Ryozuki> 
+20:17 <+bridge> [ddnet] <Ryozuki> -- Give me params.name (text) from the events table
+20:17 <+bridge> [ddnet] <Ryozuki> select params->>'name' from events;
+20:17 <+bridge> [ddnet] <Ryozuki> 
+20:17 <+bridge> [ddnet] <Ryozuki> -- Find only events with a specific name
+20:17 <+bridge> [ddnet] <Ryozuki> select * from events where params->>'name' = 'Click Button';
+20:17 <+bridge> [ddnet] <Ryozuki> 
+20:17 <+bridge> [ddnet] <Ryozuki> -- Give me the first index of a JSON array
+20:17 <+bridge> [ddnet] <Ryozuki> select params->ids->0 from events;
+20:17 <+bridge> [ddnet] <Ryozuki> 
+20:17 <+bridge> [ddnet] <Ryozuki> -- Find users where preferences.beta is true (boolean)
+20:17 <+bridge> [ddnet] <Ryozuki> -- This requires type casting preferences->'beta' from json to boolean
+20:17 <+bridge> [ddnet] <Ryozuki> select preferences->'beta' from users where (preferences->>'beta')::boolean is true;
+20:17 <+bridge> [ddnet] <Ryozuki> ```
+20:17 <+bridge> [ddnet] <Ryozuki> one thing is storing json the other querying it
+20:17 <+bridge> [ddnet] <Jupstar> well they claim to
+20:17 <+bridge> [ddnet] <Jupstar> https://docs.microsoft.com/en-us/sql/relational-databases/json/json-data-sql-server?view=sql-server-ver16
+20:17 <+bridge> [ddnet] <Ryozuki> oh yeah
+20:18 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/988508029186105384/unknown.png
+20:18 <+bridge> [ddnet] <Jupstar> but dunno if the performance sucks
+20:18 <+bridge> [ddnet] <Ryozuki> but their syntax looks worse
+20:18 <+bridge> [ddnet] <Ryozuki> xd
+20:20 <+bridge> [ddnet] <Ryozuki> @Not Keks does mysql have this https://www.postgresql.org/docs/current/textsearch-intro.html
+20:21 <+bridge> [ddnet] <Jupstar> i think i never used mysql
+20:21 <+bridge> [ddnet] <Jupstar> but mariadb should have it
+20:21 <+bridge> [ddnet] <Ryozuki> well mariadb
+20:21 <+bridge> [ddnet] <Jupstar> even sqlite3 has it
+20:21 <+bridge> [ddnet] <Ryozuki> as an extension
+20:21 <+bridge> [ddnet] <Ryozuki> https://www.sqlite.org/fts5.html
+20:21 <+bridge> [ddnet] <Jupstar> i experimented with the ddnet sqlite3 and optimized string searched to few ms 😄
+20:21 <+bridge> [ddnet] <Jupstar> the database is 9GByte now xD
+20:21 <+bridge> [ddnet] <Ryozuki> but im not talking about simple LIKE queries
+20:21 <+bridge> [ddnet] <Ryozuki> btw
+20:22 <+bridge> [ddnet] <Jupstar> yeah full text searches are more restricting
+20:22 <+bridge> [ddnet] <Jupstar> they require a full word
+20:22 <+bridge> [ddnet] <Jupstar> but u can split a word in half, then u can abuse it 😄
+20:22 <+bridge> [ddnet] <Ryozuki> i wonder if u can avoid using elasticsearch with that
+20:22 <+bridge> [ddnet] <Jupstar> and thats what i did
+20:22 <+bridge> [ddnet] <Ryozuki> i never rly dived into it
+20:42 <+bridge> [ddnet] <Ryozuki> https://twitter.com/lichess/status/1538863351060738048
+20:42 <+bridge> [ddnet] <Ryozuki> @Learath2 fide using lichess
+20:42 <+bridge> [ddnet] <Ryozuki> and actually making the source code available
+20:42 <+bridge> [ddnet] <Ryozuki> due to lichess being gpl
+20:42 <+bridge> [ddnet] <Ryozuki> epic
+20:42 <+bridge> [ddnet] <Ryozuki> fide is the International Chess Federation btw
+21:00 <+bridge> [ddnet] <Tater> FIDE has their own chess website now? Interesting
+21:00 <+bridge> [ddnet] <Ryozuki> hmm i think since long
+21:00 <+bridge> [ddnet] <Ryozuki> i remember seeing it on the world championship
+21:00 <+bridge> [ddnet] <Ryozuki> but its just to show matches
+21:00 <+bridge> [ddnet] <Ryozuki> not play
+21:01 <+bridge> [ddnet] <Tater> ah ok
+21:19 <+bridge> [ddnet] <Matodor> clickhouse
+21:24 <+bridge> [ddnet] <Ryozuki> did someone ping
+21:24 <+bridge> [ddnet] <Ryozuki> xd
+21:24 <+bridge> [ddnet] <Ryozuki> https://blog.scottlogic.com/2022/06/20/state-of-wasm-2022.html
+21:33 <+bridge> [ddnet] <Jupstar> ez now 80% native performance and its the future
+21:35 <+bridge> [ddnet] <Learath2> isn't storing json in a db a bit of an antipattern?
+21:35 <+bridge> [ddnet] <Ryozuki> yeah
+21:35 <+bridge> [ddnet] <Ryozuki> i wouldnt do it
+21:35 <+bridge> [ddnet] <Ryozuki> but im sure the are uses
+21:35 <+bridge> [ddnet] <Ryozuki> there*
+22:09 <+bridge> [ddnet] <г-н.вирус> Hi, I have a map myself, then I want to set it in the shop and the farm section. What should I do?
+22:09 <+bridge> [ddnet] <г-н.вирус> [ddnet++]
+22:10 <+bridge> [ddnet] <Chairn> ask @ChillerDragon
+22:52 <+bridge> [ddnet] <Nouaa> ChillerDragon:
+23:34 <+bridge> [ddnet] <deen> I think there were many such crashes when I tried fuzzing it, especially on reading, so not as bad as on write
+23:36 <+bridge> [ddnet] <deen> postgres has jsonb type and gin indexes which makes it pretty usable
+23:39 <+bridge> [ddnet] <Learath2> Hm indexable json does sound nice, would you prefer it to just using proper columns though? I'd guess it does have some overhead, especially with the variable lengths of json fields
+23:40 <+bridge> [ddnet] <Patiga> yea, thought that you wanted a forced crash (https://discord.com/channels/252358080522747904/293493549758939136/988359225531072544)
+23:40 <+bridge> [ddnet] <Learath2> There is no guarantee the json in a column even follows a set structure, I'm actually interested in how they did the indices now 😄

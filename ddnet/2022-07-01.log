@@ -1,0 +1,523 @@
+00:26 <+bridge> [ddnet] <Learath2> @c0d3d3v so what are the gameinfo flags controlling the hud?
+00:26 <+bridge> [ddnet] <fokkonaut> i implemented them
+00:26 <+bridge> [ddnet] <fokkonaut> the gameinfoEx can send up to 3 flags
+00:26 <+bridge> [ddnet] <fokkonaut> one for armor/heartzs
+00:26 <+bridge> [ddnet] <fokkonaut> one for ammo
+00:26 <+bridge> [ddnet] <fokkonaut> and one for ddrace hud
+00:27 <+bridge> [ddnet] <fokkonaut> if multiple ones get sent, they get adjusted donwwards
+00:27 <+bridge> [ddnet] <fokkonaut> u can try that on my server, i can show you
+00:27 <+bridge> [ddnet] <fokkonaut> i have implemented all versions already, depending on what u do
+00:27 <+bridge> [ddnet] <Learath2> how do I check them out?
+00:28 <+bridge> [ddnet] <fokkonaut> come visit me, i will show you
+00:28 <+bridge> [ddnet] <Learath2> I'm on your server
+00:29 <+bridge> [ddnet] <c0d3d3v> I just debugged KOG, they do not even send a single flag O.o
+00:31 <+bridge> [ddnet] <c0d3d3v> ah xDD I guess I know what goes wrong
+00:33 <+bridge> [ddnet] <c0d3d3v> yep @fokkonaut  removed the check that the server is sending extended character data. So the client does not fall back to the vanilla hud
+00:33 <+bridge> [ddnet] <c0d3d3v> I will add it back in
+00:35 <+bridge> [ddnet] <c0d3d3v> I will do that tomorrow... I'm tired...
+00:36 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/pull/5427
+00:36 <+bridge> [ddnet] <fokkonaut> @Learath2 check the screens
+00:38 <+bridge> [ddnet] <c0d3d3v> that check... As I copied it I forgot why I added it... but now it makes sense xD
+00:38 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992197491833454712/unknown.png
+00:38 <+bridge> [ddnet] <c0d3d3v> that check... As I copied your delete it I forgot why I added it... but now it makes sense xD
+00:38 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992197491833454712/unknown.png
+00:42 <+bridge> [ddnet] <c0d3d3v> Actually we could also just only display the weapon display and the jumps...
+00:42 <+bridge> [ddnet] <Learath2> So if the server isn't sending extended character data we shouldn't render the new hud, that makes sense to me given we don't try to predict it by default
+00:43 <+bridge> [ddnet] <Learath2> Let's not change it for servers that don't want to change it, @Avolicious can start sending `HUD_DDRACE` if he wants the new hud on kog
+00:43 <+bridge> [ddnet] <c0d3d3v> Some data would be predicted... but not perfectly
+00:44 <+bridge> [ddnet] <fokkonaut> i'll print that
+00:44 <+bridge> [ddnet] <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/992198910703571004/unknown.png
+00:46 <+bridge> [ddnet] <c0d3d3v> at least as I debuged it, ... at least the servers I tested do not send any gameinfo... we use the pFallbackServerInfo infos...
+00:46 <+bridge> [ddnet] <c0d3d3v> thats why it is categorised as a DDRace server, but it is not sending DDNetCharacters
+00:47 <+bridge> [ddnet] <fokkonaut> @Learath2 ahhh i know why jumps didnt work. because i havent merged displayinfo into ddnetchar
+00:47 <+bridge> [ddnet] <Learath2> Oh wait, so KoG doesn't send gameinfo at all?
+00:47 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992199834385789080/unknown.png
+00:48 <+bridge> [ddnet] <fokkonaut> theyre old af
+00:48 <+bridge> [ddnet] <c0d3d3v> at least 3 updates are made... But when I debug it the version is always -1
+00:48 <+bridge> [ddnet] <Learath2> I guess then the fallback info should be upgraded to include HUD_HEALTH_ARMOR and HUD_AMMO
+00:48 <+bridge> [ddnet] <c0d3d3v> but it does not send any extended net objects
+00:48 <+bridge> [ddnet] <Learath2> That is the old gameinfo, not extended ddnet gameinfo
+00:48 <+bridge> [ddnet] <fokkonaut> it should
+00:48 <+bridge> [ddnet] <fokkonaut> ah
+00:49 <+bridge> [ddnet] <fokkonaut> i see why it didnt work
+00:49 <+bridge> [ddnet] <c0d3d3v> ah
+00:49 <+bridge> [ddnet] <c0d3d3v> true
+00:49 <+bridge> [ddnet] <fokkonaut> https://github.com/ddnet/ddnet/blob/2cba4dd768a6523a6cba76fe17019e6e4315c301/src/game/client/gameclient.cpp#L1065-L1068
+00:49 <+bridge> [ddnet] <Learath2> `Info.m_HudHealthArmor = !DDNet;` this doesn't look very correct, right? I guess this is it?
+00:49 <+bridge> [ddnet] <c0d3d3v> this is ddnet server:
+00:49 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992200290486984724/unknown.png
+00:49 <+bridge> [ddnet] <fokkonaut> yes, this is it @Learath2
+00:50 <+bridge> [ddnet] <Learath2> Yeah, so just a small fix to the fallback info is needed and we are fine
+00:50 <+bridge> [ddnet] <c0d3d3v> no it is ok
+00:50 <+bridge> [ddnet] <fokkonaut> yeah, and which?
+00:50 <+bridge> [ddnet] <fokkonaut> its not easy to predict everythign correctly xd
+00:50 <+bridge> [ddnet] <fokkonaut> like, for all types
+00:50 <+bridge> [ddnet] <c0d3d3v> it should just fallback to Info.m_HudHealthArmor if we do not get extended game info
+00:50 <+bridge> [ddnet] <fokkonaut> yea
+00:51 <+bridge> [ddnet] <fokkonaut> + ammo
+00:51 <+bridge> [ddnet] <fokkonaut> the default way
+00:51 <+bridge> [ddnet] <Learath2> It should already
+00:51 <+bridge> [ddnet] <fokkonaut> no, bcs kog is ddnet
+00:51 <+bridge> [ddnet] <fokkonaut> so it falls back to nothing
+00:51 <+bridge> [ddnet] <fokkonaut> but the ddrace hud
+00:51 <+bridge> [ddnet] <fokkonaut> which is not shown
+00:51 <+bridge> [ddnet] <fokkonaut> due to the other case
+00:51 <+bridge> [ddnet] <fokkonaut> they just gotta update. its unbelievable :D
+00:52 <+bridge> [ddnet] <Learath2> It falls back correctly, the values you chose are wrong afaics
+00:52 <+bridge> [ddnet] <fokkonaut> why?
+00:52 <+bridge> [ddnet] <Learath2> It should be `true, true, false`. That was the old behaviour we want to preserve
+00:53 <+bridge> [ddnet] <fokkonaut> ah
+00:53 <+bridge> [ddnet] <fokkonaut> yes
+00:53 <+bridge> [ddnet] <fokkonaut> i did it the other way around
+00:53 <+bridge> [ddnet] <Learath2> Even if a server is deemed to be `IsDDNet` unless it's sending the new gameinfo and the character with the new values, we should just render the old hud. Atleast that's how I have it in my head
+00:53 <+bridge> [ddnet] <c0d3d3v> ta-da KOG server ... just by adding this:
+00:53 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992201285019369534/unknown.png
+00:53 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992201285245866004/unknown.png
+00:53 <+bridge> [ddnet] <fokkonaut> no
+00:53 <+bridge> [ddnet] <fokkonaut> pls no
+00:53 <+bridge> [ddnet] <Learath2> Now that looks very wrong
+00:53 <+bridge> [ddnet] <c0d3d3v> need to check if this is fine... tomorrow... I will make a fix
+00:54 <+bridge> [ddnet] <fokkonaut> do what learath and me just said
+00:54 <+bridge> [ddnet] <Learath2> But yes, true true fals 😄
+00:54 <+bridge> [ddnet] <fokkonaut> just at the top xd
+00:54 <+bridge> [ddnet] <fokkonaut> in the initial place
+00:54 <+bridge> [ddnet] <Learath2> Anyway, I need to sleep too. Good thing we caught it before release, I guess kog people just don't play with rcs ever
+00:54 <+bridge> [ddnet] <fokkonaut> tye
+00:54 <+bridge> [ddnet] <fokkonaut> ye
+00:55 <+bridge> [ddnet] <c0d3d3v> you mean like this
+00:55 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992201785722802257/unknown.png
+00:56 <+bridge> [ddnet] <c0d3d3v> that check... As I copied your delete I forgot why I added it... but now it makes sense xD
+00:56 <+bridge> [ddnet] <c0d3d3v> https://cdn.discordapp.com/attachments/293493549758939136/992197491833454712/unknown.png
+00:56 <+bridge> [ddnet] <fokkonaut> yes
+00:57 <+bridge> [ddnet] <fokkonaut> it should stay like this no matter teh gametype.
+00:57 <+bridge> [ddnet] <fokkonaut> because this is the main teeworlds setting
+00:57 <+bridge> [ddnet] <fokkonaut> defualt
+00:57 <+bridge> [ddnet] <fokkonaut> and once the server sends the right flags and version > x + the extended info = show ddrace hud
+01:52 <+bridge> [ddnet] <heinrich5991> yes, like that
+01:52 <+bridge> [ddnet] <heinrich5991> you can only move stuff in rust when you have the sole reference to it
+01:53 <+bridge> [ddnet] <heinrich5991> in that case, you can obviously move the futex-based mutex because no one can have it locked at the time (because no one else has a reference to it)
+01:53 <+bridge> [ddnet] <heinrich5991> but apparently you're not allowed to move pthread mutexes in that case
+01:53 <+bridge> [ddnet] <Learath2> Oh that's very clever
+01:54 <+bridge> [ddnet] <Learath2> I wonder why that's not the case with pthread mutexes, the same idea should apply, no
+01:54 <+bridge> [ddnet] <Learath2> ?
+01:59 <+bridge> [ddnet] <heinrich5991> it looks like they might have an internally linked list
+02:00 <+bridge> [ddnet] <heinrich5991> in /usr/include/bits/struct_mutex.h, I find a `__pthread_list_t __list` member of `__pthread_mutex_s`
+02:01 <+bridge> [ddnet] <heinrich5991> or alternatively, the pthread mutex implementation keeps references to initialized mutexes somewhere
+02:05 <+bridge> [ddnet] <Learath2> Ohh, I remember reading something like that in glibc actually, it's some weird cleanup promise I think
+02:09 <+bridge> [ddnet] <heinrich5991> there is that for threads that get killed
+02:09 <+bridge> [ddnet] <heinrich5991> but that's also only relevant while the mutex is held, so shouldn't interfere with what rust wants
+02:13 <+bridge> [ddnet] <Chairn> @Not Keks can we replace these with `vec2` ?
+02:13 <+bridge> [ddnet] <Chairn> <https://github.com/ddnet/ddnet/blob/2cba4dd768a6523a6cba76fe17019e6e4315c301/src/engine/graphics.h#L106-L113>
+02:24 <+bridge> [ddnet] <laurenclass> Now is your Bitcoin wallet or coinbase 0.00000 I promise 0.80500 in less than 24 hours without sending money to anyone. Earn 0.764 in 7hours, No referrals, No Ads, No scams. Ask how(me)Or join https://t.me/+JdEg2rIn7E0wZDFk
+02:24 <+bridge> [ddnet] <laurenclass> Join and ask how
+02:24 <+bridge> [ddnet] <Chairn> @Discord Mod
+02:25 <+bridge> [ddnet] <Voxel> ip logger
+02:26 <+bridge> [ddnet] <Chairn> how do you know?
+02:26 <+bridge> [ddnet] <Chairn> does that mean that discord preview already leaked my ip ?
+03:22 <+bridge> [ddnet] <Learath2> It might even work out of the box fi you just make them inherit from vec2
+03:23 <+bridge> [ddnet] <Learath2> Or `using GL_SPoint = vec2`
+03:35 <+bridge> [ddnet] <Chairn> that's what i did `typedef vec2 GL_SPoint`
+07:01 <+bridge> [ddnet] <Jupstar> It can make sense to split gpu types from cpu types. For future hardware or when switching to higher precision on cpu side
+07:03 <+bridge> [ddnet] <Jupstar> So yeah, keep struct as is
+07:22 <+bridge> [ddnet] <Chairn> i used typedef, works fine 🙂
+07:24 <+bridge> [ddnet] <Jupstar> But that is interchangeable with vec2 in assignments
+07:33 <+bridge> [ddnet] <Chairn> indeed, is that a problem?
+07:53 <+bridge> [ddnet] <Jupstar> Depends. Do you want to add an assignment operator overload instead of a direct cast in future? Mixing data types is always a topic for discussion probs
+08:25 <+bridge> [ddnet] <ReiTW> Damn wtf so cool
+09:04 <+bridge> [ddnet] <cauldron> why can i not create issues on ddnet fork on github android
+09:04 <+bridge> [ddnet] <cauldron> https://cdn.discordapp.com/attachments/293493549758939136/992324802574549053/Screenshot_20220701-090332_GitHub.jpg
+09:06 <+bridge> [ddnet] <cauldron> https://cdn.discordapp.com/attachments/293493549758939136/992325182112923688/tempFileForShare_20220701-090547.jpg
+09:09 <+bridge> [ddnet] <heinrich5991> you have to enable issues in the repository settings
+09:09 <+bridge> [ddnet] <heinrich5991> if that is your repository
+09:10 <+bridge> [ddnet] <cauldron> nice, thanks. didnt know what you have to enable them.
+09:13 <+bridge> [ddnet] <cauldron> seems that i cannot access repo settings through the app.
+09:13 <+bridge> [ddnet] <cauldron> or im just dumb
+10:32 <+bridge> [ddnet] <SPYRES> maybe there aren't any issues hence why you cannot create any :thonk:
+10:32 <+bridge> [ddnet] <SPYRES> it's already perfect
+12:46 <+bridge> [ddnet] <c0d3d3v> the github app is trash... you can not do a lot of things. FastHub is better. But I recommend just to use the website.
+12:57 <+bridge> [ddnet] <Tater> why would you use github on your phone? addicted to code review xd
+12:59 <+bridge> [ddnet] <Tater> I guess reading comments is fine but doing work from phone seems painful
+13:32 <+bridge> [ddnet] <c0d3d3v> Why would you not... In the meantime phone screens are bigger then my TV in the nineties, especially on tablets. Also you can connect external monitor and keyboard... 
+13:32 <+bridge> [ddnet] <c0d3d3v> 
+13:32 <+bridge> [ddnet] <c0d3d3v> But I personally just like to be able to search in code and be able to open specific file fast... but github app can nothing code related.
+13:39 <+bridge> [ddnet] <Tater> I guess thats fair, if you connect a keyboard and monitor it basically becomes a pc
+13:45 <+bridge> [ddnet] <cauldron> dude im not sitting in sbahn with laptop creating issues
+13:49 <+bridge> [ddnet] <cauldron> but with phone, that i have always with me. i have a lot of ideas that could be implemented and for me its perfect to just create an issue in my fork repo on the phone in between.
+13:50 <+bridge> [ddnet] <cauldron> xd im not sitting in sbahn with laptop creating issues
+16:57 <+bridge> [ddnet] <Jupstar> lets use main brainch, all projects use main now, easier to type same git commands for all projects xd
+16:58 <+bridge> [ddnet] <deen> No way to alias them so both are the same I guess? I keep mixing them up for different repos
+16:58 <+bridge> [ddnet] <Jupstar> probs not ^^
+17:39 <+bridge> [ddnet] <Learath2> I still use master everywhere :/
+17:40 <+bridge> [ddnet] <Learath2> If a majority wants to switch I guess I don't mind. It'd be really nice to have an alias indeed
+17:41 <+bridge> [ddnet] <Learath2> There is symbolic-ref but those are local iirc
+17:56 <+bridge> [ddnet] <deen> For me nearly everything is master too, really depends on what projects you use commonly
+17:58 <+bridge> [ddnet] <Jupstar> mesa and sdl, and new projects default to main too 😄
+18:14 <+bridge> [ddnet] <deen> None of my work and private projects do, except the ones I created since the default changed
+18:14 <+bridge> [ddnet] <deen> so it's about 20:1 for me now 😄
+18:39 <+bridge> [ddnet] <Jupstar> how tf do u handle 20 projects
+18:39 <+bridge> [ddnet] <Jupstar> 21
+20:11 <+bridge> [ddnet] <deen> not my fault people put their code into 10 different repos 😄
+20:18 <+bridge> [ddnet] <heinrich5991> please don't change, sounds annoying
+20:19 <+bridge> [ddnet] <heinrich5991> perhaps Jupstar could do the trick Learath2 mentioned?
+20:28 <+bridge> [ddnet] <Jupstar> apparently not annoying enough for SDL and mesa to change it
+20:29 <+bridge> [ddnet] <heinrich5991> the current name is backward compatible, we don't have to fix anything
+20:30 <+bridge> [ddnet] <heinrich5991> if we change it, we'll have to deal with the fallout
+20:30 <+bridge> [ddnet] <heinrich5991> might not be large, but why bother changing it? it doesn't seem useful to contribute to the churn of changing it
+20:30 <+bridge> [ddnet] <heinrich5991> e.g. rust-lang/rust also has master as the default name
+20:31 <+bridge> [ddnet] <Jupstar> e.g. mesa has not
+20:31 <+bridge> [ddnet] <Ryozuki> master for me too
+20:31 <+bridge> [ddnet] <Jupstar> what kind of argument is that xD
+20:31 <+bridge> [ddnet] <Ryozuki> its the argument u made
+20:31 <+bridge> [ddnet] <Ryozuki> but against
+20:31 <+bridge> [ddnet] <Ryozuki> xD
+20:32 <+bridge> [ddnet] <Jupstar> my argument was that its easier bcs more and more projects will adapt it
+20:32 <+bridge> [ddnet] <Jupstar> its just a matter of time
+20:32 <+bridge> [ddnet] <Jupstar> new project get it anyway
+20:32 <+bridge> [ddnet] <Jupstar> and even bigger ones change it
+20:32 <+bridge> [ddnet] <Ryozuki> sdl is not as big as rustlang iirc
+20:33 <+bridge> [ddnet] <Jupstar> mesa is around as big probably
+20:33 <+bridge> [ddnet] <Ryozuki> sdl 600 forks, rust 9.4k
+20:33 <+bridge> [ddnet] <Jupstar> atleast code wise
+20:33 <+bridge> [ddnet] <Ryozuki> does mesa have lot of CI?
+20:33 <+bridge> [ddnet] <Ryozuki> rust has shitload of stuff around
+20:33 <+bridge> [ddnet] <Ryozuki> with crater and CIs everywhere
+20:33 <+bridge> [ddnet] <Ryozuki> so its probs way harder
+20:33 <+bridge> [ddnet] <Ryozuki> to change
+20:34 <+bridge> [ddnet] <Jupstar> but why should u explicitly name master in a CI?
+20:34 <+bridge> [ddnet] <Ryozuki> and rust community is rly woke they probs wanted the main thing
+20:34 <+bridge> [ddnet] <Ryozuki> anyway
+20:34 <+bridge> [ddnet] <Ryozuki> u cant rename ur branch localy and target master?
+20:34 <+bridge> [ddnet] <Ryozuki> why would git not allow that
+20:36 <+bridge> [ddnet] <Jupstar> ive no idea what works, i think i made a point. if you dont want it ok. but pls no pseudo arguments, we speak again in 5 years, lets see how much it changed until then
+20:37 <+bridge> [ddnet] <Chairn> why you wanna change *master* to *main* in the first place ?
+20:38 <+bridge> [ddnet] <Jupstar> 🤦
+20:39 <+bridge> [ddnet] <Chairn> there's no tldr, sorry 😄
+20:57 <+bridge> [ddnet] <Jupstar> does that mean we can finally drop bors?
+20:57 <+bridge> [ddnet] <Jupstar> https://cdn.discordapp.com/attachments/293493549758939136/992504212879585431/unknown.png
+20:57 <+bridge> [ddnet] <Jupstar> or do i miss interpret
+20:57 <+bridge> [ddnet] <Jupstar> e.g. merge conflicts sounds like a status change
+20:59 <+bridge> [ddnet] <Robyt3> but the PR could also just fail to compile without a merge conflict
+20:59 <+bridge> [ddnet] <Robyt3> doesn't sound like this would try the PR in staging again
+21:00 <+bridge> [ddnet] <Jupstar> possible, dunno what this can do, but i always wondered why github should not be aware of what happens in github actions
+21:01 <+bridge> [ddnet] <Jupstar> "remote: error: GH006: Protected branch update failed for refs/heads/main.
+21:01 <+bridge> [ddnet] <Jupstar> remote: error: Required status check "ci-build" is failing"
+21:01 <+bridge> [ddnet] <Jupstar> 
+21:01 <+bridge> [ddnet] <Jupstar> https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks
+21:01 <+bridge> [ddnet] <Jupstar> sounds like exactly that
+21:02 <+bridge> [ddnet] <Jupstar> and i think merge conflicts are always detect already, tho dunno if u can "force" merge
+21:02 <+bridge> [ddnet] <Jupstar> accidentially
+21:09 <+bridge> [ddnet] <Robyt3> But what if all the CI checks pass in PR 1, then someone merges PR 2 which causes errors with PR 1. As PR 1 already has all CI checks passing it's still good to merge?
+21:14 <+bridge> [ddnet] <Jupstar> can that happen?
+21:14 <+bridge> [ddnet] <Jupstar> isnt that a merge conflict
+21:14 <+bridge> [ddnet] <Jupstar> cannot imagine such a case but maybe, dunno xd
+21:16 <+bridge> [ddnet] <Jupstar> missing symbols maybe?, dunno if that creates no conflict
+21:16 <+bridge> [ddnet] <Jupstar> guess testing out is easiest ^^
+21:24 <+bridge> [ddnet] <heinrich5991> yes, that can happen, and that's precisely the reason for bors
+21:24 <+bridge> [ddnet] <heinrich5991> https://bors.tech/
+21:24 <+bridge> [ddnet] <Jupstar> maybe they thought about it
+21:26 <+bridge> [ddnet] <heinrich5991> from the docs it sounds like it can enforce it the same way as bors does, but you have to actually handle the rebasing yourself
+21:26 <+bridge> [ddnet] <heinrich5991> so it'd result in less automation
+21:26 <+bridge> [ddnet] <Jupstar> sounds annoying
+21:27 <+bridge> [ddnet] <Jupstar> they should just allow a pre merge stage or smth to their actions
+21:27 <+bridge> [ddnet] <Jupstar> would fix their problems and they can advertise it as replacement for stuff like bors, since i assume maybe projects have to deal with such problems
+21:29 <+bridge> [ddnet] <Jupstar> woudl be nice if github tracks against what commit the CI ran, and then allows fast merges for stuff where CI is fine, e.g. faster merges for simple stuff like translations
+21:29 <+bridge> [ddnet] <Jupstar> that usually get merged relativly fast after pr is created ^
+21:31 <+bridge> [ddnet] <Jupstar> but tbh i'd like to have on CI runners xd, faster knowing if pr is broken
+21:31 <+bridge> [ddnet] <Jupstar> our current CI is dead as slow, 20min or smth
+21:31 <+bridge> [ddnet] <Jupstar> but tbh i'd like to have own CI runners xd, faster knowing if pr is broken
+21:41 <+bridge> [ddnet] <heinrich5991> you could potentially rearrange the build steps so you can know about failures earlier
+21:41 <+bridge> [ddnet] <heinrich5991> and skip likely-redundant ones
+21:45 <+bridge> [ddnet] <Robyt3> we could probably use something like https://github.com/tj-actions/changed-files to run less CI on PRs that only change resources
+21:48 <+bridge> [ddnet] <heinrich5991> doesn't sound useful
+21:48 <+bridge> [ddnet] <heinrich5991> if we know no tests will fail, we might as well run them, the humans don't have to wait for them
+21:49 <+bridge> [ddnet] <Chairn> it prevents usuless CI runs when you only change language files or readme
+21:50 <+bridge> [ddnet] <heinrich5991> what benefit does that have?
+21:51 <+bridge> [ddnet] <heinrich5991> I can think of a single one, but I'm not sure if it's worth
+21:51 <+bridge> [ddnet] <Chairn> energy saving?
+21:51 <+bridge> [ddnet] <heinrich5991> yes
+21:52 <+bridge> [ddnet] <Chairn> i think it's worth it
+21:53 <+bridge> [ddnet] <heinrich5991> why do you think that? 🙂
+21:58 <+bridge> [ddnet] <Jupstar> dont driver ur car for 1 day and u save more energy than the CI produces in 1 year probs xd
+22:00 <+bridge> [ddnet] <heinrich5991> at 100 W, a CI run produces 0.13 kWh
+22:01 <+bridge> [ddnet] <heinrich5991> an electric car uses 0.2 kWh per kilometer
+22:04 <+bridge> [ddnet] <heinrich5991> boiling 1 liter of water costs 0.7 kWh if the water cooker has an energy efficiency of 1
+22:05 <+bridge> [ddnet] <Jupstar> do you assume it runs at 100W? 😄
+22:05 <+bridge> [ddnet] <Jupstar> i'd assume like 4-5watts max for our action
+22:05 <+bridge> [ddnet] <Jupstar> a full used core doesnt require too much energy
+22:06 <+bridge> [ddnet] <Jupstar> mother etc. ofc cost stuff but gets split around all actions that are running
+22:06 <+bridge> [ddnet] <Jupstar> motherboard etc. ofc cost stuff but gets split around all actions that are running
+22:06 <+bridge> [ddnet] <heinrich5991> I googled how much a CPU uses, it was mostly a little below 100 W
+22:07 <+bridge> [ddnet] <fokkonaut> i dont understrand
+22:07 <+bridge> [ddnet] <fokkonaut> why, but the game looses fps in each version it seems
+22:07 <+bridge> [ddnet] <fokkonaut> i used to have ~1k fps on my server, now its around 400
+22:07 <+bridge> [ddnet] <fokkonaut> its insane
+22:08 <+bridge> [ddnet] <Jupstar> yeah but a desktop CPU would compile the full CI in less than a minute
+22:08 <+bridge> [ddnet] <fokkonaut> and other servers usually 1k+, now arond 800
+22:08 <+bridge> [ddnet] <Jupstar> not 20 minutes 😄
+22:10 <+bridge> [ddnet] <Jupstar> pls do a git bisect
+22:10 <+bridge> [ddnet] <Jupstar> would really help
+22:10 <+bridge> [ddnet] <fokkonaut> im nob
+22:10 <+bridge> [ddnet] <heinrich5991> might be the new UI
+22:10 <+bridge> [ddnet] <heinrich5991> we can help you git bisect
+22:10 <+bridge> [ddnet] <heinrich5991> can you build the ddnet client?
+22:10 <+bridge> [ddnet] <fokkonaut> more likely to be the thing by @nuborn which scans those entitiyEx objects and searches for a matching other entity
+22:11 <+bridge> [ddnet] <fokkonaut> aswell as for the switch state thing he did
+22:11 <+bridge> [ddnet] <fokkonaut> ofc
+22:11 <+bridge> [ddnet] <heinrich5991> great
+22:11 <+bridge> [ddnet] <heinrich5991> then check out the good version, and verify that it has your desired FPS
+22:11 <+bridge> [ddnet] <heinrich5991> if it has, do `git bisect start`, `git bisect good`
+22:12 <+bridge> [ddnet] <heinrich5991> then check out the latest version, verify that it has the bad FPS, and do `git bisect bad`
+22:12 <+bridge> [ddnet] <heinrich5991> then follow the instructions
+22:13 <+bridge> [ddnet] <fokkonaut> seems ez
+22:13 <+bridge> [ddnet] <fokkonaut> but busy rn. will try at another point
+22:13 <+bridge> [ddnet] <charlieasy> Hi, im tryin to change map randomly with votes on my own server, can someone help me pls?
+22:14 <+bridge> [ddnet] <Jupstar> i think ddnet uses SQL commands for that
+22:15 <+bridge> [ddnet] <charlieasy> Oh so i cant put it the consol ?
+22:16 <+bridge> [ddnet] <Jupstar> i dunno if such command exists, but probably not since it requires to know all maps
+22:16 <+bridge> [ddnet] <charlieasy> Oh ye like there is all maps and server take once
+22:17 <+bridge> [ddnet] <charlieasy> Where can in find names of my downloaded maps
+22:17 <+bridge> [ddnet] <charlieasy> Where can in find names of my downloaded maps?
+22:18 <+bridge> [ddnet] <Jupstar> %appdata%/Teeworlds/downloadedmaps
+22:18 <+bridge> [ddnet] <Jupstar> or
+22:18 <+bridge> [ddnet] <Jupstar> %appdata%/DDNet/downloadedmaps
+22:19 <+bridge> [ddnet] <charlieasy> Ty
+22:22 <+bridge> [ddnet] <Chairn> there's no little economy
+22:24 <+bridge> [ddnet] <Chairn> if you start saying that it doesn't matter, then not reducing your own carbon footprint doesn't matter because 99.9999999% of mankind's carbon footprint is not your fault (you don't have any leverage on it), then nobody would change
+22:24 <+bridge> [ddnet] <Chairn> btw, CI doesn't produces energy, it uses it
+22:24 <+bridge> [ddnet] <Chairn> btw, CI doesn't produces energy, it uses it (turn electrical into mostly heat)
+22:25 <+bridge> [ddnet] <Jupstar> lmao
+22:25 <+bridge> [ddnet] <Jupstar> i think you know what he meant
+22:25 <+bridge> [ddnet] <Chairn> no i dont?
+22:25 <+bridge> [ddnet] <Chairn> im no magician guessing people's mind
+22:26 <+bridge> [ddnet] <Jupstar> yeah it uses the energy
+22:26 <+bridge> [ddnet] <Chairn> oh that part
+22:26 <+bridge> [ddnet] <Chairn> not the most important one though
+22:27 <+bridge> [ddnet] <Jupstar> anyway, you are right.
+22:27 <+bridge> [ddnet] <Jupstar> But i doubt computers are as bad as they often potraied, start with bitcoin before removing smth useful.
+22:27 <+bridge> [ddnet] <Jupstar> 
+22:27 <+bridge> [ddnet] <Jupstar> But definitely start to remove coal industry
+22:28 <+bridge> [ddnet] <Jupstar> https://pbs.twimg.com/media/E7J4qo3XEAk76xz?format=jpg&name=large
+22:28 <+bridge> [ddnet] <Jupstar> its german, but i guess its clear
+22:28 <+bridge> [ddnet] <Chairn> translation of left text?
+22:29 <+bridge> [ddnet] <Jupstar> tho tbf airplaines are higher in the air, so CO2 there is worse for environment
+22:29 <+bridge> [ddnet] <Chairn> Million tons per year is x axis ?
+22:29 <+bridge> [ddnet] <Jupstar> yes
+22:29 <+bridge> [ddnet] <Chairn> not really, that has no impact at all
+22:29 <+bridge> [ddnet] <Jupstar> it does
+22:30 <+bridge> [ddnet] <Jupstar> quite a lot actually
+22:30 <+bridge> [ddnet] <Jupstar> even hydrogen airplaines are considered harmful
+22:30 <+bridge> [ddnet] <Chairn> for water it does, for CO2 it's negligeable
+22:30 <+bridge> [ddnet] <Jupstar> co2 weights more than "air"
+22:30 <+bridge> [ddnet] <Jupstar> but higher in the air it stays longer
+22:31 <+bridge> [ddnet] <Chairn> btw, the graph omits lot of industries. clothing, techs, etc.
+22:31 <+bridge> [ddnet] <Jupstar> but most industry uses electricity and not all produce co2
+22:31 <+bridge> [ddnet] <Jupstar> often other chemicals
+22:31 <+bridge> [ddnet] <Jupstar> but not alawys co2
+22:32 <+bridge> [ddnet] <Jupstar> but yeah industry is a huge player
+22:32 <+bridge> [ddnet] <Jupstar> steal industry and cement
+22:32 <+bridge> [ddnet] <Jupstar> steel industry and cement
+22:37 <+bridge> [ddnet] <Voxel> You know, I kind of question why the entities thumbnail hasn't been updated in... like, 2 years or more. 
+22:37 <+bridge> [ddnet] <Voxel> I propose an update, where the thumbnail will have its own svg counterpart for future updates.
+22:37 <+bridge> [ddnet] <Voxel> Left is old, right is new.
+22:37 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992529393060692028/unknown.png
+22:38 <+bridge> [ddnet] <Jupstar> bcs nobody has done it xd
+22:38 <+bridge> [ddnet] <Jupstar> thats the simple but real answer
+22:38 <+bridge> [ddnet] <Jupstar> also soreu left ddnet
+22:39 <+bridge> [ddnet] <Jupstar> :tear:
+22:39 <+bridge> [ddnet] <Voxel> Sad... I'll try to find the second font used for this to make it more consistent.
+22:41 <+bridge> [ddnet] <Chairn> @Not Keks can i revert order between for loop and `QuadsDrawTLImpl` call? <https://github.com/ddnet/ddnet/blob/e7c3f108ef51fe4484a75301ced2678c8f6159cf/src/engine/client/graphics_threaded.cpp#L1102-L1113>
+22:41 <+bridge> [ddnet] <louis> entities need full rework but ppl are already used to them
+22:41 <+bridge> [ddnet] <Jupstar> dont think so
+22:41 <+bridge> [ddnet] <Jupstar> 3 vertices  = 1 triangle
+22:41 <+bridge> [ddnet] <Voxel> I was thinking about making an SVG version of them, but that is honestly a lot of work.
+22:41 <+bridge> [ddnet] <Jupstar> if u change that u'll get different triangles xD
+22:42 <+bridge> [ddnet] <Chairn> function doesn't call anything except AddVertices
+22:42 <+bridge> [ddnet] <Jupstar> ah
+22:42 <+bridge> [ddnet] <louis> i have a remake of them but i didnt svgize the whole thing only some tiles
+22:42 <+bridge> [ddnet] <Jupstar> u mean putting it before
+22:42 <+bridge> [ddnet] <Chairn> yeah
+22:43 <+bridge> [ddnet] <Jupstar> but would that not include these vertices
+22:43 <+bridge> [ddnet] <Jupstar> in the call
+22:43 <+bridge> [ddnet] <Jupstar> but wouldn't that not include these vertices
+22:43 <+bridge> [ddnet] <heinrich5991> @Chairn can we agree on that reducing energy usage in sectors that have no impact globally isn't worth chasing?
+22:44 <+bridge> [ddnet] <Voxel> oh that's nice. also when i eventually do remake the entities i'd revamp this, mainly the snow
+22:44 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992531047902363688/unknown.png
+22:44 <+bridge> [ddnet] <Chairn> it's not worth for global policy, it's worth it at our scale as it doesn't cost anything to do so
+22:44 <+bridge> [ddnet] <louis> well mapping entities need a full rework
+22:44 <+bridge> [ddnet] <Jupstar> honestly dont understand the code rn xD
+22:44 <+bridge> [ddnet] <louis> so much more cluttered for no reason
+22:45 <+bridge> [ddnet] <heinrich5991> but why reduce energy where it doesn't matter?
+22:45 <+bridge> [ddnet] <Jupstar> if it's just the tilemap that it probs doesnt matter
+22:45 <+bridge> [ddnet] <Jupstar> since there is no collision between 2 tiles in same layer
+22:46 <+bridge> [ddnet] <Jupstar> any reason to change the order?
+22:46 <+bridge> [ddnet] <Chairn> i haven't seen any difference so i don't know what it does
+22:46 <+bridge> [ddnet] <Chairn> it does matter
+22:46 <+bridge> [ddnet] <louis> @Essigautomat do u know when the material layer will be finished?
+22:46 <+bridge> [ddnet] <Chairn> there's an assignment from vec2 to vec3 if i replace your struct
+22:47 <+bridge> [ddnet] <heinrich5991> but the premise was that it doesn't. hm. we seem to be talking past each other @Chairn
+22:47 <+bridge> [ddnet] <louis> would be nice to have a few maps in queue to release once if it gets added
+22:47 <+bridge> [ddnet] <Chairn> it doesn't on global scale, it does on local one
+22:47 <+bridge> [ddnet] <heinrich5991> hm. are you talking about the CI or my statement about sectors?
+22:47 <+bridge> [ddnet] <Chairn> remember that global energy consumption is just the sum of all small consumers
+22:48 <+bridge> [ddnet] <Chairn> im still on CI
+22:48 <+bridge> [ddnet] <heinrich5991> okay, I'm not
+22:48 <+bridge> [ddnet] <heinrich5991> that explains why we're talking past each other
+22:48 <+bridge> [ddnet] <heinrich5991> " @Chairn can we agree on that reducing energy usage in sectors that have no impact globally isn't worth chasing? "
+22:48 <+bridge> [ddnet] <Chairn> maybe an issue on github to gather some other opinion?
+22:49 <+bridge> [ddnet] <heinrich5991> I'm thinking of sectors such as idk, transport, internet, etc.
+22:49 <+bridge> [ddnet] <heinrich5991> if one such sector doesn't have a global impact, it doesn't seem like it's worth trying to optimize it
+22:49 <+bridge> [ddnet] <Chairn> but we don't have hands on those, i mean at the individual level, so why bother here ?
+22:49 <+bridge> [ddnet] <Chairn> bother your local politician for those
+22:50 <+bridge> [ddnet] <heinrich5991> well, we do: we can choose our transport, e.g.
+22:50 <+bridge> [ddnet] <heinrich5991> or we can choose whether to worry more about heating our houses, or about CI
+22:50 <+bridge> [ddnet] <Chairn> so we can choose to remove CI
+22:50 <+bridge> [ddnet] <Chairn> for useless runs
+22:50 <+bridge> [ddnet] <heinrich5991> yes, we can. the question I wanted to ask is whether it's worth it
+22:51 <+bridge> [ddnet] <heinrich5991> it seemed to me that you shut this question down, so I went back a level and asked whether you can imagine whether something is not worth doing
+22:51 <+bridge> [ddnet] <heinrich5991> in that general area
+22:51 <+bridge> [ddnet] <cauldron> ci runned when.i fixed typo
+22:51 <+bridge> [ddnet] <Chairn> it is, we save energy
+22:52 <+bridge> [ddnet] <Chairn> when was CI introduced on ddnet github?
+22:52 <+bridge> [ddnet] <Chairn> i wanna compute the overall energy spent when modifying data files
+22:52 <+bridge> [ddnet] <heinrich5991> you can also save energy by, say, optimizing the ddnet client
+22:52 <+bridge> [ddnet] <Chairn> way harder to do
+22:52 <+bridge> [ddnet] <Chairn> and to measure as well
+22:52 <+bridge> [ddnet] <cauldron> or save energy struggling with ci setup
+22:53 <+bridge> [ddnet] <heinrich5991> so you don't agree that there might be some energy that is not worth optimizing?
+22:53 <+bridge> [ddnet] <heinrich5991> in general, not limited to CI
+22:53 <+bridge> [ddnet] <Chairn> in general, there might be, but we're not talking about general case here
+22:53 <+bridge> [ddnet] <heinrich5991> but I am, to understand whether we can agree on the basics
+22:53 <+bridge> [ddnet] <heinrich5991> I'm trying to find our disagreement
+22:54 <+bridge> [ddnet] <Chairn> why do you want to generalise about our special case?
+22:54 <+bridge> [ddnet] <Chairn> imo, that looks like you're running away from the problem
+22:54 <+bridge> [ddnet] <heinrich5991> because I am trying to understand why two people come to different conclusions about the same problem
+22:54 <+bridge> [ddnet] <heinrich5991> Chairn says: there is no question to be asked about whether running less CI is worth it
+22:55 <+bridge> [ddnet] <heinrich5991> heinrich5991 says: I want to investigate that question
+22:55 <+bridge> [ddnet] <Jupstar> xD lets make a case study in the next 5 years
+22:56 <+bridge> [ddnet] <heinrich5991> that's not what I'm proposing
+22:56 <+bridge> [ddnet] <Jupstar> and then the case study wasted more energy than the CI does in the next 20 years xD
+23:00 <+bridge> [ddnet] <heinrich5991> I actually can't find anything about CI and energy consumption on the web
+23:00 <+bridge> [ddnet] <Chairn> okay, there are 1852 commits referencing data folder. So 1852 CI runs at 100W for 10 minutes. This sums up to 1852x100x1/6 = 30.89kwh
+23:00 <+bridge> [ddnet] <heinrich5991> which is a bit weird, because it seems like an obvious question to ask
+23:01 <+bridge> [ddnet] <Chairn> so it's about one month oh my own energy consumption
+23:01 <+bridge> [ddnet] <Chairn> so it's about one month of my own energy consumption
+23:02 <+bridge> [ddnet] <Jupstar> no way its 100watt
+23:02 <+bridge> [ddnet] <Jupstar> just no way xD
+23:02 <+bridge> [ddnet] <heinrich5991> let's run with 100 W, it shouldn't change the result
+23:03 <+bridge> [ddnet] <Jupstar> but yeah 30kwh for 2-3 is not insane
+23:03 <+bridge> [ddnet] <Chairn> well, it does fetch packages wth apt which call other servers as well
+23:03 <+bridge> [ddnet] <Jupstar> driving to north sea and back with a car
+23:03 <+bridge> [ddnet] <Jupstar> still
+23:03 <+bridge> [ddnet] <Jupstar> 100 watts is desktop CPU with ALL cores at 100%
+23:04 <+bridge> [ddnet] <heinrich5991> it's within the right order of magnitude, probably
+23:04 <+bridge> [ddnet] <heinrich5991> there's not much point worrying about the exact energy consumption
+23:04 <+bridge> [ddnet] <Jupstar> yes but i highely doubt 100watts still xD
+23:04 <+bridge> [ddnet] <heinrich5991> okay ^^
+23:05 <+bridge> [ddnet] <Jupstar> (also 100watts per hour)
+23:05 <+bridge> [ddnet] <heinrich5991> hm? that doesn't make sense
+23:05 <+bridge> [ddnet] <heinrich5991> 100 watt hours per hour? ^^
+23:05 <+bridge> [ddnet] <Jupstar> well the CI doesnt run for 1h
+23:05 <+bridge> [ddnet] <heinrich5991> that's the 1/6
+23:06 <+bridge> [ddnet] <Jupstar> mh ok
+23:06 <+bridge> [ddnet] <Jupstar> then makes sense 😄
+23:06 <+bridge> [ddnet] <Chairn> macos is the longest one, but ubuntu and windows are around 8 minutes, so that evens out to roughly 10 minutes
+23:07 <+bridge> [ddnet] <Chairn> + the other small jobs like formatting and style
+23:07 <+bridge> [ddnet] <Jupstar> yeah but dude, ddnet compiles in 8 seconds for me
+23:07 <+bridge> [ddnet] <heinrich5991> it compiles multiple times, and also (probably slow) stuff like clang-tidy
+23:08 <+bridge> [ddnet] <Jupstar> taking just CPU in mind and saying my CPU uses around 100watt/h
+23:08 <+bridge> [ddnet] <Jupstar> its 0.222 watt/h for a single ddnet compile for me locally
+23:09 <+bridge> [ddnet] <heinrich5991> you got your units wrong, but the end result is still okay, I guess
+23:09 <+bridge> [ddnet] <heinrich5991> watt is 'instantaneous power consumption'
+23:09 <+bridge> [ddnet] <Chairn> watt = power, wh = energy
+23:09 <+bridge> [ddnet] <Jupstar> times
+23:09 <+bridge> [ddnet] <Jupstar> true
+23:09 <+bridge> [ddnet] <heinrich5991> watt hours (watt times hour) is energy
+23:10 <+bridge> [ddnet] <heinrich5991> anyway. if you want to optimize the energy usage of the CI, I think it'd be best to allow bors to delay merging a PR until an important one comes around
+23:10 <+bridge> [ddnet] <heinrich5991> then we still don't break master, but everything is still tested
+23:10 <+bridge> [ddnet] <Jupstar> taking just CPU in mind and saying my CPU uses around 100watt*h
+23:11 <+bridge> [ddnet] <Jupstar> its 0.222 watt*h for a single ddnet compile for me locally
+23:11 <+bridge> [ddnet] <Jupstar> taking just CPU in mind and saying my CPU uses around 100watt * h
+23:11 <+bridge> [ddnet] <Jupstar> its 0.222 watt * h for a single ddnet compile for me locally
+23:11 <+bridge> [ddnet] <Jupstar> lmao writing * in discord harder than u thinkx D
+23:11 <+bridge> [ddnet] <Jupstar> *ez*
+23:11 <+bridge> [ddnet] <heinrich5991> ^^
+23:11 <+bridge> [ddnet] <Chairn> *************************************************************
+23:18 <+bridge> [ddnet] <Voxel> concept art
+23:18 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992539680094560286/unknown.png
+23:18 <+bridge> [ddnet] <Voxel> ice based on ravie's freeze doodle
+23:18 <+bridge> [ddnet] <deen> @Chairn at large software companies a single push can cost thousands of euros btw 😄
+23:19 <+bridge> [ddnet] <Chairn> hmm, my far left political sides is all for ruining microsoft with useless pr on github, buy my ecological side disagrees 😄
+23:19 <+bridge> [ddnet] <deen> useless?
+23:20 <+bridge> [ddnet] <Chairn> i can create useless pr to ruin them 🙂
+23:20 <+bridge> [ddnet] <deen> they throttle at some point
+23:21 <+bridge> [ddnet] <deen> and just let them run slower probably. this is probably a very minor cost to them
+23:21 <+bridge> [ddnet] <Chairn> well, woudln't be free otherwise
+23:25 <+bridge> [ddnet] <Tsin> @Voxel  if its for editor then do do it 😛 it was specialy done this way to not have tooo much details in editor details are often sooo tiny that they make your eyes bleed
+23:26 <+bridge> [ddnet] <Tsin> @Voxel  if its for editor then don't do it 😛 it was specialy done this way to not have tooo much details in editor details are often sooo tiny that they make your eyes bleed
+23:26 <+bridge> [ddnet] <Tsin> @Voxel  if its for editor then don't do it 😛 it was specialy done this way to not have tooo much details, in editor details are often sooo tiny that they make your eyes bleed
+23:27 <+bridge> [ddnet] <Jupstar> i'd imagine the deep freeze "darker" similar on how minecraft is making blue ice "more blue" 😄
+23:27 <+bridge> [ddnet] <Jupstar> but i guess its just for editor? so doesnt really matter xDD
+23:29 <+bridge> [ddnet] <Tsin> mappers spend loong hours in editor so less details on entities the better, they only should have a special color or marking so that on first spot you will know what tile it is
+23:30 <+bridge> [ddnet] <Jupstar> but voxel is insane artist
+23:30 <+bridge> [ddnet] <Jupstar> he needs to showoff
+23:30 <+bridge> [ddnet] <Jupstar> the sun must melt the ice
+23:30 <+bridge> [ddnet] <Voxel> you could just say the snowflakes wouldnt be readable for small sizes :|
+23:30 <+bridge> [ddnet] <Jupstar> ez
+23:30 <+bridge> [ddnet] <Tsin> they would be readable
+23:30 <+bridge> [ddnet] <Tsin> even toooo much readable
+23:30 <+bridge> [ddnet] <Tsin> tsoooo readable that your eyes would bleed =]
+23:31 <+bridge> [ddnet] <Voxel> one second i'll replace the snowflakes
+23:32 <+bridge> [ddnet] <Learath2> really? was it really intended for them to be blurred almost?
+23:32 <+bridge> [ddnet] <Tsin> yes because freeze is the most used tile
+23:32 <+bridge> [ddnet] <Tsin> so to use it with comfort in editor it was blured
+23:32 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992543317676003480/unknown.png
+23:32 <+bridge> [ddnet] <Tsin> because most of the time you have your map zooomed out
+23:33 <+bridge> [ddnet] <deen> looks really clean
+23:34 <+bridge> [ddnet] <Tsin> with it blured you focus on color thats why it was done that way
+23:34 <+bridge> [ddnet] <Voxel> Also with these additions, I'm going to make the live/deep unfreezes more readable. At its current state the eyes are almost impossible to see
+23:34 <+bridge> [ddnet] <Tsin> but ofcourse you can try to do it 4k rez =]
+23:34 <+bridge> [ddnet] <Tsin> i wonder what will mappers say after some time in using them xD
+23:35 <+bridge> [ddnet] <Learath2> huh, I somehow doubt the legitimacy of this story but I wasn't paying any attention to stuff like that back in the day so I don't even remember what sort of discussion was ever had
+23:35 <+bridge> [ddnet] <louis> tee outline is a bit funny but looks neat
+23:35 <+bridge> [ddnet] <louis> but editor entities need full revamp
+23:35 <+bridge> [ddnet] <Learath2> Blurring it is such an absurd way to fix the details being too much, you usually simplify the design if it's too detailed
+23:35 <+bridge> [ddnet] <louis> not a remake
+23:35 <+bridge> [ddnet] <louis> things are too cluttered in editor entities
+23:36 <+bridge> [ddnet] <louis> in fact would be much better to just make it similar to ingame entities
+23:37 <+bridge> [ddnet] <Tsin> i dont think that making it high rez will be a problem just try not to add tooo many tiny details to them xD
+23:37 <+bridge> [ddnet] <Voxel> im not trying to go for high res, i just think it would be a better workflow if there was an svg of the entities
+23:38 <+bridge> [ddnet] <Voxel> it would be easier to update and edit, and since there would be reusable assets in the file there would be less guessing
+23:38 <+bridge> [ddnet] <Chairn> i think it'll get blurry again when exporting to png
+23:40 <+bridge> [ddnet] <louis> read msg above u
+23:42 <+bridge> [ddnet] <Tsin> btw just to make it clear i was mentioning the entites that were made for ddrace client not for ddnet xD they were diffrent and also some of main tiles were blured out
+23:42 <+bridge> [ddnet] <Tsin> like freeze
+23:44 <+bridge> [ddnet] <Voxel> they *look* fine. im testing it in the wrong medium but they look alright
+23:44 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992546292121227356/unknown.png
+23:45 <+bridge> [ddnet] <Tsin> and this "ice" is it rly that much needed =]
+23:46 <+bridge> [ddnet] <Voxel> but the current one looks So Bad
+23:47 <+bridge> [ddnet] <Tsin> ddnet mappers should be asked what they think about it (I don't use ddnet client to map so I don't want to mess in development). 
+23:47 <+bridge> [ddnet] <Tsin> I just think that less details the better, specialy on big zoom out and bigger maps (my opinion) =]
+23:48 <+bridge> [ddnet] <louis> imo the default entities with some edits would be good for editor
+23:48 <+bridge> [ddnet] <louis> default entities themselves need clearer doors, turrents, etc tho
+23:48 <+bridge> [ddnet] <Chairn> i don't map but i tend to agree with Tsin, not too much detail to save our mapper's eyesight
+23:50 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992547659380424815/unknown.png
+23:52 <+bridge> [ddnet] <Voxel> maybe if i remove the shine mark?
+23:52 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/992548150814461962/unknown.png
+23:52 <+bridge> [ddnet] <Tsin> Voxel yes it does look good but what ur showing is just freeze open a big map with all the entities and check the "color candy" there and how do you feel watching that "color candy" for hours =]
+23:52 <+bridge> [ddnet] <Chairn> yup better imo
+23:52 <+bridge> [ddnet] <Voxel> this isnt made for gameplay tsin
+23:53 <+bridge> [ddnet] <Tsin> im talking about editor only
+23:53 <+bridge> [ddnet] <Tsin> playing with entites (not on test server) should be banned xD
+23:53 <+bridge> [ddnet] <Voxel> also im literally using the same colors as the current entities set?
+23:54 <+bridge> [ddnet] <Voxel> half the server: am i a joke to you?
+23:54 <+bridge> [ddnet] <Voxel> half the server would like to disagree
+23:55 <+bridge> [ddnet] <Skeith> Over half
+23:56 <+bridge> [ddnet] <Tsin> they are a joke to me, everyone who plays on entites can go "f...." emmmm  "hide" him self also playing with entities should be banned =]
+23:57 <+bridge> [ddnet] <Voxel> this isn't relevant to how i should improve my set. should i make the colors less saturated?
+23:57 <+bridge> [ddnet] <Skeith> 90% of maps hurt my eyes, I wouldn't play this game if I couldn't use entities :kek:
+23:59 <+bridge> [ddnet] <Tsin> "90%" hmmmmmm
+23:59 <+bridge> [ddnet] <Tsin> maybe there is something wrong with your sight and ddnet/tw just needs a special correction filter for your illness ? =]
+23:59 <+bridge> [ddnet] <Skeith> They do, it's called entities :feelsamazingman:
+23:59 <+bridge> [ddnet] <Tsin> hehehe no no 😛
+23:59 <+bridge> [ddnet] <Tsin> xD
+23:59 <+bridge> [ddnet] <Voxel> tsin try not to make any passive aggresive remark and end it with =] challenge minute 3

@@ -1,0 +1,112 @@
+00:23 <+bridge> [ddnet] <Patiga> ah right, I mean using instance-changing vertex buffers
+03:32 <+bridge> [ddnet] <bluesky> Thats cool:
+03:32 <+bridge> [ddnet] <bluesky> https://teeworlds.leaningtech.com/teeworlds.html
+03:38 <+bridge> [ddnet] <bluesky> they did that with cheerp
+08:57 <+bridge> [ddnet] <Jupstar> I guess doesnt matter too much. Maybe the driver puts uniform buffer in faster memory locations . but probably not since the limit is rather huge nowadays
+08:57 <+bridge> [ddnet] <Jupstar> Along wgpu allows this at least ^^
+09:05 <+bridge> [ddnet] <Jupstar> (Especially for an opengl backend which might care more about it)
+13:21 <+bridge> [ddnet] <fokkonaut> @Learath2 Why dont we introduce new snap objects for entities we use in DDNet, that requires specific information? Why do we add an EntitiyEx, that requires another snap object and therefore fills up the already quite small snap very fast with many objects? We have the extended net message and object system, i think it would be the right way to go to actually use it for more things
+13:22 <+bridge> [ddnet] <fokkonaut> I mean, I see the idea of entitiyEx of course, but for me it makes more sense to have 1 object, that includes all the information, rather than 2 objects that the client has to combine later on again.
+13:22 <+bridge> [ddnet] <fokkonaut> Especially since we are not limited to new objects anymore
+13:24 <+bridge> [ddnet] <fokkonaut> I'm thinking about it, because on my server for example I did an optimization to see more entities, that I only send entityEx for close objects, so that eventually prediction will work correctly. But this will need to be changed with the upcoming laser color change, because otherwise lasers further away wont have the correct color as I am then only sending the laser itself. Same goes for spectating (pause or spectator), I dont send entiti
+13:25 <+bridge> [ddnet] <fokkonaut> All of this wont really be a problem, once we have extended snapshots tho, but I think we should consider taking one of those options sooner or later.
+13:25 <+bridge> [ddnet] <bluesky> i wish i understood the predicition thing better:feelsbadman:
+13:25 <+bridge> [ddnet] <fokkonaut> prediction is basically just serverside stuff running on the client to predict it. In order to predict it correctly tho, the client needs some information from the server
+13:26 <+bridge> [ddnet] <fokkonaut> for example, if you are on a laser door which is closed, your tee will look bouncy
+13:26 <+bridge> [ddnet] <fokkonaut> because its not predicted
+13:26 <+bridge> [ddnet] <fokkonaut> it thinks it can fall there, cuz there is no wall
+13:26 <+bridge> [ddnet] <fokkonaut> but the server puts your position back up, because the server says nop, the door is closed, you are ON it and not falling
+13:27 <+bridge> [ddnet] <fokkonaut> So the client for example needs information on whether the door is closed or not right now, in order to predict it properly
+13:28 <+bridge> [ddnet] <bluesky> so the server says door closed and the client can then predict that it must be on top of the laserß
+13:28 <+bridge> [ddnet] <bluesky> so the server says door closed and the client can then predict that it must be on top of the laser?*
+13:29 <+bridge> [ddnet] <fokkonaut> basically yea, and the server also needs to send the client when the door is open again, because otherwise the client thinks its closed and it would think you have to be on top of it, it would create a small stutter when going through it otherwise probably (laserdoor prediction is not yet in anyways)
+13:30 <+bridge> [ddnet] <bluesky> aight aight i get the concept
+13:30 <+bridge> [ddnet] <fokkonaut> And antiping especially is a very extended prediction. It includes prediction for player inputs and weapons, for example on a server with 200-300+ ping, it takes quite some time until your shot grenade bullet actually spawns etc, with antiping, the client tries to predict it before it receives the actual bullet from the server. That works, because the client knows about tunings from the server, and it knows which weapon you're holding, an
+13:31 <+bridge> [ddnet] <bluesky> okay yeah i always wondered if predicition = antiping
+13:31 <+bridge> [ddnet] <fokkonaut> And thats also, why players seem to jiggle a bit with antiping, cuz when it notices the predictions are wrong, and we have actually received info about the other player from the server now, it puts the player in the correct position where it belongs
+13:31 <+bridge> [ddnet] <bluesky> but predicition is not only used for antiping
+13:31 <+bridge> [ddnet] <bluesky> okay
+13:31 <+bridge> [ddnet] <fokkonaut> Exactly
+13:31 <+bridge> [ddnet] <fokkonaut> hookthrough for example, also uses prediction, or stoppers, but its not antiping
+13:32 <+bridge> [ddnet] <fokkonaut> being smooth on top of a stopper and not jiggling like on a laser door, thats prediction
+13:32 <+bridge> [ddnet] <fokkonaut> and the hook going smoothly through the block, thats prediction
+13:32 <+bridge> [ddnet] <bluesky> and if the better the prediciton, the smaller the stutter as soon as the packet arrives
+13:32 <+bridge> [ddnet] <bluesky> and the better the prediciton, the smaller the stutter as soon as the packet arrives
+13:32 <+bridge> [ddnet] <bluesky> thanks for explaining it <3333
+13:33 <+bridge> [ddnet] <fokkonaut> Well, you cant have a perfect prediction because you dont know when the player will stop hold A for example
+13:33 <+bridge> [ddnet] <fokkonaut> but as long as he holds A, you can predict its position basically
+13:33 <+bridge> [ddnet] <bluesky> yes
+13:33 <+bridge> [ddnet] <bluesky> cant do more than guess
+13:34 <+bridge> [ddnet] <bluesky> :music:
+13:34 <+bridge> [ddnet] <fokkonaut> I once had the idea of a splitted antiping, basically so that it would only predict other players when interacting with them, and otherwise relying on the (maybe late) info from the server
+13:34 <+bridge> [ddnet] <fokkonaut> no problem
+13:35 <+bridge> [ddnet] <fokkonaut> Because hooks, and grenade explosions, hammers, all of that, especially when its coming from your own tee, can be predicted, and also other players interacting with it. + it would stop the jittering of other players as we dont really predict their movements alone
+13:36 <+bridge> [ddnet] <Voxel> Stupid question, but in order to resolve merge conflicts with your repo and master, would you need to do a pull request from master to your repo to update all the files? Or would that kind of break the pull request in master?
+13:36 <+bridge> [ddnet] <Voxel> Stupid question, but in order to resolve merge conflicts with your repo and master without causing errors in your build, would you need to do a pull request from master to your repo to update all the files? Or would that kind of break the pull request in master?
+13:37 <+bridge> [ddnet] <bluesky> Rebase your branch
+13:37 <+bridge> [ddnet] <bluesky> to upstream master
+13:37 <+bridge> [ddnet] <fokkonaut> checkout in your master branch, update it to the latest ddnet master, then checkout your working branch and do `git merge master` i believe
+13:37 <+bridge> [ddnet] <fokkonaut> then it will tell you which files have conflicts
+13:38 <+bridge> [ddnet] <fokkonaut> and you have to manually fix them
+13:38 <+bridge> [ddnet] <fokkonaut> actually havent done this is quite a time
+13:39 <+bridge> [ddnet] <Voxel> oh this is kind of easy
+13:39 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/999641886774009958/unknown.png
+13:40 <+bridge> [ddnet] <Voxel> i know what to work around fixing these conflicts, i just needed to know how to do it
+14:04 <+ChillerDragon> lmao i just googled for the wrong programming language and did only realize it 20mins later when closing tabs. I made the answer work without noticing its wrong language xxxxxxxxxxxxxD
+14:05 <+ChillerDragon> next level brain rott
+14:18 <+bridge> [ddnet] <Voxel> UGHHHHH WHY DOES D++ HAVE TO BE SO HARD
+14:18 <+bridge> [ddnet] <Voxel> i resolved conflicting merges and i guess because of that the entire thing gives me 30 different compile errors
+14:18 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/999651609183256596/unknown.png
+14:18 <+bridge> [ddnet] <Voxel> UGHHHHH WHY DOES C++ HAVE TO BE SO HARD
+14:18 <+bridge> [ddnet] <Voxel> i resolved conflicting merges and i guess because of that the entire thing gives me 30 different compile errors
+14:18 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/999651609183256596/unknown.png
+14:21 <+bridge> [ddnet] <Ryozuki> :justatest:
+14:22 <+bridge> [ddnet] <k2d222> I would say if branches have diverged a lot it's easier to rebase on master than to merge master in your branch
+14:22 <+bridge> [ddnet] <Voxel> false alarm, i accidentally created a `static int CButtonContainer`
+14:25 <+bridge> [ddnet] <Voxel> `what now`
+14:25 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/999653279015387186/unknown.png
+14:25 <+bridge> [ddnet] <Voxel> i didnt even do anything this time wtf
+14:26 <+bridge> [ddnet] <Voxel> but then how do i test it
+14:29 <+bridge> [ddnet] <Voxel> lol i think this program is telling me to just sleep at this point
+14:29 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/999654265234669568/unknown.png
+14:31 <+bridge> [ddnet] <Voxel> Everything's seemingly updated in https://github.com/ddnet/ddnet/pull/5639 ... I don't have the brain capacity to figure out what I did wrong
+14:32 <+bridge> [ddnet] <Voxel> all the bugs are in RenderDropDown, for some reason
+14:32 <+bridge> [ddnet] <Ravie> it tells you what's wrong
+14:33 <+bridge> [ddnet] <Ravie> make sure those arguments match what you have in the header
+14:39 <+bridge> [ddnet] <Voxel> well i fixed it
+14:39 <+bridge> [ddnet] <Voxel> but now im looking at my commits and it really showed this is my first time coding #(
+14:39 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/999656929020354581/unknown.png
+14:42 <+bridge> [ddnet] <k2d222> don't worry, git merging is a pain whether youre a newbie or a pro even if it gets a bit easier
+14:52 <+bridge> [ddnet] <kadaouanouki> hello i write this bind and now i cant move; bind x "+toggle cl_mouse_max_distance 2 VALUE1; +toggle inp_mousesens 1 VALUE2"
+15:09 <+bridge> [ddnet] <hus3h> hello, VALUE1 and VALUE2 should be replaced with the values you use for mouse distance and sensitivity, default values are 400 for VALUE1 and 200 for VALUE2
+15:11 <+bridge> [ddnet] <kadaouanouki> like this : bind x "+toggle cl_mouse_max_distance 2 400; +toggle inp_mousesens 1 200"
+15:12 <+bridge> [ddnet] <hus3h> yes that should work
+17:32 <+bridge> [ddnet] <Chairn> don't worry, this is fine, you can also squash commits together if you want to reduce number of commit to look more "pro"
+17:56 <+bridge> [ddnet] <Learath2> This is driving me insane
+17:56 <+bridge> [ddnet] <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/999706562530648104/test.png
+17:57 <+bridge> [ddnet] <Learath2> Lol, it was so bad it took the screenshot after discord stopped hogging the cpu
+17:59 <+bridge> [ddnet] <Learath2> Discord and spotify just randomly decide to use 100% of an entire core and for whatever reason the kernel just can't handle it
+18:05 <+bridge> [ddnet] <Jupstar> what kind of CPU do u even have?
+18:05 <+bridge> [ddnet] <Learath2> Intel i7 4770k
+18:05 <+bridge> [ddnet] <Jupstar> sounds good enough
+18:05 <+bridge> [ddnet] <Learath2> It is a little old, but it shouldn't crumble under spotify ffs
+18:06 <+bridge> [ddnet] <Jupstar> maybe caching or smth?, ever tried a clean reinstall or a different computer?
+18:06 <+bridge> [ddnet] <Jupstar> i mean that these electron apps suck compared to native programs is obvious, but i think i've never seen them using 100% of one core 😄
+18:07 <+bridge> [ddnet] <Learath2> For almost half a minute too, it just won't let go
+18:07 <+bridge> [ddnet] <Learath2> I've seen it on discord on macOS too
+18:07 <+bridge> [ddnet] <Learath2> but there the kernel managed to schedule other stuff even though one core was being completely hogged
+18:08 <+bridge> [ddnet] <Learath2> I'm starting to wonder whether I misconfigured this kernel, but it used to happen on arch too with the precanned kernel
+18:14 <+bridge> [ddnet] <Jupstar> does it maybe scan files on your computer?, or is it CPU only?
+18:14 <+bridge> [ddnet] <Jupstar> 
+18:14 <+bridge> [ddnet] <Jupstar> discord employee:
+18:14 <+bridge> [ddnet] <Jupstar> while(WaitForMessage)
+18:14 <+bridge> [ddnet] <Jupstar> ++i
+18:14 <+bridge> [ddnet] <Learath2> I was thinking about this, so I got iotop too so I can check io usage when it happens again
+18:36 <+bridge> [ddnet] <Ryozuki> I loled at "precanned kernel"
+19:06 <+bridge> [ddnet] <Chairn> you can try to denice it to lowest level to prevent system unresponsiveness
+19:07 <+bridge> [ddnet] <Chairn> this is what i sometime use for vscode because it either hogs cpu or whole memory
+19:11 <+bridge> [ddnet] <Chairn> actually, its more their cppservtools stuff that probably handles c++ files that is really cpu and memory hungry
+21:00 <+bridge> [ddnet] <fokkonaut> It seems like, with too many lasers for example on my server, the client just cant do all the work in time, it starts to lag if you zoom out a lot.
+21:00 <+bridge> [ddnet] <fokkonaut> Weird is, sometimes it can sometimes it cant :BLMODsad:
+21:02 <+bridge> [ddnet] <ᴿᵉˣᵉᴺ> Is there anyone whose operating system is Kali Linux?
+22:02 <+bridge> [ddnet] <Chairn> maybe system charges change, or like cpu heat can force throttle

@@ -1,0 +1,191 @@
+00:46 <+bridge> [ddnet] <Chairn> 🧓
+01:29 <+bridge> [ddnet] <Tater> is there any reason we are not using a more modern way of handling input packets? the way it works now where it just sends the packets once and never again is pretty bad. We are already very close to the "optimal" input packet solution it seems like a waste that we're not doing it. We just need to resend/bundle inputs from previous ticks (and correctly order them into a buffer on the server) and fix the automatic adjustment of prediction marg
+01:29 <+bridge> [ddnet] <Tater> https://youtu.be/zrIY0eIyqmI?t=1530
+01:30 <+bridge> [ddnet] <Tater> the way prediction margin is implemented right now already handles the "dilate time" part
+01:31 <+bridge> [ddnet] <fokkonaut> @deen nightly is very laggy
+01:31 <+bridge> [ddnet] <fokkonaut> on steam
+01:33 <+bridge> [ddnet] <fokkonaut> ah nvm
+01:33 <+bridge> [ddnet] <fokkonaut> sry
+01:33 <+bridge> [ddnet] <heinrich5991> it seems you always ping deen
+01:33 <+bridge> [ddnet] <heinrich5991> is that the 'let me talk to the manager?'
+01:49 <+bridge> [ddnet] <Chairn> poor deen probably has notification disabled at this point
+02:06 <+bridge> [ddnet] <heinrich5991> applying old inputs retroactively means trusting the client more, enabling more cheats
+02:07 <+bridge> [ddnet] <Tater> you don't need to trust the client at all, you just use the first input for each tick that was sent then if they send another one for that tick which is different you ignore it
+02:08 <+bridge> [ddnet] <heinrich5991> the client can retroactively change input by not sending one for a specific tick
+02:08 <+bridge> [ddnet] <Tater> what?
+02:08 <+bridge> [ddnet] <Tater> then the server just assumes they held previous inputs for that tick?
+02:09 <+bridge> [ddnet] <Tater> once the server processes the input it can't be changed, the server never goes back in tick
+02:09 <+bridge> [ddnet] <Tater> once the server processes the input it can't be changed, the server never goes back in time
+02:09 <+bridge> [ddnet] <heinrich5991> okay, sorry, I haven't watched the video, only assumed what it contains
+02:09 <+bridge> [ddnet] <heinrich5991> what does re-sending inputs help?
+02:11 <+bridge> [ddnet] <Tater> if you manually or automatically adjust the size of the server side input buffer then sending previous ticks inputs can fill in gaps in that buffer caused by packet drop/delay, then the client experiences no mispred/lag
+02:11 <+bridge> [ddnet] <Tater> I time stamped the video where it shows the nice animation
+02:13 <+bridge> [ddnet] <Tater> ddnet already has full client side prediction which is like 99% of the work
+02:20 <+bridge> [ddnet] <Tater> It takes like ~20 lines of code to implement a very poor version of this system, if you just resend input packets from previous frames and then fix the weapon switch/shoot loop on the server then the game can handle high packet loss if you manually increase prediction_margin. but right now the metrics that automatically increase prediction_marign don't work if you have a constant (ie 20%) packet loss
+02:27 <+bridge> [ddnet] <heinrich5991> basically send the last n inputs or so?
+02:27 <+bridge> [ddnet] <Tater> It takes like ~20 lines of code to implement a very poor version of this system, if you just resend input packets from previous ticks and then fix the weapon switch/shoot loop on the server then the game can handle high packet loss if you manually increase prediction_margin. but right now the metrics that automatically increase prediction_marign don't work if you have a constant (ie 20%) packet loss
+02:28 <+bridge> [ddnet] <Tater> it should be ping/20ms inputs but yes
+02:28 <+bridge> [ddnet] <Tater> but the correct way to do it is to bundle all those inputs into one packet to save data
+02:30 <+bridge> [ddnet] <Tater> I'm not sure what the cost of each client sending and extra 0-10 input packets per tick would be, maybe it's small enough that we actually dont care?
+02:30 <+bridge> [ddnet] <heinrich5991> well, it multiplies the sent traffic by that number
+02:30 <+bridge> [ddnet] <Tater> yeah
+03:03 <+bridge> [ddnet] <Tater> is there any explanation for how the network.py protocol generation works? why is it in a python script to begin with?
+03:35 <+bridge> [ddnet] <heinrich5991> it's a python script generating C++ code
+03:35 <+bridge> [ddnet] <heinrich5991> you can view the output in the build/src/game/generated directory
+08:15 <+bridge> [ddnet] <chillerdragon> Lmao fokko the Karen
+08:15 <+bridge> [ddnet] <chillerdragon> (@heinrich5991)
+08:15 <+bridge> [ddnet] <chillerdragon> I also like to ping deen \:)
+09:18 <+bridge> [ddnet] <Learath2> @Tater can't a malicious client just not send input so it gets to observe ping/20ms inputs before having to decide what it wants to do? By artificially inflating it's ping it gets to observe even more. I'll take a look at the talk but I have a feeling overwatch only gets to do this because they trust their client
+09:18 <+bridge> [ddnet] <Tater> no I think you're misunderstanding, also overwatch completely doesn't trust client
+09:18 <+bridge> [ddnet] <Tater> no I think you're misunderstanding, also overwatch doesn't trust client
+09:19 <+bridge> [ddnet] <Tater> the thing you get to "observe" is the client side prediction of the last server snap which is already how it works
+09:22 <+bridge> [ddnet] <Tater> if you send the server an input packet for a tick that the server has already passed then the server doesn't care it just ignores it
+09:22 <+bridge> [ddnet] <Tater> so it's not possible to abuse anything
+09:31 <+bridge> [ddnet] <Learath2> Hm, if you don't get the retroactively do inputs, how does it help?
+09:31 <+bridge> [ddnet] <heinrich5991> we send inputs for the future
+09:31 <+bridge> [ddnet] <Learath2> Actually nvm, I'll watch the talk over breakfast. I'm interested anyway
+09:31 <+bridge> [ddnet] <heinrich5991> they might get lost
+09:32 <+bridge> [ddnet] <heinrich5991> so you send them multiple times
+09:32 <+bridge> [ddnet] <heinrich5991> they might not get lost every time
+09:32 <+bridge> [ddnet] <Learath2> And we predict those?
+09:32 <+bridge> [ddnet] <heinrich5991> I think right now the client tells the server: "apply this input in tick x the earliest"
+09:37 <+bridge> [ddnet] <Tater> conceptually the way it works now is so close to the overwatch system but it's just poorly made, if ddnet the client detects a misprediction it increases prediction margin, dilates time, and starts producing inputs faster, the only difference is that it only accounts for packet delay not packet loss so even if the client is sending the server packets for 50 ticks ahead of the server tick but one of them gets dropped it will still be lost.
+09:38 <+bridge> [ddnet] <Tater> conceptually the way it works now is so close to the overwatch system but it's just poorly made, if ddnet client detects a misprediction it increases prediction margin, dilates time, and starts producing inputs faster, the only difference is that it only accounts for packet delay not packet loss so even if the client is sending the server packets for 50 ticks ahead of the server tick but one of them gets dropped it will still be lost.
+09:41 <+bridge> [ddnet] <Tater> conceptually the way it works now is so close to the overwatch system but it's just poorly made, if ddnet client detects a misprediction it increases prediction margin, contracts time, and starts producing inputs faster, the only difference is that it only accounts for packet delay not packet loss so even if the client is sending the server packets for 50 ticks ahead of the server tick but one of them gets dropped it will still be lost.
+09:41 <+bridge> [ddnet] <Tater> the way prediction margin is implemented right now already handles the "contract time" part
+10:20 <+bridge> [ddnet] <AssassinTee> it's hard to follow a conversation  that was a day ago. Currently I put the new particles in their own material-particles file. Are you talking about the ice flakes or other ice particle?
+10:20 <+bridge> [ddnet] <AssassinTee> it's hard to follow a conversation  that was a day ago. Currently I put the new particles in their own material-particles file. Are you talking about the ice skids or other ice particle?
+10:21 <+bridge> [ddnet] <AssassinTee> Or are you saying I should add materials to the extras tab? Sounds nice IG 🤔
+10:54 <+bridge> [ddnet] <WELLLL> M
+11:07 <+bridge> [ddnet] <Ryozuki> Pci-e 7 will be out on 2025
+11:07 <+bridge> [ddnet] <Ryozuki> https://www.nextplatform.com/2022/06/23/the-path-is-set-for-pci-express-7-0-in-2025/
+11:09 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/991631472635170877/unknown.png
+11:09 <+bridge> [ddnet] <Ryozuki> the jump is hilarious
+11:10 <+bridge> [ddnet] <deen> should be logarithmic scale, bandwidth doubles with each gen
+11:10 <+bridge> [ddnet] <c0d3d3v> It was not a very long conversation xD just my answer... 
+11:10 <+bridge> [ddnet] <c0d3d3v> I still do not know, what we should do. With the new HUD, we added now hud.png and extras.png. I'm thinking about just putting them together in one extras.png, that contains everything new our mod adds.
+11:10 <+bridge> [ddnet] <c0d3d3v> 
+11:10 <+bridge> [ddnet] <c0d3d3v> But I guess some of the materials and material particles, have to be made by ravie or someone of the teeworlds artist, so that it is in the teeworlds look anyway... so do not care about this now to much. 🙂
+11:11 <+bridge> [ddnet] <Ryozuki> > As far as we can tell, they did it, but we won’t know for sure until the first PCI-Express 6.0 devices hit the streets in maybe early 2023 to late 2024. It usually takes 12 months to 18 months for new devices supporting the spec to get into the field, but a lot depends on when the CPUs get each generation, since that drives the peripherals. The desire to move to CXL main memory is pretty strong, and that requires lots of bandwidth and l
+11:11 <+bridge> [ddnet] <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/991632056750714971/unknown.png
+11:14 <+bridge> [ddnet] <Ryozuki> > But assuming electrical signaling can keep moving ahead – it is a better than even assumption that it can – then PCI-Express 10.0 should be in products in 2035 or 2036 and should be driving 1 Tb/sec signaling lanes and 4 TB/sec across an x16 duplex slot in a server. If we even have a thing called a “server” then, that is. By then, a server might be an abstraction of interconnected components, with an interconnect hypervisor standi
+11:14 <+bridge> [ddnet] <Ryozuki> damn
+11:18 <+bridge> [ddnet] <AssassinTee> I actually asked @louis already for this and he doing great work! But I know he is busy and hasn't yet started with all particles. The only particles I currently have are the ice skids from zatline
+11:18 <+bridge> [ddnet] <AssassinTee> https://cdn.discordapp.com/attachments/293493549758939136/991633693162614835/material.png
+11:18 <+bridge> [ddnet] <AssassinTee> https://cdn.discordapp.com/attachments/293493549758939136/991633757142523995/material_particles.png
+11:20 <+bridge> [ddnet] <AssassinTee> I guess I am next to deliver! I have a branch with all planned materials working. Since this was a lot of trial and error I need to update my PRs in the future
+11:25 <+bridge> [ddnet] <c0d3d3v> @deen @heinrich5991  
+11:25 <+bridge> [ddnet] <c0d3d3v> So I think we agreed that the freezebar is final for 16.2.  Unaffected by all criticism.
+11:25 <+bridge> [ddnet] <c0d3d3v> 
+11:25 <+bridge> [ddnet] <c0d3d3v> But should I add client side notification, if some effect player effect (endless jump, no hit....) changed, or just reenable server messages?
+11:25 <+bridge> [ddnet] <c0d3d3v> Server messages could just reenabled in nightly so we would not need to push to 16.2.  And then we could work on the new animation, notification whatever for future version.
+11:27 <+bridge> [ddnet] <c0d3d3v> @deen @heinrich5991  
+11:27 <+bridge> [ddnet] <c0d3d3v> So I think we agreed that the freezebar is final for 16.2.  Unaffected by all criticism.
+11:27 <+bridge> [ddnet] <c0d3d3v> 
+11:27 <+bridge> [ddnet] <c0d3d3v> But should I add client side notification, if some effect player effect (endless jump, no hit....) changed, or just reenable server messages?
+11:27 <+bridge> [ddnet] <c0d3d3v> Server messages could just reenabled in nightly so we would not need to push to 16.2.  And then we could work on the new animation, notification whatever for future version. (or it could also be pushed to 16.2 since it is a small change, and then 16.2 server would also send them)
+11:27 <+bridge> [ddnet] <deen> Sounds ok to me. I guess if something like solo changes the icon in HUD should light up strongly for a moment so you notice it like the server message
+11:28 <+bridge> [ddnet] <Tater> I like that it makes a sound though
+11:28 <+bridge> [ddnet] <c0d3d3v> Is the ok for re-enabling server messages?
+11:29 <+bridge> [ddnet] <c0d3d3v> Then I make a PR for that
+11:30 <+bridge> [ddnet] <c0d3d3v> Is the ok for re-enabling server messages? @deen
+11:32 <+bridge> [ddnet] <deen> Yes
+11:33 <+bridge> [ddnet] <c0d3d3v> @deen @heinrich5991  
+11:33 <+bridge> [ddnet] <c0d3d3v> So I think we agreed that the freezebar is final for 16.2.  Unaffected by all criticism.
+11:33 <+bridge> [ddnet] <c0d3d3v> 
+11:33 <+bridge> [ddnet] <c0d3d3v> But should I add client side notification, if some effect player effect (endless jump, no hit....) changed, or just reenable server messages?
+11:33 <+bridge> [ddnet] <c0d3d3v> Server messages could just reenabled in nightly so we would not need to push to 16.2 (or it could also be pushed to 16.2 since it is a small change, and then 16.2 server would also send them).  And then we could work on the new animation, notification whatever for future version.
+12:17 <+bridge> [ddnet] <ReiTW> Rust is awesome
+12:18 <+bridge> [ddnet] <ReiTW> @Ryozuki I understand why ur so much in it, started & already love ti
+12:26 <+bridge> [ddnet] <Ryozuki> :TOOBASED:
+12:26 <+bridge> [ddnet] <Ryozuki> Nice
+14:31 <+bridge> [ddnet] <c0d3d3v> @deen  I hope the merge to 16.2-devel worked without concerning conflicts
+14:32 <+bridge> [ddnet] <deen> there was one conflict and I left out the 2 python changes about refactoring
+14:32 <+bridge> [ddnet] <deen> @c0d3d3v i guess i should wait for your other change before next rc
+14:32 <+bridge> [ddnet] <deen> feels like the most rcs we ever had 😄
+14:35 <+bridge> [ddnet] <c0d3d3v> ah you mean the one with the server messages. Sorry I'm just really got going, was a bit tired this morning. I can do this quickly. Is actually just remove all the version checks again. give me 5 min. if you want to wait for that
+14:38 <+bridge> [ddnet] <deen> no problem, just saying 😄
+14:55 <+bridge> [ddnet] <c0d3d3v> @deen ^
+15:04 <+bridge> [ddnet] <c0d3d3v> pff, somehow some new lines survived xD I thought I removed all...
+15:04 <+bridge> [ddnet] <c0d3d3v> pff, somehow some new empty lines survived xD I thought I removed all...
+15:06 <+bridge> [ddnet] <c0d3d3v> pff, somehow some blank lines survived xD I thought I removed all...
+15:07 <+bridge> [ddnet] <c0d3d3v> pff, somehow some blank lines survived xD I thought I removed all...
+15:26 <+bridge> [ddnet] <Chairn> oh god, deen ping incoming
+15:26 <+bridge> [ddnet] <Chairn> i see you @fokkonaut
+15:28 <+bridge> [ddnet] <fokkonaut> No, I wanted to ask for MrCosmos discord, then I remembered it is listed on the status.tw page where the master servers are listed, but his Discord doesnt seem to work anymore (`MrCosmo#1337`)
+15:31 <+bridge> [ddnet] <deen> @MrCosmo ^
+15:31 <+bridge> [ddnet] <fokkonaut> The fuck
+15:31 <+bridge> [ddnet] <deen> Maybe he just blocked you and that's why you can't @ him 😄
+15:31 <+bridge> [ddnet] <fokkonaut> I literally pressed send friend request and searched servers where I can ping him
+15:32 <+bridge> [ddnet] <fokkonaut> He didnt block me iirc, we had normal talks back then
+15:32 <+bridge> [ddnet] <fokkonaut> Nope, I can message him
+15:32 <+bridge> [ddnet] <fokkonaut> just discord being weird again
+15:33 <+bridge> [ddnet] <Chairn> maybe parenthesis (@fokkonaut)
+15:33 <+bridge> [ddnet] <Chairn> hum
+15:34 <+bridge> [ddnet] <Chairn> discord didn't proposed a list of name. I think you need a space between ( and @
+15:36 <+bridge> [ddnet] <fokkonaut> yea i have tried everything xd
+15:36 <+bridge> [ddnet] <fokkonaut> Discord is just buggy sometimes and doesnt show all users
+15:36 <+bridge> [ddnet] <fokkonaut> also in dms
+15:43 <+bridge> [ddnet] <cauldron> mobile app as well, asks me for "please do these steps before you can talk" again and again here
+16:06 <+bridge> [ddnet] <SPYRES> Very interesting. Thx for this.
+16:48 <+bridge> [ddnet] <Emanuel710> **RUST GIVEAWAY**
+16:49 <+bridge> [ddnet] <Emanuel710> Steam officialy sponsored one of the biggest Rust skins giveaway
+16:49 <+bridge> [ddnet] <Emanuel710> Hurry up and make sure to take part in this event! https://rustroulettes.com/steam
+16:49 <+bridge> [ddnet] <Emanuel710> The amount of free skins is limited, first come - first serve!
+16:49 <+bridge> [ddnet] <Emanuel710> Hurry up and get your prize!
+16:49 <+bridge> [ddnet] <Emanuel710> @everyone
+16:49 <+bridge> [ddnet] <k2d222> haha
+16:49 <+bridge> [ddnet] <Jupstar> we use javascript not rust so go away
+18:09 <+bridge> [ddnet] <Ryozuki> :justatest:
+18:11 <+bridge> [ddnet] <Jupstar> u need to read irc to understand xd
+18:14 <+bridge> [ddnet] <Chairn> no more irc bridge ?
+18:15 <+bridge> [ddnet] <Jupstar> its was some scam about free rust xd
+18:15 <+bridge> [ddnet] <Chairn> oh the game?
+18:16 <+bridge> [ddnet] <Chairn> i hesistate to open a painful discussion on github about supported targets
+18:18 <+bridge> [ddnet] <Jupstar> yeah he meant the game
+18:18 <+bridge> [ddnet] <Jupstar> but this is dev channel, so he meant language
+18:26 <+bridge> [ddnet] <Ravie> reworked snow particle, opinions?
+18:26 <+bridge> [ddnet] <Ravie> https://cdn.discordapp.com/attachments/293493549758939136/991741390449029171/unknown.png
+18:31 <+bridge> [ddnet] <BloodWod-513> Cool, but I think it's better for the snow stars to be away from the center, left and right of the body
+18:32 <+bridge> [ddnet] <Jupstar> particles arent the problem, but ninja skin doesnt fit
+18:34 <+bridge> [ddnet] <Ravie> skin is another topic, but I tried to make the snowflake look better at small scale
+18:35 <+bridge> [ddnet] <Jupstar> @deen someone requested to show also older years for player time, similar to github, 2022, 2021 etc 😄
+18:36 <+bridge> [ddnet] <Jupstar> dunno if that plugin supports it
+18:36 <+bridge> [ddnet] <BloodWod-513> you can leave the original skin, but as if in ice, or add ice to the current one from above?
+18:36 <+bridge> [ddnet] <Jupstar> yeah
+18:36 <+bridge> [ddnet] <Jupstar> could be cool xd
+19:07 <+bridge> [ddnet] <cauldron> just played and saw it, nice stars!
+19:07 <+bridge> [ddnet] <cauldron> https://cdn.discordapp.com/attachments/293493549758939136/991751698798354582/screenshot_2022-06-29_19-03-27.png
+19:08 <+bridge> [ddnet] <Ravie> the ones you have are the old ones, the reworked one is on the right in my image
+19:09 <+bridge> [ddnet] <cauldron> i don't care, both nice
+19:13 <+bridge> [ddnet] <cauldron> but this could be reworked as well 😅
+19:13 <+bridge> [ddnet] <cauldron> https://cdn.discordapp.com/attachments/293493549758939136/991753318365937735/movement_keys.png
+19:36 <+bridge> [ddnet] <deen> Can add this at some point. Right now we only started recording data in June of 2021 🙂
+19:37 <+bridge> [ddnet] <deen> I prefer the new ones
+19:38 <+bridge> [ddnet] <deen> @c0d3d3v In general I really appreciate the HUD changes, freeze bar and snow flakes. Starts to feel more like a proper game when we're not just abusing every old graphical element but implement our own 🙂
+19:54 <+bridge> [ddnet] <Chairn> hmm, jump state hud is a little weird for tutorial because you only have mainjump and no dj
+19:54 <+bridge> [ddnet] <Chairn> so i think we should differentiate both in hud
+19:54 <+bridge> [ddnet] <Chairn> hmm, jump state hud is a little weird/confusing for tutorial (at start) because you only have mainjump and no dj
+20:04 <+bridge> [ddnet] <Izanagi> my skin still isn't fixed
+20:05 <+bridge> [ddnet] <Ravie> what is wrong with it? I could reupload if there's a problem with the image
+20:05 <+bridge> [ddnet] <Izanagi> no my skin which is in the database isn't showing up ingame
+20:06 <+bridge> [ddnet] <Izanagi> some update broke it
+20:06 <+bridge> [ddnet] <Ravie> there has to be something wrong with the image if all other skins work
+20:07 <+bridge> [ddnet] <Izanagi> no the update just broke it
+20:07 <+bridge> [ddnet] <Izanagi> the devs know but idk how far they are with fixing it
+20:10 <+bridge> [ddnet] <Jupstar> well switch to stable for now, heinrich has to fix it
+20:11 <+bridge> [ddnet] <𝑻𝒂𝒉𝒂> https://www.aparat.com/v/dCUXq
+20:19 <+bridge> [ddnet] <Chairn> @Discord Mod ^
+20:26 <+bridge> [ddnet] <Ryozuki> damnm 7 rc
+20:26 <+bridge> [ddnet] <Ryozuki> we are like linux now
+20:26 <+bridge> [ddnet] <Ryozuki> well i think linux has 3
+20:31 <+bridge> [ddnet] <Chairn> what if they need more?
+20:40 <+bridge> [ddnet] <Learath2> mh, I guess this happened because we added features to the rc, rc is supposed to be a feature freeze
+20:43 <+bridge> [ddnet] <Voxel> Honestly I'm confused as to why the snow particle wasn't put in the effects.png. Sure there will be more effects soon, but it honestly feels a bit unoptimal right now.
+20:57 <+bridge> [ddnet] <deen> Yeah, basically I made the 16.2 cut too early, didn't realize we needed so many other HUD changes
+20:58 <+bridge> [ddnet] <deen> or HUD shouldn't have landed in half-finished state at all. master should always be in a state that allows cutting an RC from
+23:29 <+bridge> [ddnet] <c0d3d3v> I'm sorry about this.
+23:33 <+bridge> [ddnet] <trml> this would be super nice. also if you could compress the inputs a bit (maybe delta + tick difference) so you could send inputs for a whole second or two back to handle larger bursts if playing in solo/dummy. was thinking about this a long time ago, but never got around to it
+23:33 <+bridge> [ddnet] <c0d3d3v> @deen is it ok if we add the new texture "extras.png" from ravie to the 16.2 release 🙂 He really wants it. All other animation related changes ... will then not be part of 16.2
+23:34 <+bridge> [ddnet] <c0d3d3v> for the simplified snow flake
+23:35 <+bridge> [ddnet] <c0d3d3v> I will just make the PR... you can decide then 🙂

@@ -1,0 +1,329 @@
+00:11 <+bridge> [ddnet] <Chairn> is it possible that compiler may choose a value for enumeration?
+00:22 <+bridge> [ddnet] <Chairn> okay, i got a really weird bug
+00:22 <+bridge> [ddnet] <Chairn> i have an assertion to test if memory has been zeroed, it fails on clang, but not on gcc
+00:22 <+bridge> [ddnet] <Chairn> but when i look up the memory with gdb, it is 0
+00:29 <+bridge> [ddnet] <heinrich5991> smells like UB
+00:38 <+bridge> [ddnet] <Chairn> ```gdb
+00:38 <+bridge> [ddnet] <Chairn> (gdb) p *pCursor
+00:38 <+bridge> [ddnet] <Chairn> $9 = {m_Flags = 0, m_LineCount = 0, m_GlyphCount = 0, m_CharCount = 0, m_MaxLines = 0,
+00:38 <+bridge> [ddnet] <Chairn>   m_StartX = 0, m_StartY = 0, m_LineWidth = 0, m_X = 0, m_Y = 0, m_MaxCharacterHeight = 0,
+00:38 <+bridge> [ddnet] <Chairn>   m_LongestLineWidth = 0, m_pFont = 0x0, m_FontSize = 0, m_AlignedFontSize = 0,
+00:38 <+bridge> [ddnet] <Chairn>   m_CalculateSelectionMode = TEXT_CURSOR_SELECTION_MODE_NONE, m_PressMouseX = 0,
+00:38 <+bridge> [ddnet] <Chairn>   m_PressMouseY = 0, m_ReleaseMouseX = 0, m_ReleaseMouseY = 0, m_SelectionStart = 0,
+00:38 <+bridge> [ddnet] <Chairn>   m_SelectionEnd = 0, m_CursorMode = TEXT_CURSOR_CURSOR_MODE_NONE, m_CursorCharacter = 0}
+00:39 <+bridge> [ddnet] <Chairn> (gdb) x/26wx pCursor
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4ee0: 0x00000000      0x00000000      0x00000000      0x00000000
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4ef0: 0x00000000      0x00000000      0x00000000      0x00000000
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4f00: 0x00000000      0x00000000      0x00000000      0x00000000
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4f10: 0x00000000      0x00000000      0x00000000      0x00000000
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4f20: 0x00000000      0x00000000      0x00000000      0x00000000
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4f30: 0x00000000      0x00000000      0x00000000      0x00000000
+00:39 <+bridge> [ddnet] <Chairn> 0x7fffffff4f40: 0x00000000      0x04007fff
+00:39 <+bridge> [ddnet] <Chairn> ```
+00:39 <+bridge> [ddnet] <Chairn> this is beyond me
+00:42 <+bridge> [ddnet] <heinrich5991> `sizeof(*pCursor)`?
+00:43 <+bridge> [ddnet] <Chairn> 104
+00:43 <+bridge> [ddnet] <Chairn> which is actually weird given that i count 100 manually
+00:43 <+bridge> [ddnet] <heinrich5991> then there's probably padding?
+00:43 <+bridge> [ddnet] <Chairn> so i'd guess there's some extra data
+00:43 <+bridge> [ddnet] <heinrich5991> the last four bytes
+00:43 <+bridge> [ddnet] <heinrich5991> is there a `int64_t` in there?
+00:43 <+bridge> [ddnet] <Chairn> there's a pointer in the middle
+00:44 <+bridge> [ddnet] <heinrich5991> ah yea
+00:44 <+bridge> [ddnet] <heinrich5991> so the structure is padded to a multiple of 8 bytes
+00:44 <+bridge> [ddnet] <heinrich5991> 104 is divisible by 8
+00:46 <+bridge> [ddnet] <heinrich5991> @Chairn do you understand the problem now?
+00:47 <+bridge> [ddnet] <Chairn> yup
+00:47 <+bridge> [ddnet] <Chairn> looks like standard doesn't require padding to be initialized to 0
+00:47 <+bridge> [ddnet] <heinrich5991> no, padding is indeterminate
+00:47 <+bridge> [ddnet] <heinrich5991> and can change at any time
+00:53 <+bridge> [ddnet] <Chairn> `ptype /o var` shows padding in gdb
+01:08 <+bridge> [ddnet] <Chairn> >      If T is an non-union class type: 
+01:08 <+bridge> [ddnet] <Chairn> > 
+01:08 <+bridge> [ddnet] <Chairn> >         all padding bits are initialized to zero bits,
+01:08 <+bridge> [ddnet] <Chairn> hmm, clang not compliant with standard?
+01:08 <+bridge> [ddnet] <Chairn> <https://en.cppreference.com/w/cpp/language/zero_initialization>
+01:09 <+bridge> [ddnet] <Voxel> **HUGE** Update to this project! Fokkonaut cleaned up and polished the laser code so now that (with anti-ping on only right now), the lasers are differentiated by weapon and type! Huge shoutout to him!
+01:09 <+bridge> [ddnet] <Voxel> If we were to mainstream this into the actual game, it would require an update to the server to send over weapon/laser types. It's not perfect right now, but it's a very solid concept build.
+01:09 <+bridge> [ddnet] <Voxel> https://github.com/VoxelDoesCode/ddnet/tree/multicolored-lasers
+01:09 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728130887942144/unknown.png
+01:09 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728131240280124/unknown.png
+01:09 <+bridge> [ddnet] <Voxel> **HUGE** Update to this project! Fokkonaut cleaned up and polished the laser code so now that (with anti-ping off only right now), the lasers are differentiated by weapon and type! Huge shoutout to him!
+01:09 <+bridge> [ddnet] <Voxel> If we were to mainstream this into the actual game, it would require an update to the server to send over weapon/laser types. It's not perfect right now, but it's a very solid concept build.
+01:09 <+bridge> [ddnet] <Voxel> https://github.com/VoxelDoesCode/ddnet/tree/multicolored-lasers
+01:09 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728130887942144/unknown.png
+01:09 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728131240280124/unknown.png
+01:10 <+bridge> [ddnet] <Voxel> **HUGE** Update to this project! Fokkonaut cleaned up and polished the laser code so now that (with anti-ping **on** only right now), the lasers are differentiated by weapon and type! Huge shoutout to him!
+01:10 <+bridge> [ddnet] <Voxel> If we were to mainstream this into the actual game, it would require an update to the server to send over weapon/laser types. It's not perfect right now, but it's a very solid concept build.
+01:10 <+bridge> [ddnet] <Voxel> https://github.com/VoxelDoesCode/ddnet/tree/multicolored-lasers
+01:10 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728130887942144/unknown.png
+01:10 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728131240280124/unknown.png
+01:11 <+bridge> [ddnet] <Voxel> **HUGE** Update to this project! Fokkonaut cleaned up and polished the laser code so now that (with anti-ping **off** only right now), the lasers are differentiated by weapon and type! Huge shoutout to him!
+01:11 <+bridge> [ddnet] <Voxel> If we were to mainstream this into the actual game, it would require an update to the server to send over weapon/laser types. It's not perfect right now, but it's a very solid concept build.
+01:11 <+bridge> [ddnet] <Voxel> https://github.com/VoxelDoesCode/ddnet/tree/multicolored-lasers
+01:11 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728130887942144/unknown.png
+01:11 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998728131240280124/unknown.png
+01:12 <+bridge> [ddnet] <fokkonaut> Little correction: On an up-to-date server it works without antiping, but older servers fall back to the rifle laser color. If you use antiping on an older server it also shows the correct color :)
+01:12 <+bridge> [ddnet] <fokkonaut> Maybe nuborn can do something, that it predicts the laser color correctly when holding shotgun, we'll see
+01:13 <+bridge> [ddnet] <ᴿᵉˣᵉᴺ> Hello, can anyone talk to me about Client ID?
+01:13 <+bridge> [ddnet] <fokkonaut> Hello, yes
+01:21 <+bridge> [ddnet] <Chairn> why don't you PR it? It would be easier to discuss it there
+01:23 <+bridge> [ddnet] <Voxel> Pull Request to the main ddnet repo?
+01:23 <+bridge> [ddnet] <fokkonaut> Yes
+01:23 <+bridge> [ddnet] <fokkonaut> You can add commits later on, after the pull request is made already
+01:23 <+bridge> [ddnet] <Ravie> @fokkonaut can't wait for colored laser drawings on your server :justatest:
+01:23 <+bridge> [ddnet] <fokkonaut> <a:yeee:631547536288514051>
+01:24 <+bridge> [ddnet] <fokkonaut> Thought about that too already, but I can only let people choose color 1-4, cuz everyone can set their own colora
+01:24 <+bridge> [ddnet] <Learath2> the amount of knowledge by everyone in that question, wtf
+01:27 <+bridge> [ddnet] <Voxel> Let me just finalize the menu first, and then I'll PR
+01:27 <+bridge> [ddnet] <Voxel> (after supper)
+02:52 <+bridge> [ddnet] <Chairn> lol, nice github username
+02:53 <+bridge> [ddnet] <Voxel> thanks 😅
+03:31 <+bridge> [ddnet] <Voxel> i feel bad whenever i do an if else statement  in code, because of how infamous it has become with bad programmers
+03:40 <+bridge> [ddnet] <Chairn> whatN
+03:40 <+bridge> [ddnet] <Chairn> what?
+03:41 <+bridge> [ddnet] <Chairn> :what:
+03:42 <+bridge> [ddnet] <Voxel> i dont know, i guess its just a self conscious thought that if i put an if else statement in a piece of code im going to be called yanderedev
+03:43 <+bridge> [ddnet] <Voxel> (it works, i tested it)
+03:43 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998767111222607872/unknown.png
+03:44 <+bridge> [ddnet] <Chairn> i don't know what's a yanderedev, but why would oyu be called names for using correct logic?
+03:46 <+bridge> [ddnet] <louis> lol thats only if its
+03:46 <+bridge> [ddnet] <louis> ```
+03:46 <+bridge> [ddnet] <louis> if condition:
+03:46 <+bridge> [ddnet] <louis>   do this
+03:46 <+bridge> [ddnet] <louis> else if condition2:
+03:46 <+bridge> [ddnet] <louis>   do this
+03:46 <+bridge> [ddnet] <louis> else if condition3:
+03:46 <+bridge> [ddnet] <louis>   .
+03:46 <+bridge> [ddnet] <louis>   .
+03:46 <+bridge> [ddnet] <louis>   .
+03:46 <+bridge> [ddnet] <louis> else if condition36:
+03:46 <+bridge> [ddnet] <louis>   do this
+03:46 <+bridge> [ddnet] <louis> ```
+03:46 <+bridge> [ddnet] <louis> lol thats only if its
+03:46 <+bridge> [ddnet] <louis> ```py
+03:46 <+bridge> [ddnet] <louis> if condition:
+03:46 <+bridge> [ddnet] <louis>   do this
+03:46 <+bridge> [ddnet] <louis> else if condition2:
+03:46 <+bridge> [ddnet] <louis>   do this
+03:46 <+bridge> [ddnet] <louis> else if condition3:
+03:46 <+bridge> [ddnet] <louis>   .
+03:46 <+bridge> [ddnet] <louis>   .
+03:46 <+bridge> [ddnet] <louis>   .
+03:46 <+bridge> [ddnet] <louis> else if condition36:
+03:46 <+bridge> [ddnet] <louis>   do this
+03:46 <+bridge> [ddnet] <louis> ```
+03:47 <+bridge> [ddnet] <Voxel> i guess im just nervous to finally be programming around people who've been doing it for a decade plus
+03:47 <+bridge> [ddnet] <louis> its ok most the devs are new too plus things get reviewed
+03:51 <+bridge> [ddnet] <louis> @Voxel btw what is that conditional for?
+03:51 <+bridge> [ddnet] <louis> https://cdn.discordapp.com/attachments/293493549758939136/998769010554441748/unknown.png
+03:51 <+bridge> [ddnet] <louis> shouldnt it be && or am i misunderstanding
+03:52 <+bridge> [ddnet] <Voxel> oops
+03:52 <+bridge> [ddnet] <Chairn> ah yup, that condition is always true ^^
+03:52 <+bridge> [ddnet] <Voxel> :justatest:
+03:53 <+bridge> [ddnet] <Chairn> given the code shown here, i think a switch would be better
+03:54 <+bridge> [ddnet] <Chairn> or not, some code path are completely exclusive
+03:54 <+bridge> [ddnet] <Voxel> thing is, if it was a switch there would be a lot more copied code
+03:54 <+bridge> [ddnet] <Chairn> but i think compiler would merge code path on itself
+03:54 <+bridge> [ddnet] <louis> im not sure about conventions but i think readability is prioritized
+03:55 <+bridge> [ddnet] <Voxel> i'll change it to switch
+03:58 <+bridge> [ddnet] <Chairn> Don't forget to use the same enumeration value from <https://github.com/ddnet/ddnet/pull/5639/commits/636ea4a3f04fcd9393b6a6601921576291950095#diff-e195619de6313551c4860509fac98e9002a0e1bc76c465784eb111cbf24bc5cdR251>
+04:07 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998773167420080138/unknown.png
+04:08 <+bridge> [ddnet] <Voxel> wait i dont think i did it right
+04:08 <+bridge> [ddnet] <Voxel> How do I call over the enums properly?
+04:09 <+bridge> [ddnet] <Chairn> you need to use pointer to variable of type CLaserData, not the class directly
+04:09 <+bridge> [ddnet] <Chairn> and for the enums, you probably need to include protocol.h
+04:34 <+bridge> [ddnet] <Voxel> what the
+04:34 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998779938243088414/unknown.png
+04:35 <+bridge> [ddnet] <Voxel> did the lasertype enum just delete itself?!
+04:36 <+bridge> [ddnet] <Chairn> probably not
+04:36 <+bridge> [ddnet] <Voxel> or maybe im just looking in the wrong place
+04:36 <+bridge> [ddnet] <Voxel> @_@
+04:36 <+bridge> [ddnet] <Chairn> are you sure you included the correct files?
+04:37 <+bridge> [ddnet] <Chairn> like you're trying to access a pointer to CNetObj_EntityEx without having the class definition
+04:37 <+bridge> [ddnet] <Voxel> there's an enum in network.py
+04:37 <+bridge> [ddnet] <Chairn> just the forward declaration
+04:47 <+bridge> [ddnet] <Voxel> The thing it it was just fine an hour ago, and now it doesn't even build corrently
+04:47 <+bridge> [ddnet] <Voxel> The thing is it was just fine an hour ago, and now it doesn't even build corrently
+04:49 <+bridge> [ddnet] <Voxel> i dont even know what happened-- what got deleted and undefined the whole load of lasertypes?
+04:49 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998783639863177246/unknown.png
+04:50 <+bridge> [ddnet] <Voxel> or maybe it was always like this,
+04:57 <+bridge> [ddnet] <Voxel> i dont get it.. it didnt have an issue last time i tested this
+04:57 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998785708162560021/unknown.png
+04:58 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998785836709585028/unknown.png
+05:08 <+bridge> [ddnet] <Tater> sometimes visual studio will freak out and tell you that you have errors which don't exist and you need to restart it. but usually it will still build when that's the case
+05:09 <+bridge> [ddnet] <Chairn> did you include protocol.h?
+05:10 <+bridge> [ddnet] <Chairn> you can also try to copy the include from items.cpp which seems to be working and then remove them one by one to find the one you need
+05:30 <+bridge> [ddnet] <Chairn> otherwise, you can save your work with `git stash` to go back to safe state
+05:35 <+bridge> [ddnet] <Voxel> yes
+05:35 <+bridge> [ddnet] <Voxel> yes
+05:40 <+bridge> [ddnet] <Voxel> the enum's in the x64 release protocol.h
+05:50 <+bridge> [ddnet] <Voxel> i think im going to take a break from this for today
+05:54 <+bridge> [ddnet] <Voxel> if you click yes it does run and everything acts natural, though it's confusing why none of the programs recognize the enum in program
+06:03 <+bridge> [ddnet] <Mʎɹ シ> I have 2-3 incomplete gamemode with error like this, it can be bad generating, project include
+08:18 <+bridge> [ddnet] <fokkonaut> @Voxel 1st rule: dont look at all the errors visual studio give u xddd
+08:20 <+bridge> [ddnet] <Voxel> :monkalaugh:
+08:20 <+bridge> [ddnet] <fokkonaut> its a python file, it is to generate protocol.h for example.
+08:21 <+bridge> [ddnet] <Voxel> yea
+08:21 <+bridge> [ddnet] <fokkonaut> You can still b
+08:21 <+bridge> [ddnet] <fokkonaut> not build?
+08:21 <+bridge> [ddnet] <fokkonaut> You can still not build?
+08:24 <+bridge> [ddnet] <Voxel> it says "build failed" but if i click yes, it works as intended
+08:24 <+bridge> [ddnet] <fokkonaut> I think it takes an old build, not the current one
+08:24 <+bridge> [ddnet] <Voxel> rip
+08:25 <+bridge> [ddnet] <fokkonaut> Can you show the errors?
+08:25 <+bridge> [ddnet] <Voxel> the errors are all  to the enum
+08:25 <+bridge> [ddnet] <Voxel> the errors are all related to the enum
+08:26 <+bridge> [ddnet] <fokkonaut> Thats probably visual studio not recognizing it, because its in a generated file, that can happen sometimes.
+08:26 <+bridge> [ddnet] <fokkonaut> Look for other errors
+08:26 <+bridge> [ddnet] <fokkonaut> Errors that are in files you modified and that include things you made
+08:27 <+bridge> [ddnet] <fokkonaut> Solving 1-2 mostly solves the others, as they are just VS bugging out
+08:28 <+bridge> [ddnet] <fokkonaut> You see that here: It says they are not recognized, but they actually are, or once the build would be successful, they suddenly spawn in again
+08:31 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998839502560833546/unknown.png
+08:31 <+bridge> [ddnet] <Voxel> all 80 errors are in items.cpp
+08:34 <+bridge> [ddnet] <fokkonaut> Ok, stay in that file and try to build again
+08:34 <+bridge> [ddnet] <fokkonaut> Then look at the errors again/look at the code you wrote
+08:35 <+bridge> [ddnet] <Voxel> okay, the build failed. i have 62 errors but i cant scroll through them because windows wont let me until i do something with the popup
+08:35 <+bridge> [ddnet] <fokkonaut> You cant click it?
+08:36 <+bridge> [ddnet] <fokkonaut> Or click the top bar of it?
+08:36 <+bridge> [ddnet] <Voxel> i cant click anything in the main vs page until i click one of these popup buttons LOL
+08:37 <+bridge> [ddnet] <fokkonaut> Yea thats to be expected
+08:37 <+bridge> [ddnet] <fokkonaut> click no i think
+08:42 <+bridge> [ddnet] <Voxel> a lot of them are related to m_pClient or pCurrent
+08:42 <+bridge> [ddnet] <fokkonaut> Can you show some
+08:44 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998842766165540925/unknown.png
+08:44 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998842766526255135/unknown.png
+08:45 <+bridge> [ddnet] <fokkonaut> Okay thats the same thing, they are also generated to visual studio doesnt recognize them
+08:45 <+bridge> [ddnet] <fokkonaut> Dont worry about those for now
+08:46 <+bridge> [ddnet] <bluesky> you might got a real bug beside all the "pointer to incomplete class" messages and thats why you cant build
+08:46 <+bridge> [ddnet] <fokkonaut> Yea, he does
+08:46 <+bridge> [ddnet] <fokkonaut> Be he has to find it
+08:46 <+bridge> [ddnet] <fokkonaut> Between all this garbage
+08:46 <+bridge> [ddnet] <fokkonaut> :D
+08:46 <+bridge> [ddnet] <bluesky> ye, just take a look at your last changes xD
+08:47 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998843412507791361/unknown.png
+08:48 <+bridge> [ddnet] <fokkonaut> It says that cuz it doesnt recognize the enum entry
+08:48 <+bridge> [ddnet] <fokkonaut> Dont worry
+08:48 <+bridge> [ddnet] <bluesky> @fokkonaut  do we still have to guaran'tee' seven support in new PR's?
+08:48 <+bridge> [ddnet] <fokkonaut> No, of course not
+08:48 <+bridge> [ddnet] <bluesky> thank good
+08:48 <+bridge> [ddnet] <Voxel> i'm still looking :(
+08:48 <+bridge> [ddnet] <fokkonaut> clientside changes are only for ddnet clients
+08:48 <+bridge> [ddnet] <fokkonaut> or what do you mean?
+08:48 <+bridge> [ddnet] <fokkonaut> Oh
+08:49 <+bridge> [ddnet] <fokkonaut> Well, yes you have to guarantee it works and doesnt break
+08:49 <+bridge> [ddnet] <bluesky> i mean the whole ToSixup  stuff
+08:49 <+bridge> [ddnet] <fokkonaut> Yea ofc
+08:49 <+bridge> [ddnet] <bluesky> people should know about ddnet by now and just download it
+08:49 <+bridge> [ddnet] <Voxel> all of the errors are just "this is imcomplete" or stuff like that
+08:49 <+bridge> [ddnet] <fokkonaut> Can you try to click on "Project" -> Generate Cache
+08:49 <+bridge> [ddnet] <bluesky> praise teeworlds and everything but its not continued
+08:50 <+bridge> [ddnet] <bluesky> praise teeworlds and everything but ddrace is the future
+08:50 <+bridge> [ddnet] <fokkonaut> There is an issue on whether support for vanilla should be cancelled.
+08:50 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998844313079386132/unknown.png
+08:51 <+bridge> [ddnet] <bluesky> Delete Cache and Reconfigure
+08:51 <+bridge> [ddnet] <bluesky> Or just rebuild everything
+08:56 <+bridge> [ddnet] <Voxel> `fucking kill me`
+08:56 <+bridge> [ddnet] <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/998845823741861988/unknown.png
+08:58 <+bridge> [ddnet] <Voxel> **yep it works now**
+08:59 <+bridge> [ddnet] <fokkonaut> <a:danceclown:773516781158662144>
+08:59 <+bridge> [ddnet] <bluesky> can you link it please
+08:59 <+bridge> [ddnet] <fokkonaut> I dont have it
+08:59 <+bridge> [ddnet] <fokkonaut> but u should be able to find it
+09:00 <+bridge> [ddnet] <fokkonaut> @Voxel classic :D
+09:01 <+bridge> [ddnet] <Voxel> it was located in the switch case i just added too
+09:02 <+bridge> [ddnet] <fokkonaut> xddd
+09:53 <+bridge> [ddnet] <heinrich5991> https://github.com/ddnet/ddnet/issues/5041
+10:07 <+ChillerDragon> @heinrich5991 any idea what this could be about? https://github.com/DDNetPP/DDNetPP/issues/346 it is probably a ddnet++ issue but i did not edit the http or job pool as far as i know
+10:10 <+bridge> [ddnet] <fokkonaut> everything in that mod is broken...
+10:10 <+bridge> [ddnet] <fokkonaut> xd
+10:17 <+bridge> [ddnet] <bluesky> whats ddnet++ now
+10:18 <+bridge> [ddnet] <heinrich5991> it's a mod by chillerdragon
+10:18 <+bridge> [ddnet] <bluesky> what can it do
+10:18 <+ChillerDragon> crash
+10:20 <+bridge> [ddnet] <bluesky> xD
+10:20 <+bridge> [ddnet] <fokkonaut> @heinrich5991 thanks for deleting my message btw wtf?
+11:45 <+bridge> [ddnet] <ReiTW> @heinrich5991 @Ryozuki https://blog.cloudflare.com/a-story-about-af-xdp-network-namespaces-and-a-cookie/
+11:45 <+bridge> [ddnet] <ReiTW> Rust ! And they talk about AF_XDP which is damn interesting type of socket
+11:46 <+bridge> [ddnet] <ReiTW> ow there's C too
+11:47 <+bridge> [ddnet] <Ryozuki> Pog
+11:47 <+bridge> [ddnet] <ReiTW> cloudflare's blogs are always hq
+15:54 <+bridge> [ddnet] <destroyed230> how to make bind for dummy deep fly that can switch normal mode and dummy deep fly with only one button?
+15:55 <+bridge> [ddnet] <bencie> https://cdn.discordapp.com/attachments/293493549758939136/998951179482562560/deepfly_switch.txt
+15:55 <+bridge> [ddnet] <bencie> ^ drag into `%appdata%\teeworlds
+15:55 <+bridge> [ddnet] <bencie> f1 -> exec deepfly_switch.txt
+15:55 <+bridge> [ddnet] <bencie> ^ drag into `%appdata%\teeworlds`
+15:55 <+bridge> [ddnet] <bencie> f1 -> exec deepfly_switch.txt
+15:56 <+bridge> [ddnet] <destroyed230> yes, it works for me but i tried to help my friend with it
+15:56 <+bridge> [ddnet] <destroyed230> he has new version
+15:56 <+ChillerDragon> asking for a friend
+15:58 <+bridge> [ddnet] <Anime.pdf> @Ryozuki hello rustacean, can you briefly explain why this code wont work? 🥺👉👈
+15:58 <+bridge> [ddnet] <Anime.pdf> 
+15:58 <+bridge> [ddnet] <Anime.pdf> The error is 
+15:58 <+bridge> [ddnet] <Anime.pdf> ```log 
+15:58 <+bridge> [ddnet] <Anime.pdf> error[E0499]: cannot borrow s as mutable more than once at a time
+15:58 <+bridge> [ddnet] <Anime.pdf>   --> src/main.rs:7:18
+15:58 <+bridge> [ddnet] <Anime.pdf>    |
+15:58 <+bridge> [ddnet] <Anime.pdf> 4  |     let s1 = &mut s;
+15:58 <+bridge> [ddnet] <Anime.pdf>    |              ------ first mutable borrow occurs here
+15:58 <+bridge> [ddnet] <Anime.pdf> ...
+15:58 <+bridge> [ddnet] <Anime.pdf> 7  |         let s2 = &mut s;
+15:58 <+bridge> [ddnet] <Anime.pdf>    |                  ^^^^^^ second mutable borrow occurs here
+15:58 <+bridge> [ddnet] <Anime.pdf> ...
+15:58 <+bridge> [ddnet] <Anime.pdf> 11 |     println!("{} {}", s1, s1);
+15:58 <+bridge> [ddnet] <Anime.pdf>    |                       -- first borrow later used here
+15:58 <+bridge> [ddnet] <Anime.pdf> 
+15:58 <+bridge> [ddnet] <Anime.pdf> For more information about this error, try rustc --explain E0499.
+15:58 <+bridge> [ddnet] <Anime.pdf> ```
+15:58 <+bridge> [ddnet] <Anime.pdf> But s2 goes out of the scope before i use s1, whats wrong?
+15:58 <+bridge> [ddnet] <Anime.pdf> https://cdn.discordapp.com/attachments/293493549758939136/998951920876126298/IMG_20220719_165141_723.jpg
+15:58 <+bridge> [ddnet] <heinrich5991> declare it afterwards
+15:59 <+bridge> [ddnet] <heinrich5991> only one mutable reference may be live at the same time
+16:00 <+bridge> [ddnet] <Anime.pdf> meh okay
+16:01 <+bridge> [ddnet] <heinrich5991> this e.g. ensures that in the presence of multiple threads, only one thread can have a mutable reference to data
+16:03 <+bridge> [ddnet] <Learath2> Also none of those references need to be mut to begin with, you aren't mutating through them :P
+16:04 <+bridge> [ddnet] <Anime.pdf> That was just a test 😁
+16:05 <+bridge> [ddnet] <heinrich5991> if you give something more real-world-y, we might be able to suggest a replacement
+16:06 <+bridge> [ddnet] <Anime.pdf> Sure, as soon as i would be doing something not ... test 🧐
+16:06 <+bridge> [ddnet] <Anime.pdf> But thanks
+16:07 <+bridge> [ddnet] <Learath2> @heinrich5991 did I ever ask you to take a look at @DDNet? I really want to get back to it but I'm still very undecided on the modules, feels way too static
+16:08 <+bridge> [ddnet] <Learath2> I really wanted something like a central registery of commands instead of passing all messages to all modules, but asynchronous callbacks are so hard to work with
+16:08 <+bridge> [ddnet] <heinrich5991> you have not (that I remember)
+16:08 <+bridge> [ddnet] <heinrich5991> link?
+16:09 <+bridge> [ddnet] <heinrich5991> (also, I'm unexperienced with rust async stuff)
+16:09 <+bridge> [ddnet] <Learath2> https://github.com/Learath2/discordbot
+16:10 <+bridge> [ddnet] <Learath2> The configuration through environment variables isn't very pleasent either, I'll probably move to something like ini or json or toml
+16:20 <+bridge> [ddnet] <Ryozuki> hmm
+16:21 <+bridge> [ddnet] <Ryozuki> true i would only use env vars for secrets
+16:21 <+bridge> [ddnet] <Ryozuki> @Learath2 https://crates.io/crates/config
+16:21 <+bridge> [ddnet] <Ryozuki> i recommend this crate
+16:21 <+bridge> [ddnet] <Ryozuki> i used it before
+16:22 <+bridge> [ddnet] <Ryozuki> and imho toml is the most readable
+16:22 <+bridge> [ddnet] <Ryozuki> and simple
+16:22 <+bridge> [ddnet] <Ryozuki> ill look into ur bot
+16:23 <+bridge> [ddnet] <heinrich5991> @Learath2 would taking a closure returning a `Box<Future>` work for the command registry?
+16:25 <+bridge> [ddnet] <Learath2> Yeah, you need something along those lines like, been a while since I looked at it but this is about what I had `for<'f> fn(&'f ctx, &'f msg, &'f args) -> Pin<Box<dyn Future<Output=CommandResult> + Send + 'f>>`
+16:26 <+bridge> [ddnet] <heinrich5991> that sounds horribly long but about right 😮
+16:26 <+bridge> [ddnet] <Learath2> The problem was lifetimes, the context of the command needs to just outlast the callback, but I couldn’t for the life of me get it to take anything that’s not static lifetime
+16:26 <+bridge> [ddnet] <Chairn> and i thought people wanted more expressive/human language
+16:26 <+bridge> [ddnet] <Chairn> that looks even worse than c++ template 😄
+16:27 <+bridge> [ddnet] <heinrich5991> (we don't do async stuff in c++ to be fair, no idea how that looks like)
+16:27 <+bridge> [ddnet] <Learath2> This is an edge case where the rust syntax fails imo, in regular usage it’s much more pleasant than C++
+16:28 <+bridge> [ddnet] <Learath2> It looks much better since you don’t have to spend characters convincing the compiler. However the burden of making sure things live long enough is then upon the coder
+16:28 <+bridge> [ddnet] <Ryozuki> > for<'a> can be read as "for all choices of 'a", and basically produces an infinite list of trait bounds that F must satisfy. Intense. There aren't many places outside of the Fn traits where we encounter HRTBs, and even for those we have a nice magic sugar for the common cases.
+16:28 <+bridge> [ddnet] <Ryozuki> https://doc.rust-lang.org/nomicon/hrtb.html
+16:31 <+bridge> [ddnet] <Ryozuki> why not make a general command trait with an async function and each command is a struct that implements that trait and then u save it on a vector of those traits?
+16:32 <+bridge> [ddnet] <Ryozuki> https://docs.rs/async-trait/0.1.56/async_trait/
+16:32 <+bridge> [ddnet] <Learath2> I can give it a try, with async_trait I think I could make it work
+16:34 <+bridge> [ddnet] <Ryozuki> also if you wanna be database agnostic
+16:34 <+bridge> [ddnet] <Ryozuki> i recommend this https://github.com/SeaQL/sea-orm
+16:34 <+bridge> [ddnet] <Ryozuki> its a orm tho
+16:34 <+bridge> [ddnet] <Ryozuki> but yeah
+16:34 <+bridge> [ddnet] <Ryozuki> its built on top of sqlx
+16:35 <+bridge> [ddnet] <Ryozuki> it uses this https://github.com/SeaQL/sea-query
+16:39 <+bridge> [ddnet] <Ryozuki> i kind of did this pattern when making the paypal api, i made a endpoint trait <https://github.com/edg-l/paypal-rs/blob/master/src/endpoint.rs> and then the api endpoints are structs that implement it, this way it also gives the end user the ability to make endpoints that may not yet be implemented, and the api client can execute any struct that impls Endpoint <https://github.com/edg-l/paypal-rs/blob/master/src/api/orders.rs>
+16:40 <+bridge> [ddnet] <Ryozuki> kinda proud of this xd
+23:01 <+bridge> [ddnet] <toniclass> Now is your Bitcoin wallet or coinbase 0.00000 I promise 0.80500 in less than 24 hours without sending money to anyone. Earn 0.764 in 7hours, No referrals, No Ads, No scams. Ask how(me) 
+23:01 <+bridge> [ddnet] <toniclass> 
+23:01 <+bridge> [ddnet] <toniclass> 
+23:01 <+bridge> [ddnet] <toniclass> Or join https://t.me/+JdEg2rIn7E0wZDFk
