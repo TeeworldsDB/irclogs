@@ -1,0 +1,553 @@
+08:18 <+bridge> <Ewan> any reason ddnet doesn't use submodules on a per-dependency basis?
+08:36 <+bridge> <Ryozuki> Why should it
+09:00 <+bridge> <Ewan> For one, if in the future this dependency repo doesn't exist, you won't be able to fetch them & will have to have them installed
+09:00 <+bridge> <Ewan> And it's just another link in the potential chain of failure, and I'm not sure what the benefit of having them in their own repo is other than observed tidiness
+09:00 <+bridge> <Ewan> If you need a particular configuration of snapshot commits in each submodule, I'm not sure why you can't just do that with each commit in the ddnet repo
+09:00 <+bridge> <Jupstar ✪> It would be more useful to use cmake sub directories
+09:00 <+bridge> <Jupstar ✪> So it Auto compiles the dependencies
+09:00 <+bridge> <Ewan> I didn't realize it doesn't do that already. But that's not strictly related to how they're fetched
+09:00 <+bridge> <Ewan> Just having a deps subdir or something makes more sense, in my opinion
+09:01 <+bridge> <Ryozuki> our dependencies are handled by package managers like apt
+09:01 <+bridge> <Ryozuki> i doubt they would disappear, they are not on a github repo
+09:01 <+bridge> <Ryozuki> actually, i would be more worried about github disappearing
+09:02 <+bridge> <Jupstar ✪> Anyway I don't see the breaking thing u mention. Old versions have old submodule commits
+09:02 <+bridge> <Ewan> I suppose this is something you couldn't do without having it the way it is now
+09:02 <+bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1065541720235851786/image.png
+09:02 <+bridge> <Jupstar ✪> Ah yeah SDL is always fun on windows and macos
+09:03 <+bridge> <Ewan> this is my q answered then
+09:04 <+bridge> <Ewan> i was just thinking about how I would have done it; by getting the deps directly in their own submodules
+09:04 <+bridge> <Ewan> and i doubt having them in their own repo was the first choice/how it was from the start. there was probably something that made this necessary, right?
+09:05 <+bridge> <Jupstar ✪> I think the best is to use a packet manager. There is for example vcpkg  
+09:05 <+bridge> <Jupstar ✪> https://vcpkg.io/en/index.html
+09:05 <+bridge> <Jupstar ✪> Or Conan but I dunno
+09:12 <+bridge> <Ewan> If that's the case, I would be kind of concerned
+09:12 <+bridge> <Ewan> - Releases of libraries that get published to package managers are more second-class instances than those on the upstream repo's main branch, which (if the library has competent maintainers) shouldn't break. Just because they are less common
+09:12 <+bridge> <Ewan> - Releases of libraries that get published to package managers may be much more prone to disappear or stop being maintained, because often times the demand isn't high enough or such deployment is handled by a third party
+09:12 <+bridge> <Ewan> - A break in your package-fetching CI or the package's local install scripts, or the package manager itself leaves you open to problems where submodules are more sound -- not perfect, but less prone to disappearance at any given moment
+09:12 <+bridge> <Ewan> And if you're using a library that doesn't have a git instance somewhere (GH or GitLab), either host it yourself or find something more modern/better maintained 😃
+09:13 <+bridge> <Ewan> In current year that's pretty much a necessity
+09:14 <+bridge> <Ewan> I'm pretty much positive everything here has an official repository
+09:14 <+bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1065544668194017350/image.png
+09:14 <+bridge> <Ewan> Build steps are trivial
+09:16 <+bridge> <Jupstar ✪> Anyway. U'll need to accept almost all devs here are Linux devs and simply use the os package manager
+09:16 <+bridge> <Ewan> Yeah fair enough
+09:16 <+bridge> <Ewan> Depending on system local libs is good practice if a solution like what you have in place is around
+09:16 <+bridge> <Ewan> I just wonder why it's been executed this way...
+09:17 <+bridge> <Jupstar ✪> Probably BCS teeworlds did it like this
+09:17 <+bridge> <Jupstar ✪> And the code base is over 13 years old
+09:17 <+bridge> <Ewan> Well that would have been a good answer from the start xD
+09:20 <+bridge> <Jupstar ✪> Good thing is, we added rust support which comes with cargo. Which handles dependencies cleanly
+09:20 <+bridge> <Ewan> Yeah... rust dependencies, maybe
+09:20 <+bridge> <Jupstar ✪> So maybe it changes in future anyway
+09:34 <+bridge> <heinrich5991> it's to not baloon the size of the ddnet repo
+09:35 <+bridge> <heinrich5991> it's to not balloon the size of the ddnet repo
+09:36 <+bridge> <heinrich5991> discord likely doesn't. sqlite3 doesn't want to be compiled from the repo. curl likely has one, not sure if they want to be compiled from the repo. rest I don't know about
+10:10 <+bridge> <Jupstar ✪> They don't want to be compiled from repo? That sounds kinda stupid xd
+10:11 <+bridge> <Jupstar ✪> Is our SQLite built not self built?
+10:13 <+bridge> <heinrich5991> but from a release, I'd hope
+10:14 <+bridge> <heinrich5991> https://sqlite.org/howtocompile.html
+10:14 <+bridge> <heinrich5991> > Building SQLite directly from individual source code files is certainly possible, but it is not recommended. For some specialized applications, it might be necessary to modify the build process in ways that cannot be done using just the prebuilt amalgamation source file downloaded from the website. For those situations, it is recommended that a customized amalgamation be built (as described below) and used. In other words, even if a project 
+10:14 <+bridge> <heinrich5991> > The use of the amalgamation is recommended for all applications. 
+10:14 <+bridge> <heinrich5991> > 
+10:14 <+bridge> <heinrich5991> > Building SQLite directly from individual source code files is certainly possible, but it is not recommended. For some specialized applications, it might be necessary to modify the build process in ways that cannot be done using just the prebuilt amalgamation source file downloaded from the website. For those situations, it is recommended that a customized amalgamation be built (as described below) and used. In other words, even if a project 
+10:19 <+bridge> <Jupstar ✪> Mh ok. SQLite is weird anyway
+10:26 <+bridge> <Learath2> Repo size
+10:26 <+bridge> <Ewan> Submodules
+10:27 <+bridge> <Learath2> Ah heinrich answered before me
+10:29 <+bridge> <Learath2> Hm, isn't that what we did?
+10:29 <+bridge> <Ewan> My question was more why they’re not in their own submodules
+10:31 <+bridge> <Learath2> You mean 1 per dependency? I guess we didn't really see a benefit to it
+10:31 <+bridge> <Ewan> Yeah. I was told that’s how it was done in teeworlds
+10:32 <+bridge> <Learath2> We don't mind straying from tw in those kinds of things, if we'd seen a reason to do that we would have I think
+10:32 <+bridge> <Learath2> Why do you think it'd be better to have them in separate repos?
+10:34 <+bridge> <Ewan> I explained a fair amount above. If you’re interested you can scroll, it’s not too far
+10:36 <+bridge> <DefaultO> I think main reason Ewan pointed out was those modules going extinct
+10:36 <+bridge> <Learath2> If 1 repo with all dependencies can disappear, so can more than one. I don't see why amount of repos changes anything.
+10:36 <+bridge> <DefaultO> I think main reason Ewan pointed out was those modules going extinct and being less stable than if they would be taken from a repository.
+10:38 <+bridge> <Learath2> Or maybe you mean have their entire sources instead of built dependencies?
+10:39 <+bridge> <Ewan> Yeah, but that’s not entirely feasible with the discord/curl/sqlite developments
+10:39 <+bridge> <Ewan> But, some prebuilts is better than all, IMO
+10:41 <+bridge> <Learath2> I guess that is doable, we do already build some of these on our own
+10:47 <+bridge> <Ewan> I’d be happy to stage some changes
+10:48 <+bridge> <DefaultO> >DDNet will outlive curl & sqlite
+10:49 <+bridge> <Ewan> Huh?
+10:49 <+bridge> <DefaultO> Isn't that why you want them to build it themself?
+10:50 <+bridge> <DefaultO> Because I don't know how this world works. But their repos and modules will exist for a long time. No reason to delete it as long people use it.
+10:50 <+bridge> <DefaultO> Because I don't know how this world works. But their repos and modules will exist for a long time. No reason for them to delete it as long people use it.
+10:51 <+bridge> <Ewan> Building with dependency sources vs. dynamic libs can decrease package size with LTOs. My point wasn’t that the libraries would croak, but the ways they’re deployed & used by ddnet
+11:01 <+bridge> <Learath2> I wouldn't start anything without getting some agreement in place. We have many scripts building stuff that'd need changing. If linkage is changing we have some interesting linking quirks (like the curl stub). Our CI times(or build times in general) are also a concern, so some sort of prebuilt dependency will need to be there. We have a flatpak release that'll need those too
+11:02 <+bridge> <Learath2> It's not a trivial task and I wouldn't want you to waste your time just for something that would be rejected
+11:02 <+bridge> <Ewan> Right
+11:03 <+bridge> <Ewan> CI times would change only if using the repo’s dependencies, which I wouldn’t expect to be default behavior for CI
+11:04 <+bridge> <Ewan> If I could hear some more about the scripts & the curl stub, that’d be great
+11:07 <+bridge> <Ryozuki> im against adding them as submodules
+11:07 <+bridge> <Ryozuki> even windows ones, ddnet-libs should be removed
+11:07 <+bridge> <Ryozuki> and use a package manager
+11:07 <+bridge> <Ryozuki> its c++/cmake fault they dont do it like cargo
+11:13 <+bridge> <Ryozuki> >  Releases of libraries that get published to package managers are more second-class instances than those on the upstream repo's main branch, which (if the library has competent maintainers) shouldn't break
+11:13 <+bridge> <Ryozuki> I would say otherwise, im sure libraries you get from debian stable are way more first-class (with custom patches!) and fit more into the ecosystem than upstream
+11:13 <+bridge> <Ryozuki> > Releases of libraries that get published to package managers may be much more prone to disappear or stop being maintained
+11:13 <+bridge> <Ryozuki> This depends on what package manager u use, on the linux world, i would say, debian, nixos, arch have quite the reputation, i would see it first that upstream disappears and debian still has the library in its ecosystem tbh.
+11:13 <+bridge> <Ryozuki> > And if you're using a library that doesn't have a git instance somewhere (GH or GitLab), either host it yourself or find something more modern/better maintained
+11:13 <+bridge> <Ryozuki> ???
+11:13 <+bridge> <Learath2> Could a package manager accomodate our needs? Could it facilitate a source build of the dep like Ewan wanted
+11:13 <+bridge> <Learath2> I don't think vcpkg can e.g.
+11:14 <+bridge> <Ryozuki> it does on linux
+11:14 <+bridge> <Ewan> Good point on the second one. God knows how many packages I've submitted & abandoned
+11:14 <+bridge> <Ryozuki> i couldnt care less about windows tbh
+11:14 <+bridge> <Ryozuki> xd
+11:15 <+bridge> <Learath2> You and Jupstar should form a game studio 😄
+11:15 <+bridge> <Ewan> I didn't realize we were talking about package manager's on the user's system. I thought you were saying you used something like apt with custom repos for the binaries in ddnet-libs
+11:15 <+bridge> <Ewan> Package manager is totally irrelevant now because we're talking about the scenario where system libs are not being used
+11:16 <+bridge> <Ryozuki> in c++? i cant see that being realistic
+11:16 <+bridge> <Ryozuki> we should use rust then
+11:16 <+bridge> <Ewan> Hmm?
+11:16 <+bridge> <Ewan> It's not hard
+11:16 <+bridge> <Learath2> He is talking about one of those new package managers like vcpkg that is for C++ dependencies
+11:16 <+bridge> <Ewan> Harder in C++ but not hard lol
+11:17 <+bridge> <Ewan> submodules w/ cmakelists or (god forbid) cmake fetch content
+11:17 <+bridge> <Ewan> Yeah I meant way back in the convo
+11:17 <+bridge> <Ewan> When apt was brought up
+11:17 <+bridge> <Ewan> vcpkg is not a bad idea. just a righteous pain in the ass to use
+11:17 <+bridge> <Jupstar ✪> Let's go
+11:18 <+bridge> <Ewan> :monkaS:
+11:18 <+bridge> <Learath2> This conversation is drifting all over the place 😄
+11:18 <+bridge> <Jupstar ✪> Let's static link drivers
+11:18 <+bridge> <Learath2> Only 1 generation of gpu supported. Linux 6.1 required
+11:19 <+bridge> <Jupstar ✪> Sounds amazing
+11:19 <+bridge> <Learath2> Glibc must be rebuilt before launching the game, just to have the latest one 😛
+11:21 <+bridge> <Jupstar ✪> Imagine the world could drop support for old stuff every 4 years. Would be amazing and nice adventure. Much more fun than it is rn
+11:21 <+bridge> <Mr.Gh0s7> Plus no backward compatibility
+11:23 <+bridge> <Ryozuki> Min support vulkan 1.1
+11:23 <+bridge> <Ryozuki> C++22/rustc 1.66.1
+11:23 <+bridge> <Learath2> Min support 32G ram
+11:23 <+bridge> <Ewan> C++22 LOL
+11:23 <+bridge> <Ryozuki> I seen projects do it
+11:23 <+bridge> <Learath2> Do C++26, there is a proposition out already
+11:24 <+bridge> <Ewan> Minimum should be C++26. No compromises
+11:24 <+bridge> <Ewan> Damn
+11:24 <+bridge> <Ryozuki> Not crazy
+11:24 <+bridge> <Ewan> you stole my line
+11:24 <+bridge> <Ryozuki> Ohh
+11:24 <+bridge> <Ryozuki> Well i prefer rust
+11:24 <+bridge> <Jupstar ✪> It's indeed less crazy than many ppl here imply
+11:24 <+bridge> <Ewan> cpp22 is not a thing
+11:24 <+bridge> <Learath2> Nightly?
+11:24 <+bridge> <Jupstar ✪> I also seen many projects simply do it
+11:24 <+bridge> <Ryozuki> Nightly has rly interesting stuff, but with stable havent had problems
+11:25 <+bridge> <Learath2> Polybar did it before distros had compilers ready. It was supremely annoying to use for a while ngl
+11:25 <+bridge> <Jupstar ✪> I defs miss features in rust
+11:25 <+bridge> <Ryozuki> Ah its ,23
+11:26 <+bridge> <Jupstar ✪> I could imagine blender will sooner or later also only allow new graphics apis. They already dropped opencl
+11:26 <+bridge> <Learath2> Me ❤️ `Vec::drain_filter`
+11:26 <+bridge> <Ryozuki> One always wants more
+11:26 <+bridge> <Ryozuki> U can actually do it in a crate, or make a pr to rust
+11:26 <+bridge> <Jupstar ✪> Core language features tho
+11:27 <+bridge> <Ryozuki> Itertools often has features that get added to std
+11:27 <+bridge> <Learath2> Didn't they also work like shit for like a year there on amd + linux?
+11:27 <+bridge> <Ryozuki> I recommend that crate
+11:27 <+bridge> <Ryozuki> Oh like what
+11:27 <+bridge> <Jupstar ✪> Yeah and now it's nice
+11:27 <+bridge> <Ryozuki> I want them to finish polonius
+11:28 <+bridge> <Ryozuki> The better borrow checker, that accepts more valid programs
+11:28 <+bridge> <Ryozuki> https://github.com/rust-lang/polonius
+11:28 <+bridge> <Learath2> A project like blender can rip the bandaid and have their userbase pressure the correct people to get it working. There are actual companies with capital using blender
+11:28 <+bridge> <Learath2> I doubt a game has similar pull
+11:29 <+bridge> <Jupstar ✪> Cleaner default initialization. More constexpr. Some generic stuff. Many small things
+11:29 <+bridge> <Ryozuki> @Learath2 valve
+11:29 <+bridge> <Ryozuki> The const is on going
+11:30 <+bridge> <Learath2> Last I checked this fixed some very odd edge cases, do you actually hit those often enough?
+11:30 <+bridge> <Ryozuki> @Jupeyy_Keks they always add first a MVP so they dont shoot their foot with back compat in case smth was wrong
+11:30 <+bridge> <Ryozuki> Mvp = min viable product
+11:30 <+bridge> <Ryozuki> So not many features
+11:30 <+bridge> <Ryozuki> Thats why const is limited
+11:31 <+bridge> <Learath2> And even they gave up and shipped a bundle of deps, restricted to a specific version of ubuntu and called it a day 😛
+11:31 <+bridge> <Ryozuki> Xd
+11:31 <+bridge> <Ryozuki> Personally i want better async
+11:32 <+bridge> <Ryozuki> Its not that bad but its hard to get right i guess
+11:32 <+bridge> <Ryozuki> Thats why GATs need to have more features
+11:32 <+bridge> <Ryozuki> Currently GATs are MVP
+11:32 <+bridge> <Learath2> Simpler stuff in rust async is actually pretty nice. It makes sense, works well, looks pretty
+11:33 <+bridge> <Ryozuki> Anyway atleast we have a systems lang with first class async
+11:33 <+bridge> <Ryozuki> Idk what c++ has
+11:33 <+bridge> <Ryozuki> But im sure its not that pretty
+11:33 <+bridge> <Learath2> C++ has async too 😄
+11:33 <+bridge> <Ryozuki> With the keyword?
+11:33 <+bridge> <Learath2> Nothing is pretty in C++ tho
+11:34 <+bridge> <Ryozuki> Tru xd
+11:34 <+bridge> <Jupstar ✪> When do u even want async?
+11:34 <+bridge> <Learath2> I think we are finally getting the keyword in C++26 😛
+11:34 <+bridge> <Jupstar ✪> I mean for io yes
+11:34 <+bridge> <Jupstar ✪> But else it also makes code much harder
+11:34 <+bridge> <Ryozuki> Xd
+11:34 <+bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1065580054584770580/Screenshot_2023-01-19-11-34-28-033_org.mozilla.firefox.jpg
+11:34 <+bridge> <Ryozuki> @Jupeyy_Keks http makes lot of sense async
+11:34 <+bridge> <Ryozuki> Lots of waiting etc
+11:35 <+bridge> <Jupstar ✪> Yeah, but e.g. when I sometimes see JavaScript devs using async for all shit
+11:35 <+bridge> <Jupstar ✪> Just to make everything more complicated
+11:37 <+bridge> <Ryozuki> Ah ye
+11:37 <+bridge> <Ryozuki> Js is special kid
+11:37 <+bridge> <Ryozuki> I want to abolish js
+11:37 <+bridge> <Ryozuki> Thats why we need wasm
+11:37 <+bridge> <Ryozuki> With direct DOM access
+11:37 <+bridge> <Ryozuki> Not through js
+11:37 <+bridge> <DefaultO> Asynchronously running code in general is too complex for you?
+11:38 <+bridge> <Jupstar ✪> I mean there is async and async. If u use async and the async code is completely seperated code.. it's ofc smth different than using it in a stateful code, where async also means Ur state isn't updated until the code ran
+11:38 <+bridge> <Ryozuki> Ppl use nodejs for server side with the excuse to use the same lang as frontend
+11:38 <+bridge> <Ryozuki> And call them fullstack deca
+11:38 <+bridge> <Jupstar ✪> It's by nature more complex
+11:38 <+bridge> <Ryozuki> And call them fullstack devs
+11:38 <+bridge> <Ryozuki> Its true its more complex
+11:38 <+bridge> <Ryozuki> He is not saying he doesnt have the skills for it lel
+11:38 <+bridge> <Ewan> .NET async is worse than JS’s IMO
+11:38 <+bridge> <DefaultO> Time race
+11:39 <+bridge> <Ewan> Tasks vs promises
+11:39 <+bridge> <Ewan> Urgh
+11:40 <+bridge> <Ryozuki> Tokio gets it rly right along with the rust std
+11:40 <+bridge> <Ryozuki> As in
+11:40 <+bridge> <Ryozuki> task::spawn is identical to thread::spawn
+11:41 <+bridge> <Ryozuki> Sux to be on mobilr
+11:41 <+bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1065581815584276540/Screenshot_2023-01-19-11-40-55-530_org.mozilla.firefox.jpg
+11:41 <+bridge> <Ryozuki> This metro has such bad connection in some stations
+11:42 <+bridge> <Ewan> Oh that is so easy
+11:42 <+bridge> <Ryozuki> https://docs.rs/tokio/latest/tokio/task/
+11:59 <+bridge> <Learath2> I guess async appears a lot in web presentation because of the prevalance of long running things. Api requests, animations, etc
+12:00 <+bridge> <Learath2> Do you get a connection while in the tunnel btw? As in not at a station yet?
+12:01 <+bridge> <Learath2> s\/?$//
+12:01 <+bridge> <Ryozuki> Yes i do
+12:01 <+bridge> <Ryozuki> But some tunnels have worse
+12:02 <+bridge> <Learath2> Istanbul metro still doesn't have that, this is so sadge
+12:02 <+bridge> <Ryozuki> The ones nearer poorer zones, casuality? Doubt
+12:02 <+bridge> <Ryozuki> Xd
+12:02 <+bridge> <Learath2> Everyone else figured it out, but not istanbul
+12:02 <+bridge> <heinrich5991> syntax error
+12:02 <+bridge> <Ryozuki> Tokio got it too, first class
+12:03 <+bridge> <heinrich5991> did you mean `s/\?$//`
+12:03 <+bridge> <Learath2> Nooooo, discord ate one of my \\
+12:03 <+bridge> <Jupstar ✪> Yep. But everywhere, where the code will not block I wouldn't use it I think. But I understand that it makes sense in the ecosystem^^
+12:04 <+bridge> <Jupstar ✪> Sry where the code will definitely block
+12:04 <+bridge> <Jupstar ✪> As in no io
+12:04 <+bridge> <Learath2> Yeah, I've seen some questionable async use
+12:06 <+bridge> <Ryozuki> Async is good for waiting
+12:06 <+bridge> <Ryozuki> Xd
+12:19 <+bridge> <Jupstar ✪> Could get the new insider word for ppl that always wait. Asyncs
+12:40 <+bridge> <Ryozuki> https://pandoc.org/releases.html
+12:40 <+bridge> <Ryozuki> pandoc 3.0 released
+12:40 <+bridge> <Ryozuki> one of the best software
+12:40 <+bridge> <Ryozuki> make a markdown document, and get the beauty of latex
+12:41 <+bridge> <Ryozuki> ofc not the full latex power but its smth
+13:24 <+bridge> <Learath2> I recently got math notes from some guy and apparently he does them all in LaTeX, his notes look so cool
+13:24 <+bridge> <Learath2> I tried doing latex notes once but I'm just not fast enough in writing it to take notes during a class
+13:57 <+bridge> <heinrich5991> the hard parts of doing latex notes in class are formulas
+13:57 <+bridge> <heinrich5991> they're easy to write by hand but hard in latex
+13:57 <+bridge> <heinrich5991> also commutative diagrams, but I got https://q.uiver.app/ for that nowadays
+14:06 <+bridge> <Chairn> one day, ddnet coded in latex 😄
+14:07 <+ChillerDragon> i watched some dudes latex/vim maffs notes setup on youtube once eventho i dont do maffs nor latex and still was kinda cool
+14:10 <+bridge> <Chairn> a site with a lot of cool stuff made in latex
+14:10 <+bridge> <Chairn> https://texample.net/tikz/examples/
+14:12 <+bridge> <Chairn> some 3D graphes i made with latex for an internship
+14:12 <+bridge> <Chairn> https://cdn.discordapp.com/attachments/293493549758939136/1065619731433930783/image.png
+14:15 <+bridge> <Chairn> lol, crazy guy drew indian map
+14:15 <+bridge> <Chairn> https://texample.net/tikz/examples/india-map/
+14:29 <+bridge> <HestiaSpider> Didn't used MinGw64 in my life what am I supposed to do lol
+14:31 <+bridge> <Ryozuki> does anybody know if a server i have with hetzner (german company) in helsinki, finland, needs to abide to finnish law or german law?
+14:31 <+bridge> <Ryozuki> btw soon ill migrate stuff i have in 2 servers to this new one, including the ddnet wiki
+14:31 <+bridge> <Ryozuki> and fix the email for chinese qqq which for some reason rejects me for dmarc
+14:32 <+bridge> <deen> cheap hoster ips are often blacklisted for email
+14:32 <+bridge> <Ryozuki> maybe i can just use the gandhi provided smtp
+14:32 <+bridge> <Ryozuki> they give 3 free emails per domain
+14:32 <+bridge> <Ryozuki> xd
+14:33 <+bridge> <Ryozuki> some chinese ppl tried to register but the email wont reach them and i get the rejection sadly
+14:34 <+bridge> <deen> self-hosting email is pretty broken
+14:34 <+bridge> <Ryozuki> works fine for me
+14:34 <+bridge> <deen> You won't reach anyone from Microsoft or Google to unblock your ip address
+14:34 <+bridge> <Ryozuki> well my emails reached google emails
+14:35 <+bridge> <Ryozuki> but ye
+14:35 <+bridge> <deen> Then you're lucky that your ip was not previously used by a spammer
+14:35 <+bridge> <Ryozuki> but why when i have the technical prowess to self host a email and use the proper protocols get rejected
+14:35 <+bridge> <Ryozuki> smh humanity at its best
+14:37 <+bridge> <deen> the technical part is solved and easy, making sure your emails actually reach every other email provider is impossible
+14:39 <+bridge> <Ryozuki> yeah
+14:39 <+bridge> <Ryozuki> anyway ill use gandhi
+14:39 <+bridge> <Ryozuki> i hope they use smth reputable
+14:40 <+bridge> <Ryozuki> https://www.gandi.net this i mean xd
+14:40 <+bridge> <Chairn> i believe you need to abide to local server law
+14:41 <+bridge> <Chairn> ie finnish one here
+14:41 <+bridge> <Ryozuki> thats good
+14:41 <+bridge> <Ryozuki> germany is stricter
+14:41 <+bridge> <Ryozuki> iirc
+14:41 <+bridge> <Ryozuki> with copyright for example
+14:41 <+bridge> <heinrich5991> you need to abide by finnish, german, and laws of countries who you target
+14:42 <+bridge> <Ryozuki> oof xd
+14:42 <+bridge> <Ryozuki> what if u target the world
+14:42 <+bridge> <Ryozuki> thats odd
+14:42 <+bridge> <Ryozuki> i target earthlings
+14:42 <+bridge> <Ryozuki> :poggers2:
+14:42 <+bridge> <heinrich5991> de facto, you're probably fine if you don't do too illegal things
+14:42 <+bridge> <Ryozuki> yeah i dont plan to
+14:42 <+bridge> <Ryozuki> but sometimes for example
+14:42 <+bridge> <Ryozuki> user generated content
+14:42 <+bridge> <Ryozuki> hetzner null routed my ip
+14:43 <+bridge> <Ryozuki> till i deleted it
+14:43 <+bridge> <Ryozuki> idk if i missed their notice or if they did it instantly
+14:43 <+bridge> <Ryozuki> but damn
+14:43 <+bridge> <HestiaSpider> Is there any wiki to compile ddnet with MinGw64?
+14:43 <+bridge> <Ryozuki> and it was all cuz my url shortener had a sus link someone added
+14:43 <+bridge> <Ryozuki> should be like linux
+14:43 <+bridge> <Ryozuki> iirc
+14:43 <+bridge> <Ryozuki> mingw is linux like
+14:44 <+bridge> <Chairn> just use cmake like this
+14:44 <+bridge> <Chairn> ```bash
+14:44 <+bridge> <Chairn> mkdir build && cd build
+14:44 <+bridge> <Chairn> cmake -G "MinGW Makefiles" <your ddnet options here> ..
+14:44 <+bridge> <Chairn> make
+14:44 <+bridge> <Chairn> ```
+14:44 <+bridge> <heinrich5991> you can download the binaries here, btw: https://github.com/AllTheHaxx/AllTheHaxx/releases/tag/1.0.0
+14:46 <+bridge> <HestiaSpider> What would i do with them...?
+14:47 <+bridge> <heinrich5991> idk, what are you trying to compile? ^^
+14:50 <+bridge> <HestiaSpider> Ath but i modified it
+14:52 <+bridge> <heinrich5991> this smells like bot client
+15:02 <+bridge> <HestiaSpider> Nope, I'm just playing with it lol
+15:02 <+bridge> <Ryozuki> bot
+15:03 <+bridge> <Ryozuki> :think_bot: :botmorning:
+15:03 <+bridge> <Ryozuki> new user flag + asks about compiling on ***windows***
+15:03 <+bridge> <Ryozuki> big red flag
+15:03 <+bridge> <HestiaSpider> Why
+15:03 <+bridge> <Ryozuki> u are not the first to come here xD
+15:03 <+bridge> <HestiaSpider> Playing on windows is a problem now ?
+15:04 <+bridge> <HestiaSpider> Duh
+15:04 <+bridge> <Mr.Gh0s7> Crucial question do u prefer C++ or Rust @HestiaSpider ?
+15:05 <+bridge> <HestiaSpider> what do you expect from me regardless of my answer?
+15:05 <+bridge> <Mr.Gh0s7> wanted to see Ryozuki's anwser xD
+15:06 <+bridge> <Mr.Gh0s7> anyway I agree that it seems sus that you "modified" ath and don't know how to compile and it's not a bot
+15:06 <+bridge> <HestiaSpider> Because that's the first modded client I'm using lol
+15:06 <+bridge> <HestiaSpider> And also
+15:07 <+bridge> <HestiaSpider> I tried compiling normal teeworlds
+15:07 <+bridge> <HestiaSpider> But i couldn't lmao
+15:07 <+bridge> <Mr.Gh0s7> teeworlds 0.7 or ddnet?
+15:07 <+bridge> <HestiaSpider> Teeworlds 0.6
+15:08 <+bridge> <HestiaSpider> Ddnet is even worse
+15:08 <+bridge> <heinrich5991> ddnet/teeworlds 0.7 should be the easiest
+15:11 <+bridge> <Mr.Gh0s7> Last time I remember being on windows I didn't have troubles compiling ddnet. Though for 16.6 upwards you will need rust I think
+15:14 <+bridge> <heinrich5991> ah yea, that's a bit annoying
+15:19 <+bridge> <HestiaSpider> So
+15:20 <+bridge> <HestiaSpider> How do I compile my client lol
+15:20 <+bridge> <Mr.Gh0s7> I can help but first is it a bot client?
+15:20 <+bridge> <HestiaSpider> Nope
+15:20 <+bridge> <HestiaSpider> Ofc you can add Lua scripts but that's your problem if u wanna cheat with it
+15:21 <+bridge> <Mr.Gh0s7> Do you think you would be banned for server for the modifications you've done?
+15:21 <+bridge> <HestiaSpider> Nope, doesn't affect server side
+15:22 <+bridge> <HestiaSpider> @Reteah
+15:25 <+bridge> <Mr.Gh0s7> yeah I'm back rebooted to windows
+15:25 <+bridge> <HestiaSpider> Kk
+15:26 <+bridge> <HestiaSpider> I suggest to DM to talk
+15:26 <+bridge> <HestiaSpider> I suggest to go DM to talk
+15:29 <+bridge> <Mr.Gh0s7> I'll answer once I've compiled DDNet
+15:31 <+bridge> <HestiaSpider> K
+15:45 <+bridge> <Ryozuki> cleanest htop i seen
+15:45 <+bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1065643267565289482/image.png
+15:46 <+bridge> <Ryozuki> wont last long tho xd
+15:59 <+bridge> <HestiaSpider> Does it take really that long ?
+16:00 <+bridge> <Mr.Gh0s7> I have problem with well windows and mingw but no. Last time was 4 mins
+16:07 <+bridge> <Ryozuki> @Jupeyy_Keks https://github.com/ddnet/ddnet/blob/4a4d6c54834465f7c9726b1c02cc8ccaf1a00ae6/src/engine/client/backend_sdl.cpp#L147-L151
+16:07 <+bridge> <Ryozuki> this lock makes my mac hang
+16:07 <+bridge> <Ryozuki> when changing for example windowed to fullscreen
+16:07 <+bridge> <Ryozuki> well, when i change it hangs, and then i control-c on lldb and its there
+16:07 <+bridge> <Ryozuki> backtrace
+16:08 <+ChillerDragon> ryo on mac?
+16:08 <+bridge> <Ryozuki> ```
+16:08 <+bridge> <Ryozuki>     frame #2: 0x000000018fe16ac4 libc++.1.dylib`std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 28
+16:08 <+bridge> <Ryozuki>     frame #3: 0x000000010001a3f4 DDNet`CGraphicsBackend_Threaded::WaitForIdle() + 80
+16:08 <+bridge> <Ryozuki> ```
+16:08 <+bridge> <Ryozuki> got it from work ye
+16:08 <+ChillerDragon> wowo
+16:08 <+ChillerDragon> when?
+16:08 <+bridge> <Ryozuki> since december
+16:08 <+ChillerDragon> old news
+16:08 <+ChillerDragon> how u like it?
+16:08 <+bridge> <Ryozuki> ye
+16:09 <+bridge> <Ryozuki> its like a bad joke of linux
+16:09 <+ChillerDragon> xd
+16:09 <+bridge> <HestiaSpider> Yeh got almost the same problem when compiling ddnet
+16:12 <+bridge> <Jupstar ✪> Stack trace would be more interesting
+16:12 <+bridge> <Jupstar ✪> I assume it's on opengl
+16:16 <+bridge> <Ryozuki> ogl 3.3
+16:21 <+bridge> <Ryozuki> ```
+16:21 <+bridge> <Ryozuki> * thread #1, queue = 'com.apple.main-thread', stop reason = signal SIGSTOP
+16:21 <+bridge> <Ryozuki>   * frame #0: 0x000000018fe8d564 libsystem_kernel.dylib`__psynch_cvwait + 8
+16:21 <+bridge> <Ryozuki>     frame #1: 0x000000018fec9638 libsystem_pthread.dylib`_pthread_cond_wait + 1232
+16:21 <+bridge> <Ryozuki>     frame #2: 0x000000018fe16ac4 libc++.1.dylib`std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 28
+16:21 <+bridge> <Ryozuki>     frame #3: 0x0000000100048934 DDNet`void std::__1::condition_variable::wait<CGraphicsBackend_Threaded::WaitForIdle()::$_2>(this=0x0000000105826690, __lk=0x000000016fdfc748, __pred=(unnamed class) @ 0x000000016fdfc700)::$_2) at __mutex_base:404:9
+16:21 <+bridge> <Ryozuki>     frame #4: 0x00000001000488b0 DDNet`CGraphicsBackend_Threaded::WaitForIdle(this=0x0000000105826600) at backend_sdl.cpp:150:19
+16:21 <+bridge> <Ryozuki>     frame #5: 0x00000001000b5478 DDNet`CGraphics_Threaded::WaitForIdle(this=0x00000001085d8000) at graphics_threaded.cpp:3205:14
+16:21 <+bridge> <Ryozuki>     frame #6: 0x00000001000b4784 DDNet`CGraphics_Threaded::Swap(this=0x00000001085d8000) at graphics_threaded.cpp:3134:3
+16:21 <+bridge> <Ryozuki>     frame #7: 0x000000010006e738 DDNet`CClient::Run(this=0x0000000108020000) at client.cpp:3300:19
+16:21 <+bridge> <Ryozuki>     frame #8: 0x0000000100077910 DDNet`::TWMain(argc=1, argv=0x000000016fdff7e8) at client.cpp:4726:11
+16:22 <+bridge> <Ryozuki>     frame #9: 0x0000000100166524 DDNet`main(argc=1, argv=0x000000016fdff7e8) at client.mm:21:10
+16:22 <+bridge> <Ryozuki>     frame #10: 0x000000018fb9fe50 dyld`start + 2544
+16:22 <+bridge> <Ryozuki> ```
+16:22 <+bridge> <Ryozuki> @Jupeyy_Keks this?
+16:23 <+bridge> <Ryozuki> ```
+16:23 <+bridge> <Ryozuki> (lldb) thread list
+16:23 <+bridge> <Ryozuki> Process 12560 stopped
+16:23 <+bridge> <Ryozuki> * thread #1: tid = 0x25c78, 0x000000018fe8d564 libsystem_kernel.dylib`__psynch_cvwait + 8, queue = 'com.apple.main-thread', stop reason = signal SIGSTOP
+16:23 <+bridge> <Ryozuki>   thread #2: tid = 0x25cd2, 0x000000018fe9885c libsystem_kernel.dylib`sem_wait + 8
+16:23 <+bridge> <Ryozuki>   thread #3: tid = 0x25cd3, 0x000000018fe9885c libsystem_kernel.dylib`sem_wait + 8
+16:23 <+bridge> <Ryozuki>   thread #4: tid = 0x25cd4, 0x000000018fe9885c libsystem_kernel.dylib`sem_wait + 8
+16:23 <+bridge> <Ryozuki>   thread #6: tid = 0x25cd6, 0x000000018fe8ba1c libsystem_kernel.dylib`__workq_kernreturn + 8
+16:23 <+bridge> <Ryozuki>   thread #9: tid = 0x25cdf, 0x000000018fe8bb24 libsystem_kernel.dylib`__ulock_wait + 8
+16:23 <+bridge> <Ryozuki>   thread #10: tid = 0x25ce0, 0x000000018fe8ba1c libsystem_kernel.dylib`__workq_kernreturn + 8
+16:23 <+bridge> <Ryozuki>   thread #11: tid = 0x25ce1, 0x000000018fe8ba1c libsystem_kernel.dylib`__workq_kernreturn + 8
+16:23 <+bridge> <Ryozuki>   thread #12: tid = 0x25ce2, 0x000000018fe89cec libsystem_kernel.dylib`semaphore_wait_trap + 8, name = 'caulk.messenger.shared:17'
+16:23 <+bridge> <Ryozuki>   thread #13: tid = 0x25cfa, 0x000000018fe89d70 libsystem_kernel.dylib`mach_msg2_trap + 8, name = 'AudioQueue thread'
+16:24 <+bridge> <Ryozuki>   thread #14: tid = 0x25cfb, 0x000000018fe89cec libsystem_kernel.dylib`semaphore_wait_trap + 8, name = 'caulk.messenger.shared:high'
+16:24 <+bridge> <Ryozuki>   thread #15: tid = 0x25cfd, 0x000000018fe8d564 libsystem_kernel.dylib`__psynch_cvwait + 8, name = 'AQConverterThread'
+16:24 <+bridge> <Ryozuki>   thread #16: tid = 0x25cfe, 0x000000018fe89d70 libsystem_kernel.dylib`mach_msg2_trap + 8, name = 'com.apple.audio.IOThread.client'
+16:24 <+bridge> <Ryozuki>   thread #17: tid = 0x25d1c, 0x000000018fe89d70 libsystem_kernel.dylib`mach_msg2_trap + 8, name = 'com.apple.NSEventThread'
+16:24 <+bridge> <Ryozuki>   thread #18: tid = 0x25d2f, 0x0000000000000000
+16:24 <+bridge> <Ryozuki>   thread #19: tid = 0x25d6e, 0x000000018fe8d564 libsystem_kernel.dylib`__psynch_cvwait + 8, name = 'CVDisplayLink'
+16:24 <+bridge> <Ryozuki> ```
+16:26 <+bridge> <Ryozuki> https://pastebin.com/Y3xsE20x
+16:26 <+bridge> <Ryozuki> all threads
+16:26 <+bridge> <Jupstar ✪> In the swap function is there a ifdef for macos
+16:27 <+bridge> <Ryozuki> ```
+16:27 <+bridge> <Ryozuki> #ifdef CONF_PLATFORM_MACOS
+16:27 <+bridge> <Ryozuki>     if(str_find(GetVersionString(), "Metal"))
+16:27 <+bridge> <Ryozuki>         WaitForIdle();
+16:27 <+bridge> <Ryozuki> #endif
+16:27 <+bridge> <Ryozuki> ```
+16:28 <+bridge> <Ryozuki> yep lol
+16:28 <+bridge> <Ryozuki> https://github.com/ddnet/ddnet/blob/4a4d6c54834465f7c9726b1c02cc8ccaf1a00ae6/src/engine/client/graphics_threaded.cpp#L3088
+16:28 <+bridge> <Ryozuki> do i remove it
+16:31 <+bridge> <Mr.Gh0s7> I give up. Last time I had installed msys2 and did it that way.
+16:31 <+bridge> <Ryozuki> removed it and now its the WaitForIdle(); from the runbuffer in backend sdl
+16:32 <+bridge> <Ryozuki> ```
+16:32 <+bridge> <Ryozuki> * thread #1, queue = 'com.apple.main-thread', stop reason = signal SIGSTOP
+16:32 <+bridge> <Ryozuki>   * frame #0: 0x000000018fe8ca1c libsystem_kernel.dylib`__psynch_mutexwait + 8
+16:32 <+bridge> <Ryozuki>     frame #1: 0x000000018fec6144 libsystem_pthread.dylib`_pthread_mutex_firstfit_lock_wait + 84
+16:32 <+bridge> <Ryozuki>     frame #2: 0x000000018fec3a9c libsystem_pthread.dylib`_pthread_mutex_firstfit_lock_slow + 248
+16:32 <+bridge> <Ryozuki>     frame #3: 0x000000018fe189e8 libc++.1.dylib`std::__1::mutex::lock() + 16
+16:32 <+bridge> <Ryozuki>     frame #4: 0x0000000100057f44 DDNet`std::__1::unique_lock<std::__1::mutex>::unique_lock(this=0x000000016fdfc4d8, __m=0x000000010601f650) at __mutex_base:118:61
+16:32 <+bridge> <Ryozuki>     frame #5: 0x0000000100047b30 DDNet`std::__1::unique_lock<std::__1::mutex>::unique_lock(this=0x000000016fdfc4d8, __m=0x000000010601f650) at __mutex_base:118:54
+16:32 <+bridge> <Ryozuki>     frame #6: 0x00000001000488ec DDNet`CGraphicsBackend_Threaded::WaitForIdle(this=0x000000010601f600) at backend_sdl.cpp:149:31
+16:32 <+bridge> <Ryozuki>     frame #7: 0x0000000100048474 DDNet`CGraphicsBackend_Threaded::RunBuffer(this=0x000000010601f600, pBuffer=0x000060000172cb00) at backend_sdl.cpp:122:2
+16:32 <+bridge> <Ryozuki>     frame #8: 0x00000001000a4a74 DDNet`CGraphics_Threaded::KickCommandBuffer(this=0x00000001085b8000) at graphics_threaded.cpp:795:14
+16:32 <+bridge> <Ryozuki>     frame #9: 0x00000001000b39d4 DDNet`CGraphics_Threaded::GotResized(this=0x00000001085b8000, w=1512, h=945, RefreshRate=120) at graphics_threaded.cpp:3000:2
+16:32 <+bridge> <Ryozuki>     frame #10: 0x00000001000d6c48 DDNet`CInput::Update(this=0x000000010580d000) at input.cpp:713:17
+16:32 <+bridge> <Ryozuki>     frame #11: 0x000000010006e07c DDNet`CClient::Run(this=0x0000000108020000) at client.cpp:3166:15
+16:32 <+bridge> <Ryozuki>     frame #12: 0x0000000100077964 DDNet`::TWMain(argc=1, argv=0x000000016fdff7e8) at client.cpp:4726:11
+16:32 <+bridge> <Ryozuki>     frame #13: 0x0000000100166544 DDNet`main(argc=1, argv=0x000000016fdff7e8) at client.mm:21:10
+16:32 <+bridge> <Ryozuki>     frame #14: 0x000000018fb9fe50 dyld`start + 2544
+16:32 <+bridge> <Ryozuki> (lldb) 
+16:32 <+bridge> <Ryozuki> ```
+16:32 <+bridge> <Ryozuki> ```gdb
+16:32 <+bridge> <Ryozuki> * thread #1, queue = 'com.apple.main-thread', stop reason = signal SIGSTOP
+16:32 <+bridge> <Ryozuki>   * frame #0: 0x000000018fe8ca1c libsystem_kernel.dylib`__psynch_mutexwait + 8
+16:32 <+bridge> <Ryozuki>     frame #1: 0x000000018fec6144 libsystem_pthread.dylib`_pthread_mutex_firstfit_lock_wait + 84
+16:32 <+bridge> <Ryozuki>     frame #2: 0x000000018fec3a9c libsystem_pthread.dylib`_pthread_mutex_firstfit_lock_slow + 248
+16:32 <+bridge> <Ryozuki>     frame #3: 0x000000018fe189e8 libc++.1.dylib`std::__1::mutex::lock() + 16
+16:32 <+bridge> <Ryozuki>     frame #4: 0x0000000100057f44 DDNet`std::__1::unique_lock<std::__1::mutex>::unique_lock(this=0x000000016fdfc4d8, __m=0x000000010601f650) at __mutex_base:118:61
+16:33 <+bridge> <Ryozuki>     frame #5: 0x0000000100047b30 DDNet`std::__1::unique_lock<std::__1::mutex>::unique_lock(this=0x000000016fdfc4d8, __m=0x000000010601f650) at __mutex_base:118:54
+16:33 <+bridge> <Ryozuki>     frame #6: 0x00000001000488ec DDNet`CGraphicsBackend_Threaded::WaitForIdle(this=0x000000010601f600) at backend_sdl.cpp:149:31
+16:33 <+bridge> <Ryozuki>     frame #7: 0x0000000100048474 DDNet`CGraphicsBackend_Threaded::RunBuffer(this=0x000000010601f600, pBuffer=0x000060000172cb00) at backend_sdl.cpp:122:2
+16:33 <+bridge> <Ryozuki>     frame #8: 0x00000001000a4a74 DDNet`CGraphics_Threaded::KickCommandBuffer(this=0x00000001085b8000) at graphics_threaded.cpp:795:14
+16:33 <+bridge> <Ryozuki>     frame #9: 0x00000001000b39d4 DDNet`CGraphics_Threaded::GotResized(this=0x00000001085b8000, w=1512, h=945, RefreshRate=120) at graphics_threaded.cpp:3000:2
+16:33 <+bridge> <Ryozuki>     frame #10: 0x00000001000d6c48 DDNet`CInput::Update(this=0x000000010580d000) at input.cpp:713:17
+16:33 <+bridge> <Ryozuki>     frame #11: 0x000000010006e07c DDNet`CClient::Run(this=0x0000000108020000) at client.cpp:3166:15
+16:33 <+bridge> <Ryozuki>     frame #12: 0x0000000100077964 DDNet`::TWMain(argc=1, argv=0x000000016fdff7e8) at client.cpp:4726:11
+16:33 <+bridge> <Ryozuki>     frame #13: 0x0000000100166544 DDNet`main(argc=1, argv=0x000000016fdff7e8) at client.mm:21:10
+16:33 <+bridge> <Ryozuki>     frame #14: 0x000000018fb9fe50 dyld`start + 2544
+16:33 <+bridge> <Ryozuki> (lldb) 
+16:33 <+bridge> <Ryozuki> ```
+16:43 <+bridge> <Jupstar ✪> Anyway. Macos is simply broken
+16:43 <+bridge> <Jupstar ✪> U can try to call runbuffersinglethreaded
+16:43 <+bridge> <Jupstar ✪> And remove content of waitforidle
+16:46 <+bridge> <Ryozuki> xd
+16:46 <+bridge> <Ryozuki> maybe it has something to do with m1 being arm and memory orderings?
+16:46 <+bridge> <Ryozuki> idk
+16:47 <+bridge> <Jupstar ✪> Question is where does the gl thread halt
+16:48 <+bridge> <Jupstar ✪> BCS it's clearly that, that is causing it
+16:50 <+bridge> <Ryozuki> ```
+16:50 <+bridge> <Ryozuki>     frame #0: 0x000000018fe8bb24 libsystem_kernel.dylib`__ulock_wait + 8
+16:50 <+bridge> <Ryozuki>     frame #1: 0x000000018fd42ef4 libdispatch.dylib`_dlock_wait + 56
+16:50 <+bridge> <Ryozuki>     frame #2: 0x000000018fd42ca8 libdispatch.dylib`_dispatch_thread_event_wait_slow + 56
+16:50 <+bridge> <Ryozuki>     frame #3: 0x000000018fd51d88 libdispatch.dylib`__DISPATCH_WAIT_FOR_QUEUE__ + 368
+16:50 <+bridge> <Ryozuki>     frame #4: 0x000000018fd51934 libdispatch.dylib`_dispatch_sync_f_slow + 144
+16:50 <+bridge> <Ryozuki>     frame #5: 0x00000001013ff034 libSDL2-2.0.0.dylib`-[SDLOpenGLContext explicitUpdate] + 216
+16:50 <+bridge> <Ryozuki>     frame #6: 0x00000001013ff9bc libSDL2-2.0.0.dylib`Cocoa_GL_SwapWindow + 284
+16:50 <+bridge> <Ryozuki>     frame #7: 0x00000001000493d4 DDNet`CCommandProcessorFragment_SDL::Cmd_Swap(this=0x00006000029186a0, pCommand=0x0000000108a8cdc0) at backend_sdl.cpp:217:3
+16:50 <+bridge> <Ryozuki>     frame #8: 0x0000000100049704 DDNet`CCommandProcessorFragment_SDL::RunCommand(this=0x00006000029186a0, pBaseCommand=0x0000000108a8cdc0) at backend_sdl.cpp:256:33
+16:50 <+bridge> <Ryozuki>     frame #9: 0x0000000100049f28 DDNet`CCommandProcessor_SDL_GL::RunBuffer(this=0x0000600002918690, pBuffer=0x000060000172cb80) at backend_sdl.cpp:353:12
+16:50 <+bridge> <Ryozuki>     frame #10: 0x0000000100047a6c DDNet`CGraphicsBackend_Threaded::ThreadFunc(pUser=0x000000010601f600) at backend_sdl.cpp:63:25
+16:50 <+bridge> <Ryozuki>     frame #11: 0x000000010049caf0 DDNet`thread_run(user=0x0000600000009560) at system.cpp:731:2
+16:50 <+bridge> <Ryozuki>     frame #12: 0x000000018fec906c libsystem_pthread.dylib`_pthread_start + 148
+16:50 <+bridge> <Ryozuki> ```
+16:50 <+bridge> <Ryozuki> @Jupeyy_Keks is this the gl thread?
+16:53 <+bridge> <HestiaSpider> Can you explain why did you used mysys2 ?
+16:54 <+bridge> <HestiaSpider> And what do you mean "i did it that way " ?
+16:54 <+bridge> <HestiaSpider> And what do you mean by "i did it that way " ?
+17:00 <+bridge> <Jupstar ✪> Yep
+17:00 <+bridge> <Jupstar ✪> There it actually hangs
+17:05 <+bridge> <Ryozuki> @Jupeyy_Keks https://github.com/glfw/glfw/issues/1997
+17:06 <+bridge> <Ryozuki> i think its this
+17:07 <+bridge> <Ryozuki> https://github.com/libsdl-org/SDL/issues/5203#issuecomment-1212309845
+17:07 <+bridge> <Ryozuki> xd
+17:08 <+bridge> <Ryozuki> ```
+17:08 <+bridge> <Ryozuki> In that crash report, thread 0 (the main thread) is doing the OpenGL context update that was sent through a dispatch queue, while thread 9 (the rendering thread?) is calling into the GL to draw, and this is causing a crash inside the GL.
+17:08 <+bridge> <Ryozuki> 
+17:08 <+bridge> <Ryozuki> Which leads me to ask: are you sure you used the right build of SDL? The latest in revision control, that changed the hint to default to synchronous updates? I don't see any threads that appear to be blocked, waiting on that update in the main thread to finish, which would cause this sort of crash.
+17:08 <+bridge> <Ryozuki> ```
+17:08 <+bridge> <Ryozuki> from the sdl dev
+17:08 <+bridge> <Ryozuki> idk if related
+17:09 <+bridge> <Ryozuki> sdl2: stable 2.26.2
+17:14 <+bridge> <Jupstar ✪> I have no idea wtf he means
+17:14 <+bridge> <Jupstar ✪> Sounds like he doesn't know either
+17:33 <+bridge> <Jupstar ✪> @Ryozuki try
+17:33 <+bridge> <Jupstar ✪> `SDL_HINT_MAC_OPENGL_SYNC_DISPATCH=1 ./DDNet`
+17:33 <+bridge> <Jupstar ✪> if that works we can use that and remove the workaround probably
+17:36 <+bridge> <Jupstar ✪> ah they already defaulted to it
+17:36 <+bridge> <Jupstar ✪> rip xd
+17:37 <+bridge> <Ryozuki> error happens
+17:38 <+bridge> <Jupstar ✪> just uninstall macos, its the only os that is even worse than windows
+17:39 <+bridge> <Ryozuki> xd
+17:48 <+bridge> <DefaultO> Red* OS best OS
+18:15 <+bridge> <Ryozuki> https://xkcd.com/1168/
+18:17 <+bridge> <heinrich5991> x - extract
+18:17 <+bridge> <heinrich5991> c - create
+18:17 <+bridge> <heinrich5991> f - file
+18:17 <+bridge> <heinrich5991> t - list
+18:17 <+bridge> <heinrich5991> all you need
+18:18 <+bridge> <Ryozuki> @heinrich5991 iirc there was a diference if u use - or not
+18:18 <+bridge> <Ryozuki> tar -xf vs tar xf
+18:18 <+bridge> <Ryozuki> right?
+19:27 <+bridge> <HestiaSpider> @Reteah bro i need your help lmao
+22:19 <+bridge> <cauldron> i recently discovered tldr: https://github.com/tldr-pages/tldr
+22:19 <+bridge> <cauldron> it's really nice for quick command line flag lookup
+22:20 <+bridge> <Mr.Gh0s7> ^ I found it from ryozuki
+22:21 <+bridge> <Mr.Gh0s7> I kinda rq maybe I will try tommorow again.
+22:27 <+bridge> <cauldron> https://github.com/tldr-pages/tldr/raw/main/images/tldr.svg
+22:27 <+bridge> <Ryozuki> i hate docker
+22:30 <+bridge> <Ryozuki> i just wanted to copy a volume from server to server
+22:30 <+bridge> <Ryozuki> it should be easy but i spent 1 hour
+22:30 <+bridge> <Ryozuki> got it done tho
+22:30 <+bridge> <Ryozuki> it rly should be 1 command to make a .tar
+22:30 <+bridge> <Ryozuki> but no it needs to spun up a container to access it
+22:30 <+bridge> <Ryozuki> stupid
+22:58 <+bridge> <Ewan> If I were to work on this, it would look more or less like this:
+22:58 <+bridge> <Ewan> - Build options from the user's perspective would remain the same, but they could mix & match which libraries they have installed locally
+22:58 <+bridge> <Ewan> - Instead of having the dependencies in one repository, there will be a subdirectory with a submodule per dependency; you could check them out selectively, maybe if your package manager doesn't have the library
+22:58 <+bridge> <Ewan> - System libs would remain the primary option
+22:58 <+bridge> <Ewan> 
+22:58 <+bridge> <Ewan> It would require changes to cmake & other scripting; linkage would change when using repo-local libs; if it works well enough to use, then I'll adapt the flatpak release as well 
+22:58 <+bridge> <Ewan> Please let me know if you think this would be worthwhile
+23:22 <+bridge> <deen> What is the use case? Developers will use system libs exclusively, official build will use bundled libs exclusively. Why mix and match?
+23:26 <+bridge> <Ryozuki> if u have time check dm deen :hellyeah:
+23:32 <+bridge> <deen> I check channels before DMs to nudge people towards using public channels instead of DMing me all day. But don't worry, I still check them 😄
+23:37 <+bridge> <Ryozuki> well yeah, it involved an ip so :feelsbadman:
+23:38 <+bridge> <Ryozuki> i also prefer public
+23:46 <+bridge> <Ryozuki> @heinrich5991  @Jupeyy_Keks check this
+23:46 <+bridge> <Ryozuki> g
+23:46 <+bridge> <Ryozuki> https://zura.wiki/post/never-write-a-commit-message-again-with-the-help-of-gpt-3/
+23:46 <+bridge> <Ryozuki> no more typing "ok" commits
+23:47 <+bridge> <Ryozuki> actually useful
+23:47 <+bridge> <Ryozuki> im sure jupstar will use it
