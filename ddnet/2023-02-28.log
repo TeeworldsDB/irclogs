@@ -1,0 +1,77 @@
+19:27 < bridge> <Ryozuki> dang
+19:27 < bridge> <Ryozuki> today i hyperfocused and its already night
+19:27 < bridge> <Ryozuki> gg
+19:36 < bridge> <SPYRES> if u hyperfocus again, it will be day
+19:36 < bridge> <SPYRES> out smart the hyper focusing by hyper focusing
+19:38 < bridge> <ReiTW> @Ryozuki good point for Rust :giga_chad:
+19:38 < bridge> <ReiTW> https://cdn.discordapp.com/attachments/293493549758939136/1080197241333092464/Screenshot_2023-02-28-19-33-54-837-edit_com.png
+19:38 < bridge> <Ryozuki> xd
+19:43 < bridge> <Ewan> yikes
+20:04 < bridge> <Ewan> add them as the default? or just have them in the assets folder?
+20:44 < bridge> <fokkonaut> folder
+20:44 < bridge> <fokkonaut> Ob-Ewan Kenobi
+20:51 < bridge> <Ewan> 😃
+21:21 < bridge> <Ravie> the release candidate as well as nightly refuses to run for me on windows 10, when running the latest code in debug I get the following exception: ```
+21:21 < bridge> <Ravie> Exception thrown: read access violation.
+21:21 < bridge> <Ravie> **CComponent::Graphics**(...) returned nullptr.``` in CChat::RebuildChat at the line `Graphics()->DeleteQuadContainer(Line.m_QuadContainerIndex);`
+21:23 < bridge> <~Myata> @ChillerDragon
+21:30 < bridge> <Robyt3> Please post the entire stack trace for the crash (or the crash dump, which should also contain symbols if you use the debug build)
+21:30 < bridge> <Robyt3> I can reproduce the crash when starting with the argument `cl_chat_old 0`, because the chained command handler assumes that the graphics have already been initialised
+21:32 < bridge> <Chairn> works fine for me o win7
+21:32 < bridge> <Robyt3> But the crash could also be triggered if the window is resized while the graphics are not initialised
+21:32 < bridge> <Robyt3> If this event is somehow triggered before the graphics exist
+21:33 < bridge> <Robyt3> Weird. Looks like a nullptr access though, so it should just crash
+21:33 < bridge> <Robyt3> Maybe it causes undefined behaviour for you
+21:33 < bridge> <Chairn> do i need fullscreen?
+21:34 < bridge> <Chairn> self compiled and rc are always windowed on my setup, easier to debug (prevents cursor imprisonment)
+21:34 < bridge> <Robyt3> If you start with `ddnet "cl_chat_old 0"` is should crash in any case
+21:34 < bridge> <Chairn> self compiled and rc are always windowed on my setup, easier to debug (prevents cursor locking)
+21:34 < bridge> <Robyt3> Because this causes the chat to be rebuild before graphics are up
+21:38 < bridge> <Robyt3> Seems like it can only be caused by `cl_chat_old`, because the resize listener is not (and cannot be) registered until graphics are up
+21:40 < bridge> <Chairn> indeed it crashes on self compiled
+21:40 < bridge> <Chairn> ```shell
+21:40 < bridge> <Chairn> Thread 1 received signal SIGSEGV, Segmentation fault.
+21:40 < bridge> <Chairn> 0x000000000050d735 in CChat::RebuildChat (this=0x7330c98)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/game/client/components/chat.cpp:51
+21:40 < bridge> <Chairn> 51                      Graphics()->DeleteQuadContainer(Line.m_QuadContainerIndex);
+21:40 < bridge> <Chairn> (gdb) bt
+21:40 < bridge> <Chairn> #0  0x000000000050d735 in CChat::RebuildChat (this=0x7330c98)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/game/client/components/chat.cpp:51
+21:40 < bridge> <Chairn> #1  0x000000000050dc64 in CChat::ConchainChatOld (pResult=0x225970,
+21:40 < bridge> <Chairn>     pUserData=0x7330c98,
+21:40 < bridge> <Chairn>     pfnCallback=0x4687bf <IntVariableCommand(IConsole::IResult*, void*)>,
+21:40 < bridge> <Chairn>     pCallbackUserData=0x915e40 <CConsole::Init()::Data>)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/game/client/components/chat.cpp:145
+21:40 < bridge> <Chairn> #2  0x000000000047b90b in CConsole::Con_Chain (pResult=0x225970,
+21:40 < bridge> <Chairn>     pUserData=0x63b7ee0)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/engine/shared/console.cpp:1241
+21:40 < bridge> <Chairn> #3  0x0000000000467899 in CConsole::ExecuteLineStroked (this=0x6324a70,
+21:40 < bridge> <Chairn>     Stroke=1, pStr=0x47c7e19 "cl_chat_old 0", ClientID=-1,
+21:40 < bridge> <Chairn>     InterpretSemicolons=true)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/engine/shared/console.cpp:549
+21:40 < bridge> <Chairn> #4  0x0000000000467b75 in CConsole::ExecuteLine (this=0x6324a70,
+21:40 < bridge> <Chairn>     pStr=0x47c7e19 "cl_chat_old 0", ClientID=-1, InterpretSemicolons=true)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/engine/shared/console.cpp:613
+21:40 < bridge> <Chairn> #5  0x000000000047b2a6 in CConsole::ParseArguments (this=0x6324a70,
+21:40 < bridge> <Chairn>     NumArgs=1, ppArguments=0x47c7898)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/engine/shared/console.cpp:1094
+21:40 < bridge> <Chairn> #6  0x00000000004de4b9 in main (argc=2, argv=0x47c7890)
+21:40 < bridge> <Chairn>     at E:/Teeworlds_DDNet/ddnet/src/engine/client/client.cpp:4672
+21:40 < bridge> <Chairn> ```
+21:41 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/1
+21:41 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/2
+21:41 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/3
+21:41 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/4
+21:41 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/5
+21:41 < bridge> <Chairn> bad bot (as usual)
+21:41 < bridge> <Robyt3> I'll fix the crash
+21:41 < bridge> <Robyt3> Can we not update the bot so it ignores the hash sign in code blocks?
+21:43 < bridge> <Chairn> this is old as fuck bugs, where's the ddnet bot code?
+21:44 < bridge> <Robyt3> https://github.com/ddnet/ddnet-discordbot
+21:48 < bridge> <Chairn> i guess we gotta change this variable use
+21:48 < bridge> <Chairn> https://github.com/ddnet/ddnet-discordbot/blob/master/cogs/github.py#L16
+21:48 < bridge> <Chairn> i guess we gotta change this variable use
+21:48 < bridge> <Chairn> https://github.com/ddnet/ddnet-discordbot/blob/master/cogs/github.py#L16>
+21:48 < bridge> <Chairn> i guess we gotta change this variable use
+21:48 < bridge> <Chairn> <https://github.com/ddnet/ddnet-discordbot/blob/master/cogs/github.py#L16>
+22:27 < bridge> <murpi> which language syntax highlighting is this?

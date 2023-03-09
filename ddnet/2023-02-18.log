@@ -1,0 +1,349 @@
+00:11 < bridge> <atm> https://discord.gg/Kc9ed7bqzM Free Nudes)
+08:13 <+ChillerDragon> freenodes?
+08:22 <+ChillerDragon> I keep getting crashes in my ddnet server fork no idea how to debug it. It says "Broken pipe" full crash here https://paste.zillyhuhn.com/oD
+08:25 <+ChillerDragon> The way i understand it is that it timeouts while doing masterserver stuff for whatever reason and then the socket dies and it somehow keeps trying to send there. Does that make sense? But then this is not a official ddnet bug is it? So it means it somewhere got introduced during merges hmm
+08:46 < bridge> <Faulty> Do you run your server with gdb or in debug mode? What version of curl is it used?
+08:48 <+ChillerDragon> i build in debug mode and then run the server with gdb does it print the curl version? Anyways when running ``curl --version`` it says ``libcurl/7.74.0`` so i assume thats what the server uses too
+08:49 <+ChillerDragon> whatever my debian 11 repos currently offer
+09:02 < bridge> <Jupstar ✪> Is the stderr missing? Maybe look in a debugger where it wants to write to
+09:02 < bridge> <Jupstar ✪> It's either file io or network or logging i guess
+09:06 <+ChillerDragon> Idk how to look that up only thing i see is ``fd=19`` but that file descriptor doesnt help me much does it?
+09:08 < bridge> <Jupstar ✪> Guess no
+09:08 < bridge> <Jupstar ✪> Stack trace
+09:08 <+ChillerDragon> ah i see when i get the backtrace i should see that yea missed the chance ill check again in 
+09:08 <+ChillerDragon> idk a few weeks when it happens again :D 
+09:09 <+ChillerDragon> from a old backtrace i know its here but not sure which line because its outdated trace https://github.com/DDNetPP/DDNetPP/blob/cd8991efa291dd8e74354ce3635426403721d77b/src/engine/shared/http.cpp#L188-L308
+09:09 <+ChillerDragon> wait pretty sure its here https://github.com/DDNetPP/DDNetPP/blob/cd8991efa291dd8e74354ce3635426403721d77b/src/engine/shared/http.cpp#L295
+09:11 <+ChillerDragon> but no idea whats the problem w curl i mean thats basically the same code ddnet uses so the issue has to be somewhere else
+10:43 < bridge> <Ewan> is there a way to trigger a whole graphical refresh of the game without reinitializing a backend
+10:43 < bridge> <Ewan> is there a way to trigger a whole graphical refresh of the game without reinitializing the graphbics backend
+10:43 < bridge> <Ewan> is there a way to trigger a whole graphical refresh of the game without reinitializing the graphics backend
+10:44 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1076439008374173696/image.png
+10:44 < bridge> <Ewan> im doing this cuz i don't like the way ddnet does the rounded corners & it works for the GUI but persistent things like some components of the hud are rendered responsibly & don't update without being notified of a change
+10:44 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1076439078419046420/image.png
+10:50 < bridge> <Robyt3> You are not using ddnet. `ui_rounded_corners` has never existed for ddnet. And if it did, I would advocate for its immediate removal.
+10:53 < bridge> <Ewan> i made it
+10:53 < bridge> <Ewan> i'm not trying to pull request or anything
+10:54 < bridge> <Ewan> i don't know how that was not obvious by my statement
+10:54 <+ChillerDragon> edgy
+10:54 < bridge> <Robyt3> Then you basically answered your own questions: check if the variable was changed and then update the rects
+10:54 <+ChillerDragon> get it? cuz edges
+10:55 <+ChillerDragon> rect
+10:55 < bridge> <Learath2> I can't think of an easy way, you'll just have to pepper some if statements everywhere
+10:55 < bridge> <Ewan> bummer
+10:55 <+ChillerDragon> lerato sprinkling italian pepper
+10:56 < bridge> <Ewan> is there an existing mechanism to fire a callback on a settings change
+10:57 < bridge> <Robyt3> yes, but for this you probably need to remember the old value wherever you render a rect and then check if the old value != the new value
+10:57 < bridge> <Learath2> I think you can add a conchain. We do it for sv_map e.g.
+10:57 < bridge> <Ewan> why would i need to do that?
+10:57 < bridge> <Learath2> Doesn't the conchain happen before the actual callback?
+10:58 < bridge> <Robyt3> otherwise how to you "push" the updated value to all components that draw a rect? you'd first need a list of all components drawings rects
+10:58 < bridge> <Robyt3> otherwise how to you "push" the updated value to all components that draw a rect? you'd first need a list of all components drawing rects
+10:59 < bridge> <Ewan> i wanted to do a graphical refresh for this reason
+10:59 < bridge> <Ewan> because it shouldn't really require a restart. it would just be that
+10:59 < bridge> <Learath2> It shouldn't but it does :/
+10:59 < bridge> <Robyt3> maybe you could hack it together by calling `OnWindowResize`, which should invalidate all cached quad and text containers
+11:00 < bridge> <Learath2> I was just about to say that 😄
+11:00 < bridge> <Learath2> Maybe that would work
+11:00 < bridge> <Ewan> not worth it. i'll just store its first value forever & require a restart (so it's at least consistent)
+11:01 < bridge> <Ewan> im doing this because the way ddnet does rounded rectangles is weird. they're absurdly large and they don't pad the contents to accommodate. you just have to kinda hope it doesn't clip lol
+11:01 < bridge> <Ewan> and they're not antialiased for whatever reason. could be a number of factors but any way i don't like it
+11:02 < bridge> <Robyt3> nothing is antialiased except round corners AFAIK, but you need to enable MSAA
+11:02 < bridge> <Ewan> yeah this is different from in-game AA & should be handled as such
+11:02 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1076443661996404776/image.png
+11:02 < bridge> <Learath2> Absurdly large? Hm iirc they fit exactly inside the rect you pass to the function
+11:03 < bridge> <Ewan> i just mean the radii are too large for my taste
+11:03 < bridge> <Ewan> nothing broken about the size
+11:03 < bridge> <Robyt3> just multi each corner radius by 0.5f before drawing :nouis:
+11:03 < bridge> <Learath2> Ah, yep it's an old teeworlds thing, back then it was the cool trend
+11:04 < bridge> <Learath2> I wanted a sharper ui but iirc people said it lost character so we kept it as is
+11:04 < bridge> <Ewan> sad lol
+11:08 < bridge> <Ewan> are there docs for conchain?
+11:09 < bridge> <Learath2> Nope, but it's not very hard to use, just grep for `Chain` or `ConChain` or maybe `sv_map`
+11:09 <+ChillerDragon> https://www.youtube.com/watch?v=2rk5bXUPhlE
+11:09 <+ChillerDragon> video docs poggers
+11:10 < bridge> <Ewan> i agree but it's not for me
+11:10 < bridge> <Ewan> i don't have that kind of attention span lol
+11:10 < bridge> <Ewan> ill grep
+11:10 < bridge> <Robyt3> Check how it's done in the code, e.g. search for `ConchainFriendlistUpdate`
+11:16 < bridge> <Ewan> what's the highest level CComponent?
+11:16 < bridge> <Ewan> that i could call `OnWindowResize()` on & have it trickle down
+11:17 < bridge> <Robyt3> Call it on CGameClient, which should propagate it to all components
+11:17 < bridge> <Ewan> awesome
+11:17 < bridge> <Ewan> thanks
+11:17 < bridge> <Ewan> is there a global instance or is it static
+11:17 < bridge> <Robyt3> All components have a pointer to it with `GameClient()`
+11:18 < bridge> <Ewan> nice
+11:20 < bridge> <Ewan> ```
+11:20 < bridge> <Ewan> void CMenus::ConchainRoundedCorners(IConsole::IResult *, void *,
+11:20 < bridge> <Ewan>                                     IConsole::FCommandCallback, void *) {
+11:20 < bridge> <Ewan>   GameClient()->OnWindowResize();
+11:20 < bridge> <Ewan> }
+11:20 < bridge> <Ewan> 
+11:20 < bridge> <Ewan> ```
+11:20 < bridge> <Ewan> this is weird, i'm getting a can't call member w/o instance error, as if CMenus didn't inherit from CComponent?
+11:20 < bridge> <Ewan> ```cpp
+11:20 < bridge> <Ewan> void CMenus::ConchainRoundedCorners(IConsole::IResult *, void *,
+11:20 < bridge> <Ewan>                                     IConsole::FCommandCallback, void *) {
+11:20 < bridge> <Ewan>   GameClient()->OnWindowResize();
+11:20 < bridge> <Ewan> }
+11:20 < bridge> <Ewan> 
+11:20 < bridge> <Ewan> ```
+11:20 < bridge> <Ewan> this is weird, i'm getting a can't call member w/o instance error, as if CMenus didn't inherit from CComponent?
+11:21 < bridge> <Ewan> and sorry if this is bad form & i'm not populating something i need to or whatever. i see some pfnCallback action above but im trying to get it laid out first
+11:22 < bridge> <Robyt3> Did you also add it in `menus.h`?
+11:22 < bridge> <Ewan> yeah
+11:22 < bridge> <Robyt3> You need to call `pfnCallback` so the config value is changed (the original command handler)
+11:22 < bridge> <Ewan> oh this is my bad
+11:23 < bridge> <Ewan> i copy pasted & the def in the header is static
+11:29 < bridge> <Ewan> got it working. thanks
+16:11 < bridge> <Kaffeine> @ChillerDragon I didn't get if you found the issue. The thing is that I had the same ('crash' with exit code 141 after SIGPIPE received). It turned out that DDNet does not handle SIGPIPEs.
+16:11 < bridge> <Kaffeine> Maybe what you need is this commit: https://github.com/ddnet/ddnet/commit/199da2410df05ccdce4f98d41628725699c41080#diff-83a6b32fd0c42ef297d20d7ffbca30bd6945a6a78dc48a8df0d1130375477011R76
+16:11 < bridge> <Kaffeine> Also note that some tools catch the signals before the application, thus e.g. if you run `gdb ./DDNet-Server` you can get a stop on that (or another otherwise suppressed) signal.
+16:16 < bridge> <Kaffeine> (Thanks to `@heinrich5991#9827` for giving me the clue about the signal ignoring, I could spend a lot of time trying to find the "fix" (in quotes because IMO it is not a proper fix). I was running the server via `catchsegv` and it seems (but I'm not sure) that the tool catches SIGPIPE before the app could ignore it.)
+16:39 < bridge> <Mʎɹ シ> https://cdn.discordapp.com/attachments/293493549758939136/1076528421397594152/image.png
+16:40 < bridge> <Mʎɹ シ> 31 hours of compiling with MSVC
+16:42 < bridge> <Vy0x2> sup, how do i convert this into a std::any_of? its a bool array
+16:42 < bridge> <Vy0x2> https://cdn.discordapp.com/attachments/293493549758939136/1076529090812727347/image.png
+16:42 < bridge> <Patiga> @deen could you update the twmap-tools for the ddnet discordbot?
+16:42 < bridge> <Vy0x2> sup, how do i convert this into a std::any_of? its a bool array
+16:42 < bridge> <Vy0x2> All examples online are vectors and i couldnt get it work here
+16:42 < bridge> <Vy0x2> https://cdn.discordapp.com/attachments/293493549758939136/1076529090812727347/image.png
+16:43 < bridge> <Mʎɹ シ> https://cdn.discordapp.com/attachments/293493549758939136/1076529507458101309/image.png
+16:44 < bridge> <Vy0x2> True could have asked this guy thx
+17:39 <+ChillerDragon> @Kaffeine interesting thanks. But the fix you sent if from jan 2021 pretty sure my servers were running with that patch already since i merge with upstream more than once a year
+17:39 <+ChillerDragon> is from*
+17:41 <+ChillerDragon> @fokkonaut pretty overkill readme for a project where like what 3 people have access and one of them is you :D sorry idk where to dm you these days
+17:42 < bridge> <fokkonaut> Maybe it becomes opem source in the future (?) 🤭 :o
+17:43 < bridge> <DefaultO> a readme is supposed to help understand a new person interested to the project what the project is about
+17:43 < bridge> <DefaultO> you could add one more to the project anytime in the future
+17:43 <+ChillerDragon> wowo leak
+17:43 < bridge> <DefaultO> or as fokkonaut said, open sourcing it
+17:44 <+ChillerDragon> thats basically what i wanted to hear hehe :)
+17:44 <+ChillerDragon> poggies fddr open src
+17:44 <+ChillerDragon> confirmed
+17:44 < bridge> <fokkonaut> A small readme/documentation has been planned for years already
+17:44 <+ChillerDragon> ikr
+17:44 < bridge> <fokkonaut> idk never was motivated but started today
+17:44 <+ChillerDragon> im surprised u actually did it hehe
+17:44 < bridge> <fokkonaut> A little
+17:44 < bridge> <DefaultO> a readme is supposed to help a new person interested in the project understand what the project is about
+17:44 < bridge> <fokkonaut> xd
+17:45 < bridge> <fokkonaut> Usually I am good at writing, Im just lazy
+17:45 <+ChillerDragon> okok mr nobel winning author
+17:46 < bridge> <Ryozuki> closed source bad
+17:46 <+ChillerDragon> btw i saw you started typing out cmd docs i highly recommend automating that
+17:46 <+ChillerDragon> i think ddnet or vanilla even have tools for that
+17:46 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1076545330058899546/IMG_0491.png
+17:47 < bridge> <fokkonaut> Yea I know, thats why I didnt start it yet
+17:47 <+ChillerDragon> :brain:
+17:47 < bridge> <fokkonaut> just for the look of the table
+17:47 < bridge> <fokkonaut> But Im not sure whether I want to document it in detail or simply the desc from ingame
+17:47 <+ChillerDragon> https://github.com/ddnet/ddnet-scripts/blob/master/client_wiki/commands.py
+17:47 <+ChillerDragon> i think dis
+17:48 <+ChillerDragon> and dis https://github.com/ddnet/ddnet-scripts/blob/master/client_wiki/settings.py
+17:48 < bridge> <fokkonaut> lol cool
+17:48 <+ChillerDragon> but what do i know i typed out 10k lines html for network docs eventho network code is generated with py scripts that could also spit out html if changed xd
+17:49 < bridge> <fokkonaut> 🤣
+17:50 < bridge> <fokkonaut> big pro
+17:52 < bridge> <Kaffeine> Anti-bot?
+17:52 < bridge> <Kaffeine> 
+17:52 < bridge> <Kaffeine> Sometimes there are reasons for "closed source". 😕
+17:52 < bridge> <fokkonaut> chiller would still argue
+17:52 < bridge> <fokkonaut> https://tenor.com/view/confused-meme-girl-uhmmm-what-gif-25262488
+17:52 < bridge> <Ryozuki> nein
+17:53 < bridge> <Ryozuki> thats just security via obfuscation
+17:54 < bridge> <DefaultO> not even obfuscation
+17:54 < bridge> <DefaultO> obfuscation is hiding the information behind cryptography
+17:55 < bridge> <DefaultO> antibot can't be deobfuscated
+17:55 < bridge> <fokkonaut> *insert villager sound*
+17:55 < bridge> <DefaultO> antibot can't be deobfuscated (because it isn't obfuscated)
+17:55 <+ChillerDragon> is there a difference between open source and closed source onbgy anti bot?
+17:55 <+ChillerDragon> axaxaxax
+17:55 < bridge> <fokkonaut> chillerdragon: cant imagine its been 5 years coding now
+17:56 <+ChillerDragon> half decade pro haxor
+17:56 < bridge> <fokkonaut> lul, open sourcing it would lead to obfuscation
+17:56 < bridge> <fokkonaut> still secure
+17:56 < bridge> <DefaultO> no I think what he meant was
+17:56 < bridge> <DefaultO> that if it was good it wouldn't need to be closed source
+17:56 < bridge> <fokkonaut> Nono xf
+17:56 <+ChillerDragon> xd
+17:57 <+ChillerDragon> ye fddr bad so it closed src
+17:57 <+ChillerDragon> axaxax
+17:57 < bridge> <fokkonaut> ongby src code = hf reading
+17:57 < bridge> <DefaultO> hardcoding detection vectors of public clients is bad
+17:57 < bridge> <fokkonaut> He is trolling
+17:57 <+ChillerDragon> nobys c looks like assembly
+17:57 < bridge> <fokkonaut> xD
+17:57 < bridge> <fokkonaut> f3
+17:57 < bridge> <DefaultO> optimization
+17:57 <+ChillerDragon> its new language
+17:57 <+ChillerDragon> its NobyC
+17:58 < bridge> <ReiTW> don't steal my memes
+17:59 < bridge> <DefaultO> but I understand why you do it
+17:59 < bridge> <DefaultO> it's hard to come up with a 100% detection method that doesn't rely on that information
+18:00 <+ChillerDragon> @ReiTW ok lemme think of susmin new: "obi wan c noby" meh only works in german :D
+18:00 <+ChillerDragon> well doesnt rly work in eng or ger xd
+18:00 < bridge> <fokkonaut> lul
+18:00 < bridge> <DefaultO> kenoby works in germany
+18:00 < bridge> <DefaultO> or broken english
+18:01 < bridge> <DefaultO> kenoby works in german
+18:01 <+ChillerDragon> A B KE
+18:01 < bridge> <fokkonaut> He aint using the ABC, he has his own NoByC
+18:01 <+ChillerDragon> watrfak
+18:01 < bridge> <fokkonaut> Thats why no one can read it
+18:01 < bridge> <fokkonaut> ax
+18:02 < bridge> <Ewan> obfuscation doesn't imply cryptography
+18:02 < bridge> <fokkonaut> Ob-Ewan C noby
+18:02 < bridge> <DefaultO> you know what I mean though
+18:02 < bridge> <DefaultO> you can't deobfuscate something that isn't obfuscated
+18:02 < bridge> <fokkonaut> Chuck Norris can
+18:02 < bridge> <Ewan> damn it
+18:02 < bridge> <Ewan> LOL
+18:03 < bridge> <Ewan> fokko are you ever going to have a server for the US?
+18:03 < bridge> <DefaultO> donate for one
+18:03 < bridge> <fokkonaut> Hmm, probably not in near future
+18:03 < bridge> <fokkonaut> I would need to re do some things on the serverside to work with MySQL
+18:03 < bridge> <fokkonaut> otherwise no db con
+18:03 < bridge> <Ewan> i see
+18:03 < bridge> <fokkonaut> I wished I could just set one up rn
+18:04 <+ChillerDragon> netfs + txt db > mysql
+18:04 <+ChillerDragon> change my mind
+18:04 < bridge> <fokkonaut> Lol
+18:05 < bridge> <fokkonaut> Just use mails to send the data and later scan the data and paste it into txt documents and use fifo to tell the server new data arrived
+18:05 < bridge> <fokkonaut> scan the letter
+18:05 < bridge> <Ewan> ll
+18:05 < bridge> <Ewan> lol
+18:05 < bridge> <fokkonaut> stonks
+18:05 < bridge> <fokkonaut> 80ct porto
+18:06 < bridge> <DefaultO> xd
+18:09 <+ChillerDragon> computers were a mistake my db is a unpaid intern that has to remember all data
+18:16 < bridge> <Mr.Gh0s7> in what units is the m_Vel?
+18:16 < bridge> <Mr.Gh0s7> is it in pixels?
+18:18 <+ChillerDragon> in what units is pixels?
+18:18 < bridge> <Mr.Gh0s7> int
+18:18 <+ChillerDragon> xd no i mean what are pixels how long are they?
+18:19 <+ChillerDragon> i assume m_vel is in the smallest unit of m_pos
+18:19 <+ChillerDragon> which was like what 32 a tile or something?
+18:19 <+ChillerDragon> 64?
+18:19 < bridge> <Mr.Gh0s7> 32 yeah
+18:20 <+ChillerDragon> pixel seems screen resolution dependend idk how that would work
+18:21 < bridge> <Mr.Gh0s7> Not necessary screen pixel
+18:21 <+ChillerDragon> i do not for a fact but i highly assume vel is measured in the smallest unit a tile has
+18:21 < bridge> <DefaultO> yea but pixels still could get used
+18:21 < bridge> <DefaultO> what you see on screen is affected by the zoom factor
+18:22 <+ChillerDragon> thats just confusing to me :D
+18:22 < bridge> <DefaultO> I at least could list a few games that do that
+18:22 < bridge> <DefaultO> i wouldn't use it for velocity though
+18:22 < bridge> <DefaultO> velocity in most cases got no unit
+18:22 <+ChillerDragon> according to ddnet wiki a tile is 64x64
+18:22 < bridge> <DefaultO> but is just representing your position change in a specific time
+18:22 <+ChillerDragon> so i assume a vel of 32 makes you travel half a tile per tick?
+18:23 <+ChillerDragon> idk
+18:23 < bridge> <DefaultO> it's a vector that gets affected by gravity too
+18:23 <+ChillerDragon> isnt velocity measured in distance unit per time unit?
+18:23 <+ChillerDragon> generally speaking
+18:23 < bridge> <<~{Barsik}~>> pixels, yup, but what if m_vel doesn't represent pixels kekw
+18:24 <+ChillerDragon> oh wait no
+18:24 <+ChillerDragon> 60x60 units xd
+18:24 <+ChillerDragon> wat
+18:24 < bridge> <DefaultO> what
+18:24 <+ChillerDragon> > Solid tiles (unhookable, hookable, hookthrough) have a square hitbox of 60x60 units.
+18:24 <+ChillerDragon> https://wiki.ddnet.org/wiki/Collision
+18:25 < bridge> <DefaultO> is that even true
+18:25 < bridge> <<~{Barsik}~>> kinda of misinformation?
+18:25 <+ChillerDragon> internet never lies
+18:25 <+ChillerDragon> wiki always facts
+18:25 < bridge> <<~{Barsik}~>> X years old wooker
+18:25 < bridge> <DefaultO> I mean that was written by nondevelopers that try to explain collision
+18:25 < bridge> <DefaultO> that's why I did my research first before trying to explain why shotgunfly works
+18:25 <+ChillerDragon> is it non devs?
+18:25 < bridge> <DefaultO> wiki can be edited by anyone
+18:26 < bridge> <DefaultO> so likely?
+18:26 <+ChillerDragon> why are you asking about units anyways?
+18:26 <+ChillerDragon> whats ur mission?
+18:26 < bridge> <DefaultO> @Reteah
+18:26 < bridge> <Mr.Gh0s7> My mission is to haunt BOO. BOO. BOO.
+18:27 < bridge> <Mr.Gh0s7> in seriosness though it's because I have problems with the KoGAI
+18:27 < bridge> <DefaultO> if you need help with coding hacks, I can help
+18:27 < bridge> <DefaultO> ||jk||
+18:28 < bridge> <Mr.Gh0s7> no it's not hacks
+18:28 < bridge> <<~{Barsik}~>> https://github.com/ddnet/ddnet/blob/686b2657eeecc00fb49c7e8203fb48f32c1469bc/src/game/gamecore.h#L229
+18:28 < bridge> <<~{Barsik}~>> real size of tee is a box of 56x56
+18:28 < bridge> <<~{Barsik}~>> and tile should be 64x64
+18:28 < bridge> <<~{Barsik}~>> can't find any proof
+18:30 < bridge> <DefaultO> what is the cause of the 64 again?
+18:30 < bridge> <DefaultO> i only see 32 in the code
+18:31 < bridge> <Mr.Gh0s7> ```// We show the speed in Blocks per Second (Bps) and therefore have to divide by the block size
+18:31 < bridge> <Mr.Gh0s7> float DisplaySpeedX = VelspeedX / 32;```
+18:31 < bridge> <DefaultO> yes
+18:31 < bridge> <DefaultO> and where is 64 used?
+18:31 < bridge> <DefaultO> or what causes that 32 to turn 64?
+18:31 < bridge> <DefaultO> ticks?
+18:31 < bridge> <Mr.Gh0s7> 32 * x = 64 <=> x = 2
+18:32 < bridge> <Mr.Gh0s7> Result 2 is the impostor
+18:32 < bridge> <<~{Barsik}~>> wait
+18:32 < bridge> <<~{Barsik}~>> https://github.com/ddnet/ddnet/blob/686b2657eeecc00fb49c7e8203fb48f32c1469bc/src/game/collision.cpp#L937
+18:32 < bridge> <<~{Barsik}~>> seems tile is 32x32
+18:32 < bridge> <gotroyb> @Reteah it was originally been 64 per tile but later dropped for performance reasons
+18:32 < bridge> <<~{Barsik}~>> and tee is 28x28
+18:32 < bridge> <DefaultO> yes
+18:32 < bridge> <DefaultO> where tf did you get 64 from
+18:32 < bridge> <gotroyb> says that in the wiki? we need to add that
+18:32 < bridge> <gotroyb> half misinformation = half true
+18:33 < bridge> <<~{Barsik}~>> source code states that tile is 32x32 and tee is 28x28 xd, did my work to spread misinformation also
+18:33 < bridge> <DefaultO> that's why everyone should do their research. see this? I did mine.
+18:33 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1076557146734460939/image.png
+18:33 < bridge> <DefaultO> i even provided the variable name
+18:33 < bridge> <gotroyb> we must do anything we can for the purpose
+18:34 < bridge> <gotroyb> jokes aside, gamecore::GetTile uses / 32
+18:34 < bridge> <<~{Barsik}~>> i'll edit wiki
+18:35 < bridge> <gotroyb> actually `src/game/collision.cpp::GetTile()`
+18:35 < bridge> <<~{Barsik}~>> have said it already xd
+18:36 < bridge> <gotroyb> true misinformation can't be consistent lol hahaha
+18:41 < bridge> <louis> tile is 32
+18:42 < bridge> <louis> a solid block is 60x60 relative to a tee
+18:43 < bridge> <<~{Barsik}~>> what
+18:43 < bridge> <louis> https://cdn.discordapp.com/attachments/293493549758939136/1076559496664592404/Screenshot_20230218-114231.png
+18:43 < bridge> <<~{Barsik}~>> i mean, why this is true
+18:43 < bridge> <<~{Barsik}~>> based on what xd
+18:43 < bridge> <louis> just like how kill tile has more than 32x32, unhookable etc. has larger hitboz
+18:44 < bridge> <louis> i tested it ingame before, im pretty sure its correct
+18:44 < bridge> <<~{Barsik}~>> nope, kill tiles have the same hitbox as any tile have
+18:44 < bridge> <louis> no
+18:44 < bridge> <<~{Barsik}~>> tee changes his hitbox based on tile interaction
+18:44 < bridge> <louis> not relative to a tee
+18:44 < bridge> <<~{Barsik}~>> this one for example
+18:44 < bridge> <<~{Barsik}~>> 
+18:44 < bridge> <<~{Barsik}~>> https://github.com/ddnet/ddnet/blob/686b2657eeecc00fb49c7e8203fb48f32c1469bc/src/game/server/entities/character.cpp#L1292
+18:44 < bridge> <louis> thats why it says relative to the center position of a tee in the wiki
+18:45 < bridge> <<~{Barsik}~>> ah okey
+18:45 < bridge> <louis> ppl will care about that much more than code specjfics
+18:45 < bridge> <louis> i think
+18:46 < bridge> <louis> i didnt know that tee technically changes hitbox
+18:46 < bridge> <louis> if so then someone can add that in, but it should basically describe it in similar ways
+19:15 < bridge> <<~{Barsik}~>> tee-kill tile collision in a nutshell
+19:15 < bridge> <<~{Barsik}~>> https://cdn.discordapp.com/attachments/293493549758939136/1076567671073677332/image.png
+19:16 < bridge> <<~{Barsik}~>> 9.33 is approximately 1/3 of 28
+19:17 < bridge> <<~{Barsik}~>> and there is 0 unit interaction with all ddrace tiles afaik
+19:18 < bridge> <<~{Barsik}~>> you need to have center of your tee in tile to interact
+19:18 < bridge> <DefaultO> not with freeze tiles
+19:18 < bridge> <DefaultO> ah
+19:18 < bridge> <DefaultO> yes
+19:18 < bridge> <<~{Barsik}~>> server literally gets tile index by mapping tees position
+19:24 < bridge> <<~{Barsik}~>> @louis so yeah you are right
+19:24 < bridge> <<~{Barsik}~>> like 32 + 9.33 * 2 is kinda 50
+19:32 < bridge> <<~{Barsik}~>> don't get why do solid tiles have 60x60 hitbox btw
+19:33 < bridge> <<~{Barsik}~>> ah wait
+19:33 < bridge> <<~{Barsik}~>> 32 + 14 * 2
+19:34 < bridge> <<~{Barsik}~>> and also server checks if tee's grounded by checking center.y + radius + 5
+19:34 < bridge> <<~{Barsik}~>> so tee's walking in air xd
+19:53 < bridge> <fokkonaut> its a feature
+23:11 < bridge> <Vy0x2> When did you guys remove https://cdn.discordapp.com/attachments/779761780129005568/1076621164425793536/image.png and why?
+23:11 < bridge> <Vy0x2> When did you guys remove https://cdn.discordapp.com/attachments/779761780129005568/1076621164425793536/image.png (copy info) and why?
+23:14 < bridge> <furo> It's not removed.
+23:19 < bridge> <Ryozuki> @Jupeyy_Keks
+23:19 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1076628999557623899/j7fs9o0dayia1.webp
+23:19 < bridge> <Ryozuki> java good
+23:19 < bridge> <Ryozuki> right
+23:19 < bridge> <Izanagi> minecraft

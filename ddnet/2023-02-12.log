@@ -1,0 +1,233 @@
+00:34 < bridge> <heinrich5991> > There’s little reason to do it this way other than to annoy Raymond Chen, but it’s still neat and maybe has some super niche use.
+00:34 < bridge> <heinrich5991> https://nullprogram.com/blog/2022/02/18/
+02:56 < bridge> <Learath2> Nice blogposts, I like this guy
+11:24 < bridge> <Patiga> @Jupeyy_Keks soo, I currently have like 3 designs in mind for tee rendering and I'm not sure which one I like best.
+11:24 < bridge> <Patiga> I do want to draw them all in one draw call. The biggest drawback this will be that keeping all skins in an array texture is a bit harder, and defragmenting unused skins or stuff like that is also harder than simply dropping the skin textures that are not in use anymore.
+11:24 < bridge> <Patiga> iirc my wgpu renderer was mostly cpu-capped, so doing stuff on the gpu is probably the way to go
+11:24 < bridge> <Patiga> ```
+11:24 < bridge> <Patiga> 1.
+11:24 < bridge> <Patiga>     One static vertex buffer with all the tee body parts in their correct size with the right texture coordinates, as well as a uint which identifies the body part.
+11:24 < bridge> <Patiga>     One minimal tee vertex buffer with instance stepping, which contains minimal information about the tee
+11:24 < bridge> <Patiga>       - position
+11:24 < bridge> <Patiga>       - view angle for the eyes
+11:24 < bridge> <Patiga>       - relative position of the body
+11:24 < bridge> <Patiga>       etc
+11:24 < bridge> <Patiga>     The vertex shader then figures out which body part the vertex is from and applies the correct transformations
+11:25 < bridge> <Patiga> 2.
+11:25 < bridge> <Patiga>     Again the same static vertex buffer without the identifying uint
+11:25 < bridge> <Patiga>     A vertex buffer with instance stepping, which, for every tee, has a matrix for each body part
+11:25 < bridge> <Patiga>     (since some body parts are duplicate the amount of matrices could be reduced, and this could also just be a uniform buffer that gets indexed)
+11:25 < bridge> <Patiga> 3.
+11:25 < bridge> <Patiga>     A single vertex buffer for all tees that includes all transformed vertices, probably with an index buffer
+11:25 < bridge> <Patiga> 
+11:25 < bridge> <Patiga> The trade offs that I tried to take into account were:
+11:25 < bridge> <Patiga>     - The amount of redundant information
+11:25 < bridge> <Patiga>     - The size of the buffer writes each frame
+11:25 < bridge> <Patiga>     - The amount of work for the vertex shader
+11:25 < bridge> <Patiga> ```
+11:25 < bridge> <Patiga> Thoughts? ^^
+11:51 < bridge> <Jupstar ✪> 1. i assume the best trade off approach probs cheapest on CPU
+11:51 < bridge> <Jupstar ✪> 2. i assume this could be the fastest of the three (rendering wise)
+11:51 < bridge> <Jupstar ✪> 3. requires lot of buffer updates, so might be the slowest
+11:51 < bridge> <Jupstar ✪> 
+11:51 < bridge> <Jupstar ✪> u should generally not except that instancing is faster than draw calls
+11:51 < bridge> <Jupstar ✪> its basically like drawing the same tee `instance_count` time with an automatic index
+11:51 < bridge> <Jupstar ✪> for i in 0 .. instance_count
+11:51 < bridge> <Jupstar ✪> draw_call
+11:51 < bridge> <Jupstar ✪> 
+11:51 < bridge> <Jupstar ✪> as far as i seen it also doesnt execture on the GPU
+11:51 < bridge> <Jupstar ✪> 
+11:51 < bridge> <Jupstar ✪> i tried to build a buffer that only contains indices counted up (to reflect what instancing would do if you count from 0 to x) and it was faster than the driver (by a very bit), since i assume it done that in one gpu call instead of simply looping
+11:51 < bridge> <Jupstar ✪> 
+11:51 < bridge> <Jupstar ✪> What is your solution to the blending problem?
+11:59 < bridge> <Jupstar ✪> biggest problem with rendering for teeworlds is
+11:59 < bridge> <Jupstar ✪> 
+11:59 < bridge> <Jupstar ✪> we apply one transformation for 3-4 vertices
+11:59 < bridge> <Jupstar ✪> 
+11:59 < bridge> <Jupstar ✪> my biggest problem with opengl 3.3 was really the bad control over memory management, updating uniforms in opengl is much faster than uploading/updating a buffer
+11:59 < bridge> <Jupstar ✪> 
+11:59 < bridge> <Jupstar ✪> e.g. with vulkan its almost as cheap to created streamed vertices(20 bytes per vertex * 4 * skin_part_count)
+11:59 < bridge> <Jupstar ✪> 
+11:59 < bridge> <Jupstar ✪> vs updating matrices/informations (usually sizeof(float) * 2 (<= pos) * rotation (float) * color(4 bytes) ~ 16 bytes)
+11:59 < bridge> <Jupstar ✪> only advantage is ofc that the rotation calc etc happens on the GPU which is usually better than CPU if the number of vertices is high (bcs parallelism)
+11:59 < bridge> <Jupstar ✪> 
+11:59 < bridge> <Jupstar ✪> 
+11:59 < bridge> <Jupstar ✪> So i guess try out all 3 apporaches xD
+12:00 < bridge> <Patiga> hm, how is updating uniforms different to updating a buffer?
+12:02 < bridge> <Patiga> I think with wgpu the best thing to do is to use the least amount of interaction with the api / using the highest abstractions. that is why I am assuming that instance based rendering is the most suitable variant
+12:02 < bridge> <Patiga> but yeah, I wasn't aware that instance based rendering isn't on the gpu
+12:05 < bridge> <Jupstar ✪> I assume the gl driver assumes that uniform buffers are updated more regularly
+12:05 < bridge> <Jupstar ✪> Also buffer has a different lifetime
+12:05 < bridge> <Jupstar ✪> Uniform are per shader program
+12:06 < bridge> <Patiga> ah, true
+12:07 < bridge> <Patiga> instancing does seem to have support from gpus, not sure to which extent tho https://en.wikipedia.org/wiki/Geometry_instancing#Video_cards_that_support_geometry_instancing
+12:09 < bridge> <Patiga> > i tried to build a buffer that only contains indices counted up (to reflect what instancing would do if you count from 0 to x) and it was faster than the driver (by a very bit), since i assume it done that in one gpu call instead of simply looping
+12:09 < bridge> <Patiga> heh, interesting. for 2. with a uniform buffer I also considered this and then wondered if I can use zero-sized vertex structures and then just use the built-in instance-index
+12:12 < bridge> <Patiga> > What is your solution to the blending problem?
+12:12 < bridge> <Patiga> isn't the blending problem solved if I render the each tee limbs before the next by having them in this order in the vertex buffer?
+12:12 < bridge> <Patiga> if you mean the order of the tees, I suppose their order is mostly fixed and I need to take care to have the own tee be in front. although it would still just take a single buffer write to change their order
+12:16 < bridge> <Jupstar ✪> but are u doing it in seperate draw calls?
+12:17 < bridge> <Patiga> I think it should work fine with a single draw call
+12:21 < bridge> <Jupstar ✪> that surprises me
+12:21 < bridge> <Jupstar ✪> so the GPU waits for other fragments to finish completely?
+12:22 < bridge> <Patiga> uh I think yes
+12:23 < bridge> <Patiga> I mean z-fighting only happens with depth buffers with floating point inaccuracies afaik
+12:24 < bridge> <Patiga> it should be the same behavior as rendering a quads layer, I think the order is just as defined
+12:24 < bridge> <Patiga> maybe I'm just not seeing the issue you are pointing out ^^
+12:26 < bridge> <Jupstar ✪> but if u overlay 2 half transparent quads
+12:26 < bridge> <Jupstar ✪> in one call
+12:27 < bridge> <Jupstar ✪> i dunno, to me this sounds like the GPU has to be aware of the content of the fragments instead of spamming them out
+12:28 < bridge> <Patiga> but if it wasn't synchronized in some way, we would be able to observe some kind of flickering
+12:28 < bridge> <Patiga> or at least inconsistencies in the coloring if we would overlay such quads
+12:30 < bridge> <Jupstar ✪> mh yeah i guess it can guarantee the order of execution at the fragmentation already
+12:33 < bridge> <Jupstar ✪> now that i think about it, i think there was a vulkan extension that disabled this feature which i found very useful for ddnet tile map rendering but apparently the driver is just as good
+12:33 < bridge> <Jupstar ✪> https://gpuopen.com/learn/unlock-the-rasterizer-with-out-of-order-rasterization/
+12:36 < bridge> <Jupstar ✪> in this case its about z buffer, but the same problem arrises for the color blending
+12:37 < bridge> <Jupstar ✪> from pure feeling this sounds rather expensive to do, i'd love to have that control
+12:38 < bridge> <Jupstar ✪> i wonder if the fragments itself wait for other fragments or if the gpu only waits as soon as one fragment overlaps another or something similar
+12:38 < bridge> <Jupstar ✪> note this is kinda offtopic to what u want to do
+12:39 < bridge> <Patiga> interesting, I have no idea how the lower level stuff on the graphics card works
+12:39 < bridge> <Jupstar ✪> just a guarantee not needed for tile rendering
+12:39 < bridge> <Patiga> yea
+12:39 < bridge> <Patiga> like,  can the gpu detect overlaps and reorder the vertices like the cpu reorders operations? :D
+12:40 < bridge> <Jupstar ✪> yeah would be interesting to know what exactly happens 😄
+12:41 < bridge> <Jupstar ✪> i bet in 10 years we have much more control over such stuff for graphics apis
+12:42 < bridge> <Jupstar ✪> lot of stuff is still "hardcoded" but not actually needed. e.g. a computer shader can probably reflect all pipeline stages
+12:42 < bridge> <Jupstar ✪> 
+12:42 < bridge> <Jupstar ✪> but nobody done it yet and/or it also might be slower of one architecture vs. another
+12:43 < bridge> <Patiga> heh, operating on all hardware must be a huge pain
+12:43 < bridge> <Jupstar ✪> lot of stuff is still "hardcoded" but not actually needed. e.g. a compute shader can probably reflect all pipeline stages
+12:43 < bridge> <Jupstar ✪> 
+12:43 < bridge> <Jupstar ✪> but nobody done it yet and/or it also might be slower of one architecture vs. another
+12:43 < bridge> <Jupstar ✪> i mean it can still be a programmable shader
+12:44 < bridge> <Jupstar ✪> its just that its probably not as optimized as the hardcoded stuff
+12:44 < bridge> <Jupstar ✪> compute shaders are basically what OpenCL can do, and OpenCL can do all blender rendering
+12:44 < bridge> <Jupstar ✪> so its just a matter of effort/time & next gen hardware xD
+12:49 <+ChillerDragon> https://zillyhuhn.com/cs/.1676202387.png
+12:49 <+ChillerDragon> this is fine
+12:51 < bridge> <Jupstar ✪> @Patiga do you render your quads in your twgpu in one draw call? And i explicitly dont mean instancing
+12:52 < bridge> <Patiga> yes, one quad layer is one draw call
+12:52 < bridge> <Patiga> same in ddnet?
+12:53 < bridge> <Jupstar ✪> nope, it uses instancing
+12:53 < bridge> <Jupstar ✪> so its one draw call
+12:53 < bridge> <Jupstar ✪> but instanced
+12:53 < bridge> <Patiga> wait why
+12:53 < bridge> <Patiga> what is your base vertex buffer?
+12:53 < bridge> <Jupstar ✪> ok let me look xD
+12:53 < bridge> <Jupstar ✪> maybe i am wrong
+12:54 < bridge> <Patiga> I have an indexed draw call in twgpu
+12:54 < bridge> <Jupstar ✪> ah yeah i use the vertex index
+12:54 < bridge> <Jupstar ✪> so its not instanced
+12:54 < bridge> <Jupstar ✪> int TmpQuadIndex = int(gl_VertexID / 4) - gQuadOffset;
+12:56 < bridge> <Patiga> 👍 `indices.extend([0, 1, 3, 0, 2, 3].map(|i| i + offset));` in a loop for the creation of the index buffer
+12:56 < bridge> <Jupstar ✪> but now i also remember it was the last thing i did for the vk backend, bcs it was the part where i actually thought about using streamed vertices instead
+12:56 < bridge> <Jupstar ✪> 
+12:56 < bridge> <Jupstar ✪> with many quads its still faster to use the GPU for rotation and stuff, but for few or single quads its not
+12:56 < bridge> <Jupstar ✪> i think i ended up splitting it like that
+12:57 < bridge> <Jupstar ✪> i ended up with some trade off:
+12:57 < bridge> <Jupstar ✪>  single quads have a faster code path (e.g. using push constants (which are faster than updating a buffer))
+12:57 < bridge> <Jupstar ✪> multiple quads use a buffer
+12:58 < bridge> <Patiga> wait you rotate quads on the cpu? interesting
+12:58 < bridge> <Patiga> but different rendering methods dependent on the content sounds exhausting
+12:58 < bridge> <Jupstar ✪> nope
+12:58 < bridge> <Patiga> currently in twgpu, you only have to update the camera buffer and the envelope buffer for the next frame
+12:59 < bridge> <Jupstar ✪> i thought about it bcs i disliked the fact that i update a buffer for one quad
+12:59 < bridge> <Jupstar ✪> 
+12:59 < bridge> <Jupstar ✪> but instead i am now using push constants
+13:00 < bridge> <Jupstar ✪> so the calculation is on the GPU, and i dont update any buffer, which is faster than simply uploading the finished vertices
+13:00 < bridge> <Jupstar ✪> that was ok for me, but it's quite possible the CPU would still be faster for a single quad
+13:00 < bridge> <Jupstar ✪> but requires a few more bytes to upload per frame 😄
+13:02 < bridge> <Patiga> hm I don't use push constants currently, but they are actually quite portable in wgpu, they emulate them with uniforms buffers on webgl for example
+13:02 < bridge> <Jupstar ✪> sounds cool
+13:02 < bridge> <Patiga> https://docs.rs/wgpu/latest/wgpu/struct.Features.html#associatedconstant.PUSH_CONSTANTS
+13:03 < bridge> <Patiga> ah fuck, opengl is supported, but not on the web, misremembered that detail
+13:03 < bridge> <Jupstar ✪> mh thats weird
+13:04 < bridge> <Patiga> probably simply not implemented yet
+13:04 < bridge> <Jupstar ✪> i'd have thought webgl2 is gles3
+13:05 < bridge> <Jupstar ✪> but they GLES3 support is also only "Ok"
+13:05 < bridge> <Patiga> https://github.com/gfx-rs/wgpu/tree/bb01d723ba90654fdec85d931edbe7c9be56869e/wgpu-hal/src
+13:05 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1074300148479430716/image.png
+13:05 < bridge> <Jupstar ✪> if thats up to date xD
+13:05 < bridge> <Patiga> they don't seem to be different backends
+13:08 < bridge> <Patiga> I think it would be interesting if wgpu had a compile-feature you could use to disable validation, to remove the overhead once you built a project and are finished with debugging
+13:09 < bridge> <Jupstar ✪> Validation= their own. Or validation layers?
+13:47 < bridge> <Itachi-kun> İm trying mapping and I need make teleport
+13:47 < bridge> <Itachi-kun> İ found how can place teleport but I have 2 different teleport and they randomly tp me
+13:47 < bridge> <Jupstar ✪> #mapping
+13:48 < bridge> <Itachi-kun> Sorry
+13:48 < bridge> <Itachi-kun> İ don't see this channel
+14:03 < bridge> <Patiga> their own
+14:06 < bridge> <Patiga> my last callgrind informed me that my cpu-bottlenecked program spends most of its time in wgpu functions
+14:17 < bridge> <Jupstar ✪> and u tested that in release mode? bcs last time i tested twgpu it was like 100% gpu for me
+14:18 < bridge> <Patiga> afaik, yes
+14:18 < bridge> <Patiga> I think that was before I introduced those bounding boxes for the tilemaps
+14:19 < bridge> <Patiga> before I did those, I was able to cleanly create one RenderBundle, but set_scissors_rect isn't possible with render bundles, so while that took of work from the gpu, the validation checks now needed to be done every frame instead of once at the creation of the render bundle
+14:21 < bridge> <Patiga> I should also test again if reverting that and doing early returns in the shader would simply be much better. last time we thought about early returns we thought that wgsl doesn't support it, but its just that you need to have a specific control flow in wgsl
+14:26 < bridge> <Patiga> https://bugs.chromium.org/p/tint/issues/detail?id=1554#c10
+14:26 < bridge> <Patiga> this might also be interesting https://github.com/gpuweb/gpuweb/issues/3479
+14:26 < bridge> <Patiga> and TIL there is a `discard` statement https://gpuweb.github.io/gpuweb/wgsl/#discard-statement
+14:55 < bridge> <Jupstar ✪> discard might not improve the performance tho, it can result in the gpu core using predications for all opcodes instead
+14:58 < bridge> <Patiga> wouldn't it miss its purpose somewhat if it wouldn't improve performance?
+14:58 < bridge> <Patiga> it says that it turns that invocation into a "helper invocation" https://gpuweb.github.io/gpuweb/wgsl/#helper-invocation
+15:00 < bridge> <Jupstar ✪> yep
+15:01 < bridge> <Jupstar ✪> its not comparable to early discards
+15:01 < bridge> <Patiga> I guess I'll just have to test how well it works
+15:01 < bridge> <Jupstar ✪> where the fragment shader will not even be called
+15:01 < bridge> <Patiga> are early discards simply when the fragment would be out of the viewport?
+15:02 < bridge> <Jupstar ✪> if for whatever reason it doesnt produce a fragment yeah
+15:02 < bridge> <Patiga> if the fragment shader isn't even called it doesn't sounds like it could be done in the fragment shader ^^
+15:02 < bridge> <Jupstar ✪> in fact u can purposly discard all fragments
+19:19 < bridge> <Raks> I need some help to make this bot to my discord server :
+19:19 < bridge> <Raks> https://cdn.discordapp.com/attachments/293493549758939136/1074394450702377060/image.png
+19:22 < bridge> <Raks> im at the step 4
+19:23 < bridge> <Raks> and im lost
+19:24 < bridge> <Raks> Do u know how to make this? ^^
+19:50 < bridge> <Jupstar ✪> depends what graphics api you use
+19:50 < bridge> <Jupstar ✪> just google it
+19:57 < bridge> <Raks> uh
+19:57 < bridge> <Raks> OpenGL?
+19:59 < bridge> <Raks> graphic card?
+19:59 < bridge> <Raks> graphics card?
+20:00 < bridge> <Raks> What kind of graphics card do i have?
+20:01 < bridge> <Jupstar ✪> you have a rtx 2080
+20:04 < bridge> <Raks> i have
+20:04 < bridge> <Raks> https://cdn.discordapp.com/attachments/293493549758939136/1074405723376722091/image.png
+20:05 < bridge> <Jupstar ✪> then i shouldnt get a fortune teller
+20:05 < bridge> <Raks> But seriously, i need some help
+20:08 < bridge> <Jupstar ✪> then google, u can e.g. use stencil testing to discard all fragments early
+20:10 < bridge> <Raks> I did but i just cant find the right one
+20:10 < bridge> <Raks> the right explain
+20:11 < bridge> <Jupstar ✪> man takes 10 seconds to google
+20:11 < bridge> <Jupstar ✪> ```
+20:11 < bridge> <Jupstar ✪> glEnable(GL_STENCIL_TEST);    
+20:11 < bridge> <Jupstar ✪> glStencilFunc(GL_NEVER, 1, 0xFF);
+20:11 < bridge> <Jupstar ✪> ```
+20:13 < bridge> <Raks> all i got its just this
+20:13 < bridge> <Raks> https://cdn.discordapp.com/attachments/293493549758939136/1074407801268469830/image.png
+20:13 < bridge> <Raks> But i think ill try my best and if i cant make it, i will just give up
+20:13 < bridge> <Jupstar ✪> ????
+20:13 < bridge> <Jupstar ✪> just stop troll dude
+20:13 < bridge> <Raks> Im not trolling!
+20:13 < bridge> <Raks> https://cdn.discordapp.com/attachments/293493549758939136/1074407972299604011/image.png
+20:13 < bridge> <Jupstar ✪> u ask me about graphics apiu
+20:13 < bridge> <Jupstar ✪> u ask me about graphics api
+20:13 < bridge> <Raks> Its says i have to dwonload it
+20:13 < bridge> <Jupstar ✪> and show pictures of php
+20:14 < bridge> <Raks> Its says i have to download it
+20:14 < bridge> <Raks> Nevermind. Im sorry for disturbing
+20:14 < bridge> <pikear> Hello
+20:15 < bridge> <pikear> ._.
+20:15 < bridge> <Jupstar ✪> hey
+20:16 < bridge> <pikear> A what?
+20:16 < bridge> <Jupstar ✪> ???????
+20:16 < bridge> <Jupstar ✪> whats going on in this channel rn
+20:16 < bridge> <pikear> ._.
+20:16 < bridge> <Jupstar ✪> if u have a question please formulate proper english
+20:17 < bridge> <Jupstar ✪> use chatgpt if you arent a native english speaker
+20:17 < bridge> <pikear> It's a channel on ddracenetwork and everything seems to be fine.
+20:18 < bridge> <pikear> Excuse me please but I'm not from England and didn't study it in school because I didn't think it was important, and now because of this game I think.
+20:19 < bridge> <Jupstar ✪> oh then your english is quite good
+20:20 < bridge> <pikear> Thank you for the praise
+20:41 < bridge> <Raks> Last question what is WH maps?
+20:41 < bridge> <Raks> https://cdn.discordapp.com/attachments/293493549758939136/1074414950933594183/image.png
+21:58 < bridge> <louis> ban faker

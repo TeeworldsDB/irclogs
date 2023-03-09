@@ -2,3 +2,182 @@
 08:51 < bridge> <Ryozuki> https://github.com/orlp/glidesort
 09:58 < bridge> <heinrich5991> maybe you could add something in the character
 09:58 < bridge> <heinrich5991> that you set automatically when a player authes
+10:14 < bridge> <Cipy29> i forgot, why are 0.7 skins brighter than 0.6 ones?
+10:35 < bridge> <Jupstar ✪> i think only darker
+10:36 <+ChillerDragon> Im trying out reply to message from irc o.O @Learath2 https://github.com/TeeworldsDB/irclogs/blob/1d3a714c6cab8b7937bbf6cf0625ebde59b8e55d/ddnet/2023-01-21.log#L24-L26
+10:37 <+ChillerDragon> i still dont get ``Obj_SevenToSix``
+10:37 <+ChillerDragon> last time i asked for message and u said its binary complete so what about objects then?
+10:38 <+ChillerDragon> oh wait i think objects are how i thought message work
+10:38 <+ChillerDragon> it translates the id not states if they are binary complete
+10:39 <+ChillerDragon> no never mind im confused
+10:40 <+ChillerDragon> both sixtoseven and seventosix map 4 to 4
+10:40 <+ChillerDragon> https://zillyhuhn.com/cs/.1675503594.png
+10:40 <+ChillerDragon> https://chillerdragon.github.io/teeworlds-protocol/06/snap_items.html#obj_pickup
+10:40 <+ChillerDragon> https://chillerdragon.github.io/teeworlds-protocol/07/snap_items.html#obj_pickup
+10:40 <+ChillerDragon> but in 0.7 the ``m_Subtype`` got removed so they are not binary complete?
+10:41 <+ChillerDragon> s/binary complete/binary compatible/
+11:28 < bridge> <Learath2> Idk if if applies to objs. I said that about messages
+11:29 < bridge> <Learath2> This shouldn't be an issue since it was removed from the end I guess
+12:02 <+ChillerDragon> oh i see
+12:06 < bridge> <Robyt3> @heinrich5991 Can you merge #6282? It's been ready for a while. I tested that the selection is kept based on the filename when files are added/removed by refreshing.
+12:06 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6282
+12:14 <+ChillerDragon> @Learath2 iirc last time i asked u about how to translate snap items for the 0.7 client bridge you said as early as possible with changing as little as possible of the existing code
+12:15 <+ChillerDragon> im not really sure what the smartest way would be ._.
+12:15 <+ChillerDragon> changing the actual snapshot data when the items are unpacked seems impossible
+12:16 <+ChillerDragon> preprocessing the data and let the 0.6 code handle it is also kinda tricky because it uses pointers into the actual snap data
+12:16 <+ChillerDragon> so when the snap data is 0.7 and the client is pointing 0.6 structs with different shapes in there it wont work
+12:17 <+ChillerDragon> so i would kinda need to store the memory in some seperate storage which also seems weird
+12:17 < bridge> <Learath2> I guess it needs to be translated during unpacking
+12:17 <+ChillerDragon> which unpacking?
+12:17 <+ChillerDragon> snapshot.cpp or gameclient.cpp ?
+12:18 < bridge> <Learath2> Right after delta unpacking you'd have to go through the snapshot and figure out what needs changing
+12:18 < bridge> <Learath2> I honestly don't know
+12:18 < bridge> <Learath2> I didn't care enough back then. I care even less now
+12:19 <+ChillerDragon> So you suggest that as soon as the type id is known like here https://github.com/ddnet/ddnet/blob/b6f49bd670c3baacc93081b00e85fe1e5eb9f84a/src/engine/shared/snapshot.cpp#L408
+12:19 <+ChillerDragon> one starts to look at all the fields and translate them?
+12:20 <+ChillerDragon> if the snap item changes size where would that data be stored?
+12:20 < bridge> <Learath2> I don't see any other way to keep the 0.6 code working
+12:20 <+ChillerDragon> would it be that bad to break the 0.6 code with a bunch of sixup if statements?
+12:20 < bridge> <Learath2> But you can't really do it there
+12:20 < bridge> <Learath2> You'd have to do it in client.cpp
+12:21 < bridge> <heinrich5991> can't you just™ hand the snapshot to some code that translates it to a new-style snapshot?
+12:21 < bridge> <heinrich5991> can't you just™ hand the snapshot to some code that translates it to a 0.6-style snapshot?
+12:21 <+ChillerDragon> so the whole snap data buffer thingy?
+12:21 < bridge> <heinrich5991> input: 0.7-style snapshot, output: 0.6-style snapshot
+12:21 <+ChillerDragon> after all data is received?
+12:22 < bridge> <heinrich5991> after a snapshto is completely received
+12:22 <+ChillerDragon> and then possibly resize it
+12:22 < bridge> <heinrich5991> and reconstructed
+12:22 <+ChillerDragon> i see sounds smooth in theory
+12:22 < bridge> <heinrich5991> create a whole new one, just throw away the 0.7 one
+12:22 < bridge> <Learath2> That's the last resort option. I don't want branches everywhere for a feature that will if we are being honest be used by 5 people at most
+12:22 < bridge> <heinrich5991> (keep it around for deltas)
+12:22 <+ChillerDragon> that seems a bit hard to code imo tho
+12:23 <+ChillerDragon> it will take me forever and grow the git diff even more
+12:23 <+ChillerDragon> what are the chances of the current state being merged :) 
+12:29 <+ChillerDragon> yo @heinrich5991 u mean here right? https://github.com/ddnet/ddnet/blob/b6f49bd670c3baacc93081b00e85fe1e5eb9f84a/src/engine/client/client.cpp#L2200
+12:29 <+ChillerDragon> at the end of ``else if(Msg == NETMSG_SNAP || Msg == NETMSG_SNAPSINGLE || Msg == NETMSG_SNAPEMPTY)``
+12:29 <+ChillerDragon> going over all received data and modifying it
+12:32 < bridge> <heinrich5991> yea, basically
+12:33 <+ChillerDragon> ok i get the idea sadly i dont even understand half of the snap unpacking code
+12:33 < bridge> <heinrich5991> don't touch the snap unpacking
+12:33 < bridge> <heinrich5991> you have a complete snap
+12:33 < bridge> <heinrich5991> you know how to read it (see the client code)
+12:33 <+ChillerDragon> yea yea i know
+12:33 < bridge> <heinrich5991> you know how to write a new one (see server code)
+12:33 < bridge> <heinrich5991> anyway
+12:34 < bridge> <heinrich5991> it'd probably be better to talk about whether it's getting merged
+12:34 <+ChillerDragon> but to write i kinda need to understand
+12:34 <+ChillerDragon> ok yea
+12:34 <+ChillerDragon> lets talk
+12:34 < bridge> <heinrich5991> I'm not opposed, but I don't like that it adds special cases and new parameters
+12:34 < bridge> <heinrich5991> and I'm gone for a couple of seconds
+12:34 <+ChillerDragon> well it should only be a temporary solution until 0.6 is dropped
+12:57 <+ChillerDragon> Im having a hard time understanding where snap data is actually stored i assume its here but it doesnt make much sense to me https://github.com/ddnet/ddnet/blob/911bd0e69a8fee9b02f0cea26d50ecc2f000bc3c/src/engine/shared/snapshot.h#L145
+12:58 <+ChillerDragon> in snapshot.cpp it seems to store data into ``pItem->Data()`` which basically boils down to ``this + offset`` in ``CSnapshot``
+12:58 <+ChillerDragon> how can you store data in ``this`` ? if it ``this`` is referring to an instance of a class without any instance variables?
+12:58 <+ChillerDragon> who allocated the memory?
+12:59 <+ChillerDragon> it has the ``CSnapshotBuilder`` friend class but can one simply write into the instance variables of a friend class by memcopying into ``this + offset`` ?!
+13:10 < bridge> <Learath2> Problem is no one except you wants to drop 0.6 so in practice we'll have those branches forever
+13:17 <+ChillerDragon> wants as in needs 0.6 or wants as in wants to go through the effort of removing the code?
+13:18 <+ChillerDragon> i do not mind keeping 0.6 nor adding 0.5 support but if 0.6 and 0.7 in the code together make it too complex to maintain it makes sense to remove 0.6 right?
+13:19 <+ChillerDragon> the end user should ideally not notice much of a change
+13:20 <+ChillerDragon> oh i think i read the memcopy wrong its not writing into ``this`` but more from ``this`` yea pretty sure i still dont get it :D
+13:32 < bridge> <Learath2> Honestly, if 0.6 and 0.7 in the code together is complex to maintain, it's 0.7 that should go. Why would we even add it in the first place if it makes the code annoying to maintain?
+13:33 <+ChillerDragon> to have a smooth transition with a time of backwards compatibility
+13:33 <+ChillerDragon> if 0.7 is not there we are not compatible with upstream :c
+13:33 < bridge> <Learath2> Why transition? 0.7 is dead again, future is whatever we come up with for the protocol update, whether it be DTLS or QUIC
+13:35 < bridge> <Learath2> The only reason to have 0.7 compatibility would be if it wasn't a maintainence hassle
+13:35 <+ChillerDragon> yea it has a small player base but i can see it being bigger if ddnet clients would support it
+13:36 < bridge> <Learath2> Honestly, it's small playerbase should just drop it and play 0.6 with us. Are there even mods unique to 0.7 getting any players? It's all bridge servers
+13:36 <+ChillerDragon> its super annoying to switch clients imo
+13:36 < bridge> <Ryozuki> chiller just use ddnet
+13:36 <+ChillerDragon> i do
+13:36 < bridge> <Ryozuki> the only good thing 0.7 has is skins
+13:36 <+ChillerDragon> and as result i havent played ctf in 3 years
+13:36 < bridge> <Ryozuki> we just need to find a way to adapt to our client
+13:36 < bridge> <Ryozuki> without fucking up the tee
+13:36 < bridge> <Ryozuki> so it doesnt look ugly
+13:37 < bridge> <Ryozuki> pvp is jus not famous
+13:37 < bridge> <Learath2> Not like there were many playing ctf in 0.6 either. Last I tried I couldn't find a populated server
+13:37 < bridge> <Learath2> 0.7*
+13:37 <+ChillerDragon> yea because most users are too lazy to switch clients
+13:37 <+ChillerDragon> or didnt even notice that 0.7 released
+13:38 <+ChillerDragon> or think ddnet is 0.7
+13:38 < bridge> <Learath2> If there was a genuine desire to play ctf, they would play ctf on 0.6 no?
+13:38 < bridge> <Ryozuki> maybe instagib is the last good pvp
+13:38 < bridge> <Ryozuki> and fng
+13:38 < bridge> <Learath2> The truth is that pvp is dead except for fng. I honestly think your efforts would be better spent trying to get it popular again
+13:39 <+ChillerDragon> getting ctf popular in 0.6?
+13:39 <+ChillerDragon> that sounds wrong doesnt it
+13:39 < bridge> <Learath2> But anyway, if it's not creating too big a mess, I'm okay with having 0.7 compatibility aswell
+13:39 <+ChillerDragon> yea im trying heinrichs approach now
+13:39 < bridge> <Learath2> Not really. At least not to me
+13:40 <+ChillerDragon> so you are saying ddnet client should promote ctf servers instead of kobra novice for new players?
+13:41 <+ChillerDragon> the noob ctf5 sceene fully moved to 0.7 
+13:41 <+ChillerDragon> and even some of the pro scene is vanilla maximalists i think
+13:41 <+ChillerDragon> or they quit ctf due to not wanting to switch clients
+13:41 < bridge> <Learath2> We could get some vanilla servers again, create a pvp tab for pvp servers, there are possible things
+13:42 < bridge> <Learath2> 0.7 support in ddnet wont really start promoting ctf servers either
+13:42 <+ChillerDragon> the servers are there but they are usually only played by users with vanilla clients
+13:42 <+ChillerDragon> oh tru your probably right
+13:42 < bridge> <Learath2> So I have a feeling you'll get pretty disappointed when you get this 0.7 support in but there are no extra players in pvp
+13:42 <+ChillerDragon> no i wont
+13:43 <+ChillerDragon> only thing i want is one client to play on all servers for my self
+13:43 < bridge> <Learath2> Well if that's the case then go ahead 🙂
+13:44 <+ChillerDragon> i love how heinrich said lets talk if it gets merged and then rage quitted the convo xd
+13:44 <+ChillerDragon> yo lerato send brain
+13:44 <+ChillerDragon> https://zillyhuhn.com/cs/.1675514617.png
+13:44 <+ChillerDragon> how can the highlighted line crash on a nullptr?
+13:44 <+ChillerDragon> https://zillyhuhn.com/cs/.1675514681.png
+13:45 < bridge> <Learath2> UB?
+13:45 <+ChillerDragon> looks like hm
+13:45 <+ChillerDragon> asan it iss i guess
+13:45 <+ChillerDragon> or more like ubsan
+13:49 <+ChillerDragon> omg asan soo good :)
+13:49 <+ChillerDragon> it was the very first line where i indexed the nullptr
+14:18 < bridge> <<~{Barsik}~>> they could be non-bridge but ddnet's still protocol exclusive client
+14:54 < bridge> <heinrich5991> sorry ChillerDragon
+14:54 < bridge> <heinrich5991> I'm at fosdem ^^
+14:58 < bridge> <heinrich5991> it's stored behind the snapshot class
+14:58 < bridge> <heinrich5991> check how the server builds a snapshot I guess ^^
+18:21 < breton> when is ddnet session at fosdem?
+18:52 < bridge> <Jupstar ✪> wat
+19:02 < bridge> <Zwelf> I didn't get a stand at Fosdem, so we don't have an official session. But let's do a small meetup if you're also here 🙂
+19:04 <+ChillerDragon> o nice heinrich
+19:04 <+ChillerDragon> watever behind a class means xd
+19:05 <+ChillerDragon> who is allocating that? the stack?
+19:05 <+ChillerDragon> infinite stack space behind all classes? xd
+21:04 < bridge> <triki> it is possible to add delay(ping)?
+21:04 < bridge> <triki> on rus i have 8
+21:04 < bridge> <triki> on ger i have 48 
+21:04 < bridge> <triki> on pol 22
+21:04 < bridge> <triki> i wanna have on all server 48
+21:08 < bridge> <Learath2> Hm, don't think we have that, that'd actually be a nice feature
+21:08 < bridge> <Learath2> Have you tried antiping? That should feel the same on all those pings
+21:14 < bridge> <судный день.> people want to reduce ping and you want to increase it. what the f?
+21:31 < bridge> <murpi> He wants it consistent across all servers with ping lower than 48, which is reasonable
+21:31 < bridge> <murpi> but yeah, antiping is the way to go
+21:37 < bridge> <triki> antiping shit
+21:38 < bridge> <triki> ye i did. i dont like it
+23:22 < bridge> <SPYRES> anti-antiping 😄
+23:30 < bridge> <Izanagi> I have requested this idea a few times but no one commented about it https://discord.com/channels/252358080522747904/293493549758939136/1061925747310219284
+23:35 < bridge> <triki> my main reason is hammer hit trough wall. i always miss hammer when switch servers. when i play on rus i always try add brain delay, is so annoying always thinks about it.
+23:36 < bridge> <triki> my main reason is hammer hit through wall. i always miss hammer when switch servers. when i play on rus i always try add brain delay, is so annoying always thinks about it.
+23:42 < bridge> <Jupstar ✪> I think I already answered that. I did that with a custom written proxy that ran on my VPs. It worked quite well for cable internet ping jitter. But even with a delay of 200ms it still sometimes gave me lags, BCS cable internet just sucks so hard
+23:43 < bridge> <Jupstar ✪> So it cannot compensate real lags
+23:43 < bridge> <Jupstar ✪> And these are even harder then
+23:43 < bridge> <Jupstar ✪> BCS more delay
+23:44 < bridge> <Izanagi> i'm not quite getting your point right now, i was talking about adding an artificial delay
+23:44 < bridge> <Jupstar ✪> Well delay= execute it later
+23:44 < bridge> <Jupstar ✪> If u just want to have higher ping that's ez af
+23:45 < bridge> <Izanagi> but can't there be a build-in feature for antiping where you have a delay slider? normally antiping tries to give you 0ms delay, but people like me can only play with 25-50ms ping
+23:46 < bridge> <Izanagi> under 25ms is either too fast or over 50ms is too slow
+23:46 < bridge> <Izanagi> im sure it is possible but i don't know how to code
+23:47 < bridge> <Jupstar ✪> Isn't there a prediction margin or smth
+23:48 < bridge> <Izanagi> hmm i have never tried that
+23:48 < bridge> <Izanagi> can it work in combination with anti ping?
+23:49 < bridge> <Izanagi> antiping = 0ms + your given prediction margin = your desired delay
+23:50 < bridge> <Jupstar ✪> I assume so
+23:50 < bridge> <Jupstar ✪> I think it's goal is to add delay to smooth out prediction, but it will maybe also do the goal u want
+23:53 < bridge> <Izanagi> alright i will try that

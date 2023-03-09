@@ -1,0 +1,353 @@
+00:11 < bridge> <Learath2> huh, what?
+00:11 < bridge> <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/1072293368467570878/image.png
+00:11 < bridge> <Learath2> Error does not occur, thus it is indeed defined for all values of x
+00:16 < bridge> <Learath2> Oh I guess it's still not defined since you could accidentally shift into the sign bit 😛
+00:18 < bridge> <Learath2> I got 2 mistakes, that one and this one
+00:18 < bridge> <Learath2> https://cdn.discordapp.com/attachments/293493549758939136/1072295141148213368/image.png
+00:22 < bridge> <Learath2> I was sure that was guaranteed to be 0, too much time spent on x86-64 😄
+00:25 < bridge> <Jupstar ✪> we had a similar case a few weeks ago in ddnet 😄
+00:25 < bridge> <Learath2> Huh, how? We avoid unsigned like it's the plague for some reason 😛
+00:26 < bridge> <Jupstar ✪> well long on x86 (and windows x64) is 32bit
+00:27 < bridge> <Learath2> Oh, just that part, yeah, I thought we had a conversion issue
+00:29 < bridge> <Learath2> Did you know that shorts and ints actually have the same minimum range allowed by the standard?
+00:30 < bridge> <Learath2> So it is actually possible to have an implementation of C where sizeof(int) == sizeof(short)
+02:39 < bridge> <Mr.Gh0s7> I am trying to run DDNet client as fast as KoGAI can handle (x10, x100). I am facing problems with it though.
+02:39 < bridge> <Mr.Gh0s7> How often does game/client/prediction/entitites/character.cpp run?
+02:42 < bridge> <Mr.Gh0s7> I speed up the server and the client here ```c
+02:42 < bridge> <Mr.Gh0s7> return std::chrono::nanoseconds(1s).count() / 1;
+02:42 < bridge> <Mr.Gh0s7> ``` under `int64_t time_freq()` in base/system.cpp
+02:43 < bridge> <Mr.Gh0s7> Is this correct or am I missing something?
+02:44 < bridge> <Mr.Gh0s7> I speed up the server and the client here ```c
+02:44 < bridge> <Mr.Gh0s7> return std::chrono::nanoseconds(1s).count() / 10;
+02:44 < bridge> <Mr.Gh0s7> ``` under `int64_t time_freq()` in base/system.cpp
+05:18 < bridge> <Matodor> TICK_SPEED
+07:38 < bridge> <Jupstar ✪> Have u tried multiplying the time
+10:17 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1072446071206330448/RDT_20230207_1015134247676308318408489.jpg
+10:41 < bridge> <Mr.Gh0s7> xD doesn't work like that
+10:42 < bridge> <Mr.Gh0s7> nah this wasn't the problem. It was using std:chrono::otherstuff to toher places too so I had to change it there accordinly also.
+10:53 < bridge> <Jupstar ✪> But dividing sounds wrong tho xd
+10:53 < bridge> <Jupstar ✪> 1 second will take 10 times longer
+10:55 < bridge> <Jupstar ✪> Ah u doing it in time freq
+10:55 < bridge> <Jupstar ✪> Soz
+10:55 < bridge> <Mr.Gh0s7> ye xD
+10:56 < bridge> <Mr.Gh0s7> in other places was *10
+10:56 < bridge> <Jupstar ✪> Better change it the other tho
+10:56 < bridge> <Jupstar ✪> Time freq is not used everywhere
+10:56 < bridge> <Jupstar ✪> But besides that . Multiplying it at that one position should be enough actually
+10:57 < bridge> <Mr.Gh0s7> Hmm didn't seem to be though idk xD
+10:57 < bridge> <Jupstar ✪> Mh. I'm pretty sure it is
+10:58 < bridge> <Jupstar ✪> Can u show Ur diff
+11:01 < bridge> <Mr.Gh0s7> https://pastebin.com/kVa2GvyD
+11:04 < bridge> <Jupstar ✪> Don't change it in other places. Simply use cl refresh 0
+11:04 < bridge> <Jupstar ✪> Have u compiled the server with that change too?
+11:04 < bridge> <Jupstar ✪> And yeah remove it from freq call.
+11:04 < bridge> <Mr.Gh0s7> Yeah I have. Ok will try it out ;)
+11:06 < bridge> <Jupstar ✪> Dividing can be scary
+11:06 < bridge> <Jupstar ✪> (10*10)/10/10 is 1
+11:06 < bridge> <Jupstar ✪> It can quickly happen that u divide your result instead of the freq valley
+11:06 < bridge> <Jupstar ✪> Values
+11:14 < bridge> <Mr.Gh0s7> That seemed to do the trick ty. Idk why the other way also "worked". My metric for working or not is it/s (iterations/second). This time it's 480-490. Without speedup is 60-70 it/s.
+11:14 < bridge> <Mr.Gh0s7> I would expect it to scale lineary though (should be 600-700 it/s) with that line of thought
+11:16 < bridge> <Jupstar ✪> Sounds a lot. It can probably not keep up
+11:16 < bridge> <Jupstar ✪> A better design would be to not rely on a server anyway
+11:17 < bridge> <Jupstar ✪> And just run as much ticks as possible
+11:18 < bridge> <Mr.Gh0s7> ah lemme check something. I (zogtib) had put a limit to only run once per tick so it's closer now to 500 (as it should be). I wanna see what changes if I remove this limit
+11:21 < bridge> <Mr.Gh0s7> Yeah it runs with 500 now too. I'll put it back up.
+11:21 < bridge> <Mr.Gh0s7> How would that work though?
+11:22 < bridge> <Jupstar ✪> Make server part of the client source. Increment the time every time u finished the current loop cycle
+11:24 < bridge> <Jupstar ✪> Or sync the server time with a network packet
+11:24 < bridge> <Jupstar ✪> But don't use system time
+11:24 < bridge> <Jupstar ✪> That sounds very unreliable
+11:24 < bridge> <Mr.Gh0s7> Hmm sounds a lot of work and it works well rn. If I face problems I'll do so ;).
+11:25 < bridge> <Mr.Gh0s7> Yeah it's unreliable but reliable enough ig. For speed of x100 or smt bigger it's starting to rise as a problem
+11:25 < bridge> <Jupstar ✪> Ok. Good that we have 1 trillion fps xd
+11:25 < bridge> <Mr.Gh0s7> But my cpu is already at it's max with x10 and 20 envs
+14:07 < bridge> <Teero> @Reteah here is the thing. it catches up if the server somehow takes too long and slow it down if it goes too fast.
+14:07 < bridge> <Teero> https://github.com/ddnet/ddnet/blob/master/src/engine/server/server.cpp#L2741
+14:07 < bridge> <Teero> `while(t > TickStartTime(m_CurrentGameTick + 1))`
+14:08 < bridge> <Teero> if you where to replace it just with `while(true)` it would not check for map changes or anything else and just go as fast as it could.
+14:08 < bridge> <Teero> but im not sure.
+14:08 < bridge> <Teero> if you were to replace it just with `while(true)` it would not check for map changes or anything else and just go as fast as it could.
+14:08 < bridge> <Teero> but im not sure.
+14:08 < bridge> <Teero> @Reteah here is the thing. it catches up if the server somehow takes too long and slows it down if it goes too fast.
+14:08 < bridge> <Teero> https://github.com/ddnet/ddnet/blob/master/src/engine/server/server.cpp#L2741
+14:08 < bridge> <Teero> `while(t > TickStartTime(m_CurrentGameTick + 1))`
+14:10 < bridge> <Teero> if you were to replace it just with `while(true)` it would not check for map changes or anything else and just go as fast as it could. ofc you couldnt join the server anymore if you were to do that
+14:10 < bridge> <Teero> but im not sure.
+14:11 < bridge> <Jupstar ✪> He has to keep server and client in sync tho. So the time workaround is legit xd
+14:12 < bridge> <Teero> xd just remake ddnet physics and maploading in the language you are dealing with xd
+14:12 < bridge> <Teero> just remake ddnet physics and maploading in the language you are dealing with xd
+14:16 < bridge> <Teero> im pretty sure it would be faster and easier.
+14:16 < bridge> <Teero> im pretty sure it would be faster and easier since it would just be translating.
+14:16 < bridge> <Teero> exept with python....
+16:20 < bridge> <Ryozuki> https://anthonyhobday.com/sideprojects/saferules/
+16:56 < bridge> <Ryozuki> https://www.worldofbs.com/minimize-state/
+16:56 < bridge> <Ryozuki> > I recently realized that all the various programming philosophies are concerned with state, and can be boiled down into a simple statement about how to work with state.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > Object-Oriented - Modifying a lot of state at once is hard to get correct; encapsulate subsets of state into separate objects and allow limited manipulation of the encapsulated sub-state via methods.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > Functional - Modifying state is hard to get correct; keep it at the boundaries and keep logic pure so that it is easier to verify the logic is correct.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > Declarative - Modifying state is hard to get correct; use a language to describe how state should be manipulated and allow the machine to determine the steps required.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > Imperative - Modifying state is hard to get correct; minimize the number of conceptual layers between how the computer operates and how the code is written.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > Monolith - Modifying state distributed among many services is hard to get correct; keep it centralized.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > Service-Oriented-Architecture - Modifying all of the state in one service is hard to get correct; distribute it among multiple services.
+16:56 < bridge> <Ryozuki> > 
+16:56 < bridge> <Ryozuki> > MicroServices - Modifying any state in a service is hard to get correct; have many services that are primarily stateless.
+16:56 < bridge> <Ryozuki> makes sense tbh
+16:57 < bridge> <Ryozuki> xd
+17:23 < bridge> <heinrich5991> data oriented?
+17:23 < bridge> <heinrich5991> seems like it mixes different levels
+18:03 < bridge> <Learath2> Well a CPU is at it’s core a state machine. Instructions take us from one state to another. At the end of the day programming is technically navigating inside the state space of the cpu, in that sense technically all programming is “concerned with state”
+18:11 < bridge> <Learath2> I don’t think mixing different levels is an issue when you think about it like that. At every level/layer of abstraction we constrain the transitions of state allowed, which gives rise to smaller and smaller subsets of the state space of the entire cpu.
+18:45 < bridge> <newlesstee> Hello, what i'm doing wrong?
+18:45 < bridge> <newlesstee> ```cpp
+18:45 < bridge> <newlesstee> char *CAccount::GenerateID()
+18:45 < bridge> <newlesstee> {
+18:45 < bridge> <newlesstee>     char aBuf[8];
+18:45 < bridge> <newlesstee>     FormatUuid(RandomUuid(), aBuf, sizeof(aBuf));
+18:45 < bridge> <newlesstee>     return aBuf;
+18:45 < bridge> <newlesstee> }
+18:45 < bridge> <newlesstee> ```
+18:46 < bridge> <newlesstee> ?
+18:46 < bridge> <newlesstee> ```cpp
+18:46 < bridge> <newlesstee> dbg_msg("GenerateID()", pSelf->m_pAccount->GenerateID());
+18:46 < bridge> <newlesstee> ```
+18:46 < bridge> <newlesstee> print nothing
+18:48 < bridge> <Jupstar ✪> did u verify that the code path is reachable
+18:48 < bridge> <Jupstar ✪> also a char is not directly a string
+18:48 < bridge> <Jupstar ✪> what u want is to print it as hex values probably
+18:49 < bridge> <newlesstee> i think yes
+18:49 < bridge> <newlesstee> if i do same thing but inside GenerateID it print right
+18:50 < bridge> <Jupstar ✪> u also return a stack variable
+18:50 < bridge> <Jupstar ✪> this is wrong, how does your compiler not throw a warning?
+18:50 < bridge> <newlesstee> what?
+18:50 < bridge> <Jupstar ✪> char aBuf[8] is allocated on the stack
+18:50 < bridge> <Jupstar ✪> as soon as you call return its dead
+18:51 < bridge> <newlesstee> How do I make it correct?
+18:51 < bridge> <Jupstar ✪> pass aBuf as parameter
+18:51 < bridge> <Jupstar ✪> GenerateID(char(&aBuf)[8])
+18:54 < bridge> <Jupstar ✪> note u can still return aBuf then
+18:54 < bridge> <Jupstar ✪> its just important that u increase the lifetime of the array
+18:55 < bridge> <newlesstee> @Jupeyy_Keks oh thanks, thats worked 🙂
+18:55 < bridge> <Jupstar ✪> it will probs not work for all cases tho
+18:56 < bridge> <Jupstar ✪> ok nvm formatuuid is probs what u want anyway lol
+18:56 < bridge> <Jupstar ✪> account = for ddnet?^^
+18:56 < bridge> <newlesstee> my server
+18:57 < bridge> <Jupstar ✪> any cool mod?
+18:57 < bridge> <newlesstee> i'm trying to code an city
+18:57 < bridge> <Jupstar ✪> ok xd
+18:57 < bridge> <newlesstee> it will probs not work for all cases tho
+18:58 < bridge> <newlesstee> what do you think?
+18:59 < bridge> <Jupstar ✪> i hoped it was fng gores or ddnet xd
+18:59 < bridge> <Ryozuki> ur returning a stack allocated array
+18:59 < bridge> <newlesstee> xD
+18:59 < bridge> <newlesstee> yes
+18:59 < bridge> <Jupstar ✪> 3 2 1
+18:59 < bridge> <Ryozuki> xd
+18:59 < bridge> <Ryozuki> in rust u would get a error
+18:59 < bridge> <Jupstar ✪> xd
+19:00 < bridge> <newlesstee> mania of others languages
+19:00 < bridge> <Raks> Hi! I texted u in dm. I need a little help.
+19:01 < bridge> <Ryozuki> i hate dev related dms
+19:01 < bridge> <Ryozuki> its better to ask in public
+19:01 < bridge> <Ryozuki> everyone helps
+19:01 < bridge> <Ryozuki> u dont depend on 1 person
+19:01 < bridge> <Raks> oh okay im sorry
+19:01 < bridge> <Ryozuki> others see the answer
+19:01 < bridge> <Jupstar ✪> i am also not very good with ddrace good
+19:01 < bridge> <Jupstar ✪> i am also not very good with ddrace code
+19:01 < bridge> <newlesstee> How can I create projectiles that don't move?
+19:01 < bridge> <Ryozuki> xd
+19:01 < bridge> <Jupstar ✪> but yeah just ask here
+19:01 < bridge> <Raks> I can ask it over here?
+19:01 < bridge> <Jupstar ✪> tune their speed i guess
+19:02 < bridge> <Ryozuki> set the speed to 0 or smth
+19:02 < bridge> <Jupstar ✪> tuning params
+19:02 < bridge> <Jupstar ✪> u can ask anything here
+19:02 < bridge> <Ryozuki> if its not about bot clients or coding bots
+19:02 < bridge> <Jupstar ✪> its about voting system
+19:02 < bridge> <newlesstee> i'm trying with new CProjectile but dont work like expected
+19:02 < bridge> <Raks> It's about ye..
+19:02 < bridge> <Jupstar ✪> best is u tag heinrich or learath or robyte
+19:02 < bridge> <Jupstar ✪> they probs know about this kind of stuff
+19:02 < bridge> <Raks> I try to make almost the same voting system wich one is the ddddnet using.
+19:03 < bridge> <Raks> Like if i choose Novice vote
+19:03 < bridge> <Raks> that will only show up my novice maps
+19:03 < bridge> <Raks> I tryed like this:
+19:03 < bridge> <Raks> https://cdn.discordapp.com/attachments/293493549758939136/1072578409915490384/image.png
+19:03 < bridge> <Ryozuki> check the ddnet repo
+19:03 < bridge> <Ryozuki> ddnet-maps
+19:03 < bridge> <Ryozuki> it has cfgs
+19:04 < bridge> <newlesstee> ```cpp
+19:04 < bridge> <newlesstee> CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos,```**vec2 Dir**```cpp
+19:04 < bridge> <newlesstee> , int Span, bool Freeze, bool Explosive, int SoundImpact, int Layer = 0, int Number = 0)
+19:04 < bridge> <newlesstee> ```
+19:04 < bridge> <Ryozuki> ddnet scripts too
+19:04 < bridge> <Raks> repo?
+19:04 < bridge> <Raks> Where can i find that?
+19:04 < bridge> <newlesstee> `CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, **vec2 Dir**
+19:04 < bridge> <newlesstee> , int Span, bool Freeze, bool Explosive, int SoundImpact, int Layer = 0, int Number = 0)`
+19:04 < bridge> <newlesstee> CProjectile has Dir
+19:04 < bridge> <newlesstee> all have motion
+19:05 < bridge> <newlesstee> i dont know how to create static projectiles
+19:06 < bridge> <Mr.Gh0s7> https://github.com/ddnet/ddnet-maps
+19:06 < bridge> <Mr.Gh0s7> hmm how to remove embeds?
+19:06 < bridge> <newlesstee> < link >
+19:07 < bridge> <Mr.Gh0s7> <https://github.com/ddnet/ddnet-maps>
+19:07 < bridge> <Mr.Gh0s7> ty
+19:27 < bridge> <<~{Barsik}~>> set Dir as `vec2(0.f, 0.f)` maybe
+19:27 < bridge> <<~{Barsik}~>> idk
+19:27 < bridge> <newlesstee> @gerdoe all projectiles go down
+19:28 < bridge> <<~{Barsik}~>> then you should change Tick function
+19:28 < bridge> <<~{Barsik}~>> afair there's part related to any movement
+19:29 < bridge> <Mr.Gh0s7> on `GetPos()` if you set `Speed = 0.f;` before `return CalcPos(m_Pos, m_Direction, Curvature, Speed, Time);` it works serverside
+19:47 < bridge> <newlesstee> @Reteah dont worked
+19:48 < bridge> <Mr.Gh0s7> if you test with grenade you can see that the explotion happens where you shot so it works but the client predictions are wrong. At least I think so
+19:49 < bridge> <Mr.Gh0s7> ig if that's true you'd have to sent tunings for each projectile but idk if that's possible. It probably is though
+19:50 < bridge> <<~{Barsik}~>> lol nah
+19:50 < bridge> <<~{Barsik}~>> client will not predict projectiles in such straight wa
+19:50 < bridge> <<~{Barsik}~>> y
+19:50 < bridge> <<~{Barsik}~>> it shouldn't atleast
+19:50 < bridge> <newlesstee> i think thats client side, but i want to know how to create an static projectile
+19:50 < bridge> <newlesstee> like others mods
+19:59 < bridge> <<~{Barsik}~>> you can actually pass some kind of flag Static and check it in tick function
+19:59 < bridge> <newlesstee> i want to create this:
+19:59 < bridge> <newlesstee> `CNetObj_Projectile`
+19:59 < bridge> <newlesstee> but i dont know how
+19:59 < bridge> <newlesstee> i have tried and its so hard
+20:00 < bridge> <<~{Barsik}~>> you should ask snapbuilder to snap you new item
+20:00 < bridge> <<~{Barsik}~>> `static_cast<CNetObj_EntityEx *>(Server()->SnapNewItem(NETOBJTYPE_ENTITYEX, GetID(), sizeof(CNetObj_EntityEx)));` kind of
+20:01 < bridge> <<~{Barsik}~>> `static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));` this one is what you actually need i think
+20:01 < bridge> <<~{Barsik}~>> it returns cnetobj_projectile
+20:17 < bridge> <newlesstee> @gerdoe i will try
+20:32 < bridge> <судный день.> god helps me, c# developer, after seeing this code
+20:42 < bridge> <Ryozuki> ?
+20:47 < bridge> <Learath2> https://tenor.com/view/you-wouldnt-get-it-joker-smoking-gif-15952801
+20:47 < bridge> <судный день.> i got depressed
+20:48 < bridge> <Ryozuki> https://tenor.com/view/coding-hello-world-c-programming-programming-gif-21075258
+20:49 < bridge> <Learath2> Usually you don't want to create a CNetObj directly from just anywhere in the code
+20:50 < bridge> <DefaultO> are you dissing c# devs?
+20:50 < bridge> <DefaultO> because as a C# dev I could reproduce that
+20:50 < bridge> <Ryozuki> @DefaultO i do
+20:50 < bridge> <Learath2> Usually you'll want to extend `CProjectile` or `CEntity` directly and in the snap function of that you snap a new `CNetObj_*`
+20:50 < bridge> <судный день.> i just confused with that
+20:50 < bridge> <судный день.> got*
+20:51 < bridge> <Ryozuki> i dont think on c# u need to remember the circular read rule to know how a complex type involving pointers is read
+20:51 < bridge> <Ryozuki> idk the name of the thing
+20:51 < bridge> <Ryozuki> xd
+20:52 < bridge> <Ryozuki> void *(*foo)(int *);``
+20:52 < bridge> <Ryozuki> `void *(*foo)(int *);`
+20:52 < bridge> <Ryozuki> function pointers
+20:52 < bridge> <Ryozuki> what was the name
+20:52 < bridge> <Ryozuki> to describe how to read these
+20:52 < bridge> <Chairn> weird function to return a `void *`
+20:52 < bridge> <DefaultO> value of foo cast from address
+20:52 < bridge> <DefaultO> would be my guess
+20:53 < bridge> <Ryozuki> ?
+20:53 < bridge> <Chairn> you mean functor?
+20:53 < bridge> <DefaultO> dereferencing?
+20:53 < bridge> <Ryozuki> no, there is like a know method to read these
+20:53 < bridge> <Ryozuki> known
+20:53 < bridge> <Ryozuki> u do circles
+20:53 < bridge> <Ryozuki> imaginary
+20:53 < bridge> <Ryozuki> i read it somewhere
+20:54 < bridge> <Ryozuki> ```
+20:54 < bridge> <Ryozuki> If you are having problem with deciphering complex pointer declarations like int (*(*foo[10])(void))(int) then you are at the right place. In this tutorial, you would learn to decipher any complex pointer declarations.
+20:54 < bridge> <Ryozuki> 
+20:54 < bridge> <Ryozuki> To decipher complex declarations, remember these two simple rules:
+20:54 < bridge> <Ryozuki> 
+20:54 < bridge> <Ryozuki>     Always read declarations from the inside out: Start from the innermost, if any, parenthesis. Locate the identifier that's being declared, and start deciphering the declaration from there.
+20:54 < bridge> <Ryozuki> 
+20:54 < bridge> <Ryozuki>     When there is a choice, always favor [] and () over *: If * precedes the identifier and [] follows it, the identifier represents an array, not a pointer. Likewise, if * precedes the identifier and () follows it, the identifier represents a function, not a pointer. (Parentheses can always be used to override the normal priority of [] and () over *.)
+20:54 < bridge> <Ryozuki> 
+20:54 < bridge> <Ryozuki> ```
+20:54 < bridge> <Ryozuki> this
+20:54 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1072606407641268304/86rcqld6lxn81.png
+20:55 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1072606433092313189/kh726uczjnq71.png
+20:55 < bridge> <Ryozuki> https://process.filestackapi.com/cache=expiry:max/c62e02tsQfGTxf0Zk43j
+20:55 < bridge> <Ryozuki> poggers gif
+20:55 < bridge> <Ryozuki> ah it doesnt load
+20:55 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1072606522535858177/4QFTxQB.png
+20:55 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1072606557898031134/09CIw.gif
+20:56 < bridge> <Chairn> my brain hurts
+20:57 < bridge> <Chairn> however, they defined Void as void 😄
+20:57 < bridge> <Ryozuki> xd
+20:59 < bridge> <Mʎɹ シ> https://cdn.discordapp.com/attachments/293493549758939136/1072607521455489124/HQEnV0eGqyU.png
+21:01 < bridge> <судный день.> oof code existential crisis
+21:06 < bridge> <судный день.> ive got interestijg question
+21:06 < bridge> <Learath2> spiral rule?
+21:06 < bridge> <судный день.> how IDEs are being developed?
+21:06 < bridge> <Ryozuki> y
+21:07 < bridge> <Ryozuki> most are a compiler frontend for the target language
+21:07 < bridge> <Learath2> There is a better rule that always works. Declaration follows use
+21:07 < bridge> <Jupstar ✪> type code on your keyboard
+21:07 < bridge> <Ryozuki> but nowadays IDEs use LSP
+21:07 < bridge> <судный день.> i thought they write it with assembly
+21:07 < bridge> <Ryozuki> lmao
+21:07 < bridge> <Jupstar ✪> they do
+21:07 < bridge> <судный день.> nice
+21:07 < bridge> <судный день.> why not 1 and 0
+21:08 < bridge> <судный день.> optimisation is the main thing
+21:08 < bridge> <Ryozuki> actually unless ur a asm expert a compiler will do a better job
+21:08 < bridge> <судный день.> but wait seriously
+21:08 < bridge> <судный день.> how ides are being developed
+21:09 < bridge> <судный день.> how are they debugged
+21:09 < bridge> <Ryozuki> u know thats a bit of a stupid question
+21:09 < bridge> <судный день.> what if i run visual studio from visual studio
+21:09 < bridge> <судный день.> i got two visual studio instances
+21:09 < bridge> <Jupstar ✪> yeah why not
+21:09 < bridge> <Ryozuki> u could
+21:09 < bridge> <Jupstar ✪> tho vscode is javascript
+21:09 < bridge> <судный день.> what if i run one more visual studio
+21:10 < bridge> <Ryozuki> what  if u right click the discord tray icon and click close?
+21:10 < bridge> <Ryozuki> :trollet:
+21:10 < bridge> <Jupstar ✪> generally i assume debugging is very event driven
+21:10 < bridge> <Jupstar ✪> not so much put your breakpoint here and there
+21:10 < bridge> <судный день.> im on phone
+21:10 < bridge> <Jupstar ✪> lot of logging etc
+21:10 < bridge> <Ryozuki> throw it
+21:10 < bridge> <Mʎɹ シ> Wipe it
+21:11 < bridge> <Mʎɹ シ> In notepad.exe :greenthing:
+21:11 < bridge> <Ryozuki> @Learath2 the life of a thinkpad
+21:11 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1072610681779650711/rh8hemxl3sga1.webp
+21:12 < bridge> <судный день.> sure buddy
+21:12 < bridge> <судный день.> https://cdn.discordapp.com/attachments/293493549758939136/1072610747894476890/how-to-clean-phone-screen-case-with-clorox-wipes.jpg
+21:12 < bridge> <Mʎɹ シ> Yea, it is what I mean
+21:12 < bridge> <судный день.> i threw it on my bed
+21:12 < bridge> <судный день.> is that enough
+21:13 < bridge> <Ryozuki> for now yes
+21:13 < bridge> <судный день.> how vim was developed
+21:13 < bridge> <Ryozuki> with vi
+21:14 < bridge> <Ryozuki> and vi with ex
+21:14 < bridge> <Ryozuki> and ex with ur mom
+21:14 < bridge> <Mʎɹ シ> Omg
+21:14 < bridge> <Ryozuki> :BASEDHALT:
+21:15 < bridge> <судный день.> i got cyberbullied
+21:15 < bridge> <судный день.> https://cdn.discordapp.com/attachments/293493549758939136/1072611598004392002/Senior-Man-Cyberbullied-scaled.webp
+21:15 < bridge> <Ryozuki> https://tenor.com/view/cyberbullying-cyberbully-typing-typing-fast-anime-gif-25012932
+21:16 < bridge> <DefaultO> https://tenor.com/view/online-argument-american-psycho-meme-gif-25806483
+21:16 < bridge> <Mʎɹ シ> How linux users install browser
+21:16 < bridge> <Ryozuki> https://tenor.com/view/yakone-aang-avatar-the-last-airbender-bloodbending-gif-20915076
+21:40 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1072617862117736559/Qn5ZL.png
+21:46 < bridge> <Learath2> inaccurate, I'm not a femboy
+21:46 < bridge> <Ryozuki> :justatest:
+21:47 < bridge> <Learath2> Wait until you hear that those ()s there actually imply those functions can take an unspecified amount of arguments too
+22:04 < bridge> <newlesstee> Can I share my crazy ideas here?
+22:07 < bridge> <Jupstar ✪> as if they are crazy enough to convince me that they are crazy
+22:08 < bridge> <newlesstee> see
+22:09 < bridge> <newlesstee> https://cdn.discordapp.com/attachments/293493549758939136/1072625259682996264/image.png
+22:10 < bridge> <newlesstee> and an webhook mention my in discord
+22:11 < bridge> <Jupstar ✪> mhh weird solution
+22:11 < bridge> <newlesstee> yes, CRAZY
+22:47 < bridge> <pilonpl> Windows users: winget install chrome
+23:02 < bridge> <heinrich5991> you could use a secure password instead :p
+23:54 < bridge> <newlesstee> i already use
+23:55 < bridge> <newlesstee> I know I already asked, but how can I add the D++ library (Discord library) to DDNet? wanted to create a bot instead of sending webhooks
+23:55 < bridge> <heinrich5991> too complicated to walk you through
+23:55 < bridge> <heinrich5991> for me
+23:56 < bridge> <newlesstee> I just wanted to know how to add it to CMakeLists, the rest I could do
+23:57 < bridge> <newlesstee> there are many things in CMakeLists, it is very complicated to try to understand
