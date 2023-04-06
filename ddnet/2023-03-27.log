@@ -1,0 +1,463 @@
+02:31 < bridge> <heinrich5991> @Voxel what are you currently trying?
+02:31 < bridge> <heinrich5991> you could make a "team killed" message that shows the whole team in the kill feed
+02:32 < bridge> <Voxel> huh
+02:33 < bridge> <Voxel> I'm just basing the logic from teams.cpp, in `CGameTeams::OnCharacterDeath()`
+02:34 < bridge> <Voxel> line 1056:
+02:34 < bridge> <Voxel> `if(GetTeamState(Team) != TEAMSTATE_OPEN)`
+02:35 < bridge> <Voxel> Wait, make a netmsg for that? I kind of did that already
+02:36 < bridge> <heinrich5991> but why do you need the team state then?
+02:36 < bridge> <heinrich5991> if the server sends "whole team was killed" then the whole team was killed
+02:38 < bridge> <Voxel> And how do we determine that?
+02:38 < bridge> <heinrich5991> that the whole team was killed?
+02:38 < bridge> <heinrich5991> that happens in server code
+02:38 < bridge> <Voxel> Yeah
+02:39 < bridge> <Voxel> Exactly
+02:39 < bridge> <heinrich5991> you're asking me how the server determines whether the whole team is killed?
+02:39 < bridge> <Voxel> Not really, I'm asking how it knows when to kill off the entire team when someone dies, or just that person
+02:40 < bridge> <Voxel> Which is why I was wondering about teamstates
+02:41 < bridge> <heinrich5991> the server already does that
+02:41 < bridge> <heinrich5991> so you could go into the code and add the "the whole team was killed" message into the server code there
+02:42 < bridge> <heinrich5991> (and find a way to suppress the other individual kill messages)
+02:43 < bridge> <Voxel> But how do I fluently communicate that to the client-sided code, which you said can't be linked with server sided code.
+02:43 < bridge> <Voxel> But how do I fluently communicate that to the client-sided code, which you said can't be linked with server sided code?
+02:43 < bridge> <heinrich5991> no client side code was involved in my description so far
+02:44 < bridge> <heinrich5991> my client side code would be 'if I get the "the whole team is killed" message', then display that the whole team was killed
+02:44 < bridge> <heinrich5991> my client side code would be 'if I get the "the whole team is killed" message, then display that the whole team was killed'
+02:47 < bridge> <Voxel> Did you see my update to #6437 yet
+02:47 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6437
+02:47 < bridge> <Voxel> I'm just clang formatting it right now
+02:55 < bridge> <heinrich5991> I think that's a bit complicated right now
+02:56 < bridge> <heinrich5991> you're using two messages to transport information about one kill
+02:56 < bridge> <heinrich5991> `NETMSGTYPE_SV_KILLMSG` → one tee was killed
+02:56 < bridge> <heinrich5991> `NETMSGTYPE_SV_KILLTEAM` → a whole team was killed
+02:57 < bridge> <heinrich5991> no need to reimplement team state logic in the client this way
+02:57 < bridge> <heinrich5991> if a team is killed, only send one `NETMSG_SV_KILLTEAM` message
+02:57 < bridge> <heinrich5991> no `NETMSG_SV_KILLMSG`
+02:57 < bridge> <heinrich5991> if someone from a team dies without killing their entire team, only send a `NETMSG_SV_KILLMSG`
+02:58 < bridge> <heinrich5991> then the client code will be very easy
+03:15 < bridge> <Voxel> oh
+03:16 < bridge> <Voxel> i'll try and refactor all of this tommorow
+03:18 < bridge> <Voxel> Does this mean I have to `m_aKillmsgs[m_KillmsgCurrent] = Kill;` for both messages in killmessage.cpp?
+03:21 < bridge> <heinrich5991> yes
+03:23 < bridge> <Voxel> I'll refactor everything tommorow, but in its current state it produces the exact output I want it to
+03:30 < bridge> <heinrich5991> cool! 🙂
+03:30 < bridge> <heinrich5991> I really like the idea, but I think I said that already
+04:10 < bridge> <Voxel> Thanks@
+04:10 < bridge> <Voxel> Thanks!
+04:10 < bridge> <Voxel> Actually, I can split it right now, it shouldn't be too hard.
+05:03 < bridge> <Voxel> @heinrich5991 Okay, I submitted another PR. Hopefully I understood you right.
+05:04 < bridge> <Voxel> I'll be squashing it with the other one when I know it's perfect.
+05:56 < bridge> <heinrich5991> now you're sending one `NETMSG_SV_KILLTEAM` per team member,I think
+05:56 < bridge> <heinrich5991> instead of just one for the whole team
+05:56 < bridge> <heinrich5991> if I understand the code correctly
+05:57 < bridge> <Voxel> `void CCharacter::Die(int Killer, int Weapon, bool Single)` has a new bool for if it's only going to be one tee dying
+05:57 < bridge> <Voxel> By default it's true, but if it's false the killmessage packet doesn't even send
+05:57 < bridge> <Voxel> `void CCharacter::Die(int Killer, int Weapon, bool Single)` has a new bool (Single) for if it's only going to be one tee dying
+05:57 < bridge> <Voxel> By default it's true, but if it's false the killmessage packet doesn't even send
+06:14 < bridge> <heinrich5991> ah, I see 🙂
+06:14 < bridge> <heinrich5991> yea, the logic looks good now, then
+08:27 < bridge> <fokkonaut> @Voxel Change Parameter Single to "Teamkill" or "SendKillMsg"
+08:27 < bridge> <fokkonaut> and send or not send the kill msg according to that
+08:27 < bridge> <fokkonaut> And pass it from where the team kills each character.
+08:27 < bridge> <fokkonaut> And send a team kill msg before then
+14:22 < bridge> <Ryozuki> is github down
+14:27 < bridge> <Ryozuki> haha
+14:27 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1089888352033046688/image.png
+14:58 < bridge> <Cellegen | RiH> @deen HEH???
+14:58 < bridge> <Cellegen | RiH> https://cdn.discordapp.com/attachments/293493549758939136/1089896328177393684/screenshot_2023-03-27_14-58-39.png
+14:59 < bridge> <Cellegen | RiH> @Ryozuki wtf this is so unexpected
+14:59 < bridge> <Cellegen | RiH> LMAO
+14:59 < bridge> <Cellegen | RiH> you can create a Con folder without error
+14:59 < bridge> <Cellegen | RiH> wtf
+15:00 < bridge> <Cellegen | RiH> needless to say what version is this :lol:
+15:02 < bridge> <<~{Barsik}~>> mrpg :justatest:
+15:04 < bridge> <Jupstar ✪> we hacked windows
+15:07 < bridge> <Ryozuki> why do u ping everyone
+15:10 < bridge> <Cellegen | RiH> you coded it didn't you :kek:
+15:11 < bridge> <Cellegen | RiH> Does windows break if you have a Con folder?
+15:13 < bridge> <Ryozuki> tf are u talking about
+15:13 < bridge> <Ryozuki> xd
+15:13 < bridge> <Jupstar ✪> as you can see u broke your setup. a con directory now exists and u have to reinstall windows
+15:14 < bridge> <Ryozuki> no disrespect but sometimes i dont understand you xD
+15:14 < bridge> <Jupstar ✪> i correct myself, windows is now broken for you forever. please install linux to continue
+15:22 < bridge> <Voxel> wait, don't i already do that? im confused i just woke up
+15:23 < bridge> <Cellegen | RiH> ryo, i was jokingű
+15:23 < bridge> <Cellegen | RiH> ryo, i was joking
+15:23 < bridge> <Cellegen | RiH> and about the Con folder, I was genuine xd
+15:23 < bridge> <fokkonaut> didnt Check
+15:23 < bridge> <Cellegen | RiH> :greenthing:
+15:23 < bridge> <DefaultO> isn't it more than Con?
+15:23 < bridge> <DefaultO> some random id
+15:24 < bridge> <DefaultO> some random hash id
+15:24 < bridge> <DefaultO> in curled brackets
+15:24 < bridge> <fokkonaut> {}
+15:24 < bridge> <DefaultO> Con was DOS times I think used for the I/O of hardware
+15:24 < bridge> <DefaultO> shouldn't be like that anymore
+15:25 < bridge> <DefaultO> but maybe I am clueless
+15:25 < bridge> <ReD> i managed to get a `git push` through
+15:25 < bridge> <ReD> https://cdn.discordapp.com/attachments/293493549758939136/1089903030155083926/image.png
+15:33 < bridge> <heinrich5991> con still can't be a file name on modern windows
+15:34 < bridge> <DefaultO> a file name
+15:34 < bridge> <DefaultO> but in this case it was a folder
+15:40 < bridge> <Ryozuki> ah, my bad, i didnt know Con name was special or meaningful
+15:40 < bridge> <Ryozuki> so to me i was, wtf is this guy saying lol
+15:40 < bridge> <Ryozuki> xD
+15:40 < bridge> <Cellegen | RiH> Windows doesn't allow you to do that, so it was like dark magic for me xd
+15:45 < bridge> <Ryozuki> @Chairn what do you think about https://github.com/chipsalliance/chisel
+15:46 < bridge> <Ryozuki> https://www.chisel-lang.org/
+15:49 < bridge> <Robyt3> Doesn't work for me on Windows 10. Are you using Windows 11? Maybe it was changed there.
+15:49 < bridge> <Cellegen | RiH> Ye
+15:49 < bridge> <Cellegen | RiH> Same issue xd
+15:50 < bridge> <Cellegen | RiH> eh, you mean the folder creating part? maybe it's changed on windows 11
+15:50 < bridge> <Cellegen | RiH> but windows 11 doesn't allow you still
+15:50 < bridge> <Robyt3> Maybe it's not allowed when you use Windows Explorer to create the folder but it works with the Windows API now, so they game can create the folder
+15:50 < bridge> <Voxel> so all i need to do is to rename `Single` to `KillMsg` and then that's it? Idk what i'm supposed to be moving where @fokkonaut
+15:52 < bridge> <heinrich5991> I'm pretty sure folder names aren't different in that respect
+15:53 < bridge> <Robyt3> yeah, I can't create a "con" or "Con" folder in the game on Windows 10
+15:54 < bridge> <Robyt3> Must be a change in Windows 11 or a different option in Windows to allow some of the previously forbidden names
+15:56 < bridge> <Cellegen | RiH> either that, or im just that talented
+15:56 < bridge> <heinrich5991> you can create a con folder
+15:56 < bridge> <heinrich5991> with `\\?\C:\path\to\con`
+15:56 < bridge> <heinrich5991> but you need the other syntax which ddnet doesn't use
+15:56 < bridge> <Robyt3> Yeah, but we never use long paths internally
+15:57 < bridge> <Robyt3> This also allows going beyond the normal maximum path length
+15:57 < bridge> <heinrich5991> yup
+15:57 < bridge> <heinrich5991> the normal maximum path length is super weird in windows ^^
+15:59 < bridge> <ReiTW> u can't do a folder too
+15:59 < bridge> <Jupstar ✪> but wasnt there an option to change that
+15:59 < bridge> <Jupstar ✪> maybe its active in win11
+15:59 < bridge> <Jupstar ✪> aswell as the con stuff
+15:59 < bridge> <ReiTW> w11 doesn't allow
+16:00 < bridge> <Robyt3> Also ingame? Maybe Windows Explorer is different
+16:00 < bridge> <ReiTW> ah ingame didn't try
+16:00 < bridge> <ReiTW> ah ingame didn't try (not home)
+16:00 < bridge> <heinrich5991> you can try in python as well @ReiTW
+16:00 < bridge> <heinrich5991> if you have that on your work computer
+16:07 < bridge> <ReiTW> well as simple with os.makedirs("Con"), it doesn't wok
+16:07 < bridge> <ReiTW> well as simple with os.makedirs("Con"), it doesn't work
+16:10 < bridge> <ReiTW> oh lol fullpath works, but con only doesn't
+16:38 < bridge> <Chairn> looks way too verbose. I already knew it existed, but never really delved into it. Functionnal paradigm to describe circuit can be interesting, but not sure if it is the best (though still better than VHDL or Verilog i guess)
+16:38 < bridge> <Ryozuki> isnt verbose kinda good sometimes tho
+16:38 < bridge> <Ryozuki> depends on what kind of verbosity i guess
+16:38 < bridge> <Ryozuki> i like rust verbosity but not java one
+16:42 < bridge> <Learath2> Verbosity in a language is imo fine as long as you have tools to abstract it away
+16:42 < bridge> <Learath2> Though I'm not a HDL user, so idk if my opinion applies to those aswell
+16:44 < bridge> <Jupstar ✪> it also depends on your goals. sometimes making a language to explicit can make prototyping harder
+16:44 < bridge> <Chairn> HDL languages, especially VHDL are really verbose, yet they don't say anything about how the language is interpreted
+16:44 < bridge> <Chairn> it's up to the compiler to guess what you meant, it's not really standardized
+16:45 < bridge> <Learath2> Ew
+16:45 < bridge> <Learath2> SPICE also had this, what is it with you hardware people and your aversion to standards?
+16:46 < bridge> <Chairn> hardware people are driven by industry de facto...
+16:47 < bridge> <Chairn> you can't really do open hardware like you can do software open source
+16:47 < bridge> <Chairn> now, it's starting to be more open
+16:47 < bridge> <Chairn> but all the tools are proprietary ones
+16:48 < bridge> <Jupstar ✪> @Chairn have u used such languages in RL?
+16:49 < bridge> <Chairn> VHDL for teaching in Europe and some projects, SystemVerilog for my PhD
+16:51 < bridge> <Jupstar ✪> nice
+16:51 < bridge> <Chairn> right now, im preparing research and teaching projects to apply for Associate Professor position in France, and i have 71h10 mins left...
+16:51 < bridge> <Jupstar ✪> this community just epic
+16:51 < bridge> <Jupstar ✪> we have everything
+16:51 < bridge> <Learath2> Ask chatgpt for help
+16:51 < bridge> <Chairn> and i wrote less than 3 pages (but these 3 pages are common to all positions)
+16:51 < bridge> <Chairn> Never, we are thinking of banning it in my current school
+16:51 < bridge> <Jupstar ✪> with ryo now even a compiler guy
+16:51 < bridge> <Chairn> we already caught some students with it
+16:52 < bridge> <Learath2> In all seriousness. I agree. It has no place in academia
+16:52 < bridge> <Jupstar ✪> as long as the information  is checked and correct it sounds like a useful tool to use
+16:52 < bridge> <Jupstar ✪> why ban it?
+16:52 < bridge> <Learath2> I don't care if you use it at your job and fuck over your boss, but if you want to learn/teach, it really does nothing but harm
+16:53 < bridge> <Chairn> because they don't check the information...
+16:53 < bridge> <Chairn> for the same reason Wikipedia was said to be a bad tool when it appeared and students used it
+16:53 < bridge> <Jupstar ✪> i also did my english homework with google translate xD
+16:53 < bridge> <Chairn> they just copy paste, no critical thinking at all
+16:53 < bridge> <Jupstar ✪> yeah
+16:53 < bridge> <Jupstar ✪> but students simply are like that. for math its useless anyway
+16:54 < bridge> <Chairn> you can ask simple questions to students on what they "wrote", they will try to bullshit some stuff
+16:54 < bridge> <Learath2> I think this is just a disservice to yourself. Unless you are far beyond the curriculum and you truly have nothing to learn
+16:54 < bridge> <Jupstar ✪> and for english its better than most teachers ez
+16:54 < bridge> <Jupstar ✪> well it saved my sleep
+16:54 < bridge> <Jupstar ✪> i'd call it a success
+16:55 < bridge> <Learath2> Well is it not more of a time management issue? I'm sure you could have made some time for an english homework especially if it's below your level
+16:55 < bridge> <Learath2> There should be no need to sacrifice your sleep 😛
+16:56 < bridge> <Jupstar ✪> nah was not possible for me
+16:56 < bridge> <Jupstar ✪> bcs i had friends and hobbies
+16:56 < bridge> <Ryozuki> all tools can be used wrongly
+16:56 < bridge> <Ryozuki> wikipedia is amazing, and good pages have references to the sources
+16:56 < bridge> <Ryozuki> so u also read sources
+16:57 < bridge> <Ryozuki> students are a bit idiot and dont actually read the references xd
+16:57 < bridge> <Learath2> I find it hard to believe you didn't have 30 minutes for an english homework in an entire week 😄
+16:57 < bridge> <Chairn> yeah i agree, but chatGPT pushes things a little bit too far and too fast imo
+16:58 < bridge> <Chairn> we'll need time to adapt
+16:58 < bridge> <Learath2> But anyway, you do you. If it was below your level there wasnt anything for you to learn, so not much harm
+16:58 < bridge> <Chairn> 15 years, everyone will be using it 😉
+16:58 < bridge> <Ryozuki> thats too long timespan
+16:58 < bridge> <Ryozuki> maybe yes back in 2010
+16:58 < bridge> <Ryozuki> but now things move faster
+16:58 < bridge> <Chairn> you can't accelerate social acceptation
+16:58 < bridge> <Ryozuki> i think u can
+16:58 < bridge> <Jupstar ✪> why in an entire week?
+16:58 < bridge> <Jupstar ✪> we got homework every day
+16:59 < bridge> <Jupstar ✪> and school until 16 o'clock
+16:59 < bridge> <Learath2> You got homework for every subject every day?
+16:59 < bridge> <Jupstar ✪> pretty much yes
+16:59 < bridge> <Learath2> We usually had one homework per subject per week
+16:59 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1089926692849598485/screenshot_2023-03-27_at_11.png
+16:59 < bridge> <Jupstar ✪> well seems like its different in ger
+16:59 < bridge> <Ryozuki> universe broken
+17:00 < bridge> <Ryozuki> kinda ye
+17:00 < bridge> <Learath2> Huh, so you had every subject every day? How long was school even?
+17:00 < bridge> <Ryozuki> not but we got homework for each subject we got each day
+17:00 < bridge> <Jupstar ✪> i had most subjects 3 days in a 5 day week
+17:01 < bridge> <Ryozuki> usually just 1 day in between
+17:01 < bridge> <Ryozuki> but all kids prefer to play games duh
+17:01 < bridge> <Ryozuki> so u do it last day rushed
+17:01 < bridge> <Learath2> Okay that sounds about right. And every time you got homework?
+17:01 < bridge> <Ryozuki> kek
+17:01 < bridge> <Jupstar ✪> especially in the earlier classes i'd say yes
+17:02 < bridge> <Learath2> Huh, we usually got a homework only on the last occurance of a subject within a week and we'd be expected to finish it until the next week first occurance
+17:03 < bridge> <Learath2> So that gave about 5, 6 days to do it
+17:04 < bridge> <Learath2> Different countries do handle it different apparently, no idea why I was surprised 😄
+17:05 < bridge> <<~{Barsik}~>> yeah this sucks xd, had this up from fifth grade to tenth
+17:05 < bridge> <Learath2> I think 8 to 16 school is pretty universal except nordic countries
+17:06 < bridge> <Jupstar ✪> u have to be taught early that u a slave
+17:06 < bridge> <<~{Barsik}~>> they allowed us to prepare to exams this year
+17:06 < bridge> <<~{Barsik}~>> so no homework at all
+17:07 < bridge> <Learath2> It took me so long but I finally understand why they give homework. It's really where you learn things
+17:07 < bridge> <Jupstar ✪> not if u hate them
+17:07 < bridge> <Jupstar ✪> and thats the whole problem
+17:08 < bridge> <Jupstar ✪> if u like stuff u open to learn it
+17:08 < bridge> <<~{Barsik}~>> nah, homework is just method of controlling your learning curve
+17:08 < bridge> <Learath2> The problem is that kids mostly don't give 3 shits about learning anything 😄
+17:08 < bridge> <Jupstar ✪> i am too hipster for our school form
+17:08 < bridge> <<~{Barsik}~>> im still learning but it became easier this year
+17:09 < bridge> <Chairn> 👋 gotta go take my train to go back to Paris, see you guys
+17:09 < bridge> <<~{Barsik}~>> the only good skill i took from my math homework is vieta theorem
+17:10 < bridge> <<~{Barsik}~>> хорошего пути!
+17:10 < bridge> <Learath2> Until university honestly if you are smart-ish you can get away with not practicing at all. But when you get to uni and have no practice habit you finally understand why they were trying to get you to build a homework habit
+17:10 < bridge> <<~{Barsik}~>> i think this depends on university
+17:10 < bridge> <<~{Barsik}~>> and teachers
+17:11 < bridge> <Learath2> If you are planning to do anything numerical, unless you are a genius you'll need practice
+17:11 < bridge> <<~{Barsik}~>> ah yep xd
+17:12 < bridge> <<~{Barsik}~>> friends told me about useless subjects related to IT
+17:12 < bridge> <<~{Barsik}~>> not math
+17:13 < bridge> <<~{Barsik}~>> math is always good and addictive
+17:13 < bridge> <Learath2> Programming especially benefits from practice imo. The more you code the better you get
+17:14 < bridge> <Learath2> That's why I think chatgpt and copying from stackoverflow is not okay for students
+17:14 < bridge> <Cellegen | RiH> Yo, why is the random skin button only cycles through the vanilla skins?
+17:14 < bridge> <Learath2> Also why I think C is a good language to get students started on
+17:14 < bridge> <<~{Barsik}~>> c is just good language
+17:15 < bridge> <Learath2> Hm, I guess only because it's coded that way and no one thought about it
+17:15 < bridge> <Cellegen | RiH> It the cycling done through an Array of sort?
+17:16 < bridge> <<~{Barsik}~>> the only thing c missing is ecosystem
+17:16 < bridge> <<~{Barsik}~>> thats why rust is better i think
+17:16 < bridge> <<~{Barsik}~>> but borrow checker uh
+17:16 < bridge> <Learath2> Yeah cargo is godsent
+17:17 < bridge> <Learath2> I don't think rust is a good language to teach beginners. Only because borrow checker is such an alien concept and I would want to stop them from using collections but that'd be extremely unidiomatic rust
+17:17 < bridge> <Learath2> Why teach them bad crippled rust?
+17:18 < bridge> <<~{Barsik}~>> rust and c exclusive and thats it
+17:19 < bridge> <ReiTW> C is so small that it doesn't take long to understand the basics
+17:20 < bridge> <Learath2> If I was creating a software engineering curriculum I think I'd teach C and follow it up with C++ for teaching about OOP. I'd like to teach rust too but honestly 3 languages in a 3/4 year degree sounds annoying to me
+17:21 < bridge> <<~{Barsik}~>> no no no pls don't use cpp for teaching
+17:21 < bridge> <Cellegen | RiH> :YEP:
+17:21 < bridge> <Cellegen | RiH> why not
+17:21 < bridge> <Learath2> I have to show OOP and I'd rather not go with Java
+17:21 < bridge> <<~{Barsik}~>> cpp hides many things from programmer
+17:21 < bridge> <<~{Barsik}~>> c#?
+17:22 < bridge> <<~{Barsik}~>> same problem thouhj
+17:22 < bridge> <<~{Barsik}~>> though
+17:22 < bridge> <Learath2> This is what the C is for
+17:26 < bridge> <Learath2> I have some good ideas on how to produce a good software engineer. They should gimme a university
+17:27 < bridge> <Jupstar ✪> i'd probably teach c++98
+17:27 < bridge> <Jupstar ✪> and assembler
+17:27 < bridge> <Learath2> To introduce OOP? I had a similar idea in mind though I was thinking C++03
+17:27 < bridge> <Jupstar ✪> and then combine both
+17:28 < bridge> <Robyt3> Since when is University for producing software engineers? Computer science has little to do with learning how to program, I'm afraid.
+17:28 < bridge> <Jupstar ✪> yes and i think the best u can do is how OOP is "implemented" in assembly then
+17:28 < bridge> <Jupstar ✪> getting a feeling for vtables, memory layout etc
+17:28 < bridge> <Learath2> I said a software engineering curriculum. I didn't say a CS curriculum
+17:29 < bridge> <Voxel> imagind ddnet written in pure assembly
+17:29 < bridge> <Voxel> imagine ddnet written in pure assembly
+17:29 < bridge> <Jupstar ✪> what even is pure assembly?
+17:29 < bridge> <Jupstar ✪> hardware binary code?
+17:29 < bridge> <Jupstar ✪> that can be displayed as e.g. x86 assembly
+17:30 < bridge> <<~{Barsik}~>> https://tenor.com/view/fknbnuy-cat-speed-run-reaction-gif-21698332
+17:31 < bridge> <Learath2> The extreme focus in theory is why the industry is plagued by people that are "programmers"
+17:32 < bridge> <Learath2> Mfw can't code without internet access :pepeW:
+17:33 < bridge> <Learath2> Would probably be pretty shit, modern compilers are far beyond what we can produce by hand nowadays
+17:34 < bridge> <Jupstar ✪> many ppl that study CS dont want to "actually" be CS anyway
+17:34 < bridge> <Jupstar ✪> so i agree
+17:34 < bridge> <Jupstar ✪> u kinda have to be bit nerdy
+17:35 < bridge> <Learath2> Most of them effectively work as software engineers. Why not train them properly for it?
+18:15 < bridge> <marmare_314> Is there any reason why the naming conventions are not checked with clang-tidy? I was thinking about trying to add that
+18:15 < bridge> <heinrich5991> the university lecturers don't really understand C
+18:15 < bridge> <heinrich5991> with rust it seems to be a little bit better
+18:15 < bridge> <heinrich5991> because there's less UB
+18:15 < bridge> <heinrich5991> UB seems to be a hard concept to teach
+18:16 < bridge> <<~{Barsik}~>> why tho
+18:16 < bridge> <heinrich5991> you can try doing that, however there's >1000 naming violations that I found when I wrote the script
+18:16 < bridge> <<~{Barsik}~>> its literally unexpected behavior xd
+18:17 < bridge> <<~{Barsik}~>> its called undefined but actually mostly ends up with unexpected
+18:17 < bridge> <heinrich5991> those would need to be fixed, or there needs to be a way for it to only affect patches
+18:17 < bridge> <heinrich5991> that's the misunderstanding that people have with it, basically
+18:17 < bridge> <marmare_314> I think clang-tidy supports changing them automatically but ill have to check
+18:18 < bridge> <heinrich5991> they think `int function() { g(); }` just returns "the last thing that was in the rax register"
+18:18 < bridge> <heinrich5991> but it's more complicated than that
+18:18 < bridge> <heinrich5991> but because it's hard to observe it, it's hard to understand it, I guess
+18:19 < bridge> <<~{Barsik}~>> you just need to have an example of every ub
+18:19 < bridge> <<~{Barsik}~>> examples
+18:19 < bridge> <<~{Barsik}~>> so students can analyze it and make conclusions
+18:20 < bridge> <heinrich5991> if you are suggesting "let them try and see what happens", then they might get to the wrong conclusion
+18:20 < bridge> <heinrich5991> e.g. that `int *p = nullptr; *p = 0;` always crashes
+18:25 < bridge> <Ryozuki> would u feel bad for doing X thing that a coworker was trying to fix because you knew how to fix it right away? i tried to explain how to do the fix but i kinda sucked explaining xD
+18:25 < bridge> <Ryozuki> and he seemed kinda lost
+18:25 < bridge> <Ryozuki> but its on my mind now
+18:25 < bridge> <Ryozuki> im a bad person maybe
+18:26 < bridge> <Ryozuki> (this guy is rly competent, thats probs not the issue, the thing is he just entered the project)
+18:26 < bridge> <Ryozuki> i also wanted this fixed asap xd
+18:27 < bridge> <Learath2> I wish there was a UBless C that would be easier to teach on. I would teach Rust but the problem is I'd have to teach with an arbitrarily crippled version of Rust to achieve my teaching goals, but that'd be a disservice to the student as it'd be bad Rust
+18:29 < bridge> <Learath2> Doubt that has anything to do with it, if he is competent and cares about it he will review it on his own time and figure out how you fixed it
+18:29 < bridge> <Learath2> Or he will ask followup questions if you didn't appear as a complete dickhead 😄
+18:29 < bridge> <Ryozuki> ehh
+18:29 < bridge> <Ryozuki> our work relationship is awkward, we both introverts
+18:29 < bridge> <Ryozuki> altho we differ as devs
+18:29 < bridge> <Ryozuki> as far as i know he has 0 open source projects :p
+18:29 < bridge> <Ryozuki> but i know he is good
+18:30 < bridge> <Learath2> How do you know he is good if he is new and doesn't have public projects?
+18:30 < bridge> <Ryozuki> cuz what he has done in internal projects
+18:30 < bridge> <Ryozuki> in the company
+18:30 < bridge> <Ryozuki> well
+18:30 < bridge> <Ryozuki> so far looks like he knows
+18:31 < bridge> <Ryozuki> altho sometimes idk
+18:31 < bridge> <Ryozuki> he sometimes said "you probs need unsafe to do X" but i pointed out with refcells and interior mutability u dont need unsafe xd
+18:31 < bridge> <Ryozuki> things like this
+18:32 < bridge> <Ryozuki> definitly more than ur average web dev
+18:32 < bridge> <Ryozuki> his uni project was doing simd matrices in assembly or smth i forgot tbh
+18:33 < bridge> <Learath2> overall, if he didn't look sad/angry I wouldn't care either
+18:33 < bridge> <Ryozuki> imagine a constant expresionless person
+18:33 < bridge> <Ryozuki> idk lmao
+18:33 < bridge> <Ryozuki> anyway moving on
+18:33 < bridge> <Learath2> 😄
+18:35 < bridge> <Ryozuki> he doesnt seem to care
+18:35 < bridge> <Ryozuki> :gigachad:
+18:37 < bridge> <Ryozuki> +1
+18:37 < bridge> <Ryozuki> im just reading the convo
+18:38 < bridge> <Ryozuki> learning language*
+18:38 < bridge> <Voxel> was this question ever answered
+18:38 < bridge> <Ryozuki> borrow checker good
+18:38 < bridge> <Voxel> i wanna know what im doing when i get home from .work
+18:39 < bridge> <Ryozuki> do you know what is ub and why happens?
+18:43 < bridge> <Ryozuki> i dont think he answered
+18:44 < bridge> <heinrich5991> I don't think that's what he means
+18:44 < bridge> <heinrich5991> he wants a `KillMessage` parameter that functions differently from the current one
+19:32 < bridge> <Voxel> but why
+19:34 < bridge> <heinrich5991> the current parameter name `Single` doesn't really capture what it does
+19:34 < bridge> <heinrich5991> I'm not entirely sure what he proposes or why
+19:35 < bridge> <heinrich5991> this thing should go btw: `MsgPlus.m_Size = Teams()->TeamSize(Team());`
+19:35 < bridge> <heinrich5991> this is information the client has
+19:35 < bridge> <heinrich5991> but in general, only very few things are still missing
+19:35 < bridge> <heinrich5991> or should be changed
+19:36 < bridge> <heinrich5991> it looks quite good already
+19:54 < bridge> <Voxel> I'll be renaming thay
+19:54 < bridge> <Voxel> I'll be renaming that
+20:34 < bridge> <Ravie> @Voxel you can get rid of that parameter if you change the code inside CCharacter::Die to something along these lines ```cpp
+20:34 < bridge> <Ravie> bool TeamKill = Team() != 0 && Teams()->GetTeamState(Team()) == CGameTeams::TEAMSTATE_STARTED;
+20:34 < bridge> <Ravie> 
+20:34 < bridge> <Ravie> if(TeamKill)
+20:34 < bridge> <Ravie> {
+20:34 < bridge> <Ravie>     // Send your team kill message here
+20:34 < bridge> <Ravie> }
+20:34 < bridge> <Ravie> else
+20:34 < bridge> <Ravie> {
+20:34 < bridge> <Ravie>     // send the kill message
+20:34 < bridge> <Ravie>     CNetMsg_Sv_KillMsg Msg;
+20:34 < bridge> <Ravie>     Msg.m_Killer = Killer;
+20:34 < bridge> <Ravie>     Msg.m_Victim = m_pPlayer->GetCID();
+20:34 < bridge> <Ravie>     Msg.m_Weapon = Weapon;
+20:34 < bridge> <Ravie>     Msg.m_ModeSpecial = ModeSpecial;
+20:34 < bridge> <Ravie>     Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
+20:34 < bridge> <Ravie> }```
+20:34 < bridge> <Voxel> OHHH
+20:35 < bridge> <Voxel> waot
+20:35 < bridge> <Ravie> if the tee is not in a team you send single kill message, if he's in a team that is locked or whatever u send team kill message
+20:44 < bridge> <marmare_314> @heinrich5991 do you remember how you added the hungarian notation? i cannot figure out how to not add prefixes for primitive types.  i tried some of these but none seem to work.
+20:44 < bridge> <marmare_314> ```yaml
+20:44 < bridge> <marmare_314> - key: readability-identifier-naming.HungarianNotation.PrimitiveType.int
+20:44 < bridge> <marmare_314>   value: null
+20:44 < bridge> <marmare_314>   value:
+20:44 < bridge> <marmare_314>   value: none
+20:44 < bridge> <marmare_314> ```
+20:44 < bridge> <marmare_314> I guess it should also be possible using the normal options, but this would be nicer.
+20:45 < bridge> <marmare_314> @heinrich5991 do you remember how you added the hungarian notation? i cannot figure out how to not add prefixes for primitive types.  i tried these but none seem to work.
+20:45 < bridge> <marmare_314> ```yaml
+20:45 < bridge> <marmare_314> - key: readability-identifier-naming.HungarianNotation.PrimitiveType.int
+20:45 < bridge> <marmare_314>   value: null
+20:45 < bridge> <marmare_314>   value:
+20:45 < bridge> <marmare_314>   value: none
+20:45 < bridge> <marmare_314>   value: None
+20:45 < bridge> <marmare_314> ```
+20:45 < bridge> <marmare_314> I guess it should also be possible using the normal options, but this would be nicer.
+20:56 < bridge> <Voxel> wait, you mean the `Single` parameter?
+20:56 < bridge> <Voxel> if I remove that, it will send the kill message for every member in the team
+20:58 < bridge> <Ravie> ah I c, but you can still create the TeamKill bool inside rather than an additional parameter
+21:07 < bridge> <Voxel> Isn't that what I did?
+21:08 < bridge> <Ravie> nah you added this bool Single
+21:08 < bridge> <Ravie> you can see inside the function itself if it's a single kill or team kill, no need to pass some bool
+21:08 < bridge> <Voxel> if I remove that, it will send the kill message for every member in the team
+21:09 < bridge> <Voxel> `Teams()->OnCharacterDeath(GetPlayer()->GetCID(), Weapon);
+21:09 < bridge> <Voxel> }`
+21:09 < bridge> <Voxel> it iterates through all the IDs and kills each tee. i need a way to prevent duplicates
+21:10 < bridge> <Ravie> but you can let it kill the tees normally and inside CCharacter::Die you decide if it should send the message
+21:14 < bridge> <Voxel> but how does it know if it's the one killing?
+21:14 < bridge> <Voxel> like, how does it detect who's strong
+21:16 < bridge> <Ravie> it doesn't know that anyway
+21:17 < bridge> <Ravie> the only difference from how you have it currently is that you do the check inside the function rather than passing a bool
+21:25 < bridge> <Learath2> there is a guaranteed order of spawn iirc though
+21:26 < bridge> <Learath2> the person who kills will have the lowest entity id iirc
+21:34 < bridge> <ReD> Kotlin as a first OOP language? :p
+21:39 < bridge> <heinrich5991> I made my own script on top of libclang, didn't use clang-tidy, sorry
+21:48 < bridge> <Ryozuki> https://news.ycombinator.com/item?id=35330438
+21:52 < bridge> <Learath2> not just at private companies either, I've heard very scary things from people that work at government jobs
+22:12 < bridge> <heinrich5991> @marmare_314 have you tried `value: ""`
+22:12 < bridge> <heinrich5991> ?
+22:29 < bridge> <marmare_314> yes, and also `value: ''` which is supposed to work for the normal prefix options
+22:37 < bridge> <heinrich5991> what does it do if you try `""` or `''`?
+22:55 < bridge> <Chairn> imagine having a `rax` register
+22:57 < bridge> <heinrich5991> on amd64
+22:57 < bridge> <Chairn> not completely UBless, but `-pedantic -Wall -Wextra -Werror` gives you way less error already 😄
+22:57 < bridge> <fokkonaut> https://tenor.com/view/developers-gif-13292051
+22:57 < bridge> <Chairn> yeah, but C is platform agnostic
+22:57 < bridge> <fokkonaut> https://tenor.com/view/agnostic-godzilla-ifunny-it-may-or-may-not-be-king-kong-gif-21357739
+22:59 < bridge> <fokkonaut> heinrich deletor
+22:59 < bridge> <fokkonaut> Its Monday
+22:59 < bridge> <fokkonaut> 😔
+22:59 < bridge> <DefaultO> heinrich is like the elderly lady not allowing kids to play on the grassfield
+22:59 < bridge> <heinrich5991> the C standard doesn't talk a lot about platforms, it's not completely agnostic though. the "not completely agnostic" isn't relevant to the the current discussion though
+23:00 < bridge> <heinrich5991> but I think my point still stands, even if you add "on current amd64 ABIs" to the statement
+23:02 < bridge> <heinrich5991> see also https://utcc.utoronto.ca/~cks/space/blog/programming/CAsAbstractMachine on the point of "C is just an abstract machine"
+23:02 < bridge> <Chairn> doesn't crash on lots of embedded system
+23:02 < bridge> <heinrich5991> yes, it also doesn't crash in `cat`
+23:02 < bridge> <heinrich5991> I was talking about amd64, though
+23:03 < bridge> <heinrich5991> yes, it also doesn't crash `cat`
+23:03 < bridge> <Chairn> cat?
+23:03 < bridge> <heinrich5991> yes
+23:04 < bridge> <Chairn> what's cat here?
+23:04 < bridge> <heinrich5991> ```sh
+23:04 < bridge> <heinrich5991> $ echo 'int *p = nullptr; *p = 0;' | cat
+23:04 < bridge> <heinrich5991> int *p = nullptr; *p = 0;
+23:04 < bridge> <heinrich5991> ```
+23:04 < bridge> <heinrich5991> didn't crash for me
+23:05 < bridge> <heinrich5991> what I was trying to say was that you're talking about microcontrollers when I already specified that I'm talking about amd64
+23:05 < bridge> <heinrich5991> i.e. not really relevant for the point I was trying to make
+23:05 < bridge> <heinrich5991> I was trying to say that instructors say something like `int *p = nullptr; *p = 0;` always crashes on amd64
+23:05 < bridge> <heinrich5991> which isn't true
+23:06 < bridge> <heinrich5991> trying to point out that some instructors in university don't understand C, even if you try to explain what UB is
+23:06 < bridge> <marmare_314> it ignores the value, probably related to https://github.com/llvm/llvm-project/issues/56358
+23:09 < bridge> <Chairn> or they just simplify it to not complicate things too much
+23:09 < bridge> <heinrich5991> but when asked about that point, they should be able to tell you "I just simplified it" and not "you're wrong, check this sample program", right?
+23:12 < bridge> <marmare_314> i just noticed, the exact issue is linked there so i guess i'll just try the other option
+23:48 < bridge> <<~{Barsik}~>> ub for me is absence of guarantee from language standard or what language comes up with
+23:49 < bridge> <<~{Barsik}~>> i can actually call possibility of us states to leave usa in xix ub just because constitution had nothing about states right of leaving
+23:50 < bridge> <<~{Barsik}~>> constitution nor allowed this nor prohibited it
+23:55 < bridge> <Jupstar ✪> Isn't it basically java with a new syntax?
+23:55 < bridge> <Jupstar ✪> 
+23:55 < bridge> <Jupstar ✪> I mean u probably learn enough about oop to understand the idea behind it. But maybe too few to understand it's flaws^^

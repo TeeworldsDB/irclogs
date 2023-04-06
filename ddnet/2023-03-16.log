@@ -1,0 +1,211 @@
+04:56 < bridge> <Voxel> I thought I did index. Or, am I also doing that wrong?
+04:56 < bridge> <Voxel> 
+04:56 < bridge> <Voxel> Basically I have an outside buffer to store each tee skin that will be packaged inside the kill message.
+04:56 < bridge> <Voxel> ```c++
+04:56 < bridge> <Voxel> Kill.m_VictimID = pMsg->m_Victim;
+04:56 < bridge> <Voxel>         if(Kill.m_VictimID >= 0 && Kill.m_VictimID < MAX_CLIENTS)
+04:56 < bridge> <Voxel>         {
+04:56 < bridge> <Voxel>             Kill.m_VictimTeam = m_pClient->m_aClients[Kill.m_VictimID].m_Team;
+04:56 < bridge> <Voxel>             Kill.m_VictimDDTeam = m_pClient->m_Teams.Team(Kill.m_VictimID);
+04:56 < bridge> <Voxel>             str_copy(Kill.m_aVictimName, m_pClient->m_aClients[Kill.m_VictimID].m_aName);
+04:56 < bridge> <Voxel>             if(m_Sendable = 0)
+04:56 < bridge> <Voxel>                 {
+04:57 < bridge> <Voxel>                     Kill.m_VictimRenderInfo[m_VictimSkinCurrent + 1] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;
+04:57 < bridge> <Voxel>                     m_VictimSkinCurrent = (m_VictimSkinCurrent + 1) % (MAX_KILLMSGTEAM - 1);
+04:57 < bridge> <Voxel>                 }
+04:57 < bridge> <Voxel>             else
+04:57 < bridge> <Voxel>                 Kill.m_VictimRenderInfo[0] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;
+04:57 < bridge> <Voxel>         }```
+04:57 < bridge> <Voxel> I thought I did index. Or, am I also doing that wrong?
+04:57 < bridge> <Voxel> 
+04:57 < bridge> <Voxel> Basically I have an outside buffer to store each tee skin that will be packaged inside the kill message.
+04:57 < bridge> <Voxel> ```c++
+04:57 < bridge> <Voxel> CKillMsg Kill;
+04:57 < bridge> <Voxel> 
+04:57 < bridge> <Voxel> ...
+04:57 < bridge> <Voxel> 
+04:57 < bridge> <Voxel> Kill.m_VictimID = pMsg->m_Victim;
+04:57 < bridge> <Voxel>         if(Kill.m_VictimID >= 0 && Kill.m_VictimID < MAX_CLIENTS)
+04:57 < bridge> <Voxel>         {
+04:57 < bridge> <Voxel>             Kill.m_VictimTeam = m_pClient->m_aClients[Kill.m_VictimID].m_Team;
+04:57 < bridge> <Voxel>             Kill.m_VictimDDTeam = m_pClient->m_Teams.Team(Kill.m_VictimID);
+04:57 < bridge> <Voxel>             str_copy(Kill.m_aVictimName, m_pClient->m_aClients[Kill.m_VictimID].m_aName);
+04:57 < bridge> <Voxel>             if(m_Sendable = 0)
+04:57 < bridge> <Voxel>                 {
+04:57 < bridge> <Voxel>                     Kill.m_VictimRenderInfo[m_VictimSkinCurrent + 1] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;
+04:57 < bridge> <Voxel>                     m_VictimSkinCurrent = (m_VictimSkinCurrent + 1) % (MAX_KILLMSGTEAM - 1);
+04:57 < bridge> <Voxel>                 }
+04:57 < bridge> <Voxel>             else
+04:57 < bridge> <Voxel>                 Kill.m_VictimRenderInfo[0] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;
+04:58 < bridge> <Voxel>         }```
+04:59 < bridge> <Voxel> `m_Sendable` is another packet, which determines the actions of each packet delivery.
+04:59 < bridge> <Voxel> If `m_Sendable` is 0, it's in a write state that only fills in all the buffers.
+04:59 < bridge> <Voxel> If `m_Sendable` is 1, then it's in a read state, which makes sure the first item in the buffer is the person who died / gets strong. It will package the buffer, alongside the size of the team, or the maximum allowed in the killfeed buffer.
+05:00 < bridge> <Voxel> Wait, did I not-
+05:00 < bridge> <Voxel> NO I FORGOT TO IMPLIMENT THE BUFFER
+05:03 < bridge> <heinrich5991> do you still get a compiler error?
+05:04 < bridge> <heinrich5991> if so, it would be nice if you could also copy-paste that
+05:04 < bridge> <Voxel> I want to fix this buffer first, then test to see if that was the problem.
+05:04 < bridge> <Voxel> There was meant to be a buffer outside of `CKillMsg Kill`, but currently it's writing to nothing.
+05:05 < bridge> <heinrich5991> I don't understand what buffer means in this context
+05:08 < bridge> <Voxel> In the `CKillMessages` class, outside of `struct CKillMsg`, I made another global array to store tee skins for each team member that died.
+05:08 < bridge> <Voxel> ```c++
+05:08 < bridge> <Voxel> CKillMsg m_aKillmsgs[MAX_KILLMSGS];
+05:08 < bridge> <Voxel> int m_KillmsgCurrent;
+05:08 < bridge> <Voxel> 
+05:08 < bridge> <Voxel> CTeeRenderInfo m_aVictimSkinBuffer[MAX_KILLMSGTEAM];
+05:08 < bridge> <Voxel> int m_VictimSkinCurrent;```
+05:09 < bridge> <Voxel> I thought I did index. Or, am I also doing that wrong?
+05:09 < bridge> <Voxel> 
+05:09 < bridge> <Voxel> Basically I have an outside buffer to store each tee skin that will be packaged inside the kill message.
+05:09 < bridge> <Voxel> ```c++
+05:09 < bridge> <Voxel> CKillMsg Kill;
+05:09 < bridge> <Voxel> 
+05:09 < bridge> <Voxel> ...
+05:09 < bridge> <Voxel> 
+05:09 < bridge> <Voxel>   Kill.m_VictimID = pMsg->m_Victim;
+05:09 < bridge> <Voxel>     if(Kill.m_VictimID >= 0 && Kill.m_VictimID < MAX_CLIENTS)
+05:09 < bridge> <Voxel>     {
+05:09 < bridge> <Voxel>         Kill.m_VictimTeam = m_pClient->m_aClients[Kill.m_VictimID].m_Team;
+05:09 < bridge> <Voxel>         Kill.m_VictimDDTeam = m_pClient->m_Teams.Team(Kill.m_VictimID);
+05:09 < bridge> <Voxel>         str_copy(Kill.m_aVictimName, m_pClient->m_aClients[Kill.m_VictimID].m_aName);
+05:10 < bridge> <Voxel>         if(m_Sendable = 0)
+05:10 < bridge> <Voxel>             {
+05:10 < bridge> <Voxel>                 m_aVictimSkinBuffer[m_VictimSkinCurrent + 1] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;
+05:10 < bridge> <Voxel>                 m_VictimSkinCurrent = (m_VictimSkinCurrent + 1) % (MAX_KILLMSGTEAM - 1);
+05:10 < bridge> <Voxel>             }
+05:10 < bridge> <Voxel>         else
+05:10 < bridge> <Voxel>             m_aVictimSkinBuffer[0] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;
+05:10 < bridge> <Voxel>     }```
+05:10 < bridge> <Voxel> Yeah, there's still an error.
+05:10 < bridge> <Voxel> ```c++
+05:10 < bridge> <Voxel> for(int i = 0; i <= Kill.m_TeamSize; i++)
+05:10 < bridge> <Voxel>             {
+05:10 < bridge> <Voxel>                 Kill.m_VictimRenderInfo[i] = m_aVictimSkinBuffer[i];
+05:10 < bridge> <Voxel>                 if(!m_aVictimSkinBuffer[i].m_CustomColoredSkin && m_aVictimSkinBuffer[i].m_OriginalRenderSkin.m_Body.IsValid())
+05:10 < bridge> <Voxel>                     KillerSkinsValid++;
+05:10 < bridge> <Voxel>             }
+05:10 < bridge> <Voxel>             bool KillMsgValid = (Kill.m_VictimRenderInfo.m_CustomColoredSkin && Kill.m_VictimRenderInfo.m_ColorableRenderSkin.m_Body.IsValid()) || (KillerSkinsValid == Kill.m_TeamSize);```
+05:10 < bridge> <Voxel> Yeah, there's still an error.
+05:10 < bridge> <Voxel> ```c++
+05:10 < bridge> <Voxel> int KillerSkinsValid = 0;
+05:10 < bridge> <Voxel> for(int i = 0; i <= Kill.m_TeamSize; i++)
+05:10 < bridge> <Voxel>             {
+05:10 < bridge> <Voxel>                 Kill.m_VictimRenderInfo[i] = m_aVictimSkinBuffer[i];
+05:10 < bridge> <Voxel>                 if(!m_aVictimSkinBuffer[i].m_CustomColoredSkin && m_aVictimSkinBuffer[i].m_OriginalRenderSkin.m_Body.IsValid())
+05:10 < bridge> <Voxel>                     KillerSkinsValid++;
+05:10 < bridge> <Voxel>             }
+05:10 < bridge> <Voxel>             bool KillMsgValid = (Kill.m_VictimRenderInfo.m_CustomColoredSkin && Kill.m_VictimRenderInfo.m_ColorableRenderSkin.m_Body.IsValid()) || (KillerSkinsValid == Kill.m_TeamSize);```
+05:11 < bridge> <heinrich5991> `Kill.m_VictimRenderInfo[i]`
+05:11 < bridge> <heinrich5991> `Kill.m_VictimRenderInfo.m_CustomColoredSkin`
+05:11 < bridge> <heinrich5991> one of these is wrong
+05:11 < bridge> <heinrich5991> either `m_VictimRenderInfo` is an array or it is not
+05:12 < bridge> <Voxel> Oh my god. I thought that was `Kill.m_KillerRenderInfo`
+05:12 < bridge> <Voxel> Oh my god
+05:12 < bridge> <Voxel> I'm blind
+05:12 < bridge> <Voxel> Oh my god. I thought that was `Kill.m_KillerRenderInfo`, which doesn't have an array.
+05:15 < bridge> <Voxel> It compiles
+05:20 < bridge> <heinrich5991> \o/
+05:25 < bridge> <Voxel> Now that I have the backbone done, I just need to do the actual debugging of the packet sending, which won't be too hard.
+07:24 < bridge> <Voxel> It's still riddled with bugs, but this is the closest I can get right now.
+07:24 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1085810834388824125/image.png
+07:25 < bridge> <Voxel> It's still riddled with bugs, but this is the closest I can get right now.
+07:25 < bridge> <Voxel> Pretend these are like, teams of 4 dying
+07:25 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1085810834388824125/image.png
+07:26 < bridge> <Mʎɹ シ> ```
+07:26 < bridge> <Mʎɹ シ> Why if(m_Sendable = 0)?
+07:26 < bridge> <Mʎɹ シ> I think it need be if(m_Senable == 0) or if(!m_Senable)
+07:26 < bridge> <Mʎɹ シ> ```
+07:26 < bridge> <Voxel> I already changed that to `if(!m_Sendable)`
+07:28 < bridge> <Mʎɹ シ> Oh, oke
+08:51 < bridge> <Ryozuki> https://immunant.com/blog/2023/03/lifting/
+08:51 < bridge> <Ryozuki> @Learath2 convert ur c to rust today!
+10:13 <+ChillerDragon> Convert your bash to rust today! https://github.com/ChillerDragon/bash-to-rust
+10:31 < bridge> <Jupstar ✪> I want this btw
+10:31 < bridge> <Jupstar ✪> Please code bash God
+11:37 < bridge> <Anime.pdf> Imagine if team of 64 will die :justatest:
+12:56 <+ChillerDragon> imagine we add 128p support
+13:21 < bridge> <DefaultO> imagine you would start to use the servers you bought to the full capacity aka. 1024 players support
+13:23 < bridge> <Jupstar ✪> ?XD
+13:25 < bridge> <Robyt3> First step: Add comprehensive tests for all the physics
+13:25 < bridge> <Robyt3> Second step: Improve physics performance without changing any of the physics
+13:32 <+ChillerDragon> sounds like a good plan robster
+13:55 < bridge> <Ryozuki> chillster
+14:44 < bridge> <heinrich5991> I think @Zwelf is working on that, actually 🙂 the first step, that is
+14:44 < bridge> <Robyt3> Nice
+14:44 < bridge> <Voxel> its only gonna show 4
+14:49 < bridge> <Zwelf> Yeah, these are the current ones: <https://gitlab.com/zwelf/twgame/-/blob/92bf54c557491581071e8e287d9b11f234144efe/validator/tests/validator.rs#L65-300>. I'm planning to add a whole bunch soon (started a new test map yesterday for that)
+15:51 <+ChillerDragon> lmao rust maximalists infilitrated my bash research https://stackoverflow.com/a/58994637/21335246
+15:52 <+ChillerDragon> cool stuff @Zwelf
+16:05 < bridge> <Ryozuki> > 
+16:05 < bridge> <Ryozuki> > 
+16:05 < bridge> <Ryozuki> > None of the existing answers worked for me with a single-line 10GB file. Grep runs out of memory even on a machine with 768 GB of RAM!
+16:05 < bridge> <Ryozuki> lmao
+16:25 <+ChillerDragon> ikr
+16:27 <+ChillerDragon> Q: "how to use grep?" A: "rewrite your own grep in rust because grep bad"
+16:28 <+ChillerDragon> that guy probably also rolled his own crypto because `openssl` is bad even on his 700GB ram machine xd
+17:01 <+ChillerDragon> oh boi i wrote a 100 line py script and then a 200 line bash script that releases it to pypi xd
+17:37 < bridge> <Voxel> remind me when i get home to have there be a 64 long tee string
+17:37 < bridge> <Voxel> for the funnies
+18:01 <+ChillerDragon> @Voxel home yet? i want the funnies!
+18:20 < bridge> <Voxel> not for another 5 hours
+19:25 < bridge> <Chairn> kinda weird that grep runs out of memory
+19:25 < bridge> <Chairn> there's no reason for it to hold matches, just count it
+19:25 < bridge> <Ryozuki> https://www.reddit.com/r/ProgrammerHumor/comments/11sr08r/truly_the_best_time_to_be_a_cs_student/
+19:26 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1085992392961830984/qjmo7hnf33oa1.jpg
+19:27 < bridge> <Chairn> the logo is chatGPT's?
+19:27 < bridge> <Jupstar ✪> why would u be sad
+19:27 < bridge> <Jupstar ✪> if we have a robot that is as inteligent as a human we finished the game of life
+19:27 < bridge> <Jupstar ✪> yes
+19:29 < bridge> <Ryozuki> its openai logo
+19:29 < bridge> <Chairn> more like the robot will finish our life
+19:29 < bridge> <Ryozuki> they made chatgpt
+19:29 < bridge> <Jupstar ✪> u can still be a CS student
+19:29 < bridge> <Jupstar ✪> but its just for yourself
+19:29 < bridge> <Jupstar ✪> not to solve any mistery
+19:29 < bridge> <Jupstar ✪> thats what i call true freedom
+19:31 < bridge> <Jupstar ✪> e sports is also in great demand even tho we know that computers are better at them 😉
+19:31 < bridge> <Jupstar ✪> e sports are also in great demand even tho we know that computers are better at them 😉
+19:35 < bridge> <Ryozuki> @Jupeyy_Keks true
+19:35 < bridge> <Ryozuki> like chess
+19:35 < bridge> <Ryozuki> even tho it makes cheating easier
+19:35 < bridge> <Ryozuki> at the max level
+19:38 <+ChillerDragon> chess hype atm is bigger than openai hype
+19:38 <+ChillerDragon> change my mind
+19:38 < bridge> <Ryozuki> @Jupeyy_Keks look what i got on a mail from linkedin
+19:38 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1085995620512309309/image.png
+19:39 < bridge> <Ryozuki> tbh im not convinced, a mmorpg? XD
+19:39 <+ChillerDragon> take the stonks job
+19:39 < bridge> <Jupstar ✪> i generally dont trust these ppl xd
+19:39 < bridge> <Ryozuki> yeah lul
+19:39 < bridge> <Jupstar ✪> they make it sound nice and then they find excuses
+19:40 <+ChillerDragon> tell the headhunter you want 50% of what he gets from the company
+19:40 <+ChillerDragon> then take the job and quit
+19:40 <+ChillerDragon> ez money grab
+19:40 < bridge> <Ryozuki> also when they mention another language, specially JS, besides rust, you WILL most probably use little rust there
+19:40 < bridge> <Ryozuki> my life power comes from using rust
+19:43 < bridge> <Jupstar ✪> master servers slow
+19:48 <+ChillerDragon> yea they slow cuz rust
+19:49 <+ChillerDragon> ryo come to munich our company empowers devs to use as much rust as they want
+19:49 < bridge> <Ryozuki> xd
+19:53 < bridge> <Jupstar ✪> when i look at jobs in my region rip xD
+19:53 < bridge> <Jupstar ✪> c#, delphi, java
+19:53 < bridge> <Jupstar ✪> the 1990 gang
+20:06 < bridge> <Ryozuki> xdd
+20:11 < bridge> <funman> https://cdn.discordapp.com/attachments/293493549758939136/1086003850277814341/Screen_Shot_2023-03-16_at_3.11.13_PM.png
+20:12 < bridge> <DefaultO> rekt by stats
+20:38 <+ChillerDragon> close tho
+20:38 < bridge> <Ryozuki> typescript 5 is out
+20:38 < bridge> <Ryozuki> i wont share the url cuz its a microsoft link
+20:38 < bridge> <Ryozuki> and ew
+20:38 < bridge> <Ryozuki> https://news.ycombinator.com/item?id=35185069
+20:38 <+ChillerDragon> ms > discord
+20:38 <+ChillerDragon> change my mind xd
+20:40 <+ChillerDragon> https://zillyhuhn.com/cs/.1678995630.png
+20:41 <+ChillerDragon> ouuu 0.7 arguably relvant according tho this graph xd
+20:41 <+ChillerDragon> https://zillyhuhn.com/cs/.1678995679.png
+20:42 < bridge> <Voxel> i have never seen a graph that looks like that
+21:10 < bridge> <Jupstar ✪> Tbh I Google teeworlds even if I mean ddnet xd
+21:12 < bridge> <murpi> New ddnet players: What's teeworlds?
+21:36 < bridge> <Ryozuki> https://without.boats/blog/const-as-an-auto-trait/
+21:40 < bridge> <Ryozuki> ^ high quality blog

@@ -1,0 +1,87 @@
+01:21 < bridge> <Patiga> @Jupeyy_Keks I finally actually started on the tee rendering ^^
+01:21 < bridge> <Patiga> https://cdn.discordapp.com/attachments/293493549758939136/1090053007103758346/output.mp4
+01:21 < bridge> <Patiga> bonus points for whoever recognizes the clip
+01:23 < bridge> <Patiga> what you see is rendering of demo snapshots without interpolation
+01:24 < bridge> <Patiga> now that I have this first version running, I can incrementally build upon it. I'm really happy I finally picked twgpu up again :)
+01:32 < bridge> <Voxel> oooh, what
+01:32 < bridge> <Voxel> oooh, what's this
+01:33 < bridge> <Patiga> https://gitlab.com/Patiga/twgpu my rust renderer, so far it only rendered maps :brownbear:
+01:56 < bridge> <heinrich5991> is it the hammering clip?
+01:58 < bridge> <Patiga> @heinrich5991 you get the 100 points, gratz :heartw:
+01:58 < bridge> <heinrich5991> cool ❤️
+01:58 < bridge> <heinrich5991> but cool rendering!
+01:58 < bridge> <heinrich5991> how did you render it to video?
+01:59 < bridge> <Patiga> no, recorded with obs
+01:59 < bridge> <heinrich5991> ah
+01:59 < bridge> <heinrich5991> (feature request:) having a video backend would be super cool as well
+01:59 < bridge> <heinrich5991> 😄
+02:00 < bridge> <Patiga> though I do have that other tool that already takes screenshots of maps without a window, using that same method would give you exactly that
+02:00 < bridge> <Patiga> its definitely a thing I keep in mind :)
+02:13 < bridge> <Voxel> But there's a segment in `KillTeam(int Team, int NewStrongID, int ExceptID)` that purposefully uses the NewStrongID/ExceptID to ignore the person who killed first
+02:14 < bridge> <Learath2> The person who hits kill first is already killed, so when killing team we need to ignore the already killed person
+02:15 < bridge> <Learath2> And that person ends up with the lowest entity id, since they killed before the team
+02:15 < bridge> <Voxel> Hence, `Die(int Killer, int Weapon, `**`bool SendKillMsg)`**``
+02:15 < bridge> <Voxel> Hence, `Die(int Killer, int Weapon, `**`bool SendKillMsg)`**`
+02:15 < bridge> <Voxel> Hence, `Die(int Killer, int Weapon, `**`bool SendKillMsg)`**
+02:21 < bridge> <Voxel> I'm confused at what you guys are confused at <:(
+02:21 < bridge> <heinrich5991> sorry
+02:21 < bridge> <heinrich5991> I'm not investing the right amount of time to criticize the PR properly, I think that's why I'm being so vague :/
+02:22 < bridge> <Voxel> It's my fault.. I should be more patient
+02:23 < bridge> <Ravie> I'm just confused why you have this bool when you can get team state inside CCharacter::Die
+02:23 < bridge> <heinrich5991> anyway, what's currently a bit weird (I don't have a good solution to this) is that the `Character::Die` function basically implements the team logic for whether to send a team kill message or just a kill message
+02:25 < bridge> <Voxel> ```c++
+02:25 < bridge> <Voxel> void CGameTeams::KillTeam(int Team, int NewStrongID, int ExceptID)
+02:25 < bridge> <Voxel> {
+02:25 < bridge> <Voxel>     for(int i = 0; i < MAX_CLIENTS; i++)
+02:25 < bridge> <Voxel>     {
+02:25 < bridge> <Voxel>         if(m_Core.Team(i) == Team && GameServer()->m_apPlayers[i])
+02:25 < bridge> <Voxel>         {
+02:25 < bridge> <Voxel>             GameServer()->m_apPlayers[i]->m_VotedForPractice = false;
+02:25 < bridge> <Voxel>             if(i != ExceptID)
+02:25 < bridge> <Voxel>             {
+02:25 < bridge> <Voxel>                 GameServer()->m_apPlayers[i]->KillCharacter(WEAPON_SELF, false); // <<< this line of code is connected with the tees dying, and if i don't have the bool then what's the point in squashing it all in the first place
+02:25 < bridge> <Voxel> 
+02:25 < bridge> <Voxel>                 if(NewStrongID != -1 && i != NewStrongID)
+02:25 < bridge> <Voxel>                 {
+02:25 < bridge> <Voxel>                     GameServer()->m_apPlayers[i]->Respawn(true); // spawn the rest of team with weak hook on the killer
+02:25 < bridge> <Voxel>                 }
+02:25 < bridge> <Voxel>             }
+02:26 < bridge> <Voxel>         }
+02:26 < bridge> <Voxel>     }
+02:26 < bridge> <Voxel> }```
+02:26 < bridge> <Voxel> ```c++
+02:26 < bridge> <Voxel> void CGameTeams::KillTeam(int Team, int NewStrongID, int ExceptID)
+02:26 < bridge> <Voxel> {
+02:26 < bridge> <Voxel>     for(int i = 0; i < MAX_CLIENTS; i++)
+02:26 < bridge> <Voxel>     {
+02:26 < bridge> <Voxel>         if(m_Core.Team(i) == Team && GameServer()->m_apPlayers[i])
+02:26 < bridge> <Voxel>         {
+02:26 < bridge> <Voxel>             GameServer()->m_apPlayers[i]->m_VotedForPractice = false;
+02:26 < bridge> <Voxel>             if(i != ExceptID)
+02:26 < bridge> <Voxel>             {
+02:26 < bridge> <Voxel>                 GameServer()->m_apPlayers[i]->KillCharacter(WEAPON_SELF, false); // <<< this line of code is connected with the tees dying, and if i don't have the bool then what's the point in squashing it all
+02:26 < bridge> <Voxel> 
+02:26 < bridge> <Voxel>                 if(NewStrongID != -1 && i != NewStrongID)
+02:26 < bridge> <Voxel>                 {
+02:26 < bridge> <Voxel>                     GameServer()->m_apPlayers[i]->Respawn(true); // spawn the rest of team with weak hook on the killer
+02:26 < bridge> <Voxel>                 }
+02:26 < bridge> <Voxel>             }
+02:26 < bridge> <Voxel>         }
+02:26 < bridge> <Voxel>     }
+02:26 < bridge> <Voxel> }```
+02:26 < bridge> <Voxel> The `false` in `KillCharacter` tells the code if to send the message or not
+02:26 < bridge> <Voxel> And if all the tees send the message and it's squashed it's very repetitive
+02:27 < bridge> <Voxel> I mean, that's the thing. When a tee dies, it doesn't even touch up on any team related code. It sends the kill message before anything else
+02:28 < bridge> <heinrich5991> as said I don't have a good solution to it
+02:29 < bridge> <heinrich5991> but it could be moved out of this function entirely
+02:29 < bridge> <heinrich5991> e.g. making `CTeams` send the kill message
+02:29 < bridge> <heinrich5991> but don't implement that now, I don't see why this is a good solution right now
+02:31 < bridge> <Ravie> I know but you can decide this INSIDE CCharacter::Die, you have access to team stuff there
+02:32 < bridge> <Voxel> okay i think i know what you guys are talking about
+02:32 < bridge> <Voxel> yeah i'll wait until fokko verifies this until I do it
+02:33 < bridge> <Ravie> but I also agree with heinrich that team logic inside Die function is kinda unclean
+08:30 < bridge> <fokkonaut> I wouldnt do it there
+08:38 < bridge> <chillerdragon> Nice stuff !!!
+08:38 < bridge> <chillerdragon> (@Patiga)
+08:38 < bridge> <chillerdragon> Im hyped
+09:15 < bridge> <Jupstar ✪> looks funny with eyes only

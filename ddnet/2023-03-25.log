@@ -1,0 +1,215 @@
+00:53 < bridge> <Voxel> I'm trying to tidy up my PR, because fokkonaut told me I don't need an extra netmsg for what I need, but for some reason this won't compile. Apperantly it's redoing the CGameWorld class? 
+00:53 < bridge> <Voxel> I kind of need some of these team code segments to efficiently add in the things I want
+00:53 < bridge> <Voxel> ```c++
+00:53 < bridge> <Voxel> #include <engine/graphics.h>
+00:53 < bridge> <Voxel> #include <engine/shared/config.h>
+00:53 < bridge> <Voxel> #include <engine/shared/protocol.h>
+00:53 < bridge> <Voxel> #include <engine/textrender.h>
+00:53 < bridge> <Voxel> #include <game/generated/client_data.h>
+00:53 < bridge> <Voxel> #include <game/generated/protocol.h>
+00:53 < bridge> <Voxel> #include <game/server/teams.h> /* this is the new one I added */
+00:53 < bridge> <Voxel> 
+00:53 < bridge> <Voxel> #include "killmessages.h"
+00:53 < bridge> <Voxel> #include <game/client/animstate.h>
+00:53 < bridge> <Voxel> #include <game/client/gameclient.h>```
+00:53 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1088973893412335706/image.png
+00:54 < bridge> <Voxel> There isn't even a `CGameWorld` inside teams.h though?
+01:01 < bridge> <Voxel> i hate being bad at coding :((
+01:20 < bridge> <Ravie> @Voxel teams.h includes gamecontext.h and that includes gameworld.h
+01:21 < bridge> <Voxel> damn
+01:21 < bridge> <Voxel> so how do i include the teams stuff without reintroducing the repeating thingd
+01:38 < bridge> <Ravie> @Voxel are you including teams in gameclient? it already includes the other gameworld from prediction so that could be the redefinition
+01:45 < bridge> <Voxel> no i'm including it in killmessages.cpp
+01:45 < bridge> <Voxel> should have specified
+02:07 < bridge> <Ravie> ok so in killmessages.cpp you have both `gameclient.h -> prediction/gameworld.h` and `teams.h -> gamecontext.h -> server/gameworld.h` and both have a CGameWorld class, I guess that's your problem
+03:30 < bridge> <Voxel> So how can I be able to call things over like `TeamSize()`, which is a part of teams.cpp?
+03:30 < bridge> <Voxel> So how can I be able to call things over like `TeamSize()`, which is a part I added into teams.cpp?
+03:54 < bridge> <Ravie> @Voxel looks like teams are a server thing so you can't really access them (maybe I'm wrong) but you can try using `GameClient()->m_Teams` without including teams.h
+03:56 < bridge> <Voxel> But can you also get TeamStates, or any other function inside of teams.h?
+03:56 < bridge> <Voxel> ```c++
+03:56 < bridge> <Voxel> if(Kill.m_VictimDDTeam != TEAM_FLOCK && Kill.m_TeamSize != 1 && Teams()->GetTeamState(Kill.m_VictimDDTeam) != 1)
+03:56 < bridge> <Voxel>             {
+03:56 < bridge> <Voxel>                 for(int i = 0; i < MAX_CLIENTS; i++)
+03:56 < bridge> <Voxel>                 {
+03:56 < bridge> <Voxel>                     if(i != Kill.m_VictimID && m_Core.Team(i) == Team && GameServer()->m_apPlayers[i])
+03:56 < bridge> <Voxel>                     {
+03:56 < bridge> <Voxel>                         m_aVictimSkinBuffer[m_VictimSkinCurrent + 1] = m_pClient->m_aClients[i].m_RenderInfo;
+03:56 < bridge> <Voxel>                         m_VictimSkinCurrent = (m_VictimSkinCurrent + 1) % (MAX_KILLMSGTEAM - 1);
+03:56 < bridge> <Voxel>                     }
+03:56 < bridge> <Voxel>                 }
+03:56 < bridge> <Voxel>             }
+03:56 < bridge> <Voxel>             m_aVictimSkinBuffer[0] = m_pClient->m_aClients[Kill.m_VictimID].m_RenderInfo;```
+03:56 < bridge> <Voxel> But can you also use `Teams()->GetTeamState()`, or any other function inside of teams.h?
+03:57 < bridge> <Ravie> nah m_Teams is only CTeamsCore but looks like it has some basic info and functions
+04:01 < bridge> <Voxel> That's unfortunate. I kind of need these factors if I want to put all of the logic inside killmessages.cpp
+04:03 < bridge> <heinrich5991> you can't use server functions in client code
+04:03 < bridge> <heinrich5991> what do you mean by "not adding an extra message"?
+04:03 < bridge> <heinrich5991> how do you want to do it with the existing ones?
+04:04 < bridge> <Voxel> https://github.com/ddnet/ddnet/pull/6437#issuecomment-1480760713
+04:05 < bridge> <Voxel> I had a revelation, that I don't even NEED multiple messages to merge the killfeed stuff
+04:05 < bridge> <heinrich5991> ah
+04:05 < bridge> <Voxel> I'm just trying to figure out how to incorperate some of the logic inside of killmessages.cpp
+04:06 < bridge> <heinrich5991> I see
+04:06 < bridge> <Voxel> Like `TeamSize()` and `GetTeamState()`
+04:06 < bridge> <heinrich5991> these are server functions
+04:07 < bridge> <heinrich5991> you can't use them in client code
+04:07 < bridge> <heinrich5991> you'll need to figure out how the client represents that information
+04:07 < bridge> <heinrich5991> (I don't know that)
+04:07 < bridge> <heinrich5991> probably in the snap somewhere?
+04:07 < bridge> <heinrich5991> you could look into the scoreboard code, it renders the teams after all
+04:15 < bridge> <Ravie> you can check a player's team with `GameClient()->m_Teams->Team( int )` so throwing it in a loop and counting would give you team size, about team state idunno
+04:15 < bridge> <Ravie> you can check a player's team with `GameClient()->m_Teams.Team( int )` so throwing it in a loop and counting would give you team size, about team state idunno
+04:17 < bridge> <Voxel> That's exactly that `TeamSize()` in teams.h is
+04:19 < bridge> <heinrich5991> there is no teams.h in the client
+04:21 < bridge> <Ravie> it's not teams.h, it's teamscore.h and CGameClient has it
+04:22 < bridge> <heinrich5991> `TeamSize()` seems to be teams.h and teams.h isn't in the server (I was replying to Voxel)
+04:22 < bridge> <heinrich5991> you can get the team size in the client in the way you describe
+04:24 < bridge> <Voxel> `m_pClient->m_Snap.m_aTeamSize[]`?
+04:25 < bridge> <Voxel> Isn't that for vanilla teams?
+04:35 < bridge> <heinrich5991> yep
+04:36 < bridge> <heinrich5991> what do you need the team size for? ^^
+04:36 < bridge> <heinrich5991> you can loop over all client IDs and check their team ID using `GameClient()->m_Teams.Team(ClientID)`
+04:37 < bridge> <Voxel> To determine how many tees it needs to write into the buffer.
+04:37 < bridge> <Voxel> And how many it needs to render onto the killfeed.
+04:38 < bridge> <heinrich5991> then count them like Ravie described
+04:38 < bridge> <heinrich5991> loop over all client IDs
+04:38 < bridge> <heinrich5991> if `GameClient()->m_Teams.Team(ClientID)` is equal to the team you're interested in
+04:38 < bridge> <heinrich5991> increment your team size counter by one
+04:41 < bridge> <Voxel> ```c++
+04:41 < bridge> <Voxel>             bool TeamKill;
+04:41 < bridge> <Voxel> 
+04:41 < bridge> <Voxel>             if(Kill.m_VictimDDTeam != TEAM_FLOCK)
+04:41 < bridge> <Voxel>                 TeamKill = false;
+04:41 < bridge> <Voxel>             else
+04:41 < bridge> <Voxel>             {
+04:41 < bridge> <Voxel>                 int TeamSize = 0;
+04:41 < bridge> <Voxel>                 for(int i = 0; i < MAX_CLIENTS; i++)
+04:41 < bridge> <Voxel>                 {
+04:41 < bridge> <Voxel>                     if(m_pClient->m_Teams.Team(i) == Kill.m_VictimDDTeam)
+04:41 < bridge> <Voxel>                         TeamSize++;
+04:41 < bridge> <Voxel>                 }
+04:41 < bridge> <Voxel>                 Kill.m_TeamSize = minimum(TeamSize, 4);
+04:41 < bridge> <Voxel> 
+04:41 < bridge> <Voxel>                 TeamKill = TeamSize != 1;
+04:41 < bridge> <Voxel>             }```
+04:41 < bridge> <Voxel> like this?
+04:41 < bridge> <heinrich5991> yes
+04:42 < bridge> <heinrich5991> the first if looks wrong though
+04:42 < bridge> <Voxel> Oops
+04:42 < bridge> <heinrich5991> should be `== TEAM_FLOCK`?
+04:42 < bridge> <Voxel> I fixed that
+04:42 < bridge> <Voxel> ```c++
+04:42 < bridge> <Voxel>             bool TeamKill;
+04:42 < bridge> <Voxel> 
+04:42 < bridge> <Voxel>             if(Kill.m_VictimDDTeam == TEAM_FLOCK)
+04:42 < bridge> <Voxel>                 TeamKill = false;
+04:42 < bridge> <Voxel>             else
+04:42 < bridge> <Voxel>             {
+04:42 < bridge> <Voxel>                 int TeamSize = 0;
+04:42 < bridge> <Voxel>                 for(int i = 0; i < MAX_CLIENTS; i++)
+04:42 < bridge> <Voxel>                 {
+04:42 < bridge> <Voxel>                     if(m_pClient->m_Teams.Team(i) == Kill.m_VictimDDTeam)
+04:42 < bridge> <Voxel>                         TeamSize++;
+04:42 < bridge> <Voxel>                 }
+04:42 < bridge> <Voxel>                 Kill.m_TeamSize = minimum(TeamSize, 4);
+04:42 < bridge> <Voxel> 
+04:42 < bridge> <Voxel>                 TeamKill = TeamSize != 1;
+04:42 < bridge> <Voxel>             }```
+04:46 < bridge> <Voxel> Now I just need to figure out how to do team states
+04:46 < bridge> <Voxel> So ONLY when the entire team starts, should the killfeed be crunched.
+10:18 <+ChillerDragon> Is there a way to alter configs before save on client shutdown without touch ddnet code? Im trying to do it in my components OnShutdown but that gets called after the config manager wrote to disk. Im trying to not write any code outside of my component.cpp to avoid conflicts
+10:20 <+ChillerDragon> i would call the config manager my self and resave but its private :c
+10:27 <+ChillerDragon> ok found a weird workaround :D
+14:33 <+ChillerDragon> @Ryozuki any chance we can get some python bindings for rustyman?
+14:39 < bridge> <Ryozuki> xd
+14:39 < bridge> <Ryozuki> first i need to make sure it works properly
+14:40 <+ChillerDragon> oof its not?
+14:43 < bridge> <Ryozuki> i think it had some issues
+14:44 < bridge> <Ryozuki> you see
+14:44 < bridge> <Ryozuki> there is huffman
+14:44 < bridge> <Ryozuki> and then the way tw does huffman
+15:37 < bridge> <судный день.> did kog servers already got update with fixing timeout in some parts of map?
+15:40 <+ChillerDragon> rip heinrich
+15:41 <+ChillerDragon> heinricho ur irc died ._.
+16:17 <+ChillerDragon> o/
+16:20 < bridge> <Ryozuki> pog
+16:20 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1089207063504228502/image.png
+16:20 < bridge> <Ryozuki> im using the same tool rust uses for error reporting
+16:20 < bridge> <Ryozuki> https://crates.io/crates/annotate-snippets
+16:30 < bridge> <<~{Barsik}~>> econ was meant to be used with ssh?
+16:31 <+ChillerDragon> wot? econ ssh?
+16:32 < bridge> <<~{Barsik}~>> yup
+16:32 < bridge> <<~{Barsik}~>> like its just tcp connection
+16:33 < bridge> <<~{Barsik}~>> ah yup ssh is secured
+16:35 < bridge> <<~{Barsik}~>> tw econ is meaningless
+16:41 < bridge> <Ryozuki> econ is useful in the sense u can execute tw server commands
+16:41 < bridge> <Ryozuki> but ye its not secure
+16:44 < bridge> <<~{Barsik}~>> i mean my crate tw-econ is meaningless xd
+17:00 <+ChillerDragon> life is meaningless
+18:14 <+ChillerDragon> yo @heinrich5991 any chance you could rename this field name to something thats not a blocked python keyword? xd https://github.com/heinrich5991/libtw2/blob/a6e26ebd0a8669034404ab5b59de61e25e16a2a8/gamenet/generate/spec/teeworlds-0.7.5.json#L401
+18:14 <+ChillerDragon> https://zillyhuhn.com/cs/.1679764474.png
+18:14 <+ChillerDragon> i am trying to use the json to generate python code :)
+18:24 < bridge> <heinrich5991> ChillerDragon: I think the trick is that you rename the fields
+18:24 < bridge> <heinrich5991> you could rename keyword to keyword_
+18:24 <+ChillerDragon> ?
+18:24 < bridge> <heinrich5991> self.pass_: int = pass_
+18:24 < bridge> <heinrich5991> `self.pass_: int = pass_`
+18:24 <+ChillerDragon> and then add some weird if statement in my parser?
+18:25 <+ChillerDragon> but pass_ is not very nice to type ._.
+18:25 < bridge> <heinrich5991> no, you list all the keywords of your language
+18:25 < bridge> <heinrich5991> and just append an underscore
+18:25 < bridge> <heinrich5991> I didn't do the naming, you can ask teeworlds or TW to rename it
+18:25 < bridge> <heinrich5991> I didn't do the naming, you can ask teeworlds or ddnet to rename it
+18:25 < bridge> <heinrich5991> it's all generated
+18:26 <+ChillerDragon> wot the json is generated?
+18:26 < bridge> <heinrich5991> yes
+18:26 <+ChillerDragon> yea ok then renaming is weird
+18:26 <+ChillerDragon> hmm
+18:26 <+ChillerDragon> im not sure what to do i do not like the _
+18:27 < bridge> <heinrich5991> it's official python style, I thnik
+18:27 < bridge> <heinrich5991> https://peps.python.org/pep-0008/
+18:27 < bridge> <heinrich5991> ctrl-f "python keyword"
+18:28 <+ChillerDragon> i guess but its so weird
+18:29 <+ChillerDragon> i guess ill hardcode a if statement in and map "pass" to "passed"
+18:29 <+ChillerDragon> is this field even used? xd
+18:30 <+ChillerDragon> https://zillyhuhn.com/cs/.1679765434.png
+18:30 <+ChillerDragon> calculated by the server and set by the client in voting.cpp but never read?
+18:31 < bridge> <heinrich5991> seems like it
+18:31 <+ChillerDragon> drunk devs
+18:31 <+ChillerDragon> im still not sure if passed would work since the vote is not over
+18:32 <+ChillerDragon> @Swarfey sos
+18:34 < bridge> <heinrich5991> 'pass' seems to be the amount of people who have not voted?
+18:35 <+ChillerDragon> oh yea true
+18:35 <+ChillerDragon> what does pass stand for then?
+18:36 <+ChillerDragon> calling it `left` seems okay to me
+18:37 <+ChillerDragon> but it could be confused with time
+18:37 <+ChillerDragon> maybe `pending`
+18:37 < bridge> <heinrich5991> since no one is going to use that field, why not call it `pass_`? ^^
+18:37 <+ChillerDragon> also an argument xd
+18:37 <+ChillerDragon> might as well name it _pass xd
+18:37 <+ChillerDragon> as in unused
+18:38 < bridge> <heinrich5991> ^^
+20:05 < bridge> <murpi> Were there any changes to antiping from version 16.7.2 to 16.8?
+21:48 < bridge> <Voxel> I'm almost done! All I need to do now is to find out how to only make the teams crunched when the team starts
+21:48 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1089289783156678736/Killfeed_Crunch_Demo.mp4
+21:49 < bridge> <heinrich5991> don't know
+21:50 < bridge> <murpi> Wanna help debug an issue? ^^
+21:51 < bridge> <murpi> I don't know the cause of the issue, and it's not easy to describe, but I can show it to you.
+22:00 < bridge> <heinrich5991> hmm hmm
+22:00 < bridge> <heinrich5991> I don't have time right now
+22:02 < bridge> <heinrich5991> sorry
+22:02 < bridge> <murpi> No problem :D I'll try finding the specific commit that causes the issue.
+22:03 < bridge> <heinrich5991> do you know git bisect?
+22:05 < bridge> <heinrich5991> it cuts down the time you need for finding a bad commit
+22:05 < bridge> <Learath2> n -> log n
+22:05 < bridge> <heinrich5991> i.e. from something like 100 to 7
+22:08 < bridge> <Learath2> @heinrich5991 do you have a comfy way to bisect ddnet btw?
+22:09 < bridge> <heinrich5991> `git bisect` and then `cmake --build build`
+22:09 < bridge> <heinrich5991> that's probably not comfy enough?
+22:09 < bridge> <Learath2> Having to cd back and forth from the build dir is a tad annoying, but I never gave a thought how to streamline it
+22:09 < bridge> <Learath2> Oooh, I can stay outside build/
+22:09 < bridge> <heinrich5991> yes
+22:09 < bridge> <Learath2> That's smart
+23:02 < bridge> <murpi> Is it enough to rebuild game-client after each bisect step?
+23:06 < bridge> <Robyt3> You also need re-run cmake if CMakeLists was changed
+23:48 < bridge> <murpi> @heinrich5991 found it, thanks for the tip 🙂

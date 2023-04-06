@@ -1,0 +1,461 @@
+01:15 < bridge> <Ewan> it seems i can't access variable min/max/default values because CCommand (the implementation through which these variables are used within the console) is private
+01:16 < bridge> <Ewan> sad
+01:16 < bridge> <Ewan> i just have to make an assumption i guess
+01:35 < bridge> <Voxel> idk wtf i did but when I was testing every font icon, I went into the editor, and then clicked on Load and then I got this:
+01:35 < bridge> <Voxel> ```
+01:35 < bridge> <Voxel> Debug Assertion Failed!
+01:35 < bridge> <Voxel> 
+01:35 < bridge> <Voxel> Program: ...os\DDNet Builds\fonticon_enum\out\build\x64-Release\DDNet.exe
+01:35 < bridge> <Voxel> File: minkernel\crts\ucrt\src\appcrt\time\strftime.cpp
+01:35 < bridge> <Voxel> Line: 135
+01:35 < bridge> <Voxel> 
+01:35 < bridge> <Voxel> Expression: timeptr != nullptr```
+01:37 < bridge> <Ewan> looks totally unrelated
+01:37 < bridge> <Ewan> but idk why it would do that when u change font stuff
+01:37 < bridge> <Voxel> I dunno
+01:37 < bridge> <Voxel> I tried reverting my change, and that wasn't the issue
+01:47 < bridge> <Voxel> ``` ../src/engine/textrender.h:53:21: error: ‘FontIcons::FONT_ICON_HEART’ defined but not used [-Werror=unused-variable]
+01:47 < bridge> <Voxel>    53 |  static const char *FONT_ICON_HEART = "\xEF\x80\x84";
+01:47 < bridge> <Voxel>       |                     ^~~~~~~~~~~~~~~
+01:47 < bridge> <Voxel> ../src/engine/textrender.h:52:21: error: ‘FontIcons::FONT_ICON_MAGNIFYING_GLASS’ defined but not used [-Werror=unused-variable]
+01:47 < bridge> <Voxel>    52 |  static const char *FONT_ICON_MAGNIFYING_GLASS = "\xEF\x80\x82";
+01:47 < bridge> <Voxel>       |                     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+01:47 < bridge> <Voxel> ../src/engine/textrender.h:51:21: error: ‘FontIcons::FONT_ICON_LOCK’ defined but not used [-Werror=unused-variable]
+01:47 < bridge> <Voxel>    51 |  static const char *FONT_ICON_LOCK = "\xEF\x80\xA3";
+01:47 < bridge> <Voxel>       |                     ^~~~~~~~~~~~~~```
+01:47 < bridge> <Voxel> (they are used)
+01:48 < bridge> <Ewan> why is that an error xd
+01:49 < bridge> <Devinci> That's the -Werror flag isn't it?
+01:49 < bridge> <Devinci> It just making the unused var warning into an error
+01:49 < bridge> <Devinci> That's the -Werror flag isn't it?
+01:49 < bridge> <Devinci> It's just making the unused var warning into an error
+01:49 < bridge> <Devinci> And if they are used... may an issue in the linking?
+01:49 < bridge> <Devinci> And if they are used... maybe an issue in the linking?
+01:58 < bridge> <Voxel> wait wtf is the difference between a `char* TEXT` and a `char *TEXT`
+02:00 < bridge> <DefaultO> it's the same
+02:00 < bridge> <Devinci> As far as I'm aware there's none
+02:00 < bridge> <Devinci> First one seems uglier to me
+02:00 < bridge> <Ewan> there is no difference
+02:00 < bridge> <Ewan> it's just preference
+02:02 < bridge> <Ewan> stroustrup thinks the former makes more sence in cpp because TEXT is a pointer to a char
+02:02 < bridge> <Nouaa> char *text in more used, but basically the same
+02:02 < bridge> <Nouaa> char *text is more used, but basically the same
+02:03 < bridge> <Nouaa> char *text is more used, but thats the same
+02:07 < bridge> <Ewan> stroustrup thinks the former makes more sense in cpp because TEXT is a pointer to a char
+02:56 < bridge> <Ewan> potentially silly question but pred is in ms right 👉 👈
+03:27 < bridge> <Ewan> how to warn at runtime
+06:57 < bridge> <Ewan> kinda almost there
+06:57 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1092674263837855765/image.png
+08:02 < bridge> <Ewan> can you use `CScrollRegion` in a horizontal orientation?? seems like it but not finding a flag or member to do so & a red flag i see is `m_ScrollbarWidth` in `CScrollRegionParams`
+08:02 < bridge> <Ewan> can you use `CScrollRegion` in a horizontal orientation?? i would hope so but i'm not finding a flag or member to do so & a red flag i see is `m_ScrollbarWidth` in `CScrollRegionParams`
+08:02 < bridge> <Ewan> can you use `CScrollRegion` in a horizontal orientation?? i would hope so but i'm not finding a flag or member to do so & a red flag i see is that there's only `m_ScrollbarWidth` in `CScrollRegionParams`, no height
+08:14 < bridge> <Learath2> You probably cant since I don't remember any horizontal scroll regions in the code and we usually only implement whats used
+08:15 < bridge> <Ewan> Dang
+08:16 < bridge> <Ewan> That puts a wrench in things
+08:41 < bridge> <Learath2> You'll have to take a detour and implement ScrollRegionH
+08:43 < bridge> <Ewan> i went through & added conditionals to all x/y/w/h accesses & based it off a new flag from CScrollRegionParams
+08:43 < bridge> <Ewan> should suffice
+08:43 < bridge> <Ewan> if not i'll just rethink the UI
+08:43 < bridge> <Ewan> 2 components doin the same thing is dumb
+08:44 < bridge> <Learath2> I would probably have gone for some compile time variation just to avoid the branching
+08:46 < bridge> <Ewan> caching can minimize the branching to init time
+08:46 < bridge> <Ewan> but that'll only happen after a refactor
+08:47 < bridge> <Ewan> which will only happen if this works
+09:48 < bridge> <Ewan> got it working. i had some stupid and entirely foreseeable OOO issues
+09:49 < bridge> <Ewan> i had 2 instances along the lines of this
+09:49 < bridge> <Ewan> `m_ContentH <= m_ClipRect.h`
+09:49 < bridge> <Ewan> that i changed to this
+09:49 < bridge> <Ewan> `m_ContentSize <= m_Horizontal ? m_ClipRect.w : m_ClipRect.h`
+09:49 < bridge> <Ewan> that evaluated as this
+09:49 < bridge> <Ewan> `(m_ContentSize <= m_Horizontal) ? m_ClipRect.w : m_ClipRect.h`
+09:49 < bridge> <Ewan> when it should have been like this
+09:49 < bridge> <Ewan> `m_ContentSize <= (m_Horizontal ? m_ClipRect.w : m_ClipRect.h)`
+09:51 < bridge> <Ewan> but i was blazing through on the first pass so i don't really blame myself
+09:51 < bridge> <Ewan> this particular combination of operators is not something that gets me often
+09:54 < bridge> <Ewan> but yeah when i refactor i'll probably just do like this
+09:54 < bridge> <Ewan> ```cpp
+09:54 < bridge> <Ewan> float *m_ClipRectSize = m_Horizontal ? &m_ClipRect.w : &m_ClipRect.h,
+09:54 < bridge> <Ewan> *m_ClipRectPos = m_Horizontal ? &m_ClipRect.x : &m_ClipRect.y;
+09:54 < bridge> <Ewan> 
+09:54 < bridge> <Ewan> ...
+09:54 < bridge> <Ewan> // whatever
+09:54 < bridge> <Ewan> m_ContentSize <= *m_ClipRectSize
+09:54 < bridge> <Ewan> // instead of
+09:54 < bridge> <Ewan> // m_ContentH <= m_ClipRect.h
+09:54 < bridge> <Ewan> ```
+09:55 < bridge> <Ewan> so it's just as fast being a pointer deref instead of member access
+09:55 < bridge> <Ewan> or if it isn't, it's not as expensive as checking each time
+09:56 < bridge> <k2d222> doesn't make too much sense to optimize this kind of code, the compiler will rewrite it for you anyway if it isn't too complex
+09:56 < bridge> <Ewan> there are dozens of these little `m_Horizontal ?` checks
+09:57 < bridge> <Ewan> and they are not necessarily slow but it's better to optimize anyway if it ends up making the resulting code cleaner. which it will if done this way
+09:57 < bridge> <Ewan> sooner or later it'll all be yanked anyway and replaced with a 2 axis scroll area
+09:57 < bridge> <k2d222> code clarity is always a good argument though 🙂
+09:58 < bridge> <Ewan> sooner or later it'll all be yanked anyway and replaced with a 2 axis scroll area, so i won't lose sleep over it
+09:58 < bridge> <Ewan> yea i mean doing it like that from the start would have saved me 20 mins
+09:58 < bridge> <Ewan> the rare objectively better approach
+10:00 < bridge> <k2d222> still a bit weird to store a pointer to float, I would have just copied the float
+10:00 < bridge> <k2d222> float is 4 bytes and a pointer is 4 or 8 bytes, so your pointer indirection is actually an additional cost
+10:00 < bridge> <Ewan> it's across multiple functions whose timelines aren't entirely clear
+10:00 < bridge> <Ewan> so they are prone to changing under my feet
+10:00 < bridge> <Ewan> pointer is best
+10:00 < bridge> <Learath2> I highly doubt the compiler is smart enough to know this is ui code and getting rid of all these branches by splitting it in two is the best. But it's fine, we can worry about performance later
+10:01 < bridge> <Ewan> well yeah and this isn't ending up in ddnet upstream
+10:01 < bridge> <Ewan> and if it is, it's in a very long time
+10:01 < bridge> <Ewan> my fork of a fork of a fork of ddnet
+10:01 < bridge> <Ewan> xd
+10:01 < bridge> <Learath2> If it's not for upstream then you have even less reason to care 😄
+10:02 < bridge> <Ewan> fork maintainer would probably like it if i took it seriously
+10:02 < bridge> <Ewan> so i do
+10:02 < bridge> <Ewan> and i'd be happy to patch for ddnet but when asked in here nobody was interested
+10:02 < bridge> <Ewan> and i'd be happy to patch for ddnet but when i asked in here nobody was interested
+10:02 < bridge> <Ewan> so whatever
+10:36 < bridge> <Jupstar ✪> Ui performance doesn't matter anyway
+10:37 < bridge> <Jupstar ✪> Not like u have to react quickly. Responsiveness should be given tho ofc
+11:07 < bridge> <Ryozuki> what do u answer if ur offered senior level rust positions
+11:07 < bridge> <Ryozuki> but u dont think ur senior
+11:07 < bridge> <Ryozuki> im just 22 soon 23 lol
+11:17 < bridge> <Jupstar ✪> Just say yes
+11:17 < bridge> <Jupstar ✪> What do u have to loose
+11:21 < bridge> <RonIn ☯> if someone knows, can i make rifle-sg shots and doors to full transparent?
+11:21 < bridge> <RonIn ☯> https://cdn.discordapp.com/attachments/293493549758939136/1092740741039673406/image.png
+11:22 < bridge> <Jupstar ✪> U can remove the textures
+11:22 < bridge> <RonIn ☯> where?
+11:22 < bridge> <RonIn ☯> i couldn't find :(
+11:23 < bridge> <Jupstar ✪> SG is in game.png i think. Laser is particles.png
+11:26 < bridge> <RonIn ☯> all u called i've already made empty
+11:26 < bridge> <RonIn ☯> :pepePHONE:
+11:27 < bridge> <Jupstar ✪> Mh then laser maybe not fully transparent xd
+11:27 < bridge> <RonIn ☯> :Ncry:
+11:28 < bridge> <Jupstar ✪> Blame whoever thought that color values do not contain an alpha channel is a good idea xd
+11:29 < bridge> <RonIn ☯> yeah, weird
+11:32 < bridge> <RonIn ☯> LOL
+11:33 < bridge> <RonIn ☯> deleted assets in roaming if smth gonna change, open the game it automatically create a folder and my previous Deleted xDDD
+11:33 < bridge> <RonIn ☯> deleted assets in roaming to check if smth gonna change, open the game it automatically create a folder and my previous Deleted xDDD
+11:33 < bridge> <Jupstar ✪> Yes but empty
+11:34 < bridge> <Jupstar ✪> It's just so the buttons in-game work
+11:35 < bridge> <RonIn ☯> yeah but i mean it is just deleted all stuff i had before even from recycle bin
+11:35 < bridge> <RonIn ☯> xDDD
+11:37 < bridge> <Ewan> i got offered a senior cpp position last week and turned it down for the same reason
+11:37 < bridge> <Ewan> i just said something like "As much as I would love to humor it, I'm not there yet"
+11:38 < bridge> <Ewan> if you're looking for work then you have time and effort to lose
+11:39 < bridge> <Jupstar ✪> Mh, depends on what u think a senior dev has to do i guess
+11:41 < bridge> <Ewan> yea
+12:08 < bridge> <Ryozuki> igot a job already tho
+12:09 < bridge> <Ryozuki> so its less that im looking more that they come to me
+12:09 < bridge> <Ryozuki> :PES2_BasedGe:
+12:21 < bridge> <Jupstar ✪> Ah thought same job xd
+14:33 < bridge> <Learath2> Boss thinks ur senior, ur senior. That's how capitalism works
+14:34 < bridge> <Ryozuki> its not my boss tho its another company
+14:34 < bridge> <Ryozuki> im definitly not considered a junior
+14:34 < bridge> <Ryozuki> i seen some juniors in the company
+14:34 < bridge> <Ryozuki> some didnt even know what a trait is
+14:48 < bridge> <Learath2> :HUH:
+14:48 < bridge> <Learath2> And here I think I'm not qualified to be an intern even
+15:19 < bridge> <Ryozuki> @Learath2 there are juniors and then "juniors"
+15:19 < bridge> <Ryozuki> and then me
+15:19 < bridge> <Ryozuki> someone that knows more than some seniors
+15:20 < bridge> <Ryozuki> but well seniors are seniors cuz they are better at knowing how much x will take or how hard or idk
+15:20 < bridge> <Ryozuki> im probably a med or idk
+15:20 < bridge> <Jupstar ✪> I'd say a senior is someone who doesn't need to ask every 5 minutes
+15:20 < bridge> <Ryozuki> a normal dev
+15:21 < bridge> <Ryozuki> well idk if thats a metric
+15:21 < bridge> <Ryozuki> i barely ask
+15:21 < bridge> <Ryozuki> if i ask is because i dont know smth thats specific of the software
+15:21 < bridge> <Jupstar ✪> Then u a senior.. at least if u make progress with whatever u do
+15:22 < bridge> <Jupstar ✪> U can be a rust senior without being a senior in the field u are working on
+15:22 < bridge> <Ryozuki> i guess thats it
+15:23 < bridge> <Ryozuki> well i would say i lack the skill to  manage people like others, altho i have no problem saying do x and i do y to someone
+15:23 < bridge> <Ryozuki> actually i do that
+15:23 < bridge> <Ryozuki> its more a exp based thing
+15:23 < bridge> <Jupstar ✪> Well that's not directly the job of a senior
+15:23 < bridge> <Ryozuki> true
+15:23 < bridge> <Jupstar ✪> That's a manager
+15:23 < bridge> <Ryozuki> project manager
+15:23 < bridge> <Ryozuki> but it feels weird to call urself a senior
+15:24 < bridge> <Jupstar ✪> Why
+15:24 < bridge> <Ryozuki> im a rust developer thats it
+15:24 < bridge> <Ryozuki> dont u always feel like ur less
+15:24 < bridge> <Ryozuki> or not deserving
+15:24 < bridge> <Ryozuki> i guess i have too high standards
+15:24 < bridge> <Ryozuki> a senior for me is someone like deen
+15:24 < bridge> <Ryozuki> learath would be my C senior
+15:24 < bridge> <Ryozuki> if i have a c question i ask him
+15:25 < bridge> <Ryozuki> kek
+15:25 < bridge> <Jupstar ✪> I feel like the best I can do is stuff i like, because I'm motivated for them. Skill is not an excuse then. So I feel less if I don't make progress in this field
+15:25 < bridge> <Ryozuki> yeah thats obs
+15:25 < bridge> <Ryozuki> obv
+15:25 < bridge> <Ryozuki> if u do smth u like u do it the best
+15:25 < bridge> <Ryozuki> im sure my php code would be bad
+15:26 < bridge> <Ryozuki> cuz i wouldnt be motivated for shit
+15:26 < bridge> <Ryozuki> u r qualified dont joke urself
+15:27 < bridge> <Ryozuki> the job market is not prepared for nerds like us
+15:27 < bridge> <Jupstar ✪> Anyway. To me a senior is not equal to an expert.
+15:27 < bridge> <Jupstar ✪> Learath probably knows more about c then most c senior
+15:27 < bridge> <Ryozuki> they require us to go through the stupid ladder
+15:27 < bridge> <Ryozuki> i guess thats a better view
+15:27 < bridge> <Ryozuki> for me senior always meant expert
+15:27 < bridge> <Ryozuki> but its prob not true xd
+15:32 < bridge> <Ryozuki> @Jupeyy_Keks a good way to boost ur ego is to go to linkedin and see boomers posting screenshots of js code  snippets saying "look this neat js feature totally you didnt know!"
+15:32 < bridge> <Ryozuki> :BASEDDEPT:
+15:34 < bridge> <Jupstar ✪> @Ryozuki a senior is someone who can write code that chatgpt can't write 😎
+15:36 < bridge> <Jupstar ✪> Most ppl haven't created something revolutionary anyway. In fact as sad as it is. Most coders write lot of code and not so much high quality code. That's not bad, because that means progress for society. But the really hard stuff is probably often connected to math or physics
+15:39 < bridge> <Jupstar ✪> @Ryozuki would u say u have to think a lot and hard about what u code?
+15:40 < bridge> <Jupstar ✪> Or is it mixed?
+15:40 < bridge> <Jupstar ✪> 
+15:40 < bridge> <Jupstar ✪> When I look at what I wrote during the years. The hardest stuff always was either related to a good multi threaded design, or math related
+15:40 < bridge> <Ryozuki> lately yes, because im doing something i didnt before
+15:40 < bridge> <Ryozuki> writing llvm
+15:40 < bridge> <Ryozuki> its rly fun tho
+15:41 < bridge> <Ryozuki> well it makes sense
+15:41 < bridge> <Ryozuki> threading is one of the hardest if not hardest things in computing
+15:41 < bridge> <Ryozuki> and saying otherwise is a lie
+15:41 < bridge> <Ryozuki> hardware is racy
+15:41 < bridge> <Jupstar ✪> Yep especially if it's a design that doesn't target a single algorithm
+15:44 < bridge> <Jupstar ✪> The question will be if u will be much faster once you learned out. Or if what u learn in itself requires you to rethink everything.. so basically never ending learning.. that's usually where u have to be innovative and that costs time to think and trial and error ^^
+15:45 < bridge> <Ryozuki> i think learning is always good
+15:45 < bridge> <Learath2> Otherwise
+15:45 < bridge> <Ryozuki> and if the learning leads u to rethink
+15:45 < bridge> <Ryozuki> its good
+15:45 < bridge> <Jupstar ✪> Liar
+15:45 < bridge> <Ryozuki> kek
+15:46 < bridge> <Ryozuki> i mean threading involves all the complexity of hardware, but multiplied by X
+15:46 < bridge> <Ryozuki> because u do X things in paralel
+15:46 < bridge> <Learath2> It's actually extremely annoying to reason about any order of execution in modern architectures. So I do kinda agree that it's very hard
+15:46 < bridge> <Ryozuki> @Learath2 whats another thing u thought?
+15:46 < bridge> <Ryozuki> thats as hard or more
+15:47 < bridge> <Ryozuki> tldr: why otherwise
+15:47 < bridge> <Jupstar ✪> Use no globals anywhere xd
+15:47 < bridge> <Ryozuki> use rust xd
+15:47 < bridge> <Jupstar ✪> 👍
+15:47 < bridge> <Learath2> I just said it as a meme 😄
+15:47 < bridge> <Ryozuki> ah lmao
+15:47 < bridge> <Ryozuki> xd
+15:47 < bridge> <Jupstar ✪> Ryozuki 10 iq
+15:47 < bridge> <Learath2> If I had to find anything as annoying it'd probably be proper benchmarking
+15:47 < bridge> <Ryozuki> oh true
+15:48 < bridge> <Learath2> It's actually deceptively hard to set up good benchmarks
+15:48 < bridge> <Ryozuki> is counting cycles a valid deterministic way of benchmarking?
+15:48 < bridge> <Ryozuki> i always wanted  to have a realiable benchmark that can run in CI
+15:48 < bridge> <Jupstar ✪> What is my algorithm has many cycles but good effective speed
+15:48 < bridge> <Jupstar ✪> If
+15:48 < bridge> <Ryozuki> yeah
+15:48 < bridge> <Ryozuki> idk
+15:49 < bridge> <Ryozuki> my question is
+15:49 < bridge> <Ryozuki> is there a solution to have good benchmarks on machines with lot of noise
+15:49 < bridge> <Jupstar ✪> Eg
+15:49 < bridge> <Jupstar ✪> Because of multi threading xd
+15:49 < bridge> <Learath2> Even at a higher level, you need to know what data sizes to bench with, what collection sizes to bench with, you need to know if there are any platform quirks ruining your performance
+15:49 < bridge> <Ryozuki> the solution tbh is live production telemetry
+15:50 < bridge> <Learath2> Just to it enoughmanytimes that the noise averages out I guess
+15:50 < bridge> <Learath2> do it*
+15:50 < bridge> <Jupstar ✪> So benchmarking for scalability.. yes that's very hard
+15:50 < bridge> <Ryozuki> for example
+15:50 < bridge> <Ryozuki> in my app i had a query that took 1 s
+15:50 < bridge> <Ryozuki> i knew cuz telemetry
+15:50 < bridge> <Ryozuki> so i fixed it
+15:50 < bridge> <Ryozuki> down to half
+15:50 < bridge> <Ryozuki> idk xd
+15:51 < bridge> <Learath2> Yes. Almost always better than synthetic benchmarks
+15:51 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1092808652940918844/image.png
+15:51 < bridge> <Jupstar ✪> But a query is something specific. What if u run 10000 queries at once. What's the bottleneck then? ^^
+15:51 < bridge> <Learath2> When ddnet telemetry?
+15:51 < bridge> <Jupstar ✪> :troll:
+15:51 < bridge> <Ryozuki> rust has a rly good crate
+15:51 < bridge> <Ryozuki> actually i could do that
+15:51 < bridge> <Ryozuki> im motivated
+15:52 < bridge> <Learath2> Heinrich would literally shoot you for privacy reasons
+15:52 < bridge> <Ryozuki> the server just needs to offer a single http endpoint with prometheus formatted data
+15:52 < bridge> <Ryozuki> the telemtry isnt smth personal
+15:52 < bridge> <Ryozuki> more like
+15:52 < bridge> <Learath2> Maybe opt in telemetry?
+15:52 < bridge> <Jupstar ✪> Rust also static links. I could imagine that makes benchmarking easier if u want to inject it at compile time
+15:52 < bridge> <Ryozuki> average duration of X thing
+15:53 < bridge> <Ryozuki> m$$ rly stained the name of telemtry
+15:53 < bridge> <Ryozuki> @Learath2 oh i meant server side only
+15:53 < bridge> <Learath2> Oh that's boring
+15:53 < bridge> <Jupstar ✪> The problem with telemetry is the name itself
+15:53 < bridge> <Ryozuki> u think this telemtry is privacy related? xd
+15:53 < bridge> <Jupstar ✪> If I hear it I think they steal private. Information
+15:54 < bridge> <Learath2> We should make one of those profilers new engines have so we can track how much time we spend on what
+15:54 < bridge> <Jupstar ✪> The client version is also a kind of telemetry we collect
+15:54 < bridge> <Ryozuki> thats the telemtry i thought of
+15:54 < bridge> <Ryozuki> but yeah
+15:54 < bridge> <Ryozuki> it would be cool to have gpu telemtry
+15:54 < bridge> <Ryozuki> detailed
+15:54 < bridge> <Jupstar ✪> Xd
+15:55 < bridge> <Ryozuki> legit for optimizing better
+15:55 < bridge> <Ryozuki> e.g draw call info
+15:55 < bridge> <Ryozuki> idk im talking bs
+15:55 < bridge> <Jupstar ✪> Imagine we'd know what config are used how often and what hardware, what drivers
+15:56 < bridge> <Jupstar ✪> And break backward compability lmao
+15:57 < bridge> <Jupstar ✪> @Learath2 btw what do you use for benchmarking if that's a topic u investigated your thoughts in already?
+15:58 < bridge> <Learath2> I only tried a couple libraries but havent used any in anything serious
+15:59 < bridge> <Learath2> I think Celero was the one I enjoyed the most
+16:01 < bridge> <Learath2> I was more talking about methodology than implementations though
+16:02 < bridge> <Jupstar ✪> Yeah but they depend heavily on your software requirement anyway
+16:04 < bridge> <Learath2> Googles attempt at is probably the best but it is as always rather heavy
+16:05 < bridge> <Jupstar ✪> What about human intuition?
+16:06 < bridge> <Learath2> I mean none of those help with the methodology, you still need to design the testcases. For which human intuition is indeed still the best we have
+16:06 < bridge> <Ryozuki> with rust i use criterion
+16:06 < bridge> <Jupstar ✪> If you can learn intuition, then maybe an ai can beat benchmarking software some day xd
+16:06 < bridge> <Ryozuki> we need property testing in ddnet
+16:06 < bridge> <Learath2> But it does occasionally fail you, so you need to make sure you explore all variables
+16:06 < bridge> <Ryozuki> its cool
+16:07 < bridge> <Ryozuki> https://altsysrq.github.io/proptest-book/intro.html
+16:07 < bridge> <Ryozuki> > Proptest is a property testing framework (i.e., the QuickCheck family) inspired by the Hypothesis framework for Python. It allows to test that certain properties of your code hold for arbitrary inputs, and if a failure is found, automatically finds the minimal test case to reproduce the problem. Unlike QuickCheck, generation and shrinking is defined on a per-value basis instead of per-type, which makes it more flexible and simplifies composition.
+16:07 < bridge> <Learath2> Modern cpus have some extremely unintuitive behaviours
+16:08 < bridge> <Jupstar ✪> Javascript too xdd
+16:08 < bridge> <Ryozuki> xddd
+16:08 < bridge> <Ryozuki> man
+16:08 < bridge> <Learath2> I think Ryozuki posted a very interesting one here once. Something with an array with a weird amount of elements performing better than a power of 8
+16:08 < bridge> <Ryozuki> wasm needs to take off
+16:08 < bridge> <Ryozuki> i know
+16:10 < bridge> <Ryozuki> @Learath2 https://en.algorithmica.org/hpc/cpu-cache/associativity/
+16:11 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1092813658603671612/image.png
+16:11 < bridge> <Ryozuki> > There is no vectorization or anything, and the two loops produce the same assembly except for the step size. This effect is due only to the memory system, in particular to a feature called cache associativity, which is a peculiar artifact of how CPU caches are implemented in hardware.
+16:11 < bridge> <Ryozuki> why do i have such good memory
+16:12 < bridge> <Ryozuki> amazed of myself
+16:13 < bridge> <Ryozuki> that website itself is golden
+16:13 < bridge> <Ryozuki> rly good resource
+16:14 < bridge> <ReiTW> lol I remember that
+16:14 < bridge> <ReiTW> u sent it here once
+16:14 < bridge> <Ryozuki> ofc
+16:14 < bridge> <Ryozuki> im the messenger
+16:14 < bridge> <Learath2> Yep, so you really need to dig into your brain for anything you can think of. Almost everyone would use the nice even 256 there and might not even notice it is 10 times worse than 257
+16:14 < bridge> <Ryozuki> im the messager
+16:15 < bridge> <Jupstar ✪> Xd
+16:15 < bridge> <Ryozuki> im the messager /(idk the word kek)
+16:15 < bridge> <Ryozuki> well this is why most SO answers say "profile before doing anything"
+16:15 < bridge> <Ryozuki> because its hard to determine
+16:16 < bridge> <Learath2> It's really easy to miss that even in a benchmark you might think is rather well designed. Say I tested incrments of  32, 64, 128, 256. I'd totally have missed it
+16:16 < bridge> <Jupstar ✪> That's where I'd say intuition is better.. just because this single loop is slower that doesn't mean your software must suck, if it overall has a good concept
+16:17 < bridge> <Jupstar ✪> If u want to optimize for a single hardware maybe
+16:17 < bridge> <Jupstar ✪> But usually only Learath do that in c
+16:18 < bridge> <Learath2> I mean, depends on the goal of your software. If you need the absolute minimum latency e.g. this might not be an acceptable loss
+16:18 < bridge> <Jupstar ✪> Yeah
+16:18 < bridge> <Learath2> I optimize for an imaginary abstract machine in my head that isn't too hard to optimize for
+16:18 < bridge> <Ryozuki> inb4: nasa using 257 stride instead of 256 in the moon software
+16:18 < bridge> <Jupstar ✪> I mean I somehow actually like optimizations like these. But often u probably target a general purpose hardware
+16:19 < bridge> <Jupstar ✪> They use javascript xd
+16:19 < bridge> <Ryozuki> xd
+16:19 < bridge> <Jupstar ✪> BCS fast enough xdd
+16:19 < bridge> <Learath2> I target an old 16 bit cpu in my brain where ordered execution is still a thing
+16:19 < bridge> <Jupstar ✪> Isn't x86 strongly ordered?
+16:20 < bridge> <Ryozuki> ye
+16:20 < bridge> <Ryozuki> i think risc is weakly
+16:20 < bridge> <Jupstar ✪> But only the memory model. Dunno what Lea means
+16:20 < bridge> <Ryozuki> lea is an instruction
+16:20 < bridge> <Ryozuki> iirc
+16:20 < bridge> <Learath2> Eeeh. I don't honestly even know anymore. It's guaranteed that it'll appear as such. But cpu pipelines do reorder your instructions as they see fit
+16:21 < bridge> <Ryozuki> load effective address
+16:21 < bridge> <Ryozuki> i just figured learath name meaning
+16:21 < bridge> <Ryozuki> he was a assembly instruction all along
+16:21 < bridge> <Ryozuki> and one of the most used
+16:21 < bridge> <Learath2> Only the first 3 letters
+16:21 < bridge> <Jupstar ✪> It's a common girl name
+16:21 < bridge> <Ryozuki> :PES_Blush:
+16:22 < bridge> <Jupstar ✪> That implies he wants girls in his life desperately
+16:22 < bridge> <Learath2> Was I a catfish all along?
+16:22 < bridge> <Ryozuki> ryozuki sounds girl too
+16:22 < bridge> <Ryozuki> but i cant change it
+16:22 < bridge> <Ryozuki> i just choose a japanese sounding name long ago
+16:22 < bridge> <Ryozuki> and stuck
+16:22 < bridge> <Ryozuki> it was cuz ryuzaki
+16:22 < bridge> <Ryozuki> from death note
+16:23 < bridge> <Learath2> Yours sounds more weeb than girl so that'll throw people off
+16:23 < bridge> <Ryozuki> kek
+16:26 < bridge> <Jupstar ✪> Oh I always wondered if it's that xd
+16:47 < bridge> <Mr.Gh0s7> hmm Misuteryo Gosuto
+16:50 < bridge> <Mr.Gh0s7> hmm Misutero Gosuto
+16:50 < bridge> <Mr.Gh0s7> or Gosuto-san idk I like the Mister though xD
+16:51 < bridge> <Jupstar ✪> Is that also anime? Xd
+17:01 < bridge> <Mr.Gh0s7> no xD
+17:10 < bridge> <Learath2> It'd be misutā (ミスター) not misutero
+17:10 < bridge> <Mr.Gh0s7> oh thanks I was wondering xD
+17:12 < bridge> <Learath2> ミスターゴースト
+17:12 < bridge> <Ryozuki> today i had to download a goverment app to get a pin to do my taxes soon
+17:13 < bridge> <Ryozuki> cyberpunk 2077
+17:13 < bridge> <Ryozuki> probs can do without app but its way more complicated
+17:13 < bridge> <Ryozuki> https://clave.gob.es/clave_Home/en/clave.html
+17:13 < bridge> <Ryozuki> its this
+17:14 < bridge> <Learath2> I find newer interfaces to these legacy processes are indeed much easier
+17:14 < bridge> <Ryozuki> the gov doesnt even put a HD logo of spain there
+17:14 < bridge> <Ryozuki> lmao
+17:14 < bridge> <Jupstar ✪> Hd
+17:14 < bridge> <Jupstar ✪> Svg
+17:14 < bridge> <Learath2> Italy does the same. I keep thinking it's some scam
+17:15 < bridge> <Jupstar ✪> Sad
+17:15 < bridge> <Ryozuki> now my chinese phone has a spanish gov app
+17:15 < bridge> <Ryozuki> what else
+17:16 < bridge> <Jupstar ✪> Install anti virus
+17:16 < bridge> <Ryozuki> it has one
+17:16 < bridge> <Ryozuki> from the china phone
+17:16 < bridge> <Ryozuki> kek
+17:16 < bridge> <Ryozuki> it shows a ad after u install a app
+17:16 < bridge> <Jupstar ✪> Lmao
+17:16 < bridge> <Ryozuki> i wanted to install a custom rom but im 2 lazy
+17:16 < bridge> <Ryozuki> i dont use the phone much besides reading memes
+17:17 < bridge> <Ryozuki> MIUI
+17:17 < bridge> <Learath2> I want to install lineageos on my old phone but it's not maintained so I need to build my own 😭
+17:17 < bridge> <Learath2> I honestly can't stand miui
+17:17 < bridge> <Ryozuki> https://en.wikipedia.org/wiki/MIUI
+17:17 < bridge> <Ryozuki> it has this
+17:18 < bridge> <Ryozuki> one day ill get a more open phone
+17:18 < bridge> <Mr.Gh0s7> I use HavocOs
+17:18 < bridge> <DefaultO> I have that
+17:18 < bridge> <Ryozuki> but i dont want to spend $$$ on a phone
+17:18 < bridge> <DefaultO> Huawei gang
+17:18 < bridge> <Ryozuki> i dont use much
+17:18 < bridge> <DefaultO> or should I say, wawei
+17:18 < bridge> <Learath2> This is one thing there will never be good open alternatives in 😭
+17:19 < bridge> <Ryozuki> is pixel good?
+17:19 < bridge> <Learath2> Oh if that is open enough for you yeah, it's decent
+17:19 < bridge> <Learath2> I thought you meant something like a linux phone
+17:21 < bridge> <Ryozuki> i know its hard that
+17:21 < bridge> <Ryozuki> but yeah for me google is more open than china
+17:21 < bridge> <Ryozuki> for now
+17:21 < bridge> <Ryozuki> google atleast publishes the source code for the ROM iirc
+17:21 < bridge> <Ryozuki> huawei violates GPL
+17:21 < bridge> <Ryozuki> they dont publish it
+17:21 < bridge> <Learath2> Yeah. It's good enough for me too. You usually like extremes of freedom, so I just assumed 😛
+17:21 < bridge> <Ryozuki> https://github.com/MiCode/Xiaomi_Kernel_OpenSource/issues/2506
+17:22 < bridge> <Ryozuki> https://github.com/MiCode/Xiaomi_Kernel_OpenSource/issues
+17:22 < bridge> <Ryozuki> check all the issues
+17:22 < bridge> <Ryozuki> is pixel 7 good
+17:22 < bridge> <Ryozuki> 587€ is already enough
+17:23 < bridge> <Ryozuki> i dont like paying 900 for a phone
+17:24 < bridge> <Learath2> I haven't used a pixel in years. Idk if this generation is good or not, you'll have to research
+17:25 < bridge> <Ryozuki> my requirements arent high anyway xd
+17:25 < bridge> <Learath2> Yeah, I think this will be my last flagship phone. I'll downgrade next time I need to get a new phone
+17:25 < bridge> <Learath2> The prices are just insane now :/
+17:26 < bridge> <Jupstar ✪> True. Phones sucks BCS no good os to write rust
+17:36 < bridge> <ReiTW> we don't say it "wawei"
+17:37 < bridge> <DefaultO> but that's how you spell it
+17:37 < bridge> <ReiTW> no
+17:37 < bridge> <DefaultO> the "hoo" is silent
+17:37 < bridge> <ReiTW> no, you have to spell it, they even do it
+17:38 < bridge> <DefaultO> https://www.google.com/search?q=huawei+how+to+pronounce
+17:38 < bridge> <DefaultO> hwaaway
+17:38 < bridge> <ReiTW> yes, not waway, the h is pronounced, you can hear it
+17:40 < bridge> <DefaultO> yea but I meant the "hoo"
+17:40 < bridge> <DefaultO> can't you read
+17:40 < bridge> <ReiTW> well u can kinda hear it too
+17:40 < bridge> <DefaultO> germans spell it "hooawei"
+17:41 < bridge> <DefaultO> while it gets pronounced more like wawei
+17:41 < bridge> <DefaultO> germans pronounce it "hooawei"
+17:42 < bridge> <DefaultO> and if you don't believe me, listen to google translate
+17:42 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1092836691242389525/image.png
+17:42 < bridge> <DefaultO> it is accurate
+17:43 < bridge> <DefaultO> and if you don't believe me, listen to German google translate
+17:43 < bridge> <DefaultO> https://cdn.discordapp.com/attachments/293493549758939136/1092836691242389525/image.png
+17:43 < bridge> <ReiTW> I already know
+19:25 < bridge> <Voxel> ^^
+22:30 < bridge> <tux> this has probably been talked about before but wouldn't it be cool if `cl_nameplates_strong 1` would work so if you spectate someone you can see who they have strong/weak on. It's like that with the weapons hud etc aswell :jaothinking:
+22:33 < bridge> <Ewan> agreed
+22:33 < bridge> <Ewan> would also be super easy
+22:33 < bridge> <Ewan> and free view spec still showed who you have strong/weak on
+22:51 < bridge> <noby> https://cdn.discordapp.com/attachments/293493549758939136/1092914438601965608/Screen_Shot_2023-04-04_at_3.50.44_PM.png
+22:51 < bridge> <noby> ddnet 16.9 won't open
+22:51 < bridge> <noby> 16.8 is ok
+22:53 < bridge> <Ewan> damn
+22:55 < bridge> <Voxel> lol

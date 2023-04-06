@@ -1,0 +1,95 @@
+01:33 < bridge> <Tomas Silva> I'm not sure what's my Mesa version, Steam loads Vulkan, so I guess it's that, and I use an i5-3230M (it had a dedicaded GPU, but it fried)
+01:34 < bridge> <Tomas Silva> I'll take a look in the wiki
+01:52 < bridge> <Tomas Silva> Oh, alright, it worked, thank you so much!
+11:24 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1084783945624866966/tk0sqxwdkgna1.webp
+11:25 < bridge> <ReiTW> @noby
+11:25 < bridge> <ReiTW> Bombay with ur antibot :issou:
+13:13 < bridge> <Brown> https://t.me/+v3XDhIbKzj42ZWQ0
+13:40 < bridge> <Voxel> must have generated code
+16:26 < bridge> <судный день.> in it companies for example in c# they accept warnings as errors
+16:26 < bridge> <Voxel> yeah but thats I.T.
+16:27 < bridge> <Voxel> this is just some niche online game
+16:40 < bridge> <Ryozuki> lol yeah its a meme
+16:40 < bridge> <Ryozuki> in my rust code i have all warns as errors, and i activate even more warnings
+16:41 < bridge> <Ryozuki> so that they are catched
+16:53 < bridge> <Brown> https://t.me/+v3XDhIbKzj42ZWQ0
+17:52 < bridge> <Ryozuki> so that they are caught
+18:26 < bridge> <<~{Barsik}~>> don't ask ryozuki about his rust projects
+18:27 < bridge> <ReiTW> hide & seek cheats, funnier to spot warnings when compiler do not tell u
+19:50 < bridge> <Voxel> I think I remember how I reproduced this in my code, but it's really bad and suboptimal, so let me just redo it all really quickly.
+19:50 < bridge> <Brown> https://t.me/+v3XDhIbKzj42ZWQ0
+19:53 < bridge> <Voxel> I misread that. I did modify the client, but it was for a completely different cause
+20:00 < bridge> <Ryozuki> https://www.tomshardware.com/news/pcie4-card-21-m2-ssds-168tb-31gbps
+20:00 < bridge> <Ryozuki> @Jupeyy_Keks this looks pog
+20:01 < bridge> <Ryozuki> who has a spare pcie4 tho
+20:03 < bridge> <Mʎɹ シ> It looks like GPU, but with M2 ssd's for video mem lol
+20:05 < bridge> <Voxel> Okay, so I recreated my very poor attempt at force testing if a packet was sending without having to reinstall Wireshark on my PC again.
+20:09 < bridge> <Voxel> So what I thought was a good idea was overriding the killfeed and replacing the name with a random number.
+20:09 < bridge> <Voxel> And so I sent out a random number through a packet, but then realized through testing that strcopy doesn't work with ints.
+20:09 < bridge> <Voxel> So then I found snprintf (I didn't know sprintf would have also worked), and tried that.
+20:09 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084916132638638252/image.png
+20:09 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084916132953202809/image.png
+20:10 < bridge> <Jupstar ✪> looks insane
+20:10 < bridge> <Voxel> The result is that it works(?) but the number is psudeo-random.
+20:10 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084916432145498112/image.png
+20:10 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084916432401354752/image.png
+20:10 < bridge> <Voxel> The result is that it works(?) but the number is psudeo-random.
+20:10 < bridge> <Voxel> Two images taken after closing and reopening the custom client.
+20:10 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084916432145498112/image.png
+20:10 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084916432401354752/image.png
+20:11 < bridge> <Robyt3> You are not setting `Kill.m_RandomNumber` anywhere?
+20:12 < bridge> <Robyt3> So the value will be undefined, basically whatever value was previously in the memory location of that object
+20:13 < bridge> <Robyt3> The `Kill.m_RandomNumber` value you set in the upper if is unused, because the `Kill` object only exists within the scope of that if
+20:14 < bridge> <Robyt3> For your `KillMsgPlus` you need to figure out which existing kill message it's supposed to apply to
+20:14 < bridge> <Voxel> I thought that the two packets could interact with each other, if one was sent and then the other (referring to this message, with an older attempt at the PR)
+20:15 < bridge> <Robyt3> Not sure if you can assume that packets will arrive in the same order as they are sent
+20:15 < bridge> <Robyt3> If you can then the issue is only that you store the value from that packet in a local variable only
+20:16 < bridge> <Ryozuki> u should use dbg_print too, or whathever the name it has
+20:16 < bridge> <Robyt3> Simplest solution would be to make `Kill` static
+20:17 < bridge> <Robyt3> `static CKillMsg s_Kill;` add this above both ifs, then use `s_Kill` instead of the other two local `Kill` variables
+20:17 < bridge> <Robyt3> Not sure how to handle the case that the first message doesn't arrive though
+20:18 < bridge> <Robyt3> In that case the new value (`m_RandomNumber`) would again be undefined
+20:18 < bridge> <Robyt3> Or rather, it would be the previous value when it was present
+20:20 < bridge> <Voxel> I'll try that,
+20:20 < bridge> <Voxel> I'll try that
+20:22 < bridge> <Robyt3> I guess you have to set `m_RandomNumber` to a know value that marks it as undefined after you add the kill message to the array with `m_aKillmsgs[m_KillmsgCurrent] = Kill;`
+20:31 < bridge> <Voxel> Okay, so it IS sending and reading, that's all that matters. 
+20:31 < bridge> <Voxel> I just think this tiny thing is a bit funny
+20:31 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084921790683431062/image.png
+20:31 < bridge> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1084921790926684281/image.png
+20:34 < bridge> <Voxel> Oh, that's unrelated
+20:34 < bridge> <Voxel> Oh, that code snippet is unrelated
+20:34 < bridge> <Robyt3> Would be easier to add some `dbg_msg`s if you just want to check if the message is received
+20:34 < bridge> <Voxel> Yeah, I'll do that
+20:40 < bridge> <Brown> https://t.me/+v3XDhIbKzj42ZWQ0
+20:40 < bridge> <Brown> (@Voxel)
+23:00 < bridge> <Learath2> Fwiw it'd be quite absurd to not receive a message sent from the server, that part definitely works
+23:48 < bridge> <KDaniel> quick question: 
+23:48 < bridge> <KDaniel> ```
+23:48 < bridge> <KDaniel>   Storage()->GetBinaryPath(PLAT_SERVER_EXEC, aBuf, sizeof(aBuf));
+23:48 < bridge> <KDaniel>   m_ServerProcess.Process = shell_execute(aBuf);
+23:48 < bridge> <KDaniel> ```
+23:48 < bridge> <KDaniel> like this is the code already implemented to start a server.
+23:48 < bridge> <KDaniel> i want to add a command like sv_name testmap that the server will start with a map WITHOUT USING configfile
+23:49 < bridge> <KDaniel> quick question: 
+23:49 < bridge> <KDaniel> ```
+23:49 < bridge> <KDaniel>   Storage()->GetBinaryPath(PLAT_SERVER_EXEC, aBuf, sizeof(aBuf));
+23:49 < bridge> <KDaniel>   m_ServerProcess.Process = shell_execute(aBuf);
+23:49 < bridge> <KDaniel> ```
+23:49 < bridge> <KDaniel> like this is the code already implemented to start a server.
+23:49 < bridge> <KDaniel> i want to add a command like sv_name testmap that the server will start with a map WITHOUT USING configfile
+23:49 < bridge> <KDaniel> 
+23:49 < bridge> <KDaniel> Is there a way to append the command inline or to execute a command from client to started server?
+23:50 < bridge> <KDaniel> quick question: 
+23:50 < bridge> <KDaniel> ```
+23:50 < bridge> <KDaniel>   Storage()->GetBinaryPath(PLAT_SERVER_EXEC, aBuf, sizeof(aBuf));
+23:50 < bridge> <KDaniel>   m_ServerProcess.Process = shell_execute(aBuf);
+23:50 < bridge> <KDaniel> ```
+23:50 < bridge> <KDaniel> like this is the code already implemented to start a server.
+23:50 < bridge> <KDaniel> i want to add a command like sv_name testmap that the server will start with a map WITHOUT USING configfile
+23:50 < bridge> <KDaniel> 
+23:50 < bridge> <KDaniel> Is there a way to append the command inline or to execute a command from client to started server?
+23:50 < bridge> <KDaniel> 
+23:50 < bridge> <KDaniel> I think only first idea will work because i can add information by startup but not after it because its get runned external, or?
+23:57 < bridge> <Ohio’s El Yek Final Boss> @Jupeyy_Keks With which distribution did you get more fps in linux?
+23:58 < bridge> <Ohio’s El Yek Final Boss> :greenthing:
