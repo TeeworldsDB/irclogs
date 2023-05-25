@@ -1,0 +1,1024 @@
+08:10 < bridge> <Ryozuki> war is no more, we landed fixes for russia and ukraine
+08:10 < bridge> <Ryozuki> :justatest:
+08:10 < bridge> <Ewan> >_>
+08:44 < bridge> <gerdoe> bruh
+11:44 < bridge> <Ryozuki> ima fix https://github.com/ddnet/ddnet/issues/6638
+11:45 < bridge> <heinrich5991> @Ryozuki could you change the representation in the server to `std::optional` everywhere?
+11:45 < bridge> <heinrich5991> so we don't have the magic value -9999 there
+11:45 < bridge> <Ewan> context?
+11:46 < bridge> <Ryozuki> isnt more -9999 a magic value that has to be sent due to the client interpreting it specially
+11:46 < bridge> <Ewan> i see it in the server info in the browser sometimes
+11:46 < bridge> <Ewan> but yeah you can’t send a std optional over net lol
+11:47 < bridge> <Learath2> I'm guessing heinrich is saying it should be optional everywhere within the server and only get serialized as -9999
+11:47 < bridge> <Ryozuki> yeah
+11:47 < bridge> <Ryozuki> which is half that way already
+11:50 < bridge> <Ryozuki> ah i see
+11:52 < bridge> <heinrich5991> yup, but the score is somehow -9999 and that has to be interpreted by the 0.7 code to be changed to -1, I think
+11:52 < bridge> <Ewan> why is any negative score value possible
+11:52 < bridge> <Ewan> time or real score
+11:52 < bridge> <Ewan> just de/serialize as unsigned
+11:52 < bridge> <Ryozuki> i think the cclient in serverbrowser.h needs to stay non optional
+11:54 < bridge> <heinrich5991> I only meant in the server; but theoretically, even the serverbrowser.h could be made `std::optional`
+11:55 < bridge> <Ryozuki> true
+12:23 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110150923608653914/image.png
+12:23 < bridge> <Ryozuki> fixed it, but sometimes there is 1 player showing without time at the top
+12:23 < bridge> <Ryozuki> rly weird
+12:24 < bridge> <Ryozuki> his time is 6:43
+12:24 < bridge> <Ryozuki> in game
+12:32 < bridge> <Ryozuki> -3223
+12:32 < bridge> <Ryozuki> why does this guy report a negative score
+12:33 < bridge> <Ryozuki> is this some kind of bug?
+12:33 < bridge> <Ewan> idk i see them too
+12:33 < bridge> <Ryozuki> oh
+12:33 < bridge> <Ryozuki> the current client displays them as having no time
+12:33 < bridge> <Ryozuki> but he has 53 mins
+12:34 < bridge> <Ryozuki> in game
+12:34 < bridge> <Ewan> damn
+12:39 < bridge> <Ryozuki> well the score is either full negative to 0 being time 0
+12:39 < bridge> <Ryozuki> or positive to 0
+12:39 < bridge> <Ryozuki> so abs fixes it
+12:41 < bridge> <heinrich5991> client-side? could you only do the `abs` if the server doesn't specify that it's doing time scores?
+12:42 < bridge> <Ryozuki> the thing is
+12:42 < bridge> <Ryozuki> ddnet is reporting time score
+12:42 < bridge> <Ryozuki> and some clients send a negative score for some reason
+12:42 < bridge> <Ryozuki> 1-3 usually
+12:42 < bridge> <Ryozuki> idk why
+12:42 < bridge> <heinrich5991> clients?
+12:42 < bridge> <heinrich5991> game servers?
+12:42 < bridge> <Ryozuki> im looking at where  ddnet sends the server info
+12:42 < bridge> <Ryozuki> the ddnet client, reports a player having a negative  score
+12:42 < bridge> <Ryozuki> like -3305
+12:42 < bridge> <Ryozuki> whne it should be positive
+12:43 < bridge> <Ryozuki> because ddnet reports time score
+12:43 < bridge> <Ryozuki> (oficial server)
+12:43 < bridge> <heinrich5991> hmmm
+12:43 < bridge> <heinrich5991> that's weird
+12:43 < bridge> <Ryozuki> the current client 16.9 doesnt even show them having time
+12:43 < bridge> <Ryozuki> due to this
+12:43 < bridge> <Ryozuki> but u see them with time when u join
+12:43 < bridge> <Ryozuki> and look tab
+12:44 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110156120410030191/image.png
+12:44 < bridge> <Ryozuki> i have this on the sort rn
+12:44 < bridge> <Ryozuki> and it displays all good
+12:44 <+ChillerDragon> ircd u heinrich
+12:44 < bridge> <Ryozuki> i had to change the render of the score too in the browser
+12:44 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110156230565036082/image.png
+12:44 < bridge> <heinrich5991> (but we shouldn't add compatibility with buggy servers if we can just fix the buggy servers)
+12:44 < bridge> <Ryozuki> this is to render the negative  score players on time too
+12:44 < bridge> <Ryozuki> true
+12:44 < bridge> <Ryozuki> altho this fix is harmless
+12:44 < bridge> <Ryozuki> im trying to find where ddnet sends the info
+12:45 < bridge> <heinrich5991> src/engine/server/server.cpp
+12:45 < bridge> <heinrich5991> `CServer::UpdateRegisterServerInfo`
+12:45 < bridge> <Ryozuki> `m_aClients[i].m_Score == -1 ? -9999 : m_aClients[i].m_Score`
+12:45 < bridge> <Ryozuki> its this currently
+12:46 < bridge> <Ryozuki> added by u
+12:46 < bridge> <Ryozuki> i guess here its a good place
+12:46 < bridge> <Ryozuki> to use the optional
+12:46 < bridge> <Ryozuki> i guess i forgot to chang eit
+12:47 < bridge> <heinrich5991> yea
+12:47 < bridge> <heinrich5991> note that this supports setting the time to 9999, even
+12:47 < bridge> <Ryozuki> true
+12:47 < bridge> <Ryozuki> but its not backcompat
+12:47 < bridge> <Ryozuki> to old clients
+12:47 < bridge> <Ryozuki> or is it
+12:48 < bridge> <Ryozuki> i dont care but i know u care
+12:48 < bridge> <heinrich5991> I think for this particular thing, I don't care so much
+12:48 < bridge> <heinrich5991> but let me check anyway
+12:48 < bridge> <heinrich5991> (because it's not a problem when trying to play the game)
+12:49 < bridge> <Ryozuki> what score do we send to sixup
+12:49 < bridge> <Ryozuki> when no score is there
+12:49 < bridge> <heinrich5991> I checked it when doing my PR, you can look there
+12:49 < bridge> <heinrich5991> -1, I think
+13:11 < bridge> <Ryozuki> > The absolute(CurrentClient.m_Score) >= 0 seems pointless. If it's supposed to check for MIN_INT, then the call to absolute is already UB.
+13:11 < bridge> <Ryozuki> no
+13:11 < bridge> <Ryozuki> it is meant to check for the negative values ddnet sends sometimes
+13:13 < bridge> <Ryozuki> the int min is used on a temp var to stort
+13:13 < bridge> <Ryozuki> sort, its never there
+13:14 < bridge> <heinrich5991> absolute converts a number into a non-negative number
+13:14 < bridge> <Ryozuki> yeah
+13:14 < bridge> <heinrich5991> so checking whether the absolute is greater or equal to zero sounds pointless
+13:14 < bridge> <Ryozuki> ah true
+13:14 < bridge> <Ryozuki> xd
+13:17 < bridge> <Ryozuki> well i dont have the will to figure out why the sv sends negative sometimes
+13:17 < bridge> <Ryozuki> so u can accept the fix or wait a undetermined amount of time
+13:33 < bridge> <Learath2> Isn’t it supposed to be negative for times?
+13:35 < bridge> <Ryozuki> it doesnt matter
+13:35 < bridge> <Ryozuki> the client always did abs on the score
+13:35 < bridge> <Ryozuki> time and score handling sucks
+13:36 < bridge> <Ryozuki> cuz back compat
+13:36 < bridge> <Ryozuki> i hate back compat
+13:36 < bridge> <Ryozuki> and i shouldnt have gotten into this
+13:36 < bridge> <Ryozuki> i regret itn ow xd
+13:39 < bridge> <Ryozuki> idk why ddnet-libs got updated
+13:39 < bridge> <Ryozuki> and how to revert it
+13:39 < bridge> <Ryozuki> today is not my day oof
+13:41 < bridge> <Learath2> Reset mixed, cd into submodule, reset hard, cd back out, commit, force push
+13:43 < bridge> <Ryozuki> reset mixed?
+13:43 < bridge> <Ryozuki> how
+13:44 < bridge> <Learath2> Well first, is it the last commit or another commit you updated submodule in?
+13:44 < bridge> <Ryozuki> idk
+13:44 < bridge> <Ryozuki> warning: --mixed with paths is deprecated; use 'git reset -- <paths>' instead.
+13:45 < bridge> <Ryozuki> ❯ git reset --mixed upstream/master -- ddnet-libs/
+13:45 < bridge> <Ryozuki> warning: --mixed with paths is deprecated; use 'git reset -- <paths>' instead.
+13:45 < bridge> <Ryozuki> Unstaged changes after reset:
+13:45 < bridge> <Ryozuki> M       ddnet-libs
+13:45 < bridge> <Learath2> It seems to be the very first commit
+13:45 < bridge> <Ryozuki> i did this
+13:45 < bridge> <Learath2> Do you want to squash your commits?
+13:45 < bridge> <Ryozuki> my inner self doesnt want to, cuz commit points xd
+13:45 < bridge> <Ryozuki> but i dont mind
+13:46 < bridge> <Ryozuki> Δ ddnet-libs
+13:46 < bridge> <Ryozuki> ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────�
+13:46 < bridge> <Ryozuki> 328fd20..625457e
+13:46 < bridge> <Learath2> Ok, `git reset —hard origin/pr_fix_info; git rebase -i upstream/master`
+13:46 < bridge> <Learath2> In the interactive rebase mark the very first commit with `e` instead of `pick`
+13:47 < bridge> <Ryozuki> ah ye
+13:47 < bridge> <Ryozuki> i fixup'ed the others
+13:47 < bridge> <Ryozuki> felt guilty
+13:48 < bridge> <Learath2> Rebase will check out your first commit, when there cd into the submodule, `git reset —hard HEAD`, get out, `git commit —amend`, `git rebase —continue` and a force push to finish it up
+13:48 < bridge> <Ryozuki> ❯ git reset --hard HEAD
+13:48 < bridge> <Ryozuki> HEAD is now at 625457e Update libraries
+13:48 < bridge> <Ryozuki> i think thats the wrong commit
+13:49 < bridge> <Ryozuki> oh
+13:49 < bridge> <Ryozuki> i just needed to git pull
+13:49 < bridge> <Ryozuki> XD
+13:49 < bridge> <Ryozuki> ❯ git pull
+13:49 < bridge> <Ryozuki> Updating 625457e..328fd20
+13:49 < bridge> <Ryozuki> Fast-forward
+13:50 < bridge> <Ryozuki> got it
+13:50 < bridge> <Learath2> Nope
+13:50 < bridge> <Learath2> Still managed to update ddnet-libs 😄
+13:51 < bridge> <Ryozuki> nah
+13:51 < bridge> <Ryozuki> refresh
+13:52 < bridge> <Ryozuki> ill remove the useles math header too
+13:52 < bridge> <Learath2> You made 2 commits, one changing ddnet-libs, the next reverting it
+13:52 < bridge> <Ryozuki> lol true
+13:52 < bridge> <Ryozuki> xd
+13:52 < bridge> <Learath2> With the exact same name
+13:53 < bridge> <Learath2> Git struggles
+13:53 < bridge> <Ryozuki> now
+13:54 < bridge> <Ryozuki> i tested it a bit, and it works nice
+13:54 < bridge> <Learath2> Congrats
+13:54 < bridge> <Ryozuki> points are shown in order, time in ordere
+13:54 < bridge> <Ryozuki> idk if i did test any backcompat time server
+13:54 < bridge> <Ryozuki> cuz idk which one is
+13:54 < bridge> <Ryozuki> well
+13:55 < bridge> <Ryozuki> fokko one is
+13:55 < bridge> <Ryozuki> maybe
+13:55 < bridge> <Learath2> Unique probably isn’t all the way up to date
+13:56 < bridge> <Ryozuki> @Learath2 do u know
+13:56 < bridge> <Ryozuki> if gores reports some time
+13:56 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110174347429158922/image.png
+13:56 < bridge> <Learath2> Hm, KoG has been trying to follow closer to master, but idk if they got the time flag yet
+13:57 < bridge> <Learath2> But judging by your screenshot backcompat does look broken
+13:57 < bridge> <Ryozuki> @Avolicious update kog, make it send "score_kind": "time" to masters ty bye
+13:57 < bridge> <Ryozuki> idk if its set to backcompat
+13:57 < bridge> <Ryozuki> or points here
+13:57 < bridge> <Learath2> Always the easy way out with you people 😄
+13:58 < bridge> <Ryozuki> xd
+13:58 < bridge> <Learath2> I have electromagnetism to go study. This isn’t in the RC yet is it?
+13:58 < bridge> <Learath2> If it is the RC is not shippable imo
+13:59 < bridge> <Ryozuki> wdym
+14:00 < bridge> <Ryozuki> @Learath2 im making him a favour
+14:00 < bridge> <Ryozuki> btw
+14:00 < bridge> <Ryozuki> 16.9
+14:00 < bridge> <Ryozuki> shows same
+14:00 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110175300345671780/image.png
+14:00 < bridge> <Ryozuki> so its not that its not backcompat
+14:00 < bridge> <Ryozuki> its thatis interpreted as points
+14:00 < bridge> <Learath2> Mh, then 16.9 shouldn’t have been shipped, meh
+14:00 < bridge> <Ryozuki> u mean all versions?
+14:00 < bridge> <Ryozuki> since kog changed ddnet to kog
+14:01 < bridge> <Ryozuki> has been like this iirc
+14:01 < bridge> <Ryozuki> when u join it shows time tho
+14:01 < bridge> <Ryozuki> the proper fix here is for them to send a score_kind
+14:01 < bridge> <Ryozuki> and not us to add a special gores check
+14:01 < bridge> <Learath2> A negative score and a raceish~ gametype should always result in time score displayed
+14:01 < bridge> <Avolicious> KoG is latest ddnet lol
+14:01 < bridge> <Ryozuki> not latest enough
+14:01 < bridge> <Avolicious> Its latest latest
+14:02 < bridge> <Ryozuki> update to current master
+14:02 < bridge> <Avolicious> its current master
+14:02 < bridge> <Ryozuki> is that server updated
+14:02 < bridge> <Avolicious> or have you pushed in the last 10 minutes?
+14:02 < bridge> <Ryozuki> do u send score_kind
+14:02 < bridge> <Avolicious> y
+14:02 < bridge> <Avolicious> 7 months ago
+14:02 < bridge> <Learath2> Then it’s worse than the backcompat being broken
+14:02 < bridge> <Ryozuki> @Avolicious ah
+14:03 < bridge> <Ryozuki> its "client_score_kind"
+14:03 < bridge> <heinrich5991> first KoG server that I check doesn't send it
+14:03 < bridge> <Ryozuki> `"client_score_kind": "time"`
+14:03 < bridge> <heinrich5991> `"tw-0.6+udp://5.181.124.84:8303"`
+14:03 < bridge> <Ryozuki> u assume the worst  of us
+14:03 < bridge> <Ryozuki> and not others
+14:03 < bridge> <Ryozuki> smth
+14:03 < bridge> <heinrich5991> in: `https://master1.ddnet.org/ddnet/15/servers.json`
+14:04 < bridge> <Ryozuki> backcompat is only set on these
+14:04 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110176314721308732/image.png
+14:04 < bridge> <Ryozuki> race and fastcap
+14:04 < bridge> <Ryozuki> so we not forcefully setting gores to backcompat
+14:04 < bridge> <Ryozuki> they should send the proper flag
+14:05 < bridge> <Learath2> Ah I remember they changed gametypes, it’s Gores now
+14:05 < bridge> <Avolicious> https://cdn.discordapp.com/attachments/293493549758939136/1110176545005383722/Screenshot_2023-05-22_140502.png
+14:05 < bridge> <Learath2> Maybe for some reason that codepath isn’t being taken? Or the server just hasn’t been updated due to a silent deployment issue?
+14:06 < bridge> <Learath2> Though looks pretty hardcoded to me
+14:06 < bridge> <heinrich5991> can you confirm that `"tw-0.6+udp://5.181.124.84:8303"` is on your latest master? @Avolicious
+14:06 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110176860941324369/image.png
+14:06 < bridge> <Ryozuki> u not sending it
+14:07 < bridge> <Avolicious> Yes, are the latest stable ones
+14:07 < bridge> <Ryozuki> @heinrich5991 could the master filter it out?
+14:07 < bridge> <Ryozuki> it should reflect all u send right
+14:07 < bridge> <Ryozuki> odd
+14:07 < bridge> <heinrich5991> the master doesn't look at the JSON
+14:07 < bridge> <Ryozuki> yeah
+14:07 < bridge> <Ryozuki> why is it not there
+14:07 < bridge> <heinrich5991> to me, it looks like that particular server doesn't send it
+14:08 < bridge> <heinrich5991> which would mean that the server is likely not runnign the code that Avo thinks it's running
+14:08 < bridge> <Ryozuki> none do
+14:08 < bridge> <heinrich5991> havne't checked the others
+14:08 < bridge> <heinrich5991> but Ryo did, probably 🙂
+14:08 < bridge> <Avolicious> `UpdateRegisterServerInfo` is where the flag gets set
+14:08 < bridge> <Avolicious> I've not changed anything on HTTPs Register stuff
+14:10 < bridge> <Ryozuki> but are u sure the deployed servers are using the version u expect
+14:10 < bridge> <Learath2> If you didn’t change anything there then I’m also voting some deployment issue
+14:10 < bridge> <Avolicious> Servers do have this version
+14:10 < bridge> <Avolicious> We verify it by comparing the SHA256 File hash
+14:10 < bridge> <Avolicious> And Git commit hash is also deployed in the container image
+14:10 < bridge> <Learath2> Okay, then it’s divine intervention
+14:11 < bridge> <heinrich5991> not having the source, we can't trace it as easily
+14:11 < bridge> <heinrich5991> actually, unlikely to be a source issue
+14:11 < bridge> <heinrich5991> but likely deployment
+14:11 < bridge> <Ryozuki> oh i forgot its closed source
+14:12 < bridge> <Ryozuki> can't help a lost cause
+14:12 < bridge> <Ryozuki> (im joking pls no ban)
+14:16 < bridge> <Ryozuki> @Learath2 i ruined my kimetsu episode watch
+14:17 < bridge> <Ryozuki> smh
+14:17 < bridge> <Learath2> Because of timescores?
+14:17 < bridge> <Ryozuki> ye
+14:17 < bridge> <Ryozuki> stopped mid ep
+14:17 < bridge> <Ryozuki> and now i have a meeting
+14:17 < bridge> <Ryozuki> xdxd
+14:17 < bridge> <Learath2> Oof
+14:17 < bridge> <Ryozuki> i like to watch anime while i eat
+14:26 < bridge> <heinrich5991> @Avolicious and I figured it out, the `client_score_kind` change was merged just after the last KoG release
+14:28 < bridge> <Ryozuki> xD
+14:42 < bridge> <Ryozuki> @heinrich5991 i think the abs  should stay imho, we dont have a set standard on how to report the time, so maybe some server says kind: time and sends it negative
+14:42 < bridge> <Ryozuki> the absolute works always
+14:43 < bridge> <Ryozuki> i dont say we shouldnt fix the bug
+14:43 < bridge> <Ryozuki> do u know if the http server info the server sends uses the info from the packer?
+14:43 < bridge> <Ryozuki> `ADD_INT(q, !m_aClients[i].m_Score.has_value() ? -9999 : m_aClients[i].m_Score.value() == 9999 ? -10000 : -m_aClients[i].m_Score.value()); // client score`
+14:43 < bridge> <Ryozuki> this is what we have on the packer
+14:43 < bridge> <Ryozuki> well on the ptr i changed it to use a optional
+14:45 < bridge> <Ryozuki> on the http i changed it to
+14:45 < bridge> <Ryozuki> `m_aClients[i].m_Score.value_or(-9999)`
+14:45 < bridge> <Ryozuki> but maybe i can abs the value there? but we wouldnt be getting to the root of the problem
+14:45 < bridge> <Ryozuki> where the score is set to negative somwhere
+14:46 < bridge> <heinrich5991> I think we should not do the abs in order to establish a standard
+14:46 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110186963186765834/image.png
+14:46 < bridge> <Ryozuki> there is this
+14:47 < bridge> <heinrich5991> it does not
+14:48 < bridge> <heinrich5991> we could probably just pass on the option in that code snippet
+14:48 < bridge> <heinrich5991> in this one
+14:48 < bridge> <Ryozuki> ok
+14:49 < bridge> <Ryozuki> @heinrich5991 can i compare a  std::optional<int>
+14:49 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110187721042964480/image.png
+14:49 < bridge> <Ryozuki> for the expire
+14:49 < bridge> <Ryozuki> can i simply so m_Score != Score
+14:49 < bridge> <Ryozuki> xd
+14:49 < bridge> <Ryozuki> do*
+14:50 < bridge> <Ryozuki> in rust u can
+14:50 < bridge> <heinrich5991> https://en.cppreference.com/w/cpp/utility/optional/operator_cmp
+14:50 < bridge> <heinrich5991> seems so
+14:50 < bridge> <Ryozuki> ok seems like its a sane optional
+14:50 < bridge> <Ryozuki> the only thing it lacks is map
+14:51 < bridge> <heinrich5991> `transform`
+14:51 < bridge> <heinrich5991> C++23 though
+14:51 < bridge> <heinrich5991> C++ finally catching up on basic functionality
+14:52 < bridge> <Jupstar ✪> 😂😂
+14:52 < bridge> <Jupstar ✪> Let's skip cpp20
+14:53 < bridge> <Ryozuki> @heinrich5991 do u wanna break the compat then
+14:54 < bridge> <Ryozuki> and allow 9999 time
+14:54 < bridge> <Ryozuki> - we fix the bug
+14:54 < bridge> <Ryozuki> - negative numbers mean no time
+14:54 < bridge> <Ryozuki> - 0 and 9999 are valid times
+14:55 < bridge> <Ryozuki> u know
+14:55 < bridge> <Ryozuki> actuall
+14:55 < bridge> <Ryozuki> ywe  should drop score altogether for ddnet
+14:55 < bridge> <Ryozuki> and show a proper time
+14:55 < bridge> <Ryozuki> with more resolution even
+14:56 < bridge> <Ryozuki> so instead of seconds
+14:56 < bridge> <Ryozuki> we send miliseconds
+14:59 < bridge> <heinrich5991> I'd rather not, probably
+14:59 < bridge> <heinrich5991> we can already do this for the serverbrowser, just not ingame, I think
+15:00 < bridge> <Ryozuki> ill just leave this comment
+15:00 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110190433151238175/image.png
+15:00 < bridge> <Ryozuki> in the in game time reporting
+15:01 < bridge> <Ryozuki> this code is like this already btw
+15:01 < bridge> <Ryozuki> im trying to find where its negative xd
+15:02 < bridge> <heinrich5991> the `absolute` should probably be removed there
+15:02 < bridge> <Ryozuki> oh
+15:02 < bridge> <Ryozuki> maybe its set to negative if someone finished a map
+15:02 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110191037097455656/image.png
+15:02 < bridge> <Ryozuki> due to this
+15:03 < bridge> <Ryozuki> this is on the onfinish
+15:03 < bridge> <heinrich5991> I'd say: remove all the `absolute`s and think about whether we want negative or positive numbers, probably positive ones
+15:03 < bridge> <Ryozuki> but that abs is on the ingame code
+15:03 < bridge> <Ryozuki> not serverbrowser
+15:03 < bridge> <Ryozuki> but yeah
+15:03 < bridge> <Ryozuki> ill remove it
+15:04 < bridge> <heinrich5991> it's inside the server, right?
+15:04 < bridge> <heinrich5991> (the server is the creator of that value, it knows whether it's positive or negative)
+15:04 < bridge> <Ryozuki> yeah
+15:04 < bridge> <Ryozuki> im gonna remove it all and make sure its positive
+15:04 < bridge> <Ryozuki> i think the source of the negative is the onfinish thing
+15:05 < bridge> <Ryozuki> btw
+15:05 < bridge> <heinrich5991> ah
+15:05 < bridge> <heinrich5991> that makes sense
+15:05 < bridge> <Ryozuki> @heinrich5991 whats better `-1 * m_Score.value()` or `-m_Score.value()`
+15:05 < bridge> <heinrich5991> the latter IMO
+15:07 < bridge> <Ryozuki> @heinrich5991 is it safe
+15:07 < bridge> <Ryozuki> `m_Score = Result.m_Data.m_Info.m_Time;`
+15:07 < bridge> <Ryozuki> where
+15:07 < bridge> <Ryozuki> m_score is option<int>
+15:07 < bridge> <Ryozuki> m_time is option<float>
+15:07 < bridge> <Ryozuki> ?
+15:07 < bridge> <Ryozuki> ```cpp
+15:07 < bridge> <Ryozuki> public: template<>
+15:07 < bridge> <Ryozuki> enable_if_t<__and_v<__not_<is_same<int, float>>, is_constructible<int, const float &>, is_assignable<int &, const float &>, __not_<__converts_from_optional<int, float>>, __not_<__assigns_from_optional<int, float>>>, std::optional<int> &> operator=<float>(const optional<float> &__u) noexcept(__and_v<is_nothrow_constructible<int, const float &>, is_nothrow_assignable<int &, const float &>>)
+15:08 < bridge> <Ryozuki> ```
+15:08 < bridge> <Ryozuki> i guess yes? xd
+15:08 < bridge> <heinrich5991> oof
+15:08 < bridge> <heinrich5991> let me check 😄
+15:08 < bridge> <heinrich5991> (I'm not actually a C++ wizard)
+15:08 < bridge> <Ryozuki> xD
+15:09 < bridge> <heinrich5991> https://en.cppreference.com/w/cpp/utility/optional/optional
+15:09 < bridge> <heinrich5991> 4
+15:09 < bridge> <heinrich5991> seems like that's the `map` you've been looking for 😄
+15:09 < bridge> <Ryozuki> lmao
+15:09 < bridge> <heinrich5991> although very constrained
+15:10 < bridge> <heinrich5991> > (conditionally explicit)
+15:10 < bridge> <heinrich5991> not sure if I want to find out what that means
+15:10 < bridge> <Ryozuki> well then
+15:10 < bridge> <Ryozuki> ill fix this to be positive
+15:10 < bridge> <Ryozuki> maybe i need to change again the sort on the info
+15:10 < bridge> <Ryozuki> and this may mean partially broken until servers update
+15:10 < bridge> <Ryozuki> and clients
+15:10 < bridge> <Ryozuki> or idk
+15:11 < bridge> <heinrich5991> sounds good 🙂
+15:11 < bridge> <Ryozuki> @heinrich5991 how to make my sv register to a local master
+15:11 < bridge> <Ryozuki> ill need this to test later
+15:11 < bridge> <heinrich5991> `sv_register_url`
+15:12 < bridge> <heinrich5991> set it to `sv_register_url http://127.0.0.1:1234/ddnet/15/register`
+15:12 < bridge> <heinrich5991> and `http_allow_insecure 1`
+15:13 < bridge> <heinrich5991> set it to `sv_register_url http://[::1]:8080/ddnet/15/register`
+15:59 < bridge> <Ryozuki> i forgot
+15:59 < bridge> <Ryozuki> where do i add a master to the client xd
+16:00 < bridge> <heinrich5991> ~/.ddnet/ddnet-master-urls.cfg
+16:01 < bridge> <Ryozuki> i dont have .ddnet
+16:01 < bridge> <Ryozuki> i have .local/share/ddnet
+16:01 < bridge> <Ryozuki> i dont see that file
+16:02 < bridge> <heinrich5991> `ddnet-serverlist-urls.cfg`
+16:02 < bridge> <heinrich5991> probably doesn't exist by default
+16:02 < bridge> <Ryozuki> whats the format?
+16:02 < bridge> <heinrich5991> put an URL into that file
+16:02 < bridge> <Ryozuki> http://[::1]:8080
+16:02 < bridge> <Ryozuki> ?
+16:02 < bridge> <heinrich5991> yes
+16:02 < bridge> <heinrich5991> it chooses the fastest responding server from that list
+16:02 < bridge> <heinrich5991> ah, no
+16:03 < bridge> <heinrich5991> http://[::1]:8080/path/to/servers.json
+16:03 < bridge> <heinrich5991> the httpmaster doesn't serve that file though
+16:03 < bridge> <heinrich5991> so perhaps a `python -m http.server` would work
+16:04 < bridge> <heinrich5991> it needs to be a URL that you could also open in a web browser that serves this file
+16:04 < bridge> <heinrich5991> file:// doesn't work IIRC
+16:05 < bridge> <Ryozuki> ah
+16:05 < bridge> <Ryozuki> 2023-05-22 16:05:23 I http: http://[::]:8080 failed. libcurl error (22): The requested URL returned error: 404
+16:05 < bridge> <Ryozuki> 2023-05-22 16:05:23 E register/6/ipv6: error response from master
+16:07 < bridge> <Ryozuki> hm
+16:07 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110207367221620847/image.png
+16:07 < bridge> <Ryozuki> ah gforgot
+16:08 < bridge> <heinrich5991> `http_allow_insecure 1` ^^
+16:08 < bridge> <Ryozuki> but my server doesnt register
+16:08 < bridge> <Ryozuki> it says the error i sent
+16:08 < bridge> <Ryozuki> hmm
+16:08 < bridge> <heinrich5991> use this value for `sv_register_url`
+16:08 < bridge> <Ryozuki> oh
+16:09 < bridge> <Ryozuki> it needs to be the full url
+16:09 < bridge> <heinrich5991> yes
+16:10 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110208103288418336/image.png
+16:10 < bridge> <Ryozuki> yay
+16:10 < bridge> <Ryozuki> it even shows 00 times
+16:10 < bridge> <heinrich5991> nice 🙂
+16:10 < bridge> <heinrich5991> @Jupeyy_Keks have you had a look at io_uring yet btw? ^^
+16:11 < bridge> <Ryozuki> gotta fix the sorting when unfinished tho
+16:12 < bridge> <Ryozuki> miniserve ftw
+16:12 < bridge> <Ryozuki> https://crates.io/crates/miniserve
+16:13 < bridge> <heinrich5991> isn't it amazing that we have standards like http? ^^
+16:13 < bridge> <heinrich5991> with thousands of possible impls
+16:13 < bridge> <Ryozuki> xd
+16:13 < bridge> <Ryozuki> ones faster than others
+16:13 < bridge> <heinrich5991> sure, and the python impl probably being very slow
+16:13 < bridge> <heinrich5991> but I like interoperable software ^^
+16:14 < bridge> <Ryozuki> but idk if the python module is made with many utilities
+16:14 < bridge> <Ryozuki> for the cli
+16:14 < bridge> <Jupstar ✪> Wrong ping or did u actually mean me?
+16:14 < bridge> <Ryozuki> miniserve has lot of stuff
+16:14 < bridge> <heinrich5991> I actually meant you ^^
+16:14 < bridge> <heinrich5991> sounded like performance ^^
+16:14 < bridge> <Jupstar ✪> What issue did we have? ^^
+16:14 < bridge> <heinrich5991> you wanted to make the network faster
+16:15 < bridge> <heinrich5991> anyway, I just stumbled upon io_uring once more and wondered whether you had looked at it already
+16:15 < bridge> <Jupstar ✪> I've written a complete new network impl for the playground but I'm also pretty slow currently lmao
+16:15 < bridge> <heinrich5991> oh, it's even in the arch repos ^^
+16:16 < bridge> <Jupstar ✪> But dunno, will iouring help for windows BCS it's not a kernel call or how can I imagine the performance increase here ?
+16:16 < bridge> <Jupstar ✪> It's Linux apparently
+16:17 < bridge> <Jupstar ✪> We have perf problems on windows for sure xd
+16:18 < bridge> <Jupstar ✪> So how much faster is it? 😄 never seen it in action
+16:18 < bridge> <heinrich5991> I think there's something like io_uring on windows as well
+16:18 < bridge> <heinrich5991> it's called IO completion ports IIRC
+16:19 < bridge> <heinrich5991> it skips the syscall, basically
+16:19 < bridge> <heinrich5991> we put our recv request into a ringbuffer, and the kernel reads it from that ringbuffer
+16:19 < bridge> <Jupstar ✪> I see, so the overhead is in the kernel instead?
+16:19 < bridge> <Jupstar ✪> Or is it a raw memory address
+16:20 < bridge> <heinrich5991> hmm, it's a raw memory address. not sure I understand your question
+16:20 < bridge> <heinrich5991> instead of doing recv(buffer), we write (op_recv, buffer) into a ringbuffer
+16:20 < bridge> <Jupstar ✪> I mean a non ringed memory address
+16:21 < bridge> <heinrich5991> yes, I think
+16:21 < bridge> <Jupstar ✪> Oh ok
+16:21 < bridge> <Jupstar ✪> And the kernel checks periodically?
+16:21 < bridge> <heinrich5991> yes, basically
+16:22 < bridge> <Jupstar ✪> Would probably help us indeed
+16:30 < bridge> <Ryozuki> ok i got this sorted
+16:30 < bridge> <Ryozuki> all positivity
+16:30 < bridge> <Ryozuki> no negativity
+16:30 < bridge> <heinrich5991> nice!
+16:30 < bridge> <Ryozuki> and the current servers also look sorted correctly
+16:31 < bridge> <Ryozuki> @heinrich5991 i found that my client lingers before fully closing
+16:31 < bridge> <Ryozuki> its due to this
+16:31 < bridge> <Ryozuki> 2023-05-22 16:31:24 I http: https://master2.ddnet.org/ddnet/15/servers.json failed. libcurl error (28): SSL connection timeout
+16:31 < bridge> <Ryozuki> 2023-05-22 16:31:24 I serverbrowse_http: found master, url='https://master1.ddnet.org/ddnet/15/servers.json' time=204ms
+16:31 < bridge> <Ryozuki> 2023-05-22 16:31:24 I http: https://master4.ddnet.org/ddnet/15/servers.json failed. libcurl error (6): Could not resolve host: master4.ddnet.org
+16:31 < bridge> <Ryozuki> 2023-05-22 16:31:24 I serverbrowse_http: determined best master, url='https://master1.ddnet.org/ddnet/15/servers.json' time=204ms
+16:32 < bridge> <Ryozuki> it doesnt exist until the task is done
+16:32 < bridge> <heinrich5991> yea, I think that's a currently existing problem
+16:33 < bridge> <heinrich5991> we don't have a good way of aborting jobs currently
+16:33 < bridge> <heinrich5991> I think @Learath2's PR would fix this particular problem
+16:33 < bridge> <Ryozuki> https://github.com/ddnet/ddnet/pull/6646
+16:33 < bridge> <Ryozuki> check it out again if ucan
+16:33 < bridge> <Ryozuki> its rdy
+16:33 < bridge> <Ryozuki> ^tm
+16:33 < bridge> <Ryozuki> i think optional has == for opt  == value but i dont know it exactly, it said also it does < with the inner so i didnt use that
+16:33 < bridge> <Ryozuki> and just used a if
+16:34 < bridge> <Ryozuki> somewhere
+16:45 < bridge> <Ryozuki> @heinrich5991 idk if i can get SelectedServer->m_aGameType there
+16:45 < bridge> <Ryozuki> hmm and shouldnt the ClientScoreKind be normalized just once, somewhere?=
+16:45 < bridge> <heinrich5991> I guess that could be done
+16:46 < bridge> <heinrich5991> I don't see why not, at least
+16:46 < bridge> <sk Airbase> hey
+16:46 < bridge> <sk Airbase> Noob here
+16:46 < bridge> <Ryozuki> hi noob im dad
+16:47 < bridge> <sk Airbase> can anyone suggest me any guide for to get this to understand thia
+16:47 < bridge> <heinrich5991> understand what?
+16:47 < bridge> <sk Airbase> i mean
+16:48 < bridge> <sk Airbase> whats is going on here
+16:48 < bridge> <sk Airbase> i see you all make websites
+16:49 < bridge> <heinrich5991> we're building a game: https://ddnet.org/
+16:53 < bridge> <Ryozuki> im on the edge wondering if this is a troll or a confused person
+16:53 < bridge> <Ryozuki> xd
+16:53 < bridge> <Ryozuki> or a wannabe bot dev
+16:53 < bridge> <Ryozuki> u never know these days
+16:53 < bridge> <sk Airbase> ahhhhhhh
+16:53 < bridge> <sk Airbase> just new here
+16:53 < bridge> <sk Airbase> now i understood the gane ;)
+16:54 < bridge> <Jupstar ✪> To be precise, the best game
+16:54 < bridge> <sk Airbase> game
+16:55 < bridge> <sk Airbase> i wish i was a dev \:D
+16:57 < bridge> <Ryozuki> become one
+16:57 < bridge> <Ryozuki> the internet is ur door to knowledge
+16:57 < bridge> <sk Airbase> yes thanks for the support
+16:58 < bridge> <sk Airbase> where shall i start ? i only have very little exprience in coding and all this
+16:58 < bridge> <sk Airbase> whats  the first thing i should start
+16:59 < bridge> <Ryozuki> first you should learn to google
+16:59 < bridge> <Ryozuki> and ask this very question to google
+16:59 < bridge> <Ryozuki> or ur search engine of preference
+16:59 < bridge> <sk Airbase> rest im sitting here  and reading to gain knowledege'
+16:59 < bridge> <Ryozuki> i recommennd reading this
+16:59 < bridge> <Ryozuki> http://www.catb.org/~esr/faqs/hacker-howto.html
+16:59 < bridge> <sk Airbase> thankss nate
+16:59 < bridge> <Ryozuki> but its more aligned to my values
+16:59 < bridge> <Ryozuki> idk about urs
+17:00 < bridge> <Jupstar ✪> 😂
+17:00 < bridge> <Ryozuki> >     To follow the path:
+17:00 < bridge> <Ryozuki> >     look to the master,
+17:00 < bridge> <Ryozuki> >     follow the master,
+17:00 < bridge> <Ryozuki> >     walk with the master,
+17:00 < bridge> <Ryozuki> >     see through the master,
+17:00 < bridge> <Ryozuki> >     become the master.
+17:00 < bridge> <Jupstar ✪> Fuck Google ask me
+17:01 < bridge> <Ryozuki> > To be a hacker, you have to develop some of these attitudes. But copping an attitude alone won't make you a hacker, any more than it will make you a champion athlete or a rock star. Becoming a hacker will take intelligence, practice, dedication, and hard work.
+17:01 < bridge> <Ryozuki> > 
+17:01 < bridge> <Ryozuki> > Therefore, you have to learn to distrust attitude and respect competence of every kind. Hackers won't let posers waste their time, but they worship competence — especially competence at hacking, but competence at anything is valued. Competence at demanding skills that few can master is especially good, and competence at demanding skills that involve mental acuteness, craft, and concentration is best.
+17:01 < bridge> <Ryozuki> > 
+17:01 < bridge> <Ryozuki> > If you revere competence, you'll enjoy developing it in yourself — the hard work and dedication will become a kind of intense play rather than drudgery. That attitude is vital to becoming a hacker.
+17:01 < bridge> <Ryozuki> i love this quote
+17:01 < bridge> <Ryozuki> (hacker not being the  word used to refer  to crackers)
+17:02 < bridge> <Jupstar ✪> I love this quote
+17:02 < bridge> <Jupstar ✪> > Learn everything u need to make your game fast. Nobody can teach u that, and it's never perfect
+17:02 < bridge> <Jupstar ✪> 
+17:02 < bridge> <Jupstar ✪> It's from me
+17:04 < bridge> <Ryozuki> xd
+17:04 < bridge> <Ryozuki> troll
+17:04 < bridge> <sk Airbase> https://bugzilla.redhat.com/show_bug.cgi?id=2127453
+17:05 < bridge> <sk Airbase> is this same kinda thing ?
+17:05 < bridge> <Ryozuki> ok i think this guy is trolling
+17:06 < bridge> <Ryozuki> and here i spent time to convert someone into a hacker
+17:06 < bridge> <Ryozuki> smh
+17:06 < bridge> <sk Airbase> brother
+17:07 < bridge> <sk Airbase> im not trolling brother
+17:07 < bridge> <sk Airbase> im going throught open source for now to gain knowledge
+17:07 < bridge> <UnlucksMcGee> ```javascript
+17:07 < bridge> <UnlucksMcGee> "Any fool can write code that computers understand. A good programmer writes code that humans can understand" - Martin Fowler
+17:07 < bridge> <UnlucksMcGee> ```
+17:08 < bridge> <sk Airbase> BTW it was good to Meet you all
+17:08 < bridge> <sk Airbase> last question pleas
+17:09 < bridge> <sk Airbase> light and good os for coding ?
+17:09 < bridge> <sk Airbase> hence im not having a high end laptop
+17:09 < bridge> <sk Airbase> how do they make money fron this ??
+17:10 < bridge> <Ryozuki> all the wrong questions
+17:12 < bridge> <Patiga> if you are aiming to make money, this isn't the best developer channel for you. none of the developers here make money by contributing to the game ddnet
+17:12 < bridge> <Patiga> the developers here do it because they like the game and enjoy coding :)
+17:13 < bridge> <sk Airbase> yes i got it its passion .....!!!
+17:13 < bridge> <sk Airbase> will stick to you guys ;)
+17:13 < bridge> <Patiga> if you want a light and good os, you can probably use any popular linux distribution. ubuntu is probably the most popular one, though there are plenty others which offer different experiences
+17:13 < bridge> <sk Airbase> atleast i will learn sone thing
+17:23 < bridge> <Ryozuki> @heinrich5991 factored it out
+17:23 < bridge> <Ryozuki> this should even bring more perf
+17:23 < bridge> <Ryozuki> since its not done every time now
+17:23 < bridge> <Ryozuki> or smth idk
+17:23 < bridge> <Ryozuki> probs str_find_nocase is not that expensive xd
+17:23 < bridge> <Ryozuki> (i tested it and works, race server shows time)
+17:26 < bridge> <Ryozuki> `str_find_nocase(pEntry->m_Info.m_aGameType, "race")`
+17:26 < bridge> <Ryozuki> this doesnt match ddrace right? xd
+17:26 < bridge> <Ryozuki> ah well but its no problem cuz ddnet doesnt send unspecified
+17:31 < bridge> <m!ki> Linux 🙃
+17:32 < bridge> <heinrich5991> that should match "ddrace" and "ddracenetwork"
+17:32 < bridge> <Ryozuki> yeah, but ddnet sends time kind, not unspecified
+17:32 < bridge> <Ryozuki> so its ok
+17:33 < bridge> <heinrich5991> yup
+17:33 < bridge> <m!ki> Windows is going to eat ur resources for it’s shitty services. Ubuntu is right thing for you
+17:33 < bridge> <heinrich5991> ah, now I understand your question
+17:33 < bridge> <Jupstar ✪> KUbuntu
+17:33 < bridge> <Jupstar ✪> Ubuntu with gnome sucks for ppl comming from windows
+17:33 < bridge> <Ryozuki> ubuntu is only good because it has a manga
+17:33 < bridge> <Ryozuki> https://mangadex.org/title/a6bfedbc-9846-4a97-9fcb-77a426d978e6/ubunchu
+17:34 < bridge> <Ryozuki> there is a chapter where they fight a pro-windows school user
+17:34 < bridge> <Ryozuki> xdd
+17:34 < bridge> <Jupstar ✪> 😬
+17:34 < bridge> <Ryozuki> ohh
+17:34 < bridge> <Ryozuki> there is 3 episodes more!
+17:34 < bridge> <Ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1110229221088956527/image.png
+17:34 < bridge> <Ryozuki> xD
+17:34 < bridge> <Ryozuki> mint-chan
+17:41 < bridge> <Ryozuki> @Heinf
+17:41 < bridge> <Ryozuki> @heinrich5991 fixed ur comments btw
+17:46 < bridge> <heinrich5991> thanks
+17:46 < bridge> <heinrich5991> does anyone know python stdlib functions taking bools?
+17:46 < bridge> <heinrich5991> what do they do if a non-bool is passed?
+17:46 < bridge> <heinrich5991> error? call `bool()` on it?
+17:48 < bridge> <heinrich5991> preferably a function implemented in C
+17:50 < bridge> <heinrich5991> `os.walk()` gets a `topdown` boolean argument
+17:50 < bridge> <heinrich5991> but it just gets put into an `if`, so it's interpereted as if `bool` was called on it
+17:51 < bridge> <heinrich5991> but it just gets put into an `if`, so it's interpreted as if `bool` was called on it
+17:54 < bridge> <Jupstar ✪> gpt-4 says:
+17:54 < bridge> <Jupstar ✪> "Generally, Python's standard library functions are designed to be flexible and work with multiple data types. "
+17:54 < bridge> <Jupstar ✪> and it names examples such as:
+17:54 < bridge> <Jupstar ✪> `open`
+17:54 < bridge> <Jupstar ✪> `json.dump`
+17:54 < bridge> <Jupstar ✪> i also let it search the internet to verify what it said, take at your own risk 😂
+17:55 < bridge> <Jupstar ✪> dont even know if they are part of stdlib as u mean it
+17:58 < bridge> <Jupstar ✪> os.dup2
+17:58 < bridge> <Jupstar ✪> xd
+17:58 < bridge> <heinrich5991> `open` does indeed take a boolean, but it seems to be implemented in `_pyio.py`
+17:58 < bridge> <heinrich5991> `json.dump` is kinda useless
+17:59 < bridge> <heinrich5991> ah no, it also has boolean arguments
+17:59 < bridge> <heinrich5991> but I bet it's implemented in python as well
+18:02 < bridge> <Jupstar ✪> it also claims
+18:02 < bridge> <Jupstar ✪> array sort
+18:02 < bridge> <Jupstar ✪> 
+18:02 < bridge> <Jupstar ✪> but i doubt the reverse parameter ever reaches c
+18:04 < bridge> <Ryozuki> we reached the milestone
+18:04 < bridge> <Ryozuki> now 17.0 should be ready
+18:04 < bridge> <heinrich5991> which milestone?
+18:04 < bridge> <Ryozuki> big ^tm
+18:04 < bridge> <heinrich5991> ah
+18:04 < bridge> <Ryozuki> https://github.com/ddnet/ddnet/milestone/23
+18:04 < bridge> <heinrich5991> here: ™ :p
+18:04 < bridge> <heinrich5991> compose key ftw
+18:05 < bridge> <Ryozuki> woah
+18:05 < bridge> <Ryozuki> @Robyt3 nice work working with confusing code
+18:06 < bridge> <Ryozuki> :justatest:
+18:09 < bridge> <Jupstar ✪> i dunno what u mean...
+18:09 < bridge> <Jupstar ✪> 
+18:09 < bridge> <Jupstar ✪> 
+18:09 < bridge> <Jupstar ✪> Meanwhile DDNet code:
+18:09 < bridge> <Jupstar ✪> ```c++
+18:09 < bridge> <Jupstar ✪> float not_confusing_at_all (float x){
+18:09 < bridge> <Jupstar ✪>     float xhalf = 0.5f*x;
+18:09 < bridge> <Jupstar ✪>     int i = *(int*)&x;
+18:09 < bridge> <Jupstar ✪>     i = 0x5f3759df - (i>>1);
+18:09 < bridge> <Jupstar ✪>     x = *(float*)&i;
+18:09 < bridge> <Jupstar ✪>     x = x*(1.5f - xhalf*x*x);
+18:09 < bridge> <Jupstar ✪>     return x;
+18:09 < bridge> <Jupstar ✪> }
+18:09 < bridge> <Jupstar ✪> ```
+18:09 < bridge> <Ryozuki> xd
+18:09 < bridge> <Jupstar ✪> its "The inverse square root implementation in Quake 3"
+18:09 < bridge> <Jupstar ✪> btw
+18:10 < bridge> <Ryozuki> why does it take reference  casts and dereferences
+18:10 < bridge> <Jupstar ✪> i dunno, maybe it saves one CPU cycle
+18:10 < bridge> <Ryozuki> ```
+18:10 < bridge> <Ryozuki> int i = *(int*)&x;
+18:10 < bridge> <Ryozuki> int i = (int)x;
+18:10 < bridge> <Ryozuki> ```
+18:10 < bridge> <Ryozuki> is this not the same
+18:10 < bridge> <Ryozuki> should be a noop right
+18:10 < bridge> <Ryozuki> idk
+18:10 < bridge> <zogtib> no it's no nop
+18:11 < bridge> <Jupstar ✪> well x is float
+18:11 < bridge> <Robyt3> it's missing the comments https://en.wikipedia.org/wiki/Fast_inverse_square_root#Overview_of_the_code
+18:11 < bridge> <Jupstar ✪> its a reinterpret to me
+18:12 < bridge> <Robyt3> yeah, it converts float to int by preserving the bits
+18:12 < bridge> <Ryozuki> the fast inverse square root trick came from treating the 32-bit floating-point word[note 2] as an integer, then subtracting it from a "magic" constant, 0x5F3759DF
+18:12 < bridge> <Ryozuki> ah
+18:12 < bridge> <Ryozuki> the trick is to do the cast as a noop
+18:12 < bridge> <Ryozuki> actually
+18:12 < bridge> <Ryozuki> right? xd
+18:12 < bridge> <heinrich5991> thanks, it actually reaches C
+18:14 < bridge> <zogtib> no it's no noop
+18:14 < bridge> <zogtib> I mean those two lines are not the same
+18:15 < bridge> <Ryozuki> true true
+18:15 < bridge> <Ryozuki> i missed it
+18:16 < bridge> <Ryozuki> reminds me of implementing tagged unions
+18:43 < bridge> <Learath2> Did you figure out how it works? There is a decent video on it if not
+18:51 < bridge> <Ryozuki> ill look at it someday xD
+18:56 < bridge> <Learath2> https://youtu.be/NCuf2tjUsAY I think this was the one I watched
+19:00 < bridge> <Jupstar ✪> how did they find it
+19:02 < bridge> <Ryozuki> chatgpt
+19:02 < bridge> <Voxel> ew
+19:03 < bridge> <Jupstar ✪> soon™️
+19:03 < bridge> <Learath2> Who knows what was going through their minds
+19:04 < bridge> <Learath2> It relies on the fact that the ieee754 representation of a float has it's exponent easily accessible and that square root of a multiplication can be split in two
+19:05 < bridge> <Learath2> If you mean the magic number only god knows
+19:12 < bridge> <Learath2> Oh and the cool property of logs that make exponentiation multiplication
+19:23 < bridge> <deen> That's not how it works. I try to wait at least a week before release to give bugs a chance to be found
+19:24 < bridge> <Ryozuki> oh yeah, i meant ready as in known bugs fixed
+19:24 < bridge> <Ryozuki> xD
+19:24 < bridge> <heinrich5991> @Voxel https://google.github.io/comprehensive-rust/welcome.html
+19:25 < bridge> <heinrich5991> rust for C/C++ developers
+19:25 < bridge> <deen> But I'm pretty happy with the RC process. Far fewer point releases since we started doing that
+19:25 < bridge> <Ryozuki> nice
+19:25 < bridge> <Voxel> crust
+19:32 < bridge> <Voxel> god i want to jump all in and start making something stupid like rewriting the entirety of ddnet in rust because then we could compare the code and remove every and all crashes
+19:33 < bridge> <heinrich5991> rewriting it in rust is probably gonna add more crashes
+19:35 < bridge> <Voxel> wait wtf why
+19:35 < bridge> <Voxel> isnt rust code built to prevent crashes
+19:35 < bridge> <heinrich5991> because rewriting things introduces bugs
+19:36 < bridge> <heinrich5991> and the current code has been tested in the real world for quite some time
+19:36 < bridge> <Voxel> oh
+19:37 < bridge> <Learath2> Less SIGSEGV, more Unhandled Error bubbling to main 😛
+19:37 < bridge> <Ryozuki> *panics are easier to debug
+19:38 < bridge> <Ryozuki> but yeah
+19:38 < bridge> <Ryozuki> and rewriting is work
+19:38 < bridge> <Ryozuki> u say this cuz ur new
+19:38 < bridge> <Ryozuki> u dont know what ur saying
+19:38 < bridge> <Ryozuki> no offsense
+19:38 < bridge> <Voxel> i wanna do work that isnt boring !
+19:38 < bridge> <heinrich5991> unhandled error bubbling to main is harder to debug
+19:39 < bridge> <heinrich5991> than an easy segfault
+19:39 < bridge> <Ryozuki> idk
+19:39 < bridge> <Ryozuki> panics have stacktraces too
+19:39 < bridge> <Jupstar ✪> its 50:50
+19:39 < bridge> <Jupstar ✪> segevs can be impossible to reproduce and give no debug info
+19:39 < bridge> <heinrich5991> having dealt with this in complex code bases, yes
+19:39 < bridge> <Jupstar ✪> segsegb can be impossible to reproduce and give no debug info
+19:39 < bridge> <Jupstar ✪> segsegvs can be impossible to reproduce and give no debug info
+19:39 < bridge> <heinrich5991> you don't know where the damn error comes from
+19:40 < bridge> <Ryozuki> define complex
+19:40 < bridge> <Jupstar ✪> 10 lines of code
+19:40 < bridge> <heinrich5991> e.g. try to figure out why rustls rejects a certificate
+19:40 < bridge> <Ryozuki> 10 lines of cpp code
+19:40 < bridge> <Ryozuki> .
+19:41 < bridge> <Jupstar ✪> 1 line of code, bcs no newline was used
+19:41 < bridge> <Robyt3> 0 lines, because all the code is in json files :troll:
+19:44 < bridge> <Voxel> now that i think about it god yea
+19:44 < bridge> <Voxel> i dont even know how to properly cpp so
+19:44 < bridge> <Voxel> i grew up doing basic coding logic so i pretty much only know loops and how to format functions that dont look ugly
+19:45 < bridge> <Voxel> mainly just basic coding logic
+19:46 < bridge> <heinrich5991> coding is just basic coding repeated a lot of times :p
+19:46 < bridge> <heinrich5991> hm, maybe not. maybe sometimes you need to design stuff
+19:46 < bridge> <heinrich5991> but for small things, it works
+19:46 < bridge> <Voxel> but like.. pointers and ..
+19:49 < bridge> <Jupstar ✪> well voxel, rust is easier than cpp in this case
+19:49 < bridge> <Jupstar ✪> 
+19:49 < bridge> <Jupstar ✪> if u dont aim for performance, but idiomacity, i'd generally say rust is easier
+19:49 < bridge> <Jupstar ✪> 
+19:49 < bridge> <Jupstar ✪> e.g. if u use lots of Rc or Arc
+19:49 < bridge> <Jupstar ✪> u can basically create code like in javascript
+19:49 < bridge> <Jupstar ✪> 
+19:49 < bridge> <Jupstar ✪> in js u often copy objects, in rust u can do this too bcs of Copy macro
+19:50 < bridge> <Voxel> hm
+19:50 < bridge> <Voxel> yeah i had this plan for how i could use rust to my advantage
+19:50 < bridge> <Voxel> exploiting an adobe product :troll:
+19:51 < bridge> <Voxel> if i could somehow copy adobe animate frames outside the program i could apply advanced animation tactics without having adobe animate throttle the cpu
+19:52 < bridge> <Voxel> because fun fact, adobe animatr limits to only a small percentage of your cpu, meaning its super fucking slow
+19:52 < bridge> <Voxel> so if you were to run a javascript file in it, itd take ages and maybe freeze up
+19:53 < bridge> <Voxel> so i want to somehow run all of this outside the program in something fast
+19:54 < bridge> <Cellegen | RiH> I can confirm, that is why no one used flash
+19:55 < bridge> <heinrich5991> everyone used flash?!
+19:55 < bridge> <Voxel> theres a whole community online who still relies on flash LOL
+19:55 < bridge> <Voxel> and im in it
+19:56 < bridge> <Salanto> Didn't they kill flash years ago?
+19:56 < bridge> <Voxel> no i mean adobe animate
+19:56 < bridge> <heinrich5991> there's tons of material in flash, people are working on preserving it
+19:56 < bridge> <Voxel> the program to make flash files
+19:58 < bridge> <Voxel> anyways there is nothing that comes close to adobe animate
+19:58 < bridge> <Voxel> that is free and doesnt look ugly and is usable
+20:07 < bridge> <deen> I used flash too, and made a long and cool animated stick fight video with it, but lost the files unfortunately 😦
+20:08 < bridge> <deen> In the spirit of https://en.wikipedia.org/wiki/Xiao_Xiao, so must have been > 20 years ago 😄
+20:08 < bridge> <Voxel> oh damn :(((
+21:02 < bridge> <Jupstar ✪> ez, robyte makes new UI with tw UI code xd
+21:09 < bridge> <Ryozuki> do u truly understand pointers
+21:09 < bridge> <Ryozuki> they are hard to grasp
+21:09 < bridge> <Ryozuki> one of the most abstract things
+21:10 < bridge> <Ryozuki> flash animation was
+21:10 < bridge> <Ryozuki> the biggest scene
+21:11 < bridge> <Ryozuki> im a fan of krinkels
+21:11 < bridge> <Ryozuki> https://www.newgrounds.com/
+21:11 < bridge> <Ryozuki> good old times
+21:11 < bridge> <Ryozuki> krinkels made madness combat
+21:12 < bridge> <Voxel> i know
+21:13 < bridge> <Ryozuki> https://www.youtube.com/@KrinkelsNG/videos
+21:13 < bridge> <Ryozuki> holy
+21:13 < bridge> <Ryozuki> yutube url sucks
+21:14 < bridge> <Voxel> i sent a meme in offtopic that relates to this whole adobe animate ordeal
+21:14 < bridge> <Ryozuki> https://www.youtube.com/watch?v=hkYRmCKMCLo
+21:14 < bridge> <Ryozuki> i was so into this
+21:14 < bridge> <Ryozuki> and another one about a bunny killing
+21:15 < bridge> <Ewan> DANGER
+21:15 < bridge> <Ewan> you are not casting the value of x into an int, you’re casting a float pointer to an int pointer & dereferencing
+21:15 < bridge> <Ewan> getting float data as an integer
+21:16 < bridge> <Ryozuki> ur late to the paty
+21:18 < bridge> <Ewan> i wake up
+21:18 < bridge> <Learath2> When helping people I've found that the image of literal people pointing at stuff kinda helps
+21:19 < bridge> <Learath2> Also talking about addresses as if they are regular home addresses
+21:19 < bridge> <Voxel> i kinda know how pointers work? since i needed them for packet decompiling and stuff
+21:19 < bridge> <Voxel> with classes and all
+21:19 < bridge> <Ewan> you’re word souping
+21:22 < bridge> <Ryozuki> @Voxel u havent struggled right
+21:22 < bridge> <Ryozuki> i think u dont know em
+21:22 < bridge> <Ewan> you can grasp the concept of pointers and still be completely in the dark on heap memory & how to manage your pointers
+21:23 < bridge> <Ryozuki> @Voxel i recommend u make a linked list in C
+21:23 < bridge> <Ryozuki> good way to learn
+21:24 < bridge> <Voxel> i just copied another code segment in the same file lololol
+21:24 < bridge> <Ewan> fabulous idea
+21:27 < bridge> <heinrich5991> I don't remember why they're hard
+21:27 < bridge> <Ryozuki> idk either
+21:27 < bridge> <heinrich5991> if you model your memory as cells for bytes with positions
+21:27 < bridge> <Ryozuki> they seem ez to me
+21:27 < bridge> <Ryozuki> but i struggled
+21:27 < bridge> <heinrich5991> can't you just say that a pointer is an integer saying which of these cells is meant?
+21:28 < bridge> <Ryozuki> @Chairn what do u say
+21:28 < bridge> <Ryozuki> or u havent teached c to completly new ppl
+21:28 < bridge> <heinrich5991> (note that this doesn't represent correctly how pointers work in C, but kinda in x86 assembly)
+21:28 < bridge> <heinrich5991> (but it was still the mental model with which I started, I think)
+21:28 < bridge> <Ewan> they work the same in C they just have a type specifier attached for clarity's sake
+21:29 < bridge> <Ewan> they can be trivially cast away
+21:29 < bridge> <heinrich5991> no, unfortunately not
+21:29 < bridge> <Ryozuki> pointers dont have a type, but in c they refer to the pointee type
+21:29 < bridge> <heinrich5991> e.g. `float x; int *y = (int *)x;` is UB in C
+21:29 < bridge> <heinrich5991> e.g. `float x; int *y = (int *)x; *y = 0;` is UB in C
+21:30 < bridge> <heinrich5991> I don't understand "pointers don't have a type". in C, they do, no?
+21:30 < bridge> <Ewan> they are still just an int
+21:31 < bridge> <Ryozuki> yeye
+21:31 < bridge> <heinrich5991> no, as I demonstrated above
+21:31 < bridge> <Ryozuki> @heinrich5991 i just come from llvm
+21:31 < bridge> <Ryozuki> llvm has opaque pointers
+21:31 < bridge> <Ryozuki> they dont care what they point to
+21:31 < bridge> <Ryozuki> a pointer is only a pointer
+21:31 < bridge> <heinrich5991> I see
+21:31 < bridge> <Ryozuki> ptr
+21:31 < bridge> <Learath2> The pointer arithmetic is what is confusing to teach in my experience. It's not exactly intuitive what adding 1 to a traditional address means
+21:31 < bridge> <Ryozuki> llvm used to have ptr with a type
+21:31 < bridge> <Ryozuki> but that was just to satisfy C
+21:31 < bridge> <Ryozuki> well
+21:31 < bridge> <Ryozuki> it was to find errors in clang
+21:31 < bridge> <Ryozuki> but llvm now is more generic
+21:32 < bridge> <Ryozuki> clang is the one who needs to save the pointee type info
+21:32 < bridge> <Ewan> this demonstrates pointer-specific operations but it doesn't say a pointer is anything but an integer 😃
+21:32 < bridge> <Ewan> without such potentially dangerous operations pointers would be useless in C
+21:32 < bridge> <Learath2> A pointer is most definitely not an integer. Atleast as far as the standard is concerned
+21:32 < bridge> <heinrich5991> also not compilers
+21:32 < bridge> <Ryozuki> https://llvm.org/devmtg/2015-10/slides/Blaikie-OpaquePointerTypes.pdf
+21:32 < bridge> <Ryozuki> this
+21:33 < bridge> <heinrich5991> they miscompile your stuff if you treat them like integers
+21:33 < bridge> <Ryozuki> https://llvm.org/docs/OpaquePointers.html
+21:33 < bridge> <heinrich5991> `float x; &x + 3;` is UB
+21:33 < bridge> <Ewan> oh yeah for sure
+21:33 < bridge> <heinrich5991> `x + 3` isn't UB for most values of an integer
+21:34 < bridge> <Learath2> It guarantees that there is a way to cast OBJECT pointers to an integer and back through an `intptr_t` or `uintptr_t`. But not much else
+21:34 < bridge> <Ryozuki> lots of info here
+21:34 < bridge> <Ryozuki> i dont wanna spam the content xd
+21:34 < bridge> <Ryozuki> > Pointee types provide some value to frontends because the IR verifier uses types to detect straightforward type confusion bugs. However, frontends also have to deal with the complexity of inserting bitcasts everywhere that they might be required. The community consensus is that the costs of pointee types outweight the benefits, and that they should be removed.
+21:35 < bridge> <Ewan> that is awesome
+21:35 < bridge> <Ryozuki> in rust its even more difficult
+21:35 < bridge> <Ryozuki> to handle pointers
+21:35 < bridge> <Ewan> i thought you couldn't without an unsafe block
+21:35 < bridge> <Ewan> outright
+21:36 < bridge> <Ryozuki> u can only deref in a unsafe
+21:36 < bridge> <heinrich5991> you have `&` and `&mut` pointers which work without `unsafe` blocks
+21:36 < bridge> <Ryozuki> but u can deal with em
+21:36 < bridge> <Ewan> ah
+21:36 < bridge> <Ryozuki> but there are subtle things
+21:36 < bridge> <Ryozuki> this exists
+21:36 < bridge> <Ryozuki> s
+21:36 < bridge> <Ryozuki> https://doc.rust-lang.org/stable/std/ptr/macro.addr_of.html
+21:36 < bridge> <Ewan> how do i live in this world knowing s exists
+21:36 < bridge> <Ryozuki> > Create a const raw pointer to a place, without creating an intermediate reference.
+21:36 < bridge> <Ryozuki> > 
+21:36 < bridge> <Ryozuki> > Creating a reference with &/&mut is only allowed if the pointer is properly aligned and points to initialized data. For cases where those requirements do not hold, raw pointers should be used instead. However, &expr as *const _ creates a reference before casting it to a raw pointer, and that reference is subject to the same rules as all other references. This macro can create a raw pointer without creating a reference first.
+21:36 < bridge> <Ryozuki> > 
+21:36 < bridge> <Ryozuki> > Note, however, that the expr in addr_of!(expr) is still subject to all the usual rules. In particular, addr_of!(*ptr::null()) is Undefined Behavior because it dereferences a null pointer.
+21:37 < bridge> <Chairn> well, time to ask for 40k 🙂
+21:37 < bridge> <Ryozuki> > Create a const raw pointer to a place, without creating an intermediate reference.
+21:37 < bridge> <Ryozuki> > 
+21:37 < bridge> <Ryozuki> > Creating a reference with &/&mut is only allowed if the pointer is properly aligned and points to initialized data. For cases where those requirements do not hold, raw pointers should be used instead. However, &expr as *const \_ creates a reference before casting it to a raw pointer, and that reference is subject to the same rules as all other references. This macro can create a raw pointer without creating a reference first.
+21:37 < bridge> <Ryozuki> > 
+21:37 < bridge> <Ryozuki> > Note, however, that the expr in addr_of!(expr) is still subject to all the usual rules. In particular, addr_of!(*ptr::null()) is Undefined Behavior because it dereferences a null pointer.
+21:37 < bridge> <Ryozuki> thats old xd
+21:37 < bridge> <Chairn> remove space and it works 😉
+21:38 < bridge> <Ryozuki> i did it without it intentionally
+21:38 < bridge> <Learath2> He is slowly making his way
+21:38 < bridge> <heinrich5991> you can use \ to not make it work
+21:38 < bridge> <heinrich5991> s\/not//g
+21:38 < bridge> <heinrich5991> s\/not//
+21:38 < bridge> <Ewan> s
+21:38 < bridge> <Ewan> ot\
+21:38 < bridge> <heinrich5991> you can use \ to make it not work
+21:39 < bridge> <Ewan> is this a pointer or a reference? there is a difference
+21:39 < bridge> <heinrich5991> what's the difference?
+21:40 < bridge> <Ryozuki> they cant be nullable, but same
+21:40 < bridge> <Ewan> ye
+21:40 < bridge> <Chairn> what's the point of gpu acceleration just to print text to screen?
+21:40 < bridge> <Ryozuki> perf
+21:40 < bridge> <Ryozuki> why does he only answer what i say
+21:40 < bridge> <Ryozuki> what about others
+21:40 < bridge> <Ryozuki> xd
+21:40 < bridge> <Ewan> you're having a 1 on 1 convo 😃
+21:42 < bridge> <heinrich5991> hmm, that seems like a c++-specific difference
+21:43 < bridge> <heinrich5991> e.g. function pointers in rust aren't nullable
+21:43 < bridge> <Ewan> wuhh why
+21:43 < bridge> <Learath2> There are lots of c++ specific small subtleties for ref vs ptr
+21:43 < bridge> <heinrich5991> but then it's kind of moot to ask whether it's a pointer or a reference for other languages
+21:44 < bridge> <heinrich5991> e.g. I don't know what java calls its references
+21:44 < bridge> <Ewan> we can't talk about ref vs ptr globally
+21:44 < bridge> <heinrich5991> but they're nullable
+21:44 < bridge> <Ewan> i know for a fact C# has a very convoluted reference system
+21:44 < bridge> <Ewan> we are not talking about that
+21:44 < bridge> <heinrich5991> I was wondering how to answer this question
+21:44 < bridge> <Ewan> well we were talking about rust
+21:45 < bridge> <heinrich5991> well, in rust `&mut`/`&` is called "reference"
+21:45 < bridge> <Ewan> i'm sure you can 'dereference' a reference outside of an unsafe block yea?
+21:45 < bridge> <heinrich5991> yes
+21:45 < bridge> <Ewan> but a real pointer which could fathomably point to anything, you can't
+21:45 < bridge> <Ewan> there
+21:45 < bridge> <Ewan> there's one difference
+21:45 < bridge> <Chairn> damn, tiles looks like giant compared to 2D
+21:46 < bridge> <Ewan> i didn't see that video until now
+21:46 < bridge> <Ewan> it's awesome
+21:46 < bridge> <Ewan> third person 3d client would be insane
+21:47 < bridge> <Learath2> `*mut T` would be called a pointer though, no? There must be a reason they differentiate between the two
+21:47 < bridge> <Ewan> well i know that in cpp references vs pointers are more strictly enforced
+21:47 < bridge> <heinrich5991> yea, they're called (raw) pointers in rust
+21:47 < bridge> <Learath2> A null ptr can exist in rust, but I don't think a null ref can exist there either
+21:47 < bridge> <heinrich5991> a null object pointer can exist
+21:48 < bridge> <heinrich5991> a null function pointer cannot
+21:48 < bridge> <Mr.Gh0s7> there's a more up todate version here https://streamable.com/67bvjs
+21:48 < bridge> <Ryozuki> or borrow
+21:48 < bridge> <Ewan> ohhhhhhhhhhhhhh
+21:48 < bridge> <Ewan> borrow
+21:48 < bridge> <Ryozuki> i think borrow is more used
+21:48 < bridge> <heinrich5991> huh? never heard that tbh
+21:48 < bridge> <heinrich5991> https://doc.rust-lang.org/reference/types/pointer.html
+21:48 < bridge> <Ewan> this poor tee 😭
+21:49 < bridge> <heinrich5991> apparently pointer is used to refer to all these types: raw pointers, references, smart pointers
+21:49 < bridge> <Ewan> a little misleading but it works i guess
+21:49 < bridge> <Ryozuki> hmm i guess
+21:49 < bridge> <heinrich5991> why is it misleading?
+21:49 < bridge> <Chairn> looks like if first is true, then second is true as well
+21:49 < bridge> <Ryozuki> about the borrow thing
+21:50 < bridge> <Learath2> They should make a rust standard so I can become a rust standards lawyer too
+21:50 < bridge> <heinrich5991> we just established that terminology is language-specific
+21:50 < bridge> <Learath2> I can nitpick terminology
+21:50 < bridge> <Ewan> if anything i'd have chosen the word 'reference' to encapsulate all 3. regardless of what form a pointer takes it's still just a tool for referencing, "references" can be borrow checked (?), smart pointers... yea
+21:50 < bridge> <heinrich5991> so it cannot really be misleading unless you tell me what sets pointers apart from references cross-language
+21:51 < bridge> <Ewan> philosophically speaking i think the term pointer is bound to its specific address implementation, where it's just a number that holds the address of a value it's referencing. a reference could be anything else
+21:52 < bridge> <heinrich5991> that's what all three pointer types in rust are
+21:52 < bridge> <heinrich5991> just a number in memory
+21:52 < bridge> <Ryozuki> https://doc.rust-lang.org/reference/types/pointer.html
+21:52 < bridge> <Ewan> if there were some theoretical language-specific entity tasked with keeping track of references by any means, with the underlying method being entirely irrelevant/possibly changing across implementations, it would be reasonable to call its objects 'references'
+21:53 < bridge> <Chairn> the git does exist and is public though
+21:53 < bridge> <Ewan> e.g. references there could be implemented with pointers, but that is not a requirement for it to still be a reference
+21:53 < bridge> <Ewan> if you catch my drift
+21:53 < bridge> <Ewan> this is all theoretical anyway i can't imagine a very good use case differentiating between the two
+21:54 < bridge> <Ewan> yeahh i think they were just like, don't share this with your buddies
+21:55 < bridge> <Chairn> damn it, 1040 friends?
+21:56 < bridge> <Ewan> i'm more fascinated by robyt being in the kog clan
+21:56 < bridge> <Ewan> don't you have to be top 100?
+21:56 < bridge> <Ewan> this man gores
+21:57 < bridge> <Ryozuki> oh so he does play
+22:00 < bridge> <Chairn> can you reduce the image size a bit?
+22:00 < bridge> <Chairn> https://cdn.discordapp.com/attachments/293493549758939136/1110296175308980344/image.png
+22:00 < bridge> <Ryozuki> reading the backlog
+22:01 < bridge> <Ryozuki> its dedication
+22:01 < bridge> <Ryozuki> i dont need to do that
+22:01 < bridge> <Ryozuki> since im always here
+22:01 < bridge> <Ryozuki> :justatest:
+22:01 < bridge> <heinrich5991> ChillerDragon doesn't see replies. @Chairn's message was a reply to yours, ChillerDragon
+22:04 < bridge> <Chairn> Dijkstra seems fine because you want ALL paths
+22:06 < bridge> <Learath2> I ended up doing BFS. Why do you think djikstra would work? Isn't the entire idea of djisktra discarding paths that can't possibly be the shortest?
+22:06 < bridge> <Chairn> ah, actually a good idea, we could play the associated animation on the side 😉
+22:07 < bridge> <Chairn> this looks fine imo
+22:08 < bridge> <Jupstar ✪> https://tenor.com/view/f-bi-raid-swat-gif-11500735
+22:09 < bridge> <Ewan> bad
+22:13 < bridge> <Chairn> also in France
+22:16 < bridge> <Chairn> do you speak baguette at least?
+22:16 < bridge> <Ryozuki> no
+22:16 < bridge> <Ryozuki> i speak catalan
+22:19 < bridge> <Chairn> you gotta split on `<` and `>` and then split according to what's in between, because there are multiple garbages prepended
+22:22 < bridge> <heinrich5991> ChillerDragon: ^
+22:38 < bridge> <Chairn> meh, didn't got time to review it (and there are some mistakes 😦 )
+22:39 < bridge> <Chairn> gl & hf 😛
+22:45 < bridge> <Chairn> because floating point operations are fairly expensive, especially in 1999
+22:45 < bridge> <Chairn> it's just an approximation of the inverse square root function, which surprisingly works pretty well
+22:46 < bridge> <Chairn> i believe the factor they use is kinda experimental, but someone used Newton's method and shown that it was actually the optimal number
+22:47 < bridge> <Chairn> technically, on x86/x87, it's not really a nop because it induces a transfer from the FPU to the CPU
+22:47 < bridge> <Chairn> experimental
+22:47 < bridge> <Voxel> wtf is x87
+22:47 < bridge> <Jupstar ✪> Fpu
+22:48 < bridge> <Voxel> ah
+22:48 < bridge> <Jupstar ✪> Well but how. By hand? Xd
+22:49 < bridge> <Chairn> technically, pointers are integers
+22:50 < bridge> <Chairn> but if you go this path, everything is just a soup of bits and bytes
+22:50 < bridge> <Chairn> and you interpret them as you wish 🙂
+22:51 < bridge> <Chairn> hmm, this is not UB? it just takes the address of x and adds 3*sizeof(x) ?
+22:52 < bridge> <Chairn> you're old !!
+22:52 < bridge> <Chairn> sorry, you were the most interesting guy in the last 5 days 🙂
+22:52 < bridge> <Ryozuki> xD
+22:53 < bridge> <Chairn> a null ref can exist in c++, your phrasing suggests otherwise
+22:54 < bridge> <Learath2> The standard does not allow for a null reference
+22:54 < bridge> <Ryozuki> can u do &nullptr
+22:54 < bridge> <Ryozuki> xd
+22:54 < bridge> <Learath2> It'd give you a pointer
+22:54 < bridge> <Ryozuki> true
+22:54 < bridge> <Chairn> it only discards at the end if you don't optimize it
+22:54 < bridge> <Ryozuki> to the nullptr
+22:54 < bridge> <Ryozuki> hmm
+22:54 < bridge> <Ryozuki> idk how to make one
+22:55 < bridge> <Learath2> (Depends on the context)
+22:55 < bridge> <Chairn> but it can be crafted though
+22:55 < bridge> <Chairn> soon #6666 also
+22:56 < bridge> <Learath2> Not without invoking UB
+22:56 < bridge> <Chairn> surely, but it's not impossible to break compiler assumption
+22:56 < bridge> <Learath2> C++20: 9.3.3.2p5 ...
+22:56 < bridge> <Learath2> >  [Note: In particular, a null reference cannot exist in a well-defined program, because the only way to create such a reference would be to bind it to the “object” obtained by indirection through a null pointer, which causes undefined behavior...]
+22:58 < bridge> <Chairn> probably possible to create an invalid but non null reference too
+23:00 < bridge> <Learath2> Are we talking about the same Djikstra's Algorithm? Doesn't it just devolve into breadth-first search if you remove the comparison with the shortest known route at any step?
+23:01 < bridge> <Chairn> i don't know breadth-first search 😦
+23:01 < bridge> <Chairn> iirc, Dijkstra discard when it reuses a node
+23:02 < bridge> <Chairn> I realize there are a lot of UB in C/C++ that are actually quite well defined at assembly level...
+23:12 < bridge> <Ewan> I misread
+23:13 < bridge> <Ewan> nothing is even happening here
+23:14 < bridge> <Ewan> for some reason i thought you were trying to do like this, assuming x is magically pointing to a valid float value (bare with me)
+23:14 < bridge> <Ewan> float *x; *x += 3;
+23:14 < bridge> <Ewan> that would be UB
+23:16 < bridge> <Learath2> `&x + 3` gets you outside the 1 float you declared, even creating such a pointer is deemed UB
+23:17 < bridge> <Ewan> since anything beyond &x + 1 is unknown yea
+23:17 < bridge> <Ewan> thing is he would have to do something with &x + 3 for problems to arise
+23:17 < bridge> <Ewan> atm it’s just a random expression
+23:18 < bridge> <Learath2> C99: 6.5.6p8 even doing that + immediately invokes UB
+23:18 < bridge> <Learath2> In practice indeed nothing will happen, but the compiler is allowed to shoot your parents for it
+23:18 < bridge> <Ewan> so true
+23:19 < bridge> <Ewan> for some reason i thought you were trying to do like this, assuming x is magically pointing to a valid float value (bare with me)
+23:19 < bridge> <Ewan> `void *x; *x += 3;`
+23:24 < bridge> <Learath2> Now that I think about it you can't do this. Something was bugging me but I couldn't put my hand on it. `nullptr` isn't even an `lvalue`
+23:47 < bridge> <Learath2> Funfact: x + 1 is completely fine, even x++
+23:49 < bridge> <Ewan> yea cuz float is 2 bytes
+23:49 < bridge> <Learath2> (Dereferencing it is still not ok, but you can hold and use that pointer)
+23:49 < bridge> <Ewan> i think x++ would error in cpp
+23:49 < bridge> <Learath2> Nope, that +1 takes you `sizeof *x` bytes out. So you are indeed outside
+23:50 < bridge> <Learath2> For additions in C, if one operand is a pointer that doesnt point to an array object but another object, it's treated as an array of length 1. Holding/creating a pointer one past an array is allowed
+23:51 < bridge> <Learath2> The more completely useless information you know the better
+23:53 < bridge> <Learath2> This one is another reason why thinking about pointers as integers can lead you astray. Adding 1 doesn't add 1 to the number you are thinking of
+23:53 < bridge> <Ewan> Interesting

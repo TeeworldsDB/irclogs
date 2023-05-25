@@ -1,0 +1,68 @@
+00:13 < bridge> <deen> yes, but only 7 seconds
+00:13 < bridge> <deen> ddnet with postgres? 😄
+00:13 < bridge> <bencie> thats the vid in the pr
+00:14 < bridge> <bencie> 7s ye
+00:14 < bridge> <deen> ok, my browser showed 14s and the error at some point
+00:15 < bridge> <bencie> ah idk, the youtube link he posted afterwars is 80secs long so thats a bit more useful
+00:15 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1111054987791962175/image.png
+00:15 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1111054988014256158/image.png
+00:15 < bridge> <Ewan> what on earth?
+00:16 < bridge> <Ewan> why not use new normally and do
+00:16 < bridge> <Ewan> ```
+00:16 < bridge> <Ewan>     CleanerFunctions.push([pKernel, pClient]() {
+00:16 < bridge> <Ewan>         pKernel->Shutdown();
+00:16 < bridge> <Ewan>         delete pKernel;
+00:16 < bridge> <Ewan>         [&pClient]{ pClient->~CClient() };
+00:16 < bridge> <Ewan>         free(pClient);
+00:16 < bridge> <Ewan>     });
+00:16 < bridge> <Ewan> ```
+00:16 < bridge> <Ewan> why not use new normally and do
+00:16 < bridge> <Ewan> ```cpp
+00:16 < bridge> <Ewan>     CleanerFunctions.push([pKernel, pClient]() {
+00:16 < bridge> <Ewan>         pKernel->Shutdown();
+00:16 < bridge> <Ewan>         delete pKernel;
+00:16 < bridge> <Ewan>         [&pClient]{ delete pClient; };
+00:16 < bridge> <Ewan>         free(pClient);
+00:17 < bridge> <Ewan>     });
+00:17 < bridge> <Ewan> ```
+00:22 < bridge> <Ewan> okay discord is displaying my images in a stupid way so i guess i have to post code snippets instead. poor chillerdragon
+00:22 < bridge> <Ewan> ```cpp
+00:22 < bridge> <Ewan> static CClient *CreateClient()
+00:22 < bridge> <Ewan> {
+00:22 < bridge> <Ewan>     CClient *pClient = static_cast<CClient *>(malloc(sizeof(*pClient)));
+00:23 < bridge> <Ewan>     mem_zero(pClient, sizeof(CClient));
+00:23 < bridge> <Ewan>     return new(pClient) CClient;
+00:23 < bridge> <Ewan> }
+00:23 < bridge> <Ewan> 
+00:23 < bridge> <Ewan> ...
+00:23 < bridge> <Ewan>         // Init client
+00:23 < bridge> <Ewan>     CClient *pClient = CreateClient();
+00:23 < bridge> <Ewan> 
+00:23 < bridge> <Ewan> ...
+00:23 < bridge> <Ewan>         // Deinit (client included)
+00:23 < bridge> <Ewan>     CleanerFunctions.push([pKernel, pClient]() {
+00:23 < bridge> <Ewan>         pKernel->Shutdown();
+00:23 < bridge> <Ewan>         delete pKernel;
+00:23 < bridge> <Ewan>         pClient->~CClient();
+00:23 < bridge> <Ewan>         free(pClient);
+00:23 < bridge> <Ewan>     });
+00:23 < bridge> <Ewan> ```
+00:32 < bridge> <Ewan> why not use new normally and do
+00:32 < bridge> <Ewan> ```cpp
+00:32 < bridge> <Ewan>     CleanerFunctions.push([pKernel, pClient]() {
+00:32 < bridge> <Ewan>         pKernel->Shutdown();
+00:32 < bridge> <Ewan>         delete pKernel;
+00:32 < bridge> <Ewan>         delete pClient;
+00:32 < bridge> <Ewan>         free(pClient);
+00:32 < bridge> <Ewan>     });
+00:32 < bridge> <Ewan> ```
+00:52 < bridge> <Ewan> i had syntax highlighting on mobile for like 5 minutes. now it’s gone. where did it go o_O
+07:05 < bridge> <chillerdragon> That looks indeed weird. Maybe it’s allocated with malloc and thus should be freed and the destructor is called manually to make sure it all works fine. Idk if free calls destructors
+07:52 < bridge> <gerdoe> yeah free doesnt call any destructor afair
+08:18 < bridge> <Ewan> it is and that's why but my question is why malloc is being used in the first place
+08:18 < bridge> <Ewan> free can't call dtor bcus free has no concept of classes or vtables or whatever afaik
+08:19 < bridge> <Ewan> would using `new` regularly not just do the same thing and put it somewhere in the heap? what's malloc do differently that helps here
+08:19 < bridge> <Ewan> im trying to understand why because pKernel is constructed & destructed in the exact same way right next to pClient so i can't see how it would be a lifetime thing
+08:19 < bridge> <Ewan> which would be irrelevant anyway...
+08:20 < bridge> <Ewan> im trying to understand why because pKernel is constructed & destructed in the correct way but in the exact same place as pClient so i can't see how it would be a lifetime thing
+08:50 < bridge> <ReiTW> afaik the only diff is that new calls the constructor
