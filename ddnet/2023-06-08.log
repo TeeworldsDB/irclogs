@@ -1,0 +1,164 @@
+01:33 <+bridge> <Ewan> good afternoon
+03:44 <+bridge> <Ewan> in testing my code i noticed the game does not handle opening a huge file properly
+03:44 <+bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1116181006303645766/image.png
+03:44 <+bridge> <Ewan> segfault here
+03:44 <+bridge> <Ewan> buffer address makes me think it's an ignored HRESULT or smth
+03:45 <+bridge> <Ewan> winduhs
+03:57 <+bridge> <Ewan> the file is ~8GB, but `io_length()` is returning 0
+03:57 <+bridge> <Ewan> it allocates `len` (0) + 1 bytes, the resulting buffer is too small for any reading, disaster ensues
+03:57 <+bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1116184186584305804/image.png
+04:01 <+bridge> <Ewan> i think unsigned is too small for this, `size_t` or `ulong` should be used if anyone's trying to refactor this 😃
+04:02 <+bridge> <Ewan> but afaik there are no existing issues with this, it just came up in testing my code which reports if the file is too big
+04:02 <+bridge> <Ewan> unrealistic scenario
+04:05 <+bridge> <Ewan> but yeah either you can expand io_length to return a larger size or you can return from io_read_all if the result is 0 or negative, this at least lets me handle a file being too big
+04:08 <+bridge> <Ewan> actually `io_length()` already returns a long, i don't know what's going on
+04:15 <+bridge> <Ewan> ftell is returning 0 on this file even though its `IOHANDLE` is non-null
+04:16 <+bridge> <Ewan> io_tell is returning 0 on this file even though its `IOHANDLE` is non-null
+04:17 <+bridge> <Ewan> this is probably known behavior and i'm just silly
+04:17 <+bridge> <Ewan> it's `8425177088` bytes which is well within the boundaries of even a signed long
+04:26 <+bridge> <tsfreddie> rip
+04:26 <+bridge> <tsfreddie> my discord number is robbed
+04:27 <+bridge> <tsfreddie> now i'm just `tsfreddie`
+04:32 <+bridge> <Ewan> sad
+04:48 <+bridge> <Ewan> i'm not finding a fstat io_ euqivalent
+04:48 <+bridge> <Ewan> agh
+04:49 <+bridge> <tsfreddie> agh
+05:30 <+bridge> <Ewan> anyone ever heard of mingw misunderstanding windows file permissions
+05:31 <+bridge> <Ewan> i set the perms of this file through windows security, readable only to admins
+05:31 <+bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1116207789715496981/image.png
+05:31 <+bridge> <Ewan> msys's stat compiled with mingw doesn't get it
+05:31 <+bridge> <Ewan> my checks using std::filesystem::perms also wrongfully report it as readable
+05:32 <+bridge> <Ewan> i'd have to compile with msvc to make sure this isn't a different issue but setting up vcpkg or whatever would be required to compile ddnet sounds like a nightmare
+05:43 <+bridge> <Ewan> unrelated but what's the naming convention for C++ style loop iterator names
+05:43 <+bridge> <Ewan> i usually do `it` (lowercase) but would `It` be more appropriate?
+06:00 <+bridge> <Ewan> symlink detection is also screwed
+07:13 <+bridge> <Jupstar ✪> @Ewan Green i hope u are aware u compiled for 32bit
+07:13 <+bridge> <Jupstar ✪> At least it looks so
+07:14 <+bridge> <Jupstar ✪> Besides that, yes our system CPP uses int very often instead of the correct usize
+07:14 <+bridge> <Jupstar ✪> So you probably run out of luck with ddnet for such stuff
+07:17 <+bridge> <Jupstar ✪> You could read it in chunks. Maybe then it works ^^
+07:35 <+bridge> <Ewan> what makes you think that
+07:40 <+bridge> <Jupstar ✪> The memory location is 32bit in your image
+07:40 <+bridge> <Ewan> the address width in the screenshot? it's automatically truncated
+07:40 <+bridge> <Ewan> it's a 64 bit binary
+07:41 <+bridge> <Ewan> mingw w64 and PE header says 64
+07:42 <+bridge> <Jupstar ✪> Mh ok weird
+07:43 <+bridge> <Ewan> i'm not sure what's going on with the file loading but i'm convinced that it's not actually ddnet's fault
+07:44 <+bridge> <Ewan> yes it should use long wherever needed, but `io_tell` (which wraps ftell directly) has nothing between the caller and the libc that should narrow the number, and still has this issue
+07:44 <+bridge> <Ewan> it may be a mingw issue, but i am using the 64 bit compiler
+07:44 <+bridge> <Ewan> the limit is 2GiB exactly
+07:44 <+bridge> <Ewan> 1 byte less works
+07:44 <+bridge> <Jupstar ✪> What function signature does it have
+07:44 <+bridge> <Ewan> this is classic 32 bit issue
+07:44 <+bridge> <Ewan> returns long
+07:44 <+bridge> <Ewan> ill look up actual sig
+07:45 <+bridge> <Jupstar ✪> Long would be 32b on 32b windows xd
+07:45 <+bridge> <Jupstar ✪> But yeah dunno. Windows is always the problem
+07:47 <+bridge> <Ewan> I think this is specific to MSVC
+07:49 <+bridge> <Ewan> oh i guess not
+07:50 <+bridge> <Ewan> ug
+07:51 <+bridge> <Ewan> ftell vs. ftello
+07:52 <+bridge> <Ewan> ftell returns long which is 32 bit and that's the issue
+07:52 <+bridge> <Ewan> ftello is the correct function to use in this case
+07:52 <+bridge> <Ewan> annoying
+07:52 <+bridge> <Jupstar ✪> I c
+07:54 <+bridge> <Jupstar ✪> But with std FS it should work tho
+07:55 <+bridge> <Ewan> idk, what u mean
+07:55 <+bridge> <Ewan> i could overcome this by doing what the system.cpp does and just casting my IOHANDLE to a FILE * and using ftello myself instead of io_tell
+07:55 <+bridge> <Jupstar ✪> Std filesystem
+07:55 <+bridge> <Ewan> the std fs issue is different
+07:55 <+bridge> <Jupstar ✪> What issue?
+07:55 <+bridge> <Jupstar ✪> I mean try using the std
+07:56 <+bridge> <Ewan> std filesystem doesn't define an API for opening and reading/writing from/to files
+07:56 <+bridge> <Jupstar ✪> ?
+07:57 <+bridge> <Ewan> what's confusing
+07:57 <+bridge> <Jupstar ✪> I mean there must be some CPP way
+07:57 <+bridge> <totar> I think escape button is broken in the server browser
+07:58 <+bridge> <Ewan> oh i thought u meant std::filesystem
+07:58 <+bridge> <totar> is it supposed to work in the server browser?
+07:58 <+bridge> <Ewan> yes i could use stl apis for this but i think most ddnet devs would think that using existing ddnet apis is better
+07:58 <+bridge> <Ewan> because they can be wrapped and adapted etc
+07:58 <+bridge> <Ewan> idk, #bugs
+07:59 <+bridge> <totar> I was wondering if its related to #6709
+07:59 <+bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6709
+07:59 <+bridge> <Jupstar ✪> If u run old code
+07:59 <+bridge> <totar> Im on latest
+08:02 <+bridge> <Jupstar ✪> Ping rob or create issue then
+08:03 <+bridge> <Ewan> i wonder if adding templates to ddnet system functions would be the move
+08:03 <+bridge> <Ewan> type inference should make existing code still work
+08:03 <+bridge> <Ewan> but the functions can use ulong/size_t (ull) and the corresponding libc functions
+08:04 <+bridge> <Ewan> but the system functions can then use ulong/size_t (ull) and the corresponding libc functions
+08:04 <+bridge> <Ewan> i am also happy to live with this limitation lol nobody needs >2GB files
+08:04 <+bridge> <Ewan> but future proofing and whatnot
+08:05 <+bridge> <Jupstar ✪> If u expose it additionally
+08:05 <+bridge> <Jupstar ✪> 
+08:05 <+bridge> <Jupstar ✪> Also no harm in using CPP standard directly
+08:05 <+bridge> <Jupstar ✪> The system stuff is rather useless
+08:05 <+bridge> <Jupstar ✪> Most of it
+08:05 <+bridge> <Jupstar ✪> Not all
+08:05 <+bridge> <Ewan> well, there are a lot of gotchas when using the libc across systems
+08:05 <+bridge> <Ewan> platform and compiler differences make things complicated
+08:05 <+bridge> <Ewan> having system apis like this lets us account for it
+08:05 <+bridge> <Jupstar ✪> Yes that's why u don't rely on c
+08:06 <+bridge> <Ewan> afaik the only cpp apis for this sort of thing are wrapped C APIs (std::fopen, std::fread, etc) and file streams
+08:07 <+bridge> <Jupstar ✪> I mean there is ifstream and stuff
+08:07 <+bridge> <Ewan> those are file streams
+08:07 <+bridge> <Jupstar ✪> I doubt there is no CPP way xd
+08:07 <+bridge> <Ewan> ifstream = input file stream
+08:07 <+bridge> <Jupstar ✪> Perfect
+08:07 <+bridge> <Jupstar ✪> Then u have it
+08:07 <+bridge> <Ewan> xd
+08:07 <+bridge> <Ewan> streaming :(
+08:07 <+bridge> <Jupstar ✪> It's fastest
+08:08 <+bridge> <Ewan> if i use a cpp api then im mixing cpp apis and ddnet system apis
+08:08 <+bridge> <Ewan> which i guess there's nothing wrong with at a small scale like this but that kind of irks me
+08:09 <+bridge> <Jupstar ✪> Mh yeah, ddnets API simply sucks😂😂
+08:09 <+bridge> <Jupstar ✪> Why do u need 8gb btw
+08:09 <+bridge> <Ewan> i don't, it's just that i want the file loader thing to be future proof
+08:10 <+bridge> <Ewan> i think for now i will just use the ddnet apis, since if ddnet ever needs >2GB files, the ddnet system apis will just be updated
+08:10 <+bridge> <Jupstar ✪> Yeah^^
+08:11 <+bridge> <Ewan> this std::filesystem perms/symlink thing is a real bummer
+08:11 <+bridge> <Ewan> i expected more of mingw
+08:11 <+bridge> <Ewan> if i want to expose this functionality
+08:11 <+bridge> <Ewan> i have to use winapi
+08:11 <+bridge> <Jupstar ✪> I didn't read everything u said sry
+08:11 <+bridge> <Ewan> yea so i have a hunch that mingw is incorrectly reporting filesystem stuff
+08:12 <+bridge> <Ewan> firstly std::filesystem::perms and std::filesystem::is_symlink and the like do not work for me on mingw
+08:12 <+bridge> <Jupstar ✪> Oh
+08:12 <+bridge> <Ewan> perms incorrectly reporting files as readable. and is_symlink thinking that the symbolic link i made with powershell is indeed not a symlink
+08:13 <+bridge> <Jupstar ✪> Sad
+08:13 <+bridge> <Ewan> yea
+08:13 <+bridge> <Ewan> though, fs_* functions could be added to stat permissions and symlink status
+08:14 <+bridge> <Ewan> oh shit
+08:15 <+bridge> <Jupstar ✪> Long would be 32b on windows xd
+08:15 <+bridge> <Ewan> `fs_listdir_fileinfo` leverages `WIN32_FIND_DATAW` on windows, contains a symlink flag
+08:16 <+bridge> <Ewan> but it's not exposed by `CFsFileInfo`, the file info type used by `FS_LISTDIR_CALLBACK_FILEINFO` which is the fn ptr signature that `fs_listdir_fileinfo` uses
+08:16 <+bridge> <Ewan> annoying!
+08:16 <+bridge> <Ewan> i think this is a conversation for later on github
+08:17 <+bridge> <Ewan> i either add this stupid functionality or i don't add file permission/symlink status to the file loader
+08:20 <+bridge> <Ewan> just saw this for the first time in the loading menu. cheeky
+08:20 <+bridge> <Ewan> ```cpp
+08:20 <+bridge> <Ewan>         if(m_Menus.IsInit())
+08:20 <+bridge> <Ewan>         {
+08:20 <+bridge> <Ewan>             char aBuff[256];
+08:20 <+bridge> <Ewan>             str_format(aBuff, std::size(aBuff), "%s [%d/%d]", CompCounter == 40 ? Localize("Why are you slowmo replaying to read this?") : Localize("Initializing components"), (CompCounter + 1), (int)ComponentCount());
+08:20 <+bridge> <Ewan>             m_Menus.RenderLoading(pLoadingDDNetCaption, aBuff, 1 + SkippedComps);
+08:20 <+bridge> <Ewan>             SkippedComps = 0;
+08:21 <+bridge> <Ewan>         }
+08:21 <+bridge> <Ewan> ```
+08:21 <+bridge> <totar> I'm so glad the translators localize that text
+08:21 <+bridge> <totar> lol
+08:21 <+bridge> <Ewan> Yea
+08:21 <+bridge> <Ewan> localize all
+08:21 <+bridge> <Ewan> it's the way to go
+08:28 <+bridge> <Ewan> I have no idea why they would std::regex without an error checking mechanism besides a single exception
+08:28 <+bridge> <Ewan> which I can't even use because... exceptions are off
+08:29 <+bridge> <Ewan> so i have to just pray the expression passed is valid, or do my own stupid regex parsing
+08:29 <+bridge> <Ewan> I have no idea why they would allow std::regex in the standard without an error checking mechanism besides a single exception
+08:29 <+bridge> <Ewan> they don't even have an `operator bool()`
+08:31 <+bridge> <Jupstar ✪> Yep sucks hard
+08:31 <+bridge> <Jupstar ✪> I wanted to add regex search support a while ago
+08:32 <+bridge> <Ewan> they don't provide comparison operators either, so i can't even have a known dud std::regex object for comparison
+08:32 <+bridge> <Ewan> you're just fucked
+08:59 <+ChillerDragon> !jup emote and pinger completion now appends a : and a space for better emote spam and pingering
+08:59 < chillerbot1> @Jupstar ✪
