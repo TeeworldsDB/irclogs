@@ -1,0 +1,1054 @@
+00:03 < bridge_> <teero777> hey what exactly is GameTickTime in the CGameClient its used for rendering a bunch of stuff? how is it calculated? (ping me im going to go sleep now)
+01:07 < bridge_> <Ewan> probably by the backend get ticks fn
+01:11 < bridge_> <Ewan> actually i don’t think ddnet has multiple backends for system stuff like that, i think it’s just sdl baked in
+07:22 < bridge_> <teero777> hey what exactly is GameTickTime in the CGameClient its used for rendering a bunch of stuff? how is it calculated?
+08:30 < bridge_> <Ewan> ————————
+08:43 < bridge_> <teero777> it isnt but i decided to not care so no need to answer the question above anymore
+08:44 < bridge_> <teero777> it isnt but i decided to not care so there is no need to answer the question above anymore
+10:53 < bridge_> <ryozuki> ⚠️ update
+10:54 < bridge_> <Ewan> 🥺
+11:02 < bridge_> <Jupstar ✪> Hype
+11:07 < bridge_> <Jupstar ✪> @ryozuki today on ffr,i have to ask you. Do you know a crate for a hashmap that can be copied at once.. basically like Vec copy from slice.. but i don't need the requirement of only copying a slice. It's ok if I copy the full hashmap. I just don't want it to create heap allocations for every insert
+11:07 < bridge_> <ryozuki> hm wdym?
+11:07 < bridge_> <ryozuki> inserts dont do heap allocations always
+11:07 < ws-client1> <Jupstar> yeah, but if a new bucket is openeed?
+11:07 < bridge_> <ryozuki> only when the hashmap load factor is unoptimal
+11:07 < bridge_> <ryozuki> when it needs more buckets*
+11:08 < bridge_> <ryozuki> so what do u want exactly?
+11:08 < ws-client1> <Jupstar> i basically want this: hashmap.reserve(otherhashmap.size()); hashmap.copy_content(other)
+11:08 < bridge_> <ryozuki> u can do with_capacity
+11:08 < bridge_> <ryozuki> https://doc.rust-lang.org/std/collections/struct.HashMap.html#method.with_capacity
+11:08 < bridge_> <ryozuki> Creates an empty HashMap with at least the specified capacity.
+11:08 < bridge_> <ryozuki> 
+11:08 < bridge_> <ryozuki> The hash map will be able to hold at least capacity elements without reallocating. This method is allowed to allocate for more elements than capacity. If capacity is 0, the hash map will not allocate.
+11:08 < ws-client1> <Jupstar> basically a hashmap that uses a Vec internally, even if that means that the hashmap is less efficient in inserting ^^^
+11:09 < bridge_> <ryozuki> hashmap uses vec internally already
+11:09 < bridge_> <ryozuki> have u ever implemented a hashmap?
+11:09 < ws-client1> <Jupstar> mh ok
+11:09 < ws-client1> <Jupstar> i'd have thought all buckets are extra vecs
+11:09 < ws-client1> <Jupstar> good to know
+11:09 < bridge_> <ryozuki> it uses quadratic probing, the quadratic probe is how it probes along the array/vector
+11:09 < bridge_> <ryozuki> look at my smol map
+11:09 < bridge_> <ryozuki> it doesnt reallocate cuz its on the stack
+11:09 < bridge_> <ryozuki> but its a good way to see
+11:09 < bridge_> <ryozuki> it uses linear probing tho
+11:10 < bridge_> <ryozuki> https://github.com/edg-l/smolmap
+11:10 < ws-client1> <Jupstar> ok then another question
+11:10 < bridge_> <ryozuki> <https://github.com/edg-l/smolmap/blob/master/src/lib.rs>
+11:10 < bridge_> <ryozuki> here
+11:10 < bridge_> <ryozuki> ```rust
+11:10 < bridge_> <ryozuki> #[derive(Debug)]
+11:10 < ws-client1> <Jupstar> does the hashmap also allow copying the full content of another hashmap?
+11:10 < bridge_> <ryozuki> pub struct SmolMap<K, V, const N: usize, S = RandomState> {
+11:10 < bridge_> <ryozuki>     storage: [MaybeUninit<(K, V)>; N],
+11:10 < bridge_> <ryozuki>     tags: [bool; N],
+11:10 < bridge_> <ryozuki>     len: usize,
+11:10 < bridge_> <ryozuki>     state: S,
+11:10 < bridge_> <ryozuki> }
+11:10 < bridge_> <ryozuki> ```
+11:10 < bridge_> <ryozuki> wdym by copying
+11:10 < bridge_> <ryozuki> u can .extend() a hashmap with another
+11:11 < ws-client1> <Jupstar> and that makes no allocations?
+11:11 < bridge_> <ryozuki> just like with vectors
+11:11 < bridge_> <ryozuki> as long as it has enough capacity it doesnt
+11:11 < bridge_> <ryozuki> thats why with_capacity
+11:11 < ws-client1> <Jupstar> but, wait
+11:11 < ws-client1> <Jupstar> mb
+11:11 < bridge_> <ryozuki> capacity is how much is allocated
+11:11 < bridge_> <ryozuki> length is how much is used
+11:11 < ws-client1> <Jupstar> does it copy the full hashmap like a memcpy?
+11:11 < bridge_> <ryozuki> i mean if its a vec probs ye
+11:11 < bridge_> <ryozuki> or realloc
+11:12 < ws-client1> <Jupstar> mhh ok, how the fuck do they do this?
+11:12 < bridge_> <ryozuki> u can always put ur values in a box
+11:12 < bridge_> <ryozuki> and it will only memcpy a array of pointers xd
+11:12 < bridge_> <ryozuki> wdym?
+11:12 < bridge_> <ryozuki> u should implement a hashmap and learn how it works
+11:12 < bridge_> <ryozuki> ah
+11:12 < ws-client1> <Jupstar> i have an idea how it works
+11:12 < bridge_> <ryozuki> reallocating in a hashmap is a bit more expensive
+11:12 < bridge_> <ryozuki> because u have to rehash
+11:13 < ws-client1> <Jupstar> a bucket is basically the index of an hash
+11:13 < ws-client1> <Jupstar> or th hash the index of the bucket
+11:13 < bridge_> <ryozuki> i can explain simply:
+11:13 < ws-client1> <Jupstar> and inside the bucket u have some space for elements
+11:13 < ws-client1> <Jupstar> in best case 1 bucket  = 1 element
+11:13 < bridge_> <ryozuki> you have a a array that is ur storage, u have a hash function that  returns an integer, you have to mod that  integer to the length of your array
+11:13 < bridge_> <ryozuki> you willl ofc have hash colisions
+11:13 < bridge_> <ryozuki> the method to solve hash colisions is the probing
+11:13 < bridge_> <ryozuki> u have linear or quadratic probing
+11:14 < bridge_> <ryozuki> with the probe u check each slot of the array
+11:14 < bridge_> <ryozuki> and if it isnt used
+11:14 < bridge_> <ryozuki> thats the slot
+11:14 < bridge_> <ryozuki> if its used
+11:14 < bridge_> <ryozuki> you check the key for match
+11:14 < bridge_> <ryozuki> this is when inserting
+11:14 < bridge_> <ryozuki> for get u just keep probing until the key matches, if u find a unused slot it means the key isnt there
+11:15 < bridge_> <ryozuki> https://en.wikipedia.org/wiki/Open_addressing
+11:15 < ws-client1> <Jupstar> so they have a fat huge vector for all buckets and possible collisions inside a bucket? and in worst case u need to reallocate the whole vector and recopy the full content?
+11:15 < ws-client1> <Jupstar> i'd have thought they choose a more dynamic approach
+11:16 < ws-client1> <Jupstar> but now is just the question, can i memcpy the whole content of the internal Vec
+11:16 < ws-client1> <Jupstar> i basically want to clone a hashmap, but without heap allocation (which .clone() would do).. i basically want clone_into_this_storage(...)
+11:16 < ws-client1> <Jupstar> basically copy_from_slice for Vec, just over the whole size of the Vec
+11:17 < bridge_> <ryozuki> > Generally you create an array called "buckets" that contain the key and value, with an optional pointer to create a linked list.
+11:17 < bridge_> <ryozuki> > 
+11:17 < bridge_> <ryozuki> > When you access the hash table with a key, you process the key with a custom hash function which will return an integer. You then take the modulus of the result and that is the location of your array index or "bucket". Then you check the unhashed key with the stored key, and if it matches, then you found the right place.
+11:17 < bridge_> <ryozuki> > 
+11:17 < bridge_> <ryozuki> > Otherwise, you've had a "collision" and must crawl through the linked list and compare keys until you match. (note some implementations use a binary tree instead of linked list for collisions).
+11:17 < bridge_> <ryozuki> meh i dont like the thing i deleted, linked list bad
+11:17 < bridge_> <ryozuki> kek
+11:17 < bridge_> <ryozuki> ye best case is that the hash gives u directly the element
+11:17 < bridge_> <ryozuki> this is why to know when to rehash/reallocate you calculate the load factor of the hashmap
+11:17 < bridge_> <ryozuki> which tells u how efficient the hashmap is right now
+11:17 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124267310052556860/e3487807884a0c0748869a904c450c6c340f3533.png
+11:17 < bridge_> <ryozuki> where
+11:17 < bridge_> <ryozuki> 
+11:17 < bridge_> <ryozuki>     n n is the number of entries occupied in the hash table.
+11:17 < bridge_> <ryozuki>     m m is the number of buckets.
+11:17 < bridge_> <ryozuki> a bucket is just a slot in a array
+11:18 < bridge_> <ryozuki> https://doc.rust-lang.org/std/clone/trait.Clone.html#method.clone_from
+11:18 < ws-client1> <Jupstar> https://doc.rust-lang.org/std/clone/trait.Clone.html#method.clone_from
+11:18 < ws-client1> <Jupstar> LOL
+11:18 < bridge_> <ryozuki> is this what u want?
+11:18 < bridge_> <ryozuki> ye
+11:18 < ws-client1> <Jupstar> that timing xD
+11:18 < bridge_> <ryozuki> > a.clone_from(&b) is equivalent to a = b.clone() in functionality, but can be overridden to reuse the resources of a to avoid unnecessary allocations.
+11:19 < ws-client1> <Jupstar> ok interesting, didnt know it can do that already, so mb :D
+11:23 < bridge_> <ryozuki> but yeah a hashmap is just Vec<(key, value)>, the buckets are kinda dynamic, as in depends on how often the keys collide in a already used slot, i guess u could say a bucket extends however much slots the probing needs to probe when a hash collides
+11:24 < bridge_> <ryozuki> there is another way to implement hashmaps with closed addressing and chain
+11:24 < bridge_> <ryozuki> i think that one uses linked lists
+11:24 < bridge_> <ryozuki> and buckets are more like you thought
+11:24 < bridge_> <ryozuki> but i think less efficient
+11:24 < bridge_> <ryozuki> linked listsb ad
+11:24 < bridge_> <ryozuki> linked lists bad
+11:25 < ws-client1> <Jupstar> yeah depends ^^
+11:25 < ws-client1> <Jupstar> i could assume that the hashmap changes the hash algorithm based on the size (and maybe even generic type) anyway?
+11:25 < ws-client1> <Jupstar> that a Vec might be more efficient, since it needs to reposion the underlaying elements anyway
+12:33 < ws-client1> <chiler> woah respect jopsti for pulling the rusty friday 3rd time in a ro
+12:33 < ws-client1> <chiler> dedication
+12:34 < ws-client1> <Jupstar> i missed last friday tho 😂 
+12:34 < ws-client1> <chiler> nobodi noticed
+12:34 < ws-client1> <Jupstar> i was banned
+12:34 < ws-client1> <Jupstar> xd
+12:34 < ws-client1> <chiler> F
+12:35 < ws-client1> <chiler> nobodi noticed
+12:35 < ws-client1> <chiler> nobodi miss u
+12:35 < ws-client1> <chiler> axaxaxaxax
+12:35 < ws-client1> <Jupstar> without me
+12:35 < ws-client1> <chiler> i would ask what happend but i feel like discussing moderation will get me life banned
+12:35 < ws-client1> <chiler> go #offtopuc
+12:36 < ws-client1> <Jupstar> just search where ur bot was kicked xd
+12:36 < ws-client1> <chiler> !
+12:36 < ws-client1> <Jupstar> the truth should never die xD
+12:36 < ws-client1> <chiler> im at work for once dont have my irc log w me
+12:36 < ws-client1> <Jupstar> ddnet also logs irc :D
+12:36 < ws-client1> <chiler> ye
+12:36 < ws-client1> <chiler> but webgrep
+12:36 < ws-client1> <chiler> is not a thing
+12:37 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124287520717406209/image.png
+12:37 < ws-client1> <chiler> pog
+12:37 < ws-client1> <chiler> menu
+12:37 < ws-client1> <Jupstar> @chiler 2023-06-20 10 o'clock
+12:37 < ws-client1> <chiler> ty
+12:38 < ws-client1> <chiler> https://ddnet.org/irclogs/2021-06-20.log
+12:38 < bridge_> <ryozuki> poggies
+12:38 < ws-client1> <Jupstar> 2021
+12:38 < ws-client1> <Jupstar> trollos
+12:38 < ws-client1> <ChillerDragon> e wops
+12:39 < bridge_> <ryozuki> jupstar
+12:39 < ws-client1> <Jupstar> @ryozuki epic gemer moment
+12:39 < bridge_> <ryozuki> do u know there are perfect hash tables
+12:39 < ws-client1> <Jupstar> i watched that video yeah
+12:39 < bridge_> <ryozuki> https://en.wikipedia.org/wiki/Perfect_hash_function
+12:40 < ws-client1> <ChillerDragon> oh woah heinrich banned the bot cuz u used it to bypass ban axaxax?
+12:40 < ws-client1> <Jupstar> xDD
+12:40 < ws-client1> <Jupstar> psst
+12:40 < ws-client1> <Jupstar> _unjustified_
+12:40 < bridge_> <ryozuki> the more i use bevy the more amazed i am
+12:40 < bridge_> <ryozuki> it has epic state management
+12:40 < ws-client1> <ChillerDragon> who did you even call a bot?
+12:40 < ws-client1> <Jupstar> nobody?
+12:41 < ws-client1> <Jupstar> @ryozuki how so
+12:41 < ws-client1> <Jupstar> u aint like teeworlds epic state management 😂 
+12:41 < ws-client1> <ChillerDragon> u called someone out as reading convo like a bot 
+12:41 < ws-client1> <Jupstar> ah yeah
+12:42 < ws-client1> <ChillerDragon> whp
+12:42 < ws-client1> <Jupstar> but i was banned for the "Bro" XD
+12:42 < bridge_> <ryozuki> ```rs
+12:42 < bridge_> <ryozuki> fn menu_setup(mut menu_state: ResMut<NextState<MenuState>>) {
+12:42 < bridge_> <ryozuki>     menu_state.set(MenuState::Main);
+12:42 < bridge_> <ryozuki> }
+12:42 < bridge_> <ryozuki> ```
+12:42 < bridge_> <ryozuki> ```rs
+12:42 < bridge_> <ryozuki> #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
+12:42 < bridge_> <ryozuki> enum MenuState {
+12:42 < bridge_> <ryozuki>     Main,
+12:42 < bridge_> <ryozuki>     Settings,
+12:42 < bridge_> <ryozuki>     SettingsDisplay,
+12:42 < bridge_> <ryozuki>     SettingsSound,
+12:42 < bridge_> <ryozuki>     #[default]
+12:42 < bridge_> <ryozuki>     Disabled,
+12:42 < bridge_> <ryozuki> }
+12:42 < bridge_> <ryozuki> ```
+12:43 < ws-client1> <Jupstar> mhh
+12:43 < ws-client1> <Jupstar> 1. that is normal rust, 2. doesnt convince me tbh
+12:43 < bridge_> <ryozuki> ```rs
+12:43 < bridge_> <ryozuki> impl Plugin for MenuPlugin {
+12:43 < bridge_> <ryozuki>     fn build(&self, app: &mut App) {
+12:43 < bridge_> <ryozuki>         app.add_state::<MenuState>()
+12:43 < bridge_> <ryozuki>             .add_system(menu_setup.in_schedule(OnEnter(AppState::MainMenu)))
+12:43 < bridge_> <ryozuki>             .add_systems((
+12:43 < bridge_> <ryozuki>                 main_menu_setup.in_schedule(OnEnter(MenuState::Main)),
+12:43 < bridge_> <ryozuki>                 despawn_screen::<OnMainMenuScreen>.in_schedule(OnExit(MenuState::Main)),
+12:43 < bridge_> <ryozuki>             ))
+12:43 < bridge_> <ryozuki>             // Common systems to all screens that handles buttons behaviour
+12:43 < bridge_> <ryozuki>             .add_systems((menu_action, button_system).in_set(OnUpdate(AppState::MainMenu)));
+12:43 < bridge_> <ryozuki>     }
+12:43 < bridge_> <ryozuki> }
+12:43 < bridge_> <ryozuki> ```
+12:43 < bridge_> <ryozuki> i have only this done yet
+12:43 < bridge_> <ryozuki> xd
+12:43 < ws-client1> <ChillerDragon> wot comments between method call chaining
+12:44 < bridge_> <ryozuki> u can allways lol
+12:44 < ws-client1> <Jupstar> `despawn_screen::.in_schedule` never seen that syntax
+12:44 < ws-client1> <Jupstar> what is that dot doing there
+12:44 < ws-client1> <ChillerDragon> jopsti keep in mind
+12:44 < ws-client1> <ChillerDragon> bridge breaks rs
+12:44 < bridge_> <ryozuki> ```rs
+12:44 < bridge_> <ryozuki> pub fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
+12:44 < bridge_> <ryozuki>     for entity in &to_despawn {
+12:44 < bridge_> <ryozuki>         commands.entity(entity).despawn_recursive();
+12:44 < bridge_> <ryozuki>     }
+12:44 < bridge_> <ryozuki> }
+12:44 < bridge_> <ryozuki> 
+12:44 < bridge_> <ryozuki> ```
+12:44 < bridge_> <ryozuki> no its bevy magic
+12:44 < bridge_> <ryozuki> it has traits over functions
+12:44 < ws-client1> <ChillerDragon> https://github.com/ChillerDragon/discord-irc/issues/9
+12:45 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124289497232842752/image.png
+12:45 < ws-client1> <Jupstar> interesting
+12:45 < bridge_> <ryozuki> a system in bevy is a function
+12:45 < bridge_> <ryozuki> its rly interesting
+12:45 < bridge_> <ryozuki> the compile time reflection thing
+12:45 < bridge_> <ryozuki> bevy does
+12:45 < bridge_> <ryozuki> for methods
+12:46 < ws-client1> <Jupstar> does it do that without macros?
+12:46 < bridge_> <ryozuki> yeah no macros
+12:47 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124290144313299004/image.png
+12:47 < ws-client1> <Jupstar> i wonder how that syntax works that it gives u some kind of object using only generics
+12:47 < bridge_> <ryozuki> https://github.com/alexpusch/rust-magic-function-params
+12:47 < bridge_> <ryozuki> here its  explained
+12:47 < bridge_> <ryozuki> the technique used
+12:47 < ws-client1> <Jupstar> ty
+12:48 < bridge_> <ryozuki> https://docs.rs/bevy/latest/bevy/ecs/system/trait.SystemParam.html#foreign-impls
+12:49 < bridge_> <ryozuki> add_systems is limited to 12 functions passed at the same time, but u can simply call add_systems again for 12 more if needed xd
+12:49 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124290625538363433/image.png
+12:49 < bridge_> <ryozuki> and this way u can tell bevy how to execute and which order and in which state
+12:49 < bridge_> <ryozuki> each system
+12:49 < bridge_> <ryozuki> system = function
+12:50 < bridge_> <ryozuki> (in ecs)
+13:15 <@heinrich5991> hamid is gone already :/
+14:05 < bridge_> <ryozuki> im making my own mlir ebuild cuz gentoo doesnt have it
+14:05 < bridge_> <ryozuki> :BASED:
+14:05 < bridge_> <ryozuki> testing the ebuild only takes me 20 mins build time
+14:05 < bridge_> <ryozuki> <a:Deadneko:823430684680781879>
+14:05 < bridge_> <ryozuki> llvm is stupidly large
+14:07 < bridge_> <_voxeldoesart> llvm?
+14:07 < bridge_> <_voxeldoesart> wait no whata mlir?
+14:07 < bridge_> <ryozuki> mlir is a llvm project
+14:07 < bridge_> <ryozuki> imho rly important in the near future
+14:07 < bridge_> <ryozuki> look at mojo for reference
+14:08 < bridge_> <ryozuki> u will say meh cuz it says ai, but thats just 1 of the epic applications of mlir
+14:08 < bridge_> <ryozuki> https://www.modular.com/mojo
+14:09 < bridge_> <ryozuki> > Mojo leverages MLIR, which enables Mojo developers to take advantage of vectors, threads, and AI hardware units.
+14:10 < bridge_> <_voxeldoesart> crazy
+14:10 < bridge_> <_voxeldoesart> how hard is it for people to say machine learning
+14:10 < bridge_> <ryozuki> its the same ur just being pedantic
+14:10 < bridge_> <_voxeldoesart> theres a difference between ai projects and machine learning projects; they both so the same thing but ai projects are trying to be Trendy
+14:10 < bridge_> <ryozuki> the thing is, there is specialized hardware in this field (and also in other fields) but leveraging that with a common language is hard
+14:11 < bridge_> <ryozuki> MLIR is like a backend that targets all those specialized hardware platforms
+14:11 < bridge_> <ryozuki> for example in the gpu field
+14:11 < bridge_> <ryozuki> it has a gpu dialect, which can transform then into ROCM, cuda, vulkan,
+14:11 < bridge_> <ryozuki> etc
+14:11 < bridge_> <ryozuki> it also targets llvm itself
+14:12 < bridge_> <ryozuki> it also targets cpp
+14:12 < bridge_> <ryozuki> it also can target torch
+14:12 < bridge_> <ryozuki> https://mlir.llvm.org/docs/Dialects/
+14:12 < bridge_> <ryozuki> for parallel in cpu
+14:12 < bridge_> <ryozuki> omp
+14:12 < bridge_> <ryozuki> for example
+14:13 < bridge_> <ryozuki> mlir itself is also a dialect xd
+14:14 < bridge_> <ryozuki> and my ebuild failed yay
+14:16 < bridge_> <_voxeldoesart> wow
+14:20 < bridge_> <ryozuki> this is probs ironic wow right
+14:20 < bridge_> <ryozuki> <a:sadSnail:785072987815804929>
+14:21 < bridge_> <ryozuki> https://github.com/llvm/Polygeist
+14:21 < bridge_> <ryozuki> this is a c++ compiler with mlir
+14:21 < bridge_> <ryozuki> it can compile to cuda for example
+14:21 < bridge_> <_voxeldoesart> i say wow when i dont know what else to say
+14:21 < bridge_> <ryozuki> wow
+14:28 < bridge_> <_voxeldoesart> https://youtu.be/Dwj1-x9_Y4Q
+14:28 < bridge_> <Jupstar ✪> but it fixed it
+14:29 < bridge_> <ryozuki> he automated it
+14:29 < bridge_> <ryozuki> also videos are meh
+14:29 < bridge_> <ryozuki> there was a blog post
+14:29 < bridge_> <Jupstar ✪> videos are nice, but this video editor talks to much about useless stuff
+14:29 < bridge_> <_voxeldoesart> i figured
+14:29 < bridge_> <_voxeldoesart> it got a bit boring anyways
+14:30 < bridge_> <ryozuki> > The length this Linux dev is willing to go to fix a rare boot problem makes me really think about the amount of times I cursed Windows for resetting my computer randomly when I use it.
+14:30 < bridge_> <ryozuki> > 
+14:30 < bridge_> <ryozuki> > And people still say that Linux is bad.
+14:30 < bridge_> <ryozuki> good comment
+14:31 < bridge_> <Jupstar ✪> 😬
+14:31 < bridge_> <ryozuki> 😬
+14:31 < bridge_> <_voxeldoesart> propaganda
+14:32 < bridge_> <_voxeldoesart> speaking of bug fixes
+14:32 < bridge_> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1124316536153325568/Screenshot_20230630_083214_Chrome.jpg
+14:32 < bridge_> <Jupstar ✪> wow they fixed some bug
+14:33 < bridge_> <_voxeldoesart> duude this is such good info!
+14:33 < bridge_> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1124316845487443998/Screenshot_20230630_083330_Chrome.jpg
+14:37 < bridge_> <_voxeldoesart> ok but fr windows copilot worst update
+14:37 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124317850627231794/image.png
+14:37 < bridge_> <ryozuki> :Prayge:
+14:38 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124317935910010932/image.png
+14:38 < bridge_> <ryozuki> :justatest:
+14:38 < bridge_> <cyberFighter> lol
+14:38 < bridge_> <ryozuki> love summer
+14:52 < bridge_> <Jupstar ✪> lmao
+14:52 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124321622061482135/image.png
+14:52 < bridge_> <Jupstar ✪> wtf happened here
+14:52 < bridge_> <Jupstar ✪> &mut &mut &mut &mut &mut
+14:54 < bridge_> <Jupstar ✪> interesting that it doest show any useful error hint
+14:56 < bridge_> <heinrich5991> weird indeed
+14:56 < bridge_> <heinrich5991> got more details?
+14:56 < bridge_> <Jupstar ✪> well i think i know why it happens
+14:56 < bridge_> <Jupstar ✪> its just funny that it does it like this
+14:56 < bridge_> <Jupstar ✪> let me try fixing it then i show the source
+15:01 < bridge_> <Jupstar ✪> ok the fix takes a while, but basically the problem is, that i wanted to serialize/deserialize smth using bincode (and serde)
+15:01 < bridge_> <Jupstar ✪> 
+15:01 < bridge_> <Jupstar ✪> and since i passed a reference of my class to it, it seem to have tried to serialize the reference (the class didnt implement the required serde serialization)
+15:01 < bridge_> <Jupstar ✪> but i dunno why it tried it in a recursion
+15:10 < bridge_> <heinrich5991> https://gfw.report/publications/usenixsecurity23/data/paper/paper.pdf
+15:10 < bridge_> <heinrich5991> some analysis on gfw blocking patterns
+15:10 < bridge_> <heinrich5991> see especially the algorithm on the top of page 4
+15:25 < bridge_> <steinchen99> This button looks so weird.. is it normal?
+15:25 < bridge_> <steinchen99> https://cdn.discordapp.com/attachments/293493549758939136/1124329891643531346/image.png
+15:26 < bridge_> <robyt3> Can you be more specific?
+15:26 < bridge_> <_voxeldoesart> is it the symbols? i think i prefer the symbols over text
+15:27 < bridge_> <Jupstar ✪> maybe the height is too small?
+15:27 < bridge_> <Jupstar ✪> whoever guesses it wins
+15:27 < bridge_> <Jupstar ✪> xd
+15:27 < bridge_> <Jupstar ✪> the rounding?
+15:27 < bridge_> <robyt3> They have the same height as before
+15:27 < bridge_> <steinchen99> left doesnt look like its in the middle 
+15:27 < bridge_> <steinchen99> and the right one has this weird outline
+15:27 < bridge_> <steinchen99> https://cdn.discordapp.com/attachments/293493549758939136/1124330481652092969/image.png
+15:28 < bridge_> <robyt3> Although it's weird how the buttons have a different height than the editboxes in the same row
+15:28 < bridge_> <steinchen99> i'd prefer them being a bit bigger :D
+15:29 < bridge_> <Jupstar ✪> bigger in width?
+15:29 < bridge_> <Jupstar ✪> or height
+15:29 < bridge_> <Jupstar ✪> xd
+15:29 < bridge_> <steinchen99> LOL my client just crashed
+15:29 < bridge_> <steinchen99> 10/10
+15:29 < bridge_> <robyt3> Width is already maxed out on 5:4 resolutions
+15:29 < bridge_> <robyt3> https://cdn.discordapp.com/attachments/293493549758939136/1124330975032254474/image.png
+15:29 < bridge_> <Jupstar ✪> but yeah tbf, the button looks weird af
+15:30 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124331112735453274/image.png
+15:30 < bridge_> <Jupstar ✪> are the corners different size @robyt3 ?
+15:30 < bridge_> <Jupstar ✪> or why is the left corner so much bigger xd
+15:30 < bridge_> <Jupstar ✪> or is that just aliasing effect
+15:31 < bridge_> <robyt3> No
+15:31 < bridge_> <robyt3> It's pixel alignment issues I guess
+15:31 < bridge_> <robyt3> Even the editbox corners don't look the same
+15:31 < bridge_> <robyt3> Even the editbox corners don't look exactly the same
+15:31 < bridge_> <Jupstar ✪> ok, looks really really weird tho xD
+15:31 < bridge_> <Jupstar ✪> right side has almost no corners
+15:31 < bridge_> <Jupstar ✪> while left is like pure rounding
+15:32 < bridge_> <robyt3> Same with text alignment, it's also unbalanced by 1 pixel
+15:33 < bridge_> <Jupstar ✪> rip
+15:33 < bridge_> <ryozuki> >  The GFW uses at least five heuristic rules to
+15:33 < bridge_> <ryozuki> > detect and block fully encrypted traffic. The censor applies
+15:33 < bridge_> <ryozuki> > this algorithm to TCP connections sent from China to certain
+15:33 < bridge_> <ryozuki> > IP subnets and employs probabilistic blocking
+15:33 < bridge_> <ryozuki> :o
+15:35 < bridge_> <ryozuki> @heinrich5991 the doc is made  with latex right?
+15:35 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124332421454766101/image.png
+15:35 < bridge_> <ryozuki> i love how this looks
+15:35 < bridge_> <ryozuki> latex is pog
+15:36 < bridge_> <heinrich5991> yes, looks like latex
+15:36 < bridge_> <heinrich5991> I'd guess most technical papers are done using latex (in informatics, maths, physics, …)
+15:36 < bridge_> <ryozuki> ```
+15:36 < bridge_> <ryozuki> ❯ pdfinfo paper.pdf
+15:36 < bridge_> <ryozuki> Title:
+15:36 < bridge_> <ryozuki> Subject:
+15:36 < bridge_> <ryozuki> Keywords:
+15:36 < bridge_> <ryozuki> Author:
+15:36 < bridge_> <ryozuki> Creator:
+15:36 < bridge_> <ryozuki> Producer:
+15:36 < bridge_> <ryozuki> Custom Metadata: no
+15:36 < bridge_> <ryozuki> Metadata Stream: no
+15:36 < bridge_> <ryozuki> Tagged:          no
+15:37 < bridge_> <ryozuki> UserProperties:  no
+15:37 < bridge_> <ryozuki> Suspects:        no
+15:37 < bridge_> <ryozuki> Form:            none
+15:37 < bridge_> <ryozuki> JavaScript:      no
+15:37 < bridge_> <ryozuki> Pages:           18
+15:37 < bridge_> <ryozuki> Encrypted:       no
+15:37 < bridge_> <ryozuki> Page size:       612 x 792 pts (letter)
+15:37 < bridge_> <ryozuki> Page rot:        0
+15:37 < bridge_> <ryozuki> File size:       838038 bytes
+15:37 < bridge_> <ryozuki> Optimized:       no
+15:37 < bridge_> <ryozuki> PDF version:     1.5
+15:37 < bridge_> <ryozuki> ```
+15:37 < bridge_> <ryozuki> looks stripped
+15:38 < bridge_> <ryozuki> > Use a non-TCP transport protocol. As introduced in Sec-
+15:38 < bridge_> <ryozuki> > tion 4.4, UDP traffic does not trigger blocking. Currently, one
+15:38 < bridge_> <ryozuki> > can circumvent censorship by simply switching to (or tunnel-
+15:38 < bridge_> <ryozuki> > ing over) UDP or QUIC. This is merely a stopgap measure,
+15:38 < bridge_> <ryozuki> > as the censor can enable their censorship for UDP.
+15:39 < bridge_> <ryozuki> > Base64-encode the first packet. Recall that the GFW does
+15:39 < bridge_> <ryozuki> > not censor connections if more than 50% of the first packet’s
+15:39 < bridge_> <ryozuki> > 17
+15:39 < bridge_> <ryozuki> > bytes are printable ASCII. One straightforward way to sat-
+15:39 < bridge_> <ryozuki> > isfy this property would be to simply base64-encode all of
+15:39 < bridge_> <ryozuki> > the encrypted traffic
+15:39 < bridge_> <ryozuki> @heinrich5991 interesting bit
+15:39 < bridge_> <ryozuki> to circumvent
+15:47 < bridge_> <ryozuki> is aliasing on buttons bad?
+15:47 < bridge_> <ryozuki> actually
+15:47 < bridge_> <robyt3> I found it. The right button is just straight up 5.0f units smaller than the left one, which somehow messes up the corners
+15:48 < bridge_> <ryozuki> i always found the round corners to look like bad quality
+15:48 < bridge_> <ryozuki> maybe we need more res
+15:48 < bridge_> <ryozuki> xd
+15:48 < bridge_> <robyt3> we need a shader for smooth round corners
+15:48 < bridge_> <ryozuki> that i can see rigged edges in 1080 triggers me
+15:48 < bridge_> <ryozuki> i think rigged is the word
+15:48 < bridge_> <ryozuki> or not idk
+15:48 < bridge_> <ryozuki> jagged
+15:49 < bridge_> <robyt3> MSAA would make the corners smooth, but it causes delay
+15:49 < bridge_> <ryozuki> @jupeyy_keks when shader
+15:49 < bridge_> <ryozuki> is this geometry shader thing?
+15:50 < bridge_> <ryozuki> is this a geometry shader thing?
+15:50 < bridge_> <Jupstar ✪> no
+15:50 < bridge_> <Jupstar ✪> u need multi sampling to fix it
+15:50 < bridge_> <Jupstar ✪> or other anti aliasing
+15:50 < bridge_> <Jupstar ✪> since its partial circles in this case u can do "fake" anti aliasing
+15:51 < bridge_> <Jupstar ✪> by simply doing less alpha/transparency towards the edges
+15:51 < bridge_> <Jupstar ✪> it looks good enough
+15:51 < bridge_> <heinrich5991> might even look as good as actual AA I guess
+15:55 < bridge_> <Jupstar ✪> i once tried it on cpu side, but its not that ez bcs its hard to predict how exactly the pixel would look like
+15:55 < bridge_> <Jupstar ✪> and i didnt want to write a full rasterizer xd
+15:55 < bridge_> <heinrich5991> ^^ makes sense
+15:55 < bridge_> <Jupstar ✪> but yeah we could probs fix it for newer GL versions
+15:59 < bridge_> <Jupstar ✪> btw egui solves it over textures, circle textures of different sizes
+15:59 < bridge_> <Jupstar ✪> also possible and works with any renderer
+16:00 < bridge_> <Jupstar ✪> egui seems to use a less efficient text packing algorithm apparently
+16:00 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124338693130432542/image.png
+16:00 < bridge_> <Jupstar ✪> less efficient than we do
+16:02 < bridge_> <Jupstar ✪> the matrix
+16:02 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124339066641600664/image.png
+16:04 < bridge_> <Jupstar ✪> but sometimes ours also wastes quite a bit of space
+16:04 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124339632298004510/image.png
+16:04 < bridge_> <Jupstar ✪> since chinese players its much easier to fill the texture atlas 😬
+16:04 < bridge_> <_voxeldoesart> this looks cool af
+16:05 < bridge_> <Jupstar ✪> i see its mostly bcs it was a 1024x1024 texture before and it then decided to do uneffective filling too
+16:05 < bridge_> <Jupstar ✪> thats also why the left half is so filled
+16:07 < bridge_> <Jupstar ✪> and a simpler and much faster algorithm, but with more space wasting can be found here
+16:07 < bridge_> <Jupstar ✪> https://github.com/ddnet/ddnet/commit/796bc49cd448ea48e57b7ca7d3823be0d44f1829
+16:07 < bridge_> <Jupstar ✪> 
+16:07 < bridge_> <Jupstar ✪> i think it would still beat egui 😄
+16:07 < bridge_> <Jupstar ✪> interesting that this commit can be found on ddnet
+16:07 < bridge_> <Jupstar ✪> i cant remember ever PRing it
+16:08 < bridge_> <robyt3> How hard would be blurry background for dropdown menus?
+16:09 < bridge_> <_voxeldoesart> i mean idk what im talking about but im pretty sure you would have to create like a seperare buffer for whatever's under the menu
+16:09 < bridge_> <_voxeldoesart> besides idk how good that would look in ddnet
+16:09 < bridge_> <Jupstar ✪> the algorithm is ez
+16:09 < bridge_> <Jupstar ✪> 
+16:09 < bridge_> <Jupstar ✪> but u need a second framebuffer
+16:10 < bridge_> <Jupstar ✪> and switch between them every time u want to do blur
+16:10 < bridge_> <Jupstar ✪> so 1. it gets very slow, bcs they have to wait on each other
+16:10 < bridge_> <Jupstar ✪> 2. its not an easy setup, especially with our 30000 backends xD
+16:10 < bridge_> <_voxeldoesart> 3. its not teeish
+16:11 < bridge_> <Jupstar ✪> xd
+16:11 < bridge_> <Jupstar ✪> blur looks cool af
+16:11 < bridge_> <_voxeldoesart> yeah but in the context of ddnet it doesnt rly fit the cartoonish casual vibe
+16:11 < bridge_> <_voxeldoesart> @chillerdragon dont you agree
+16:11 < bridge_> <robyt3> It's not like we add blur everywhere
+16:12 < bridge_> <robyt3> Only for this specific use case, because the transparent dropdown background color never looks good otherwise
+16:12 < bridge_> <Jupstar ✪> imo blur also gives better contrast, look here for example
+16:12 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124341718393819226/image.png
+16:12 < bridge_> <robyt3> Only for this specific use case, because the transparent dropdown background color never looks really good otherwise
+16:14 < bridge_> <_voxeldoesart> that reminds me
+16:14 < bridge_> <_voxeldoesart> we gotta create a figma project for ui stuff
+16:15 < bridge_> <_voxeldoesart> its easier to concept
+16:16 < bridge_> <ryozuki> idc about gl only vulkan
+16:16 < bridge_> <ryozuki> 😬
+16:16 < bridge_> <Jupstar ✪> i said GL to mean vulkan too ^^
+16:16 < bridge_> <Jupstar ✪> but yeah tru
+16:16 < bridge_> <Jupstar ✪> world would be easier
+16:17 < bridge_> <ryozuki> @jupeyy_keks does the packign algo have a name?
+16:17 < bridge_> <ryozuki> i remember  some
+16:18 < bridge_> <ryozuki> >  Technically, bin packing is NP-hard, so a heuristic is what I'm really after.
+16:18 < bridge_> <ryozuki> https://gamedev.stackexchange.com/questions/2829/texture-packing-algorithm
+16:18 < bridge_> <ryozuki> https://en.wikipedia.org/wiki/Bin_packing_problem
+16:19 < bridge_> <ryozuki> xd
+16:19 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124343340746424471/image.png
+16:19 < bridge_> <Jupstar ✪> i used skylines packing
+16:20 < bridge_> <_voxeldoesart> https://penpot.app/
+16:22 < bridge_> <Jupstar ✪> // skyline bottom left algorithm 
+16:22 < bridge_> <Jupstar ✪> 
+16:22 < bridge_> <Jupstar ✪> according to some comment i added in the code xd
+16:23 < bridge_> <Jupstar ✪> but i think i modified it slightly, but cant remember xd
+16:23 < bridge_> <Jupstar ✪> 
+16:23 < bridge_> <Jupstar ✪> its not the best for more efficient space
+16:23 < bridge_> <Jupstar ✪> but its very fast
+16:24 < bridge_> <Jupstar ✪> and this one is basically the same, but wastes a bit more space in trade for much more simplicitly
+16:25 < bridge_> <Jupstar ✪> by caring less about perfect matches
+16:25 < bridge_> <Jupstar ✪> 
+16:25 < bridge_> <Jupstar ✪> since `most` characters have a similar width it works in most cases
+16:25 < bridge_> <ryozuki> i remember
+16:25 < bridge_> <ryozuki> long ago i made a packing thing i copied mostly from internet too
+16:25 < bridge_> <ryozuki> i think it was skyline too
+16:25 < bridge_> <ryozuki> in my supposed to be game engine
+16:26 < bridge_> <ryozuki> https://github.com/edg-l/SimpleGame/blob/master/src/engine/graphics/renderer.c#L144
+16:26 < bridge_> <ryozuki> look
+16:27 < bridge_> <ryozuki> this was when i was into PURE C ONLY
+16:27 < bridge_> <ryozuki> @learath2 my game/engine in c only
+16:27 < bridge_> <Jupstar ✪> thats the real Ryozuki
+16:27 < bridge_> <ryozuki> its not functional at all tho xd
+16:27 < bridge_> <_voxeldoesart> hi ravie
+16:27 < bridge_> <ryozuki> hi ravie
+16:28 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124345726458146846/image.png
+16:28 < bridge_> <ryozuki> i remember having troubles rendering text xd
+16:30 < bridge_> <_voxeldoesart> im sorry but 
+16:30 < bridge_> <_voxeldoesart> dogshit variable names LOL
+16:30 < bridge_> <ryozuki> :gigachad:
+16:31 < bridge_> <_voxeldoesart> float oy;
+16:32 < bridge_> <_voxeldoesart> dude teeworlds reference
+16:33 < bridge_> <ryozuki> https://tenor.com/view/noot-noot-meme-noot-noot-black-background-gif-26002556
+16:33 < bridge_> <_voxeldoesart> i hate this gif
+16:33 < bridge_> <heinrich5991> gifs always take up so much space :/
+16:33 < bridge_> <_voxeldoesart> :santatrollet: also true
+16:33 < bridge_> <ryozuki> jif or gif
+16:34 < bridge_> <_voxeldoesart> gif that rhymes with stiff
+16:34 < bridge_> <_voxeldoesart> that doesnt help wtf was i thinking
+16:36 < bridge_> <Jupstar ✪> i'd buy glass design 😬
+16:36 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124347753129054218/image.png
+16:37 < bridge_> <_voxeldoesart> 😬
+16:37 < bridge_> <Jupstar ✪> excuse my 2 minutes gimp skillz xd
+16:37 < bridge_> <_voxeldoesart> graphic design is your passion
+16:37 < bridge_> <_voxeldoesart> why is the blacks less black
+16:38 < bridge_> <_voxeldoesart> why are* the blacks less black
+16:38 < bridge_> <ryozuki> windows moment
+16:38 < bridge_> <Jupstar ✪> honest answer: i dunno
+16:38 < bridge_> <Jupstar ✪> my answer: i tried to make it less constrasting, so u see the advantages of blurry designs
+16:39 < bridge_> <ryozuki> careful ur american
+16:39 < bridge_> <_voxeldoesart> well that didnt rly help becuase its now unreadable
+16:39 < bridge_> <ryozuki> :justatest:
+16:39 < bridge_> <Jupstar ✪> the text would get blurry outline as fix 😏
+16:39 < bridge_> <_voxeldoesart> only you was thinking that
+16:39 < bridge_> <_voxeldoesart> stop projecting :justatest:
+16:39 < bridge_> <ryozuki> :justatest:
+16:39 < bridge_> <_voxeldoesart> only you were thinking that
+16:39 < bridge_> <_voxeldoesart> stop projecting :justatest:
+16:39 < bridge_> <ryozuki> this reminded me of the meme where a pencil says black in spanish and someone on twitter said it was racist
+16:40 < bridge_> <ryozuki> i often check <https://www.twitch.tv/directory/game/Software%20and%20Game%20Development> and see how many devs  use windows
+16:41 < bridge_> <ryozuki> and then im sad
+16:41 < bridge_> <ryozuki> @ravie_ravie when will u finally write
+16:42 < bridge_> <ravie_ravie> now
+16:42 < bridge_> <_voxeldoesart> crazy
+16:42 < bridge_> <_voxeldoesart> ravie how do you feel about this
+16:43 < bridge_> <Jupstar ✪> i mean without win7 ugly icons, it's still one of the coolest desktop designes
+16:43 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124349554964320376/image.png
+16:44 < bridge_> <ryozuki> @jupeyy_keks https://www.gnome-look.org/p/1014358/
+16:44 < bridge_> <ravie_ravie> I think it's ugly, not a fan of background maps anyway, I prefer the classic look
+16:44 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124349720945508372/116499-1.png
+16:44 < bridge_> <ryozuki> gnome linux
+16:44 < bridge_> <Jupstar ✪> 😄 i have one for KDE
+16:44 < bridge_> <Jupstar ✪> but the arch theme is best imo 😄
+16:44 < bridge_> <ryozuki> https://www.opendesktop.org/p/1014539
+16:44 < bridge_> <ryozuki> updated
+16:45 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124350001393438850/image.png
+16:45 < bridge_> <Jupstar ✪> hot af
+16:45 < bridge_> <ryozuki> looks good
+16:45 < bridge_> <ryozuki> wanna see my desktop?
+16:45 < bridge_> <Jupstar ✪> go ahead
+16:45 < bridge_> <Jupstar ✪> mine is animated btw
+16:45 < bridge_> <ryozuki> clean af
+16:45 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124350113964368012/image.png
+16:45 < bridge_> <Jupstar ✪> u ofc dont see it xd
+16:46 < bridge_> <_voxeldoesart> why are the buttons censored
+16:46 < bridge_> <_voxeldoesart> tw// close buttons
+16:46 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124350290091573338/wp.mp4
+16:46 < bridge_> <Jupstar ✪> this is my self made bg xd
+16:46 < bridge_> <_voxeldoesart> oo
+16:47 < bridge_> <Jupstar ✪> ok midjourney did the image, and i used some tool to make it look like a video xd
+16:47 < bridge_> <Jupstar ✪> totally my work
+16:47 < bridge_> <_voxeldoesart> ok nvm
+16:47 < bridge_> <Jupstar ✪> 😬
+16:47 < bridge_> <Jupstar ✪> voxel the hater
+16:48 < bridge_> <Jupstar ✪> isnt that learath?
+16:48 < bridge_> <ryozuki> this is how i use my desktop
+16:48 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124350709056405504/desktop.mp4
+16:48 < bridge_> <_voxeldoesart> i have yet to make actual background for myself
+16:48 < bridge_> <_voxeldoesart> rn its just smth i made for an art contest
+16:48 < bridge_> <Jupstar ✪> i dont want to ping learath
+16:49 < bridge_> <ryozuki> @jupeyy_keks its form the anime
+16:49 < bridge_> <ryozuki> his pic is slightly diferent
+16:49 < bridge_> <Jupstar ✪> .
+16:49 < bridge_> <Jupstar ✪> yeah but looks the same indeed
+16:49 < bridge_> <Jupstar ✪> his banner pic xd
+16:49 < bridge_> <ryozuki> its lucy
+16:49 < bridge_> <ryozuki> from cyberpunk anime
+16:50 < bridge_> <Jupstar ✪> i wonder if robyte knows them all, he is silent anime enjoyer
+16:50 < bridge_> <ryozuki> https://tenor.com/view/cyberpunk-cyberpunk-anime-lucy-cyberpunk-edgerunners-moon-gif-26712682
+16:50 < bridge_> <ryozuki> silent weeb
+16:50 < bridge_> <Jupstar ✪> 😬
+16:50 < bridge_> <ryozuki> idk i think he may not be that weeb
+16:50 < bridge_> <ryozuki> weebs have  urge to share their weeb
+16:51 < bridge_> <ryozuki> and he cant be watching anime
+16:51 < bridge_> <ryozuki> cuz he is coding ddnet
+16:51 < bridge_> <ryozuki> getting real work done
+16:52 < bridge_> <ravie_ravie> @ryozuki when abolish the mouse altogether
+16:53 < bridge_> <ryozuki> kek
+16:53 < bridge_> <ravie_ravie> it's a normie input method, imagine all the time you could be saving
+16:53 < bridge_> <ryozuki> indeed
+16:58 < bridge_> <_voxeldoesart> https://cdn.discordapp.com/attachments/1054265086862168084/1083254629397168138/DGTC_Rework_Wallpaper.png
+16:58 < bridge_> <_voxeldoesart> my desktop wallpaper for now
+16:58 < bridge_> <_voxeldoesart> i won a free tshirt with this
+17:03 < bridge_> <_voxeldoesart> yeah dude i aim with arrow keys
+17:03 < bridge_> <_voxeldoesart> i fire with L and hook with ;
+17:03 < bridge_> <_voxeldoesart> sooooo intuitive
+17:22 < ChillerDragon> @_voxeldoesart i could see blur in teeish
+17:23 < ChillerDragon> seen it in yt videos and wallpapers
+17:23 < ChillerDragon> looked good
+17:27 < ChillerDragon> @@avolicious how to get kog auth code?
+17:29 < bridge_> <avolicious> on kog.tw
+17:30 < ChillerDragon> i am there
+17:30 < ChillerDragon> https://zillyhuhn.com/cs/.1688139043.png
+17:30 < ChillerDragon> https://zillyhuhn.com/cs/.1688139052.png
+17:30 < ChillerDragon> https://zillyhuhn.com/cs/.1688139061.png
+17:31 < ChillerDragon> no button left to click sos
+17:31 < bridge_> <heinrich5991> I needed to find some email in that state
+17:31 < ChillerDragon> @avolicious send brain idk where to click next
+17:31 < bridge_> <ryozuki> ?
+17:31 < bridge_> <heinrich5991> the email was called "KoG 2.0 Account Migration", ChillerDragon
+17:31 < ChillerDragon> @avolicious when bridge kog discord to irc so we dont have to do it on ddnet discord?
+17:32 < ChillerDragon> i did verify the email days ago
+17:32 < ChillerDragon> all worked fine
+17:32 < bridge_> <ryozuki> u need to migrate i guess
+17:32 < ChillerDragon> how
+17:32 < bridge_> <ryozuki> click
+17:32 < ChillerDragon> pressing migrate button does nothing
+17:32 < bridge_> <ryozuki> button
+17:32 < bridge_> <ryozuki> i guess
+17:32 < ChillerDragon> it justr says im alr verified
+17:32 < bridge_> <ryozuki> check js output
+17:32 < bridge_> <ryozuki> xd
+17:32 < bridge_> <heinrich5991> find the email I specified above
+17:32 < ChillerDragon> there is none
+17:32 < bridge_> <heinrich5991> click the link again
+17:32 < bridge_> <ryozuki> cant help its closed source 🤷
+17:33 < bridge_> <heinrich5991> you didn't get any email from KoG during the process?
+17:33 < bridge_> <Jupstar ✪> when add gores section to ddnet
+17:33 < ChillerDragon> @heinrich5991 alr did that days ago should i do again?
+17:33 < bridge_> <ryozuki> @jupeyy_keks lets make a new gores network
+17:33 < bridge_> <heinrich5991> yes, that's what I'm saying ChillerDragon
+17:33 < bridge_> <ryozuki> emperor-of-gores
+17:33 < bridge_> <ryozuki> eog.net
+17:33 < ChillerDragon> ok nice
+17:34 < ChillerDragon> now it says might take some days
+17:34 < bridge_> <Jupstar ✪> GGoresNetwork
+17:34 < ChillerDragon> thank @heinrich5991 best kog support
+17:34 < bridge_> <ryozuki> kek
+17:34 < ChillerDragon> now we wait
+17:34 < ChillerDragon> for fast koobernetes
+17:34 < ChillerDragon> to migrate account
+17:34 < bridge_> <ryozuki> u cant play
+17:34 < bridge_> <ryozuki> u have to wait
+17:34 < ChillerDragon> which takes 
+17:35 < ChillerDragon> days
+17:35 < bridge_> <ryozuki> top user experience
+17:35 < bridge_> <Jupstar ✪> @ryozuki i was ahead of our time
+17:35 < bridge_> <avolicious> thanks @heinrich5991
+17:35 < bridge_> <ryozuki> the kubernetes orchestration is doing its work
+17:35 < bridge_> <matodor> don't forget to create an organization on github)
+17:35 < bridge_> <ryozuki> it just takes days
+17:35 < ChillerDragon> web scale
+17:35 < bridge_> <ryozuki> its cuz its not made  in rust
+17:35 < bridge_> <ryozuki> not blazing fast
+17:35 < ChillerDragon> go
+17:35 < bridge_> <_voxeldoesart> AnD SaFe
+17:35 < bridge_> <_voxeldoesart> and doesnt make you a burger automatically
+17:36 < bridge_> <ryozuki> @_voxeldoesart i knew i would invoke u
+17:36 < bridge_> <ryozuki> by saying that
+17:36 < ChillerDragon> avo u need to activate sharding on your db
+17:36 < ChillerDragon> to make it fast
+17:36 < bridge_> <ryozuki> no
+17:36 < bridge_> <ryozuki> he needs to pipe it
+17:36 < bridge_> <ryozuki> to dev null
+17:36 < ChillerDragon> yes also works
+17:36 < bridge_> <_voxeldoesart> :nouis: 🖕
+17:36 < bridge_> <ryozuki> > I've always admired the write performance of the /dev/null schema-less database, the read performance however is a little lacking, but this is offset by /dev/null's data compression
+17:36 < bridge_> <ryozuki> https://www.youtube.com/watch?v=b2F-DItXtZs
+17:36 < bridge_> <Jupstar ✪> ryozukis tool kit
+17:36 < bridge_> <ryozuki> “Shards are the secret ingredient in the webscale sauce you turn them on and they just work”
+17:36 < bridge_> <Jupstar ✪> this video
+17:37 < bridge_> <Jupstar ✪> some rust doc
+17:37 < bridge_> <Jupstar ✪> xd
+17:37 < bridge_> <ryozuki> xd
+17:37 < bridge_> <avolicious> There is a check going on in the background, nothing db related
+17:37 < ChillerDragon> how does it take days
+17:38 < bridge_> <avolicious> It runs all your data from the past years through
+17:38 < bridge_> <avolicious> takes some time
+17:38 < ChillerDragon> i see
+17:38 < ChillerDragon> yikes data since 2015
+17:38 < bridge_> <Jupstar ✪> your bot clients xDDD
+17:38 < ChillerDragon> no proof
+17:38 < bridge_> <Jupstar ✪> qshar had a proof xDD
+17:38 < bridge_> <Jupstar ✪> where u used replay
+17:38 < ChillerDragon> okay actually i got banned on kog dat true
+17:38 < ChillerDragon> i even got a medal for it on my acc
+17:39 < bridge_> <Jupstar ✪> xD
+17:39 < bridge_> <ryozuki> what does it even check
+17:39 < ChillerDragon> i think they removed that
+17:39 < ChillerDragon> it said something along the lines of chiler is pr0 hax0r and was banned for life
+17:40 < bridge_> <Jupstar ✪> back then u were pro.. u always spinned with every hook like crazy
+17:40 < ChillerDragon> it was school project
+17:40 < ChillerDragon> to chot
+17:40 < ChillerDragon> i did like 1 rank on kog and one on ddnet
+17:40 < ChillerDragon> kog banned my ass
+17:40 < ChillerDragon> and ddnet i had to repeatedly ask to get my rank deleted
+17:40 < bridge_> <ryozuki> i cant play my map on kog now cuz accounts
+17:41 < bridge_> <ryozuki> i refuse to yield my email to kubernetes
+17:41 < ChillerDragon> xxxxxxxxxxxxxxxxD
+17:41 < bridge_> <ryozuki> :gigachad:
+17:41 < ChillerDragon> sent from discord*
+17:41 < bridge_> <Jupstar ✪> as if chiller didnt use some fake email
+17:41 < bridge_> <ryozuki> `gpg --keyserver keys.openpgp.org --recv-keys 230C94520D026311`
+17:41 < ChillerDragon> i use my main mail
+17:41 < ChillerDragon> chillerdragon@gmail.com
+17:41 < bridge_> <ryozuki> lol
+17:41 < ChillerDragon> kog koobernetes can have all my mail
+17:41 < bridge_> <ryozuki> imagine not having self domain email
+17:41 < ChillerDragon> its selfhosted go bloat
+17:41 < bridge_> <ryozuki> i dont self host my mail
+17:42 < ChillerDragon> the google captcha to login is the worst part
+17:42 < bridge_> <ryozuki> but i have my mail with my domain
+17:42 < ChillerDragon> but then
+17:42 < ChillerDragon> i use gmail
+17:42 < ChillerDragon> so i cant complain bout google 
+17:42 < bridge_> <ryozuki> i keep receiving job offers through my email lol xd
+17:42 < bridge_> <Jupstar ✪> most ppl play on non account servers
+17:42 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1124364334575919236/image.png
+17:42 < bridge_> <Jupstar ✪> thats my last hope
+17:42 < ChillerDragon> because migration is slow
+17:42 < bridge_> <_voxeldoesart> spitball thought
+17:42 < bridge_> <_voxeldoesart> teeworlds os
+17:42 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124364394491543652/image.png
+17:42 < bridge_> <Jupstar ✪> else ddnet has to kill kog, or i have to rq teeworlds
+17:42 < bridge_> <ryozuki> these guys
+17:42 < bridge_> <ravie_ravie> nah for teeworlds you use a giant trackball and draw tee eyes on it
+17:42 < bridge_> <ryozuki> dont know what htey talk about
+17:43 < bridge_> <_voxeldoesart> wait so if all servers need accounts then that means ddnet drops support.
+17:43 < bridge_> <_voxeldoesart> wait so if all servers need accounts then that means ddnet drops support?
+17:44 < bridge_> <ryozuki> nah
+17:44 < ChillerDragon> no then ddnet also adds account
+17:44 < bridge_> <deni> on which site to migrate?
+17:44 < ChillerDragon> https://kog.tw
+17:44 < bridge_> <_voxeldoesart> ddnet best
+17:45 < bridge_> <deni> thanks
+17:45 < bridge_> <Jupstar ✪> ddnet admins sadly are all no gores players
+17:45 < bridge_> <Jupstar ✪> so they dont care
+17:45 < bridge_> <wats> Beta version and release version different???
+17:46 < bridge_> <ryozuki> ye?
+17:46 < bridge_> <wats> Like other client right?
+17:46 < bridge_> <ryozuki> @interwats btw do u play dota? nice tango on your picture
+17:46 < bridge_> <ryozuki> beta i think is nightly right
+17:46 < bridge_> <wats> Yes
+17:46 < bridge_> <ryozuki> it uses the latest commit from last night
+17:47 < bridge_> <ryozuki> https://tenor.com/view/dota-funny-one-tango-please-lol-gif-16565616
+17:47 < ChillerDragon> u wanna tryhard rank gores or just casually play?
+17:47 < ChillerDragon> jopsti
+17:47 < ChillerDragon> u can just host gores maps on your vps right?
+17:47 < bridge_> <Jupstar ✪> i just dont care about points
+17:47 < ChillerDragon> ez then
+17:47 < bridge_> <Jupstar ✪> but i play hard or insane maps
+17:47 < bridge_> <ryozuki> omg
+17:47 < bridge_> <ryozuki> are u pro?
+17:47 < ChillerDragon> so then put hard maps on server
+17:47 < ChillerDragon> done?
+17:47 < ChillerDragon> or not?
+17:47 < bridge_> <wats> Keks
+17:48 < bridge_> <Jupstar ✪> im retired xd
+17:48 < bridge_> <ryozuki> xd
+17:48 < bridge_> <ryozuki> same
+17:48 < ChillerDragon> jooopsti
+17:48 < bridge_> <Jupstar ✪> but last days were hard
+17:48 < bridge_> <Jupstar ✪> deen suddenly wants to promote random servers
+17:48 < bridge_> <Jupstar ✪> kog adds forced accounts
+17:48 < bridge_> <Jupstar ✪> thats like complete kill of ddnet
+17:48 < bridge_> <wats> Im playing with beta and release clients they have different in version?
+17:48 < bridge_> <wats> Its for kog admins
+17:48 < bridge_> <ryozuki> nah they are both ok for kog
+17:49 < bridge_> <Jupstar ✪> they have slightly different versions yes
+17:49 < ChillerDragon> jopsti u also want to kill ddnet
+17:49 < ChillerDragon> with ddnet2
+17:49 < bridge_> <ryozuki> does kog have some version requirement?
+17:49 < ChillerDragon> yes you need windows 11 to play kog
+17:49 < bridge_> <wats> They noticed the version change in me
+17:49 < bridge_> <Jupstar ✪> chillerdragon: yeah, im slightly annoyed by heinrichs backward compability addiction
+17:50 < bridge_> <Jupstar ✪> yeah
+17:50 < ChillerDragon> no but fr if you dont care about points is selfhosting gores maps not an option?
+17:50 < bridge_> <Jupstar ✪> it sends some kind of hash so they can notice
+17:50 < bridge_> <Jupstar ✪> chillerdragon:
+17:50 < bridge_> <Jupstar ✪> so play the game without community
+17:50 < bridge_> <Jupstar ✪> alone
+17:50 < bridge_> <Jupstar ✪> epic
+17:50 < ChillerDragon> i see
+17:50 < ChillerDragon> u miss players
+17:51 < ChillerDragon> AI is almost there
+17:51 < ChillerDragon> just ask slats to spawn some players for you
+17:51 < bridge_> <Jupstar ✪> xd
+17:51 < bridge_> <ryozuki> @jupeyy_keks im un confirmed in kog discord
+17:51 < bridge_> <ryozuki> they dont believe i am ryo
+17:51 < ChillerDragon> gores.io web browser game
+17:51 < bridge_> <ryozuki> :gigachad:
+17:51 < bridge_> <wats> Thx
+17:52 < bridge_> <_voxeldoesart> when was the last time we dropped capatability for an old version?
+17:52 < bridge_> <Jupstar ✪> never
+17:53 < bridge_> <_voxeldoesart> thats unhealthy
+17:53 < bridge_> <Jupstar ✪> ofc it is
+17:53 < bridge_> <Jupstar ✪> every sane person knows that
+17:53 < bridge_> <Jupstar ✪> but its no use, i tried to talk to heinrich in pm
+17:53 < bridge_> <Jupstar ✪> he likes the idea i had. but dislikes that i break backward compability xD
+17:53 < bridge_> <_voxeldoesart> whats your idea
+17:54 < bridge_> <ryozuki> ddnet 2.0
+17:54 < bridge_> <Jupstar ✪> dont want to go into detail xd
+17:54 < bridge_> <_voxeldoesart> ah
+17:54 < bridge_> <ryozuki> break every possible compat
+17:54 < bridge_> <ryozuki> thats my idea
+17:54 < bridge_> <Jupstar ✪> its mostly about how to fix e.g. ppl getting pissed by using stars instead of freeze bar etc.
+17:54 < bridge_> <_voxeldoesart> like bro no ones gonna be using ddnet v11 in 2023
+17:54 < bridge_> <Jupstar ✪> or other way around
+17:55 < bridge_> <matodor> why is rendering in the editor at a large distance so lags?
+17:55 < bridge_> <Jupstar ✪> bcs the CPU prepares all verticces
+17:55 < bridge_> <Jupstar ✪> and CPUs are slow when doing such tasks
+17:55 < bridge_> <ryozuki> u dont know
+17:55 < bridge_> <ryozuki> konsti used ddnet with sdl1
+17:55 < bridge_> <ryozuki> for long
+17:56 < bridge_> <Jupstar ✪> tru xD
+17:56 < bridge_> <Jupstar ✪> but well if ddnet would have dropped support, he'd have updated
+17:56 < bridge_> <Jupstar ✪> u have to force ppl to their luck
+17:56 < bridge_> <Jupstar ✪> 😬
+17:56 < bridge_> <ryozuki> 😬
+17:56 < bridge_> <ryozuki> dev revolution
+17:56 < bridge_> <_voxeldoesart> 😬
+17:56 < bridge_> <ryozuki> 🇫🇷
+17:57 < ChillerDragon> pink rat
+17:57 < bridge_> <Jupstar ✪> next time heinrich is afk for 2 months we have to be fast @ryozuki
+17:57 < bridge_> <Jupstar ✪> 😬
+17:57 < bridge_> <ryozuki> 😬
+17:57 < bridge_> <ryozuki> true
+17:57 < bridge_> <ryozuki> he said that its how it works
+17:57 < bridge_> <ryozuki> active dev = control
+17:58 < bridge_> <_voxeldoesart> if people get mad because their extremely ancient version of ddnet isnt supported anymore thats on them
+17:58 < bridge_> <_voxeldoesart> like i understand losing compatability for a more recent old version would be a bad idea
+17:58 < bridge_> <Jupstar ✪> yeah 😄
+17:58 < bridge_> <ryozuki> @jupeyy_keks but u and i cant release client
+17:58 < bridge_> <ryozuki> so we doomed
+17:58 < bridge_> <_voxeldoesart> but we cant just hold onto old code forever
+17:58 < bridge_> <ryozuki> apparently yes
+17:58 < ChillerDragon> yes let go of the old 0.6 code
+17:58 < bridge_> <Jupstar ✪> heinrichs problem is also the mods nobody will ever play xDD
+17:58 < bridge_> <_voxeldoesart> i wanna help with ddnet 2.0
+17:58 < bridge_> <Jupstar ✪> perfect
+17:58 < bridge_> <Jupstar ✪> start making a logo
+17:58 < bridge_> <_voxeldoesart> when i get home
+17:59 < bridge_> <matodor> :troll:
+17:59 < bridge_> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1124368532277313700/image.png
+17:59 < bridge_> <ryozuki> @jupeyy_keks as usual, the best way is to convince the community, and hype em, so we actually need to code it, even if other devs say no, and then make some marketing, just ask @_voxeldoesart for fancy images  and convince the plebs
+17:59 < bridge_> <Jupstar ✪> yes
+17:59 < bridge_> <Jupstar ✪> that can work
+18:00 < bridge_> <_voxeldoesart> sounds good
+18:00 < bridge_> <ryozuki> a bit of twinbops here and there
+18:00 < bridge_> <ryozuki> and we got em
+18:00 < ChillerDragon> xd
+18:00 < bridge_> <ryozuki> 😬
+18:00 < ChillerDragon> sex sells
+18:00 < bridge_> <Jupstar ✪> :brownbear: :heartw: :giftee_red: :giftee_green:
+18:01 < bridge_> <Jupstar ✪> :brownbear::brownbear::brownbear: come join my new ddnet :brownbear::brownbear::brownbear:
+18:01 < bridge_> <Jupstar ✪> works
+18:01 < bridge_> <ryozuki> lets do like dota, they called the big update reborn
+18:01 < bridge_> <ryozuki> ddnet reborn
+18:01 < bridge_> <ryozuki> and we put a tee angel floating
+18:01 < ChillerDragon> ddnet reloaded
+18:01 < bridge_> <ryozuki> kek
+18:01 < bridge_> <Jupstar ✪> more like born xd
+18:01 < bridge_> <Jupstar ✪> rn ddnet is just teeworlds xd
+18:01 < bridge_> <ryozuki> phoenix tee
+18:01 < bridge_> <_voxeldoesart> i can maybe ask other ppl how they want their ddnet experience to be changed
+18:01 < bridge_> <matodor> @jupeyy_keks  pls remove "dd" from ddnet 2.0
+18:01 < bridge_> <matodor> and implement mods api :brownbear::brownbear::brownbear::brownbear:
+18:02 < bridge_> <_voxeldoesart> dummy drag deluxe
+18:02 < bridge_> <_voxeldoesart> ddd
+18:02 < bridge_> <ryozuki> dddnet
+18:02 < ChillerDragon> xd
+18:02 < bridge_> <Jupstar ✪> D EEEEEEEEEEEEEEEEEEEEE
+18:02 < bridge_> <ryozuki> each update ads a d
+18:02 < bridge_> <ryozuki> ddddnet
+18:02 < bridge_> <Jupstar ✪> D EA Sports
+18:03 < bridge_> <ryozuki> encrypted e2e chat too, for tee esex at 3 am
+18:03 < bridge_> <ryozuki> :justatest:
+18:03 < ChillerDragon> lol
+18:04 < bridge_> <ryozuki> actually any server owner can read anything u say on sv
+18:04 < bridge_> <Jupstar ✪> there were rumors that kog spies on chat messages
+18:04 < bridge_> <ryozuki> in whispers too
+18:04 < bridge_> <Jupstar ✪> that alone red flag xd
+18:04 < bridge_> <ryozuki> xd
+18:05 < bridge_> <deni> guys is there an instruction for migration?
+18:05 < bridge_> <Jupstar ✪> pls waste the time of the creators
+18:05 < bridge_> <Jupstar ✪> https://discord.kog.tw/
+18:05 < bridge_> <Jupstar ✪> we wouldnt do smth like that
+18:06 < bridge_> <ryozuki> @deni this discord is ddnet discord, not kog discord, go to kog discord to solve your issue
+18:07 < bridge_> <deni> ok
+18:07 < bridge_> <matodor> just use command line for migrate your database, for example in Laravel its like: `php artisan migrate`
+18:07 < bridge_> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1124370637427838986/image.png
+18:07 < bridge_> <_voxeldoesart> ddnet 2.0 with a lighting system :brownbear:
+18:07 < bridge_> <Jupstar ✪> :lol:
+18:07 < bridge_> <Jupstar ✪> we see us in 3 years
+18:07 < bridge_> <_voxeldoesart> xd
+18:07 < ChillerDragon> just use unreal engine
+18:08 < bridge_> <Jupstar ✪> 3DDNet
+18:08 < bridge_> <Jupstar ✪> DDD Net
+18:08 < bridge_> <_voxeldoesart> i mean ngl all id want are like 
+18:08 < bridge_> <_voxeldoesart> special shaders and color correction things
+18:08 < ChillerDragon> artist moment
+18:08 < bridge_> <ryozuki> ddnet 2.0 with shaders for effects
+18:09 < bridge_> <ryozuki> skins can glow and have particles
+18:09 < bridge_> <ryozuki> a hammer on fire with dynamic lighting
+18:09 < bridge_> <ryozuki> laser with rtx
+18:09 < bridge_> <Jupstar ✪> xD
+18:09 < bridge_> <_voxeldoesart> yeah :feelsbadman:
+18:09 < ChillerDragon> and u can buy skins
+18:09 < bridge_> <Jupstar ✪> glow would already be cool
+18:09 < ChillerDragon> open loot boxes
+18:09 < ChillerDragon> and add accounts
+18:09 < bridge_> <_voxeldoesart> @ryozuki i hate how id actually love those ideas
+18:09 < bridge_> <ryozuki> im fine with that if they go to my bank account
+18:09 < bridge_> <ryozuki> :troll:
+18:09 < bridge_> <_voxeldoesart> @chillerdragon ddbucks
+18:10 < ChillerDragon> wowo
+18:10 < bridge_> <matodor> imagine the developers will be paid :poggers:
+18:10 < bridge_> <ryozuki> u can also put effects like heat wave or snow or rain, i love the effects from terraria
+18:10 < bridge_> <_voxeldoesart> ddnet 2.0 with like a bunch of new weapons and most you need to buy :troll:
+18:10 < bridge_> <_voxeldoesart> SAME
+18:10 < bridge_> <_voxeldoesart> the heat wave thing in terraria too
+18:11 < bridge_> <_voxeldoesart> terrarias like
+18:11 < bridge_> <_voxeldoesart> my main sorta inspiration for the whole lighting thing
+18:11 < bridge_> <ryozuki> https://gfycat.com/uniquevaingonolek-terraria
+18:11 < bridge_> <Jupstar ✪> maybe we should just open an indie game studio xd
+18:11 < bridge_> <ryozuki> https://terraria.wiki.gg/wiki/Rain#/media/File:Blizzard_(demo).gif
+18:12 < bridge_> <ryozuki> https://terraria.wiki.gg/images/8/84/Blizzard_%28demo%29.gif
+18:12 < bridge_> <_voxeldoesart> what should it be named
+18:12 < bridge_> <ryozuki> yes
+18:12 < bridge_> <Jupstar ✪> Voxstaruki
+18:12 < bridge_> <ryozuki> as long as i dont do any graphics gogo
+18:12 < bridge_> <ryozuki> i never did games cuz i have to do art
+18:12 < bridge_> <Jupstar ✪> yeah
+18:12 < bridge_> <_voxeldoesart> welll :gigachad:
+18:12 < bridge_> <Jupstar ✪> 😏
+18:13 < bridge_> <ryozuki> 😬
+18:13 < bridge_> <ryozuki> the games made  in rust ofc
+18:13 < bridge_> <ryozuki> and tooling
+18:13 < bridge_> <ryozuki> and scripts
+18:13 < bridge_> <ryozuki> everything
+18:13 < bridge_> <_voxeldoesart> ~~as long as i dont have to touch the code~~
+18:13 < bridge_> <ryozuki> its in the company constitution
+18:13 < bridge_> <_voxeldoesart> i probably have to and the  id actually know how to code in rust
+18:14 < bridge_> <Jupstar ✪> perfect match
+18:14 < bridge_> <avolicious> @chillerdragon what do I have to do, to get the IRC bridge?
+18:14 < ChillerDragon> oooo
+18:14 < ChillerDragon> hot
+18:14 < ChillerDragon> matterbridge is nice
+18:15 < bridge_> <avolicious> Shall I send you a webhook link for this?
+18:15 < ChillerDragon> https://github.com/42wim/matterbridge/wiki/Section-IRC-%28basic%29
+18:15 < ChillerDragon> https://github.com/42wim/matterbridge/wiki/Section-Discord-%28basic%29
+18:15 < bridge_> <Jupstar ✪> @_voxeldoesart i'll soon come back to this xdd
+18:15 < ChillerDragon> if you too lazy to host matterbridge and trust me with a webhook
+18:15 < ChillerDragon> i can host some yea
+18:15 < ChillerDragon> but also needs a bot iirc
+18:15 < bridge_> <avolicious> urgh
+18:16 < bridge_> <ryozuki> to what? xd
+18:16 < ChillerDragon> i cant make a discord bot
+18:16 < bridge_> <Jupstar ✪> to his offer to make graphics xddd
+18:16 < bridge_> <ryozuki> xd
+18:16 < ChillerDragon> avo you would need to click through those https://github.com/42wim/matterbridge/wiki/Discord-bot-setup
+18:17 < ChillerDragon> :robot:
+18:18 < bridge_> <avolicious> oke will look into it
+18:18 < bridge_> <avolicious> Might need a few days, other stuff is also on my list
+18:18 < bridge_> <_voxeldoesart> @jupeyy_keks so about ddnet 2.0 logo, do you have ideas on how you want it to look?
+18:18 < bridge_> <ryozuki> @_voxeldoesart teecity
+18:18 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1124373375368839209/game.mp4
+18:18 < bridge_> <ryozuki> kek
+18:18 < bridge_> <ryozuki> its meant to be like hotline miami
+18:18 < bridge_> <avolicious> But if we could use the bridge, you dont annoy ddnet pepos anymore
+18:18 < bridge_> <Jupstar ✪> xDDDDDDDDDDDD
+18:18 < bridge_> <_voxeldoesart> OHHH
+18:18 < ChillerDragon> thanks a lot
+18:18 < bridge_> <ryozuki> i spent just 2 hours on this tbh
+18:18 < bridge_> <ryozuki> mostly learning bevy
+18:19 < bridge_> <Jupstar ✪> mhh hard to say.
+18:19 < bridge_> <Jupstar ✪> I can tell you that i like the blue rings in the current logo
+18:19 < bridge_> <Jupstar ✪> 
+18:19 < bridge_> <Jupstar ✪> But i dislike the orange and brown color a lot, and i dislike that the tees all stare with their black eyes, default skins as if they want to kill you
+18:19 < bridge_> <Jupstar ✪> e.g. KoG logo is cooler (even if the logo itself looks not very clean)
+18:19 < bridge_> <ryozuki> tees should also use other skins than default
+18:20 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/splashes/342003344476471296/d5303422b343d6c7e550468bccdedd82.jpg?size=512
+18:20 < bridge_> <Jupstar ✪> e.g. i dont really like the orange here too
+18:20 < bridge_> <Jupstar ✪> and the hook looks out of place
+18:21 < bridge_> <Jupstar ✪> the king of gores text should probably use a different font
+18:21 < bridge_> <Jupstar ✪> https://ddnet.org/ddnet2.png
+18:21 < bridge_> <Jupstar ✪> but ddnet looks weird i dunno xD
+18:21 < bridge_> <matodor> did it in unity in 2013 🥺
+18:21 < bridge_> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1124374178267672596/bandicam_2023-06-30_20-20-01-543.mp4
+18:21 < bridge_> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1124374182369701950/image.png
+18:21 < bridge_> <Jupstar ✪> it wouldnt really convince me as newcomer
+18:21 < bridge_> <Jupstar ✪> i know im hater
+18:21 < bridge_> <ryozuki> urs is not top down
+18:21 < bridge_> <ryozuki> mine is top down
+18:21 < bridge_> <ryozuki> gottem
+18:22 < bridge_> <Jupstar ✪> epic xd
+18:22 < bridge_> <ryozuki> https://tenor.com/view/hotline-miami-gif-26504194
+18:22 < bridge_> <ryozuki> i want my game like this
+18:22 < bridge_> <ryozuki> in this style
+18:22 < bridge_> <ryozuki> this gif sucks
+18:22 < bridge_> <ryozuki> XD
+18:22 < bridge_> <matodor> bro
+18:22 < bridge_> <matodor> just google 
+18:22 < bridge_> <matodor> BaboViolent 2
+18:23 < bridge_> <matodor> https://www.youtube.com/watch?v=9jQZddY5Afc
+18:23 < bridge_> <ryozuki> nice
+18:23 < bridge_> <ryozuki> but hotline miami is kinda my OG
+18:23 < bridge_> <ryozuki> its a timeless classic
+18:23 < bridge_> <ryozuki> u kill russian gang with lot of blod
+18:23 < bridge_> <ryozuki> u lose on 1 shot
+18:24 < bridge_> <ryozuki> and epic music
+18:24 < bridge_> <ryozuki> https://www.youtube.com/watch?v=adDW9OKbKFs
+18:24 < bridge_> <ryozuki> @_voxeldoesart look this art
+18:24 < bridge_> <ryozuki> :troll:
+18:25 < bridge_> <_voxeldoesart> ooh yea
+18:26 < bridge_> <Jupstar ✪> btw was the "another week" literally spoken, or should i ping u at 13. Juli xd
+18:31 < bridge_> <learath2> you can ping me on 14th of july and I'll be free from my shackles
+18:31 < bridge_> <Jupstar ✪> ok
+18:47 < bridge_> <cyberFighter> level 10 crook
+18:47 < bridge_> <ryozuki> :okaymaam:
+18:50 < bridge_> <cyberFighter> @fokkonaut cough cough
+18:57 < bridge_> <coke1465> Is it possible to make an anti-spam server command that prevents spamming of server messages? Example : #💤👶powerless
+18:57 < bridge_> <coke1465> Is it possible to make an anti-spam server command that prevents spamming of server messages of specific maps? Example : #💤👶powerless
+18:58 < bridge_> <coke1465> It's possible with tune zones, but very spammy in entities
+19:01 < bridge_> <reitw> did any of u @ryozuki experiment with https://surrealdb.com/ ?
+19:01 < bridge_> <reitw> did any of u @ryozuki experimented* with https://surrealdb.com/ ?
+21:40 < bridge_> <Jupstar ✪> redicilous that i have to fight for a arch bug to be fixed, even tho i dont use it
+21:40 < bridge_> <Jupstar ✪> just bcs the maintainer is lazy af
+21:40 < bridge_> <Jupstar ✪> thats the reason ppl dont report bugs anymore at some point xd

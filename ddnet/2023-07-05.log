@@ -1,0 +1,779 @@
+00:41 < bridge_> <avolicious> Anyone a clue why the CMysqlConnection doesnt accept Uint64?
+00:41 < bridge_> <avolicious> 
+00:42 < bridge_> <avolicious> ```
+00:42 < bridge_> <avolicious> void CMysqlConnection::BindUInt64(int Idx, uint64_t Value)
+00:42 < bridge_> <avolicious> {
+00:42 < bridge_> <avolicious>     m_NewQuery = true;
+00:42 < bridge_> <avolicious>     Idx -= 1;
+00:42 < bridge_> <avolicious>     dbg_assert(0 <= Idx && Idx < (int)m_vStmtParameters.size(), "index out of bounds");
+00:42 < bridge_> <avolicious> 
+00:42 < bridge_> <avolicious>     m_vStmtParameterExtras[Idx].i = Value;
+00:42 < bridge_> <avolicious>     MYSQL_BIND *pParam = &m_vStmtParameters[Idx];
+00:42 < bridge_> <avolicious>     pParam->buffer_type = MYSQL_TYPE_LONGLONG;
+00:42 < bridge_> <avolicious>     pParam->buffer = &m_vStmtParameterExtras[Idx].i;
+00:42 < bridge_> <avolicious>     pParam->buffer_length = sizeof(m_vStmtParameterExtras[Idx].i);
+00:42 < bridge_> <avolicious>     pParam->length = nullptr;
+00:42 < bridge_> <avolicious>     pParam->is_null = nullptr;
+00:42 < bridge_> <avolicious>     pParam->is_unsigned = true;
+00:42 < bridge_> <avolicious>     pParam->error = nullptr;
+00:42 < bridge_> <avolicious> }
+00:42 < bridge_> <avolicious> ```
+00:42 < bridge_> <avolicious> Oh I see, because the C API Type Code expect a long long int... sadge
+07:39 < bridge_> <gerdoe> so true 👀
+07:46 < bridge_> <ryozuki> no help for closed sourcerers
+07:46 < bridge_> <ryozuki> 😬
+08:33 < bridge_> <chillerdragon> o.0
+08:33 < bridge_> <chillerdragon> (<@302059820905922560_=47it=48ub>)
+08:38 < bridge_> <Jupstar ✪> Does this at every con ready? That would explain why connecting to local host is also so slow xd
+09:04 < bridge_> <gerdoe> client info?
+09:06 < bridge_> <gerdoe> patched it and nothing changed honestly xd
+09:07 < bridge_> <gerdoe> or maybe i don't pay attention on every server load
+09:21 < ws-client1> <Jupstar> not faster?
+09:21 < ws-client1> <Jupstar> sadness
+09:22 < ws-client1> <Jupstar> maybe its just an edge case
+10:13 < bridge_> <heinrich5991> afaict, yes
+11:55 < ChillerDragon> anyone else got irc ads in dms? :D
+11:57 < ChillerDragon> jopsti just flush every message client and server side and turn on high bandwidth on server. it quadrouples the overall smoothness and takes up only 10gb/s
+12:12 < ws-client1> <Jupstar> xd, i dunno how much it increases traffic, but most traffic happens bcs of snapshots or not?
+12:14 < ws-client1> <Jupstar> how much overhead has our packet batching structure, if we have such a thing.. then u can estimate it xd
+12:15 < ws-client1> <Jupstar> @chillerdragon u the network doc, shows some docs mr doc
+12:16 < bridge_> <heinrich5991> Jupstar: every snapshot flushes
+12:16 < ChillerDragon> ye wat heinrich said
+12:16 < ChillerDragon> the gameplay relevant part is fast
+12:16 < bridge_> <heinrich5991> no reason to flush on every message
+12:16 < bridge_> <heinrich5991> it's already being flushed every 20ms
+12:16 < ChillerDragon> i was obv troling
+12:17 < ws-client1> <Jupstar> yeah but why not do the theoretical calculation
+12:18 < bridge_> <heinrich5991> during normal gameplay, I'd guess emote messages are the most common ones
+12:18 < ChillerDragon> i dont even understand which calc u mean
+12:18 < bridge_> <heinrich5991> https://chillerdragon.github.io/teeworlds-protocol/06.html: integer packig → integer packi**n**g
+12:18 < ws-client1> <Jupstar> if u'd directly flush every msg, instead of batching
+12:19 < ChillerDragon> knackig packig
+12:19 < ChillerDragon> thank heinrich
+12:19 < ws-client1> <Jupstar> how much traffic would u safe if u'd do a different compression approach than huffman?
+12:19 < ws-client1> <Jupstar> @chillerdragon pls calc
+12:20 < bridge_> <heinrich5991> I tried to use zstd instead of huffman
+12:20 < bridge_> <heinrich5991> could only get it to a level comparable to huffman
+12:20 < bridge_> <heinrich5991> (zstd with dictionary)
+12:22 < bridge_> <heinrich5991> ChillerDragon: got any docs on the ddnet protocol?
+12:23 < bridge_> <heinrich5991> the low-level ddnet 0.6 network extensions
+12:23 < ws-client1> <Jupstar> would defs be interesting depending on size of packet and compression algorithm used^^
+12:24 < bridge_> <heinrich5991> I'm not aware of better compression algorithms than zstd
+12:24 < bridge_> <heinrich5991> (we also want fast compression/decompression)
+12:24 < bridge_> <heinrich5991> if you tell me one, I could try
+12:24 < ws-client1> <Jupstar> i dunno, when i google there are many popping up with different pros and cons
+12:25 < ws-client1> <Jupstar> most apparently focus on speed
+12:25 < ws-client1> <Jupstar> https://github.com/lz4/lz4#benchmarks
+12:25 < bridge_> <heinrich5991> zstd has better compression ratio than zstd AFAIK
+12:25 < bridge_> <heinrich5991> zstd has better compression ratio than lz4 AFAIK
+12:25 < bridge_> <reitw> We saw it heinrich
+12:26 < bridge_> <heinrich5991> so lz4 is likely worse than our current compression
+12:26 < ws-client1> <Jupstar> but doesnt it always depend on the data
+12:26 < bridge_> <heinrich5991> note that we probably need some sort of dictionary
+12:26 < bridge_> <heinrich5991> not sure if lz4 supports that
+12:26 < bridge_> <heinrich5991> yes. I tested it on teeworlds packet data
+12:26 < bridge_> <heinrich5991> (not lz4, but I know that zstd usually performs better than zstd)
+12:26 < bridge_> <heinrich5991> (not lz4, but I know that zstd usually performs better than lz4)
+12:27 < ws-client1> <Jupstar> mh i see
+12:27 < ChillerDragon> @heinrich5991 no i got no ddnet docs. but need some bcs idk how ddnet protocol works
+12:27 < ws-client1> <Jupstar> and if performance would not matter?
+12:27 < ChillerDragon> i will probably write some as soon as i start learning ddnet protocol
+12:27 < bridge_> <heinrich5991> if performance would not matter, one could look into lzma
+12:27 < bridge_> <heinrich5991> but that's rather for long-term data storage
+12:28 < bridge_> <heinrich5991> not on-the-fly compression ^^
+12:28 < ws-client1> <Jupstar> well i am impressed that huffman handles so well tbh
+12:28 < ws-client1> <Jupstar> is it even considered a compression algorithm, or more like packing?
+12:28 < bridge_> <heinrich5991> it replaces bytes by bit sequences
+12:28 < bridge_> <heinrich5991> e.g. the byte 0x00 is replaced by the bit sequence 0
+12:29 < bridge_> <heinrich5991> e.g. the byte 0x00 is replaced by the bit sequence 1
+12:29 < bridge_> <heinrich5991> https://github.com/heinrich5991/libtw2/blob/f508384d259c5ee49e68d42af90d0317003e721c/doc/huffman.md#appendix
+12:29 < bridge_> <heinrich5991> see here for the full replacement list
+12:29 < ws-client1> <Jupstar> so i assume the packets are simply too small to be worth for the overhead of compression libs which use some kind of dictionary?
+12:29 < ChillerDragon> huffman is nice if you know how your data looks like
+12:29 < bridge_> <heinrich5991> that's exactly where dictionaries shine
+12:30 < bridge_> <heinrich5991> small packets
+12:30 < bridge_> <heinrich5991> because they give the compressor context it can reference
+12:30 < bridge_> <heinrich5991> zstd with dictionary performed much better than zstd without
+12:30 < bridge_> <heinrich5991> (I generated a custom dictionary for teeworlds packets)
+12:30 < ws-client1> <Jupstar> but still struggled against huffman?
+12:30 < bridge_> <heinrich5991> I think it was comparable
+12:31 < bridge_> <heinrich5991> huffman vs (zstd with dict)
+12:31 < bridge_> <heinrich5991> note that it's not strictly huffman, I guess
+12:31 < bridge_> <heinrich5991> it always takes the shorter of huffman and plain
+12:33 < bridge_> <heinrich5991> ```
+12:33 < bridge_> <heinrich5991> 615381    test_10000/a
+12:33 < bridge_> <heinrich5991> 585381    test_10000/compressed
+12:33 < bridge_> <heinrich5991> 933175    test_10000/uncompressed
+12:33 < bridge_> <heinrich5991> 760047    test_10000/zstd-default
+12:34 < bridge_> <heinrich5991> 534983    test_10000/zstd-dict
+12:34 < bridge_> <heinrich5991> 534249    test_10000/zstd-dict-nocontentsize
+12:34 < bridge_> <heinrich5991> 573934    test_10000/zstd-dict-nodictid
+12:34 < bridge_> <heinrich5991> ```
+12:34 < bridge_> <heinrich5991> not sure what `a` is
+12:34 < ChillerDragon> xd
+12:34 < bridge_> <heinrich5991> these are 10000 teeworlds packets
+12:35 < ws-client1> <Jupstar> compressed = what currently is used?
+12:35 < bridge_> <heinrich5991> yes
+12:35 < ws-client1> <Jupstar> a = noby
+12:35 < bridge_> <heinrich5991> ah. `a` is likely the original packet data
+12:35 < bridge_> <heinrich5991> with packet header
+12:35 < bridge_> <heinrich5991> since it's exactly 3 * 10000 bytes larger than `compressed`
+12:36 < bridge_> <heinrich5991> I guess there are some wins with `zstd-dict`
+12:36 < bridge_> <heinrich5991> ~10%
+12:36 < bridge_> <heinrich5991> creates a dict distribution problem though ^^
+12:37 < ws-client1> <Jupstar> i wonder how much and/or if lzma max can beat that
+12:37 < bridge_> <heinrich5991> I didn't use zstd max either
+12:37 < bridge_> <heinrich5991> I wonder if lzma max can beat zstd with dict
+12:37 < bridge_> <heinrich5991> probably not
+12:37 < bridge_> <heinrich5991> because it's lots of small files
+12:39 < bridge_> <heinrich5991> I can share the files if you want to run experiments on them @jupeyy_keks
+12:39 < ws-client1> <Jupstar> did u also benchmark, i wonder if e.g. simd benefits zstd against huffman which we implement our own
+12:40 < bridge_> <heinrich5991> I think zstd was not clearly faster than huffman
+12:41 < bridge_> <heinrich5991> want to have the files?
+12:41 < bridge_> <Jupstar ✪> Sooner or later i have to write benchmarks indeed, i have to decide which compression i want to use.
+12:41 < bridge_> <Jupstar ✪> Are the files simply byte arrays?
+12:41 < bridge_> <heinrich5991> yes
+12:41 < bridge_> <Jupstar ✪> Guess can't hurt to have them^^
+12:41 < bridge_> <heinrich5991> but if you roll your own protocol, you probably need to use your own
+12:42 < bridge_> <Jupstar ✪> Yes
+12:43 < bridge_> <Jupstar ✪> It bin codes everything anyway. So many zeros fall apart xd
+12:43 < bridge_> <heinrich5991> bincode?
+12:43 < ws-client1> <Jupstar> yes
+12:43 < ws-client1> <Jupstar> the rust crate
+12:43 < bridge_> <heinrich5991> ah
+12:44 < bridge_> <heinrich5991> https://cdn.discordapp.com/attachments/293493549758939136/1126101267266150431/test_10000.tar.zstd
+12:44 < ws-client1> <Jupstar> ty
+12:45 < bridge_> <heinrich5991> (you want to compress the files in the `uncompressed` directory)
+12:50 < bridge_> <heinrich5991> oh, I got IRC spam
+13:03 < bridge_> <ryozuki> ChillerDragon
+13:03 < bridge_> <ryozuki> im making a grammar aware ddnet config parser
+13:03 < bridge_> <ryozuki> grammar aware cuz sounds cool
+13:03 < bridge_> <ryozuki> and cuz using lr
+13:12 < bridge_> <chillerdragon> Nice for what
+13:13 < ws-client1> <Jupstar> not "for what", but "in what". In rust
+13:13 < ws-client1> <Jupstar> xd
+13:16 < bridge_> <chillerdragon> That part is obvious
+13:17 < bridge_> <chillerdragon> But what can I use it for? Finally vim tab completion ?
+13:18 < bridge_> <chillerdragon> Im pretty happy with my bash Config parser for checking correctness of config files
+13:19 < bridge_> <chillerdragon> Compat omg phone
+13:20 < bridge_> <ryozuki> no
+13:20 < bridge_> <ryozuki> for example
+13:20 < bridge_> <ryozuki> its a good library in case u make a gui to edit ddnet configs
+13:20 < bridge_> <ryozuki> im sure ur bash config parser doesnt show the errors indicated liike rust does with source code
+13:20 < bridge_> <ryozuki> and mine is probs faster
+13:21 < bridge_> <ryozuki> cuz LR(1)
+13:21 < bridge_> <ryozuki> and rust
+13:23 < bridge_> <wollwolki> Currently working on something compression related, you may wanna look at this paper
+13:23 < bridge_> <wollwolki> https://www.areinhardt.de/publications/2012/Ringwelski_Energycon_2012.pdf
+13:23 < bridge_> <wollwolki> Did a quick test run with the files above and got a small improvement using LZMH: 584338 vs 585381. Can probably be improved if someone knows about that stuff (I don't...)
+13:23 < bridge_> <wollwolki> Here is the example code of the paper
+13:23 < bridge_> <wollwolki> https://github.com/CenterForSecureEnergyInformatics/data-compressor/blob/master/DataCompressor/DCLib/src/lzmh.c
+13:24 < bridge_> <heinrich5991> permalink: https://github.com/CenterForSecureEnergyInformatics/data-compressor/blob/2cf54f24dd109952f78d9836b5bccbc7fcb9a3bf/DataCompressor/DCLib/src/lzmh.c
+13:25 < bridge_> <heinrich5991> @wollwolki zstd with dictionary seems to perform better than that lzmh
+13:25 < bridge_> <ryozuki> what files above?
+13:26 < bridge_> <heinrich5991> I deleted the discord again because I don't remember where I got them from
+13:26 < bridge_> <heinrich5991> I deleted the discord message again because I don't remember where I got them from
+13:28 < bridge_> <wollwolki> But don't you need to distribute the dict for that? Or did i miss something
+13:28 < bridge_> <heinrich5991> yes, need to distribute a dict with the client
+13:28 < bridge_> <ryozuki> but imho compression on the fly needs to be fast, even if slightly less efficient compressing no?
+13:28 < bridge_> <heinrich5991> I'd consider that fine
+13:29 < bridge_> <heinrich5991> yes. zstd was okay fast IIRC
+13:29 < bridge_> <ryozuki> @heinrich5991 did u try arithmetic coding?
+13:29 < bridge_> <heinrich5991> zstd uses something like arithmetic coding internally
+13:30 < bridge_> <wollwolki> LZMH is too fast for the time measurment accuray of their testbench, would need to adjust that for these small files
+13:33 < bridge_> <ryozuki> ChillerDragon: does ur config parser check against config types, min max etc?
+13:33 < bridge_> <ryozuki> my crate parses the header file
+13:37 < ChillerDragon> mine also parses the header file but only checks if the config exists or not
+13:37 < bridge_> <ryozuki> nobo
+13:37 < ChillerDragon> yea its actually a good idea to do more checks also like str vs int
+13:38 < ChillerDragon> the nice thing about my setup is that it checks the code of the actual server it will run
+13:38 < ChillerDragon> so it supports custom mods 
+13:39 < ChillerDragon> @ryozuki thats how my warnings look like
+13:39 < ChillerDragon> https://zillyhuhn.com/cs/.1688295370.png
+13:39 < ChillerDragon> shoutout to jopsti
+13:40 < bridge_> <ryozuki> ye mine loads the config options at runtime
+13:40 < bridge_> <ryozuki> also color str int
+13:40 < ChillerDragon> ah nice
+13:40 < bridge_> <ryozuki> and saves the symbol
+13:40 < bridge_> <ryozuki> and desc
+13:40 < ChillerDragon> where does it look for the header files?
+13:40 < ChillerDragon> now im motivated to improve my bash version
+13:41 < ChillerDragon> but i really got other stuff todo x
+13:42 < ws-client1> <Jupstar> @chillerdragon why was the value even on 0.1? that alone sounds wrong to me.. or was it just a test? XD
+13:42 < bridge_> <ryozuki> ?
+13:43 < bridge_> <ryozuki> macro config
+13:43 < ChillerDragon> ye
+13:43 < bridge_> <ryozuki> macro config has everything
+13:43 < ChillerDragon> @Jupstar worked on my machine
+13:43 < ws-client1> <Jupstar> so it evaluated to zero
+13:43 < ChillerDragon> does it parse the macro config at runtime?
+13:43 < ws-client1> <Jupstar> bcs string could not be parsed to int
+13:43 < ChillerDragon> @Jupstar there was a time or mod where 0 crashed the server and 0.1 didnt
+13:44 < ChillerDragon> using it eversince and worked wonderfully
+13:44 < ws-client1> <Jupstar> it makes no sense tho xD
+13:44 < ChillerDragon> pst
+13:44 < bridge_> <ryozuki> ye
+13:44 < ChillerDragon> yes
+13:44 < ChillerDragon> so where does it look for the macro file?
+13:44 < ChillerDragon> do i have to provide on when using the lib?
+13:44 < ChillerDragon> one*
+13:44 < bridge_> <ryozuki> for now i copied it
+13:44 < ChillerDragon> so u ship it?
+13:44 < bridge_> <ryozuki> ill make so u pass a path
+13:45 < ChillerDragon> a
+13:45 < ChillerDragon> k
+13:45 < ChillerDragon> ok nice so i can use ur lib as a dropin replacement for mine
+13:45 < bridge_> <ryozuki> it also saves the cfg flags
+13:45 < ChillerDragon> if i decide to rewrite in rust
+13:45 < ChillerDragon> but rust is such a bloat
+13:45 < bridge_> <ryozuki> no u
+13:46 < bridge_> <heinrich5991> rust runs on windows 🙂
+13:46 < ChillerDragon> bash does too
+13:47 < ChillerDragon> also not planning to switch back to windows servers anytime soon
+13:47 < ChillerDragon> my shell scripts start my tw server
+13:47 < ChillerDragon> its bloat to install rust and cargo and cargo install 10min to run a tw server
+13:47 < ChillerDragon> while bash compiles and runst blazingly fast and is preinstalled
+13:47 < bridge_> <heinrich5991> not on windows
+13:48 < bridge_> <heinrich5991> bash is very much a second-class citizen on windows
+13:48 < ChillerDragon> yes
+13:48 < ChillerDragon> but then not even microsoft uses windows for servers
+13:48 < ChillerDragon> so who cares
+13:49 < bridge_> <heinrich5991> I'd probably use python over bash tbf
+13:49 < ChillerDragon> python has similar bloat level to rust
+13:49 < bridge_> <heinrich5991> also comes preinstalled and is an actually useful programming language ^^
+13:49 < ChillerDragon> havent seen a distro with preinstalled python yet
+13:49 < bridge_> <heinrich5991> what do you mean by "bloat" here? ^^
+13:49 < ChillerDragon> it has to be installed
+13:49 < bridge_> <heinrich5991> weird name, but ok
+13:49 < ChillerDragon> ok python is slimmer than rust i guess 
+13:50 < ChillerDragon> because no compile
+13:50 < bridge_> <heinrich5991> I'd guess python is installed on every server you use
+13:50 < ChillerDragon> yea i see
+13:50 < ChillerDragon> for stuff like that i would always use bash over python
+13:51 < ChillerDragon> most of the time im just launching other tools which is just smoother in bash
+13:51 < ChillerDragon> python just slows down development time while not even offering much better static analysis if it works or not
+13:52 < ChillerDragon> most issues are variable typos those are caught as good by shellcheck as they are by pylint
+13:52 < ChillerDragon> but its taste i assume i am just more effective in bash than python
+13:53 < ChillerDragon> omg daily ddnet language bashing xd
+13:55 < ws-client1> <Jupstar> its fine, python is evil
+13:55 < ws-client1> <Jupstar> it sets new benchmarks, in slowness xd
+13:56 < ws-client1> <Jupstar> the syntax is for masochists 
+13:56 < ws-client1> <Jupstar> @chillerdragon when rewrite ddnet in bash
+13:56 < ws-client1> <Jupstar> no other deps allowed
+13:58 < bridge_> <heinrich5991> bash is pretty useless without external programs
+13:59 < ws-client1> <Jupstar> ^ @chillerdragon challenge for u
+14:34 < bridge_> <tormenta_de_facha> I want to talk to a superior from ddnet to talk about a particular topic that is necessary to be in the game
+14:34 < ws-client1> <Jupstar> go ahead
+14:39 < bridge_> <ryozuki> this chat right here
+14:39 < bridge_> <ryozuki> this is a open source game
+14:39 < bridge_> <ryozuki> unless its a critical security issue u should say it here
+14:39 < bridge_> <ryozuki> or a github issue
+14:41 < bridge_> <tormenta_de_facha> I am writing to address a matter of utmost importance to the gaming community, especially those hailing from the beautiful region of Galicia. I humbly request your esteemed consideration in adding the Galician flag to the renowned game, DDNet.
+14:41 < bridge_> <tormenta_de_facha> 
+14:41 < bridge_> <tormenta_de_facha> Allow me to emphasize the significance of incorporating the Galician flag within the game's selection of flags. DDNet, as an online platform connecting players from diverse backgrounds, has proven to be a unifying force that transcends geographical and cultural boundaries. By introducing the Galician flag, the game can embrace the rich cultural heritage of this historic region and pay homage to its people.
+14:41 < bridge_> <tormenta_de_facha> 
+14:41 < bridge_> <tormenta_de_facha> The Galician flag represents the aspirations, values, and identity of a distinct and vibrant community. By integrating it into DDNet, you have the unique opportunity to demonstrate the game's commitment to inclusivity and recognition of its global player base. The sense of pride and belonging experienced by Galician players when they see their flag displayed alongside others will undoubtedly strengthen the sense of community within the g
+14:41 < bridge_> <tormenta_de_facha> 
+14:41 < ChillerDragon> @Jupstar some dude wrote a mc server in bash i think it ended up super wonkey because he ran into some limits
+14:41 < bridge_> <tormenta_de_facha> Moreover, introducing the Galician flag aligns with the broader vision of fostering cultural appreciation and understanding within the gaming community. As players from different corners of the world come together, they exchange not only gaming experiences but also glimpses of each other's cultures. By representing the Galician culture in the game, DDNet can become a powerful instrument for promoting cultural diversity, respect, and frie
+14:41 < bridge_> <tormenta_de_facha> 
+14:41 < bridge_> <tormenta_de_facha> I understand that incorporating new elements into an established game requires careful consideration and technical implementation. However, I am confident that your talented development team possesses the necessary expertise to achieve this endeavor successfully. The inclusion of the Galician flag will undoubtedly be met with enthusiasm from both the Galician players and the wider DDNet community.
+14:41 < bridge_> <tormenta_de_facha> In conclusion, I implore you to recognize the significance of this proposal and take steps to include the Galician flag in DDNet. Your commitment to diversity and cultural appreciation will undoubtedly be celebrated by players worldwide, fostering a stronger sense of community and making the game an even more enjoyable and inclusive experience
+14:41 < bridge_> <Ewan> a
+14:42 < bridge_> <ryozuki> lmao
+14:42 < bridge_> <ryozuki> @tormenta_de_facha u know the catalan flag is there cuz i translated this to catalan
+14:42 < bridge_> <ryozuki> but unless u translate to galician, i doubt it would be added
+14:43 < bridge_> <Ewan> can we get the my backyard flag
+14:43 < ChillerDragon> can we ban chatgpt users pls?
+14:43 < bridge_> <tormenta_de_facha> the whole message?
+14:43 < bridge_> <Ewan> huh?
+14:43 < bridge_> <tormenta_de_facha> not chatgpt
+14:43 < bridge_> <ryozuki> the worst is im sure this guy would be against adding catalan flag kek
+14:43 < bridge_> <tormenta_de_facha> no
+14:43 < ChillerDragon> your wall of text is too big
+14:43 < bridge_> <gerdoe> the whole game :troll:
+14:43 < bridge_> <tormenta_de_facha> i don t critise any flag
+14:43 < bridge_> <ryozuki> tldr: he wants to add his spanish regional flag
+14:43 < bridge_> <Ewan> I actually see no reason why this flag shouldn’t be added. just add it
+14:43 < bridge_> <Ewan> create a pool request
+14:44 < bridge_> <ryozuki> cuz there are many more like this
+14:44 < bridge_> <ryozuki> i personally wouldnt mind either
+14:44 < bridge_> <tormenta_de_facha> I want to have the recognition to all Galician players
+14:44 < bridge_> <Ewan> all 3 of them
+14:44 < bridge_> <ryozuki> its probs just u bro
+14:44 < bridge_> <gerdoe> ⛲
+14:44 < ws-client1> <Jupstar> then also lets add NRW flag xd
+14:44 < ChillerDragon> xd
+14:44 < ws-client1> <Jupstar> https://en.wikipedia.org/wiki/North_Rhine-Westphalia
+14:44 < bridge_> <tormenta_de_facha> no
+14:44 < ws-client1> <Jupstar> its a bundesland
+14:44 < bridge_> <ryozuki> that text is chathpt for sure
+14:45 < bridge_> <gerdoe> i still remember this one
+14:45 < bridge_> <gerdoe> https://github.com/ddnet/ddnet/issues/3639
+14:45 < ChillerDragon> the text is spam for sure
+14:45 < bridge_> <heinrich5991> I know people wrote texts like that before chatgpt
+14:45 < bridge_> <ryozuki> konsti would ask a certain flag kek
+14:45 < ws-client1> <Jupstar> only important flag is taiwan
+14:45 < ChillerDragon> also if we add any flags lets add lgbtq+69 rainbow flag first because its nice
+14:45 < bridge_> <tormenta_de_facha> maybe it is but i want to have it on the game for the galician players
+14:46 < bridge_> <tormenta_de_facha> that is not a region
+14:46 < bridge_> <tormenta_de_facha> Galician yes
+14:46 < ChillerDragon> i feel offended
+14:46 < bridge_> <heinrich5991> maybe we should remove flags 😄
+14:46 < ChillerDragon> yikes
+14:46 < ws-client1> <Jupstar> add country flags, and regional flags. And put taiwan to country flags
+14:46 < bridge_> <gerdoe> https://cdn.discordapp.com/attachments/293493549758939136/1126131966132092980/image.png
+14:46 < ws-client1> <Jupstar> trigger inc
+14:46 < bridge_> <tormenta_de_facha> 1 year message
+14:46 < bridge_> <tormenta_de_facha> the people change
+14:46 < bridge_> <gerdoe> and still no meaning to add any new regional flag kekw
+14:47 < ws-client1> <Jupstar> i think we once said that we only allow new flags where wikipedia says its a country flag
+14:47 < ws-client1> <Jupstar> and this isnt the case for yours @tormenta_de_facha 
+14:47 < bridge_> <ryozuki> ur best bet is to translate ddnet to galician
+14:47 < bridge_> <gerdoe> if so ddnet should have been added like 89 new flags (russian states)
+14:47 < bridge_> <heinrich5991> I think if you translate the game into galician, it'll definitely be accepted
+14:47 < bridge_> <ryozuki> this is how i got the catalan flag in
+14:47 < ws-client1> <Jupstar> lmao
+14:47 < ChillerDragon> @heinrich5991 compare the gpt wall english with his other messages
+14:48 < ws-client1> <Jupstar> yeah @chillerdragon i agree
+14:48 < ChillerDragon> he is clearly too lazy to write an actual proposal and just spams a wall of text that is ai generated
+14:48 < bridge_> <Ewan> that seems kinda ridiculous to me man I don’t see why there shouldn’t be a flag for every actual geographical region with people willing to make the flag
+14:48 < bridge_> <ryozuki> we live in ai society
+14:48 < ws-client1> <Jupstar> " However, I am confident that your talented development team possesses the necessary expertise to achieve this endeavor successfully. "
+14:48 < ChillerDragon> its not better than telegram ads imo
+14:48 < ws-client1> <Jupstar> that sentence alone
+14:48 < bridge_> <ryozuki> lot of political issues
+14:48 < bridge_> <Ewan> who cares
+14:48 < ChillerDragon> i care
+14:48 < bridge_> <ryozuki> some ppl recognize regions and others not
+14:48 < bridge_> <heinrich5991> we can also do free-for-all flags
+14:48 < bridge_> <Ewan> there is no political affiliation
+14:49 < bridge_> <heinrich5991> then we'd get a couple of non-regional flags as well though
+14:49 < bridge_> <Ewan> why
+14:49 < ChillerDragon> @ryozuki > konsti would ask a certain flag kek
+14:49 < ChillerDragon> :justatest:
+14:49 < bridge_> <ryozuki> lets add catalan independence flag
+14:49 < bridge_> <gerdoe> anyway players still can add flag of theirs if they want to
+14:49 < bridge_> <gerdoe> but in their game client folders
+14:50 < ChillerDragon> flags.teeskins.net download server when
+14:50 < bridge_> <gerdoe> bruh
+14:50 < ChillerDragon> xd
+14:50 < bridge_> <gerdoe> another vram collapse coming xd
+14:50 < bridge_> <heinrich5991> unclear why we'd limit it to regional flags if we open it up, I think
+14:50 < bridge_> <Ewan> because the flag signifies where you are from…
+14:50 < ws-client1> <Jupstar> @gerdoe XDDD
+14:51 < bridge_> <ryozuki> i want barcelona city flag
+14:51 < ws-client1> <Jupstar> https://en.wikipedia.org/wiki/University_of_M%C3%BCnster#/media/File:Siegel_Universitaet_Muenster.svg
+14:51 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1126133320061820948/Flag_of_Barcelona.svg.png
+14:51 < ws-client1> <Jupstar> i want my university
+14:51 < ChillerDragon> i want flag vital
+14:51 < bridge_> <heinrich5991> you can already have that using countries. you're probably in the areas of one of these states
+14:52 < ChillerDragon> and flag flush
+14:52 < bridge_> <tormenta_de_facha> https://cdn.discordapp.com/attachments/293493549758939136/1126133391423713361/StEfpcOTROn03y1ej0tHIpddlREXpWGSTjKgoHYqMKtqidRN7IhsqSschrRBRekoZJYsqCgdhOySARWlQ5BflaOidATVUE7fzS1POFWIitLDr5IqQkXpwVdLmb6bW54ItE8yKkqPvIqSnFWUHnhVJREVpYddXTkOSEFF6VFXW1JQUXrMVRdApdzNvtJD3gCVjYrSA94QlYmK0sPdGO1rKgcVpUe7USoHFaXHumHa11SyKUoPdQN1oNTbHUoPdCO111CaKf8HLuLXZb0lv4UAAAAASUVORK5CYII.png
+14:52 < bridge_> <tormenta_de_facha> the best flag
+14:52 < ChillerDragon> is the image embedded in the url?
+14:52 < bridge_> <heinrich5991> https://commons.wikimedia.org/wiki/File:Flag_of_Cusco_(2021).svg
+14:52 < bridge_> <heinrich5991> https://commons.wikimedia.org/wiki/File:Hallum_vlag.svg
+14:52 < bridge_> <heinrich5991> might as well add the lgbt flag proper if we add these ^^
+14:52 < ChillerDragon> did discord switch to 0 storage cdns?
+14:53 < bridge_> <gerdoe> :troll:
+14:53 < bridge_> <gerdoe> https://cdn.discordapp.com/attachments/293493549758939136/1126133651021774888/Flag_of_Tatarstan.svg.png
+14:53 < bridge_> <tormenta_de_facha> this even is a flag
+14:53 < ws-client1> <Jupstar> https://en.wikipedia.org/wiki/Flag#/media/File:Flag_of_the_United_Nations.svg
+14:53 < bridge_> <ryozuki> :troll:
+14:53 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1126133759691997377/1200px-estelada_blava-svg.png
+14:53 < ws-client1> <Jupstar> https://upload.wikimedia.org/wikipedia/commons/2/2f/Flag_of_the_United_Nations.svg
+14:53 < bridge_> <gerdoe> southern catalans?
+14:53 < ws-client1> <Jupstar> *
+14:53 < bridge_> <heinrich5991> https://commons.wikimedia.org/wiki/File:Flag_of_the_United_Nations.svg
+14:54 < bridge_> <ryozuki> independent movement of catalonia flag
+14:54 < bridge_> <tormenta_de_facha> if cataluña flag is on the game why galician can t be?
+14:54 < bridge_> <gerdoe> oh
+14:54 < bridge_> <Ewan> he already said
+14:54 < bridge_> <Ewan> you don’t read
+14:54 < bridge_> <Jupstar ✪> Who needs more than the world flag xd
+14:54 < bridge_> <ryozuki> cuz game is in catalan
+14:54 < bridge_> <heinrich5991> if you translate the game into galician, the flag is probably going to be added
+14:54 < bridge_> <tormenta_de_facha> if i translate whole game
+14:54 < bridge_> <Ewan> yes
+14:54 < bridge_> <ryozuki> i told u
+14:54 < ChillerDragon> because chatgpt proposals are auto rejected
+14:54 < bridge_> <ryozuki> 10 times
+14:54 < bridge_> <ryozuki> kek
+14:54 < bridge_> <gerdoe> i wish there's no help from middle east to force cataloons to rebel
+14:54 < bridge_> <tormenta_de_facha> okay
+14:54 < ws-client1> <Jupstar> NATO flag xd
+14:55 < ChillerDragon> @heinrich5991 chatgpt translation incoming xd
+14:55 < bridge_> <tormenta_de_facha> no
+14:55 < bridge_> <heinrich5991> do we have someone in the community who can speak galician btw?
+14:55 < bridge_> <heinrich5991> who can proofread the translation
+14:55 < bridge_> <tormenta_de_facha> im from galician i now how to translate
+14:55 < bridge_> <Ewan> when can we get the new spain flag
+14:55 < bridge_> <gerdoe> catalan flag is alredy there
+14:55 < bridge_> <gerdoe> already
+14:55 < bridge_> <tormenta_de_facha> all my galician homies
+14:55 < ChillerDragon> xd
+14:55 < bridge_> <Ewan> no i mean new spain
+14:55 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1126134379530424471/Screenshot_2023-07-05-14-55-51-652_org.mozilla.firefox.jpg
+14:56 < bridge_> <Ewan> the underground country
+14:56 < ChillerDragon> @tater add flags download server
+14:56 < bridge_> <Jupstar ✪> 😬
+14:56 < ChillerDragon> i wanna dl ryos rust flag
+14:56 < bridge_> <tormenta_de_facha> for translation how i can start
+14:56 < bridge_> <heinrich5991> @ryozuki is catalan similar to spanish?
+14:56 < ws-client1> <Jupstar> can i also add bayrisch
+14:56 < ChillerDragon> :beer:
+14:56 < bridge_> <heinrich5991> yes, Jupstar
+14:56 < ws-client1> <Jupstar> epic
+14:56 < bridge_> <heinrich5991> bairisch*
+14:56 < bridge_> <heinrich5991> btw
+14:56 < ChillerDragon> can u even speak it?
+14:57 < ws-client1> <Jupstar> now i just have to learn it xd
+14:57 < ws-client1> <Jupstar> @chillerdragon no but u
+14:57 < ChillerDragon> no way its bairisch?
+14:57 < ChillerDragon> i cant
+14:57 < bridge_> <heinrich5991> it's Bairisch
+14:57 < ChillerDragon> where in german?
+14:57 < bridge_> <Ewan> what should I eat
+14:57 < bridge_> <ryozuki> its similar but its its own language, u may understand a bit as a spanish, just like a spanish can recognize some portugese or italian
+14:57 < bridge_> <gerdoe> food
+14:57 < ChillerDragon> prezels
+14:57 < ChillerDragon> and schweinebraten
+14:57 < bridge_> <heinrich5991> is it closer to spanish than portuguese is to spanish?
+14:57 < bridge_> <tormenta_de_facha> portugese is the same as galician
+14:57 < ws-client1> <Jupstar> grüß gott
+14:57 < ChillerDragon> servus
+14:58 < bridge_> <tormenta_de_facha> it is facts
+14:58 < bridge_> <ryozuki> ye
+14:58 < ws-client1> <Jupstar> we can add it at 1. april
+14:59 < bridge_> <heinrich5991> now I wonder if catalan-spanish is closer than swiss german-german
+14:59 < bridge_> <ryozuki> catalonia is quite old too
+14:59 < bridge_> <heinrich5991> (swiss german is incomprehensible to me)
+14:59 < ws-client1> <Jupstar> grüzi
+15:00 < bridge_> <ryozuki> > In 1137, Ramon Berenguer IV, Count of Barcelona betrothed the heiress of the Kingdom of Aragon, Petronilla, establishing the dynastic union of the County of Barcelona with Aragon, the Crown of Aragon, while the County of Barcelona and the other Catalan counties merged into a political entity, the Principality of Catalonia,[3] which developed an institutional system (Courts, constitutions, Generalitat) that limited the power of the kings. Catalon
+15:00 < bridge_> <ryozuki> spain exists since 1700 or so
+15:01 < bridge_> <tormenta_de_facha> no
+15:01 < bridge_> <tormenta_de_facha> 1492
+15:01 < bridge_> <tormenta_de_facha> Spain have so much history
+15:02 < bridge_> <heinrich5991> the state germany exists since like 1871 ^^
+15:02 < bridge_> <Ewan> ????
+15:02 < ws-client1> <Jupstar> https://upload.wikimedia.org/wikipedia/commons/4/47/Pirate_Flag_of_Jack_Rackham.svg
+15:02 < bridge_> <tormenta_de_facha> search it
+15:02 < ws-client1> <Jupstar> we also need to care about our pirates
+15:02 < ws-client1> <Jupstar> "Republic of Pirates 1706–1718 "
+15:06 < ChillerDragon> so many cool flags
+15:06 < ChillerDragon> at least ddnet already has a dragon flag :) 
+15:06 < ChillerDragon> https://raw.githubusercontent.com/ddnet/ddnet/master/data/countryflags/BT.png
+15:07 < bridge_> <tormenta_de_facha> where is the traduction for ddnet?
+15:07 < bridge_> <heinrich5991> you need to edit text files
+15:08 < bridge_> <heinrich5991> if you download ddnet, you can find it in data/languages
+15:08 < bridge_> <tormenta_de_facha> yea
+15:08 < bridge_> <tormenta_de_facha> okay
+15:08 < bridge_> <heinrich5991> editing an existing file would be easiest for testing
+15:08 < bridge_> <tormenta_de_facha> thx
+15:09 < bridge_> <cyberFighter> hi
+15:10 < bridge_> <Jupstar ✪> If we add random languages to the game, we need a concept of fall back languages. If we don't have that yet
+15:10 < bridge_> <Jupstar ✪> Bcs i kinda doubt the maintainer will stay active xd
+15:11 < bridge_> <heinrich5991> how up-to-date is the catalan translation?
+15:12 < bridge_> <heinrich5991> we should™ get a better translation UI than text files
+15:13 < ws-client1> <Jupstar> best would be over web, with directly upload/sync or smth (with accounts probs)
+15:13 < bridge_> <heinrich5991> we could use something like this: https://weblate.org/en/
+15:19 < bridge_> <Ewan> tr files not good enough?
+15:20 < bridge_> <Ewan> plenty of tr editors
+15:20 < bridge_> <heinrich5991> what is tr?
+15:23 < bridge_> <Ewan> ts. sorry
+15:23 < bridge_> <Jupstar ✪> Typescript? Xd
+15:24 < bridge_> <heinrich5991> what is ts?
+15:27 < bridge_> <Ewan> im thinking of po apparently
+15:27 < bridge_> <Ewan> brainmoment
+15:27 < bridge_> <heinrich5991> ah
+15:27 < bridge_> <heinrich5991> well, we don't support po right now ^^
+15:28 < bridge_> <cyberFighter> i think theres a bug in the serbian translations
+15:28 < bridge_> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1126142451187449956/image.png
+15:28 < ws-client1> <Jupstar> well i dont speak serbian
+15:28 < ws-client1> <Jupstar> so maybe just fix it? xd
+15:29 < bridge_> <cyberFighter> ok
+15:29 < bridge_> <cyberFighter> tbh the whole serbian translation looks messy, i wanna try fixing it some time
+15:30 < ws-client1> <Jupstar> bcs of the space requirements?
+15:30 < ws-client1> <Jupstar> or bcs of the translations
+15:30 < bridge_> <heinrich5991> text shrinking was a mistake :p
+15:30 < bridge_> <heinrich5991> I think it looks worse than cut-off text
+15:30 < bridge_> <Ewan> agreed
+15:30 < ws-client1> <Jupstar> but loosing information isnt better tbh
+15:31 < bridge_> <Ewan> scroll
+15:31 < bridge_> <Ewan> or design better
+15:31 < bridge_> <heinrich5991> ah, but we don't have that :/
+15:31 < bridge_> <heinrich5991> forcing people to provide better translations ^^
+15:31 < bridge_> <heinrich5991> would be my strategy
+15:32 < bridge_> <Ewan> the ui needs to not force size constraints on text unless really necessary
+15:32 < ws-client1> <Jupstar> scroll is also semi good solution.., guess our UI is simply too bloated generally
+15:32 < bridge_> <cyberFighter> like the language is very wordy
+15:32 < bridge_> <ryozuki> i should update it
+15:33 < ws-client1> <Jupstar> https://ddnet.org/news/client-translations/
+15:33 < bridge_> <ryozuki> @heinrich5991 @jupeyy_keks custom fallback langs for translations would be cool, e.g if not all catalan or galician is translated, fallback to spanish
+15:33 < bridge_> <heinrich5991> will that blend in?
+15:33 < bridge_> <ryozuki> and then to english
+15:33 < bridge_> <heinrich5991> or will you notice that it's spanish not catalan?
+15:34 < bridge_> <ryozuki> u will notice ofc, but if u dont know english u will understand
+15:34 < bridge_> <ryozuki> cuz 99.9% know spanish
+15:35 < bridge_> <ryozuki> maybe same with ukranian and russian etc
+15:35 < bridge_> <ryozuki> portuguese
+15:35 < ws-client1> <Jupstar> tbh i hate the german translations xDD
+15:35 < ws-client1> <Jupstar> KARTE
+15:35 < bridge_> <Ewan> 99.9% catalonians u mean
+15:35 < bridge_> <Ewan> cuz i sure don’t speak spanish
+15:35 < bridge_> <ryozuki> ye i meant that obv
+15:36 < bridge_> <ryozuki> i meant per translation fallback
+15:36 < bridge_> <ryozuki> catalan -> spanish -> eng
+15:36 < ws-client1> <Jupstar> i guess in europe pretty much everyone understands english good enough to start the game xd
+15:36 < bridge_> <heinrich5991> I had problems with english when I was young
+15:36 < bridge_> <mercadona_> no
+15:37 < bridge_> <cyberFighter> the red team wins message lol
+15:37 < bridge_> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1126144734696579174/screenshot_2023-07-05_15-36-00.png
+15:37 < bridge_> <heinrich5991> suddenly latin characters?
+15:37 < ws-client1> <Jupstar> @heinrich5991 i dunno, my niece already knows enough english probably... what do you acutally need to understand, most important stuff are icons
+15:37 < ws-client1> <Jupstar> settings, left, right, jump
+15:38 < ChillerDragon> I am running ddnet-server from apt and apparmor said it tried to execute /usr/bin/dash any idea why?
+15:38 < ws-client1> <Jupstar> i dunno if someone doesnt know these words xD
+15:38 < ws-client1> <Jupstar> team
+15:38 < ws-client1> <Jupstar> friend
+15:38 < bridge_> <heinrich5991> fixing video settings, maybe
+15:38 < ws-client1> <Jupstar> video settings most ppl dont even understand if they know english xd
+15:38 < bridge_> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1126145151119675473/image.png
+15:38 < bridge_> <heinrich5991> output of `file (which ddnet-server)`
+15:38 < bridge_> <cyberFighter> well idk how you would translate entities
+15:39 < bridge_> <heinrich5991> or `file "$(which ddnet-server)"` if you run bash
+15:39 < ws-client1> <Jupstar> "physics mode" or smth
+15:39 < bridge_> <heinrich5991> entities is even weird in english
+15:39 < ws-client1> <Jupstar> entities is actually a stupid word
+15:39 < bridge_> <heinrich5991> it's just a word we got used to
+15:39 < ChillerDragon> $ file $(which DDNet-Server)
+15:40 < ChillerDragon> /usr/bin/DDNet-Server: ELF 64-bit LSB pie executable, x86-64, version 1 (GNU/Linux), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, for GNU/Linux 3.2.0, BuildID[sha1]=c15e5232ba6d95c84a85b6eb36a22c9d9a8bee94, with debug_info, not stripped
+15:40 < bridge_> <cyberFighter> what the hell is going on here
+15:40 < bridge_> <heinrich5991> idk. strace it I guess, ChillerDragon
+15:40 < ChillerDragon> wanted to avoid that xd
+15:40 < bridge_> <cyberFighter> top means "do when you enter"
+15:40 < bridge_> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1126145651953123338/image.png
+15:40 < ChillerDragon> the client does some shell stuff i know that
+15:41 < ChillerDragon> but also not on boot usually
+15:41 < bridge_> <Ewan> what to eat
+15:41 < ChillerDragon> and the server shouldnt imo
+15:41 < ws-client1> <Jupstar> @chiller what are u talkn about xd
+15:42 < ChillerDragon> apparmor claims ddnet server tries to execute a shell
+15:42 < bridge_> <cyberFighter> tees are translated to theme
+15:42 < ChillerDragon> i have the feeling that is some old test of mine but idk how
+15:42 < bridge_> <ryozuki> it does
+15:43 < bridge_> <cyberFighter> i guess
+15:43 < bridge_> <ryozuki> iirc
+15:43 < ChillerDragon> where how
+15:43 < bridge_> <Jupstar ✪> Even gpt would be better xd
+15:44 < ws-client1> <Jupstar> ChillerDragon: but its your mod right?
+15:44 < bridge_> <heinrich5991> would gpt be better?
+15:44 < bridge_> <mercadona_> @ryozuki tu estabas en la vappy?
+15:44 < bridge_> <heinrich5991> tees are easily translated to t-shirts
+15:44 < bridge_> <ryozuki> @mercadona_ is that a discord server?
+15:44 < bridge_> <gerdoe> not at all cuz west-slav affected ukrainian so 50/50
+15:44 < bridge_> <heinrich5991> @mercadona_ non-english goes to #off-topic
+15:45 < ChillerDragon> @Jupstar i did apt install DDNet-Server
+15:45 < bridge_> <mercadona_> sry mb
+15:45 < bridge_> <mercadona_> nvm
+15:45 < ws-client1> <Jupstar> since when does ddnet call external shell scripts? lmao
+15:45 < ChillerDragon> i doubt it
+15:45 < bridge_> <Ewan> I decided on honey bunches of oats
+15:45 < ChillerDragon> i think i bugged something
+15:46 < ws-client1> <Jupstar> i think gpt translated it to "tea"
+15:46 < bridge_> <Jupstar ✪> Чај (Čaj)
+15:46 < bridge_> <heinrich5991> there's a function called `shell_exec` in ddnet @chillerdragon
+15:48 < ws-client1> <Jupstar> so appamore analyses the binary file?
+15:48 < ws-client1> <Jupstar> and not runtime
+15:49 < bridge_> <heinrich5991> no, it's runtime
+15:49 < ws-client1> <Jupstar> we unconditionally call shell_exec?
+15:49 < bridge_> <heinrich5991> I have no clue
+15:49 < bridge_> <heinrich5991> I was trying to give pointers
+15:49 < ws-client1> <Jupstar> for what i wonder xD
+15:50 < ChillerDragon> it was indeed a issue on my side
+15:51 < ChillerDragon> i expected doing apt install ddnet-server and running DDNet-Server runs ddnet but it didnt :D
+15:51 < ChillerDragon> it ran my old apparmor test which i put into /usr/bin/ and apt didnt overwrite it
+15:51 < bridge_> <heinrich5991> you should not put stuff into /usr/bin
+15:51 < bridge_> <heinrich5991> you're allowed to put stuff into /usr/local/bin
+15:51 < ChillerDragon> yea i did it when doing my ddnet apparmor pr
+15:52 < ChillerDragon> if i had put it in usr local bin the apparmor profile wouldnt have kicked in
+15:52 < ChillerDragon> to test if it catches shell spawns
+15:54 < bridge_> <teero777> what about making the text slide?
+15:54 < ws-client1> <Jupstar> thats also just a semi fix
+15:54 < ws-client1> <Jupstar> would you not be annoyed by it?
+15:55 < bridge_> <teero777> idk? animated parts may be annoying but its better than not beeing able to read what it says because its too small
+15:55 < ws-client1> <Jupstar> our font size is very big, so i assume this isnt really  a problem
+15:55 < ws-client1> <Jupstar> the text must be really long xd
+15:56 < ws-client1> <Jupstar> and then waiting 5 seconds to read it would also be annoying xD
+15:57 < bridge_> <heinrich5991> perhaps we could use the tooltips someone introduced
+15:57 < bridge_> <heinrich5991> so you can hover the text
+15:57 < bridge_> <heinrich5991> to see the full thing
+15:58 < ws-client1> <Jupstar> or load all translations and show the UI designer/programmer the longest one :D
+15:58 < ws-client1> <Jupstar> and if the text is extra long, fix translations
+15:58 < bridge_> <heinrich5991> or get metrics for the text width and help translators see them out-of-game
+15:58 < ws-client1> <Jupstar> or all of that xd
+15:59 < ws-client1> <Jupstar> btw we could do a "edit" mode for all labels to become input fields
+15:59 < ws-client1> <Jupstar> then they can edit realtime in the client
+15:59 < ws-client1> <Jupstar> i think robyte refactored most UI code to use a Label() function
+15:59 < ws-client1> <Jupstar> so it should work in most cases
+15:59 < bridge_> <heinrich5991> that sounds super hard 😮
+15:59 < bridge_> <heinrich5991> but would be cool
+16:01 < ws-client1> <Jupstar> @Robyt3 feature request 
+16:01 < bridge_> <teero777> https://tenor.com/view/kermit-darkside-star-wars-evil-innerme-gif-13048146
+16:01 < bridge_> <Jupstar ✪> @robyt3
+16:02 <@heinrich5991> test @heinrich5991
+16:03 <@heinrich5991> test @jupeyy_keks
+16:03 < bridge_> <heinrich5991> you have to use the account name apparently
+16:03 < ws-client1> <Jupstar> capital letters not allowed anymore if u want to ping
+16:03 < ws-client1> <Jupstar> yes
+16:47 < bridge_> <tormenta_de_facha> Who did I pass the Galician translation to?
+16:47 < bridge_> <tormenta_de_facha> I have finished it
+16:47 < ChillerDragon> @avolicious how small are the kog server docker images?
+16:47 < bridge_> <ryozuki> https://blog.burntsushi.net/regex-internals/
+16:48 < bridge_> <heinrich5991> that's quite fast. have you tested it in the client to check whether the strings look good?
+16:49 < bridge_> <heinrich5991> you can upload the translation to this discord channel
+16:49 < bridge_> <tormenta_de_facha> okay
+16:52 < bridge_> <tormenta_de_facha> https://cdn.discordapp.com/attachments/293493549758939136/1126163655109644388/galician.txt
+16:55 < bridge_> <heinrich5991> you should probably mention that this is based on the spanish translation (in the header)
+16:55 < bridge_> <heinrich5991> the `Password` string looks wrong
+16:57 < bridge_> <tormenta_de_facha> what is this i don t understand what u refere
+16:58 < bridge_> <tormenta_de_facha> what is this i don t understand what u mean
+16:58 < bridge_> <tormenta_de_facha> what is that i don t understand what u mean
+16:59 < bridge_> <heinrich5991> ```
+16:59 < bridge_> <heinrich5991> Password
+16:59 < bridge_> <heinrich5991> == Contrasinal incorreta
+16:59 < bridge_> <heinrich5991> ```
+16:59 < bridge_> <avolicious> Roughly 120mb, But the new Alpha Build is 62mb 😅
+17:00 < ChillerDragon> oh ok i thought mine is big :D
+17:00 < ChillerDragon> i assume urs is closed src ^ 
+17:00 < bridge_> <avolicious> We had to Compile grpc in it, so it added 40 mb 🥹
+17:00 < ChillerDragon> didnt u add grpc to save space? :D 
+17:01 < bridge_> <tormenta_de_facha> okay i have done the 2 things
+17:01 < bridge_> <tormenta_de_facha> I upload it other time?
+17:01 < bridge_> <heinrich5991> I'm still going through it, wait a second
+17:02 < bridge_> <avolicious> Yep After we Are fully Done with it, i can replace curl, MySQL and other Packages and Build a scratch or alpine Container
+17:02 < ChillerDragon> ok so u full on work in progress?
+17:02 < bridge_> <avolicious> Yep
+17:04 < bridge_> <heinrich5991> @tormenta_de_facha is 'quecemento' a word in galician?
+17:04 < bridge_> <heinrich5991> I can't find it in dictionaries (I don't speak the language, I can't know though)
+17:05 < bridge_> <mercadona_> you search on the rag?
+17:06 < bridge_> <tormenta_de_facha> https://cdn.discordapp.com/attachments/293493549758939136/1126167150848114821/image.png
+17:06 < bridge_> <ryozuki> https://academia.gal/inicio
+17:06 < bridge_> <heinrich5991> can you send a link?
+17:06 < bridge_> <tormenta_de_facha> https://academia.gal/dicionario/-/termo/quecemento
+17:10 < bridge_> <heinrich5991> thanks!
+17:12 < bridge_> <heinrich5991> @tormenta_de_facha can you re-upload the current version?
+17:12 < bridge_> <tormenta_de_facha> https://cdn.discordapp.com/attachments/293493549758939136/1126168844285780118/galician.txt
+17:13 < ChillerDragon> @avolicious ok my first attempt w out maps is 22.9MB
+17:14 < ChillerDragon> ah also no mysql
+17:14 < ChillerDragon> probably super unfair comparison :D
+17:16 < bridge_> <heinrich5991> why do you want to put it into a container, ChillerDragon?
+17:16 < ChillerDragon> i dont feel comfortable saying it out loud yet xd
+17:16 < bridge_> <heinrich5991> ok ^^
+17:16 < ChillerDragon> dw ill share when ill do
+17:17 < ChillerDragon> im probably too lazy anways so i dont wanna mention it yet
+17:18 < ChillerDragon> anyways if someone needs a 22mb basic ddnet server dockerfile here it is https://github.com/BanBansNet/ddnet-server-docker/blob/master/Dockerfile
+17:19 < bridge_> <ryozuki> docker is closed private corporate bloat
+17:19 < bridge_> <ryozuki> ChillerDragon can u do a pod for podman
+17:19 < ChillerDragon> im using podman obv
+17:19 < bridge_> <heinrich5991> permanent link: https://github.com/BanBansNet/ddnet-server-docker/blob/cf2458532e0caf5fb8e568821230a810449ab686/Dockerfile
+17:19 < bridge_> <ryozuki> nice
+17:20 < ChillerDragon> i assume it also works w docker
+17:20 < bridge_> <heinrich5991> @tormenta_de_facha how do you abbreviate north america in galician?
+17:20 < bridge_> <heinrich5991> should it be NA or AN?
+17:21 < bridge_> <heinrich5991> same question for south america
+17:21 < bridge_> <mercadona_> same
+17:21 < bridge_> <tormenta_de_facha> Is the same at spanish
+17:22 < bridge_> <ryozuki> kek
+17:22 < bridge_> <ryozuki> at work we have self hosted github ci with m1,m2, cuda, metal
+17:22 < bridge_> <ryozuki> epic
+17:22 < bridge_> <heinrich5991> so NA or AN?
+17:23 < bridge_> <heinrich5991> I didn't understand your answer
+17:23 < bridge_> <mercadona_> NA
+17:23 < bridge_> <ryozuki> na and an are wrong
+17:23 < bridge_> <ryozuki> in spanish is EEUU
+17:23 < bridge_> <heinrich5991> for spanish?
+17:24 < bridge_> <ryozuki> https://es.wikipedia.org/wiki/Estados_Unidos
+17:24 < bridge_> <heinrich5991> ah, but I don't mean the USA
+17:24 < bridge_> <heinrich5991> but the north american continent
+17:24 < bridge_> <mercadona_> man, is NA
+17:24 < bridge_> <mercadona_> NorteAmerica
+17:24 < bridge_> <heinrich5991> yes, understood
+17:24 < bridge_> <heinrich5991> I was just talking about spanish with @ryozuki
+17:25 < bridge_> <avolicious> @chillerdragon we had Problems with alpine because of musl as far as i can remember
+17:25 < bridge_> <ryozuki> hmm now that u say it, i never rly seen a the abbreviate form
+17:25 < bridge_> <ryozuki> ppl here just speak about usa or south america xd
+17:25 < bridge_> <ryozuki> and we just say america del norte or america del sur
+17:25 < bridge_> <heinrich5991> what about mexico and canada? 😄
+17:25 < bridge_> <ryozuki> america central
+17:25 < bridge_> <heinrich5991> canada?
+17:25 < bridge_> <heinrich5991> 😄
+17:26 < bridge_> <ryozuki> america del norte?
+17:26 < bridge_> <ryozuki> its north america right
+17:26 < bridge_> <ryozuki> xd
+17:26 < bridge_> <heinrich5991> yes
+17:29 < bridge_> <heinrich5991> @ryozuki where did you get the ISO 3166-1 code for catalonia?
+17:30 < bridge_> <heinrich5991> ah
+17:31 < bridge_> <ryozuki> cat doesnt have it
+17:31 < bridge_> <heinrich5991> 900-999 are user-assigned
+17:31 < bridge_> <ryozuki> there is another iso
+17:31 < bridge_> <ryozuki> ah
+17:31 < bridge_> <ryozuki> ye
+17:31 < bridge_> <ryozuki> idk if there is another iso xd
+17:31 < bridge_> <chillerdragon> I also had my fair share of musl fun at work haha. But compiling ddnet from source with default flags is smooth. So no MySQL and whatever else you can opt into
+17:31 < bridge_> <chillerdragon> (@avolicious)
+17:31 < bridge_> <ryozuki> ISO 639-2 Code
+17:31 < bridge_> <ryozuki> cat
+17:32 < bridge_> <ryozuki> it would be      ES-CT i think
+17:33 < bridge_> <ryozuki> https://www.iso.org/obp/ui/#iso:code:3166:ES
+17:34 < bridge_> <heinrich5991> what's the catalonia flag called? in ddnet?
+17:36 < bridge_> <ryozuki> cant open ddnet rn
+17:36 < bridge_> <ryozuki> im at work
+17:36 < bridge_> <ryozuki> but it should tell if u open and search
+17:36 < bridge_> <ryozuki> XCA or something with x
+17:38 < bridge_> <tormenta_de_facha> Català
+17:38 < bridge_> <tormenta_de_facha> is the name
+17:38 < bridge_> <mercadona_> Yes, is XCA
+17:45 < bridge_> <heinrich5991> who draws our flags?
+17:46 < bridge_> <mercadona_> what do you mean?
+17:50 < bridge_> <robyt3> This has two issues: 1) we can't show the real tooltip and the too-long-text tooltip at the same time 2) Every tooltip must be associated with a UI element ID, so we either add `static int s_TooltipFoo` everywhere or think about dynamic registering of UI element IDs
+17:51 < bridge_> <robyt3> Would also need to introduce a UI element ID for every single `DoLabel`
+17:54 < bridge_> <robyt3> I'd prefer if we just make it easier to check the length of translations so translators can ensure that existing translations fit, instead of adding workarounds for it
+17:56 < bridge_> <chillerdragon> Go to GitHub press t for fuzzy file search and I’ll find flags in no time
+17:56 < bridge_> <chillerdragon> (@ryozuki)
+17:56 < bridge_> <chillerdragon> Ull! Phone
+18:00 < bridge_> <Jupstar ✪> if thats the only issue, just mask the ID DoLabel gets ^^
+18:01 < bridge_> <Jupstar ✪> e.g. all pointers are even
+18:11 < bridge_> <robyt3> `DoLabel` doesn't get any ID at the moment though
+18:11 < bridge_> <robyt3> Pointers to CUIRect and text are usually not static
+18:12 < bridge_> <tormenta_de_facha> one question we need to do this checklist us?
+18:16 < bridge_> <ryozuki> i tought of something but probs not doable as easy as in rust
+18:16 < bridge_> <ryozuki> u could gen a id with a macro using the current line and col and filename
+18:16 < bridge_> <ryozuki> xd
+18:17 < bridge_> <ryozuki> (idk why we talking about ids but i thought of this)
+18:17 < bridge_> <robyt3> We need UI IDs so elements can have an effect when hovered, like being a button or showing a tooltip
+18:17 < bridge_> <robyt3> `MouseHovered` works without, but this does not consider popup menus being above UI elements
+18:18 < bridge_> <ryozuki> just redo all UI and do what egui/imgui does
+18:18 < bridge_> <ryozuki> :ez:
+18:21 < bridge_> <ryozuki> @heinrich5991 ur pr is wrong
+18:21 < bridge_> <ryozuki> DATA does not contain every file from directory data
+18:42 < bridge_> <ryozuki> ```c
+18:42 < bridge_> <ryozuki> program.c:24:79: error: alias must point to a defined variable or function
+18:42 < bridge_> <ryozuki> void ptr(program_return_values_t *, void *, uint64_t) __attribute__ ((weak, alias ("_mlir_ciface_program::program::main")));
+18:42 < bridge_> <ryozuki> ```
+18:42 < bridge_> <ryozuki> @learath2 can u alias a symbol not defined? xd
+18:43 < bridge_> <ryozuki> u gotta use dlsym right
+19:02 < bridge_> <ryozuki> ```c
+19:02 < bridge_> <ryozuki> static int ptr() __attribute__ ((weakref ("_mlir_ciface_program::program::main")));
+19:03 < bridge_> <ryozuki> ```
+19:03 < bridge_> <ryozuki> this works
+20:51 < bridge_> <learath2> mh, I'm not sure what you are trying to do here, but no you can not alias something you didn't define in this TU
+21:02 < bridge_> <ryozuki> not defined in C itself but linked i guess
+21:03 < bridge_> <learath2> https://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/Function-Attributes.html I'm fairly sure it has to be defined in C in this TU
+21:03 < bridge_> <learath2> (or C++)
+21:04 < bridge_> <ryozuki> the second works xd
+21:05 < bridge_> <ryozuki> gotta check what we rly do
+21:13 < bridge_> <learath2> This is the problem with extensions, the document is like 1/5th the quality of the standard, documentation for `weakref` says you are allowed to not have a definition, but it also says it's equivalent to `alias` which explicitly prohibits having no definition
+21:17 < bridge_> <learath2> Ah, I see I was misreading it, I guess you need both declarations, anyway the thing is `weakref` allows the definition not to be there, that's why the second works
+21:24 < bridge_> <ryozuki> nice
