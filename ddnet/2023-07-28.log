@@ -1,0 +1,457 @@
+01:09 < bridge_> <Ewan> can we get cpp20 so i can do atomic<shared_ptr<T>> 🧌
+01:09 < bridge_> <Ewan> can we get cpp20 so i can do atomic<shared_ptr<T>> :troll:
+01:18 < bridge_> <Dale Y Pearlman> Do you know that you can earn $5,000 or more weekly from crypto Trading? With Just $500… 100% Inbox Admin on Telegram for more details 👇👇👇👇👇👇 https://t.me/PROFITSWITHSTEVE
+01:26 < bridge_> <Ewan> i have once again made it upload the available textures every frame & each thread just takes turns at full utilization, hogging the mutex xd
+01:26 < bridge_> <Ewan> putting the loader thread on a 10ms wait between each file makes it better but that's a Certified Shit Solution
+01:26 < bridge_> <Ewan> i need to find a way to do this lockfree, i think
+01:27 < bridge_> <Ewan> i can't win :feelsbadman:
+01:57 < bridge_> <chairn> #6552
+01:57 < bridge_> <DDNet> https://github.com/ddnet/ddnet/issues/6552
+01:58 < bridge_> <Ewan> yeah i know
+01:58 < bridge_> <Ewan> just being impatient
+02:37 < bridge_> <Ewan> how's this look for the ui? the text disappears & the list view occupies that space once again when finished
+02:37 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1134283404595187812/image.png
+02:37 < bridge_> <Ewan> looks weird how it is but all i did was add that text block & pad for it lol the weird gap above was there before
+03:02 < bridge_> <Jupstar ✪> How huge is the lag in milliseconds? Xd
+03:02 < bridge_> <Ewan> wdym
+03:02 < bridge_> <Ewan> we are talking like
+03:02 < bridge_> <Ewan> 15+ seconds on each of the threads
+03:02 < bridge_> <Ewan> i have added a 10ms delay on the other thread for testing and it's pretty smooth, as much as i hate this it might have to be
+03:03 < bridge_> <Jupstar ✪> Wtf
+03:03 < bridge_> <Ewan> yea it just takes a sec for skins to fill in but with 2k that should be expected & with a normal user's rational amount of skins it'll be completely unproblematic
+03:03 < bridge_> <Ewan> the average amount of time it takes the average user's pc to load the average amount of skins is still probably less than the time it would take to even join the game
+03:03 < bridge_> <Ewan> with this 10ms
+03:04 < bridge_> <Jupstar ✪> Mh i dunno
+03:04 < bridge_> <Jupstar ✪> I'd have expected multi threaded reading of 2k skins takes around let's say 200ms max
+03:04 < bridge_> <Ewan> xddd
+03:05 < bridge_> <Jupstar ✪> Ok let's say a second
+03:05 < bridge_> <Jupstar ✪> But not 15 seconds
+03:05 < bridge_> <Ewan> you know i just have 1 other thread for all the skins
+03:05 < bridge_> <Ewan> not a pool
+03:05 < bridge_> <Ewan> it's multithreaded in the sense that it's not on the main thread :D
+03:05 < bridge_> <Jupstar ✪> Oh so there isn't really an advantage for client loading
+03:05 < bridge_> <Ewan> my internet is shitting the bed
+03:06 < bridge_> <Ewan> it takes that time off of the initial loading time
+03:06 < bridge_> <Jupstar ✪> Just for downloaded skins
+03:06 < bridge_> <Ewan> no
+03:06 < bridge_> <Ewan> it's for downloaded skins
+03:07 < bridge_> <Jupstar ✪> So u download 2k skins at once? Xd
+03:07 < bridge_> <Jupstar ✪> That explains your favorite skins list xd
+03:07 < bridge_> <Ewan> the other thread reads the file data, decompresses the png, and prepares the CImageInfo for the main thread on a skin-by-skin basis, in the order they are returned by the OS's list directory mechanism
+03:07 < bridge_> <Ewan> yea
+03:07 < bridge_> <Ewan> oh my favorite skins list is all the worst ones
+03:07 < bridge_> <Ewan> they are so funny
+03:07 < bridge_> <Jupstar ✪> I see sounds good
+03:08 < bridge_> <Ewan> yea and then whenever the main thread gets a chance it uploads this CImageInfo to the gpu basically
+03:08 < bridge_> <Ewan> it's a bit more complex than just that but most of the processing is done on the other thread
+03:08 < bridge_> <Ewan> like for example the process of splitting up the image into parts is on the main thread still
+03:08 < bridge_> <Ewan> but pretty inconsequential
+03:09 < bridge_> <Jupstar ✪> But the process takes 15 seconds.. but it creates no lag on the main thread, does it?
+03:09 < bridge_> <Ewan> not 15 seconds total, 15 seconds per turn of hogging the mutex
+03:09 < bridge_> <Ewan> which usually happens 3 or 4 times lol
+03:10 < bridge_> <Jupstar ✪> Ok I would sleep lmao. I can't think rn
+03:10 < bridge_> <Ewan> the other thread's and the main thread's loops don't line up
+03:10 < bridge_> <Ewan> i give them a chance to & eliminate lag by adding the delay on the other thread
+03:10 < bridge_> <Ewan> or at least a chance for the main thread's loop to try and lock the mutex so it can do its thing often enough
+03:11 < bridge_> <Ewan> i don't think i'm ready for review yet but i would appreciate some from you, specifically as it pertains to the graphics code because i'm kinda tapping into it an uncomfortable amount
+03:20 < bridge_> <Jupstar ✪> I'm not quite sure what u even trying with some second loop etc. xd
+03:20 < bridge_> <Jupstar ✪> 
+03:20 < bridge_> <Jupstar ✪> The idea about skin loading sounds correct. But why don't u simply use the job engine for that. It is also a thread pool
+03:20 < bridge_> <Jupstar ✪> That would speed the loading up
+03:20 < bridge_> <Ewan> > I'm not quite sure what u even trying with some second loop etc. xd
+03:20 < bridge_> <Ewan> 
+03:20 < bridge_> <Ewan> what do you mean? it has to iterate on the files
+03:20 < bridge_> <Ewan> and yeah i would have used the job engine if i knew about it
+03:20 < bridge_> <Ewan> it's quite late for that
+03:21 < bridge_> <Ewan> and having a bunch of threads doing disk work at once might speed things up but it would chew up the disk unnecessarily
+03:21 < bridge_> <Ewan> a low and steady load like this is probably better
+03:21 < bridge_> <Ewan> especially since it will matter pretty much 0 for most people
+03:21 < bridge_> <Jupstar ✪> Mh on HDDs maybe
+03:21 < bridge_> <Jupstar ✪> But I'm future human
+03:21 < bridge_> <Jupstar ✪> I have ssd
+03:22 < bridge_> <Jupstar ✪> Yeah I guess I currently cannot imagine your implementation^^
+03:22 < bridge_> <Jupstar ✪> So it's not even the main thread preparing the list of skins to load?
+03:23 < bridge_> <Jupstar ✪> Or does it get the list and is like... Here we go
+03:26 < bridge_> <Ewan> main thread gives it the criteria and other thread gives it the textures
+03:26 < bridge_> <Ewan> p much
+03:26 < bridge_> <Ewan> but it's not quite so simple
+03:26 < bridge_> <Ewan> you'd have to see it
+03:28 < bridge_> <Jupstar ✪> If we'd properly implement it, we'd need to use futures anyway
+03:29 < bridge_> <Jupstar ✪> Blocking a while thread while reading the disk is probably not the best solution
+03:29 < bridge_> <Jupstar ✪> Whole
+03:29 < bridge_> <Ewan> yeah
+09:38 < ws-client1> <Jupstar> @ryozuki FFR. What would not have happened this week if you would have used Rust instead of whatever you used? xd
+09:39 < bridge_> <ryozuki> i use rust so idk
+09:39 < bridge_> <ryozuki> i have a theorical car exam in 1h xd
+09:40 < ws-client1> <Jupstar> wtf xd
+09:40 < ws-client1> <Jupstar> can u only drive with 21 in spain?
+09:41 < bridge_> <ryozuki> no u can with 18
+09:41 < bridge_> <ryozuki> i just didnt get it before
+09:42 < bridge_> <ryozuki> xd
+09:42 < ws-client1> <Jupstar> future human you are
+09:42 < ws-client1> <Jupstar> no need to learn a skill you dont need
+09:42 < ws-client1> <Jupstar> ;)
+09:42 < bridge_> <ryozuki> i never needed cuz barcelona metro is nice
+09:42 < ws-client1> <Jupstar> in germany cars are the holy grail
+10:33 < bridge_> <Iza> does anyone know if it's possible to code a program that searches for specific coordinates in a demo and points towards it with a time marker?
+10:37 < bridge_> <Iza> does anyone know if it's possible to code a program that searches for specific coordinates of a select player in a demo and points towards it with a time marker?
+10:43 < bridge_> <Iza> does anyone know if it's possible to code a program that searches for specific coordinates of a select player in a demo and points towards it with a time stamp?
+10:44 < ws-client1> <Jupstar> possible: i guess so. easy: probably not
+10:46 < bridge_> <robyt3> Do the skins appear gradually or all at once when the loading is finished? If they appear gradually, the loading indicator should be drawn as a listbox item. For now just render "Loading...", I already got the loading indicator covered.
+10:51 < bridge_> <Iza> what would i need for that?
+10:52 < bridge_> <Iza> to be clear i dont know anything about programming
+10:59 < ws-client1> <Jupstar> well without coding skills it's not really doable. you need to understand how the demo renderer uses snapshots.. how the position is calculated etc
+10:59 < ws-client1> <Jupstar> it's not trivial enough to explain it in 5 minutes xd
+11:00 < bridge_> <robyt3> Some minimum knowledge about coding it's probably required. You could try to modify the client to just stop demo playback when a specific player reaches a position that you specified (for simplificy with a config variable and not via UI). Then you can play the demo on fastest speed and it will stop at the position you are looking for.
+11:00 < bridge_> <robyt3> Some minimum knowledge about coding is probably required. You could try to modify the client to just stop demo playback when a specific player reaches a position that you specified (for simplificy with a config variable and not via UI). Then you can play the demo on fastest speed and it will stop at the position you are looking for.
+11:01 < bridge_> <Iza> that doesn't sound tooo complicated.
+11:02 < bridge_> <Iza> do i have to know just the basics of c++ for that or more advanced stuff?
+11:02 < bridge_> <robyt3> Well, the basics of C++ should be enough, but you also need to find your way around in the DDNet source code
+11:03 < bridge_> <robyt3> Seems like a good beginning project though
+11:04 < bridge_> <Iza> yes it does
+11:04 < bridge_> <Iza> do you recommend any specific guide or topic where I can start off?
+11:06 < bridge_> <robyt3> https://www.learncpp.com/
+11:07 < bridge_> <Iza> alright thank you
+12:06 < bridge_> <learath2> Might be a tad easier to extract it from the teehistorian files instead since they record positions directly too
+12:08 < bridge_> <totar> I think theres a lot of people that get 10+ second lag from texture loading.
+12:09 < bridge_> <chillerdragon> RUST FRIDAY
+12:10 < bridge_> <Iza> from my experience the teehistorian program does not playback the inputs very accurately
+12:15 < bridge_> <learath2> Not the demo generated by teehistorian2demo, the actual recorded teehistorian file. They are 100% accurate as with demos btw
+12:19 < bridge_> <Iza> where's that located? i'll have to come back to that after I gained some basic knowledge of c++
+12:23 < bridge_> <ryozuki> exam done
+12:24 < bridge_> <ryozuki> i think i passed
+12:24 < ws-client1> <Jupstar> do you not get immidiate response?
+12:24 < ws-client1> <Jupstar> my exam took like 3 minutes and i directly got the result xd
+12:24 < ws-client1> <Jupstar> speedrun
+12:25 < bridge_> <heinrich5991> you can do that before c++20 I believe
+12:25 < bridge_> <heinrich5991> I think I do it in the logger
+12:25 < bridge_> <ryozuki> idk they said at 6 today
+12:25 < bridge_> <ryozuki> i did it on a tactile computer xd
+12:25 < bridge_> <learath2> Currently not available but we can provide them for you to test, and/or your tool can be added to the teehistorian tools available to mods online
+12:27 < bridge_> <heinrich5991> this looks like a pretty complicated problem. as a start, try compiling ddnet. then maybe add a chat command to the server that just prints something
+12:28 < bridge_> <heinrich5991> what's a tactile computer?
+12:30 < bridge_> <ryozuki> touchpad
+12:30 < bridge_> <ryozuki> my bad
+12:30 < bridge_> <ryozuki> xd
+12:30 < bridge_> <ryozuki> it made sense in my spanish mind
+12:30 < bridge_> <ryozuki> catalan*
+12:30 < bridge_> <ryozuki> xd
+12:30 < bridge_> <learath2> What sort of exam?
+12:31 < bridge_> <ryozuki> in spanish u say tactil
+12:31 < bridge_> <ryozuki> @learath2 driver license
+12:31 < bridge_> <ryozuki> but the theorical one
+12:31 < bridge_> <ryozuki> not practical
+12:31 < bridge_> <learath2> Bizarre that you don’t get immediate feedback on a computerized exam. I think I got mine within like 5 minutes
+12:32 < bridge_> <Iza> looks like i have to start at the very beginning then, that'll be fun
+12:33 < bridge_> <marmare_314> @robyt3 Shouldnt `Shift + Right click` be `Shift + right click` or even `Shift + right-click`?
+12:34 < bridge_> <robyt3> `right-click` would be the most correct one, it should also be used for the tangent handles then
+13:49 < bridge_> <cipy29> In those situations, I like to think that someone has to take your exam, print it on a piece of paper, evaluate it, digitize it back again, then it gets shown to you
+13:50 < bridge_> <learath2> :pepeW:
+14:10 < bridge_> <ryozuki> i wonder too, maybe its in case someone is detected cheating, to have a grace time
+14:54 < bridge_> <Dale Y Pearlman> Do you know that you can earn $5,000 or more weekly from crypto Trading? With Just $500… 100% Inbox Admin on Telegram for more details 👇👇👇👇👇👇 https://t.me/PROFITSWITHSTEVE
+15:31 < bridge_> <Jupstar ✪> kinda sad that rust decided to let Drop take self as reference
+15:31 < bridge_> <Jupstar ✪> 
+15:31 < bridge_> <Jupstar ✪> partial moving is really cool, and not depending on Default or Option can make sense too
+15:31 < bridge_> <Jupstar ✪> 
+15:31 < bridge_> <Jupstar ✪> if i implement destroy (self) it would work, but ofc requires explicit call :/
+15:32 < bridge_> <learath2> What would you have drop take instead? It makes sense to me that drop is moved to as the final "drain"
+15:33 < bridge_> <Jupstar ✪> i mean the Drop trait
+15:33 < bridge_> <Jupstar ✪> i'd like it to take self as value
+15:33 < bridge_> <Jupstar ✪> moved value
+15:33 < bridge_> <Jupstar ✪> and it order to not drop again it has to do some compiler specific stuff xd
+15:34 < bridge_> <learath2> Ah. It can't tho can it? I guess it could be moved to then moved back, but how is that better than a mutable reference?
+15:34 < bridge_> <learath2> (As in it can't take self)
+15:35 < bridge_> <learath2> Or hm, maybe it could work
+15:35 < bridge_> <Jupstar ✪> if i want to reuse resources i might want to move a member out
+15:35 < bridge_> <Jupstar ✪> 
+15:35 < bridge_> <Jupstar ✪> ```rs
+15:36 < bridge_> <Jupstar ✪> fn destroy(self) {
+15:36 < bridge_> <Jupstar ✪>   self.a.destroy();
+15:36 < bridge_> <Jupstar ✪>   self.b.destroy();
+15:36 < bridge_> <Jupstar ✪> }
+15:36 < bridge_> <Jupstar ✪> ```
+15:36 < bridge_> <Jupstar ✪> 
+15:36 < bridge_> <Jupstar ✪> where a and b also implement destroy(self)
+15:36 < bridge_> <learath2> Why can't you do it with `&mut self`?
+15:37 < bridge_> <Jupstar ✪> if a and b want an explicit call
+15:37 < bridge_> <Jupstar ✪> 
+15:37 < bridge_> <Jupstar ✪> i'd need a and b be inside Options
+15:37 < bridge_> <Jupstar ✪> bcs i cannot move them
+15:38 < bridge_> <learath2> When self drops, won't self.a and self.b also get dropped if a and b are owned by self?
+15:38 < bridge_> <Jupstar ✪> yes, but what if a and b carry some resource i want to manually free
+15:38 < bridge_> <Jupstar ✪> 
+15:38 < bridge_> <Jupstar ✪> at some point it would require a Option
+15:38 < bridge_> <heinrich5991> legacy decision. nowadays you'd probably give an option to take `ManuallyDrop` instead
+15:38 < bridge_> <heinrich5991> perhaps there's an RFC for it
+15:39 < bridge_> <learath2> And how would a moved value help with that? You'd still need the option when you free the resource in a and b, no?
+15:40 < bridge_> <Jupstar ✪> my problem is that i cannot move a and b out of a reference
+15:40 < bridge_> <Jupstar ✪> &mut self
+15:40 < bridge_> <Jupstar ✪> is Drop trait
+15:41 < bridge_> <learath2> I'm just curious why one might need to move them
+15:42 < bridge_> <Jupstar ✪> bcs then the type does not require to implement Default
+15:42 < bridge_> <heinrich5991> because you e.g. want to call a hypothetical `File::close` which takes ownership of the `File`
+15:43 < bridge_> <heinrich5991> you can wrap the thing into a `ManuallyDrop` if you want to @jupeyy_keks
+15:43 < bridge_> <heinrich5991> requires some `unsafe` in handling though
+15:43 < bridge_> <Jupstar ✪> yeah, sadly i use it quite regulary, so i'm not sure about that 😄
+15:44 < bridge_> <learath2> I see. Is this a common thing to have cleanup functions take final ownership?
+15:44 < bridge_> <heinrich5991> no problem, `ManuallyDrop` derefs to its inner object
+15:44 < bridge_> <heinrich5991> no, because of the problem @jupeyy_keks mentions
+15:44 < bridge_> <Jupstar ✪> but i'd have to store the wrapper in an object
+15:44 < bridge_> <heinrich5991> can you give a more complete example
+15:44 < bridge_> <heinrich5991> ?
+15:46 < bridge_> <learath2> Fwiw, I'd have thought drop would indeed take final ownership. Curious decision that it doesnt
+15:46 < bridge_> <heinrich5991> the naive way to implement it doesn't work
+15:47 < bridge_> <heinrich5991> because then, you'd have a destructor call at the end of the destructor
+15:47 < bridge_> <Jupstar ✪> e.g. for resource tracking i use a Rc inside an index struct
+15:47 < bridge_> <Jupstar ✪> 
+15:47 < bridge_> <Jupstar ✪> to make sure indices are cleanup properly it takes the index by moved value (so its defs not used anymore)
+15:47 < bridge_> <Jupstar ✪> and the Rc will 100% decrease in use count
+15:47 < bridge_> <Jupstar ✪> stuff like that mostly
+15:47 < bridge_> <heinrich5991> ```rs
+15:47 < bridge_> <heinrich5991> fn drop(x: Struct) {
+15:47 < bridge_> <heinrich5991>     // oops, implicit call to drop inserted
+15:47 < bridge_> <heinrich5991> }
+15:47 < bridge_> <heinrich5991> ```
+15:48 < bridge_> <heinrich5991> I guess wrapping these in an option would sound the best
+15:48 < bridge_> <learath2> Hm, and I guess it's rather ugly to have no implicit drops in drop
+15:48 < bridge_> <Jupstar ✪> i dislike it
+15:49 < bridge_> <Jupstar ✪> i like to think about programming as "it exists or you didnt want to create it in first place"
+15:49 < bridge_> <heinrich5991> do you only want to drop it in the destructor?
+15:49 < bridge_> <heinrich5991> wait
+15:49 < bridge_> <heinrich5991> the dropping of the `Rc`s already works
+15:50 < bridge_> <heinrich5991> do you have some sort of manual cleanup function?
+15:50 < bridge_> <Jupstar ✪> yes
+15:50 < bridge_> <heinrich5991> that's probably halting-problem complex. what do you do if self is moved somewhere else. what happens if another object of the same type is constructed in the destructor, conditionally? etc.
+15:51 < bridge_> <heinrich5991> can you explain why there's a need for a manual cleanup function?
+15:51 < bridge_> <heinrich5991> what happens if the destructor is called before the manual cleanup? resource leakage?
+15:51 < bridge_> <Jupstar ✪> rn it assumes resource leakage and panics
+15:52 < bridge_> <learath2> Not allowed to move anymore drop is the final destination, no moving self out of drop
+15:52 < bridge_> <heinrich5991> that's bad; destructors can be called implicitly, e.g. when panicking
+15:52 < bridge_> <heinrich5991> re this
+15:52 < bridge_> <heinrich5991> e.g. when unwinding
+15:53 < bridge_> <Jupstar ✪> its a fatal error
+15:53 < bridge_> <heinrich5991> panic while panicking kills the process IIRC
+15:53 < bridge_> <Jupstar ✪> so abort
+15:53 < bridge_> <heinrich5991> ah
+15:53 < bridge_> <heinrich5991> hmm. and struct fields only get dropped if they're not moved out. I guess this could work?
+15:54 < bridge_> <learath2> Atleast that's what I'd explore if I were designing the language, but I do understand why the mutable borrow is what they went for, much saner
+15:54 < bridge_> <heinrich5991> I remember the discussions around this
+15:54 < bridge_> <heinrich5991> I think this might have been something that wasn't proposed
+15:55 < bridge_> <heinrich5991> can you give an example of such a cleanup function?
+15:55 < bridge_> <Jupstar ✪> well sane vs convenience IMHO
+15:55 < bridge_> <Jupstar ✪> 
+15:55 < bridge_> <Jupstar ✪> you also do fn new() -> Self
+15:55 < bridge_> <Jupstar ✪> so it kinda would make sense to do the opposite of this
+15:55 < bridge_> <Jupstar ✪> fn destroy(self)
+15:56 < bridge_> <learath2> Not being able to have uninitialized stuff is pretty hard for me too. I wish I could have uninit stuff without maybeuninit and unsafe everywhere
+15:56 < bridge_> <heinrich5991> I thought we had a solution for you the other day?
+15:56 < bridge_> <heinrich5991> you can have locally uninitialized variables without unsafe, as long as you only use them in paths after you initialize them
+15:57 < bridge_> <learath2> Those resources will only ever be an Option while the struct is being constructed/deconstructed, so it's rather sadge to have unwrap everywhere
+15:57 < bridge_> <Jupstar ✪> @learath2 you want them for stack allocations i assume?
+15:57 < bridge_> <learath2> Yeah there usually is a solution, it's just a bit hard for me to find them until I get more experience
+15:58 < bridge_> <heinrich5991> if you want to have it for members, I think there are also solutions for that
+15:58 < bridge_> <learath2> For any allocation, sometimes initializing a struct in one go is rather hard
+15:58 < bridge_> <heinrich5991> can you give an example?
+15:58 < bridge_> <Jupstar ✪> but if its not on the stack u can also use Vec
+15:59 < bridge_> <Jupstar ✪> or other heap stuff
+15:59 < bridge_> <learath2> It's usually that your program structure includes loops though which when/if you break them makes it simple again
+16:00 < bridge_> <learath2> E.g. the context I had a week or so ago, it had a loop so to initialize one struct I had to have already initialized the other and viceversa
+16:00 < bridge_> <learath2> Adding an extra layer of indirection and an init function fixed it but I still had to think more
+16:01 < bridge_> <Jupstar ✪> maybe u can solve the problem without this kind of "self"-depenency
+16:01 < bridge_> <learath2> Self referential stuff just have to be eradicated in rust, atleast at my experience level
+16:01 < bridge_> <learath2> Yeah, it's just not how I'm used to thinking about my programs is all
+16:02 < bridge_> <Jupstar ✪> well for performance reasons it can make sense.. but then i'd maybe use unsafe anyway and point to whatever i reference
+16:02 < bridge_> <Jupstar ✪> so maybe it does make sense xd
+16:03 < bridge_> <learath2> It's just habit. Having convenient context pointers around just makes it easier for me, but it does lead to worse hierarchy
+16:04 < bridge_> <Jupstar ✪> yeah... i guess rust simply isnt the best option for prototyping xD
+16:04 < bridge_> <heinrich5991> I haven't written large applications from ground up in rust yet
+16:04 < bridge_> <heinrich5991> the masterserver was very smooth though
+16:05 < bridge_> <Jupstar ✪> i have to say the ddnet stuff i wrote was mostly smooth too
+16:05 < bridge_> <learath2> Like `CComponent` having a pointer to it's parent and the parent having a pointer to it. Technically you can structure that in another way with a message bus and stuff, but again it's just not what I'm used to. Hard to teach an old dog new tricks 😄
+16:05 < bridge_> <Jupstar ✪> that for example i gave up on
+16:05 < bridge_> <Jupstar ✪> our Components are way too mighty
+16:05 < bridge_> <Jupstar ✪> it makes it basically impossible with borrow checking, Rc, RefCell etc to stay sane
+16:06 < bridge_> <ryozuki> beware with drop and unsafe, panicking is often a cause of double frees in unsafe code
+16:06 < bridge_> <Jupstar ✪> im not using any unsafe xD
+16:06 < bridge_> <ryozuki> ah xd
+16:06 < bridge_> <ryozuki> i didnt read convo
+16:06 < bridge_> <ryozuki> tldr?
+16:06 < bridge_> <Jupstar ✪> it doesnt exist
+16:06 < bridge_> <Jupstar ✪> xd
+16:07 < bridge_> <Jupstar ✪> i have to live with a wrapper or manual calls for now
+16:07 < bridge_> <Jupstar ✪> but probably manual calls for now, since they at least take additional params
+16:07 < bridge_> <Jupstar ✪> so i can save some Rcs
+16:07 < bridge_> <Jupstar ✪> but sadly not forced ;~;
+16:07 < bridge_> <Jupstar ✪> one can forget to call it
+16:08 < bridge_> <Jupstar ✪> (i like non runtime checks)
+16:08 < bridge_> <heinrich5991> what you want are linear types, I think
+16:08 < bridge_> <heinrich5991> rust doesn't have those (unfortunately?)
+16:09 < bridge_> <learath2> Hm, I think I would just have the client have the only strong pointer and make the rest weak
+16:10 < bridge_> <Jupstar ✪> yeah maybe i what i want isn't easy to have
+16:10 < bridge_> <Jupstar ✪> 
+16:10 < bridge_> <Jupstar ✪> but since i cant have what i want in Drop, i also don't want to introduce Rc and RefCell (to allow automatical drops)
+16:10 < bridge_> <Jupstar ✪> 
+16:10 < bridge_> <Jupstar ✪> so i'm kinda in a dilemma
+16:11 < bridge_> <learath2> It's not exactly pleasant using weaks but I can't think of any other sane hierarchy that uses direct references, else you can just bite the bullet and have message channels everywhere 😄
+16:11 < bridge_> <heinrich5991> @jupeyy_keks
+16:11 < bridge_> <Jupstar ✪> yeah dunno, but u also need RefCell if u want mutibility
+16:11 < bridge_> <heinrich5991> channels are bad though, stuff would not happen immediately, but "in the next tick" or so
+16:11 < bridge_> <Jupstar ✪> and that's at runtime again xD
+16:12 < bridge_> <learath2> Yeah, I'm not sure if you can avoid interior mutability here
+16:14 < bridge_> <Jupstar ✪> well i use the index, send it to the vulkan backend, where it frees some memory
+16:14 < bridge_> <Jupstar ✪> 
+16:14 < bridge_> <Jupstar ✪> the fact that i have to use indices/ids/whatever is already ofc not nice.. but probably inevitable. So at least make sure a resource must be explicitly free'd
+16:14 < bridge_> <Jupstar ✪> 
+16:14 < bridge_> <Jupstar ✪> Also yes i could rely on Option or Default etc. my point is really not that there aren't other solutions. But that it would be this tiny bit more elegant imo 😄
+16:14 < bridge_> <learath2> Anyway, it’s fairly hard for me to think about the hierarchy in any larger program, especially since I’m not a very frequent user of C++ smart pointers either
+16:15 < bridge_> <heinrich5991> can you have more than one vulkan backend?
+16:15 < bridge_> <Jupstar ✪> i knew that would be comming xD
+16:15 < bridge_> <heinrich5991> 😄
+16:15 < bridge_> <heinrich5991> perhaps you could impl drop in there and just throw it at the global object
+16:15 < bridge_> <Jupstar ✪> well i kinda like to free what i allocate
+16:15 < bridge_> <Jupstar ✪> 
+16:15 < bridge_> <Jupstar ✪> and i dont want to put the whole backend in a global or Rc
+16:16 < bridge_> <Jupstar ✪> well tbf i dont have a very strong opinion on this
+16:16 < bridge_> <ryozuki> i think top down one way is usuallyt prefered
+16:16 < bridge_> <Jupstar ✪> I just fear extensive Rc + RefCell usage
+16:16 < bridge_> <ryozuki> doesnt it allow better paralelization
+16:16 < bridge_> <learath2> @jupeyy_keks do you have the code public somewhere? I’m kinda curious now 😄
+16:16 < bridge_> <heinrich5991> global variable would work there, no?
+16:16 < bridge_> <ryozuki> children being in a "black box" and not knowing much
+16:16 < bridge_> <learath2> He also fears globals
+16:16 < bridge_> <Jupstar ✪> but that would introduce quite a bit of unsafe, wouldnt it
+16:17 < bridge_> <heinrich5991> I'd think you'd contain it to a couple of functions
+16:17 < bridge_> <heinrich5991> I would think you could contain it to a couple of functions
+16:17 < bridge_> <Jupstar ✪> hate is smth else than fear
+16:18 < bridge_> <Jupstar ✪> see i really like to solve problems by passing stuff around
+16:18 < bridge_> <Jupstar ✪> 
+16:18 < bridge_> <Jupstar ✪> when i see Demo()->isPaused() in our c++ code
+16:18 < bridge_> <Jupstar ✪> 
+16:18 < bridge_> <Jupstar ✪> while i simply stop the timer of the demo renderer (bcs the timer is always passed and can simply be swapped between client timer and demo timer) it enforces some style
+16:18 < bridge_> <Jupstar ✪> it has a clear style
+16:18 < bridge_> <heinrich5991> can you give an API link to such a cleanup function?
+16:18 < bridge_> <heinrich5991> of vulkan
+16:19 < bridge_> <learath2> For hierarchy? Yes but I never really heard much in the way of arguments for it. It’s just much much easier to think about 1 way relationships all over, but then you’ll need something akin to a message bus, good for easy parallelism, but not the best for performance iirc
+16:19 < bridge_> <Jupstar ✪> well it takes a vulkan instance... that is the one that was to be active while u allocate memory from it, but let me find it
+16:20 < bridge_> <Jupstar ✪> https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/vkFreeMemory.html
+16:20 < bridge_> <Jupstar ✪> 
+16:20 < bridge_> <Jupstar ✪> well it takes a device
+16:20 < bridge_> <Jupstar ✪> 
+16:20 < bridge_> <Jupstar ✪> which u choose after the instance is created
+16:20 < bridge_> <Jupstar ✪> device = GPU
+16:20 < bridge_> <learath2> Or callbacks everywhere, but callbacks are pretty hard combined with async, so your easy parallelism benefits can be lost
+16:23 < bridge_> <learath2> Btw @heinrich5991 be very careful with #6942, the code looks much cleaner which scares me 😄
+16:23 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/6942
+16:24 < bridge_> <heinrich5991> much cleaner than what?
+16:24 < bridge_> <learath2> The previous one, it looked weird before now it doesn’t. When I see that I’m suspicious of some unintended change in behaviour
+16:25 < bridge_> <learath2> I thiiiink it’s fine though, still just a heads up 😄
+16:25 < bridge_> <totar> Did Heinrich right the previous code?
+16:25 < bridge_> <totar> Did Heinrich write the previous code?
+16:26 < bridge_> <learath2> He may have, I don’t remember who implemented it
+16:26 < bridge_> <heinrich5991> I did
+16:26 < bridge_> <totar> I assume it was from the original cfgflag game pr
+16:26 < bridge_> <totar> I was afraid to touch it too much 😄
+16:26 < bridge_> <totar> Macros scare me
+16:27 < bridge_> <learath2> Yeah, cleaning old code is spooky in ddnet, simplest of changes moving around if branches broke stuff in the past
+16:27 < bridge_> <totar> I think his change makes sense though it looks good to me
+16:28 < bridge_> <learath2> Yeah, Robyt’s comment does look like a nice imorovement on it too btw
+16:28 < bridge_> <learath2> improvement*
+16:28 < bridge_> <totar> True but it's already working
+16:28 < bridge_> <heinrich5991> I'll respond to it
+16:28 < bridge_> <Jupstar ✪> i can create a current snapshot
+16:28 < bridge_> <Jupstar ✪> 
+16:29 < bridge_> <Jupstar ✪> but the code is still very messy and very prototype 😄
+16:29 < bridge_> <learath2> If you don’t mind sharing I’d love to take a look
+16:29 < bridge_> <learath2> I’ll go back to op amps, cya’ll
+16:29 < bridge_> <Jupstar ✪> bye
+16:33 < bridge_> <robyt3> Is it also working with the new changes? I confirmed that it doesn't crash
+16:33 < bridge_> <totar> I did not test Heinrich pr
+16:33 < bridge_> <totar> Logically it seems ok to me
+16:34 < bridge_> <totar> Someone should test it though
+16:44 < bridge_> <heinrich5991> @totar how do I test that the config variables get applied correctly?
+16:45 < bridge_> <Jupstar ✪> @learath2 https://github.com/Jupeyy/dd-pg/tree/test2
+16:45 < bridge_> <Jupstar ✪> 
+16:45 < bridge_> <Jupstar ✪> please dont read the code too much xdd
+16:45 < bridge_> <totar> I set the client console to initialize with | CFGGAME_FLAG then you can just check them in F1. But you need a map to set them.
+16:46 < bridge_> <totar> If you use sv_deepfly you can set pred margin to something high like 200 then just test if it's predicted correctly with dummy
+16:46 < bridge_> <totar> I could test it in like 10 hours if you care
+16:47 < bridge_> <heinrich5991> that'd be amazing
+16:47 < bridge_> <totar> Ok
+16:47 < bridge_> <heinrich5991> I'll add you as a reviewer
+16:49 < bridge_> <totar> Also idk what this function is doing on the server side. If you're being extra careful you might want to make sure it doesn't have a behavior change there.
+17:08 < bridge_> <Jupstar ✪> @heinrich5991 please do the review for #6931. I dunno if it's important if we fail cmake if ssp is not found etc.
+17:08 < bridge_> <Jupstar ✪> 
+17:08 < bridge_> <Jupstar ✪> i'm static linking elitist now xd
+17:08 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/6931
+18:21 < bridge_> <marmare_314> @robyt3 i rebased #6867 if youre in the mood for a review 😄
+18:21 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/6867
+19:39 < bridge_> <ryozuki> @jupeyy_keks i passed the exam xd
+19:41 < bridge_> <Jupstar ✪> epic
+20:18 < bridge_> <Ewan> Gradually
+20:18 < bridge_> <Ewan> IDK what exam but congrats
+20:24 < bridge_> <Ewan> Hmm
+20:46 < bridge_> <Jurai!> guys what about do like this design for #map-releases
+20:46 < bridge_> <Jurai!> https://cdn.discordapp.com/attachments/293493549758939136/1134557606912983130/image.png
+20:47 < bridge_> <Ewan> yea the bot could do that
+20:47 < bridge_> <Ewan> that would be pretty cool
+20:47 < bridge_> <Ewan> you'll put poor snail out of work tho
+20:47 < bridge_> <Jurai!> im can do it if they send me list of map release
+20:47 < bridge_> <Jurai!> im just send them source they put the webhook and send message
+20:47 < bridge_> <Jurai!> done
+20:48 < bridge_> <Ewan> they would probably have @DDNet do it
+20:48 < bridge_> <Ewan> not a webhook
+20:48 < bridge_> <Jurai!> thats gonna be harder i think
+20:48 < bridge_> <Jurai!> 😄
+20:48 < bridge_> <Ewan> not for them rly
+20:48 < bridge_> <Ewan> the msg data would be the same
+20:49 < bridge_> <Ewan> are u doing it in json or what
+20:49 < bridge_> <Jurai!> yeah
+20:49 < bridge_> <Jurai!> https://cdn.discordapp.com/attachments/293493549758939136/1134558300311134349/message.txt
+20:50 < bridge_> <Jurai!> even its harder lmfao
+20:52 < bridge_> <Jurai!> easier send me list
+20:52 < bridge_> <Jurai!> and im do all
+20:52 < bridge_> <Jurai!> and they send just with webhook
+20:52 < bridge_> <Ewan> nah i don't think they'll go for that
+20:53 < bridge_> <Jurai!> sad
+20:53 < bridge_> <Jurai!> event its a good design
+20:53 < bridge_> <Jurai!> :I
+20:54 < bridge_> <Ewan> do you know python
+20:54 < bridge_> <Jurai!> not good fr
+20:54 < bridge_> <Ewan> k
+20:58 < bridge_> <coke1465> There is no list, it's more like you might have a short conversation about the map releases or snail picks out suitable maps that just fit atm
+20:58 < bridge_> <coke1465> There is no list, it's more like you might have a short conversation about the map releases or snail picks out suitable maps that just fits atm
+20:59 < bridge_> <Jurai!> yeah too possible
+21:00 < bridge_> <Ewan> i was just imagining a bot command with name, author, difficulty, release time and thumbnail as parameters. would be pretty much the same process, but then you can benefit from the cool markdown and link stuff in the embed
+21:00 < bridge_> <coke1465> What u think about it @snailx3 ?
+22:07 < bridge_> <takarekbank> hi so basically last time when i compiled ddnet everything went right, today im a bit sleepy etc, and resetted my windows also and wanted to compile ddnet once again in vsc, and when im building the cmake, i get this: (return code 1)
+22:07 < bridge_> <takarekbank> 
+22:07 < bridge_> <takarekbank> i don't know if its the right channel, sorry for that
+22:07 < bridge_> <takarekbank> https://cdn.discordapp.com/attachments/293493549758939136/1134577904018260118/cmake_compile.txt
+22:07 < bridge_> <takarekbank> the dependencies was not found but i have it in the ddnet-libs, and git downloaded reversed
+22:08 < bridge_> <deen> What is the actual error?
+22:08 < bridge_> <takarekbank> the dependencies was not found but i have it in the ddnet-libs, and git downloaded recursived
+22:08 < bridge_> <deen> I think the last lines are missing
+22:08 < bridge_> <deen> I have a feeling this could be my ssp change from today having broken it
+22:09 < bridge_> <takarekbank> tried to download it without recursive and after downloading the ddnet libs, and trying cmake but i get this, and getting this also if i try with --recursive
+22:09 < bridge_> <takarekbank> rust,cargo and python ofc downloaded
+22:12 < bridge_> <deen> What is the error message?
+22:13 < bridge_> <Jupstar ✪> @ryozuki could you help him pls, he has trouble compiling on windows xd
+22:13 < bridge_> <takarekbank> this is when im trying to build it, crazy
+22:13 < bridge_> <takarekbank> https://cdn.discordapp.com/attachments/293493549758939136/1134579315527397416/build.txt
+22:13 < bridge_> <takarekbank> i dont really know whats going on never happened before, lol
+22:25 < bridge_> <deen> ok, this is a Rust linking error
+22:25 < bridge_> <deen> Maybe you have changed the Rust version?
+22:26 < bridge_> <deen> It's probably still a bug and @heinrich5991 might know something about the Rust build process that could be going wrong
+22:29 < bridge_> <deen> Something like this: https://github.com/rust-lang/rust/issues/101134
+22:29 < bridge_> <deen> @takarekbank can you check if a week old DDNet version builds fine?
+22:30 < bridge_> <louis> my friend autojoined the brasil tutorial server even though he's from USA
+22:31 < bridge_> <takarekbank> version 17.1?
+22:33 < bridge_> <takarekbank> also, if i try to compile it in visual studio (not code) it compiles, and starts running the exe, but then i get that these dll's are missing:
+22:33 < bridge_> <takarekbank> 
+22:33 < bridge_> <takarekbank> - libpng16-16.dll
+22:33 < bridge_> <takarekbank> - avformat-6.dll
+22:33 < bridge_> <takarekbank> - SDL2.dll
+22:33 < bridge_> <takarekbank> - libfreetype.dll
+22:41 < bridge_> <takarekbank> 17.1
+22:41 < bridge_> <takarekbank> 17.1 (https://github.com/ddnet/ddnet/releases/tag/17.1) builded successfully 👍
+22:42 < bridge_> <takarekbank> 17.1 (https://github.com/ddnet/ddnet/releases/tag/17.1) builded successfully 👍 via vs.
