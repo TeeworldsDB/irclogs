@@ -1,0 +1,345 @@
+00:20 < bridge> <ryozuki> @deen i got a shared file system working using NFS
+00:20 < bridge> <ryozuki> https://wiki.gentoo.org/wiki/Nfs-utils
+10:20 < bridge> <ryozuki> morning
+10:41 < bridge> <Ewan> morning
+10:41 < bridge> <Ewan> checking my stats rn
+10:43 < bridge> <Ewan> yeesh
+10:43 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1159410479345696798/IMG_3681.png?ex=6530ec27&is=651e7727&hm=87709b818eb7d729ca80cd5d2f209fa11b4d888cf02e0153ccc2b7970a22e1bb&
+10:43 < bridge> <Ewan> 33 hrs on one map
+10:44 < bridge> <MilkeeyCat> Gamer
+11:04 < bridge> <ryozuki> im setting up ccache and distcc
+11:22 < bridge> <Dreamless> is this publicly available? Never saw playtime before
+11:47 < bridge> <ryozuki> @learath2 odd, compiling ddnet with distcc takes more than without
+11:47 < bridge> <ryozuki> xd
+12:11 < bridge> <ryozuki> i guess distcc is only worht for the slower machine
+12:11 < bridge> <ryozuki> or idk
+12:20 < bridge> <vappy19> Maybe Next update, hype! :0
+12:24 < bridge> <patiga> @robyt3 hey, I thought that bezier envelope data is stored in a single item of a new ex item type. https://discord.com/channels/252358080522747904/1156657072780361738/1157765215061016586 this map however contains a bezier curve (in envelope 3/8), but only 2 ex item types: automapper and GroupEx.
+12:24 < bridge> <patiga> Do you know if there is something wrong here, or if I just misunderstand something?
+12:26 < bridge> <patiga> https://ide.kaitai.io/ with https://github.com/heinrich5991/libtw2/blob/602156e4cb787f3d2c4afeb267706233741aea9c/doc/datafile_v4.ksy is great to view the structure of datafiles btw :)
+12:30 < bridge> <patiga> hm I must be understanding smth wrong, because bezier values do indeed get saved
+12:30 < bridge> <patiga> my question is: where are they stored then?
+12:35 < bridge> <patiga> okay, so some clues:
+12:36 < bridge> <patiga> with the newest client (17.3) from steam, when I store a map with bezier it does indeed add the expected ex-item-type
+12:38 < bridge> <patiga> that ex-item-type is not included in the map linked above, however
+12:38 < bridge> <patiga> suggesting that saving the map failed somehow
+12:52 < ChillerDragon> madlad deen hinted that he might merge #5949 tomorrow. If that actually happens I appreciate every who looks over the code and maybe even runs it before the merge.
+12:52 < chillerbot> https://github.com/ddnet/ddnet/issues/5949
+12:56 < bridge> <ryozuki> :justatest:
+13:31 < bridge> <TsFreddie> bruh
+13:40 < bridge> <Anime.pdf> https://media.discordapp.net/attachments/342454474117218334/1135332656498880613/scripulous-fingore-mario.gif
+13:44 < bridge> <cyberFighter> No
+13:44 < bridge> <cyberFighter> Why
+13:56 < bridge> <MilkeeyCat> how can i mention chiller? :p
+13:57 < bridge> <MilkeeyCat> are these values in /src/game/generated/protocol.h related to type_id values in table on https://chillerdragon.github.io/teeworlds-protocol/07/snap_items.html  :pepeW:
+13:58 < bridge> <MilkeeyCat> https://cdn.discordapp.com/attachments/293493549758939136/1159459467713314886/image.png?ex=653119c6&is=651ea4c6&hm=66d7da1b449f83169b4bb48526d7e997b0e43b74093203100e7ead8bcebca063&
+14:06 < bridge> <MilkeeyCat> are these values in build/src/game/generated/protocol.h related to type_id values in table on https://chillerdragon.github.io/teeworlds-protocol/07/snap_items.html  :pepeW:
+14:06 < bridge> <MilkeeyCat> https://cdn.discordapp.com/attachments/293493549758939136/1159459467713314886/image.png?ex=653119c6&is=651ea4c6&hm=66d7da1b449f83169b4bb48526d7e997b0e43b74093203100e7ead8bcebca063&
+14:14 < bridge> <Mr.Gh0s7> ChillerDragon
+14:27 < Ryozuki> i figured why host znc when i can simply have weechat on tmux
+14:27 < Ryozuki> and here i am
+15:37 < bridge> <patiga> @robyt3  https://github.com/ddnet/ddnet/blob/2b115b92fa4077a30f76b50b97ef503e12757c77/src/game/editor/mapitems/map_io.cpp#L378-L387
+15:37 < bridge> <patiga> if I see this correctly, the bezier curve values aren't stored only in the bezier values of the envelope point with the bezier curve type, but instead spread between that point and the next?
+15:40 < bridge> <patiga> Maybe I got it wrong for a long time already, but I thought that the interpolation between two points is only ever determined by the values of the first of the two. I think/thought that this is the way teeworlds 0.7 stores their bezier values, but here we do it differently?
+15:42 < bridge> <robyt3> Yes, the 0.7 format stores them interleaved
+15:42 < bridge> <robyt3> We store them in two separate items
+15:43 < bridge> <patiga> yes, but I'm confused about which bezier values are stored where
+15:45 < bridge> <patiga> in the code segment above, if a envelope point has the bezier type, half of the bezier values are stored in the envelope point with the appropriate type, and half in the next point, regardless of which curve type that point has
+15:46 < bridge> <patiga> so my first question kinda is: if we look at the 0.7 format, at the 16 bezier values of the first point, are these values equal to the first 16 values in the ddnet bezier data?
+15:46 < bridge> <robyt3> We always store bezier data for all points but unused data should be 0
+15:49 < bridge> <patiga> the bezier curve has in\_ and out\_ values. 8 values each. if we look at the first bezier curve, between the first and second point. are the in\_ and out\_ values of the first bezier curve the first 16 values, or the 8th till 24th value?
+15:50 < bridge> <patiga> when I wrote the 0.7 parser I kinda just assumed that the bezier values are entirely stored in the envelope point with the type bezier, not split up between two points. but the code above does not do that
+15:54 < bridge> <patiga> I'm questioning right now if I was parsing 0.7 maps wrong. do I need to keep the bezier values of non-bezier envelope points (which are used if the point before was a bezier point)
+16:01 < bridge> <chillerdragon> Yes that’s the same
+16:16 < bridge> <MilkeeyCat> ok, i just realized there's protocol.h and protocol.h and type_id = 6 means different stuff in these 2 versions and i dont have to try to put 8 ints in 3 anymore :pepeW:
+16:16 < bridge> <MilkeeyCat> ok, i just realized there's protocol.h and protocol7.h and type_id = 6 means different stuff in these 2 versions and i dont have to try to put 8 ints in 3 anymore :pepeW:
+16:28 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1159497344648228984/IMG_20231005_222713.jpg?ex=65313d0d&is=651ec80d&hm=93ff3755191b28f87de514d0ff69c496f498b64f2fa9c2717dc53ab37184c446&
+16:29 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1159497662941384704/video_20231005_222455.mp4?ex=65313d59&is=651ec859&hm=2d15369da70710b4d6790ca4d44346e35c2038ae803bc89944e11310992fbd4d&
+16:31 < bridge> <Mr.Gh0s7> godot :poggers2:
+16:32 < bridge> <TsFreddie> ye godot
+16:32 < bridge> <Mr.Gh0s7> If I may ask, is it a personal project or is it a team one but you switched because of the Unity changes?
+16:32 < bridge> <TsFreddie> Personal
+16:33 < bridge> <TsFreddie> moving an entire team to godot might cost too much for training
+16:33 < bridge> <Mr.Gh0s7> ye
+16:34 < bridge> <TsFreddie> At least 2022 lts isn't affected now anyway
+16:35 < bridge> <TsFreddie> godot isn't really fully featured tho. It feels really weird to develop toolset for it for the time being.
+16:35 < bridge> <TsFreddie> maybe it's just the unfamiliarity, idk
+16:36 < bridge> <Mr.Gh0s7> ye many features are missing still
+16:36 < bridge> <ryozuki> ew windows
+16:37 < bridge> <TsFreddie> Just now I found it lacks some timing related hooks where I need them like before and after rendering a viewport. had to workaround them.
+16:37 < bridge> <TsFreddie> bite me
+16:37 < bridge> <ryozuki> :owo:
+16:37 < bridge> <ryozuki> @tsfreddie glad ur into godot
+16:37 < bridge> <ryozuki> fck unity
+16:37 < bridge> <ryozuki> also godot is better at cross platform iirc
+16:37 < bridge> <TsFreddie> I'm not into godot
+16:37 < bridge> <ryozuki> so better for linux
+16:37 < bridge> <ryozuki> why not
+16:37 < bridge> <ryozuki> betrayal
+16:38 < bridge> <ryozuki> im angry now
+16:38 < bridge> <TsFreddie> bite me again :brownbear:
+16:38 < bridge> <TsFreddie> it's fine
+16:38 < bridge> <Mr.Gh0s7> xD
+16:38 < bridge> <ryozuki> :owo:
+16:39 < bridge> <TsFreddie> not really liking it. maybe I'll get used to it after i just started using the engine code as base instead of only in-engine stuff
+16:39 < bridge> <TsFreddie> Also godot never showed any tooltips on my machine since godot 3.1
+16:39 < bridge> <TsFreddie> I'm trying to fix it now that's why I'm compiling it
+16:40 < bridge> <TsFreddie> It took me years to realise why it is so damn hard to use.  just because it never told me what any buttons do on my machine lmao
+16:41 < bridge> <Mr.Gh0s7> that sucks, do other ppl have it too?
+16:42 < bridge> <TsFreddie> the problem or the tooltips
+16:42 < bridge> <Mr.Gh0s7> the tooltips
+16:42 < bridge> <TsFreddie> ye, i asked
+16:43 < bridge> <TsFreddie> also I can make them show up by turning off one of my monitor
+16:43 < bridge> <TsFreddie> so at least I might know why it isn't showing up
+16:43 < bridge> <TsFreddie> i'd imagine no one really noticed it since it was unchanged for so long
+16:44 < bridge> <Mr.Gh0s7> hmm weird maybe they show up in the other monitor?
+16:45 < bridge> <TsFreddie> probably not, I would've noticed
+16:45 < bridge> <TsFreddie> even if they do then it is definitely bugged anyway
+16:45 < bridge> <chillerdragon> What you hacking on?
+16:46 < bridge> <TsFreddie> I just need to find the code where they render the damn thing tho. the codebase is quite huge than what i'm used to:justatest:
+16:46 < bridge> <Mr.Gh0s7> yeah hmm
+16:46 < bridge> <TsFreddie> I just need to find the code where they render the damn thing tho. the codebase is quite huge compared to what i'm used to:justatest:
+16:48 < bridge> <MilkeeyCat> web demo renderer. still :pepeW:. ive parsed messages and map, now its snapshot time
+16:49 < bridge> <chillerdragon> You know that you are kinda reinventing the wheel here?
+16:49 < bridge> <chillerdragon> Half tw is working on that
+16:49 < bridge> <MilkeeyCat> hell yeah
+16:49 < bridge> <MilkeeyCat> on what?
+16:49 < bridge> <chillerdragon> Web demo
+16:50 < bridge> <MilkeeyCat> eeeeeehm
+16:50 < bridge> <MilkeeyCat> is there a working thing?
+16:50 < bridge> <chillerdragon> Also why you working with da protocol? Cant you just copy paste tw code?
+16:50 < bridge> <MilkeeyCat> if no, then ill be first :clueless:
+16:50 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1159502964801687655/2023-10-05_18-52-19.mp4?ex=65314249&is=651ecd49&hm=fa6a4aa3edc8dfd4eb5f7b5e0b52807a6f6575f2725089e6ac12db3a4af5efe2&
+16:50 < bridge> <MilkeeyCat> if yes, i aint finish this
+16:50 < bridge> <chillerdragon> Nothing is super finished but many things are showcasesable
+16:51 < bridge> <ryozuki> did u try watching a tutorial
+16:51 < bridge> <chillerdragon> Ask patiga and jupsti for their current state and judge your self if it’s finished enough for you
+16:51 < bridge> <TsFreddie> tutorials are for the weak
+16:51 < bridge> <ryozuki> there u have the answer
+16:51 < bridge> <MilkeeyCat> lets see whose wheel is better :owo:
+16:51 < bridge> <ryozuki> also godot is diferent
+16:51 < bridge> <chillerdragon> Xd
+16:51 < bridge> <ryozuki> u attach a script to each node
+16:51 < bridge> <ryozuki> its more modular
+16:51 < bridge> <TsFreddie> i mean. i know that
+16:51 < bridge> <ryozuki> in c# unity u use 1 script for many ythings iirc
+16:52 < bridge> <ryozuki> but thats like a big change for ppl i guess idk
+16:52 < bridge> <ryozuki> im not a game dev
+16:52 < bridge> <chillerdragon> Yea not telling you to stop. Just warning you it might not be too useful to double the work
+16:52 < bridge> <ryozuki> i only do game dev in ddnet
+16:52 < bridge> <TsFreddie> i mean just moving stuff around. sometime there's a button and I hate I can't tell what it is by the icon
+16:52 < bridge> <ryozuki> imagine having a editor
+16:52 < bridge> <chillerdragon> Also why do you reimplement the protocol?
+16:52 < bridge> <chillerdragon> Do you use a new language?
+16:52 < bridge> <chillerdragon> js? :D
+16:52 < bridge> <MilkeeyCat> i just need to get the focken data from snapshot
+16:52 < bridge> <MilkeeyCat> :pepeW:
+16:53 < bridge> <chillerdragon> How do you get it into the web?
+16:53 < bridge> <MilkeeyCat> ah
+16:53 < bridge> <MilkeeyCat> je
+16:53 < bridge> <MilkeeyCat> js
+16:53 < bridge> <MilkeeyCat> D:
+16:53 < bridge> <chillerdragon> Pure or cross compile?
+16:53 < bridge> <MilkeeyCat> ye
+16:53 < bridge> <chillerdragon> Webassemblign I mean
+16:53 < bridge> <chillerdragon> I think actual hand written js would be a first
+16:54 < bridge> <MilkeeyCat> rn its in ts, and its only nodejs application
+16:54 < bridge> <Mr.Gh0s7> btw @tsfreddie have you tried if godot 4 has this problem?
+16:54 < bridge> <TsFreddie> yes
+16:54 < bridge> <MilkeeyCat> but very soon ill transform it into a webpage
+16:54 < bridge> <chillerdragon> If that’s the case there is also a snapshot parser in ts you know that right?
+16:54 < bridge> <TsFreddie> both 4.1.1 and 4.1.2 which just released
+16:54 < bridge> <MilkeeyCat> :clueless:
+16:54 < bridge> <TsFreddie> that's what I mean since, cuz it's been years lmao
+16:55 < ChillerDragon> https://gitlab.com/swarfey/teeworlds-client
+16:55 < bridge> <MilkeeyCat> i aint using any libraries, writing all wheels myself :gigachad:
+16:55 < ChillerDragon> haha check this out this mf is also now going web https://gitlab.com/swarfey/teeworlds-web
+16:55 < ChillerDragon> so 3 ppl are activley working on it right now
+16:55 < ChillerDragon> and there are some old projects
+16:56 < bridge> <MilkeeyCat> am gonna be first :owo:
+16:56 < bridge> <MilkeeyCat> and the worst :gigachad:
+16:56 < ChillerDragon> gl
+16:56 < ChillerDragon> please report any bugs or feedback for the protocol doc
+16:57 < ChillerDragon> @swarfey cool web client btw
+16:57 < bridge> <MilkeeyCat> https://github.com/heinrich5991/libtw2/issues/81 i was the one who discovered this btw :gigachad:
+16:58 < bridge> <ryozuki> @tsfreddie check out my big brother https://ddstats.org/events
+16:58 < ChillerDragon> nice
+16:58 < bridge> <ryozuki> :owo:
+16:58 < bridge> <ryozuki> (wait 5 seconds)
+16:58 < bridge> <swarfey> xd tyty
+16:59 < bridge> <swarfey> wouldnt say actively, i already kinda abandoned it brrt
+16:59 < bridge> <swarfey> myr wanted to see the code tho, so i published it to gitlab
+17:00 < ChillerDragon> sussy russians
+17:01 < ChillerDragon> i dont get the code swarfey
+17:01 < ChillerDragon> does it need a server? or is it client side js only?
+17:02 < ChillerDragon> last time i checked web cant do udp right? So your client lib would need to support ws? But why is there ws stuff in the web repo then?
+17:03 < ChillerDragon> @swarfey
+17:03 < bridge> <swarfey> xd yes i did some trol in the code
+17:07 < bridge> <swarfey> ye u showed it to me in early ruby lib development i think
+17:08 < bridge> <swarfey> thought it was web
+17:08 < ChillerDragon> when did u start the web stuff?
+17:08 < ChillerDragon> i started mine 3 weeks ago
+17:08 < bridge> <swarfey> ehh same day i published it
+17:08 < ChillerDragon> ez
+17:08 < ChillerDragon> earlier
+17:08 < bridge> <swarfey> ye 2 weeks ago
+17:08 < bridge> <swarfey> didnt work on it after that either
+17:08 < ChillerDragon> mood
+17:09 < ChillerDragon> mine was also super short lived development effort xd
+17:09 < ChillerDragon> but its hella fun using a own lib
+17:09 < bridge> <swarfey> xd yeah
+17:09 < bridge> <swarfey> i have a lot of small projects using my own lib too
+17:09 < ChillerDragon> ok pro developer
+17:09 < ChillerDragon> i dont
+17:10 < bridge> <swarfey> well
+17:10 < bridge> <swarfey> with small i mean extremely small like hello world to test some stuff in my mod or something
+17:10 < bridge> <swarfey> idk
+17:10 < ChillerDragon> xd
+17:10 < ChillerDragon> wat
+17:11 < ChillerDragon> you made a lib for hello world and used that?
+17:11 < bridge> <swarfey> what no
+17:11 < ChillerDragon> u made a tw server mod framework and used it to build hello world plugin?
+17:11 < bridge> <swarfey> i use the teeworlds lib to connect to a server and do some weird movement
+17:11 < bridge> <swarfey> or do some commands to test something in the mod
+17:11 < ChillerDragon> a
+17:11 < bridge> <swarfey> with 64 tees
+17:11 < ChillerDragon> ou yea same
+17:11 < ChillerDragon> https://gitlab.com/teeworlds-network/twnet_parser/-/blob/master/examples/07/flood/flood.py?ref_type=heads
+17:11 < ChillerDragon> i use sussy flood.py
+17:12 < ChillerDragon> if i need a full server these days
+17:12 < bridge> <swarfey> xd
+17:12 < ChillerDragon> EDUCATIONAL PURPOSES ONLY
+17:14 < bridge> <TsFreddie> stalker
+17:14 < bridge> <MilkeeyCat> :kek:
+17:14 < bridge> <MilkeeyCat> https://cdn.discordapp.com/attachments/293493549758939136/1159508943375175782/IMG_20231005_181412.jpg?ex=653147da&is=651ed2da&hm=5afa67f9da077a17541dce693c9c3cf080d53e01842d82f93776727aa571f943&
+17:14 < ChillerDragon> light mode gitlab user wot
+17:15 < bridge> <TsFreddie> check out my secret gitea https://c.tsdo.in:20020/
+17:15 < bridge> <MilkeeyCat> I dont even have a gitlab account, what do u want from me
+17:15 < ChillerDragon> china virus
+17:15 < bridge> <TsFreddie> virus living in my home
+17:16 < ChillerDragon> idk even whre u live?
+17:16 < ChillerDragon> arent u in china?
+17:16 < bridge> <TsFreddie> ye
+17:16 < ChillerDragon> so it china virus confirmed
+17:16 < bridge> <TsFreddie> so you do know
+17:16 < ChillerDragon> i guess
+17:17 < ChillerDragon> where sing up button
+17:17 < bridge> <TsFreddie> also i forgot to build godot with symbols now i'm building it again. sad
+17:17 < bridge> <TsFreddie> disabled lmao
+17:17 < ChillerDragon> trol
+17:17 < bridge> <TsFreddie> why do you want sign up tho
+17:17 < ChillerDragon> u sent link
+17:17 < ChillerDragon> i click
+17:18 < bridge> <TsFreddie> i mean i can invite for sign ups
+17:18 < bridge> <TsFreddie> i probably need to setup the SMTP first tho
+17:18 < ChillerDragon> yea dw
+17:18 < ChillerDragon> i dont see me using it anyways
+17:19 < bridge> <TsFreddie> it wasn't supposed to be used by others too lmao
+17:19 < ChillerDragon> sure sure 
+17:19 < bridge> <TsFreddie> it's just where I store my stuff that might be private
+17:20 < ChillerDragon> if heinrich would offer some git hosting i might use it. Eventho he revealed that he has no backup strategy he is the most ethernal person i know.
+17:20 < ChillerDragon> i sent heinrich some map 10 yrs ago and its still vibin on his drive
+17:21 < ChillerDragon> ryo recreates git hosting services faster than i change my underwear
+17:22 < ChillerDragon> @TsFreddie i also selfhost for private stuff. I just dont use any cloud provider. Raw git is all i need for private stuff. Or do you need clickibuntu web gui and issues etc?
+17:22 < bridge> <TsFreddie> i just want something that's familiar and also shareable in case i need it
+17:22 < ChillerDragon> i see
+17:23 < bridge> <TsFreddie> also it's just a nas sitting in my living room
+17:23 < ChillerDragon> !remind 5y ask fredsti wat happend to his git cloud axax
+17:23 < bridge> <YADDB> Command not found!
+17:23 < ChillerDragon> trash bot
+17:23 < bridge> <TsFreddie> 👀
+17:23 < bridge> <MilkeeyCat> Make a better one
+17:23 < ChillerDragon> i am not really allowed to bot here
+17:23 < bridge> <MilkeeyCat> :feelsbadman:
+17:23 < ChillerDragon> !ping
+17:23 < chillerbot> pong
+17:23 < bridge> <YADDB> Command not found!
+17:27 < bridge> <Mr.Gh0s7> Have you tried deleting the `Editor data`and  `Editor settings`? (If you do make a backup first)
+17:30 < bridge> <TsFreddie> idk what that is
+17:30 < bridge> <TsFreddie> oh wow, great. the debug build tooltip works
+17:30 < bridge> <TsFreddie> the release one does not
+17:30 < bridge> <TsFreddie> love it
+17:31 < bridge> <Mr.Gh0s7> xD
+17:31 < bridge> <Mr.Gh0s7> https://docs.godotengine.org/en/latest/tutorials/io/data_paths.html#editor-data-paths
+17:31 < bridge> <TsFreddie> god damn it it works on all godot versions now
+17:31 < bridge> <Mr.Gh0s7> xD nice
+17:31 < bridge> <TsFreddie> i hate that it is random
+17:32 < bridge> <Mr.Gh0s7> maybe it changed some setting hmm
+17:32 < bridge> <TsFreddie> i didn't do anything with the settings btw
+17:32 < bridge> <TsFreddie> i compiled a debug version of the engine
+17:32 < bridge> <Mr.Gh0s7> ye I understood xD
+17:33 < bridge> <ryozuki> windows shenanigans
+17:33 < bridge> <ryozuki> use linux
+17:33 < bridge> <Mr.Gh0s7> btw this is what I've been working on with godot
+17:33 < bridge> <Mr.Gh0s7> https://cdn.discordapp.com/attachments/293493549758939136/1159513821648523274/demo1.mp4?ex=65314c65&is=651ed765&hm=0414b7cc6f05c4c4f82c7874cedd7e3976bc950c46b4f965ac0fd4cc83782afd&
+17:34 < bridge> <ryozuki> epic
+17:34 < bridge> <Mr.Gh0s7> ye I made many projects but the hooks where awful so I made yet another one and I figured it out xD
+17:39 < bridge> <TsFreddie> I hate life
+17:39 < bridge> <TsFreddie> It just randomly decided to work
+17:39 < bridge> <TsFreddie> Also cool project (definitely watched)
+17:39 < bridge> <Mr.Gh0s7> my best guess would be this ^
+17:40 < bridge> <TsFreddie> Nah, it worked before
+17:40 < bridge> <TsFreddie> It will just stop working at some point
+17:40 < bridge> <Mr.Gh0s7> no I mean the debug version did on it's own
+17:40 < bridge> <TsFreddie> When it feels like it
+17:40 < bridge> <TsFreddie> That happened once or twice before
+17:41 < bridge> <Mr.Gh0s7> hmm
+17:41 < bridge> <TsFreddie> Just hate it to randomly fix itself right now when I'm just about to debug it
+17:41 < bridge> <TsFreddie> Honestly, the last time it worked it's when I decided to open an issue
+17:41 < bridge> <TsFreddie> Then it started working so i thought i just didn't hover long enough
+17:42 < bridge> <TsFreddie> The program is definitely sentient
+17:42 < bridge> <TsFreddie> It knows
+17:48 < bridge> <ryozuki> O0 to O1 is a massive change
+17:48 < bridge> <ryozuki> in rust too
+17:48 < bridge> <ryozuki> rust without opts can be slower than python
+17:48 < bridge> <ryozuki> with opts higher level abstractiosn become "zero cost"
+17:48 < bridge> <ryozuki> or almost zero cost
+17:58 < bridge> <teero777> teeworlds 2.0?!?
+18:20 < bridge> <patiga> okay twmap does parse teeworlds 0.7 bezier values wrong, but imo my interpretation makes more sense :p
+18:20 < bridge> <patiga> but damn
+18:25 < bridge> <patiga> tho the naming does make more sense now
+18:36 < bridge> <TsFreddie> ok, finally discord decided to load the video
+18:36 < bridge> <TsFreddie> pretty cool project
+18:36 < bridge> <TsFreddie> for real this time
+18:47 < bridge> <Mr.Gh0s7> kinda the repo is here https://github.com/Inateblig/Plydring. It's mainly a try of implementing 3D Teeworlds mechanics in godot.
+18:52 < bridge> <patiga> @robyt3 I understand my problem with the bezier values now. the values for a single bezier curve are split between two points, which I deemed improbable at first. The problem of my first ping with the map with missing bezier data still holds up though.
+18:52 < bridge> <patiga> New question: in the code it always calls the bezier values (in|out)_tangent_d(x|y). however on wikipedia it mostly talks about control points and only about tangents for a short segment. are the values in the map also control points, or are they something different? I ask this to get the naming correct in twmap. I'm not familiar with the calculations yet and hope to skip that trouble by asking you for now ^^
+18:52 < bridge> <patiga> (btw, please tell me if you want to be pinged less)
+18:57 < bridge> <robyt3> Yeah, it's a bit confusing how there are N points but N-1 curve types associated with the segments between the points. I don't know what's going on with the specific map missing the bezier ex item, if it's not something with the tool not displaying it correctly. I mostly copied cinaera's bezier implementation and naming from upstream, I don't really know all about how it works myself.
+19:00 < bridge> <robyt3> I guess "control point" would have been correct to use, since the exact X and Y position of matters, whereas for a tangent it would only be the direction that's important
+19:00 < bridge> <robyt3> I guess "control point" would have been correct to use, since the exact X and Y position matters, whereas for a tangent it would only be the direction that's important
+19:03 < bridge> <teero777> theroretically you could just rewrite ddnet to 3d. hard thing would be the graphics.
+19:03 < bridge> <teero777> theoretically you could just rewrite ddnet to 3d. hard thing would be the graphics.
+19:04 < bridge> <patiga> thanks for the input! it was really helpful. the specific map still confuses me, I think something definitely went wrong there, but maybe its already patched, we'll see if it comes up in the future
+19:08 < bridge> <Mr.Gh0s7> I had made a 3D client/frontend for the ddnet client but it sucked. It was made in godot so it was easy but the communication was the hard part. I used fifos (first in first out files) to communicate with the ddnet client and godot. If I ever make another 3D client for teeworlds I'll again make it in godot but I'll also rewrite the networking in it instead of using the ddnet client. That way it should be faster/cleaner and would run on windows too
+20:25 < bridge> <MilkeeyCat> ure making some cool ass 3d projects. heres my triangle on opengl :owo:
+20:25 < bridge> <MilkeeyCat> https://cdn.discordapp.com/attachments/293493549758939136/1159557084845711440/image.png?ex=653174b0&is=651effb0&hm=e199a98abc1a9e6b88526080d446b1746d006135482e7aebe401ff77efaccb88&
+20:38 < bridge> <ultrakeker> lel, I'm currently learning opengl and how to do triangles xdd
+20:41 < bridge> <ryozuki> https://blog.rust-lang.org/2023/10/05/Rust-1.73.0.html
+20:49 < bridge> <ryozuki> thats doper than using a already made game engine
+20:49 < bridge> <ryozuki> now do vulkan
+21:10 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1159568214213279845/Screenshot_20231005_150950_Chrome.jpg?ex=65317f0e&is=651f0a0e&hm=2d566c78ff9f105be718c846baea9a3a3da80563f7c824f947aad6d6b798461f&
+21:58 < bridge> <ryozuki> https://github.com/Voultapher/sort-research-rs/blob/main/writeup/sort_safety/text.md
+22:02 < bridge> <Ewan> good afternoon
+22:05 < bridge> <k2d222> depends where you are 🙃
+22:05 < bridge> <Ewan> ohhh shit really i didn't know that
+22:06 < bridge> <k2d222> XD
+22:06 < bridge> <Ewan> ???
+22:39 < bridge> <yekrm> DDNetPP Is there a build? chilleeeer
+23:08 < bridge> <Ewan> build for what
+23:14 < bridge> <yekrm> For a server
+23:15 < bridge> <Ewan> what server??
+23:15 < bridge> <Ewan> u want a linux build
+23:15 < bridge> <Ewan> or something else
+23:15 < bridge> <yekrm> Linux
+23:16 < bridge> <Ewan> https://github.com/DDNetPP/DDNetPP/releases/tag/v.0.0.7
+23:16 < bridge> <Ewan> linux_DDNetPP
+23:16 < bridge> <yekrm> I think it's very old
+23:16 < bridge> <Ewan> that is 4 years old yeah
+23:16 < bridge> <Ewan> https://github.com/DDNetPP/DDNetPP#cmake
+23:16 < bridge> <Ewan> <https://github.com/DDNetPP/DDNetPP#cmake>
+23:17 < bridge> <Ewan> very ez build
+23:18 < bridge> <yekrm> :owo:
+23:18 < bridge> <Ewan> sorry
+23:18 < bridge> <Ewan> im not the chiller
+23:18 < bridge> <Ewan> but i'd be surprised if he had builds hosted anywhere but the releases page

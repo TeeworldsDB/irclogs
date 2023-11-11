@@ -1,0 +1,889 @@
+00:20 < bridge> <Ewan> only thing more rusty about this is the bracket syntax for std print/format
+00:21 < bridge> <Ewan> initializer lists for std containers have existed for a long time
+00:21 < bridge> <learath2> You mean Rust++?
+00:21 < bridge> <ryozuki> import
+00:27 < bridge> <Ewan> oh yeah
+00:27 < bridge> <Ewan> missed that
+09:15 < bridge> <ryozuki> morning
+09:19 < bridge> <Ewan> morning
+09:19 < bridge> <Ewan> why my points don't go up
+09:29 < bridge> <fokkonaut> PP
+09:54 < bridge> <matodor> @gerdoe xD?
+09:54 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1167370807983476826/image.png?ex=654de1c9&is=653b6cc9&hm=e0d56fa97e3e6b236b23a024ce7d781fd633001f19585c3781582093b401c253&
+09:54 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1167370808289677412/image.png?ex=654de1c9&is=653b6cc9&hm=0a3dfdf078374b612140969bc7f4d99dfcb2274c66933ef6dda0620c6c72b2ed&
+10:09 < bridge> <ryozuki> ```rust
+10:09 < bridge> <ryozuki>  #[stable(feature = "alloc_layout_manipulation", since = "1.44.0")]
+10:09 < bridge> <ryozuki>      #[rustc_const_unstable(feature = "const_alloc_layout", issue = "67521")]
+10:09 < bridge> <ryozuki>      #[inline]
+10:09 < bridge> <ryozuki>      pub const fn array<T>(n: usize) -> Result<Self, LayoutError> {
+10:09 < bridge> <ryozuki>          // Reduce the amount of code we need to monomorphize per `T`.
+10:09 < bridge> <ryozuki>          return inner(mem::size_of::<T>(), Alignment::of::<T>(), n);
+10:09 < bridge> <ryozuki>  
+10:09 < bridge> <ryozuki>          #[inline]
+10:09 < bridge> <ryozuki>          const fn inner(
+10:09 < bridge> <ryozuki>              element_size: usize,
+10:09 < bridge> <ryozuki>              align: Alignment,
+10:09 < bridge> <ryozuki>              n: usize,
+10:09 < bridge> <ryozuki>          ) -> Result<Layout, LayoutError> {
+10:10 < bridge> <ryozuki>              // We need to check two things about the size:
+10:10 < bridge> <ryozuki>              //  - That the total size won't overflow a `usize`, and
+10:10 < bridge> <ryozuki>              //  - That the total size still fits in an `isize`.
+10:10 < bridge> <ryozuki>              // By using division we can check them both with a single threshold.
+10:10 < bridge> <ryozuki>              // That'd usually be a bad idea, but thankfully here the element size
+10:10 < bridge> <ryozuki>              // and alignment are constants, so the compiler will fold all of it.
+10:10 < bridge> <ryozuki>              if element_size != 0 && n > Layout::max_size_for_align(align) / element_size {
+10:10 < bridge> <ryozuki>                  return Err(LayoutError);
+10:10 < bridge> <ryozuki>              }
+10:10 < bridge> <ryozuki>  
+10:10 < bridge> <ryozuki>              let array_size = element_size * n;
+10:10 < bridge> <ryozuki>  
+10:10 < bridge> <ryozuki>              // SAFETY: We just checked above that the `array_size` will not
+10:10 < bridge> <ryozuki>              // exceed `isize::MAX` even when rounded up to the alignment.
+10:10 < bridge> <ryozuki>              // And `Alignment` guarantees it's a power of two.
+10:10 < bridge> <ryozuki>              unsafe { Ok(Layout::from_size_align_unchecked(array_size, align.as_usize())) }
+10:10 < bridge> <ryozuki>          }
+10:10 < bridge> <ryozuki> @jupeyy_keks the inner trick to reduce monomorphized code siE
+10:10 < bridge> <ryozuki> size
+10:10 < bridge> <ryozuki> ffr
+10:10 < bridge> <ryozuki> this is from std
+10:10 < bridge> <ryozuki> i love rust std IS readable
+10:10 < bridge> <ryozuki> c++ std is unreadable
+10:11 < bridge> <MilkeeyCat> wheres all the fun than if you understand everything
+10:11 < bridge> <MilkeeyCat> wheres all the fun then if you understand everything
+10:12 < bridge> <MilkeeyCat> wheres all the fun then if you understand everything ( i wanted to reply this to rust message)
+10:12 < bridge> <MilkeeyCat> wheres all the fun then if you understand everything ( i wanted to reply this to rust message )
+10:13 < bridge> <Jupstar ✪> That's very true xd
+10:13 < bridge> <Jupstar ✪> Stupid underscores
+12:32 < bridge> <teero777> sounds like a skill issue tbh
+12:40 < bridge> <v4ox3r> morning
+12:40 < bridge> <v4ox3r> i need help
+12:41 < bridge> <v4ox3r> i have a vps service but idk how to put the server on
+12:42 < bridge> <v4ox3r> the server dont appear in on page
+12:42 < bridge> <v4ox3r> https://cdn.discordapp.com/attachments/293493549758939136/1167412904514031660/Screenshot_2023-10-27_073325.png?ex=654e08fd&is=653b93fd&hm=f0ee0e68fc5c90219ccf52525dedb96f95644749700a5012310475461a675b50&
+12:42 < bridge> <ryozuki> did u ever look at it
+12:45 < bridge> <ryozuki> https://gcc.gnu.org/onlinedocs/gcc-4.6.3/libstdc++/api/a01102_source.html
+12:46 < bridge> <ryozuki> https://doc.rust-lang.org/stable/src/std/collections/hash/map.rs.html#216-218
+12:46 < bridge> <ryozuki> compare
+12:50 < bridge> <learath2> Wrong link https://gcc.gnu.org/onlinedocs/gcc-4.6.3/libstdc++/api/a01103_source.html
+12:52 < bridge> <screeeny> can you connect via ip:port? did u use internet tab?
+12:52 < bridge> <teero777> rust is definitely more easily readable but i don't think C++ std is that bad
+12:54 < bridge> <learath2> Both msvc and clang have much better ones
+12:54 < bridge> <learath2> 
+12:54 < bridge> <learath2> https://github.com/microsoft/STL/blob/main/stl/inc/unordered_map
+12:54 < bridge> <learath2> 
+12:54 < bridge> <learath2> https://github.com/llvm/llvm-project/blob/main/libcxx/include/unordered_map
+12:54 < bridge> <learath2> I usually refer to the MSVC implementation first, it’s the cleanest
+12:54 < bridge> <v4ox3r> i try boths, see that:
+12:54 < bridge> <v4ox3r> https://cdn.discordapp.com/attachments/293493549758939136/1167416045024329748/image.png?ex=654e0bea&is=653b96ea&hm=8d60251f9c1feaed71adabbea0d26f08798787c5b9edf08268c4961877976cab&
+12:54 < bridge> <v4ox3r> in port 8303
+12:59 < bridge> <screeeny> i cant help
+13:40 < bridge> <v4ox3r> but do u know how to setup a server?
+13:40 < bridge> <v4ox3r> i can restart
+13:56 < bridge> <furo321> What version is this? I recommend downloading/or compiling the latest version. You can take a look at the wiki for a guide, <https://wiki.ddnet.org/wiki/LAN_Server#Setting_Up_Your_LAN_Server_for_Online_Play>.
+14:04 < bridge> <v4ox3r> i'm using teeworlds lasted version
+14:04 < bridge> <gerdoe> ig n1 m9ta is on rage again
+14:04 < bridge> <gerdoe> teeworlds 0.6.5?
+14:04 < bridge> <v4ox3r> 0.7.5
+14:05 < bridge> <gerdoe> you answered your own question kekw, use 0.7 client to join 0.7 server
+14:07 < bridge> <v4ox3r> ya  i understand that..
+14:07 < bridge> <v4ox3r> but i'm trying turn my server on
+14:09 < bridge> <gerdoe> but its turned on huh
+14:10 < bridge> <gerdoe> its even registered, masterserver wouldn't respond in any other case
+14:10 < bridge> <v4ox3r> ya i see, but in ddnet client not yet
+14:10 < bridge> <gerdoe> ddnet doesn't support 0.7 protocol
+14:10 < bridge> <gerdoe> ddnet client*
+14:10 < bridge> <gerdoe> ddnet server supports 0.6-0.7
+14:15 < bridge> <v4ox3r> oh ye i undertand now
+14:51 < bridge> <2domestos09> Why bots that go to 30 servers and spam ads don't get banned. And I, who decided to write /map.... /team 3 /team 3 /lock banned(((((
+14:51 < bridge> <2domestos09> https://cdn.discordapp.com/attachments/293493549758939136/1167445359728005171/image.png?ex=654e2737&is=653bb237&hm=3ac86fe5d33e9937ad280298a5b0f5cd8ce6bb422b41bf048e951017c8720eb3&
+14:51 < bridge> <heinrich5991> #✉-create-a-ticket you'll get unbanned
+14:53 < bridge> <ryozuki> https://github.com/leanprover/lean4
+14:53 < bridge> <ryozuki> @heinrich5991 did u know?
+14:53 < bridge> <ryozuki> https://mathstodon.xyz/@tao/111287749336059662
+14:54 < bridge> <ryozuki> https://news.ycombinator.com/item?id=38035672
+14:55 < bridge> <ryozuki> https://en.wikipedia.org/wiki/Terence_Tao
+14:55 < bridge> <ryozuki> > He is widely regarded as one of the greatest living mathematicians and has been referred to as the "Mozart of mathematics.
+14:55 < bridge> <ryozuki> damn
+14:55 < bridge> <ryozuki> i didnt know about this guy
+14:56 < bridge> <k2d222> oh yeah that guy is a rockstar, also a good popularization teacher
+14:56 < bridge> <ryozuki> this language lean4 helped him
+14:56 < bridge> <ryozuki> https://lean-lang.org/
+14:57 < bridge> <heinrich5991> I played a little with lean
+14:57 < bridge> <heinrich5991> not lean4 yet though
+15:22 < bridge> <linkzep.> A new, ultra-powerful bot client with many features is already available here -> discord.gg/NXjRUVGH | Have a good cheat!
+16:27 < bridge> <ryozuki> https://www.bbc.com/news/technology-67209806
+16:27 < bridge> <ryozuki> xd
+16:29 < bridge> <k2d222> gread news for ppl who like coding and poping
+16:33 < bridge> <Ewan> nice
+16:33 < bridge> <Jupstar ✪> i encourage him to play divinity. maybe he finds some sacred source there
+16:34 < bridge> <Ewan> i encourage him to play genshin impact. maybe he will find some like-minded individuals on there
+16:34 < bridge> <Jupstar ✪> why do u share that, are u religious? xd
+16:34 < bridge> <Ewan> it's just cool
+16:34 < bridge> <Ewan> presumably
+16:34 < bridge> <Jupstar ✪> what is cool?
+16:34 < bridge> <Ewan> that the pope wants kids to code
+16:34 < bridge> <Ewan> it's probably a noteworthy thing for the coding channel
+16:35 < bridge> <Jupstar ✪> mhh if you are not religious it's not really cool i guess
+16:35 < bridge> <Ewan> im not religious and i think it's cool
+16:35 < bridge> <Ewan> but i think it's cool in a funny way
+16:36 < bridge> <Jupstar ✪> mh ok
+16:36 < bridge> <Jupstar ✪> to me it's the normal attention seeker behavior
+16:36 < bridge> <Jupstar ✪> "hi we need young ppl, i talk about gaming now"
+16:37 < bridge> <Ewan> i have never taken the pope or any of the catholic church seriously
+16:37 < bridge> <Ewan> probably because it was taught to me so skeptically
+16:37 < bridge> <Ewan> 'so yeah basically all popes were gay for little boys and had illegitimate children'
+16:37 < bridge> <Ewan> that about summed it up
+16:38 < bridge> <Jupstar ✪> 😬
+16:38 < bridge> <Ewan> this is history class
+16:39 < bridge> <k2d222> you can dismiss basically any action famous ppl do with that kind of argument
+16:39 < bridge> <k2d222> not that it's false, but it's not necessarily true
+16:39 < bridge> <Jupstar ✪> yeah, 99% of the time u should just do exactly that
+16:40 < bridge> <Jupstar ✪> they are not fame, bcs they were not attention seeking 😉
+16:40 < bridge> <Jupstar ✪> look in our current world.. doesn't even matter if positive or negative attention
+16:40 < bridge> <Jupstar ✪> only attention
+16:41 < bridge> <Jupstar ✪> they act cool for kids now, but they just want your money, they won't give anything back
+16:42 < bridge> <Ewan> yea
+16:42 < bridge> <Ewan> donate to the church
+16:42 < bridge> <Ewan> are churches tax exempt in many places in europe?
+16:42 < bridge> <Ewan> they are country-wide here
+16:42 < bridge> <Jupstar ✪> u can cancel the subscription xd
+16:42 < bridge> <Ewan> what subscription
+16:43 < bridge> <k2d222> idk, it's a very generic argument that I hear a lot these days and it's just dissmissive and pointless to me, bcs sure this guy seeks attention for money reason or other reasons, but there are different ways to do it and some are better than others. What do you think of this one? also, seeking attention is not always bad
+16:43 < bridge> <Jupstar ✪> well the taxes are kind of optional
+16:43 < bridge> <Jupstar ✪> if we'd care that kids do coding, he'd modernize the churches and put computer classes into it
+16:44 < bridge> <Ewan> i still don't really get it
+16:44 < bridge> <k2d222> sure :/
+16:44 < bridge> <heinrich5991> @mpft the state collects taxes from the people for the church
+16:44 < bridge> <heinrich5991> in germany
+16:44 < bridge> <Ewan> but you can opt out of it?
+16:45 < bridge> <Jupstar ✪> if u never were part of the church u never have to pay these taxes
+16:45 < bridge> <Ewan> i see
+16:45 < bridge> <Jupstar ✪> else u can stop doing it, by leaving the church
+16:45 < bridge> <Ewan> yeah that sucks but it's not what i mean necessarily
+16:45 < bridge> <Ewan> tax exemption means the church doesn't have to pay taxes
+16:46 < bridge> <Jupstar ✪> oh ok
+16:46 < bridge> <Jupstar ✪> well  i dunno, but they are defs rich af xD
+16:47 < bridge> <Ewan> yea
+16:47 < bridge> <Ewan> crooks
+16:48 < bridge> <Ewan> at least here they're generally known for doing good deeds. sometimes
+16:48 < bridge> <Ewan> food & clothing drives etc
+16:48 < bridge> <Ewan> feeding the homeless on holidays or sometimes just cuz
+16:56 < bridge> <ryozuki> its funny
+16:56 < bridge> <ryozuki> re
+16:56 < bridge> <ryozuki> im antichrist
+16:57 < bridge> <Jupstar ✪> u on the dark humor side
+16:57 < bridge> <Jupstar ✪> i see
+16:58 < bridge> <Ewan> lol what
+16:58 < bridge> <ryozuki> @jupeyy_keks ill always share this opinion https://www.youtube.com/watch?v=r6w2M50_Xdk
+16:58 < bridge> <ryozuki> its a very anti religious and pro science philosophical talk
+16:59 < bridge> <ryozuki> > Yes, some of the thinkers to whom I owe my mental freedom were religious, like Newton, a Christian who believed God made the Earth - but showed me why the Earth would have formed without a god's help, or Faraday, who opened all our eyes to electromagnetism - and a world of electrons that obey dice, not gods. The brilliance and physical insight of these and many other religious scientists' minds are the very things that make gods getting humans pr
+16:59 < bridge> <ryozuki> > 
+16:59 < bridge> <ryozuki> > Weird...
+16:59 < bridge> <ryozuki> > 
+16:59 < bridge> <ryozuki> > ....I can see what geniuses said they could not - but then even a mouse on a giant's shoulder sees further if the giant is bowed in prayer.
+16:59 < bridge> <ryozuki> > 
+16:59 < bridge> <ryozuki> > I'm not against the Creator or Creators, if they exist, if they ever existed. I'm not against the search for the Creator(s). What blows MY mind is that people think organized religion has anything to do with it at all.
+16:59 < bridge> <heinrich5991> I remember that it was good in the beginning but deterioated later on IMO
+17:00 < bridge> <ryozuki> well its a philosophical talk so its not the "truth"
+17:00 < bridge> <_voxeldoesart> i still think its funny when ppl go "WE ARE MADE OF STARS!!!!"
+17:00 < bridge> <Ewan> we are
+17:01 < bridge> <_voxeldoesart> no. stars are made of **us**.
+17:01 < bridge> <Ewan> what
+17:01 < bridge> <ryozuki> nah
+17:01 < bridge> <Ewan> i mean a little bit
+17:01 < bridge> <ryozuki> we are stars
+17:01 < bridge> <ryozuki> and stars are us
+17:01 < bridge> <Ewan> but like. a really little bit
+17:01 < bridge> <ryozuki> everything is star dust
+17:01 < bridge> <_voxeldoesart> stars are us
+17:01 < bridge> <ryozuki> i mean a == b is same as b == a
+17:01 < bridge> <_voxeldoesart> stars have human dust :gigachad: :gigachad: :gigachad: :gigachad: :gigachad: :gigachad: :gigachad: :gigachad: :gigachad:
+17:01 < bridge> <Ewan> the amount of human mass of all the matter to ever exist is so microscopic
+17:01 < bridge> <Ewan> u cant like
+17:01 < bridge> <Ewan> say that
+17:02 < bridge> <Ewan> it's misleading
+17:02 < bridge> <ryozuki> jupstar writing his bible
+17:02 < bridge> <_voxeldoesart> cant  banne m dmfmkf  I CANT STOP.LAUGHING
+17:02 < bridge> <Ewan> im confused
+17:02 < bridge> <Jupstar ✪> well what i dislike about religions isn't even believing..
+17:02 < bridge> <Jupstar ✪> 
+17:02 < bridge> <Jupstar ✪> besides i think we just determistic(even if not calculatable by us in this universe) atoms
+17:02 < bridge> <Jupstar ✪> 
+17:02 < bridge> <Jupstar ✪> science as of now is defs not 100% sure about most stuff
+17:02 < bridge> <Jupstar ✪> 
+17:02 < bridge> <Jupstar ✪> i dislike religions bcs:
+17:02 < bridge> <Jupstar ✪> 1. ppl come together and focus might on a few selected ppl (ppl close to god)
+17:02 < bridge> <Jupstar ✪> 2. religious ppl hate ppl from other religions (bcs other religions can't make sense)
+17:02 < bridge> <Jupstar ✪> 3. some of the world views in our biggest religions are simply from a society from 2000 years ago, where slavery etc. was normal
+17:02 < bridge> <_voxeldoesart> in trying to troll but this is too funny
+17:02 < bridge> <Ewan> oh
+17:02 < bridge> <_voxeldoesart> humam dust LOLL
+17:02 < bridge> <Ewan> i guess usa players don't know how to troll
+17:02 < bridge> <Ewan> that was sad
+17:03 < bridge> <heinrich5991> > religious ppl hate ppl from other religions (bcs other religions can't make sense)
+17:03 < bridge> <heinrich5991> depends on the religion. I haven't heard that from protestants
+17:03 < bridge> <_voxeldoesart> id try harder but my work break just ended
+17:03 < bridge> <_voxeldoesart> plus ive successfully trolled u guys before
+17:03 < bridge> <Ewan> still trolling :justatest:
+17:03 < bridge> <Ewan> hey guys hookfly not fun with dummy
+17:04 < bridge> <ryozuki> i like the pure form of science, the scientific method, but its true science in a capitalistic place like nowadays has bad stuff, like citing your friends or trying to get urself cited but not in legit ways or smth like that
+17:04 < bridge> <Jupstar ✪> even if, let's assume we remove all religions except one "protestants"-one.
+17:04 < bridge> <Jupstar ✪> 
+17:04 < bridge> <Jupstar ✪> it's just a matter of time until u face the same problem again
+17:04 < bridge> <Jupstar ✪> bcs not so open ppl will join
+17:04 < bridge> <Jupstar ✪> and create some side religion
+17:05 < bridge> <ryozuki> @heinrich5991 are u protestant? u always mention them xD
+17:05 < bridge> <ryozuki> afaik they are predominant in germany right
+17:05 < bridge> <ryozuki> https://en.wikipedia.org/wiki/Scientific_method
+17:06 < bridge> <ryozuki> the religious method is (listen to or read the  bible or whathever text) -> (belive its true) -> (donate  some money to church) -> (maybe get ur kids molested by a old man)
+17:06 < bridge> <ryozuki> kek
+17:06 < bridge> <ryozuki> ok im trolling a bit
+17:06 < bridge> <Ewan> true
+17:06 < bridge> <heinrich5991> uh
+17:06 < bridge> <Ewan> don't say it
+17:06 < bridge> <heinrich5991> religious membership in germany went down a lot
+17:06 < bridge> <Ewan> 😓
+17:07 < bridge> <Ewan> i thought we were about to get topic checked
+17:07 < bridge> <heinrich5991> last time I checked it was ~30% of each atheist, protestant, catholics, roughly 5% muslim
+17:07 < bridge> <Ewan> and the last ~5%
+17:07 < bridge> <ryozuki> but yeah i shared that post because i always find it hilarious when religious extremist promote technology related stuff, because we got to have that stuff when they in the past said it was heretical
+17:08 < bridge> <heinrich5991> but now it's 44% atheist, 25% catholic, 23% protestant, 4% muslim
+17:08 < bridge> <ryozuki> atheist or agnostic?
+17:08 < bridge> <heinrich5991> let's call it non-religious
+17:09 < bridge> <heinrich5991> https://commons.wikimedia.org/wiki/File:Konfessionen_Deutschland_Zensus_2011.png
+17:09 < bridge> <_voxeldoesart> :greenthing:
+17:09 < bridge> <Ewan> maybe there is a fundamental difference but in practice they are the same
+17:09 < bridge> <Ewan> oops
+17:09 < bridge> <Ewan> wrong msg
+17:09 < bridge> <Ewan> meant to reply to this one
+17:09 < bridge> <heinrich5991> green is non-religious, yellow is catholic, purple is protestant
+17:09 < bridge> <Ewan> secular
+17:09 < bridge> <Jupstar ✪> shit i'm in yellow
+17:10 < bridge> <heinrich5991> in green, you can roughly see the former gdr
+17:10 < bridge> <ryozuki> agnostics dont deny the existence of god
+17:10 < bridge> <Jupstar ✪> no wonder i dislike ppl around me 😬
+17:10 < bridge> <gerdoe> #developer is actually #tedtalks
+17:10 < bridge> <heinrich5991> where religion was persecuted
+17:10 < bridge> <ryozuki> it started from the pope asking kids to code so its on topic
+17:10 < bridge> <ryozuki> :gigachad:
+17:10 < bridge> <Jupstar ✪> xD
+17:10 < bridge> <gerdoe> pope-code
+17:10 < bridge> <Jupstar ✪> kot
+17:11 < bridge> <ryozuki> HolyC
+17:12 < bridge> <Ewan> true
+17:12 < bridge> <gerdoe> sooo
+17:13 < bridge> <gerdoe> cpp is unholy?
+17:13 < bridge> <_voxeldoesart> cope-pode
+17:13 < bridge> <gerdoe> voxel-doxel
+17:13 < bridge> <_voxeldoesart> call me the devil then because im only fluent in javascript :nouis:
+17:14 < bridge> <gerdoe> become fluent in russian, i beg you
+17:14 < bridge> <_voxeldoesart> no
+17:14 < bridge> <gerdoe> btw i have killed entire convo
+17:14 < bridge> <_voxeldoesart> nice
+17:14 < bridge> <gerdoe> eh
+17:15 < bridge> <gerdoe> some botnet tries to bruteforce my vps duh
+17:15 < bridge> <_voxeldoesart> anyways the day i learn about memory management without trashing my pc is the day i become better
+17:15 < bridge> <Jupstar ✪> ok religion done, spiritualism next
+17:16 < bridge> <Jupstar ✪> @gerdoe u should install arch today
+17:16 < bridge> <gerdoe> sry my pc is still in chelny
+17:16 < bridge> <kekomonter> ```cpp
+17:16 < bridge> <kekomonter> for(int i = 0; i < 0x7FFFFFFF; i++)
+17:16 < bridge> <kekomonter>     malloc(0xFFFF);
+17:16 < bridge> <kekomonter> ```
+17:17 < bridge> <kekomonter> 
+17:17 < bridge> <kekomonter> :gigachad:
+17:17 < bridge> <gerdoe> i will not start using dualboot before backuping entire disk
+17:17 < bridge> <Jupstar ✪> 😮
+17:17 < bridge> <Jupstar ✪> 
+17:17 < bridge> <Jupstar ✪> did u move?
+17:17 < bridge> <Jupstar ✪> to a EU state?
+17:17 < bridge> <gerdoe> xd
+17:17 < bridge> <gerdoe> my uni had connections with some german unis and companies
+17:17 < bridge> <gerdoe> but putin did the thing
+17:18 < bridge> <gerdoe> chinese unis and companies less go
+17:18 < bridge> <Jupstar ✪> lol u in china
+17:18 < bridge> <gerdoe> nah
+17:18 < bridge> <gerdoe> im in kazan rn
+17:18 < bridge> <gerdoe> too bad for being in harward xd
+17:18 < bridge> <gerdoe> my former classmate is going to move to us this year afaik
+17:19 < bridge> <Jupstar ✪> tbh harvard isn't something i'd be proud of
+17:19 < bridge> <Jupstar ✪> they are very elitist
+17:19 < bridge> <gerdoe> idk actually
+17:20 < bridge> <gerdoe> the thing i know that he was invited in some high-end economic uni in great britain
+17:20 < bridge> <gerdoe> but he refused cuz he wants to move to us kekw
+17:20 < bridge> <Jupstar ✪> ez
+17:20 < bridge> <Jupstar ✪> when u really clever, u can make fast money in US xd
+17:21 < bridge> <gerdoe> he was the first person who actually showed me paper about cows and methane xd
+17:21 < bridge> <gerdoe> i will never move to us i think
+17:22 < bridge> <gerdoe> i live in perfect timeline in russia because sigint and humint haven't grown that much
+17:22 < bridge> <Jupstar ✪> i'd generally be open for it. i think american ppl are more chilled than europeans xd
+17:22 < bridge> <gerdoe> europeans are protestants mostly, are they tho
+17:22 < bridge> <gerdoe> afaik spain is more chilled than any us state
+17:23 < bridge> <Jupstar ✪> is ryo chilled
+17:23 < bridge> <gerdoe> hes catalun
+17:23 < bridge> <Jupstar ✪> i can just ensure you, germans are not chilled 😂
+17:23 < bridge> <gerdoe> yeah, thats a fact
+17:24 < bridge> <Jupstar ✪> i often see ppl from other countries can't really well handle the german directness xD
+17:24 < bridge> <gerdoe> directness?
+17:24 < bridge> <gerdoe> you mean in conversations?
+17:24 < bridge> <Jupstar ✪> for example yes
+17:26 < bridge> <gerdoe> idk maybe im surrounded by straightforward people but my inner circle have no secrets or any ways to say you anything
+17:26 < bridge> <gerdoe> idk how to express this actually
+17:27 < bridge> <gerdoe> its better to say the truth unless its unethical thing you need to prepare person before saying anything to them
+17:28 < bridge> <gerdoe> yay pr
+17:29 < bridge> <Jupstar ✪> most annoying is that american have different metrics for everything xD
+17:30 < bridge> <Jupstar ✪> everyone: only 50 tiles left until finish
+17:30 < bridge> <Jupstar ✪> american: only 5 feet until finish
+17:31 < bridge> <gerdoe> huh, do intel or any other global company use metric system instead of american metrics?
+17:31 < bridge> <gerdoe> 30 tees until finish
+17:31 < bridge> <Jupstar ✪> true xd
+17:33 < bridge> <heinrich5991> https://securelist.com/operation-triangulation-catching-wild-triangle/110916/
+17:40 < bridge> <ryozuki> what does chilled mean
+17:41 < bridge> <gerdoe> ask jupjopjap
+17:41 < bridge> <gerdoe> in my opinion chilled = chilled, like being chill most of the time you live
+17:42 < bridge> <catseyenebulous> chilled = chilled sounds good. :D
+17:43 < bridge> <Jupstar ✪> u know like, when u go to a store everyone relaxed
+17:43 < bridge> <Jupstar ✪> 
+17:43 < bridge> <Jupstar ✪> when u go into supermarket in germany.. at least 5 ppl are mad bcs cash registers are full(that includes me too xd). everyone in bad mood
+17:43 < bridge> <Jupstar ✪> stuff like that
+17:44 < bridge> <Mr.Gh0s7> Madstar✪ :tee_thinking:
+17:48 < bridge> <gerdoe> highstar
+17:49 < bridge> <gerdoe> there's no self-checkouts in germany stores?
+17:49 < bridge> <Jupstar ✪> not everywhere
+17:49 < bridge> <Jupstar ✪> it's slowly comming
+17:49 < bridge> <Jupstar ✪> germany is always 10 years behind netherlands xd
+17:50 < bridge> <Jupstar ✪> there it's pretty common now
+17:50 < bridge> <Jupstar ✪> but also depends on the region ofc
+17:50 < bridge> <Jupstar ✪> bigger cities are usually more modern in these aspects
+17:54 < bridge> <Ewan> wow
+17:55 < bridge> <_voxeldoesart> :justatest:
+17:55 < bridge> <gerdoe> huh
+17:55 < bridge> <gerdoe> and in three or more years behind russia xd
+17:55 < bridge> <gerdoe> or tatarstan
+17:56 < bridge> <Jupstar ✪> i mean most ppl still pay with cash xd
+17:57 < bridge> <gerdoe> ah
+17:57 < bridge> <gerdoe> i was suprised when first heard about any transport in moscow
+17:57 < bridge> <gerdoe> like no one accepts real cash
+18:00 < bridge> <catseyenebulous> ``
+18:01 < bridge> <Jupstar ✪> even tho i use card, i still always have like 200€ cash here, just in case xdd
+18:27 < bridge> <Jupstar ✪> @gerdoe i have good news
+18:27 < bridge> <Jupstar ✪> lavapipe works on windows
+18:28 < bridge> <Jupstar ✪> i used
+18:28 < bridge> <Jupstar ✪> mesa3d-23.2.1-development-pack-mingw.7z
+18:28 < bridge> <Jupstar ✪> 
+18:28 < bridge> <Jupstar ✪> from
+18:28 < bridge> <Jupstar ✪> https://github.com/pal1000/mesa-dist-win/releases
+18:28 < bridge> <Jupstar ✪> 
+18:28 < bridge> <Jupstar ✪> in powershell i typed:
+18:28 < bridge> <Jupstar ✪> setx VK_ICD_FILENAMES lvp_icd.x86_64.json
+18:28 < bridge> <Jupstar ✪> 
+18:28 < bridge> <Jupstar ✪> to set the software renderer as default
+18:28 < bridge> <Jupstar ✪> copy all files from x64 into a clean ddnet dir
+18:28 < bridge> <Jupstar ✪> then it should work
+18:29 < bridge> <Jupstar ✪> or wait, maybe not xdd
+18:29 < bridge> <Jupstar ✪> surface still fails kek
+18:29 < bridge> <Jupstar ✪> git revert --all
+18:29 < bridge> <Jupstar ✪> our fallback system trolled me xd
+18:32 < bridge> <TsFreddie> I have officially sort of worked for Valve
+18:33 < bridge> <TsFreddie> :kek:
+18:33 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1167501246391914566/image.png?ex=654e5b44&is=653be644&hm=83f3d0a717a3e9d683c6c73a592d29a24cedb1ec2bbbea67183a4999a5162829&
+18:33 < bridge> <TsFreddie> not really tho
+18:33 < bridge> <gerdoe> oh no, mingw
+18:33 < bridge> <gerdoe> gitroll
+18:33 < bridge> <Jupstar ✪> it's prebuilt, but nvm anyway
+18:33 < bridge> <Jupstar ✪> it's sad bcs i want to use it for windows as fallback xd
+18:34 < bridge> <Jupstar ✪> in our not existing launcher
+18:34 < bridge> <Jupstar ✪> i mean i could create a surfaceless vk, then copy the image to a directx9 backend
+18:34 < bridge> <Jupstar ✪> and should still work on 99% of all system xd
+18:36 < bridge> <ryozuki> @jupeyy_keks what command
+18:36 < bridge> <ryozuki> u wanted me to run
+18:36 < bridge> <Jupstar ✪> nvm
+18:36 < bridge> <Jupstar ✪> we were just wondering what mesa version gentoo uses
+18:36 < bridge> <TsFreddie> node version manager
+18:36 < bridge> <ryozuki> ```
+18:36 < bridge> <ryozuki> ❯ vulkaninfo | grep driver
+18:36 < bridge> <ryozuki>     VK_LUNARG_direct_driver_loading        : extension revision 1
+18:36 < bridge> <ryozuki>     driverVersion     = 535.113.1.0 (2245804096)
+18:36 < bridge> <ryozuki>     driverID        = DRIVER_ID_NVIDIA_PROPRIETARY
+18:36 < bridge> <ryozuki>     driverName      = NVIDIA
+18:36 < bridge> <ryozuki>     driverInfo      = 535.113.01
+18:37 < bridge> <ryozuki>     driverUUID      = 933fe1d1-72b1-5d20-bfe7-dea2c41b409b
+18:37 < bridge> <ryozuki>     driverUUID                        = 933fe1d1-72b1-5d20-bfe7-dea2c41b409b
+18:37 < bridge> <ryozuki>     driverID                                             = DRIVER_ID_NVIDIA_PROPRIETARY
+18:37 < bridge> <ryozuki>     driverName                                           = NVIDIA
+18:37 < bridge> <ryozuki>     driverInfo                                           = 535.113.01
+18:37 < bridge> <ryozuki>     VK_KHR_driver_properties                    : extension revision 1
+18:37 < bridge> <ryozuki> ```
+18:37 < bridge> <Jupstar ✪> troll
+18:37 < bridge> <ryozuki> here
+18:37 < bridge> <Jupstar ✪> yeah yeah, i forgot u nvidia fanboy
+18:37 < bridge> <Jupstar ✪> 😏
+18:37 < bridge> <ryozuki> :cammostripes:
+18:38 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1167502481362800700/raf360x360075tfafafaca443f4786.png?ex=654e5c6a&is=653be76a&hm=fd637a7160f5104dee199c8a3c090a6f83b96665edaa93bbebebbfc68204fcee&
+18:38 < bridge> <TsFreddie> ```
+18:38 < bridge> <TsFreddie> > vulkaninfo | Select-String driver
+18:38 < bridge> <TsFreddie> WARNING: [Loader Message] Code 0 : windows_read_data_files_in_registry: Registry lookup failed to get layer manifest files.
+18:38 < bridge> <TsFreddie> WARNING: [Loader Message] Code 0 : Layer VK_LAYER_OW_OVERLAY uses API version 1.2 which is older than the application specified API version of 1.3. May cause issues.
+18:38 < bridge> <TsFreddie> WARNING: [Loader Message] Code 0 : Layer VK_LAYER_OW_OBS_HOOK uses API version 1.2 which is older than the application specified API version of 1.3. May cause issues.
+18:38 < bridge> <TsFreddie> WARNING: [Loader Message] Code 0 : Layer VK_LAYER_OBS_HOOK uses API version 1.2 which is older than the application specified API version of 1.3. May cause issues.
+18:38 < bridge> <TsFreddie> WARNING: [Loader Message] Code 0 : Layer VK_LAYER_OBS_HOOK uses API version 1.2 which is older than the application specified API version of 1.3. May cause issues.
+18:38 < bridge> <TsFreddie> WARNING: [Loader Message] Code 0 : Layer VK_LAYER_OBS_HOOK uses API version 1.2 which is older than the application specified API version of 1.3. May cause issues.
+18:39 < bridge> <TsFreddie> 
+18:39 < bridge> <TsFreddie>         driverVersion     = 531.41.0.0 (2227847168)
+18:39 < bridge> <TsFreddie> VkPhysicalDeviceDriverProperties:
+18:39 < bridge> <TsFreddie>         driverID        = DRIVER_ID_NVIDIA_PROPRIETARY
+18:39 < bridge> <TsFreddie>         driverName      = NVIDIA
+18:39 < bridge> <TsFreddie>         driverInfo      = 531.41
+18:39 < bridge> <TsFreddie>         driverUUID      = a9317914-87cc-57aa-bfc0-d632a611cf56
+18:39 < bridge> <TsFreddie>         driverUUID                        = a9317914-87cc-57aa-bfc0-d632a611cf56
+18:39 < bridge> <TsFreddie>         driverID                                             = DRIVER_ID_NVIDIA_PROPRIETARY
+18:39 < bridge> <TsFreddie>         driverName                                           = NVIDIA
+18:39 < bridge> <TsFreddie>         driverInfo                                           = 531.41
+18:39 < bridge> <TsFreddie>         VK_KHR_driver_properties                    : extension revision 1
+18:39 < bridge> <TsFreddie> ```
+18:39 < bridge> <TsFreddie> wack
+18:39 < bridge> <Jupstar ✪> i forgive you, didnt even know u use linux
+18:39 < bridge> <TsFreddie> huh?
+18:39 < bridge> <ryozuki> thats windows bro
+18:39 < bridge> <TsFreddie> thats literally powershell
+18:40 < bridge> <ryozuki> u can see the ugly line
+18:40 < bridge> <ryozuki> "Select-String driver"
+18:40 < bridge> <ryozuki> vs majestic unix "grep"
+18:40 < bridge> <TsFreddie> although powershell is available on linux as well
+18:40 < bridge> <MilkeeyCat> whats the key combination to open hacker looking ddnet info
+18:40 < bridge> <Mr.Gh0s7> Ctrl + Shift + D
+18:40 < bridge> <Mr.Gh0s7> I think
+18:40 < bridge> <MilkeeyCat> nope, theres one more
+18:40 < bridge> <MilkeeyCat> even scarier
+18:41 < bridge> <TsFreddie> is F1 scary for you
+18:41 < bridge> <MilkeeyCat> depends what i can see there
+18:41 < bridge> <MilkeeyCat> depends on what i can see there
+18:42 < bridge> <TsFreddie> I did it
+18:42 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1167503644342628485/image.png?ex=654e5d7f&is=653be87f&hm=2d508598db5dd26d86021622094a2f6f4dd042c37fd82b061a30521fa0a26812&
+18:42 < bridge> <TsFreddie> :kek:
+18:43 < bridge> <ryozuki> xd
+18:44 < bridge> <TsFreddie> powershell have a default alias for cat which is hilarious
+18:45 < bridge> <TsFreddie> in fact they made quite a few aliases, but they missed grep
+18:45 < bridge> <TsFreddie> the rm alias is literarly broken
+18:46 < bridge> <TsFreddie> you can't rm -rf
+18:46 < bridge> <learath2> I think it also has `ls`
+18:46 < bridge> <TsFreddie> because -f in powershell is ambiguous
+18:46 < bridge> <TsFreddie> i have to rm -r -Force every time
+18:47 < bridge> <TsFreddie> ```
+18:47 < bridge> <TsFreddie> > rm -rf a
+18:47 < bridge> <TsFreddie> Remove-Item: A parameter cannot be found that matches parameter name 'rf'.
+18:47 < bridge> <TsFreddie> > rm -r -f a
+18:47 < bridge> <TsFreddie> Remove-Item: Parameter cannot be processed because the parameter name 'f' is ambiguous. Possible matches include: -Filter -Force.
+18:47 < bridge> <TsFreddie> > rm -r -Force a
+18:47 < bridge> <TsFreddie> >
+18:47 < bridge> <TsFreddie> ```
+18:49 < bridge> <Ewan> it's aliased by default
+18:49 < bridge> <Ewan> i still grep
+18:49 < bridge> <Ewan> and cd to dir and stuff
+18:49 < bridge> <Ewan> oh fred posted
+18:50 < bridge> <TsFreddie> @learath2 btw why did you asked me where I live
+18:50 < bridge> <learath2> I've been thinking of taking a trip to China, just wondering 😄
+18:50 < bridge> <TsFreddie> in that case I could literally be anywhere
+18:51 < bridge> <TsFreddie> unstable jobs be like this
+18:51 < bridge> <ryozuki> i got a tentative possible job for 40k
+18:51 < bridge> <TsFreddie> <a:Catxplosion:1082715870893195274> but if you came I would take a leave and hang out for sure
+18:51 < bridge> <ryozuki> from 33k to 40k not bad
+18:51 < bridge> <ryozuki> going up the ladder of european salaries
+18:52 < bridge> <Ewan> that's insanely low to me
+18:52 < bridge> <ryozuki> i know but its different
+18:52 < bridge> <TsFreddie> my current job is probably stable enough for two years
+18:52 < bridge> <Ewan> yea
+18:52 < bridge> <ryozuki> u know how much my father makes?
+18:52 < bridge> <gerdoe> a year?
+18:52 < bridge> <Ewan> i don't
+18:52 < bridge> <ryozuki> he gets 1300€ monthly
+18:52 < bridge> <ryozuki> i do 2100€
+18:52 < bridge> <TsFreddie> but the problem is that the company is consider moving office to a different provience lmao
+18:52 < bridge> <ryozuki> net
+18:52 < bridge> <TsFreddie> but the problem is that the company is considering to move office to a different provience lmao
+18:52 < bridge> <Ewan> damn
+18:52 < bridge> <ryozuki> ye a year
+18:52 < bridge> <Ewan> this is less than my rent
+18:52 < bridge> <ryozuki> with 40k i would get like 2500€ monthly
+18:53 < bridge> <Ewan> :greenthing:
+18:53 < bridge> <ryozuki> my rent is 880
+18:53 < bridge> <ryozuki> with utilities
+18:53 < bridge> <gerdoe> crazy payments
+18:53 < bridge> <gerdoe> like
+18:53 < bridge> <gerdoe> what the hell
+18:53 < bridge> <TsFreddie> 2500€ is actually pretty close to what I get including benefits and taxes
+18:53 < bridge> <ryozuki> i live in center barcelona
+18:54 < bridge> <ryozuki> its like living in beijing
+18:54 < bridge> <ryozuki> or
+18:54 < bridge> <ryozuki> new york
+18:54 < bridge> <ryozuki> for ur local country
+18:54 < bridge> <ryozuki> idk
+18:54 < bridge> <ryozuki> ok new york is extremly more expensive
+18:54 < bridge> <ryozuki> but u get it
+18:54 < bridge> <Ewan> u dont even wanna know how much more expensive
+18:54 < bridge> <TsFreddie> my rent is about 322.85euro
+18:54 < bridge> <ryozuki> new york is like 4k rent
+18:54 < bridge> <ryozuki> i think
+18:54 < bridge> <Ewan> it rly depends on the place
+18:54 < bridge> <ryozuki> cheap
+18:54 < bridge> <TsFreddie> ye
+18:54 < bridge> <TsFreddie> cockroaches everywhere
+18:54 < bridge> <ryozuki> ew
+18:55 < bridge> <TsFreddie> not really a problem with the building tho, guanggong have a pretty huge pest problem
+18:55 < bridge> <TsFreddie> :owo:
+18:55 < bridge> <TsFreddie> not really everywhere either
+18:56 < bridge> <TsFreddie> I've killed about 6 in my house in a year i think?
+18:56 < bridge> <ryozuki> :owo:
+18:56 < bridge> <TsFreddie> i hate the south roaches tho
+18:56 < bridge> <TsFreddie> roaches in the north are much smaller
+19:00 < bridge> <TsFreddie> huh?
+19:00 < bridge> <TsFreddie> how is it 1am already
+19:00 < bridge> <TsFreddie> I haven't done anything
+19:52 < bridge> <patiga> @jupeyy_keks I'm really mad at Godot 2D shaders right now. I need to pass custom data to the shader and thought I'd abuse the color vertex attribute for that.
+19:52 < bridge> <patiga> However, since Godot 4.0, the provided Vector4 floats are all converted to u8 for "optimization reasons". But it's documented literally nowhere, except for the migration guide. EVERYWHERE it is a float, when you initialized the data and also when you access it in the shader, I spent more than 3 full hours to figure this out.
+19:52 < bridge> <patiga> They made this change and justified it by saying that 4.0 supports custom shader data now, so unusual usages can simply switch to that. HOWEVER, custom shader data is only available in 3D, not 2D.
+19:52 < bridge> <patiga> There is actually a pull request which adds custom shader data for 2D, but it looks like it will still take a while https://github.com/godotengine/godot/pull/76276
+19:54 < bridge> <Jupstar ✪> interesting, does the u8 conversion apply to all types? even positions?
+19:54 < bridge> <patiga> no. color only
+19:54 < bridge> <Jupstar ✪> ok
+19:56 < bridge> <patiga> that means I'll somehow need to work with just position and uv, both vec2
+19:58 < bridge> <k2d222> curiosity, do they have their own shading language?
+19:58 < bridge> <patiga> yes
+19:58 < bridge> <Jupstar ✪> always reinvent the wheel
+19:58 < bridge> <Jupstar ✪> xd
+19:58 < bridge> <k2d222> pff thats wasteful
+19:59 < bridge> <patiga> https://docs.godotengine.org/en/stable/tutorials/shaders/shader_reference/shading_language.html
+20:00 < bridge> <Jupstar ✪> i mean they support gles 2.. that really sucks
+20:00 < bridge> <Jupstar ✪> and i guess most ppl dont want to use GLSL 2.x
+20:00 < bridge> <patiga> I guess I'll store the vertex id in position.x, color_env_index in uv.x, position_env_index in uv.y. then I'll have a position_uv texture which I access with the vertex index. then I'll access the envelope_values texture with the env indices.
+20:00 < bridge> <patiga> I have one float at position.y left. But I need 2 to get the quad center point for rotation... :saddo:
+20:01 < bridge> <k2d222> https://tenor.com/view/suitcase-pack-trying-schitts-creek-struggle-gif-16501310
+20:03 < bridge> <patiga> ah, I don't actually use the color vertex attribute since I merged it with the env_values, they are precalculated in there.
+20:03 < bridge> <patiga> but how do I use the 8 floats-but-actually-u8 to store an f32
+20:03 < bridge> <patiga> *4 floats
+20:03 < bridge> <Jupstar ✪> @k2d222 when do u share ur awesome GPU projects with us xd
+20:04 < bridge> <k2d222> If I had one I'd share it
+20:05 < bridge> <k2d222> I'm doing my own programming language atm
+20:05 < bridge> <Jupstar ✪> nice
+20:05 < bridge> <Jupstar ✪> for gpu or cpu?
+20:06 < bridge> <k2d222> cpu, it's functionnal, almost lisp-like
+20:18 < bridge> <k2d222> how do they even pack an f32 in an u8 seems unrealistic
+20:18 < bridge> <Jupstar ✪> for color
+20:18 < bridge> <Jupstar ✪> they will just accept the loss of precision
+20:38 < bridge> <gerdoe> courutines?
+20:53 < bridge> <Ewan> coroutines
+20:59 < bridge> <TsFreddie> what kind of data are you passing that can't be a uniform material property
+21:00 < bridge> <patiga> I'm passing quad data such as envelope value indices and center of the quad, which might be different for every quad
+21:01 < bridge> <patiga> and I have all quads of a quads layer in a single mesh currently
+21:01 < bridge> <patiga> though I'm still new to Godot, so if you have an idea on how to improve it, that would be great :)
+21:02 < bridge> <TsFreddie> i don't know much about godot either.
+21:03 < bridge> <k2d222> do you have geometry shaders ? instancing ?
+21:03 < bridge> <TsFreddie> but if you are using quads anyway, why not using a spatial shader and quads directly.
+21:04 < bridge> <patiga> I'm not using quads actually, I only referred to the teeworlds term there
+21:04 < bridge> <patiga> they need to be triangles for the color interpolation
+21:04 < bridge> <patiga> spatial shaders were the 3D ones, no? yea that would work
+21:05 < bridge> <TsFreddie> ye the 3d ones
+21:05 < bridge> <patiga> neither
+21:05 < bridge> <TsFreddie> actually do you mean you have one sprite that you want to draw a whole layer on with some tricks?
+21:05 < bridge> <Jupstar ✪> do you have control over the datatype of the texture coordinates?
+21:05 < bridge> <TsFreddie> it's quite weird to think about meshes in godot 2d
+21:06 < bridge> <patiga> no, its a very normal triangle-based mesh
+21:06 < bridge> <patiga> (2d coordinates only tho)
+21:06 < bridge> <TsFreddie> i don't know you can use canvas item shaders in mesh
+21:06 < bridge> <patiga> I don't think so
+21:06 < bridge> <patiga> yea like observed above, the support doesn't really seem good ^^
+21:07 < bridge> <TsFreddie> if you are already using spatial nodes i'd recommend use spatial tho. just use render_type unshaded.
+21:07 < bridge> <TsFreddie> if you are already using spatial nodes i'd recommend use spatial shaders tho. just use render_type unshaded.
+21:07 < bridge> <patiga> they are not spatial nodes afaik
+21:07 < bridge> <patiga> `MeshInstance2D`
+21:07 < bridge> <TsFreddie> i'm confused
+21:07 < bridge> <TsFreddie> ah
+21:07 < bridge> <TsFreddie> never used that lol
+21:08 < bridge> <patiga> I guess I could switch to 3D for those additional vertex attributes
+21:08 < bridge> <TsFreddie> you could
+21:08 < bridge> <Jupstar ✪> can u optionally turn on compute shaders xd
+21:08 < bridge> <TsFreddie> but i'm still quite confused about what you are trying to do
+21:09 < bridge> <patiga> I mean, is there any drawback to switching to 3D? Is handling the lighting/camera/performance more difficult?
+21:09 < bridge> <TsFreddie> uniform should be able to hold most extra data you want even for instanced meshes i think?
+21:09 < bridge> <TsFreddie> uniform should be able to hold most type of extra data you want even for instanced meshes i think?
+21:09 < bridge> <Jupstar ✪> theoretically a bit yes
+21:09 < bridge> <Jupstar ✪> i'd use a orthogonal projection matrix
+21:09 < bridge> <Jupstar ✪> if they offer that
+21:09 < bridge> <TsFreddie> if you use render_type unshaded, it's basically sprites
+21:10 < bridge> <TsFreddie> and orthogonal camera is built-in
+21:10 < bridge> <Jupstar ✪> @patiga only problem i could see is, if depth buffer cant be disabled
+21:11 < bridge> <patiga> I want to render quad layers from teeworlds/ddnet maps. Currently, I'm using a non-instanced MeshInstance2D. Each quad in teeworlds has it's own center point, around which the envelope rotation happens. each quad also has it's own envelope data indices (two) and each vertex also has a color
+21:12 < bridge> <patiga> the custom instance data in godot can only hold 4 floats afaik. because of that, I don't think I can use instancing
+21:12 < bridge> <TsFreddie> in unity instanced meshes can have per instance material properties
+21:12 < bridge> <patiga> I use a mesh, and not many sprite2D, because I need vertex colors (performance would probably also be a factor here later)
+21:13 < bridge> <TsFreddie> well if you need vertex colors probably just use spatial
+21:14 < bridge> <patiga> If I would use instancing, the 'base' mesh would need to be a simple square, no? Each quad would need the positions of all four corners, alongside the colors and the other data I mentioned
+21:14 < bridge> <TsFreddie> sounds like it
+21:14 < bridge> <TsFreddie> i don't know how godot handles instancing tbh
+21:14 < bridge> <patiga> would you prefer spatial over cramming the required data into the 2d mesh as described above?
+21:14 < bridge> <TsFreddie> i'm trying to look it up but it's 3am lmao
+21:15 < bridge> <patiga> ow, I don't wanna keep you awake, but thanks a lot for the help!
+21:15 < bridge> <Jupstar ✪> if u use instances you might aswell calculate stuff on the cpu
+21:15 < bridge> <TsFreddie> actually let me look up how tilemap was rendered in godot
+21:17 < bridge> <patiga> afaik either an atlas, or scenes somehow
+21:17 < bridge> <TsFreddie> also a valve employee just tagged me on github
+21:17 < bridge> <TsFreddie> i like that
+21:17 < bridge> <Jupstar ✪> bcs of a bug
+21:17 < bridge> <TsFreddie> btw are you using godot3 or 4
+21:17 < bridge> <Jupstar ✪> or bcs of job request
+21:17 < bridge> <Jupstar ✪> xd
+21:18 < bridge> <patiga> 4
+21:18 < bridge> <TsFreddie> nah, i submitted a second PR but it was overlapping with what they are fixing currently
+21:19 < bridge> <Jupstar ✪> we should infiltrate valve
+21:19 < bridge> <TsFreddie> i expected it but i need that fixes before monday for work so i submitted that anyway
+21:19 < bridge> <TsFreddie> i expected it but i need that fixed before monday for work so i submitted that anyway
+21:19 < bridge> <Jupstar ✪> everyone in this chat sends applications
+21:19 < bridge> <Jupstar ✪> then we invite our selfs
+21:19 < bridge> <Jupstar ✪> then we invite ourselves
+21:19 < bridge> <TsFreddie> i think valve does not hire non experts
+21:20 < bridge> <Jupstar ✪> i have chatgpt
+21:20 < bridge> <patiga> all ddnet experts here
+21:20 < bridge> <Jupstar ✪> i'm an expert
+21:20 < bridge> <Jupstar ✪> well i can ensure you they also hire normal ppl^^
+21:20 < bridge> <Ewan> i can ask a valve employee
+21:20 < bridge> <Ewan> he's pretty normal
+21:20 < bridge> <Jupstar ✪> i talked to some valve staff on the vulkan discord
+21:20 < bridge> <Ewan> who
+21:20 < bridge> <Jupstar ✪> who or which?
+21:21 < bridge> <Ewan> which fellas
+21:21 < bridge> <Jupstar ✪> ah, well dunno the names, but let me see
+21:21 < bridge> <patiga> valve infiltrating ddnet?!
+21:22 < bridge> <Jupstar ✪> pixelcluster - Valve
+21:22 < bridge> <Jupstar ✪> xd
+21:22 < bridge> <Jupstar ✪> whoever that is
+21:22 < bridge> <Jupstar ✪> also lunarG ppl are also kinda valve staff
+21:23 < bridge> <Jupstar ✪> he comes from germany
+21:23 < bridge> <Jupstar ✪> and is 18
+21:23 < bridge> <Jupstar ✪> xd
+21:24 < bridge> <Ewan> damn
+21:24 < bridge> <Ewan> i dont know them
+21:24 < bridge> <Jupstar ✪> have u heard of Sascha Willems
+21:24 < bridge> <Ewan> nope
+21:25 < bridge> <Jupstar ✪> what khronos, lunarg, valve devs do u even know? XD
+21:25 < bridge> <Ewan> i know 1 valve employee
+21:25 < bridge> <Jupstar ✪> ez
+21:25 < bridge> <Jupstar ✪> gaben
+21:25 < bridge> <Ewan> lol
+21:26 < bridge> <Ewan> there is obviously some overlap
+21:26 < bridge> <Ewan> u see a lot of the same names on org repos and stuff
+21:26 < bridge> <Ewan> so i thought i might recognize the names
+21:26 < bridge> <Ewan> but it's different territory
+21:27 < bridge> <TsFreddie> @patiga have you already figured out how to pass data to INSTANCE_CUSTOM at least. i remember you said you know there are four floats (vec4) available
+21:27 < bridge> <patiga> I know how to do that, yea
+21:27 < bridge> <TsFreddie> you can probably just pass an array buffer as a uniform and just store indexes into INSTANCE_CUSTOM while you are building your meshes
+21:29 < bridge> <patiga> but `INSTANCE_CUSTOM` should only be available when I use instancing, no? then I'd have many more problems with storing data I think. Am I understanding instancing wrong?
+21:29 < bridge> <TsFreddie> aren't you trying to use instancing?
+21:30 < bridge> <TsFreddie> or do you just want to pass extra data per sprite and happened to use mesh instance 2d just for making two triangles?
+21:30 < bridge> <patiga> no, to recap: I'm trying to store custom vertex data in 2d vertices for shading
+21:30 < bridge> <arrowastaken> the problem was vsync idk why was a problem tho, i always had it on and 144 hz limited, and now i have it off and unlimited framrates and is fixed xd
+21:31 < bridge> <patiga> yes. I use mesh instance 2d for vertex colors and triangles
+21:31 < bridge> <TsFreddie> ah
+21:32 < bridge> <TsFreddie> i thought you are trying to use meshinstance2d to save performance
+21:32 < bridge> <TsFreddie> so like you are making one meshinstance2d per "quad"?
+21:33 < bridge> <patiga> no, I only have a single mesh instance for the entire teeworlds quads layer, so in the mesh there are multiple teeworlds quads, each made out of two triangles
+21:34 < bridge> <TsFreddie> that is what i thought what you are doing
+21:34 < bridge> <patiga> true, I could do one mesh instance 2d per teeworlds quad, I hadn't considered that. The most extreme map in regards to quad count is around 16000 in one quads layer iirc
+21:35 < bridge> <TsFreddie> sounds like you are missing vertex id for uniform buffer
+21:35 < bridge> <patiga> yeah, I think I gotta do that
+21:36 < bridge> <patiga> (although I'll have to use uniform textures in place of uniform buffers, since only textures are available in compatibility mode :c)
+21:36 < bridge> <TsFreddie> :justatest:
+21:36 < bridge> <TsFreddie> GLES3 moment
+21:36 < bridge> <Jupstar ✪> GLES2 moment
+21:36 < bridge> <Jupstar ✪> 😬
+21:37 < bridge> <TsFreddie> godot 4 dropped gles2
+21:37 < bridge> <Jupstar ✪> why can everyone drop backends except us 😭
+21:37 < bridge> <TsFreddie> they are still fixing gles3 since the main renderer is vulkan only since godot 4 started
+21:38 < bridge> <TsFreddie> they tried to ignore gles3 even before i think?
+21:38 < bridge> <_voxeldoesart> convince another backend programmer to help us
+21:38 < bridge> <Jupstar ✪> but then i have to say. they could simply allow GLSL
+21:38 < bridge> <Jupstar ✪> as shading language
+21:38 < bridge> <TsFreddie> btw i mean you have to use spatial it seems like. canvas_item shaders doesn't really give you vertex id, so you can't even pass a uniform and index that per vertex
+21:39 < bridge> <patiga> I could store the vertex ID myself xd
+21:39 < bridge> <TsFreddie> emm. how?
+21:40 < bridge> <patiga> well, I could store it in the position.x for example, and retrieve the actual position value in the uniform texture
+21:40 < bridge> <TsFreddie> oh good point
+21:40 < bridge> <patiga> ( my face while thinking about the whole thing: :cammostripes: )
+21:40 < bridge> <patiga> why doesn't Godot think about 2D shaders :c
+21:41 < bridge> <TsFreddie> but godot 3d sounds really attractive right about now
+21:41 < bridge> <TsFreddie> i mean...
+21:41 < bridge> <TsFreddie> this is quite a niche use case
+21:41 < bridge> <patiga> it sounds so weird to use 3d in a 2d game
+21:41 < bridge> <TsFreddie> also technically you can just do it natively as a godot module
+21:41 < bridge> <patiga> how is custom vertex data a niche use case?
+21:41 < bridge> <TsFreddie> for 2d it really is
+21:42 < bridge> <patiga> hm I haven't heard about modules before
+21:42 < bridge> <patiga> I'll take a look
+21:42 < bridge> <TsFreddie> modules is straight up godot source code
+21:42 < bridge> <TsFreddie> you write a module, you compile the entire engine
+21:42 < bridge> <patiga> ouch
+21:42 < bridge> <patiga> that sounds overkill
+21:43 < bridge> <TsFreddie> i mean. ye
+21:43 < bridge> <TsFreddie> either way I think most general purpose 2d engine users wouldn't really think about vertex anyway
+21:43 < bridge> <TsFreddie> by that point just use 3d
+21:43 < bridge> <patiga> I mean, are ~3 texelFetch operations in the vertex shader that costly?
+21:44 < bridge> <k2d222> custom vertex data in 2d game doesn't sound far fetched at all
+21:44 < bridge> <TsFreddie> i think 2d game is just a concept
+21:44 < bridge> <TsFreddie> :kek:
+21:44 < bridge> <TsFreddie> also i think using 3d engines to make 2d games isn't that far fetched either
+21:45 < bridge> <TsFreddie> why would they split the two renderer if they are mostly the same
+21:45 < bridge> <Jupstar ✪> depends, but probably no.
+21:45 < bridge> <Jupstar ✪> 
+21:45 < bridge> <Jupstar ✪> what is your plan now? stream the vertex ids?
+21:45 < bridge> <Jupstar ✪> or use instancing?
+21:45 < bridge> <patiga> put the vertex id into the vertex data somewhere
+21:45 < bridge> <k2d222> ppl use blender to render 2d movies all the time
+21:46 < bridge> <Jupstar ✪> does the shader not offer a `gl_VertexIndex` alternative?
+21:46 < bridge> <TsFreddie> :owo: i think using spatial shaders might be easier?
+21:46 < bridge> <patiga> Can I use 2D nodes in a 3D scene? There is no `TileMap` equivalent 3D node I think
+21:47 < bridge> <TsFreddie> :poggers2:
+21:47 < bridge> <TsFreddie> emm
+21:47 < bridge> <TsFreddie> no
+21:47 < bridge> <TsFreddie> you'll need to composite render textures probably
+21:47 < bridge> <patiga> nope :d
+21:47 < bridge> <patiga> the index is actually accessible in some shaders, but not in the canvasitem 2D shader ^^
+21:47 < bridge> <TsFreddie> honestly
+21:47 < bridge> <patiga> okay, so I'll try to stuff too much data into the available vertex data, I think I can do that :)
+21:48 < bridge> <TsFreddie> if 2d renderer and toolset is really what you want to use. I'd recommend just modify the engine directly
+21:48 < bridge> <patiga> I'd fall back to that maybe if the data cramming fails
+21:48 < bridge> <TsFreddie> I tried adding per light properties before it wasn't that bad
+21:49 < bridge> <TsFreddie> scons are pretty easy for me to use too.
+21:49 < bridge> <TsFreddie> scons is pretty easy for me to use too.
+21:49 < bridge> <TsFreddie> it's almost 4am lmao
+21:50 < bridge> <patiga> wanna go sleep anytime soon? ^^
+21:50 < bridge> <TsFreddie> ye, but i think I passed the "fall asleep comfortably" time period
+21:52 < bridge> <patiga> aw :/
+21:52 < bridge> <patiga> I do appreciate the help a lot tho :D
+21:52 < bridge> <TsFreddie> i have trouble sleeping everytime i have something that i want to make
+21:53 < bridge> <TsFreddie> then i can't sleep and can't wake up and make the thing in the morning
+21:53 < bridge> <TsFreddie> every time lmao
+21:53 < bridge> <patiga> what's on your mind right now?
+21:53 < bridge> <patiga> what do you wanna create? :)
+21:53 < bridge> <TsFreddie> i saw a video of sniper chess i think it was probably easy to make
+21:54 < bridge> <TsFreddie> i saw a video of sniper chess and i think it was probably easy to make
+21:54 < bridge> <patiga> ah, the fps chess?
+21:54 < bridge> <patiga> https://store.steampowered.com/app/2021910/FPS_Chess/
+21:55 < bridge> <TsFreddie> not really
+21:55 < bridge> <TsFreddie> https://www.youtube.com/watch?v=v75jqiG0wAs
+21:55 < bridge> <TsFreddie> :kek:
+21:56 < bridge> <TsFreddie> basically normal chess, but you shoot each others' pieces in between rounds to physically knock them out or move them.
+21:59 < bridge> <patiga> sounds fun to play ^^
+21:59 < bridge> <patiga> not sure if it actually improves the gameplay in the long run :p
+22:00 < bridge> <TsFreddie> probably not
+22:00 < bridge> <TsFreddie> but I can't make anything for more than two days before I get distracted
+22:00 < bridge> <TsFreddie> this seems like a two day project to me :kek:
+22:00 < bridge> <TsFreddie> in unity at least. but i'm considering using godot which might make it longer
+22:01 < bridge> <TsFreddie> i haven't directly written any netcode yet. since GodotSteam doesn't implement the high level replication stuff
+22:02 < bridge> <TsFreddie> not that godot's high level networking is that well designed by the look of it anyway
+22:02 < bridge> <patiga> do you do such projects for fun or to do something with them?
+22:02 < bridge> <TsFreddie> wdym do something?
+22:02 < bridge> <TsFreddie> like sell them?
+22:03 < bridge> <patiga> publish, sell, I don't know
+22:03 < bridge> <TsFreddie> i usually make stuff for fun but keep publishing in mind when i'm making them
+22:03 < bridge> <patiga> do you like have a collection of projects somewhere? :)
+22:03 < bridge> <TsFreddie> it did happen like one time where i published biggernouis on google play:kek:
+22:04 < bridge> <TsFreddie> probably just my itch page
+22:04 < bridge> <TsFreddie> my fun projects aren't usually games
+22:04 < bridge> <TsFreddie> https://tsfreddie.itch.io/
+22:07 < bridge> <TsFreddie> and admittedly non game fun projects aren't that fun looking
+22:07 < bridge> <TsFreddie> :owo: I made myself a input method which i think it's cool but no one other than me and one of my friend use it
+22:07 < bridge> <TsFreddie> also some of them are unity plugins
+22:08 < bridge> <TsFreddie> and third party translations
+22:08 < bridge> <TsFreddie> <a:Catxplosion:1082715870893195274>  basically just stuff
+22:08 < bridge> <patiga> sounds nice though
+22:08 < bridge> <TsFreddie> teeworlds was one of the stuff
+22:08 < bridge> <patiga> I don't have that many projects ^^
+22:08 < bridge> <TsFreddie> :kek:
+22:09 < bridge> <TsFreddie> also i think i'm just old
+22:09 < bridge> <TsFreddie> :owo:
+22:09 < bridge> <Jupstar ✪> nice the blind game is really well made
+22:10 < bridge> <TsFreddie> ye, that's my best performing game on LD
+22:10 < bridge> <TsFreddie> then I tried two more time after it, couldn't beat it and just didn't submit them
+22:11 < bridge> <TsFreddie> <a:Catxplosion:1082715870893195274> for a three day project blind jump is probably pretty hard to beat again, in terms of the completeness of the game
+22:12 < bridge> <Jupstar ✪> did u even made artwork yourself?
+22:12 < bridge> <TsFreddie> no
+22:12 < bridge> <Jupstar ✪> it looks so professional
+22:12 < bridge> <Jupstar ✪> xd
+22:12 < bridge> <TsFreddie> two people made that
+22:12 < bridge> <TsFreddie> although i basically retouched all art assets
+22:12 < bridge> <TsFreddie> cuz the other guy didn't really made any pixel arts
+22:13 < bridge> <TsFreddie> i have to fix a lot of weird art choices
+22:13 < bridge> <TsFreddie> and the other guy is now my boss at work lmao
+22:13 < bridge> <TsFreddie> game designers imr
+22:13 < bridge> <TsFreddie> and the other guy is now my project lead at work lmao
+22:14 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1167556943049662486/image.png?ex=654e8f23&is=653c1a23&hm=2e050da69ccd7b8d101275cfd318aea0085bcc507665fb63298a77fc0fac39d7&
+22:15 < bridge> <TsFreddie> the third guy quit in 3 hours and we didn't end up using any of his code so it's actually a team of two
+22:15 < bridge> <TsFreddie> <a:Catxplosion:1082715870893195274>
+22:16 < bridge> <Jupstar ✪> @tsfreddie there is a game that is like bigger nouis just with fruits
+22:16 < bridge> <Jupstar ✪> did u know that xd
+22:16 < bridge> <TsFreddie> ye
+22:16 < bridge> <TsFreddie> they ripped off the game that I was ripping off
+22:16 < bridge> <Jupstar ✪> smallant plays it rn with 4k viewers xD
+22:16 < bridge> <TsFreddie> nothing special
+22:16 < bridge> <Jupstar ✪> it could have been bigger nouis
+22:17 < bridge> <TsFreddie> well probably not in a million year
+22:17 < bridge> <TsFreddie> the original game was pretty big in china
+22:17 < bridge> <TsFreddie> but it bugs me a lot that they didn't even put much effort in that game
+22:18 < bridge> <TsFreddie> the animations are basically non-existent, the merge feedback is trash
+22:18 < bridge> <TsFreddie> everything just pops into place
+22:18 < bridge> <TsFreddie> at least biggernouis still tried to use proper animation and sound feedback with teeworlds assets
+22:18 < bridge> <TsFreddie> and yes, i am quite salty about that game
+22:18 < bridge> <TsFreddie> :kek:
+22:19 < bridge> <Jupstar ✪> xd
+22:20 < bridge> <TsFreddie> i really wanted to hop on some streams and just say i made one way before this game. couldn't bring myself to that level of attention grabbing tho.
+22:20 < bridge> <TsFreddie> :kek:
+22:21 < bridge> <TsFreddie> and it is technically true, biggernouis released about a year before this exact version
+22:23 < bridge> <Jupstar ✪> yeah i know that feeling.. i also kinda dislike to do such things
+22:23 < bridge> <Jupstar ✪> but i guess if u want the money u gotta sell your soul
+22:24 < bridge> <TsFreddie> i haven't updated my google payment info, so i couldn't really get paid by google on ads for the android version anyway
+22:24 < bridge> <TsFreddie> lmao
+22:25 < bridge> <TsFreddie> but i did sell biggernouis' source code for 200 euros with the asset stripped to a french company tho.
+22:25 < bridge> <TsFreddie> :justatest:
+22:27 < bridge> <Jupstar ✪> oh lol, gg
+22:27 < bridge> <TsFreddie> haven't told deen about it since he was against it. I did make them put clauses to prevent them from using the name / the asset or using the source code to recreate the game with the sameish asset in the contract tho.
+22:29 < bridge> <Jupstar ✪> i mean did the game work out for them xd
+22:31 < bridge> <TsFreddie> none of my business really. and it was like two weeks ago and it sounded like it was for some play to win scam thing so they probably doesn't care what the game actually is, they just want working games.
+22:31 < bridge> <TsFreddie> none of my business really. and it was like two weeks ago and it sounded like it was for some play to win scam thing so they probably doesn't care what the game it actually is, they just want working games.
+22:31 < bridge> <Jupstar ✪> i c
+22:32 < bridge> <TsFreddie> :owo: i did sign a NDA for their SDK but they didn't end up sending me that cuz apparently 1000 euros to contract me to integrate the game into their platform is too much
+22:32 < bridge> <TsFreddie> so in the end i didn't really get to know what product they are making
+22:33 < bridge> <learath2> Way too much, an indian dude can hack it in in about 5 days for one fifth of that
+22:33 < bridge> <TsFreddie> :owo: i know
+22:33 < bridge> <learath2> With 10 times the bugs, but who cares. As long as it siphons ad money it’s fine
+22:33 < bridge> <heinrich5991> still good that you didn't ask for less, I'd imagine
+22:34 < bridge> <TsFreddie> 200 is less but i have to do zero work for it
+22:35 < bridge> <TsFreddie> honestly i could probably do it in a few hours based on what they've told me
+22:35 < bridge> <TsFreddie> but 1000euros does include an asset swap since they would want a already running game at that point
+22:36 < bridge> <TsFreddie> <a:amogus:876956004674338848> didn't really do any of that so who cares
+22:36 < bridge> <Jupstar ✪> now improve the game and sell it to them again
+22:36 < bridge> <Jupstar ✪> 😏
+22:36 < bridge> <TsFreddie> <a:Catxplosion:1082715870893195274>
+22:37 < bridge> <TsFreddie> too bad they learned about ludum dare from my game page during that transaction
+22:38 < bridge> <TsFreddie> <a:Catxplosion:1082715870893195274>
+22:38 < bridge> <TsFreddie> i think i have to go to bed now
+22:38 < bridge> <Jupstar ✪> yes
+22:38 < bridge> <Jupstar ✪> yes you do
+22:38 < bridge> <TsFreddie> wake me up when smant plays biggernouis
+22:38 < bridge> <learath2> gn
+22:38 < bridge> <Jupstar ✪> xd
+22:43 < bridge> <patiga> good night :)
+22:44 < bridge> <reitw> Damn
+22:44 < bridge> <reitw> https://cdn.discordapp.com/attachments/293493549758939136/1167564433321623593/Screenshot_20231027-212505.png?ex=654e961d&is=653c211d&hm=24edd093ecdd88a5cd9b12c3a59dcc908fd656ea420734ae143f35083d31890f&
+22:52 < bridge> <reitw> @jupeyy_keks pixel 8 pro
+22:52 < bridge> <Jupstar ✪> u got one?
+22:53 < bridge> <Jupstar ✪> "a propos du telephone" sounds like:
+22:53 < bridge> <Jupstar ✪> 
+22:53 < bridge> <Jupstar ✪> "a propos you phone"
+22:53 < bridge> <Jupstar ✪> 
+22:53 < bridge> <Jupstar ✪> xd
+22:53 < bridge> <reitw> Can now take good picd
+22:53 < bridge> <reitw> Yes
+22:53 < bridge> <Jupstar ✪> cool
+22:54 < bridge> <Jupstar ✪> i dislike the camera design, but else really great phone
+22:55 < bridge> <reitw> Tbh with the back protection the design IS fine, like it
+23:19 < bridge> <k2d222> f:q
+23:56 < bridge> <totar> what was the original game? I saw all the streamers playing the fruit game and thought about biggernouis but I assumed you copied something too

@@ -1,0 +1,615 @@
+00:00 < bridge_> <Ewan> waste of compute hours
+00:00 < bridge_> <Ewan> waste of emails
+00:00 < bridge_> <Ewan> waste of greenhouse gas emissions
+00:01 < bridge_> <Ewan> OMG, it seems the whole time i didn't even have rust installed to begin with. how did cmake generation succeed?
+00:01 < bridge_> <Ewan> does the cmake not check for rust?
+00:11 < bridge_> <blaiszephyr> im 99.8% sure it does lol
+00:11 < bridge_> <heinrich5991> seen it
+00:12 < bridge_> <blaiszephyr> does that count as "check for"?
+00:12 < bridge_> <blaiszephyr> https://cdn.discordapp.com/attachments/293493549758939136/1144756309518991511/image.png
+00:16 < bridge_> <Ewan> > error: linker `C:\msys2\mingw64\bin\mold.exe` not found
+00:17 < bridge_> <Ewan> > ewan@ewanl ~/.c/fish> /c/msys64/mingw64/bin/mold.exe -v
+00:17 < bridge_> <Ewan> mold 2.1.0 (compatible with GNU ld)
+00:17 < bridge_> <Ewan> ```
+00:17 < bridge_> <Ewan> ewan@ewanl ~/.c/fish> /c/msys64/mingw64/bin/mold.exe -v
+00:17 < bridge_> <Ewan> mold 2.1.0 (compatible with GNU ld)
+00:17 < bridge_> <Ewan> ```
+00:17 < bridge_> <Ewan> lol
+00:17 < bridge_> <Ewan> ffs
+00:17 < bridge_> <blaiszephyr> try manually adding it to PATH if not done already.. maybe? idk.. weird
+00:18 < bridge_> <Ewan> what's that got to do with the path
+00:19 < bridge_> <blaiszephyr> sometimes stuff is weird
+01:15 < bridge_> <Ewan> using const char* in all of these containers is going to be an incredible pain in the ass
+01:15 < bridge_> <Ewan> you really think i shouldn't use std string?
+01:30 < bridge_> <Ewan> do you mean this for use in other containers as well
+01:31 < bridge_> <Ewan> i'm happy to replace freestanding std strings with char ptrs
+01:59 < bridge_> <yagiz_74> https://cdn.discordapp.com/attachments/293493549758939136/1144783171762794586/Screenshot_1.png
+01:59 < bridge_> <yagiz_74> Is there anyone who can help me?
+02:00 < bridge_> <heinrich5991> I also had this problem, but on linux
+02:00 < bridge_> <heinrich5991> switching to opengl3.3 worked for me
+02:01 < bridge_> <Ewan> unusual
+02:01 < bridge_> <Ewan> i noticed that somehow, on my 2GB vram GT 1030, the game was able to load my plethora of skins on OpenGL 3 but not on Vulkan
+02:01 < bridge_> <Ewan> does GL have some sort of automatic system memory backing for textures
+02:04 < bridge_> <patiga> yes
+02:04 < bridge_> <patiga> opengl manages the memory by itself
+02:10 < bridge_> <Ewan> that's gotta be possible in vulkan right
+02:11 < bridge_> <Ewan> you just have to do it yourself
+07:59 < bridge_> <Jupstar ✪> What's your hardware
+07:59 < bridge_> <Jupstar ✪> Yes but swapping memory around can potentially be problematic
+08:27 < bridge_> <Ewan> Jup how to make async skin and asset loading work good
+08:27 < bridge_> <Ewan> Still stuck with the wait x ms on main thread approach
+08:28 < bridge_> <Jupstar ✪> Why do u wait. What's the context for waiting?
+08:31 < bridge_> <Ewan> If I don't wait then it just goes again and the other thread misses its chance to do its work. This happens a bunch of times until eventually, the main thread's and other thread's window of having finished line up to where the other thread starts, and then it hogs the thread
+08:32 < bridge_> <Ewan> By waiting I'm expanding this window so that the other thread can do what it needs to pretty much every time
+08:33 < bridge_> <Ewan> but it's fickle because it will have to be a different amount of time depending on speeds of stuff that we can't predict. i want to avoid it entirely
+08:33 < bridge_> <Ewan> make it smart
+08:34 < bridge_> <Jupstar ✪> So your problem is that new tasks are given too late?
+08:37 < bridge_> <Ewan> well, the other thread is responsible for loading the file from disk, decompressing the png, and preparing the CImageInfo. that CImageInfo is added to a fifo which is protected by a mutex, and the main thread takes the CImageInfo and slices it & uploads its texture to the GPU whenever it gets a chance
+08:38 < bridge_> <Jupstar ✪> Yep, and your problem is that the other thread blocks this mutex too often?
+08:38 < bridge_> <Ewan> Yes
+08:38 < bridge_> <Ewan> The other thread just works until its done, waiting only on the mutex. the main thread is obviously bound to the game refresh rate
+08:39 < bridge_> <Jupstar ✪> Sounds Like you want to introduce condition variables
+08:39 < bridge_> <Ewan> like a semaphore or smth?
+08:39 < bridge_> <Jupstar ✪> But the problem is not that you simply have two million tasks? Xd
+08:40 < bridge_> <Jupstar ✪> It's more like a notifier
+08:40 < bridge_> <Ewan> they are not running in parallel, there are 2 tasks running at once
+08:40 < bridge_> <Ewan> main & other
+08:40 < bridge_> <Ewan> 2 threads
+08:40 < bridge_> <Ewan> im not using a thread pool or anything that would warrant one
+08:40 < bridge_> <Jupstar ✪> Notify as soon as I can continue work . It frees the mutex while waiting
+08:41 < bridge_> <Jupstar ✪> In this case i meant the tasks scheduled for the file loading. Not threads^^
+08:41 < bridge_> <Ewan> ohhh ya i was gonna try that, and then i discovered that i couldn't do it without inheriting my other thread stuff from IJob iirc??
+08:41 < bridge_> <Ewan> but now i am using  a job
+08:41 < bridge_> <Jupstar ✪> As in: the file thread is always busy
+08:42 < bridge_> <Ewan> yeah
+08:42 < bridge_> <Ewan> maybe i could try and make the cimageinfo atomic as well
+08:42 < bridge_> <Ewan> so it just reads whenever it needs to without waiting
+08:42 < bridge_> <Jupstar ✪> That doesn't work
+08:43 < bridge_> <Ewan> sad
+08:43 < bridge_> <Ewan> not like std atomic <cimageinfo> lol
+08:43 < bridge_> <Ewan> like fundamentally making the cimageinfo members lockfree
+08:43 < bridge_> <Jupstar ✪> But that has other guarantees than a mutex
+08:44 < bridge_> <Jupstar ✪> Eg the timing could be off and lead to unexpected states on one thread
+08:44 < bridge_> <Ewan> what like data tearing
+08:44 < bridge_> <Ewan> i mean i suppose so
+08:44 < bridge_> <Ewan> my laptop is about to die
+08:45 < bridge_> <Jupstar ✪> Where is your gamer pc, you bought
+08:46 < bridge_> <Ewan> Home
+08:46 < bridge_> <Ewan> i am not home
+08:46 < bridge_> <Ewan> not been for a week
+08:54 < bridge_> <Ewan> @robyt3 sorry for ping, i remember you telling me about a way to signal to the main thread using a job and I don’t remember what it is
+10:00 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1144904131442655233/RDT_20230826_0959583066912032260470824.jpg
+10:01 < bridge_> <Jupstar ✪> bro wtf is wrong with the gitlab search field for issues
+10:01 < bridge_> <Jupstar ✪> who coded that shit lmao
+10:03 < bridge_> <learath2> Smort
+10:04 < bridge_> <Ewan> if you have the patience to sift through code subjected to the mangling that is compiler optimization
+10:04 < bridge_> <Ewan> then all software is open source
+10:05 < bridge_> <Jupstar ✪> all code is open source for the underlaying hardware 😂
+10:05 < bridge_> <Ewan> true…
+10:08 < bridge_> <ryozuki> this reminded me i wanna master asm with nasm
+10:08 < bridge_> <ryozuki> ill do that on work hours :gigachad:
+10:09 < bridge_> <Jupstar ✪> 😇
+10:19 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1144908998223593482/RDT_20230826_1019272034495214965960666.jpg
+10:21 < bridge_> <robyt3> The only built-in way to synchronize with a `IJob` is its `Status`. You would start a job and keep a shared_ptr to it somewhere you started it. Then you periodically check if the job is done and use the result in that case.
+10:21 < bridge_> <Jupstar ✪> thinks that never happen
+10:21 < bridge_> <Jupstar ✪> things that never happen
+11:16 < bridge_> <ryozuki> sometimes i have the urge to make my own version of llvm
+11:25 < bridge_> <Jupstar ✪> dont hold it back
+11:46 < bridge_> <blaiszephyr> ```
+11:46 < bridge_> <blaiszephyr>  Error of failed request:  BadRRCrtc (invalid Crtc parameter)
+11:46 < bridge_> <blaiszephyr>   Major opcode of failed request:  140 (RANDR)
+11:46 < bridge_> <blaiszephyr>   Minor opcode of failed request:  20 (RRGetCrtcInfo)
+11:46 < bridge_> <blaiszephyr>   Crtc id in failed request: 0x0
+11:46 < bridge_> <blaiszephyr>   Serial number of failed request:  4058
+11:46 < bridge_> <blaiszephyr>   Current serial number in output stream:  4058
+11:46 < bridge_> <blaiszephyr> ```
+11:46 < bridge_> <blaiszephyr> wat
+12:11 < bridge_> <marmare_314> can we maybe add something like https://github.com/arsenm/sanitizers-cmake to make it easier to use them?
+12:20 < bridge_> <Jupstar ✪> if u use the vscode workspace it's easy to use them
+12:21 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1144939628160360488/image.png
+12:26 < bridge_> <marmare_314> I do, but these dont show up for me. Maybe I didnt install them correctly?
+12:27 < bridge_> <Jupstar ✪> other/vscode/ddnet.code-workspace
+12:27 < bridge_> <Jupstar ✪> ?
+12:27 < bridge_> <Jupstar ✪> r u on windows?
+12:27 < bridge_> <Jupstar ✪> on windows its probably harder to get them working
+12:28 < bridge_> <marmare_314> oh sorry thought you meant something different, in that case i am not
+12:28 < bridge_> <marmare_314> no im using linux
+12:35 < bridge_> <marmare_314> got it working, thanks!
+12:39 < ChillerDragon> for me the cmd from the readme for asan just works 
+12:39 < ChillerDragon> what breaks for you?
+12:43 < bridge_> <marmare_314> they probably work just fine, its just that I have no idea how to configure them with the cmake extension manually
+12:50 < ChillerDragon> @Iza fyi i did release a new chillerbot-ux version
+13:01 < bridge_> <Jupstar ✪> ```
+13:01 < bridge_> <Jupstar ✪> other/vscode/lldbinit.py:7:0: W0311: Bad indentation. Found 4 tabs, expected 1 (bad-indentation)
+13:01 < bridge_> <Jupstar ✪> other/vscode/lldbinit.py:10:0: W0311: Bad indentation. Found 4 tabs, expected 1 (bad-indentation)
+13:01 < bridge_> <Jupstar ✪> other/vscode/lldbinit.py:13:0: W0311: Bad indentation. Found 4 tabs, expected 1 (bad-indentation)
+13:01 < bridge_> <Jupstar ✪> other/vscode/lldbinit.py:14:0: W0311: Bad indentation. Found 4 tabs, expected 1 (bad-indentation)
+13:01 < bridge_> <Jupstar ✪> other/vscode/lldbinit.py:15:0: W0311: Bad indentation. Found 4 tabs, expected 1 (bad-indentation)
+13:01 < bridge_> <Jupstar ✪> ```
+13:01 < bridge_> <Jupstar ✪> 
+13:01 < bridge_> <Jupstar ✪> python 😬
+13:11 < ChillerDragon> axaxax
+13:23 < bridge_> <Anime.pdf> ахаахх
+13:25 < bridge_> <ryozuki> no puy
+13:25 < bridge_> <ryozuki> py
+13:26 < bridge_> <Jupstar ✪> good that GPT wrote most of the python code for me
+13:26 < bridge_> <Jupstar ✪> it's against my pride to write python code 😬 cringe mode on
+13:27 < bridge_> <learath2> As much as I hate writing python, using gpt is more 😬
+13:30 < ChillerDragon> agreed with lerato
+13:31 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1144957406099558520/image.png
+13:36 < bridge_> <Jupstar ✪> i feel the energy flowing
+13:36 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1144958492038397972/image.png
+14:06 < ChillerDragon> lmao no way thats gpt shading on scripting langs
+14:08 < bridge_> <Jupstar ✪> the screenshot itself is unedited xd
+14:08 < bridge_> <Jupstar ✪> but maybe i told it smth before xd
+14:12 < ChillerDragon> rigged
+14:12 < ChillerDragon> jopsti full time prompt engineer
+14:17 < ChillerDragon> woah i just noticed the emscripten section in the ddnet readme
+14:17 < ChillerDragon> so it has smooth official support? To compile a web client that is fully functional? o.O is there some official instance?
+14:19 < bridge_> <Jupstar ✪> it worked once havent tried lately
+14:20 < bridge_> <Jupstar ✪> UDP support does not exists
+14:20 < bridge_> <Jupstar ✪> so it's basically useless not working
+14:21 < ChillerDragon> yea the udp thing i knew due to web. But the ddnet servers hhave websocket support dont they?
+14:22 < bridge_> <Jupstar ✪> yes, but i guess 1. not enabled, 2. too bugy
+14:22 < ChillerDragon> Also i saw some web clients that were functional just no file access so no mapping or demo viewing because of that.
+14:22 < ChillerDragon> but all those were someones toy project
+14:22 < bridge_> <Jupstar ✪> https://aliveclan.de/ddnettest/
+14:22 < ChillerDragon> thats why im surprised to see it in offical ddnet readme
+14:22 < bridge_> <Jupstar ✪> https://aliveclan.de/ddnettest/load_map.html
+14:22 < bridge_> <Jupstar ✪> ^ watch demos
+14:22 < bridge_> <Jupstar ✪> watch maps
+14:22 < ChillerDragon> oh pog
+14:22 < bridge_> <Jupstar ✪> https://aliveclan.de/ddnettest/DDNet.html
+14:22 < bridge_> <Jupstar ✪> full client
+14:23 < bridge_> <Jupstar ✪> 15.9.1
+14:23 < ChillerDragon> 15
+14:23 < ChillerDragon> cring
+14:23 < ChillerDragon> ye that one i know
+14:23 < ChillerDragon> but no ddnet.org instance huh?
+14:24 < ChillerDragon> this emscripten wrapper looks like it was made with scratch game maker by a 10yo
+14:24 < ChillerDragon> watermark moment
+14:24 < bridge_> <Jupstar ✪> xdd
+14:24 < bridge_> <Jupstar ✪> there is nothing hosted by ddnet.org yes
+14:25 < ChillerDragon> time to put it into an iframe and slap into a facebook ad. Make it connect to some server on load and buy 1mio impressions. Easy ddos.
+14:26 < ChillerDragon> yea cool stuff jopsti
+14:26 < ChillerDragon> when finish android client
+14:27 < bridge_> <Jupstar ✪> it's finished xd
+14:27 < ChillerDragon> sure xd
+14:27 < bridge_> <Jupstar ✪> just plugin mouse and keyboard
+14:27 < bridge_> <Jupstar ✪> i tested it over scrcpy
+14:27 < ChillerDragon> compiling is not finished bruv
+14:27 < bridge_> <Jupstar ✪> works without problems xD
+14:27 < ChillerDragon> bro u gotta honor the mlg china gamer
+14:28 < ChillerDragon> who gamed more ddnet points in one year not paying attention in school than me tryharding over decades on bleeding edge hardware
+14:28 < ChillerDragon> he also deserves a android dev team
+14:28 < ChillerDragon> alone*
+14:28 < bridge_> <blaiszephyr> lol
+14:29 < bridge_> <Jupstar ✪> yes
+14:29 < bridge_> <Jupstar ✪> you should sponsor that dev team for him
+14:29 < ChillerDragon> ._.
+14:37 < bridge_> <blaiszephyr> chiller transfering to mobile
+15:03 < bridge_> <XWA> i am back
+15:04 < bridge_> <bencie.> hey, was there a change regarding audio? i have a custom audio folder with some of the sounds  deleted on purpose, and ever since a few days ago, those sounds now came back as the default sounds, even tho they are not in my custom audio folder.
+15:04 < bridge_> <bencie.> before this, those deleted sounds would not make a noise ingame
+15:06 < bridge_> <robyt3> If the files exist in your default `data` folder then they will get loaded from there anyway
+15:06 < bridge_> <robyt3> If you want to disable some sounds, keep the files there but entirely empty
+15:06 < bridge_> <ryozuki> TIL that x86 actually has a instruction named "syscall"
+15:07 < bridge_> <ryozuki> i only knew int 80h
+15:07 < bridge_> <ryozuki> > The syscall instruction is the primary trap instruction in 64-bit x86 systems. Earlier x86 programs performed system calls by triggering an interrupt with the int $0x80 instruction; the kernel would use iret to return from the interrupt.
+15:07 < bridge_> <ryozuki> ohh
+15:08 < bridge_> <ryozuki> int 80h is used for 32bit i think
+15:08 < bridge_> <bencie.> is this new tho?
+15:08 < bridge_> <ryozuki> https://www.felixcloutier.com/x86/syscall
+15:08 < bridge_> <ryozuki> https://www.felixcloutier.com/x86/sysenter
+15:09 < bridge_> <bencie.> is this new tho? i havent changed anything and now i get the default sounds back
+15:10 < bridge_> <ryozuki> > For a 32bit kernel, SYSENTER/SYSEXIT are the only compatible pair. For a 64bit kernel in Long mode only (not Long Compat mode), SYSCALL/SYSRET are the only compatible pair. For Intel 64bit, IA32_EFER.SCE must be set, or SYSCALL will result in a #UD exception. IA32_EFER is an MSR at 0xC0000080, and SCE (SYSCALL Enable) is its 0th bit.
+15:10 < bridge_> <bencie.> renamed default data audio folder and its good now, thanks :)
+15:11 < bridge_> <robyt3> It's not new, the storage system has always worked like this. I don't know why it just started happening now.
+15:11 < bridge_> <robyt3> If you change the default `data` then it will eventually come back when you do a Steam update or use the ingame updater
+15:14 < bridge_> <Jupstar ✪> nice u doin x86 reverse engineering now?
+15:19 < bridge_> <ryozuki> im learning nasm
+15:19 < bridge_> <ryozuki> aka x86 xd
+15:23 < ChillerDragon> cring even i knew syscall
+15:24 < ChillerDragon> and int 80h
+15:24 < ChillerDragon> used both in hello world xd
+15:26 < bridge_> <ryozuki> xd
+15:28 < ChillerDragon> !p 04 00 00 42 3e fa 38 03
+15:28 < bridge_> <YADDB> Command not found!
+15:28 < chillerbot1> ```[twnet_parser v0.8.0][huffman=rust-libtw2] udp payload: 04 00 00 42 3e fa 38 03```
+15:28 < chillerbot1> ```--- 0.7```
+15:28 < chillerbot1> error
+15:28 < chillerbot1> ```--- 0.6```
+15:28 < chillerbot1> error
+15:29 < ChillerDragon> watafak is that
+15:29 < ChillerDragon> my client sends this -.-
+15:29 < ChillerDragon> i have virus sos
+15:31 < ChillerDragon> oh 04 is ctrl isnt it?
+15:31 < ChillerDragon> and 03 is the ctrl accept that heinrich trol did do stuff with
+15:31 < ChillerDragon> !p 04 00 00 42 3e fa 38 04
+15:31 < bridge_> <YADDB> Command not found!
+15:31 < chillerbot1> ```[twnet_parser v0.8.0][huffman=rust-libtw2] udp payload: 04 00 00 42 3e fa 38 04```
+15:31 < chillerbot1> ```--- 0.7```
+15:31 < chillerbot1> ```<class: 'PacketHeader'>: {'flags': <class: 'PacketFlags7'>, 'ack': 0, 'token': b'B>\xfa8', 'num_chunks': 0, 'connless_version': 1, 'response_token': b'\xff\xff\xff\xff'}```
+15:31 < ChillerDragon> yep!
+15:31 < chillerbot1> ```<class: 'CtrlClose'>: {'message_type': 'control', 'message_name': 'close', 'message_id': 4, 'reason': None}```
+15:31 < chillerbot1> ```--- 0.6```
+15:32 < chillerbot1> error
+15:32 < ChillerDragon> it the last byte is 04 it detects ctrl close
+15:32 < ChillerDragon> and 03 doesnt exist
+15:32 < ChillerDragon> @heinrich5991 idk if i shouldnt send it but maybe it would be nice to show it in the dissector even if its a removed message
+15:33 < ChillerDragon> https://zillyhuhn.com/cs/.1693056773.png
+15:33 < ChillerDragon> https://chillerdragon.github.io/teeworlds-protocol/06/ctrl_messages.html#NET_CTRLMSG_ACCEPT
+15:35 < ChillerDragon> yea idk maybe it should also not be parsed
+15:35 < ChillerDragon> since it never was part of the 0.7 spec during a release i think
+15:46 < ChillerDragon> when merge #5949 ? :D
+15:46 < chillerbot1> https://github.com/ddnet/ddnet/issues/5949
+15:47 < bridge_> <Jupstar ✪> git rem */*/*/*/*/*/*/*/*/*/*/
+15:47 < ChillerDragon> :c
+15:50 < bridge_> <ryozuki> woah apparently PIE is default on modern 64bit linux
+15:50 < bridge_> <ryozuki> it makes assembly harder xd
+15:50 < ChillerDragon> u nob
+15:50 < ChillerDragon> ``lea eax, rax``
+15:51 < bridge_> <Jupstar ✪> lea rath, 2
+15:51 < ChillerDragon> axaxax
+15:55 < ChillerDragon> opsi i broke 0.6
+16:00 < bridge_> <Jupstar ✪> proof that we can't have both ;9
+16:00 < ChillerDragon> time to kick 0.6
+16:00 < ChillerDragon> i fixed alr
+16:00 < ChillerDragon> because i speak better tw protocol than english
+16:00 < bridge_> <ryozuki> time to kick 0.7
+16:00 < ChillerDragon> im native in 0.7
+16:01 < bridge_> <Jupstar ✪> i'd be ok with kicking 0.6 too xd
+16:01 < bridge_> <ryozuki> kick c++
+16:01 < bridge_> <Jupstar ✪> but not after the pr is merged
+16:01 < ChillerDragon> ddnet2 moment
+16:01 < bridge_> <ryozuki> and python
+16:01 < bridge_> <ryozuki> and kick windows support
+16:01 < bridge_> <Jupstar ✪> but at the same time
+16:01 < bridge_> <ryozuki> also kick opengl
+16:01 < bridge_> <Jupstar ✪> ClosedGL
+16:01 < ChillerDragon> Metal all the way
+16:01 < bridge_> <Jupstar ✪> MS ClosedGL
+16:01 < bridge_> <ryozuki> and kick <2022 distros
+16:01 < ChillerDragon> distros?
+16:02 < ChillerDragon> kick linux
+16:02 < bridge_> <Jupstar ✪> Metal rusts
+16:02 < bridge_> <Jupstar ✪> xd
+16:02 < bridge_> <ryozuki> like debian 11
+16:02 < ChillerDragon> DirextX and Metal only
+16:02 < bridge_> <ryozuki> ew
+16:02 < bridge_> <ryozuki> kick chiller bot
+16:02 < ChillerDragon> :c
+16:02 < ChillerDragon> no proof
+16:02 < bridge_> <Jupstar ✪> direct x metal = vulkan
+16:02 < ChillerDragon> metal / direct = opengl
+16:02 < bridge_> <Jupstar ✪> chillerdragon is an important person in our community
+16:03 < bridge_> <ryozuki> with his blabber
+16:03 < bridge_> <ryozuki> jopsti this, ryo tell me that, heinrich is x correct, lerato how to do this in C
+16:03 < bridge_> <ryozuki> chiller in a nutshell
+16:03 < bridge_> <ryozuki> actually idk what chiller asks learath
+16:04 < bridge_> <ryozuki> also: robyt drop 0.6
+16:04 < ChillerDragon> xaxaxaax
+16:04 < bridge_> <ryozuki> :trollet:
+16:04 < ChillerDragon> average chiler value
+16:04 < bridge_> <Jupstar ✪> robyte works on server browser
+16:04 < bridge_> <Jupstar ✪> i am scared
+16:04 < bridge_> <Jupstar ✪> we promote closed servers soon
+16:05 < bridge_> <Jupstar ✪> closed source
+16:05 < bridge_> <ryozuki> but he improved 200% perf in text
+16:05 < ChillerDragon> ryowo good chiler impression but i say robsti instead of robyt
+16:05 < bridge_> <Jupstar ✪> RawByte
+16:05 < ChillerDragon> robi
+16:05 < bridge_> <ryozuki> robyt next job interview: "i improved the perfomance by 200% and brought 0$ profits to ddnet, but jupstar  was happy"
+16:06 < bridge_> <ryozuki> :gigachad:
+16:06 < bridge_> <Jupstar ✪> tbf
+16:06 < bridge_> <ryozuki> chiller r u still on that java job?
+16:06 < bridge_> <ryozuki> u must be a java pro now
+16:06 < bridge_> <Jupstar ✪> 90% of news i read about performance, dont really improve the absolute performance a lot
+16:06 < bridge_> <Jupstar ✪> 
+16:06 < bridge_> <Jupstar ✪> they simply optimize smth that is already insanely fast
+16:07 < bridge_> <Jupstar ✪> and optimizing that by 2000% is not really the thing that will be noticable to the end user
+16:07 < ChillerDragon> ryo i do not code for a living
+16:07 < bridge_> <Jupstar ✪> it's still nice
+16:07 < bridge_> <Jupstar ✪> if u look at the feature individual
+16:07 < bridge_> <ryozuki> this is true, and compilers already know how to squeeze  more with novel techniques, but the problem is those techniques are just research and dont take into account compile times
+16:07 < bridge_> <ryozuki> which increase drastically
+16:07 < bridge_> <ryozuki> u dont chiller?
+16:07 < bridge_> <ryozuki> i thought u did
+16:07 < ChillerDragon> i had a javaish job for like half a year
+16:08 < bridge_> <ryozuki> what u do now
+16:08 < ChillerDragon> my code was so bad company went bankrupt
+16:08 < bridge_> <ryozuki> u travel with ur laptop showing tw 0.7 to the world
+16:08 < ChillerDragon> ye
+16:08 < bridge_> <ryozuki> lmao
+16:08 < ChillerDragon> i quit work to focus on 0.7
+16:08 < ChillerDragon> jk
+16:08 < ChillerDragon> i rather not disclose to much about my job
+16:08 < ChillerDragon> since it can be used for finger printing my identiy
+16:09 < bridge_> <ryozuki> but is it code related
+16:09 < bridge_> <robyt3> Yeah, the atlas performance improvements mostly apply when new glyphs are rendered for the first time, so it would only be noticeable if new glyphs keep being spammed in chat or something like that. Though using `std::unordered_map` and a better hash function for glyph lookup was also a good improvement for rendering cached glyphs.
+16:09 < bridge_> <ryozuki> or tech
+16:09 < bridge_> <ryozuki> or ur a farmer now
+16:09 < ChillerDragon> its tech related ye
+16:09 < bridge_> <Jupstar ✪> top5 things that will never happen in teeworlds:
+16:09 < bridge_> <Jupstar ✪> 1. learath admitting c is shit
+16:09 < bridge_> <Jupstar ✪> 2. breaking backward compability
+16:09 < bridge_> <Jupstar ✪> 3. ddnet 2
+16:09 < ChillerDragon> farmer xd
+16:09 < bridge_> <Jupstar ✪> 4. accounts
+16:09 < bridge_> <Jupstar ✪> 5. rust being replaced by smth better
+16:09 < bridge_> <ryozuki> xd
+16:10 < bridge_> <ryozuki> and i hear std::unordered_map itself is slow
+16:10 < ChillerDragon> @konsti someone said accounts
+16:10 < bridge_> <ryozuki> compared to other impls
+16:10 < ChillerDragon> jopsti i think lerato openly hates C
+16:10 < bridge_> <ryozuki> @robyt3 we know all glyphs right? cant we use a perfect hash function too?
+16:10 < bridge_> <ryozuki> https://en.wikipedia.org/wiki/Perfect_hash_function
+16:11 < bridge_> <Jupstar ✪> @robyt3 what would be your opinion if a closed source mod is insanely successful.. much more than ddnet
+16:11 < bridge_> <Jupstar ✪> 
+16:11 < bridge_> <Jupstar ✪> and ddnet advertised it bcs of new server browser xdd
+16:11 < bridge_> <Jupstar ✪> 
+16:11 < bridge_> <Jupstar ✪> would you just accept it as progress
+16:11 < bridge_> <Jupstar ✪> or would u be mad
+16:11 < bridge_> <Jupstar ✪> or do u simply not care
+16:11 < bridge_> <Jupstar ✪> xd so much not worth it
+16:12 < bridge_> <ryozuki> @jupeyy_keks all for perf
+16:12 < bridge_> <ryozuki> i follow ur religion
+16:12 < bridge_> <Jupstar ✪> i bet the hash functions for integers are already really good
+16:12 < bridge_> <robyt3> The hash consist of (font face, font size, glyph), I guess it could fit perfectly somehow, but hashing the font face pointer isn't ideal
+16:12 < bridge_> <flurcxyy> hello
+16:12 < bridge_> <ryozuki> u make multiple hashmaps
+16:12 < bridge_> <ryozuki> for each font face
+16:12 < bridge_> <flurcxyy> how to join game?
+16:12 < bridge_> <ryozuki> but its prob not worth it
+16:13 < bridge_> <Jupstar ✪> well tbf, whenever i feel like i have a design flaw:
+16:13 < bridge_> <Jupstar ✪> fixing it usually also resulted in more performance 😄
+16:13 < bridge_> <Jupstar ✪> it seems to correlate up to a certain point
+16:13 < bridge_> <ryozuki> true
+16:13 < bridge_> <Jupstar ✪> same with minimizing code
+16:13 < bridge_> <ryozuki> good design leads to good perf usually
+16:13 < bridge_> <ryozuki> less code means better cache? or smth like that
+16:13 < bridge_> <ryozuki> idk
+16:13 < bridge_> <Jupstar ✪> install linux
+16:13 < bridge_> <Jupstar ✪> apt install ddnet
+16:13 < bridge_> <Jupstar ✪> DDNet
+16:13 < bridge_> <Jupstar ✪> f1 -> connect ger.ddnet.org
+16:14 < bridge_> <ryozuki> where is new server browser idea
+16:14 < bridge_> <robyt3> I wouldn't say it's much advertisement. DDNet community would still be the default selection. And all the communities get is an icon in the server list that says they are a bit more trustworthy than the rest.
+16:14 < bridge_> <Voxel> once these things are broken updates will be so much fun
+16:14 < bridge_> <Jupstar ✪> i know
+16:14 < bridge_> <Jupstar ✪> i am team future
+16:15 < bridge_> <Jupstar ✪> bro
+16:15 < bridge_> <Jupstar ✪> it's your own issue xD
+16:15 < bridge_> <Jupstar ✪> https://github.com/ddnet/ddnet/issues/5654
+16:15 < bridge_> <Voxel> idk how to START with any of those
+16:15 < bridge_> <Voxel> minus the logo
+16:15 < bridge_> <Jupstar ✪> https://github.com/ddnet/ddnet/issues/5654#issuecomment-1612162585
+16:15 < bridge_> <Jupstar ✪> deens proposal
+16:15 < bridge_> <flurcxyy> ?
+16:15 < bridge_> <Jupstar ✪> i kinda dislike it tbh
+16:15 < bridge_> <Jupstar ✪> dunno why
+16:15 < bridge_> <ryozuki> i think ddnet should take a clear stance, and only support free software mods, we can create a environment where open source mods are the norm, and closed source mods get a massive disadvantage, we shouldnt support a community that doesnt give back, it will lead to tw and ddnet itself to die, specially in the case a new mod network like ddnet erupts due to modding
+16:15 < bridge_> <Jupstar ✪> can't explain logically
+16:16 < bridge_> <Jupstar ✪> well i answered your question
+16:16 < bridge_> <ryozuki> teeworlds lasted this long thanks to free software
+16:16 < bridge_> <Jupstar ✪> if that wasnt the right answer. do a better question
+16:16 < bridge_> <ryozuki> and  the excuse kog gives to not be open source is stupid af
+16:16 < bridge_> <ryozuki> its just that they dont want to admit
+16:16 < bridge_> <ryozuki> kog is user hostile
+16:17 < bridge_> <cyberFighter> 2000% is a lie my fps didnt go from 120 to 2400
+16:17 < bridge_> <ryozuki> i want to have my essential freedoms
+16:17 < bridge_> <ryozuki> have the four essential freedoms: (0) to run the program, (1) to study and change the program in source code form, (2) to redistribute exact copies, and (3) to distribute modified versions.
+16:17 < bridge_> <Jupstar ✪> the truth is simple:
+16:17 < bridge_> <Jupstar ✪> kog source code is probably a mess
+16:17 < bridge_> <Jupstar ✪> and he ain't wanna maintain it xD
+16:17 < bridge_> <Jupstar ✪> buy new hardware past human
+16:17 < bridge_> <ryozuki> he doesnt wanna open source it claiming "he doesnt want to accept contributions" but thats not a reason not to open source it
+16:18 < bridge_> <Jupstar ✪> i am from future and can ensure you. Buy new hardware
+16:18 < bridge_> <ryozuki> u can open source it with a free software license AND not accept contributions
+16:18 < bridge_> <flurcxyy> who you
+16:18 < bridge_> <Voxel> says the white name
+16:18 < bridge_> <Jupstar ✪> I am an AI trained to answer questions quickly
+16:18 < bridge_> <cyberFighter> i started thinking about it since every other game runs at 10-20 fps
+16:18 < bridge_> <cyberFighter> :troll:
+16:18 < bridge_> <Jupstar ✪> How are you?
+16:18 < bridge_> <cyberFighter> Hey buddy.
+16:18 < bridge_> <flurcxyy> no
+16:18 < bridge_> <Voxel> hi new person
+16:18 < bridge_> <Voxel> :monkalaugh:
+16:19 < bridge_> <ryozuki> @jupeyy_keks the problem though is that kog existing is appealing to deen and heinrich due to ddnet having such a big exposure in the ecosystem, but i think this is just accept a "lesser evil" to fix the problem
+16:19 < bridge_> <ryozuki> and its bad
+16:19 < bridge_> <Jupstar ✪> @flurcxyy for more questions use #questions 
+16:19 < bridge_> <Jupstar ✪> 
+16:19 < bridge_> <Jupstar ✪> also make sure to explain in your question what you did on your own
+16:19 < bridge_> <Jupstar ✪> 
+16:19 < bridge_> <Jupstar ✪> questions like "How can i join game" are not useful
+16:19 < bridge_> <cyberFighter> kog is evil? i fucking knew it.
+16:19 < bridge_> <ryozuki> thanks for coming to my ted talk
+16:19 < bridge_> <Jupstar ✪> i have to ask: What did you try
+16:19 < bridge_> <Jupstar ✪> or What is your exact problem
+16:19 < bridge_> <Jupstar ✪> so pretty obvious annoying questions
+16:19 < bridge_> <flurcxyy> https://cdn.discordapp.com/attachments/293493549758939136/1144999662512787617/image.png
+16:20 < bridge_> <Jupstar ✪> "Play"
+16:20 < bridge_> <cyberFighter> cikis to you as well
+16:21 < bridge_> <Jupstar ✪> yeah i personally don't even care if KoG is advertised as trusted
+16:21 < bridge_> <Jupstar ✪> 
+16:21 < bridge_> <Jupstar ✪> I just dunno why ddnet, which allows to host almost any open source mod
+16:21 < bridge_> <Jupstar ✪> suddenly has to do "fair" server browsers
+16:21 < bridge_> <Jupstar ✪> as if these closed source mods have done anything for us
+16:21 < bridge_> <ryozuki> yeah
+16:21 < bridge_> <Jupstar ✪> Why doesn't Avo simply do account system
+16:21 < bridge_> <Jupstar ✪> 
+16:21 < bridge_> <Jupstar ✪> the ideas are clear
+16:21 < bridge_> <Voxel> ngl i made my thing open source because i suck at coding and cant do half the features i want to do
+16:21 < bridge_> <ryozuki> i also wanna keep ddnet tab itself
+16:21 < bridge_> <flurcxyy> and
+16:21 < bridge_> <flurcxyy> https://cdn.discordapp.com/attachments/293493549758939136/1145000132065112206/image.png
+16:21 < bridge_> <Jupstar ✪> klick on DDNet
+16:21 < bridge_> <ryozuki> r u using a bot client
+16:21 < bridge_> <Jupstar ✪> click on DDNet
+16:22 < bridge_> <ryozuki> why doesit look like that
+16:22 < bridge_> <Voxel> uh og
+16:22 < bridge_> <flurcxyy> thanks
+16:22 < bridge_> <cyberFighter> bro put the ddnet screenshots through ai
+16:22 < bridge_> <Jupstar ✪> i think he indeed translated his text somehow xD
+16:22 < bridge_> <Jupstar ✪> google lense looks similar
+16:22 < bridge_> <ryozuki> lmao true
+16:23 < bridge_> <ryozuki> he is the true ai enjoyer
+16:23 < bridge_> <Jupstar ✪> xd
+16:23 < bridge_> <Jupstar ✪> future human
+16:23 < bridge_> <Jupstar ✪> welcome to community
+16:23 < bridge_> <ryozuki> guys
+16:23 < bridge_> <ryozuki> support unique
+16:23 < bridge_> <ryozuki> we open source
+16:23 < bridge_> <ryozuki> https://uniqueclan.net/
+16:23 < bridge_> <Jupstar ✪> xDD
+16:23 < bridge_> <ryozuki> https://github.com/unique-clan
+16:23 < bridge_> <Jupstar ✪> most random advertisement
+16:23 < bridge_> <ryozuki> also coolest logo around
+16:23 < bridge_> <ryozuki> better than ddnet
+16:23 < bridge_> <Voxel> ddnet logo is perfect wym
+16:24 < bridge_> <Voxel> sketch out a better logo
+16:24 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145000708714803302/unique.png
+16:24 < bridge_> <cyberFighter> wh ytf it look like that
+16:24 < bridge_> <cyberFighter> you made it with ms paint
+16:24 < bridge_> <ryozuki> did u just assume my OS
+16:24 < bridge_> <ryozuki> ill report u
+16:24 < bridge_> <cyberFighter> cope harder
+16:24 < bridge_> <Voxel> ms paint best
+16:24 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145000925346402364/tournament.png
+16:24 < bridge_> <Jupstar ✪> xd
+16:25 < bridge_> <cyberFighter> ok give me a moment
+16:25 < bridge_> <ryozuki> best map web https://uniqueclan.net/maps
+16:25 < bridge_> <Jupstar ✪> "Epic powerpoint logo generator online free"
+16:25 < bridge_> <ryozuki> each map has a download button too
+16:25 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145001093676400730/image.png
+16:26 < bridge_> <ryozuki> international
+16:26 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145001254804803624/image.png
+16:26 < bridge_> <ryozuki> :Kapp:
+16:28 < bridge_> <cyberFighter> heres a logo for fng i made
+16:28 < bridge_> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1145001794720780408/image.png
+16:28 < bridge_> <cyberFighter> (optional background)
+16:29 < bridge_> <ryozuki> epyc
+16:29 < bridge_> <Voxel> oh fantastic
+16:30 < bridge_> <Jupstar ✪> yeah true.. if i look at smth like sqlite xD
+16:30 < bridge_> <Jupstar ✪> 
+16:30 < bridge_> <Jupstar ✪> impossible to contribute for normal humans
+16:30 < bridge_> <Jupstar ✪> not good, but still better than ddnet logo
+16:30 < bridge_> <ryozuki> https://tenor.com/view/heyzzy-mods-cry-to-mods-annoying-bitch-stfu-gif-25951942
+16:31 < bridge_> <Voxel> jupstar when logo sketch
+16:31 < bridge_> <cyberFighter> assisted by ai
+16:31 < bridge_> <cyberFighter> weird ai yankovic*
+16:31 < bridge_> <Jupstar ✪> well i think a mix of
+16:31 < bridge_> <Jupstar ✪> https://www.raymanpc.com/wiki/script-en/images/thumb/e/eb/Rayman-legends-logo-full.png/345px-Rayman-legends-logo-full.png
+16:31 < bridge_> <Jupstar ✪> https://w1.pngwing.com/pngs/580/143/png-transparent-vulkan-red-khronos-group-opengl-computer-program-standard-portable-intermediate-representation-sycl-android-directx.png
+16:31 < bridge_> <Jupstar ✪> 
+16:31 < bridge_> <Jupstar ✪> would be cool
+16:31 < bridge_> <Voxel> :nouis:
+16:31 < bridge_> <Jupstar ✪> i kinda like if the logo itself tells a story
+16:31 < bridge_> <cyberFighter> theres no story in ddnet
+16:31 < bridge_> <ryozuki> "Now i am become Rust, Destroyer of Unsafe code"
+16:31 < bridge_> <ryozuki> i need this quote on my bio
+16:32 < bridge_> <Voxel> 💀
+16:32 < bridge_> <ryozuki> done
+16:32 < bridge_> <flurcxyy> how can i be moderator
+16:32 < bridge_> <cyberFighter> i need that quote on my underwear
+16:32 < bridge_> <Voxel> oh yea those logos are cool af
+16:32 < bridge_> <Jupstar ✪> sub to #announcements 
+16:32 < bridge_> <Jupstar ✪> 
+16:32 < bridge_> <Jupstar ✪> sometimes it's announced
+16:32 < bridge_> <Jupstar ✪> else no way!
+16:33 < bridge_> <cyberFighter> do i have to hit the notification bell too
+16:33 < bridge_> <Jupstar ✪> yes
+16:33 < bridge_> <Jupstar ✪> leave a like
+16:33 < bridge_> <Voxel> comment below
+16:33 < bridge_> <Jupstar ✪> be polite
+16:33 < bridge_> <cyberFighter> btw broken hammer is still skippable why are they not fixing it again i literally reported it what the hell
+16:33 < bridge_> <Voxel> xd
+16:43 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145005724980748458/F4a2LpYW8AEzzBe.jpg
+16:51 < bridge_> <ryozuki> https://www.theverge.com/23845672/eu-digital-services-act-explained
+16:51 < bridge_> <ryozuki> > Under the new rules, online platforms must implement ways to prevent and remove posts containing illegal goods, services, or content while simultaneously giving users the means to report this type of content.
+16:51 < bridge_> <ryozuki> > Additionally, the DSA bans targeted advertising based on a person’s sexual orientation, religion, ethnicity, or political beliefs and puts restrictions on targeting ads to children. It also requires online platforms to provide more transparency on how their algorithms work.
+16:52 < bridge_> <ryozuki> @_voxeldoesart r u proud
+16:52 < bridge_> <ryozuki> when america does this
+16:55 < bridge_> <nori5> Ye
+16:55 < bridge_> <nori5> Have you tried? :d
+16:56 < bridge_> <ryozuki> @jupeyy_keks new quote
+16:56 < bridge_> <ryozuki> "a bit of rust a day keeps the segfault away"
+16:57 < bridge_> <Jupstar ✪> not yet, when mesa creates a new release i can test it on arch 😄
+16:58 < bridge_> <Jupstar ✪> xd
+16:58 < bridge_> <nori5> same
+17:01 < bridge_> <nori5> https://gitlab.freedesktop.org/wlroots/wlroots/-/merge_requests/3871 looks like sway still doesn't support tearing protocol
+17:27 < ChillerDragon> ryo xd "did you just assume my OS"
+17:28 < bridge_> <ryozuki> xd
+17:35 < ChillerDragon> https://zillyhuhn.com/cs/.1693064156.png
+17:35 < ChillerDragon> average bash
+18:15 < bridge_> <Voxel> does it change physics
+18:29 < bridge_> <ryozuki> @jupeyy_keks someone
+18:29 < bridge_> <ryozuki> https://briansmith.org/rust-cryptography-should-be-written-in-rust-01
+18:29 < bridge_> <ryozuki> https://www.reddit.com/r/rust/comments/161q9uo/rust_cryptography_should_be_written_in_rust/
+18:29 < bridge_> <ryozuki> first comment
+18:29 < bridge_> <ryozuki> > While I agree that the state of the art is rather pathetic, and all of this should be verified by machines instead of relying on human analysis, there is no easy way to get there using Rust or even C with LLVM. This will require dramatic and novel changes through the entire compiler stack.
+18:30 < bridge_> <ryozuki> https://github.com/jasmin-lang/jasmin
+18:30 < bridge_> <Jupstar ✪> yes please today xd
+18:30 < bridge_> <Jupstar ✪> not tomorrow
+18:32 < bridge_> <ryozuki> https://www.phoronix.com/review/intel-doitm-linux
+18:33 < bridge_> <louis> no more pirating ?
+18:33 < bridge_> <ryozuki> thats impossible
+18:33 < bridge_> <louis> well its an attempt at it i guess 😹
+18:33 < bridge_> <ryozuki> @louis.place do note this is for big online social communities
+18:33 < bridge_> <ryozuki> like twitter
+18:33 < bridge_> <ryozuki> facebook
+18:34 < bridge_> <ryozuki> in fact they list them
+18:34 < bridge_> <ryozuki> its for webs with over 45M monthly users iirc
+18:34 < bridge_> <louis> oh
+18:34 < bridge_> <louis> they already have moderation teams though
+18:35 < bridge_> <ryozuki> the important bit is actually the fight against adverts using personal info btw
+18:35 < bridge_> <ryozuki> well for me
+18:35 < bridge_> <ryozuki> xd
+18:36 < bridge_> <ryozuki> https://news.ycombinator.com/item?id=37263322
+18:37 < bridge_> <louis> ig
+18:37 < bridge_> <louis> i think the children part is more important
+18:37 < bridge_> <louis> personal info doesnt pertain only to advertising
+18:38 < bridge_> <louis> i think the children part is more important in terms of advertising and content moderation*
+20:01 < bridge_> <heinrich5991> btw, could you lobby for unique to open up their ranks database? I'd hate all that to be gone if they ever die
+20:01 < bridge_> <ryozuki> @timakro can u?
+20:02 < bridge_> <heinrich5991> I actually don't like it that much ^^
+20:02 < bridge_> <ryozuki> why
+20:02 < bridge_> <heinrich5991> posting code as images is annoying :/
+20:05 < bridge_> <heinrich5991> > Under the new rules, online platforms must implement ways to prevent and remove posts containing illegal goods, services, or content while simultaneously giving users the means to report this type of content.
+20:05 < bridge_> <heinrich5991> this sounds like easier censorship to me
+20:05 < bridge_> <heinrich5991> e.g. youtube-dl's homepage got removed IIRC
+20:06 < bridge_> <ryozuki> dont only therse apply to the super big social media webs?¿
+20:06 < bridge_> <heinrich5991> then you can't talk about youtube-dl on a super big social network anymore? sounds bad to me
+20:38 < bridge_> <solayer> chillerdragon:
+20:55 < bridge_> <Ewan> can i have a custom status
+20:56 < bridge_> <robyt3> Yes, but either you only read it when the job is done or you need to synchronize access to it
+21:49 < bridge_> <Voxel> Is there a version of `html.escape()` for python that handles file management? so nobody manages to mess up their computer by typing in weird command line arguements?
+21:49 < bridge_> <Voxel> idk this might only be an issue for server stuff
+21:50 < bridge_> <Voxel> Is there a version of `html.escape()` for python that handles file management (symbols like `/`, `?`, `:`, `!`)? so nobody manages to mess up their computer by typing in weird command line arguements?
+21:50 < bridge_> <Voxel> Is there a version of `html.escape()` for python that handles file management (symbols like `/`, `?`, `<`, `>`)? so nobody manages to mess up their computer by typing in weird command line arguments?
+21:55 < bridge_> <Ewan> how would those symbols screw up command line arguments
+21:55 < bridge_> <Ewan> worst case the program doesn't understand and aborts
+21:55 < bridge_> <Voxel> i dunno im still learning
+21:55 < bridge_> <Ewan> you shouldn't have to worry about all that. as long as you sanitize your inputs
+21:55 < bridge_> <Ewan> probably worst case the program doesn't understand and aborts
+21:56 < bridge_> <Voxel> and how do i do that
+21:57 < bridge_> <Voxel> that was the exact thing i was asking, how do i sanitize my inputs
+21:57 < bridge_> <Voxel> i tried googling but all that came up was `html.escape()`
+22:00 < bridge_> <Ewan> oh i see
+22:00 < bridge_> <Ewan> im not a python idk
+22:00 < bridge_> <Ewan> i would probably end up writing my own fn which strips a string of bad characters
+22:01 < bridge_> <Ewan> but it would definitely not be enough to prevent from bugs and potential security issues in a high traffic environment
+23:15 < bridge_> <headshotnoby> you're a human
+23:15 < bridge_> <headshotnoby> :troll:
+23:16 < bridge_> <Ewan> yea
+23:52 < bridge_> <Ewan> anyone gotten a MSVC build of DDNet to work with Vulkan? CMake seems to not be finding the Vulkan SDK by default (`-DSPIRV_OPTIMIZER_PROGRAM:FILEPATH=SPIRV_OPTIMIZER_PROGRAM-NOTFOUND`, `-DGLSLANG_VALIDATOR_PROGRAM:FILEPATH=GLSLANG_VALIDATOR_PROGRAM-NOTFOUND`)
+23:52 < bridge_> <Ewan> so the game will compile but can't run because there are no shader tools
+23:54 < bridge_> <Ewan> oh nvm it's included in ddnet-libs lol
+23:55 < bridge_> <Ewan> that's crazy
+23:55 < bridge_> <Ewan> i have 3 and it finds none
+23:55 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145114155439902750/image.png
+23:55 < bridge_> <Ewan> oh but the spirv optimizer isn't included in ddnet libs
+23:57 < bridge_> <Ewan> this is probably a me issue
+23:58 < bridge_> <deen> Hm, you're right, we don't ship the spirt-opt.exe, but require the vulkan sdk
+23:58 < bridge_> <deen> I don't know how to add paths for MSVC

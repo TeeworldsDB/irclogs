@@ -1,0 +1,150 @@
+00:21 < bridge> <learath2> @heinrich5991 which one do you like more? 5842, 5092 or the template one I have?
+00:28 < bridge> <heinrich5991> hmm
+00:28 < bridge> <heinrich5991> 5842 is the same as the template one, but without templates?
+00:29 < bridge> <heinrich5991> I'm not sure about the benefits and drawbacks
+00:29 < bridge> <heinrich5991> gut feeling, not founded in useful thoughts: staying with the job system might be nice, so maybe 5842?
+00:31 < bridge> <heinrich5991> ah, but that system runs meaningful work on the http thread?
+00:31 < bridge> <heinrich5991> meh, all annoying
+00:39 < bridge> <learath2> Yes, instead of templates it dynamically assigns ids to runners
+00:40 < bridge> <learath2> Yes, it pretty much only keeps the interface of the job system
+00:42 < bridge> <heinrich5991> but for the skin download job, does it run the png decoding work on the http thread?
+00:44 < bridge> <learath2> Yes that's how it was in that PR
+00:44 < bridge> <learath2> Maybe not ideal now that I think about it yeah
+00:46 < bridge> <heinrich5991> we lack a good job abstraction ^^
+01:03 < bridge> <learath2> Even if we did have one, with curl-multi we'd still have to have some jobs run differently to others
+01:08 < bridge> <heinrich5991> yep
+01:08 < bridge> <heinrich5991> however, a job abstraction might make it able to run jobs after others
+01:09 < bridge> <heinrich5991> removing the png loading problem
+01:09 < bridge> <heinrich5991> yep
+01:10 < bridge> <learath2> If you don't mind some templates I can try to make something like futures
+01:36 < bridge> <heinrich5991> I guess that might be good
+01:40 < bridge> <learath2> I will take a look, it might end up being a little beyond my level
+01:40 < bridge> <heinrich5991> does C++ bring such an abstraction already?
+01:49 < bridge> <kdaniel> gdb stacktrace: 
+01:49 < bridge> <kdaniel> ```
+01:49 < bridge> <kdaniel> (gdb) where
+01:49 < bridge> <kdaniel> #0  __GI___libc_write (nbytes=24, buf=0x7fffe00159c3, fd=13) at ../sysdeps/unix/sysv/linux/write.c:26
+01:50 < bridge> <kdaniel> #1  __GI___libc_write (fd=13, buf=0x7fffe00159c3, nbytes=24) at ../sysdeps/unix/sysv/linux/write.c:24
+01:50 < bridge> <kdaniel> #2  0x00007ffff7c4f663 in ?? () from /lib/x86_64-linux-gnu/libcrypto.so.3
+01:50 < bridge> <kdaniel> #3  0x00007ffff7c3f2fb in ?? () from /lib/x86_64-linux-gnu/libcrypto.so.3
+01:50 < bridge> <kdaniel> #4  0x00007ffff7c42c06 in ?? () from /lib/x86_64-linux-gnu/libcrypto.so.3
+01:50 < bridge> <kdaniel> #5  0x00007ffff7c42d37 in BIO_write () from /lib/x86_64-linux-gnu/libcrypto.so.3
+01:50 < bridge> <kdaniel> #6  0x00007ffff7288e5e in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #7  0x00007ffff728b69b in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #8  0x00007ffff725f32f in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #9  0x00007ffff7299508 in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #10 0x00007ffff728c57b in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #11 0x00007ffff728df19 in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #12 0x00007ffff72683fc in ?? () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #13 0x00007ffff726ecb7 in SSL_read () from /lib/x86_64-linux-gnu/libssl.so.3
+01:50 < bridge> <kdaniel> #14 0x00007ffff7b412bf in ?? () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #15 0x00007ffff7b2ecf6 in ?? () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #16 0x00007ffff7b24dfa in ?? () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #17 0x00007ffff7b08e28 in ?? () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #18 0x00007ffff7b0d6b8 in ?? () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #19 0x00007ffff7b0f3be in curl_multi_perform () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #20 0x00007ffff7aebe53 in curl_easy_perform () from /lib/x86_64-linux-gnu/libcurl.so.4
+01:50 < bridge> <kdaniel> #21 0x0000555555693b15 in CHttpRequest::RunImpl (this=0x555555bd5410, pUser=0x7fffe000b0f0) at /media/server/gameserver/src/engine/shared/http.cpp:270
+01:50 < bridge> <kdaniel> #22 0x000055555569342b in CHttpRequest::Run (this=0x555555bd5410) at /media/server/gameserver/src/engine/shared/http.cpp:154
+01:50 < bridge> <kdaniel> #23 0x0000555555697e77 in CJobPool::RunBlocking (pJob=0x555555bd5410) at /media/server/gameserver/src/engine/shared/jobs.cpp:118
+01:50 < bridge> <kdaniel> #24 0x000055555568fc9d in IEngine::RunJobBlocking (pJob=0x555555bd5410) at /media/server/gameserver/src/engine/shared/engine.cpp:118
+01:50 < bridge> <kdaniel> #25 0x000055555558437e in CRegister::CProtocol::CJob::Run (this=0x555555bb0300) at /media/server/gameserver/src/engine/server/register.cpp:414
+01:50 < bridge> <kdaniel> #26 0x0000555555697e77 in CJobPool::RunBlocking (pJob=0x555555bb0300) at /media/server/gameserver/src/engine/shared/jobs.cpp:118
+01:50 < bridge> <kdaniel> #27 0x0000555555697b78 in CJobPool::WorkerThread (pUser=0x5555558a3dc0) at /media/server/gameserver/src/engine/shared/jobs.cpp:73
+02:03 < bridge> <heinrich5991> haven't seen it before
+02:06 < bridge> <kdaniel> mhh. i think this happend twice... cant say the first date this happen.
+02:06 < bridge> <kdaniel> i will look more into this error tomorrow.. but was cursed about 502 error from master
+10:46 < bridge> <ryozuki> https://www.raspberrypi.com/news/introducing-raspberry-pi-5/
+10:46 < bridge> <ryozuki> RPI5
+10:46 < bridge> <ryozuki> @jupeyy_keks vulkan 1.2 support
+10:46 < bridge> <ryozuki> > 
+10:46 < bridge> <ryozuki> >     2.4GHz quad-core 64-bit Arm Cortex-A76 CPU
+10:46 < bridge> <ryozuki> >     VideoCore VII GPU, supporting OpenGL ES 3.1, Vulkan 1.2
+10:46 < bridge> <ryozuki> >     Dual 4Kp60 HDMI® display output
+10:46 < bridge> <ryozuki> >     4Kp60 HEVC decoder
+10:46 < bridge> <ryozuki> >     Dual-band 802.11ac Wi-Fi®
+10:46 < bridge> <ryozuki> >     Bluetooth 5.0 / Bluetooth Low Energy (BLE)
+10:46 < bridge> <ryozuki> >     High-speed microSD card interface with SDR104 mode support
+10:46 < bridge> <ryozuki> >     2 × USB 3.0 ports, supporting simultaneous 5Gbps operation
+10:46 < bridge> <ryozuki> >     2 × USB 2.0 ports
+10:46 < bridge> <ryozuki> >     Gigabit Ethernet, with PoE+ support (requires separate PoE+ HAT, coming soon)
+10:46 < bridge> <ryozuki> >     2 × 4-lane MIPI camera/display transceivers
+10:46 < bridge> <ryozuki> >     PCIe 2.0 x1 interface for fast peripherals
+10:47 < bridge> <ryozuki> >     Raspberry Pi standard 40-pin GPIO header
+10:47 < bridge> <ryozuki> >     Real-time clock
+10:47 < bridge> <ryozuki> >     Power button
+11:07 < bridge> <0xfaulty> I have same issue, also it usually happens after error responses from master, in my case usually at night, rarely but sometimes several times in row
+11:07 < bridge> <0xfaulty> I tried in code SIGPIPE handling, ignoring in loop, `-ex "handle SIGPIPE pass nostop noprint"` for gdb
+11:07 < bridge> <0xfaulty> nothing help
+11:07 < bridge> <0xfaulty> but in my case I run in with script, so it (maybe somehow) could be the reason, so on this week I try to run it with same command without script
+11:07 < bridge> <0xfaulty> but as it quite rarely there is no crash yet already 4 days, so I'm waiting
+11:10 < bridge> <0xfaulty> btw, what's your way of starting the server? systemctl service? sh script? just ./DDNet-Server? 🙂
+11:57 < bridge> <teero777> eyo if I start ddnet in tty it should give an error and not start since there isnt any real gui right???
+11:59 < bridge> <kdaniel> Since it was a test server I just run it with gdb ./server and pass the -f file argument after with the run command
+12:01 < bridge> <kdaniel> Good to hear about other having the same Problem. Since our server is custom i couldn't proof if this is our fault or not.
+12:10 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1156895673631899679/IMG_20230928_120944.jpg?ex=6516a28e&is=6515510e&hm=70e8123266976cf521fc08dced4e3d5e36963c8204d076aff4e5efa899ba046a&
+12:10 < bridge> <ryozuki> only in barcelona lmao
+12:10 < bridge> <ryozuki> thats a motherboqrd
+12:34 < bridge> <learath2> If we are willing to give away our autonomy in the internals (how many threads are launched, how jobs are scheduled, etc) there is `std::async`
+12:35 < bridge> <ryozuki> is it performant
+12:35 < bridge> <ryozuki> xd
+12:36 < bridge> <ryozuki> i think boost.aio is slow af
+12:37 < bridge> <heinrich5991> I guess we are not?
+12:38 < bridge> <heinrich5991> at least not without investigating whether it has a sane impl everywhere
+12:39 < bridge> <heinrich5991> hm. does C++ not have combinator functions for chaining futures?
+12:40 < bridge> <heinrich5991> I guess rolling our own might actually be the best way out
+12:40 < bridge> <heinrich5991> however, it's probably too much of a scope for the http multi PR
+12:40 < bridge> <heinrich5991> if we ever want to get it in
+12:41 < bridge> <learath2> I'll meditate on it a bit and decide which one I like the most then do that
+14:09 < bridge> <heinrich5991> https://smallcultfollowing.com/babysteps/blog/2023/09/27/empathy-in-open-source/
+14:09 < bridge> <heinrich5991> I should show more empathy
+14:57 < bridge> <ryozuki> nice article
+15:43 < bridge> <ryozuki> https://docs.rs/crossbeam/latest/crossbeam/sync/struct.ShardedLock.html
+15:43 < bridge> <ryozuki> @reitw i know u used rwlock somewhere
+15:44 < bridge> <ryozuki> if u know reads are way more common, this is faster
+17:53 < bridge> <robyt3> https://github.com/Redcrafter/verilog2factorio :justatest:
+17:53 < bridge> <ryozuki> oh ye
+17:53 < bridge> <ryozuki> factorio is epic
+18:11 < bridge> <ryozuki> @deen did u sign a non compete agreement? and a intelectual property one?
+18:19 < bridge> <learath2> https://github.com/facebook/folly/blob/main/folly/docs/Futures.md this looks interesting
+18:56 < bridge> <MilkeeyCat> its not ok if have same fps when i have 10 zoom and 0, is it? :pepeW:
+18:57 < bridge> <ryozuki> i think its ok
+18:57 < bridge> <ryozuki> vulkan?
+18:58 < bridge> <MilkeeyCat> opengl 3.3.0
+18:59 < bridge> <MilkeeyCat> i though id have more fps with bigger zoom D:
+19:07 < bridge> <MilkeeyCat> :pepeW:
+19:07 < bridge> <MilkeeyCat> https://cdn.discordapp.com/attachments/293493549758939136/1157000582423380038/image.png?ex=65170442&is=6515b2c2&hm=bb7a917b544a2957a5558411442de3aec7cadd7f3a81283d0ff92e6745fb2081&
+19:15 < bridge> <ryozuki> https://chromium.googlesource.com/chromium/src/+/main/docs/security/research/graphics/webgpu_technical_report.md
+19:16 < bridge> <ryozuki> @learath2 is a struct in c++ identical to a class or are there nuances
+19:16 < bridge> <ryozuki> iirc u can add constructors
+19:16 < bridge> <ryozuki> i guess u cant do inheritance
+19:25 < bridge> <_voxeldoesart> @steinchen99 Are you trying to sneak in blank images into this pull request? LOL
+19:27 < bridge> <learath2> That was the case back in the day but it's fairly optimized nowadays for both gl3.3 and vk
+19:27 < bridge> <learath2> not sure about 1.1
+19:28 < bridge> <learath2> A struct is a class with default access `public`
+19:28 < bridge> <learath2> No other nuances iirc
+19:31 < bridge> <ryozuki> ic
+19:31 < bridge> <ryozuki> https://andreabergia.com/blog/2023/07/i-have-written-a-jvm-in-rust/
+19:32 < bridge> <ryozuki> TIL `std::is_pod<T>`
+19:35 < bridge> <learath2> `std::is_trivially_copyable` is also useful
+19:36 < bridge> <ryozuki> pod reminds me of dragon ball
+19:36 < bridge> <ryozuki> https://tenor.com/view/saiyan-pod-space-spacepod-sho-gif-12151120
+19:38 < bridge> <steinchen99> 👀
+20:59 < bridge> <steinchen99> unsure how to remove them.
+20:59 < bridge> <steinchen99> open a new PR instead?
+21:08 < bridge> <robyt3> Use `git rebase -i master` while you are on your PR branch, this opens a text editor with the list of commits, remove the commit from the list and close the text editor
+21:09 < bridge> <robyt3> You can also use this to add "fix style" changes to the original commit, if you mark the minor fix commit as `squash`/`fixup` it will be combined with the commit above it instead
+21:41 < bridge> <_voxeldoesart> chairn taught me how to squash commits and it took longer than it shouldve
+21:50 < bridge> <robyt3> Steinchen is still stuck in vim for the interactive rebase :monkaS:
+21:50 < bridge> <_voxeldoesart> o h
+21:52 < bridge> <ryozuki> :justatest:
+21:55 < bridge> <reitw> ebpf stuff yes
+21:55 < bridge> <reitw> could try
+22:54 < bridge> <steinchen99> https://cdn.discordapp.com/attachments/293493549758939136/1157057818365538314/image.png?ex=65173990&is=6515e810&hm=156d44781f4ccd47844f9c15f919f6ee1b8142ec83bfcb8ed07b7b31cb809357&
+22:56 < bridge> <steinchen99> :justatest:
+22:56 < bridge> <steinchen99> https://cdn.discordapp.com/attachments/293493549758939136/1157058346772340827/image.png?ex=65173a0e&is=6515e88e&hm=8b7a54a656a1e4f7523b4d7153dedde65339cff2ebfecece61a3af506043579b&
+23:01 < bridge> <steinchen99> Can somebody assist me? :monkaStop:
+23:03 < bridge> <MilkeeyCat> Ask chat gpt
+23:06 < bridge> <steinchen99> https://cdn.discordapp.com/attachments/293493549758939136/1157060848649519225/image.png?ex=65173c63&is=6515eae3&hm=f761ed3ff1fcdd5409fa5ba3d5c76341cf60e408ce75edc5e557480c25e5e141&
+23:07 < bridge> <MilkeeyCat> A gg
+23:17 < bridge> <ryozuki> oh man

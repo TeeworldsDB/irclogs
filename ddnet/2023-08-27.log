@@ -1,0 +1,723 @@
+00:01 < bridge_> <Ewan> typically you'd just tell cmake where it is (cmake source dir / ddnet-libs / yadda yadda)
+00:12 < bridge_> <Ewan> i got it to work, though it's definitely not linking against vulkan 1.1.0
+00:12 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145118608532443166/image.png
+00:13 < bridge_> <Ewan> i just gave it the SDK paths manually
+00:13 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145118739122098256/image.png
+00:28 < bridge_> <Voxel> Just made an update to my image slicer, with a much needed QoL feature:
+00:28 < bridge_> <Voxel> https://github.com/VoxelDoesCode/ddnet-image-slicer
+00:28 < bridge_> <Voxel> Now you don't have to delete the output folder every time you do another test run.
+00:29 < bridge_> <Ewan> neat
+00:29 < bridge_> <Ewan> shoot i wish i had the Xynthix skin pack on my laptop
+00:29 < bridge_> <Ewan> i thought i did but i guess not
+00:29 < bridge_> <Ewan> would make testing much easier
+00:29 < bridge_> <Ewan> nvm i do they're in my documents
+00:29 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145122987255799819/image.png
+00:29 < bridge_> <Ewan> 😈
+01:12 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145133575109349416/image.png
+01:12 < bridge_> <Ewan> wonder how it's crashing here
+01:12 < bridge_> <Ewan> i didn't think that was possible
+01:12 < bridge_> <Ewan> bizarre
+01:18 < bridge_> <heinrich5991> sounds like there's a memory access in that line
+01:18 < bridge_> <heinrich5991> sounds plausible for a crash
+01:25 < bridge_> <Ewan> this is a crash in the msvc stl
+01:25 < bridge_> <Ewan> fundamentally it's kinda hard to imagine an atomic<int> crashing on load like this, even if there was no value
+01:26 < bridge_> <heinrich5991> yes. if you give bad pointers to msvc stl, it'll crash
+01:26 < bridge_> <heinrich5991> in msvc stl
+01:26 < bridge_> <Ewan> no ptr 😃
+01:26 < bridge_> <Ewan> it manages the only ptr
+01:26 < bridge_> <heinrich5991> `load()` is a member function
+01:26 < bridge_> <heinrich5991> it gets the `this` pointer as input
+01:26 < bridge_> <heinrich5991> maybe you can check what `this` is
+01:26 < bridge_> <Ewan> if that was the issue the top line would be highlighted
+01:26 < bridge_> <heinrich5991> likely an invalid pointer
+01:27 < bridge_> <heinrich5991> why is that?
+01:27 < bridge_> <Ewan> that's what i've seen windbg do for bad method calls
+01:27 < bridge_> <heinrich5991> I see. in gdb that was sometimes the issue
+01:27 < bridge_> <Ewan> yea
+01:27 < bridge_> <heinrich5991> can you print the `this` pointer?
+01:33 < bridge_> <Ewan> hmm, maybe you're right, it says this is 0x00000038
+01:33 < bridge_> <Ewan> i wonder how that is possible
+01:50 < bridge_> <Ewan> the parent object wasn't initialized
+01:50 < bridge_> <Ewan> oops
+01:51 < bridge_> <Ewan> i was like... how is it getting a bad pointer if every single pointer dereference is checked
+01:59 < bridge_> <Voxel> Figured out how to package it all into ZIP files
+01:59 < bridge_> <Voxel> Figured out how to package all the folders into ZIP files
+01:59 < bridge_> <Ewan> i guess my tarball idea wasn't a hit
+02:00 < bridge_> <Voxel> tarball?
+02:00 < bridge_> <Ewan> if done right a tar has very little extra runtime cost
+02:00 < bridge_> <heinrich5991> you're using `import zipfile`?
+02:00 < bridge_> <Voxel> yes
+02:00 < bridge_> <Ewan> and compressing a collection of PNGs with weak zip compression will not do much
+02:01 < bridge_> <heinrich5991> same for zip btw. you can store data into zips uncompressed
+02:01 < bridge_> <Ewan> yes but it's harder to make an uncompressed zip
+02:01 < bridge_> <Ewan> if we just rely on the tool to pack it then a tarball would work fabulously
+02:01 < bridge_> <Voxel> i dont think zipfile compresses by default
+02:02 < bridge_> <heinrich5991> the problem is that tar files are less supported on windows
+02:02 < bridge_> <Ewan> why would they need to be if the game is reading the archive in full, and the tool would pack and unpack as needed
+02:03 < bridge_> <heinrich5991> because it's nice to analyse stuff with standard tools
+02:03 < bridge_> <Voxel> i love reusing code from my personal projects 😋 
+02:03 < bridge_> <Voxel> (this checks if a folder exists or not and if it does creates a numbered duplicate. there is a max so that it doesn't scan forever)
+02:03 < bridge_> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1145146538763497543/image.png
+02:03 < bridge_> <heinrich5991> that seems to be correct from my reading the docs
+02:06 < bridge_> <Voxel> Now that we have a sort of, beta way to slice images, now we just have to completely rework the imaging system to impliment this    yaaaaaay
+02:06 < bridge_> <Voxel> I don't know how nor do I want to be responsible for this amount of backlash
+02:06 < bridge_> <Ewan> good luck with that
+02:08 < bridge_> <Voxel> I'm just rethinking about something. Should we REALLY package EVERYTHING into ZIPs, or have each category its own ZIP file? Because with each category being a ZIP we can still customize our ddnet experience easily
+02:09 < bridge_> <Voxel> Plus, in the future when we can brodcast our weapons/particle skins we don't have to read FROM EVERY ZIP file, we can just open each respective Weapons and Particles ZIP
+02:09 < bridge_> <Voxel> and maybe prodcast emotes too
+02:09 < bridge_> <Voxel> it won't be a hard thing to impliment server sided, we just brodcast the name of the pack we use (most will be default)
+02:10 < bridge_> <Voxel> ones with arrows can be broscasted
+02:10 < bridge_> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1145148314996703262/image.png
+02:10 < bridge_> <Voxel> the rest is purely client sided
+02:10 < bridge_> <Ewan> why does the server have to care about any of this
+02:11 < bridge_> <Voxel> Because we have tee skins, right? Why not be able to share over Weapon skins too? Or Particles?
+02:11 < bridge_> <Ewan> all the server knows about the tee skin is the name
+02:11 < bridge_> <Ewan> and colors
+02:11 < bridge_> <Ewan> it doesn't have the image or anything
+02:11 < bridge_> <Ewan> server has no idea about any other sort of asset
+02:12 < bridge_> <Voxel> I know
+02:12 < bridge_> <Voxel> Refer to this comment:
+02:12 < bridge_> <Ewan> that doesn't clear up why the server has to care about it
+02:12 < bridge_> <Ewan> why would the client need to know what pack is being used by whoever
+02:12 < bridge_> <Ewan> why would the client need to know what pack is being used by whoever else
+02:13 < bridge_> <Voxel> Because we have tee skins, right? Why not be able to share over Weapon skins too? Or Particles?
+02:13 < bridge_> <Ewan> that doesn't make any sense
+02:13 < bridge_> <Ewan> it literally helps me understand it 0% better than the first time you said it
+02:13 < bridge_> <Ewan> why are you trying to share any of this over the server
+02:13 < bridge_> <Voxel> I'm literally giving you the answer.
+02:14 < bridge_> <Ewan> why would you want that
+02:14 < bridge_> <Voxel> It's going to be exactly like hoe tee skins are treated except it's with weapon skins
+02:14 < bridge_> <Ewan> so it would show others' custom weapons?
+02:14 < bridge_> <Voxel> Yes
+02:14 < bridge_> <Ewan> hmm
+02:14 < bridge_> <Voxel> Because this game is free and open source
+02:14 < bridge_> <Ewan> that is kind of a neat idea but i am concerned about network load
+02:15 < bridge_> <Ewan> well i guess it woudl be individual sprites and not the whole sheet
+02:15 < bridge_> <Ewan> yeah sounds cool
+02:15 < bridge_> <Voxel> But then again, it's only going to broadcast the NAME of the pack, like the tee skin
+02:16 < bridge_> <Voxel> But that raises the problem, how loaded would the servers be holding This Many Assets
+02:16 < bridge_> <Ewan> you'd just need to expand the api. like, skins.tw already holds other assets
+02:16 < bridge_> <Ewan> and the ddnet dbs... no comment
+02:17 < bridge_> <Voxel> One ZIP file of everything is like, 570 bytes for a default.
+02:17 < bridge_> <Voxel> Not sure about the rest of the packs.
+02:17 < bridge_> <Ewan> uhh
+02:17 < bridge_> <Ewan> 570 bytes??
+02:18 < bridge_> <Voxel> yeah
+02:18 < bridge_> <Voxel> want proof
+02:18 < bridge_> <Voxel> lemme dm
+02:18 < bridge_> <Ewan> and this zip contains what?
+02:20 < bridge_> <Voxel> ***I FORGOT TO PACKAGE THE IMAGES!!!***
+02:20 < bridge_> <Voxel> AUGH IM SO DUMB
+02:20 < bridge_> <Voxel> one second
+02:20 < bridge_> <Ewan> yeah lmfao
+02:20 < bridge_> <Ewan> sorry
+02:20 < bridge_> <Ewan> 570 bytes is like less than a paragraph
+02:23 < bridge_> <heinrich5991> about a paragraph, I'd say
+02:23 < bridge_> <Ewan> depends on the length of a paragraph
+02:29 < bridge_> <heinrich5991> the paragraph lengths of https://en.wikipedia.org/w/index.php?title=Paragraph&oldid=1165204553 are
+02:29 < bridge_> <heinrich5991> ```
+02:29 < bridge_> <heinrich5991> 347
+02:29 < bridge_> <heinrich5991> 554
+02:29 < bridge_> <heinrich5991> 717
+02:29 < bridge_> <heinrich5991> 447
+02:29 < bridge_> <heinrich5991> 247
+02:29 < bridge_> <heinrich5991> 459
+02:29 < bridge_> <heinrich5991> 381
+02:29 < bridge_> <heinrich5991> 116
+02:29 < bridge_> <heinrich5991> 312
+02:29 < bridge_> <heinrich5991> 174
+02:29 < bridge_> <heinrich5991> 415
+02:29 < bridge_> <heinrich5991> 476
+02:29 < bridge_> <heinrich5991> 359
+02:29 < bridge_> <heinrich5991> 854
+02:29 < bridge_> <heinrich5991> 273
+02:29 < bridge_> <heinrich5991> 285
+02:29 < bridge_> <heinrich5991> 208
+02:29 < bridge_> <heinrich5991> 591
+02:29 < bridge_> <heinrich5991> ```
+02:29 < bridge_> <Ewan> cool
+02:30 < bridge_> <Ewan> looks like 570 is pretty above average
+02:31 < bridge_> <Voxel> Scratch that. ~500 KB
+02:31 < bridge_> <Ewan> sounds more like it
+02:31 < bridge_> <Voxel> With images
+02:31 < bridge_> <Voxel> Scratch that. ~500 KB, With images
+02:38 < bridge_> <Voxel> I'm going to post the link to the slicer in #6753
+02:38 < bridge_> <DDNet> https://github.com/ddnet/ddnet/issues/6753
+03:14 < bridge_> <Ewan> this works awesome now that i don't have to wait
+03:14 < bridge_> <Ewan> using a custom status, i can put the file load thread into yield mode, and i check the mode of the other thread every frame on the main thread & only access when it's in yield mode. then when i'm done, i just put it back in run mode, and the other thread stops waiting
+03:18 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145165315953659924/TabTip_BnCTPWEGlM.mp4
+03:18 < bridge_> <Ewan> it's lockfree since where i was waiting on a mutex before i now just ignore it for this frame and check again later
+03:19 < bridge_> <Ewan> the stutters near the end are just my poor laptop igpu i'm pretty sure
+03:26 < bridge_> <Ewan> but the way it's integrated into the job system rn is kind of a mess
+03:26 < bridge_> <Ewan> maybe m_Status from IJob should be protected instead of private? @robyt3 thoughts?
+03:27 < bridge_> <Ewan> i ended up changing the access specifier for my implementation but i don't like to do that, it would make more sense to be protected anyway
+03:29 < bridge_> <heinrich5991> I think it'd be preferable if you introduced your own status variable for that
+03:30 < bridge_> <Ewan> i guess that works too
+03:34 < bridge_> <Ewan> just noticed that the .png is a part of the name, idk why, i made it not do that
+03:41 < bridge_> <Voxel> i am Here
+03:41 < bridge_> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1145171253561405510/image.png
+03:43 < bridge_> <Ewan> true
+03:45 < bridge_> <Ewan> @coelacanth now u can rock the xynthix pack again
+05:09 < bridge_> <Ewan> also @robyt3 i responded to your reviews from 3 days ago
+05:10 < bridge_> <Ewan> closed the ones i was able to fix immediately, left questions on the other ones
+05:10 < bridge_> <Ewan> resolved the ones i was able to fix immediately, left questions on the other ones
+07:38 < bridge_> <Jupstar ✪> That means it didn't work. Also you don't need the vk sdk
+07:38 < bridge_> <Jupstar ✪>  GitHub ci also uses msvc
+07:38 < bridge_> <Jupstar ✪> Do you build in 32 bit?
+07:42 < bridge_> <Ewan> No
+08:00 < bridge_> <Ewan> Hmm weird cuz I was getting build issues before I hooked up the sdk iirc
+09:46 < ChillerDragon> there is no ``cl_port`` for dummy is there?
+09:47 < ChillerDragon> cl_dummy_port
+09:47 < ChillerDragon> nvm
+09:47 < ChillerDragon> i expected cl_port_dummy
+09:48 < ChillerDragon> would be so epic if the console search would be fuzzy. This fakin ordering of words always breaks my search results
+09:59 < bridge_> <Ewan> Ya same
+10:12 < ChillerDragon> https://tube.zillyhuhn.com/video.php?t=ddnet_flawless_07_dummy.mp4&u=chiller
+10:12 < ChillerDragon> smooth dommi support for 0.7
+10:15 < bridge_> <Jupstar ✪> omg so smooth
+10:15 < bridge_> <Jupstar ✪> i'm sooo hyped
+10:15 < bridge_> <Ewan> LMFAO
+10:16 < bridge_> <Ewan> Awesome web btw
+10:16 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145270488789168189/IMG_3569.png
+10:16 < ChillerDragon> thanks
+10:19 < bridge_> <Jupstar ✪> when 0.8 support
+10:20 < ChillerDragon> wot 0.8
+10:21 < ChillerDragon> 0.8 doesnt release for another decade i assume
+10:21 < bridge_> <Ewan> Does he even care to continue teeworlds development now that DDNet is a thing
+10:21 < bridge_> <Ewan> I really don’t keep up
+10:21 < ChillerDragon> he being "oy" ?
+10:22 < ChillerDragon> oy doesnt really care about ddnet 
+10:22 < bridge_> <Ewan> Magnus
+10:22 < ChillerDragon> magnus xd
+10:22 < ChillerDragon> he gone
+10:22 < ChillerDragon> since forever
+10:22 < bridge_> <Ewan> Damn
+10:22 < bridge_> <Jupstar ✪> he was here once. i should have asked him to give me full access to teeworlds 😂
+10:22 < bridge_> <Ewan> Lol
+10:22 < bridge_> <Ewan> Yeah I remember the desk pic
+10:22 < ChillerDragon> magnus top3 least influencal tw actors in 2023
+10:23 < ChillerDragon> #jopstiforpresident
+10:23 < bridge_> <Jupstar ✪> at least he takes everything with humor
+10:23 < ChillerDragon> magnus?
+10:23 < bridge_> <Jupstar ✪> yeah
+10:23 < ChillerDragon> cool
+10:23 < ChillerDragon> idk the guy
+10:23 < ChillerDragon> i only sent him a email once and he was nice
+10:23 < bridge_> <Jupstar ✪> i wish we'd have the name "teeworlds" xd
+10:24 < ChillerDragon> unlike oy who ignores my email since motnhs
+10:24 < bridge_> <Jupstar ✪> it's so much cooler
+10:24 < bridge_> <Jupstar ✪> ;~;
+10:24 < ChillerDragon> DUMMY DRACE RACE NETWORK
+10:24 < ChillerDragon> waz
+10:24 < bridge_> <Jupstar ✪> cock
+10:24 < ChillerDragon> DUMMY DRAG RACE NET WORK?
+10:24 < ChillerDragon> xd
+10:24 < bridge_> <Ewan> dummy drag race network
+10:24 < bridge_> <Ewan> silly name tbh
+10:24 < bridge_> <Ewan> we should just call it ball game
+10:24 < ChillerDragon> xd
+10:24 < ChillerDragon> ballracer
+10:24 < bridge_> <Ewan> yea
+10:24 < bridge_> <Jupstar ✪> i'd already be happy if i'd have teeuniverse
+10:25 < bridge_> <Jupstar ✪> does someone still have contact to that guy?
+10:25 < ChillerDragon> who owned it?
+10:25 < bridge_> <Jupstar ✪> necro smth
+10:25 < ChillerDragon> a
+10:25 < ChillerDragon> he gone
+10:25 < bridge_> <Jupstar ✪> https://github.com/necropotame
+10:26 < bridge_> <Jupstar ✪> yeah he gone, but can someone contact him? xD
+10:26 < bridge_> <Jupstar ✪> i'd like to continue his dream
+10:26 < ChillerDragon> https://github.com/teeworldsmods2
+10:26 < ChillerDragon> xd
+10:26 < bridge_> <learath2> Legend says it that if you spend enough time in infclass servers he shows up
+10:26 < ChillerDragon> https://zillyhuhn.com/cs/.1693124803.png
+10:27 < bridge_> <learath2> s\/says/has/
+10:27 < ChillerDragon> or mr english
+10:27 < bridge_> <sigma_alken> how to open pull request on github?
+10:27 < ChillerDragon> click green button
+10:27 < bridge_> <Jupstar ✪> xd
+10:27 < bridge_> <Jupstar ✪> tbh, just search in the internet
+10:28 < bridge_> <Jupstar ✪> nobody here is better in explaining than someone who wrote a blog and wasted his life to explain it
+10:28 < ChillerDragon> create fork
+10:28 < ChillerDragon> create branch
+10:28 < ChillerDragon> goto ddnet/ddnet
+10:28 < ChillerDragon> click green button
+10:29 < ChillerDragon> https://www.youtube.com/watch?v=mxBwyEIeaRQ
+10:29 < ChillerDragon> @sigma_alken full tutorial xd
+10:30 < bridge_> <Ewan> lmfao
+10:36 < bridge_> <Iza> Don’t show a botter how to code please :justatest:
+10:36 < bridge_> <sigma_alken> wtf is that length of video
+10:36 < bridge_> <sigma_alken> :troll:
+10:37 < bridge_> <sigma_alken> 21 minutes explaining how do a pull request
+10:37 < bridge_> <Ewan> has dev badge but doesn’t know how to code
+10:37 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145275815941124137/IMG_3570.png
+10:37 < bridge_> <Ewan> doesn’t know how to open a pr rather
+10:37 < bridge_> <Ewan> is it really that easy to get it
+10:37 < bridge_> <sigma_alken> discord =/ know all
+10:37 < bridge_> <Ewan> i heard way back it was easy but
+10:37 < bridge_> <Ewan> i didn’t know it was free
+10:38 < bridge_> <Iza> You just have to be in a discord developer group to get it, nothing more
+10:38 < ChillerDragon> @sigma_alken i sent you the 3 steps it needs as text if you lack the fundamentals of what git and github is you can watch the lengthy video going into great detail
+10:39 < bridge_> <Ewan> step 1: take adderall
+10:39 < bridge_> <Ewan> step 2: watch the video
+10:39 < bridge_> <Iza> step 3 depression
+10:39 < bridge_> <sigma_alken> all is good bro
+10:41 < ChillerDragon> @Jupstar ✪ lerato might have a point you can try contacting the infclass fanatics like this @kaffeine dude he might know where necro hides
+10:43 < ChillerDragon> fuck dummy works half of the time
+10:43 < ChillerDragon> best debugging scenario
+10:47 < bridge_> <Jupstar ✪> @kaffeine0 where does necro hide, he also was a infclass fanatic like you
+10:47 < ChillerDragon> xd
+11:06 < bridge_> <Ewan> wait lol maybe he wasn’t kidding https://discord.com/channels/252358080522747904/871738312849752104/1145277026786357248
+11:08 < ChillerDragon> discord link moment
+11:08 < ChillerDragon> i feel discriminated
+11:08 < ChillerDragon> as a irc minority
+11:08 < bridge_> <Jupstar ✪> use matrix
+11:08 < bridge_> <Jupstar ✪> it's to latest wiki msg
+11:09 < ChillerDragon> thank
+11:09 < bridge_> <Jupstar ✪> chillerdragon: also let's face it u had to use discord
+11:09 < bridge_> <Jupstar ✪> to change your name, after discord name change
+11:09 < bridge_> <Jupstar ✪> we all know you use it secretly
+11:15 < ChillerDragon> wasnt that secret at all
+11:15 < ChillerDragon> i discussed in this very channel multiple times
+11:15 < ChillerDragon> and used heinrichs phone num to login back again :D 
+11:16 < bridge_> <Ewan> lol
+11:16 < ChillerDragon> but i didnt use it after 
+11:16 < ChillerDragon> i quickly went tru ma dms
+11:16 < ChillerDragon> and closed dc
+11:19 < bridge_> <Jupstar ✪> it's ok secret dc fan
+11:21 < ChillerDragon> ._.
+11:21 < ChillerDragon> im proud skype enjoyer
+11:21 < ChillerDragon> microsoft all the way
+11:21 < bridge_> <Ewan> True
+11:22 < bridge_> <Iza> i love it when i have to look at ads between my chats
+11:22 < ChillerDragon> :D
+11:22 < ChillerDragon> i dont remember any ads
+11:22 < ChillerDragon> maybe you didnt buy skype pro
+11:23 < bridge_> <Iza> skype pro? glad i didnt buy it
+11:25 < ChillerDragon> xd
+11:25 < ChillerDragon> neither did i lol i dont think it existed
+11:26 < ChillerDragon> but fr i can not remember any ads
+11:26 < ChillerDragon> maybe it was a windows thing
+11:26 < ChillerDragon> back then i was mac enjoyer
+11:30 < bridge_> <sigma_alken> ChillerDragon write @everyone
+11:31 < ChillerDragon> oh god
+11:31 < ChillerDragon> no
+11:31 < ChillerDragon> im nice person and would never trol
+11:39 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1145291520421933177/image.png
+11:39 < bridge_> <Jupstar ✪> who even made these epic icons xD
+11:39 < bridge_> <Jupstar ✪> i like the puzzle item
+11:39 < bridge_> <Jupstar ✪> puzzle tee
+11:40 < ChillerDragon> idk 
+11:40 < ChillerDragon> i liked old better
+11:40 < ChillerDragon> especially #developer is a downgrade
+11:40 < bridge_> <Jupstar ✪> the supporter should be maybe be for questions xd
+11:40 < bridge_> <Jupstar ✪> anything better than default tee
+11:40 < bridge_> <Jupstar ✪> hehe
+11:48 < ChillerDragon> https://zillyhuhn.com/cs/.1693129717.png
+11:48 < ChillerDragon> pink dragon!
+11:48 < ChillerDragon> 0.7 skins pog
+11:49 < bridge_> <Jupstar ✪> it's ogay
+12:06 < bridge_> <Ewan> chiller, how much kog do you play
+12:07 < bridge_> <Jupstar ✪> qog
+12:07 < ChillerDragon> i rage quitted playing all together around a year ago when my ineternet died
+12:07 < ChillerDragon> before that i played in phases. Idk i did play somewhat active id say
+12:08 < bridge_> <Jupstar ✪> i remember him playing 7 years ago xd
+12:08 < ChillerDragon> pst name changer
+12:09 < bridge_> <Jupstar ✪> ^ u got me there for a second
+12:11 < bridge_> <Ewan> isn’t kog clan for top 100
+12:11 < ChillerDragon> axaxax
+12:11 < bridge_> <Ewan> or did u just give them so many maps that they’re like whatever
+12:11 < ChillerDragon> back when i joined kog it was top70
+12:11 < ChillerDragon> i dont think i ever made it into top70
+12:11 < bridge_> <Ewan> nerd
+12:11 < bridge_> <Ewan> Lmfao
+12:12 < ChillerDragon> idk how i got in
+12:12 < bridge_> <Ewan> wild
+12:12 < ChillerDragon> i think top70 was more like the only technical metric they had
+12:13 < ChillerDragon> it was more a community thing
+12:13 < ChillerDragon> of active players that enjoy koging
+12:13 < bridge_> <Jupstar ✪> chiller i really respect you for working on it
+12:13 < ChillerDragon> on 0.7? xd
+12:13 < bridge_> <Jupstar ✪> but if heinrich merges it, i have to say that this is a completely wild decision and pretty ego
+12:13 < ChillerDragon> i was super active on kog skype group and kog forum etc
+12:13 < ChillerDragon> yikes
+12:13 < bridge_> <Jupstar ✪> i don't know any dev that actually wants this
+12:13 < ChillerDragon> lerato is 0.7 enjoyer
+12:14 < ChillerDragon> thanks for the respect unless i didnt get the irony
+12:14 < bridge_> <Jupstar ✪> i think deep in his mind, learath also knows that we bloat the source code quite a bit
+12:14 < bridge_> <Jupstar ✪> i've seen him saying smth similar to the bridge
+12:14 < bridge_> <Jupstar ✪> no no, the respect is serious
+12:14 < ChillerDragon> pog
+12:15 < ChillerDragon> yea if he doesnt merge ima cry
+12:15 < bridge_> <Jupstar ✪> i know
+12:15 < ChillerDragon> waiting for almost 1 year to get it merged
+12:15 < bridge_> <Jupstar ✪> that's why i wanted to prevent it in first place
+12:15 < bridge_> <Jupstar ✪> well who am i
+12:15 < bridge_> <Jupstar ✪> 
+12:15 < bridge_> <Jupstar ✪> i should just do my own things lmao
+12:15 < ChillerDragon> ddnet2
+12:15 < bridge_> <Jupstar ✪> ddnet 3
+12:15 < ChillerDragon> wot
+12:15 < bridge_> <Jupstar ✪> i skip 2, because future
+12:15 < bridge_> <Jupstar ✪> xd
+12:16 < ChillerDragon> bleeding edge
+12:16 < bridge_> <Jupstar ✪> no just kidding
+12:16 < ChillerDragon> :rocket:
+12:16 < bridge_> <Jupstar ✪> but tbh, my plan is actually mostly to get to vanilla support and then add fng stuff
+12:16 < bridge_> <Jupstar ✪> i am not really the best to implement all the ddnet quirks xD
+12:16 < ChillerDragon> 0.7 is the vanillast protocol of them all
+12:16 < bridge_> <Jupstar ✪> it's really hard even understanding the source code
+12:17 < bridge_> <Jupstar ✪> or we actually break physics in ddnet 2
+12:17 < ChillerDragon> oof
+12:17 < bridge_> <Jupstar ✪> i mean core physics stay ofc
+12:17 < ChillerDragon> heinrich hammer moment
+12:17 < bridge_> <Jupstar ✪> but stuff like draggers are so fucking bad implemented
+12:17 < bridge_> <Jupstar ✪> it hurts me to read it
+12:18 < ChillerDragon> ok pro dev
+12:18 < bridge_> <Jupstar ✪> yeah np
+12:18 < bridge_> <Jupstar ✪> you owe me smth for this amazing real talk
+12:18 < bridge_> <Zwelf> Those are skins from https://ddnet.org/skins. I'm open to suggestios for better room icons (or more fitting skins)
+12:18 < ChillerDragon> for the respect you gave me? :D 
+12:18 < bridge_> <Jupstar ✪> yes XDDDDD
+12:18 < ChillerDragon> eh oke
+12:19 < ChillerDragon> you get respect back
+12:19 < ChillerDragon> for ddnet2
+12:19 < bridge_> <Jupstar ✪> thanks, i owe u smth
+12:19 < ChillerDragon> honestly idk much about it but what i saw looked really cool
+12:19 < bridge_> <Jupstar ✪> what do u need?
+12:19 < ChillerDragon> a gf
+12:19 < bridge_> <Jupstar ✪> ah ok
+12:20 < bridge_> <Jupstar ✪> @ insanity, chiller is still free
+12:20 < ChillerDragon> wingman jopsti
+12:22 < ChillerDragon> jopsti when come to munich?
+12:22 < bridge_> <Jupstar ✪> i dunno, i was there once
+12:22 < ChillerDragon> why didnt u tell me mf
+12:23 < bridge_> <Jupstar ✪> it was from school
+12:23 < bridge_> <Jupstar ✪> Bauma messe
+12:23 < ChillerDragon> xd
+12:23 < bridge_> <Jupstar ✪> where they flex by building a 200000$ house for 3 days
+12:23 < bridge_> <Jupstar ✪> (no joke) xD
+12:23 < ChillerDragon> sounds cool
+12:24 < bridge_> <Jupstar ✪> yeah xd
+12:24 < bridge_> <Jupstar ✪> 
+12:24 < bridge_> <Jupstar ✪> i mean it was impressive
+12:24 < bridge_> <Jupstar ✪> ngl
+12:24 < bridge_> <Jupstar ✪> when the tires of a tractor are like 10 meters
+12:24 < bridge_> <Jupstar ✪> u fucking scared
+12:24 < ChillerDragon> litle school jopsti being 1m
+12:25 < bridge_> <Jupstar ✪> i mean they were literally so huge
+12:25 < bridge_> <Jupstar ✪> it's these machines used for grabbing coal and stuff
+12:25 < ChillerDragon> a pickaxe?
+12:25 < bridge_> <Jupstar ✪> exactly xd
+12:25 < ChillerDragon> xd
+12:25 < bridge_> <Jupstar ✪> a wheel out of pickaxes
+12:26 < ChillerDragon> such #developer talk
+12:26 < bridge_> <Jupstar ✪> yeah
+12:27 < bridge_> <Jupstar ✪> now that you can read&write offtopic... it's lame to not write in developers
+12:27 < bridge_> <Jupstar ✪> before that it was cool to write in dev channel bcs there was no choice
+12:27 < bridge_> <Jupstar ✪> now that there's no excuse, we have to break the system
+12:28 < bridge_> <Jupstar ✪> bro so many prs lately
+12:28 < bridge_> <Jupstar ✪> aimazing
+12:36 < ChillerDragon> yea offtopic is still matrix only
+12:37 < ChillerDragon> but developer is nicer channel and heinrich told me spamming chillerbot stuff is more accepted in developer than offtopic i rather vibe here
+12:37 < bridge_> <Jupstar ✪> what's written in dev channel stays in dev channel
+12:38 < ChillerDragon> exactly
+12:38 < bridge_> <Jupstar ✪> the only rule in this channel xD
+12:38 < ChillerDragon> and dont talk about the dev channel outside of the dev channel
+12:38 < bridge_> <Jupstar ✪> 😬
+12:43 < bridge_> <Jupstar ✪> @patiga if i select vulkan as backend for wgpu
+12:43 < bridge_> <Jupstar ✪> 
+12:43 < bridge_> <Jupstar ✪> are out of bound reads inside a shader all checked?
+12:43 < bridge_> <Jupstar ✪> 
+12:43 < bridge_> <Jupstar ✪> like is wgpu adding runtime checks to the shader or even at the render command?
+13:38 < bridge_> <blaiszephyr> oha chiller, nicht nur deutschi, sondern auch münchner, kimm a mal nunter aufs land, lel
+13:39 < a__> hi
+13:40 < bridge_> <Jupstar ✪> hello, nice to meet you
+13:40 < bridge_> <Jupstar ✪> how are you?
+13:42 < bridge_> <h.kaan> wanted to test it
+13:42 < bridge_> <h.kaan> good, and you?
+13:44 < bridge_> <Jupstar ✪> neutral
+13:45 < ChillerDragon> xd
+14:02 < bridge_> <b_._easy> in the map 007 and 069 theres these things that circle you built into the background of the map. i was wondering if its possible to code something into the client and have that on every map?
+14:02 < bridge_> <b_._easy> https://cdn.discordapp.com/attachments/293493549758939136/1145327459005370399/image.png
+14:03 < bridge_> <b_._easy> but make them circle your actual self and not be part of the map. so even if you zoom out it wont get bigger
+14:04 < ChillerDragon> no code needed for that
+14:04 < ChillerDragon> you can already set custom background maps
+14:04 < ChillerDragon> and play with para to make it not zoom
+14:04 < bridge_> <b_._easy> ouu
+14:05 < bridge_> <b_._easy> ima try to figure out how to do that real quick
+14:05 < ChillerDragon> im not sure if you can leave the map design on for that
+14:05 < ChillerDragon> i think the custom background map only works with entities but not sure whats possible there
+14:08 < bridge_> <b_._easy> what is para to make it not zoom
+14:09 < ChillerDragon> iirc ddnet zooms all quads
+14:09 < ChillerDragon> unless they have parlax
+14:09 < ChillerDragon> on the group
+14:09 < ChillerDragon> set para x and para y
+14:10 < ChillerDragon> it makes it shift depending on your pos
+14:10 < ChillerDragon> if the value is low enough it should make it not zoom and move barley
+14:11 < bridge_> <b_._easy> oh so thats a map feature not a client featrue
+14:12 < bridge_> <b_._easy> oh so thats a map feature not a client feature
+14:12 < bridge_> <b_._easy> all g
+14:16 < bridge_> <louis> i think you can use para zoom instead of normal zoom if ur client is updated
+14:16 < bridge_> <louis> i think you can use para zoom instead of normal para if ur client is updated
+14:44 < bridge_> <b_._easy> ohhh
+14:44 < bridge_> <b_._easy> lemme update
+14:59 < ChillerDragon> wot non 0.7 related pr!?
+15:01 < bridge_> <Jupstar ✪> NO WAY
+15:40 < bridge_> <cyberFighter> lol
+15:40 < bridge_> <cyberFighter> i cant see this being a ddnet thing though
+15:41 < bridge_> <cyberFighter> more like just chillerbot ux
+15:52 < bridge_> <heinrich5991> Jupstar: you might get ddnet physics implemented in rust from Zwelf ^^
+15:55 < bridge_> <Jupstar ✪> yeah i know, that's really cool
+15:55 < bridge_> <Jupstar ✪> 
+15:55 < bridge_> <Jupstar ✪> but tbh it won't be really compatible sadly 😄
+15:55 < bridge_> <Jupstar ✪> i already looked into it
+15:55 < bridge_> <heinrich5991> why is it not possible to make it compatible?
+15:55 < bridge_> <Jupstar ✪> it's certainly possible
+15:56 < bridge_> <Jupstar ✪> but it might be too big of a rewrite to be more useful than the c code we have rn
+15:56 < bridge_> <heinrich5991> ah 😦
+15:57 < bridge_> <Jupstar ✪> also tbh i am not sure how compatible i want to stay at all
+15:57 < bridge_> <Jupstar ✪> 
+15:57 < bridge_> <Jupstar ✪> maybe i want to try out fixed point floats for physics
+15:57 < bridge_> <Jupstar ✪> that's a slight physic break, but in the end all my stuff breaks everything anyway xd
+15:57 < bridge_> <heinrich5991> oh yea, fixed point would be soo nice
+15:57 < bridge_> <heinrich5991> unfortunately breaking 😦
+15:57 < bridge_> <Jupstar ✪> i'd assume most maps still work
+15:58 < bridge_> <Jupstar ✪> so if we really ever plan a second season, that would be the time to do such stuff
+16:11 < bridge_> <timakro> @heinrich5991 @ryozuki I made unique sql backups public here, feel free to pull a copy. I update these kind of irregularly https://files.uniqueclan.net/backups/
+16:11 < ChillerDragon> wot timakro
+16:11 < ChillerDragon> u alive
+16:11 < bridge_> <timakro> 👋
+16:11 < ChillerDragon> ello
+16:11 < bridge_> <timakro> why are you a bot chiller?
+16:11 < ChillerDragon> no proof
+16:12 < bridge_> <timakro> i mean why does it say bot next to your name :D
+16:12 < ChillerDragon> i refuse any allegations
+16:12 < ChillerDragon> plase talk to my lawyer mr jopsti
+16:12 < bridge_> <timakro> matrix bridge? :P
+16:12 < ChillerDragon> irc bridge :)
+16:12 < bridge_> <timakro> aha
+16:13 < ChillerDragon> u still active?
+16:14 < ChillerDragon> @timakro why havent i seen u in ages? u still play? u still do some unique stuff?
+16:14 < bridge_> <heinrich5991> @timakro mind if I annoy you every six months about it? every year?
+16:16 < bridge_> <timakro> @heinrich5991 nah, would actually be good if I did backups more regularly :D
+16:16 < bridge_> <heinrich5991> six months it is
+16:16 < bridge_> <heinrich5991> automating backups is the way to go  btw
+16:17 < ChillerDragon> timakro.de for sale o.O
+16:23 < ChillerDragon> korb
+16:24 < bridge_> <timakro> @chillerdragon I'm not playing anymore but I still maintain unique
+16:25 < bridge_> <heinrich5991> @timakro I can't configure my alerts for longer than a month :/
+16:25 < bridge_> <timakro> on your phone/calendar?
+16:25 < ChillerDragon> oh wow you fully quit? :(
+16:25 < ChillerDragon> sadge
+16:26 < bridge_> <heinrich5991> I'll figure something out
+16:26 < bridge_> <timakro> idk just stopped playing some day ^^
+16:26 < ChillerDragon> sad to hear
+16:26 < bridge_> <heinrich5991> no, selfhosted https://healthchecks.io/
+16:27 < bridge_> <timakro> will have to check this out, because if you automate backups then you still can't be sure they really run, but this seems to be target at exactly that problem
+16:27 < ChillerDragon> yea you usually do some http request at the end of the backup
+16:27 < ChillerDragon> and it alerts if it didnt receive it
+16:30 < bridge_> <heinrich5991> @timakro yes, quite nice project. I use it for backups, certificates and ddnet https master server monitoring
+16:30 < ChillerDragon> is it public?
+16:30 < ChillerDragon> status.heinrich5991.de ?
+16:34 < bridge_> <heinrich5991> hc.heinrich5991.de
+16:34 < bridge_> <heinrich5991> but not accessible
+16:42 < ChillerDragon> yo @heinrich5991 you have only one vps right? not too big cpu with a hughe drive right? If that thing dies how painful would it be? Do you have some provision scripts and backups? How much data would be lost and how long would it take you to restore the whole thing?
+16:43 < bridge_> <Jupstar ✪> Chiller planning his next attack xd
+16:43 < bridge_> <heinrich5991> that thing would actually be pretty painful, now that you mention it
+16:44 < ChillerDragon> not trying to cause you any sleepless nights :D just asking if you have some rock solid strat that i can copy so i can sleep better
+16:44 < bridge_> <Jupstar ✪> aren't u using github as backup?
+16:44 < bridge_> <Jupstar ✪> that sounds pretty solid xD
+16:44 < ChillerDragon> me?
+16:44 < ChillerDragon> yea i have some things in place
+16:45 < bridge_> <Jupstar ✪> yes
+16:45 < ChillerDragon> i spread it up on two vps
+16:45 < bridge_> <heinrich5991> I'm backing up other stuff using some tool I forgot
+16:45 < ChillerDragon> and basically ALL data is backuped to github
+16:45 < ChillerDragon> and github is backed up to gitlab
+16:45 < ChillerDragon> stll wouldnt be nice
+16:46 < ChillerDragon> where do you back it up to heinrich?
+16:46 < bridge_> <heinrich5991> my computers are backed up using zfs
+16:46 < bridge_> <heinrich5991> nas at home
+16:46 < ChillerDragon> ou my computers are only backed up to github xd
+16:46 < ChillerDragon> that worked fine every time my drive died
+16:47 < ChillerDragon> i have no private data on my laptop so thats fine. Its all on my vps .-. so thats scary xd
+16:48 < bridge_> <heinrich5991> do you use a password manager btw?
+16:48 < ChillerDragon> yes
+16:48 < bridge_> <heinrich5991> good
+17:45 < bridge_> <patiga> in wgsl, out of bounds loads usually return garbage values, probably implementation defined. I haven't encountered yet that it encounters a 'Trap'. You can still also just use spir-v shaders directly, which ofc won't get new checks or anything
+17:45 < bridge_> <patiga> What do you mean with 'at the render command' exactly? wgpu will verify that you have the appropriate bind groups and shader buffers set, before it allows you to execute pipelines
+17:45 < bridge_> <patiga> https://gpuweb.github.io/gpuweb/wgsl/#out-of-bounds-access-sec
+17:47 < bridge_> <Jupstar ✪> well my question generall is, if it prevents undefined behavior of any kind in pure safe code
+17:47 < bridge_> <Jupstar ✪> 
+17:47 < bridge_> <Jupstar ✪> that indeed also includes stuff like casting NaNs to ints even in shaders
+17:54 < bridge_> <patiga> in the shader code, no. out of bounds accesses do return values, without you being sure what they may be. they are called 'indeterminate values' https://gpuweb.github.io/gpuweb/wgsl/#indeterminate-values and are used in the function definitions in the spec, often when operations are done on NaNs.
+17:54 < bridge_> <patiga> > Implementations may assume that overflow, infinities, and NaNs are not present at runtime.
+17:54 < bridge_> <patiga> just skimmed past that, sounded interesting
+17:54 < bridge_> <patiga> https://gpuweb.github.io/gpuweb/wgsl/#bit-reinterp-builtin-functions sounds like casts from NaNs to ints is fine in theory
+17:58 < bridge_> <Jupstar ✪> i mean i know they kinda implement webgpu API
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> but in fact they have a VK backend
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> and i kinda doubt it has the same guarantees as the WebGPU API
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> or to rephrase: i generally don't trust any drivers
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> i wonder if one should really trust these new APIs in terms of security..
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> I mean sure, the GPU stuff is isolated, and e.g. dedicated GPUs are itself an isolation already 😄
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> I am asking all this bcs i was wondering if i should rewrite the shaders to wgls and use their compiler, which should make anything that happens on the GPU itself (not vk API) just as safe as wgpu
+17:58 < bridge_> <Jupstar ✪> 
+17:58 < bridge_> <Jupstar ✪> proofing buffer/memory correctness is probably easier than that 😄
+17:59 < bridge_> <Jupstar ✪> i mean i know they kinda implement webgpu API
+17:59 < bridge_> <Jupstar ✪> 
+17:59 < bridge_> <Jupstar ✪> but in fact they have a VK backend
+18:00 < bridge_> <Jupstar ✪> 
+18:00 < bridge_> <Jupstar ✪> and i kinda doubt it has the same guarantees as the WebGPU API
+18:00 < bridge_> <Jupstar ✪> 
+18:00 < bridge_> <Jupstar ✪> or to rephrase: i generally don't trust any drivers
+18:00 < bridge_> <Jupstar ✪> 
+18:00 < bridge_> <Jupstar ✪> i wonder if one should really trust these new APIs in terms of security..
+18:00 < bridge_> <Jupstar ✪> 
+18:00 < bridge_> <Jupstar ✪> I mean sure, the GPU stuff is isolated, and e.g. dedicated GPUs are itself an isolation already 😄
+18:00 < bridge_> <Jupstar ✪> 
+18:00 < bridge_> <Jupstar ✪> I am asking all this bcs i was wondering if i should rewrite the shaders to wgls and use their compiler, which should make anything that happens on the GPU itself (not vk API) just as safe as wgpu
+18:00 < bridge_> <Jupstar ✪> 
+18:00 < bridge_> <Jupstar ✪> proving buffer/memory correctness is probably easier than that 😄
+18:02 < bridge_> <patiga> well what kind of safe-ness are you looking for? Do you want the shader to terminate with an array upon out-of-bounds accesses? I don't think wgpu offers that feature. One thing it does offer is ensuring uniformity in io accesses https://gpuweb.github.io/gpuweb/wgsl/#uniformity
+18:03 < bridge_> <Jupstar ✪> well let's say you allow an attacker to run any webGPU code he wants on your computer for a week
+18:03 < bridge_> <Jupstar ✪> 
+18:03 < bridge_> <Jupstar ✪> Would you feel comfortable? xd
+18:03 < bridge_> <patiga> ah, I mean to all the questions from before I think the answer is "yes, wgpu allows that"
+18:04 < bridge_> <patiga> oof
+18:04 < bridge_> <patiga> I mean I don't want someone else to use my gpu for a week xd
+18:04 < bridge_> <Jupstar ✪> yeah besides that xd
+18:05 < bridge_> <Jupstar ✪> but considering how ez i can crash my system with vulkan xD
+18:05 < bridge_> <Jupstar ✪> i kinda wouldnt feel confortable
+18:05 < bridge_> <patiga> ah
+18:06 < bridge_> <patiga> like, I'm not highly informed in all the security aspects of wgpu. It does seem to be high-level enough to keep you from crashing your system, yes
+18:06 < bridge_> <patiga> as long as you don't use wgpu-core maybe
+18:06 < bridge_> <Jupstar ✪> and aslong as the driver of the computer is trust worthy
+18:06 < bridge_> <Jupstar ✪> which webgpu cant really proof
+18:07 < bridge_> <Jupstar ✪> with trust worthy i mean bug free
+18:07 < bridge_> <Jupstar ✪> chrome and firefox defs use vulkan as backend for webgpu api
+18:07 < bridge_> <patiga> thats a big thing to ask. I don't think anyone would be capable of answering you with a comfortable "yes"
+18:07 < bridge_> <Jupstar ✪> so u kinda have to trust these drivers to not be buggy to a point where they can be abused
+18:07 < bridge_> <patiga> exactly
+18:08 < bridge_> <patiga> I haven't audited the entire code base. chrome seems to think that they can ship it to the public. firefox still has it in nightly I think
+18:09 < bridge_> <patiga> like honestly I wouldn't give you a confident yes if you would ask me if connecting to a DDNet server is completely save ^^
+18:09 < bridge_> <heinrich5991> it's probably not safe
+18:09 < bridge_> <heinrich5991> we had buffer overflows before
+18:09 < bridge_> <Jupstar ✪> well i was thinking about allowing mods to us graphics.
+18:09 < bridge_> <Jupstar ✪> I kinda like the idea generally, but maybe as an extra security level it should only allow mods that are pre-checked by a human. (e.g. by hash of the wasm module or smth)
+18:09 < bridge_> <Jupstar ✪> 
+18:09 < bridge_> <Jupstar ✪> that would allow modders to do stuff that _I_ don't want to see in my base code, while still giving flexibility 😄
+18:10 < bridge_> <Jupstar ✪> well i was thinking about allowing mods to use graphics.
+18:10 < bridge_> <Jupstar ✪> I kinda like the idea generally, but maybe as an extra security level it should only allow mods that are pre-checked by a human. (e.g. by hash of the wasm module or smth)
+18:10 < bridge_> <Jupstar ✪> 
+18:10 < bridge_> <Jupstar ✪> that would allow modders to do stuff that _I_ don't want to see in my base code, while still giving flexibility 😄
+18:10 < bridge_> <patiga> I would strongly assume that you can safely execute shaders
+18:10 < bridge_> <Jupstar ✪> laptop GPUs share the same memory as CPUs at least
+18:11 < bridge_> <Jupstar ✪> so i even don't directly trust that
+18:11 < bridge_> <patiga> wouldn't be access to shaders sufficient for user graphics?
+18:11 < bridge_> <patiga> eh, depends if you also wanna do gui I guess
+18:12 < bridge_> <Jupstar ✪> yeah they generally need to know about buffers
+18:12 < bridge_> <Jupstar ✪> e.g. if they want to alter rendering of certain stuff
+18:12 < bridge_> <patiga> so you are thinking about accepting wasm code that you where you give the module a queue and device and they are allowed to do anything with that
+18:12 < bridge_> <Jupstar ✪> well it must be in a higher level source code
+18:13 < bridge_> <Jupstar ✪> if i can read the rust code
+18:13 < bridge_> <Jupstar ✪> and i can compile it
+18:13 < bridge_> <Jupstar ✪> 
+18:13 < bridge_> <Jupstar ✪> i can also host the wasm module and make it trusted
+18:13 < bridge_> <Jupstar ✪> e.g. tater client modifies rendering a bit (HUD, map)
+18:13 < bridge_> <Jupstar ✪> would be cool if this is allowed generally (from a trusted source)
+18:14 < bridge_> <Jupstar ✪> or freeze stars vs snowflakes xD
+18:14 < bridge_> <Jupstar ✪> the endless debate
+18:14 < bridge_> <Jupstar ✪> dont want to support both in the base code
+18:14 < bridge_> <patiga> yes, if you either audit the code or retrieve it from a trusted source (the latter is ofc more fishy), it sounds fine, no?
+18:15 < bridge_> <patiga> then its not anymore about the question if it is safe to execute arbitrary wgpu wasm modules, but if you trust that you can build a trusted ecosystem
+18:16 < bridge_> <Jupstar ✪> yeah
+18:16 < bridge_> <Jupstar ✪> 
+18:16 < bridge_> <Jupstar ✪> ofc in theory it would be cooler to allow _any_ wasm module
+18:16 < bridge_> <Jupstar ✪> even untrusted ones
+18:16 < bridge_> <Jupstar ✪> that's why i was interested
+18:17 < bridge_> <patiga> yea it is indeed interesting
+18:18 < bridge_> <patiga> I mean wasm by default has no io, so I can see where you are coming from
+18:19 < bridge_> <patiga> as soon as you give it access to io operations via wasi, I think the answer is a clear no
+18:19 < bridge_> <Jupstar ✪> yeah it has no access to anything
+18:24 < bridge_> <patiga> actually, it might not be able to do more than DOS by using memory/runtime/shader runtime. all the unsafe functions where you get lower level access seems to be unavailable in webassembly
+18:36 < bridge_> <ryozuki> https://en.wikipedia.org/wiki/I_Can_Eat_Glass
+18:40 < bridge_> <h.kaan> when does 17.2.1 release?
+18:40 < bridge_> <Jupstar ✪> on 2023-08-20
+18:40 < bridge_> <h.kaan> isnt it 27th today
+18:40 < bridge_> <Jupstar ✪> yes
+18:41 < bridge_> <h.kaan> so its released?
+18:41 < bridge_> <Jupstar ✪> yes
+18:41 < bridge_> <h.kaan> when does 17.2.2 release then xd
+18:42 < bridge_> <h.kaan> my bad
+18:42 < bridge_> <Jupstar ✪> what are you hoping to get released?
+18:42 < bridge_> <h.kaan> just asking
+18:42 < bridge_> <Jupstar ✪> it's released if there is a need to release it
+18:42 < bridge_> <Jupstar ✪> e.g. a bug fix
+18:43 < bridge_> <Jupstar ✪> else the next version is 17.3
+18:43 < bridge_> <h.kaan> oh okay
+18:43 < bridge_> <h.kaan> thanks
+20:26 < bridge_> <ryozuki> https://github.com/lwthiker/curl-impersonate
+21:26 < bridge_> <chairn> is #7002 not a duplicate of the map_create_pixelart tool?
+21:26 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/7002
+21:26 < bridge_> <chairn> <https://github.com/ddnet/ddnet/blob/master/src/tools/map_create_pixelart.cpp>
+21:35 < bridge_> <Ewan> A
+21:42 < ChillerDragon> @ryozuki the i can eat glass wiki link and curl impersonate were funny and interesting are those some kind of replies or random uncontextulized shares?
+21:42 < ChillerDragon> i rate those links 9/10 would click again
+21:43 < ChillerDragon> but be warned posting links without further comments can get your message deleted on this censorship channel
+21:49 < bridge_> <ryozuki> wat
+21:49 < ChillerDragon> wat wat
+21:49 < ChillerDragon> you posted two links
+21:49 < bridge_> <ryozuki> ye i mean ur last msg
+21:49 < ChillerDragon> ah that
+21:49 < ChillerDragon> is me making fun of the one mod
+21:49 < ChillerDragon> who deleted a message in this channel
+21:49 < ChillerDragon> that only contained a link
+21:49 < ChillerDragon> i forgot who it was
+21:49 < ChillerDragon> but i will keep shaming him
+21:53 < ChillerDragon> ah it was @Vy0x2
+21:53 < bridge_> <Ewan> lmfao
+21:53 < ChillerDragon> axaxax
+21:53 < bridge_> <Ewan> lmfao
+21:54 < ChillerDragon> https://github.com/TeeworldsDB/irclogs/blob/f38239c1aa3e8ee10b9a7065a2d538e8f0972d63/ddnet/2022-11-14.log#L107-L127
+21:56 < bridge_> <Ewan> lmfao
+21:56 < bridge_> <Ewan> power tripping
+21:56 < ChillerDragon> a: buse
+21:56 < ChillerDragon> power tripping is a cool term
+21:57 < ChillerDragon> havent heard that before
+22:01 < bridge_> <ryozuki> https://www.pcgamer.com/a-guy-with-19-youtube-subs-executed-perhaps-the-greatest-gta-speedrun-in-history-six-weeks-ago-and-no-one-noticed/
+22:02 < ChillerDragon> F
+22:02 < bridge_> <Ewan> damn
+22:03 < bridge_> <ryozuki> why F?
+22:03 < bridge_> <Ewan> press F to pay respects
+22:03 < bridge_> <ryozuki> GTA IV No Damage, No Hit Full Game Speedrun
+22:03 < ChillerDragon> because he didnt get respect yet
+22:03 < ChillerDragon> since "nobody noticed"
+22:03 < bridge_> <ryozuki> well since pcgamer published it
+22:03 < bridge_> <ryozuki> everybody noticed
+22:03 < bridge_> <ryozuki> xd
+22:03 < ChillerDragon> yea thats what i said
+22:03 < ChillerDragon> "nobody noticed"
+22:03 < ChillerDragon> who reads fakin pcgamer
+22:03 < bridge_> <ryozuki> https://www.reddit.com/r/gaming/comments/162b4n9/a_guy_with_19_youtube_subs_executed_perhaps_the/
+22:03 < bridge_> <ryozuki> i read reddit
+22:04 < bridge_> <Ewan> L
+22:10 < bridge_> <ryozuki> https://github.com/llvm/llvm-project/releases
+22:10 < bridge_> <ryozuki> soon llvm 17 releases
+22:11 < bridge_> <Ewan> then what
+22:20 < bridge_> <chairn> llvm 18 i guess
+22:50 < bridge_> <robyt3> It works differently. The tool integrated in the editor uses tile layers so the maps render fast for reasonable image sizes. The separate tool uses quads, so it's much slower, but support arbitrary colors. We can probably remove the separate tool now, I don't see much merit in using quads instead of tiles and it's more inconvenient to use over the command line.
+23:14 < bridge_> <vy0x2> gald i didnt leak months of server logs with ips in it
+23:15 < bridge_> <vy0x2> glad i didnt leak months of server logs with ips in it
+23:32 < bridge_> <Ewan> ❓
+23:47 < bridge_> <vy0x2> dude had his own server logs public until i told him
+23:47 < bridge_> <vy0x2> > xaxaxa
+23:47 < bridge_> <Ewan> ❓
+23:53 < bridge_> <chillerdragon> Yikes
+23:54 < bridge_> <chillerdragon> Zwelf: the new bridge mostly shows (null) as text in the reply’s. That was smoother in the old bridge.

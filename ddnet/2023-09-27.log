@@ -1,0 +1,165 @@
+00:05 < bridge> <Ewan> concerning #6727
+00:05 < bridge> <Ewan> > Mysterious SIGILL from HalRequestSoftwareInterrupt shortly after entering the game; I am probably forgetting to access something thread-safely, and it's causing bad things to happen. I haven't had time to diagnose this yet
+00:05 < bridge> <Ewan> i have been thinking about this for months and has been my main hang-up on the whole thing. turns out i'm an idiot
+00:05 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6727
+00:07 < bridge> <Ewan> so i thought that i had to link ntoskrnl on MinGW and ntdll on MSVC because ntdll wraps kernel-mode functions from the kernel 
+00:07 < bridge> <Ewan> and for whatever reason MinGW had a different way of handling this (because they expose ntoskrnl as a .a, in contrast to MSVC where it's provided as an .exe because of the kernel mode shenanigans)
+00:08 < bridge> <Ewan> but it turns out that i should not be linking against ntoskrnl at all and linking against ntdll on mingw works
+00:08 < bridge> <Ewan> i should have realized this sooner since across all the functions I was getting this SIGILL from, the lowest common denominator is that they came from ntoskrnl
+00:09 < bridge> <Ewan> i just thought it was a multithreading thing because it never did that before i added the async file loader implementation
+00:09 < bridge> <Ewan> oh well now i can move on to the assets screen
+00:10 < bridge> <Ewan> i think that the WDK provides ntoskrnl as a library, and libntoskrnl.a from MinGW is making up for that
+00:10 < bridge> <Ewan> and i'm obviously not developing a driver
+03:40 < bridge> <Ewan> congratulations
+03:41 < bridge> <Ewan> i think that this is an excellent point and i am also sick of having the same conversation 4 times only for it to end up going a different way than we seem to have agreed on, or something equally irritating
+03:41 < bridge> <Ewan> i think that every new feature with potential to upset existing users should be debated heavily and maybe we should start to make use of the github discussions feature
+08:53 < bridge> <teero777> Gm ☕
+09:03 < bridge> <fokkonaut> Gm 🚬
+12:03 < bridge> <ryozuki> Gm ☕
+12:03 < bridge> <ryozuki> coffee gang
+12:03 < bridge> <ryozuki> 🦀
+12:04 < bridge> <learath2> No sane individual would think the order of colors changing would irk people, that's why there wasn't much talk on it. Though as a person very familiar with nostalgic game brainrot, I did have a hunch. Sadly I was too busy at the time to get a debate going
+12:06 < bridge> <learath2> Other than that we do usually have debates on ui/ux, it just doesn't really need to much of anywhere. There is always some group of individuals that don't like some option and another group that won't like any option.
+12:06 < bridge> <learath2> 
+12:06 < bridge> <learath2> At the end of the day people that don't like it make more noise and thus every UI/UX or gameplay change looks bad in the aftermath no matter how much debate went on before it got in
+12:06 < bridge> <ryozuki> if u go to any forum, the people actively commenting always are people with complains
+12:07 < bridge> <ryozuki> happy ppl spend time playing
+12:07 < bridge> <ryozuki> xd
+12:07 < bridge> <learath2> If you don't like something, you have much more reason to show up to debates
+12:09 < bridge> <learath2> I do however have an idea, just hidden options for everything that we provide no support for at all
+12:09 < bridge> <learath2> Makes code maintainance a little more annoying but doesnt have testing burden
+12:26 < bridge> <MilkeeyCat> 🍵
+13:21 < bridge> <heinrich5991> what benefit does the github discussion have over issues/PRs? in the little experience I had with it, it mostly had lower visibility resulting in less participation
+13:22 < bridge> <heinrich5991> do you have an idea on how we can provide no support though?
+13:22 < bridge> <heinrich5991> I see someone coming in with a problem. we're going to help them
+13:22 < bridge> <heinrich5991> where does the "no support" come in?
+13:29 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1156553284182618194/image.png?ex=651563ae&is=6514122e&hm=e95b6e4e78aac36644009f2b12d61404f7dcded61fb8fbb888406500aabe5897&
+13:29 < bridge> <ryozuki> :sip:
+14:21 < bridge> <teero777> Alrwdy finished?
+14:21 < bridge> <ryozuki> ye
+14:41 < bridge> <learath2> If they have a non-empty `grep ^exp_ ~/.local/share/ddnet` we just tell them we can't help
+14:52 < bridge> <learath2> Ok, for one last time, I'll fix #5842
+14:52 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/5842
+15:01 < bridge> <learath2> I still am not very sure about how that pr ended up like :/
+15:01 < bridge> <learath2> A second job pool feels so wrong
+15:03 < bridge> <robyt3> That would have been my poor mans solution for getting rid of the long "Quitting. Please wait..." screen
+15:03 < bridge> <learath2> Btw it's much more prominent on the new version, it's very annoying
+15:04 < bridge> <robyt3> Yeah, we started to wait for all jobs to finish before quitting the graphics, because some jobs need the graphics to not crash
+15:04 < bridge> <robyt3> Poors mans solution would have been to split jobs into two categories: those that need graphics and those that don't
+15:05 < bridge> <learath2> Hm, what jobs need graphics to still be there?
+15:05 < bridge> <robyt3> I think skin loading
+15:05 < bridge> <robyt3> But the HTTP jobs are what is taking to long to quit
+15:05 < bridge> <robyt3> But the HTTP jobs are what is taking so long to quit
+15:06 < bridge> <learath2> The slow part of those would be the I/O, couldn't we have a guard right after IO finishes where we check if gfx is still alive?
+15:07 < bridge> <robyt3> If graphics can be shutdown independently from the jobs then it seems almost impossible to handle in the jobs, if the graphics pointer could become invalid at any point in the execution
+15:08 < bridge> <learath2> There is a smaaaall window there, if i/o finishes, the texture starts being loaded and right before it's done the gfx dies
+15:09 < bridge> <learath2> Yeah, I guess no way to avoid that one completely without having proper job hierarchy
+16:12 < bridge> <heinrich5991> I don't remember, why is it a whole different pool? just virtual descriptions of http jobs, probably?
+16:13 < bridge> <heinrich5991> because the multi interface should be able to do all of the work in one thread
+16:56 < bridge> <learath2> http jobs need to not be launched on a different thread because of the multi yeah
+16:56 < bridge> <learath2> multi needs just one thread
+16:59 < bridge> <learath2> Every time I look at this PR I get dragged into researching how I could generate ids for these runners at compile time 😄
+16:59 < bridge> <learath2> I definitely have some sort of braindamage
+17:15 < bridge> <ryozuki> https://www.gnu.org/gnu40/
+17:15 < bridge> <ryozuki> 40 year anniversary
+17:18 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1156610942734450688/3f34bca7640ff370.png?ex=65159961&is=651447e1&hm=aac2ab69b451edbd762950f8ab8b9fe67795c2ca6d51be00454cb6f1ba24c62a&
+17:18 < bridge> <ryozuki> ????
+17:28 < bridge> <ryozuki> @learath2 @mpft idk who else was into audio
+17:28 < bridge> <ryozuki> u know a nice subwoofer in the range <200€ ?
+17:29 < bridge> <ryozuki> subwoofer uses the AUX right?
+17:29 < bridge> <ryozuki> on my fioo xd
+17:29 < bridge> <ryozuki> fiio
+17:54 < bridge> <deen> I'm into fixing my 15 year old 20 € headphones by soldering cables, does that count? I sold my FiiO E10k for more than I paid new for it after I did a blind test against my onboard sound and noticed they sound identical. Usually there should be a cinch out for subwoofers
+17:57 < bridge> <ryozuki> cinch
+17:57 < bridge> <ryozuki>     an extremely easy task.
+17:57 < bridge> <ryozuki> TIL
+17:57 < bridge> <ryozuki> well for me anyone into audio is someone who did a bit of research i guess xD
+17:57 < bridge> <ryozuki> what do u meann by "Usually there should be a cinch out for subwoofers"
+17:57 < bridge> <deen> Oh, always thought cinch is the english term as well, I meant RCA connector: https://en.wikipedia.org/wiki/RCA_connector
+17:58 < bridge> <ryozuki> oh i see
+17:58 < bridge> <deen> > In some European countries (i.e. Germany) the older English name “Cinch” is still used.
+17:58 < bridge> <ryozuki> hm
+17:58 < bridge> <ryozuki> there is a line out in the back
+17:58 < bridge> <ryozuki> a coax too
+17:58 < bridge> <deen> Read the manual? Line out sounds like it could work
+17:58 < bridge> <ryozuki> but i use the line out in the back for my bose speakers xd
+18:07 < bridge> <Ewan> I think this is a good idea
+18:11 < bridge> <Ewan> your neighbors will hate you, but you should see if your bose speaker set has a sub addon
+18:12 < bridge> <Ewan> though idk about new options
+18:12 < bridge> <Ewan> gm 🥛 btw
+18:16 < bridge> <ryozuki> true
+18:19 < bridge> <Ewan> you're on first floor anyway. they will still hate you but not as much
+18:19 < bridge> <Ewan> i got the police called on me twice for using my sub in our old apartment
+18:19 < bridge> <Ewan> we were on the second story and i swear to god the lado downstairs could hear you breathe
+18:19 < bridge> <Ewan> and when she did she'd hit the ceiling with a broomstick or smth
+18:20 < bridge> <ryozuki> xddd
+18:20 < bridge> <ryozuki> i wont get it for now
+18:21 < bridge> <Ewan> lado? *lady
+18:21 < bridge> <Ewan> wtf is a lado
+18:21 < bridge> <ryozuki> @mpft are u into aquariums
+18:21 < bridge> <ryozuki> i got a 100 liter one
+18:21 < bridge> <Ewan> naw not really
+18:21 < bridge> <Ewan> 100 liters :justatest:
+18:21 < bridge> <ryozuki> 26.4 gallons
+18:21 < bridge> <ryozuki> in murica units
+18:21 < bridge> <Ewan> i think we had a 20 gallon tank for our axolotl
+18:21 < bridge> <Ewan> my mom killed it
+18:22 < bridge> <ryozuki> damn
+18:22 < bridge> <ryozuki> axolotls are cool af
+18:22 < bridge> <Ewan> yea
+18:22 < bridge> <ryozuki> but i asked cuz in murica
+18:22 < bridge> <ryozuki> there are lot of hobbiists
+18:22 < bridge> <ryozuki> whathever the word is
+18:22 < bridge> <Ewan> hobbyists
+18:22 < bridge> <ryozuki> people in their garage selling stuff
+18:22 < bridge> <ryozuki> i found that cool
+18:22 < bridge> <ryozuki> here i got store in front of my apartment tho
+18:22 < bridge> <ryozuki> which is why i got into this again
+18:23 < bridge> <Ewan> yea yard sales
+18:23 < bridge> <Ewan> i did a bunch of work just a few months ago for my cousin's/dad's yard sale
+18:24 < bridge> <Ewan> they put all their shit together and sold it and made a few grand
+18:24 < bridge> <Ewan> everything sold but the 'indoor gardening' equipment
+18:24 < bridge> <Ewan> stoners today don't know how to save a dollar
+18:25 < bridge> <Ewan> i think aquariums and the things u put in them are pretty cool
+18:26 < bridge> <Ewan> but not cool enough to want to feed them x times a day and regulate their tank temperature and oxygen content and stuff
+18:26 < bridge> <Ewan> i just go to the denver aquarium every once in a while and am satisfied
+18:32 < bridge> <ryozuki> xd
+18:32 < bridge> <ryozuki> u just get a heater
+18:33 < bridge> <ryozuki> i have a thing for the light to turn on and off on x hours
+18:34 < bridge> <Ewan> cool
+18:55 < bridge> <learath2> http://paste.pr0.tips/WwY How much do you hate this?
+18:58 < bridge> <Ewan> cool
+19:08 < bridge> <learath2> It works well but it suffers from horrible errors because of template magic
+19:33 < bridge> <learath2> I guess another drawback is compile times as with all template stuff
+20:06 < bridge> <Ewan> Yes
+20:06 < bridge> <learath2> I wonder if it's worth working on, @robyt3 || @heinrich5991 could I pursue either of you to merge something like this? 😄
+20:45 < bridge> <robyt3> Do you need the runners to be of different types and defined at compile time? I'd assume you'd only use runners with the interface `IRunner`. It would probably be more readable without the templates, using a factory function to create runners at runtime.
+20:45 < bridge> <learath2> Yes, they will behave completely differently
+20:46 < bridge> <learath2> Http runner is one thread that asynchronously runs the http jobs, jobpool runner is the current runner, it uses a thread pool to run jobs
+20:47 < bridge> <robyt3> But you don't really need to know their type to use them? You just use the `IRunner` interface with the correct implementation?
+20:47 < bridge> <robyt3> Or do HTTP jobs access HTTP runner internals?
+20:47 < bridge> <learath2> Hm, I don't think http jobs need access to the runner internals
+20:48 < bridge> <learath2> but engine needs to somehow know what job to dispatch to what runner
+20:50 < bridge> <robyt3> What if you dispatch the job to the runner directly? Engine only creates the runner and jobs can be dispatched on it. If you want to use it, you need a reference/pointer to it.
+20:50 < bridge> <learath2> I had one like that too
+20:50 < bridge> <learath2> #5092
+20:50 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/5092
+20:51 < bridge> <learath2> The drawback is that HTTP jobs are no longer `IJob`s
+20:51 < bridge> <learath2> Maybe that was the better idea overall, just not involve the engine at all
+20:53 < bridge> <robyt3> How would that affect skin download jobs, which are subclasses of the http jobs?
+20:54 < bridge> <learath2> You can look at the changes in `skins.cpp` in 5092 for that, it requires touching every single place a http job is currently used
+20:55 < bridge> <learath2> It's not a massive diff though, just need to snake through a `CHttp` pointer to anywhere that was using the engine to currently dispatch the job
+20:56 < bridge> <learath2> There is also #5842 , it keeps the `IJob` interface, but achieves the dispatch without template magic, though that means dynamically assigned ids in that case
+20:56 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/5842
+21:03 < bridge> <robyt3> I'd prefer this one. Probably not ideal that we do other expensive work in the http requests though. The skin download http request should rather create a separate skin load job when done instead of doing the loading itself.
+21:06 < bridge> <learath2> With the old job interface it didn't matter since each job gets a thread
+21:06 < bridge> <learath2> with 5092 it didn't matter because the callbacks happened in the main thread
+21:07 < bridge> <learath2> I think'
+21:10 < bridge> <learath2> Well atleast I got to learn some more template magic for later use
+21:33 < bridge> <ryozuki> its c++ so its already on the hate list
+21:33 < bridge> <ryozuki> is the _v meant for virtual
+21:35 < bridge> <heinrich5991> https://en.cppreference.com/w/cpp/types/is_same
+21:35 < bridge> <heinrich5991> no, apparently it stands for "value"
+21:36 < bridge> <Ewan> your skin code talk is scaring me because conflicts
+21:36 < bridge> <heinrich5991> @learath2 what's the suspicious `#else` doing at the end btw?
+21:53 < bridge> <learath2> don't remember

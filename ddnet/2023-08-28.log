@@ -1,0 +1,415 @@
+00:00 < bridge_> <chillerdragon> Now it shows the text idk matrix is so bugged wtf
+00:01 < bridge_> <chillerdragon> Yea that was a oopsi daisy
+00:25 < bridge_> <Ewan> https://blog.unity.com/technology/debugging-memory-corruption-who-the-hell-writes-2-into-my-stack-2
+00:25 < bridge_> <Ewan> 😵‍💫
+00:41 < bridge_> <Ewan> i am surprised i never read this sooner
+00:59 < bridge_> <teero777> xDD
+02:45 < bridge_> <0108ben> That was so confusing to read
+03:47 < bridge_> <Ewan> what was?
+03:55 < bridge_> <Ewan> hmmmm
+03:55 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145537097860653076/image.png
+03:56 < bridge_> <totar> holy shit he did all that in 5 days?
+03:56 < bridge_> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1145537346180218882/image.png
+03:58 < bridge_> <Ewan> yea right
+04:14 < bridge_> <Ewan> i want to wait more efficiently
+04:15 < bridge_> <Ewan> ```cpp
+04:15 < bridge_> <Ewan>                 while(pUserData->GetJobStatus() != CFileLoadJob::FILE_LOAD_JOB_STATUS_RUNNING) {}
+04:15 < bridge_> <Ewan> ```
+04:15 < bridge_> <Ewan> this works smoothly but i think the cpu usage is not ideal
+04:15 < bridge_> <Ewan> metrics are worse when i yield though
+04:15 < bridge_> <Ewan> ```cpp
+04:15 < bridge_> <Ewan>                 while(pUserData->GetJobStatus() != CFileLoadJob::FILE_LOAD_JOB_STATUS_RUNNING) {
+04:15 < bridge_> <Ewan>                   std::this_thread::yield();
+04:15 < bridge_> <Ewan> }
+04:15 < bridge_> <Ewan>  ```
+04:15 < bridge_> <Ewan> metrics are worse when i yield though
+04:15 < bridge_> <Ewan> ```cpp
+04:15 < bridge_> <Ewan>                 while(pUserData->GetJobStatus() != CFileLoadJob::FILE_LOAD_JOB_STATUS_RUNNING) {
+04:15 < bridge_> <Ewan>                   std::this_thread::yield();
+04:15 < bridge_> <Ewan> } ```
+04:16 < bridge_> <Ewan> this is w/o yield
+04:16 < bridge_> <Ewan> this is with
+04:16 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145542312345223218/image.png
+04:16 < bridge_> <Ewan> i could try and turn the status variable into a condition variable ig
+04:16 < bridge_> <Ewan> and wait on that
+04:16 < bridge_> <Ewan> maybe the stl knows better
+04:45 < bridge_> <Ewan> it's using like 30% of my cpu peak when yielding lol
+04:50 < bridge_> <Ewan> 10 on upstream
+04:51 < bridge_> <Ewan> hmm
+05:02 < bridge_> <Ewan> metrics are worse when i yield though
+05:02 < bridge_> <Ewan> ```cpp
+05:02 < bridge_> <Ewan> while(pUserData->GetJobStatus() != CFileLoadJob::FILE_LOAD_JOB_STATUS_RUNNING) {
+05:02 < bridge_> <Ewan>     std::this_thread::yield();
+05:02 < bridge_> <Ewan> } ```
+05:02 < bridge_> <Ewan> ```cpp
+05:02 < bridge_> <Ewan> while(pUserData->GetJobStatus() != CFileLoadJob::FILE_LOAD_JOB_STATUS_RUNNING) {}
+05:03 < bridge_> <Ewan> ```
+05:03 < bridge_> <Ewan> this works smoothly but i think the cpu usage is not ideal
+05:34 < bridge_> <Ewan> and still dealing with this shit on mingw
+05:34 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145562030829490196/image.png
+05:34 < bridge_> <Ewan> cool backtrace bro
+05:39 < bridge_> <Ewan> surely you are joking
+05:39 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1145563322477973584/image.png
+07:06 < bridge_> <Ewan> does graphics get destructed before components do?
+07:25 < bridge_> <robyt3> No, otherwise the components can't unload properly
+07:25 < bridge_> <Ewan> that's what i thought
+07:25 < bridge_> <Ewan> but i'm getting a bogus ptr from Graphics() i think during CSkins dtor
+07:26 < bridge_> <Ewan> i could try OnShutdown
+07:26 < bridge_> <robyt3> True, destructors are probably more unpredictable. What I said should apply to OnShutdown
+07:30 < bridge_> <Ewan> DDNet.exe has finished with exit code 0.
+07:30 < bridge_> <Ewan> 😌
+07:37 < bridge_> <Ewan> looking at the call stack anyway i think it would get deleted first or during the same step (making things unpredictable) because IGraphics is an IInterface, as is IEngine which holds client which holds the components. and the kernel just goes through the interfaces and deletes
+07:38 < bridge_> <Ewan> well actually, it does seem to have an order to it
+07:38 < bridge_> <Ewan> ```
+07:38 < bridge_> <Ewan>         // delete interfaces in reverse order just the way it would happen to objects on the stack
+07:38 < bridge_> <Ewan> ```
+07:38 < bridge_> <Ewan> wonder why it crashes then. o_O
+07:38 < bridge_> <Ewan> doesn't matter. onshutdown works
+07:48 < bridge_> <Ewan> what's up with the REQUIRES macro
+08:49 < bridge_> <deen> https://clang.llvm.org/docs/ThreadSafetyAnalysis.html
+09:35 < bridge_> <Ewan> so it’s just letting clang thread safety analysis know that it needs something of the type PROVIDED
+09:35 < bridge_> <Ewan> seems cool
+10:49 < bridge_> <deen> yes, it's good to have compiler check as much as possible statically
+11:51 < bridge_> <ryozuki> (rust)
+11:53 < bridge_> <kucer0043_offical> I need to get the coordinates of my tee from the code (I mean the client, not the north), who knows how to do this?
+12:53 < bridge_> <ryozuki> https://fortran-lang.org
+13:35 < bridge_> <Voxel> isnt fortran that one impossible language or
+13:42 < bridge_> <chillerdragon> I saw it on my ios element
+14:28 < bridge_> <ryozuki> https://www.youtube.com/watch?v=Xzv84ZdtlE0
+14:28 < bridge_> <ryozuki> good video imho
+14:29 < bridge_> <cyberFighter> destroyer of worlds... kiinda kinda terraria reference. just kinda
+14:30 < bridge_> <ryozuki> terraria didnt exist back then
+14:31 < bridge_> <ryozuki> maybe its in reverse
+14:31 < bridge_> <chairn> hmm, serverlist is empty currently, and #bot-cmds doesn't respond
+14:31 < bridge_> <ryozuki> terraria is referencing this
+14:31 < bridge_> <ryozuki> lol ye
+14:31 < bridge_> <ryozuki> http://ddstats.org/ doesnt load for me
+14:31 < bridge_> <chairn> ddnet.org is down too
+14:31 < bridge_> <ryozuki> i guess cuz it cant reach master
+14:32 < bridge_> <ryozuki> @heinrich5991 @deen master  server  is down <a:alert:977705762342195200>
+14:32 < bridge_> <chairn> i can still connect to server using direct ip: ger2.ddnet.org:8xxx
+14:32 < bridge_> <ryozuki> wait
+14:32 < bridge_> <ryozuki> maybe its cloudflare?
+14:32 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145697452318543882/image.png
+14:32 < bridge_> <ryozuki> idk
+14:33 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145697599240818838/image.png
+14:33 < bridge_> <ryozuki> xd my web wasnt prepared for a down master
+14:33 < bridge_> <zwelf2> But https://wiki.ddnet.org is reachable (also on cloudflare)
+14:33 < bridge_> <ryozuki> true
+14:34 < bridge_> <ryozuki> i bet its ddnet vps running out of storage
+14:34 < bridge_> <ryozuki> if they use hetzner it shouldnt be an issue cuz i also use hetzner
+14:34 < bridge_> <chairn> https://cdn.discordapp.com/attachments/293493549758939136/1145697859916804116/image.png
+14:34 < bridge_> <ryozuki> (i mean an issue with the hoster)
+14:34 < bridge_> <chairn> so cloudflare is working
+14:34 < bridge_> <ryozuki> this gave me the idea to make a status page
+14:34 < bridge_> <ryozuki> status.ddstats.org soon
+14:35 < bridge_> <kucer0043_offical> @DDNet is offline
+14:36 < bridge_> <chairn> #announcements
+14:37 < bridge_> <chairn> ah, master is back i think
+14:41 < bridge_> <murpi> Why does DDNet take forever to close now '-'
+14:48 < bridge_> <ryozuki> what are all ddnet masters?
+14:49 < bridge_> <ryozuki> if masters work behind cloudflare i can offer to host 1 in my server
+14:49 < bridge_> <deen> there is no multi-master support, so the Chinese master clones the master master
+14:50 < bridge_> <deen> We have an issue/discussion for that I think, we should cancel all open https requests when exiting client
+14:50 < bridge_> <Zwelf> Ok, the resolution seems to be: [use ElementX](https://github.com/mautrix/discord/issues/117#issuecomment-1695456182). Not very satisfying, but better than nothing I guess.
+14:50 < bridge_> <Zwelf> 
+14:50 < bridge_> <Zwelf> * https://apps.apple.com/us/app/element-x-secure-messenger/id1631335820
+14:50 < bridge_> <Zwelf> * https://play.google.com/store/apps/details?id=io.element.android.x
+14:59 < bridge_> <reitw> U can load balance with cloudflare but doubt it is free
+15:00 < bridge_> <reitw> So if anyone wants to contribute
+15:00 < bridge_> <reitw> Maybe that's the way
+15:00 < bridge_> <heinrich5991> I even got a notification, but was asleep 😮
+15:00 < bridge_> <reitw> Never sleep :giga_chad:
+15:00 < bridge_> <heinrich5991> https://github.com/ddnet/ddnet/issues/5156
+15:01 < bridge_> <heinrich5991> this is the way
+15:01 < bridge_> <heinrich5991> need this ^
+15:02 < bridge_> <reitw> That's what is currently on right ?
+15:03 < bridge_> <reitw> Ah I saw the discussion
+15:03 < bridge_> <heinrich5991> what do you mean, "currently on"?
+15:03 < bridge_> <reitw> I didn't see the discussion with the chinese master
+15:04 < bridge_> <heinrich5991> the chinese master is currently just a mirror of master1
+15:04 < bridge_> <reitw> Yeah
+15:17 < bridge_> <ryozuki> https://ddstats.org/status
+15:17 < bridge_> <ryozuki> rudimentary xd
+15:29 < bridge_> <heinrich5991> it'd be interesting to see which URL you're requesting
+15:29 < bridge_> <heinrich5991> https://github.com/ddnet/ddnet/tree/baffa8d817f5fe73c53603884a15ffa5d29c7341/src/masterping
+15:30 < bridge_> <heinrich5991> this tool can be used to check whether masterserver registering works
+15:30 < bridge_> <heinrich5991> it's what powers my alerts
+15:34 < bridge_> <ryozuki> added urls
+17:16 < bridge_> <heinrich5991> https://www.thecodedmessage.com/posts/c++-papercuts/
+17:21 < bridge_> <ryozuki> nice
+17:22 < bridge_> <ryozuki> https://github.com/danog/php-tokio
+17:23 < bridge_> <sigma_alken> bozo
+17:28 < bridge_> <ryozuki> @deen
+17:28 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145741813727113398/image.png
+17:29 < bridge_> <Ewan> I looked into this last night while I was dev’ing, I though it was a me issue but masters were up & my client wasn’t loading. Said it was a cert load failure. I think the server browser job doesn’t end in this case
+17:29 < bridge_> <heinrich5991> someone do an iceberg for ddnet
+17:29 < bridge_> <Ewan> Made me aware that I need to add app close behavior to my thing tho
+17:30 < bridge_> <Ewan> 😃
+17:31 < bridge_> <ryozuki> true would be nice
+17:33 < bridge_> <Ewan> I pushed more to my doohickey. It’s good but I wonder if I can increase performance by waiting smarter on the variable on the other thread instead of busy waiting
+17:44 < bridge_> <learath2> I'm at depth 5 for the last couple years
+17:45 < bridge_> <learath2> Need to go deeper
+17:47 < bridge_> <heinrich5991> https://pbs.twimg.com/media/EL34xNGXkAE6cnJ?format=jpg
+17:47 < bridge_> <learath2> Stuck at level 2 on this one 😄
+17:48 < bridge_> <heinrich5991> I think I did level 4 once 😅
+17:48 < bridge_> <Jupstar ✪> do we start at 0 or 1
+17:48 < bridge_> <heinrich5991> I meant 4 = taboo ctf tactics
+17:49 < bridge_> <heinrich5991> I like the "nmapping /0 to find challs early" 😄
+17:51 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145747412091142154/image.png
+17:51 < bridge_> <learath2> I started at 1
+17:52 < bridge_> <Voxel> you had me until c++0x concepts
+17:52 < bridge_> <Voxel> this was written as propaganda i can tell
+17:52 < bridge_> <ryozuki> https://suricrasia.online/iceberg/
+17:53 < bridge_> <Jupstar ✪> @ryozuki do you also have it that u have to run cargo clean very often after doing git pull, because rust-analyser is too stupid xd
+17:53 < bridge_> <Jupstar ✪> 
+17:53 < bridge_> <Jupstar ✪> do you know a workaround other then rebuilding?
+17:53 < bridge_> <Jupstar ✪> 
+17:53 < bridge_> <Jupstar ✪> normal building does not help
+17:53 < bridge_> <Jupstar ✪> it shows errors
+17:53 < bridge_> <learath2> I think I've explored this entire iceberg
+17:53 < bridge_> <ryozuki> hmm idk
+17:55 < bridge_> <ryozuki> too bad i cant find a rust iceberg
+17:55 < bridge_> <ryozuki> its just the game
+17:56 < bridge_> <robyt3> Is there a reason we still have `gfx_asyncrender_old`? Seems like it causes the client to be rendered only when the graphics are idle. Looks like double-clicking behaves somewhat differently depending on this config variable: https://github.com/ddnet/ddnet/issues/7052#issuecomment-1695933782
+17:57 < bridge_> <Jupstar ✪> what value do u want it to be?
+17:57 < bridge_> <robyt3> Good question, does it even make any difference besides this one bug?
+17:58 < bridge_> <Jupstar ✪> well for gameplay i'd set it to 1
+17:58 < bridge_> <Jupstar ✪> and for demo recording it must be 0
+17:58 < bridge_> <Jupstar ✪> demo -> video
+17:58 < bridge_> <robyt3> I've used `0` most of the time it seems, whereas marmare used `1`
+17:58 < bridge_> <Jupstar ✪> 1 is also the default
+17:58 < bridge_> <Jupstar ✪> 0 + vsync = huge delays
+17:59 < bridge_> <robyt3> The description also doesn't exactly make clear what is does: `Do rendering async from the the update`
+17:59 < bridge_> <Jupstar ✪> well it's not directly wrong
+17:59 < bridge_> <Jupstar ✪> just not directly right xD
+18:00 < bridge_> <Jupstar ✪> it allows the updates to happen independent of the gfx updates independent of the refresh rate set
+18:00 < bridge_> <heinrich5991> new to me: `#include <iosfwd>` (forward decls for `#include <iostream>`, zapcc compiler (seems to be just a caching compiler?), `std::remove` (wtf!), rvalue references are lvalues (TIL), initialization matrix (what's this?), the for loop is broken (what's this?), const std::string bitand (wtf ^^), herbceptions (interesting)
+18:01 < bridge_> <robyt3> So is there any reason to set it to `0` except internally when rendering a demo?
+18:01 < bridge_> <robyt3> If there isn't, then we don't need the variable
+18:01 < bridge_> <Jupstar ✪> there is a usecase, i can illustrate
+18:03 < bridge_> <Jupstar ✪> if you set
+18:03 < bridge_> <Jupstar ✪> gfx_refresh_rate 0
+18:03 < bridge_> <Jupstar ✪> async_render_old 0
+18:03 < bridge_> <Jupstar ✪> vsync 0
+18:03 < bridge_> <Jupstar ✪> 
+18:03 < bridge_> <Jupstar ✪> but use cl_refresh_rate x > 0
+18:03 < bridge_> <Jupstar ✪> 
+18:03 < bridge_> <Jupstar ✪> then that basically means you always want to wait for the GPU to finish the current execution before continuing resulting in cl_refresh_rate being pretty accurate for FPS target
+18:03 < bridge_> <Jupstar ✪> 
+18:03 < bridge_> <Jupstar ✪> which lowers your CPU usage
+18:03 < bridge_> <Jupstar ✪> 
+18:03 < bridge_> <Jupstar ✪> which noby wanted deperately xD
+18:04 < bridge_> <robyt3> I see. I'll try to update the description though
+18:04 < bridge_> <Jupstar ✪> yes, but for input stuff, can you tell what exactly causes it?
+18:05 < bridge_> <Jupstar ✪> i've seen this years ago, but then it was fixed some day
+18:06 < bridge_> <robyt3> Don't know what exactly causes this. I think I also just randomly got the bug with `gfx_asyncrender_old 1`, so maybe it's a very precise timing for the bug with `gfx_asyncrender_old 1`
+18:06 < bridge_> <Jupstar ✪> would it maybe make sense to queue inputs for the UI
+18:06 < bridge_> <Jupstar ✪> 
+18:06 < bridge_> <Jupstar ✪> the biggest problem is, that it's really weird that the UI relies on Input during a gfx cycle
+18:07 < bridge_> <robyt3> Seems like the release key press from the double click consistently goes through with `gfx_asyncrender_old 0` but not most of the time with `gfx_asyncrender_old 1`
+18:07 < bridge_> <robyt3> Most of the input handling is really messed up TBH
+18:07 < bridge_> <robyt3> We mostly poll if a certain key was pressed in a specific update frame
+18:07 < bridge_> <Jupstar ✪> mh ok
+18:08 < bridge_> <Jupstar ✪> egui uses a queue for example
+18:08 < bridge_> <robyt3> Everyshould should go though the event listener if this were to be done cleanly
+18:08 < bridge_> <Jupstar ✪> yeah
+18:08 < bridge_> <robyt3> Everything should go though the event listener if this were to be done cleanly
+18:21 < bridge_> <ryozuki> "Do updates independent from rendering and refresh rate"
+18:21 < bridge_> <ryozuki> i hardly get it
+18:22 < bridge_> <ryozuki> a user even less
+18:22 < bridge_> <ryozuki> xd
+18:22 < bridge_> <Jupstar ✪> well that's what it does xd
+18:22 < bridge_> <ryozuki> what updates
+18:22 < bridge_> <ryozuki> the banana updates
+18:22 < bridge_> <Jupstar ✪> the alternative is putting a book into the description
+18:22 < bridge_> <Jupstar ✪> explaining what input updates are
+18:22 < bridge_> <ryozuki> oh
+18:22 < bridge_> <Jupstar ✪> and what gfx cycles are
+18:22 < bridge_> <ryozuki> input updates!
+18:23 < bridge_> <ryozuki> just put input updates then
+18:23 < bridge_> <Voxel> im guessing it doesnt have to wait until the refresh wait until it updates game stuff like tee position and all that stuff
+18:23 < bridge_> <Jupstar ✪> well and physics updates
+18:23 < bridge_> <Jupstar ✪> and network updates
+18:23 < bridge_> <ryozuki> non-graphic updates
+18:23 < bridge_> <Jupstar ✪> xd
+18:23 < bridge_> <ryozuki> @robyt3
+18:23 < bridge_> <Jupstar ✪> well would be fair
+18:23 < bridge_> <ryozuki> gfx is threaded regardless of this right
+18:24 < bridge_> <Jupstar ✪> Do non-graphics related updates independent of graphics related updates xd
+18:24 < bridge_> <Jupstar ✪> 
+18:24 < bridge_> <Jupstar ✪> almost looks like u could use a parenthesis here as if it was math
+18:26 < bridge_> <ryozuki> "Finish rendering before update"
+18:26 < bridge_> <ryozuki> again
+18:26 < bridge_> <ryozuki> xd
+18:26 < bridge_> <Jupstar ✪> Wait for the GPU to finish the current execution before doing a new cycle xddd
+18:27 < bridge_> <ryozuki> i canceled the merge
+18:27 < bridge_> <Jupstar ✪> the problem is, it's not even correct i think
+18:27 < bridge_> <robyt3> `gfx_finish` does nothing with Vulkan
+18:27 < bridge_> <robyt3> With OpenGL is makes rendering slow though, as expected
+18:27 < bridge_> <Jupstar ✪> yes
+18:27 < bridge_> <Jupstar ✪> it doesnt exist
+18:28 < bridge_> <Jupstar ✪> i think it was removed in opengl 4 generally
+18:28 < bridge_> <Jupstar ✪> maybe xd
+18:28 < bridge_> <robyt3> Comment your suggestions on the PR so I don't forget
+18:29 < bridge_> <robyt3> I knew this would cause bike-shedding
+18:29 < bridge_> <ryozuki> ok i add the second
+18:29 < bridge_> <ryozuki> this isnt bike shedding
+18:29 < bridge_> <Jupstar ✪> ```c++
+18:29 < bridge_> <Jupstar ✪> (!AsyncRenderOld || m_pGraphics->IsIdle()) &&
+18:29 < bridge_> <Jupstar ✪>                 (!GfxRefreshRate || (time_freq() / (int64_t)g_Config.m_GfxRefreshRate) <= Now - LastRenderTime)
+18:29 < bridge_> <Jupstar ✪> ```
+18:29 < bridge_> <Jupstar ✪> 
+18:29 < bridge_> <Jupstar ✪> if asyncrender == 0 and (no refresh rate is set OR we are in a refresh cycle) DO
+18:29 < bridge_> <Jupstar ✪> if (asyncrender == 1 and graphics are idle) and (no refresh rate is set OR we are in a refresh cycle) DO
+18:29 < bridge_> <ryozuki> its being proper
+18:29 < bridge_> <Jupstar ✪> so the refresh part is actually not correct anyway
+18:29 < bridge_> <robyt3> Rewrite description in Lojban, nice
+18:30 < bridge_> <ryozuki> whats Lojban
+18:30 < bridge_> <robyt3> https://en.wikipedia.org/wiki/Lojban
+18:31 < bridge_> <ryozuki> TIL
+18:36 < bridge_> <ryozuki> @robyt3 i shared this at my work
+18:36 < bridge_> <ryozuki> someone mentioned this https://en.wikipedia.org/wiki/Ithkuil
+18:36 < bridge_> <Jupstar ✪> looks like Ravies new pfp
+18:38 < bridge_> <robyt3> If you squint it looks like a very abstract representation of a tee
+18:39 < bridge_> <ryozuki> did anybody know about https://en.wikipedia.org/wiki/Petri_net
+18:39 < bridge_> <robyt3> Yes
+18:39 < bridge_> <Jupstar ✪> anyone noticed that discord lately always highlights the channels
+18:39 < bridge_> <Jupstar ✪> 
+18:39 < bridge_> <Jupstar ✪> as if you hover them with your mouse
+18:39 < bridge_> <ryozuki> > Petri nets were invented in August 1939 by Carl Adam Petri—at the age of 13—for the purpose of describing chemical processes.
+18:39 < bridge_> <ryozuki> ok
+18:39 < bridge_> <ryozuki> 13y old made this
+18:40 < bridge_> <ryozuki> time to retire
+18:40 < bridge_> <Voxel> didnt that always happen
+18:40 < bridge_> <Jupstar ✪> do you also know the reason why?
+18:40 < bridge_> <Jupstar ✪> i find it very distracting and creepy xd
+18:40 < bridge_> <Voxel> to know what channel you're hovering over
+18:40 < bridge_> <ryozuki> bruv
+18:40 < bridge_> <Jupstar ✪> well i am not hovering them xD
+18:41 < bridge_> <Voxel> oh wait are you talking about what channel you're IN?
+18:41 < bridge_> <Jupstar ✪> no
+18:41 < bridge_> <Jupstar ✪> it does that over all channels, from top to bottom
+18:41 < bridge_> <Jupstar ✪> for like 1 second total (for all)
+18:41 < bridge_> <Jupstar ✪> like a wave xd
+18:41 < bridge_> <Voxel> ok well it might be just you
+18:41 < bridge_> <Jupstar ✪> i've seen that on mobile and pc now
+18:42 < bridge_> <robyt3> Maybe bug maybe easter egg
+18:42 < bridge_> <Jupstar ✪> I'm the chosen one
+18:42 < bridge_> <Jupstar ✪> epic
+18:42 < bridge_> <robyt3> That's why some developers have a "no easter egg" policy
+18:42 < bridge_> <ryozuki> boring devs
+18:43 < bridge_> <ryozuki> we need to add easter eggs to ddnet
+18:43 < bridge_> <Jupstar ✪> we have at least one xd
+18:43 < bridge_> <Jupstar ✪> when u have a potato pc
+18:43 < bridge_> <robyt3> DDNet doesn't even add literal easter eggs to maps at Eastern, like Teeworlds does
+18:43 < bridge_> <ryozuki> i think we had a april fools event
+18:43 < bridge_> <Voxel> captured clearly here
+18:44 < bridge_> <ryozuki> we should add a command "javascriptify" that limits fps to 24
+18:44 < bridge_> <ryozuki> ez easter egg
+18:45 < bridge_> <Voxel> we should add a command called "rustify" where the game doesnt run because it panics
+18:46 < bridge_> <ryozuki> ??
+18:46 < bridge_> <ryozuki> xd
+18:46 < bridge_> <ryozuki> javify = allocate 5gb of ram
+18:46 < bridge_> <ryozuki> or more
+18:46 < bridge_> <heinrich5991> https://twitter.com/gf_256/status/1285217798642454531 why would you need to capture a global variable anyway? and why am I looking at twitter memes?
+18:47 < bridge_> <Jupstar ✪> nittet.net
+18:47 < bridge_> <Jupstar ✪> nitter.net
+18:47 < bridge_> <Jupstar ✪> my twitter account is banned xD
+18:50 < bridge_> <ryozuki> epic
+18:50 < bridge_> <ryozuki> too much furries right
+18:51 < bridge_> <ryozuki> :pepeW:
+18:51 < bridge_> <heinrich5991> more: https://twitter.com/gf_256/status/1624082143294136323
+18:51 < bridge_> <heinrich5991> ```c++
+18:51 < bridge_> <heinrich5991> $ cat loop.cpp
+18:51 < bridge_> <heinrich5991> #include <iostream>
+18:51 < bridge_> <heinrich5991> 
+18:51 < bridge_> <heinrich5991> int main() {
+18:51 < bridge_> <heinrich5991>     while(1)
+18:51 < bridge_> <heinrich5991>         ;
+18:51 < bridge_> <heinrich5991> }
+18:51 < bridge_> <heinrich5991> 
+18:51 < bridge_> <heinrich5991> void unreachable() {
+18:51 < bridge_> <heinrich5991>     std::cout << "Hello world!" << std::endl;
+18:51 < bridge_> <heinrich5991> }
+18:51 < bridge_> <heinrich5991> $ clang++ loop.cpp -O1 -Wall -o loop
+18:51 < bridge_> <heinrich5991> $ ./loop
+18:51 < bridge_> <heinrich5991> Hello world!
+18:51 < bridge_> <heinrich5991> ```
+18:51 < bridge_> <heinrich5991> wtf 😄
+18:51 < bridge_> <Jupstar ✪> i've literally done nothing xdd
+18:51 < bridge_> <heinrich5991> probably infinite side-effect-free loops banned in C++?
+18:51 < bridge_> <ryozuki> fake
+18:51 < bridge_> <ryozuki> it loops for me
+18:52 < bridge_> <ryozuki> oh
+18:52 < bridge_> <Jupstar ✪> i've heard of that before
+18:52 < bridge_> <ryozuki> it works
+18:52 < bridge_> <ryozuki> lol
+18:52 < bridge_> <ryozuki> O1 makes it work
+18:52 < bridge_> <ryozuki> without it it loops
+18:52 < bridge_> <heinrich5991> I literally copy-pasted it from my console ^^
+18:53 < bridge_> <ryozuki> yeye
+18:53 < bridge_> <ryozuki> i put o1 instead of O1
+18:53 < bridge_> <ryozuki> in my firs try xd
+18:55 < bridge_> <ryozuki> i read its
+18:55 < bridge_> <ryozuki> linker UB
+18:55 < bridge_> <ryozuki> the linker optimized out the main
+18:55 < bridge_> <ryozuki> but idk if true
+18:56 < bridge_> <ryozuki> https://godbolt.org/z/j7jW4EqYn
+18:57 < bridge_> <heinrich5991> looks like the compiler just decided that main is UB and didn't emit any assembly for it 😄
+18:57 < bridge_> <ryozuki> xd
+18:59 < bridge_> <ryozuki> TIL about odr-
+18:59 < bridge_> <ryozuki> xd
+19:00 < bridge_> <ryozuki> https://en.wikipedia.org/wiki/One_Definition_Rule
+19:00 < bridge_> <ryozuki> well i knew but not the name i guess
+19:00 < bridge_> <Voxel> this just came into my head
+19:00 < bridge_> <Voxel> does ddnet even have a proper code style
+19:01 < bridge_> <ryozuki> ye
+19:01 < bridge_> <ryozuki> https://wiki.ddnet.org/wiki/Development#Code_conventions
+19:01 < bridge_> <Voxel> i once saw a project with this thing on it
+19:01 < bridge_> <Voxel> https://cdn.discordapp.com/attachments/293493549758939136/1145765138960502855/image.png
+19:02 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145765242773708850/image.png
+19:02 < bridge_> <ryozuki> black is a python formatter
+19:02 < bridge_> <ryozuki> we use clang format
+19:02 < bridge_> <ryozuki> for c++ code
+19:02 < bridge_> <Voxel> ah
+19:13 < bridge_> <chairn> main is UB, it lacks return statement
+19:58 < bridge_> <heinrich5991> doesn't need one, never exits the function
+20:01 < bridge_> <chairn> ah true
+20:38 < bridge_> <ryozuki> @heinrich5991 aha!
+20:38 < bridge_> <ryozuki> i found
+20:38 < bridge_> <ryozuki> https://github.com/llvm/llvm-project/issues/60622
+20:39 < bridge_> <ryozuki> interesting convo
+21:09 < bridge_> <Ewan> “Over-aggressively optimization”
+22:17 < bridge_> <ryozuki> @learath2
+22:17 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145814545399545856/41etx3lwoukb1.webp
+22:18 < bridge_> <ryozuki> RTL
+22:30 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1145817656461643903/jm4557db2vkb1.jpg
+22:30 < bridge_> <ryozuki> new way
+22:32 < bridge_> <learath2> Forbidden indentation
+22:40 < bridge_> <pilonpl> Obviously the first option
+22:41 < bridge_> <pilonpl> That's the only correct way
+22:46 < bridge_> <learath2> First one for everything but functions and classes + no huddled else
+22:47 < bridge_> <h.kaan> türksün dimi
+22:47 < bridge_> <Jupstar ✪> it already triggers me that the last brace has an indentation
+22:47 < bridge_> <learath2> Didn't even spot that ew
+22:48 < bridge_> <h.kaan> @learath2 yeni çeviriyi ben yaptım göz attın mı?
+22:49 < bridge_> <heinrich5991> @h.kaan english only in #developer
+22:49 < bridge_> <learath2> Görmedim, bakiim bi, and yep english only here 😄
+22:50 < bridge_> <h.kaan> I'm sorry
+22:51 < bridge_> <ryozuki> you better be :AsukaGun:
+22:52 < bridge_> <learath2> #7060 ?
+22:52 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/7060
+22:52 < bridge_> <h.kaan> yes
+23:03 < bridge_> <h.kaan> 💀 what are you writing
+23:04 < bridge_> <learath2> - L1133, L1136, L1139 are missing colons.
+23:04 < bridge_> <learath2> - Typo on L1157 UPD -> UDP
+23:04 < bridge_> <learath2> - L1175 points -> puan?
+23:04 < bridge_> <learath2> - L1241, context needs to be checked, should probably be "oyuncu" again
+23:04 < bridge_> <learath2> - L1335 and co, should probably be "kesit" or some other word, "kesim" doesnt quite make sense to me
+23:04 < bridge_> <learath2> - L1422 veri tabanı birleşik olması lazım
+23:04 < bridge_> <learath2> - L1475 might be too long, need to check
+23:05 < bridge_> <learath2> Skimmed over it real quick, these are the issues I saw. Yoj can take a look or I can take a look later. Thank you for your contribution
+23:05 < bridge_> <learath2> s\/Yoj/You/
+23:05 < bridge_> <h.kaan> Tysm, will look into it again
+23:29 < ChillerDragon> faak gh 2fa?
