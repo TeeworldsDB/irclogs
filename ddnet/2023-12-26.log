@@ -1,0 +1,335 @@
+06:04 < bridge> <baby frog> k so
+06:04 < bridge> <baby frog> ive made a little bit of progress with this bug
+06:09 < bridge> <baby frog> ```if(g_Config.m_ClDummyControl)
+06:09 < bridge> <baby frog>         {
+06:09 < bridge> <baby frog>             CNetObj_PlayerInput *pDummyInput = &m_pClient->m_DummyInput;
+06:09 < bridge> <baby frog>             pDummyInput->m_Jump = g_Config.m_ClDummyJump;
+06:09 < bridge> <baby frog>             pDummyInput->m_Fire = g_Config.m_ClDummyFire;
+06:09 < bridge> <baby frog>             pDummyInput->m_Hook = g_Config.m_ClDummyHook;
+06:09 < bridge> <baby frog>         }```
+06:09 < bridge> <baby frog> theres something bad with this. i think this is whats happening:
+06:09 < bridge> <baby frog> 
+06:09 < bridge> <baby frog> when dummy control is enabled, it sets dummy m_Fire to 0 DIRECTLY. which i think is bad, because already with g_Config.m_ClDummyFire set to 0 it's already making a change to your dummy fire behavior.
+06:09 < bridge> <baby frog> 
+06:09 < bridge> <baby frog> so, i think this is what happens: if you have a bind like this: 
+06:09 < bridge> <baby frog> ```bind x +toggle cl_dummy_hammer 1 0```
+06:09 < bridge> <baby frog> and you PRESS that button but dont release it, it increases dummy m_Fire to 1...
+06:09 < bridge> <baby frog> THEN, the dummy control code sets it back to 0, simulating a release,
+06:09 < bridge> <baby frog> 
+06:09 < bridge> <baby frog> THEN, if you then RELEASE the dummy hammer button, it increases it AGAIN, to 1, which makes the dummy hammer again, and then of course the dummy control code sets it back to 0,
+06:09 < bridge> <baby frog> 
+06:09 < bridge> <baby frog> so, effectively, you have hammered twice, the first hammer being pressing down on the button and then again when releasing the button
+06:09 < bridge> <baby frog> so i think its a lil stupid
+06:09 < bridge> <baby frog> to set pDummyInput->m_Fire directly to the config value
+06:11 < bridge> <baby frog> ```if(g_Config.m_ClDummyControl)
+06:11 < bridge> <baby frog>         {
+06:11 < bridge> <baby frog>             CNetObj_PlayerInput *pDummyInput = &m_pClient->m_DummyInput;
+06:11 < bridge> <baby frog>             pDummyInput->m_Jump = g_Config.m_ClDummyJump;
+06:11 < bridge> <baby frog>             pDummyInput->m_Fire = g_Config.m_ClDummyFire;
+06:11 < bridge> <baby frog>             pDummyInput->m_Hook = g_Config.m_ClDummyHook;
+06:11 < bridge> <baby frog>         }```
+06:11 < bridge> <baby frog> theres something bad with this. i think this is whats happening:
+06:11 < bridge> <baby frog> 
+06:11 < bridge> <baby frog> when dummy control is enabled, it sets dummy m_Fire to 0 DIRECTLY. which i think is bad, because already with g_Config.m_ClDummyFire set to 0 it's already making a change to your dummy fire behavior.
+06:11 < bridge> <baby frog> 
+06:11 < bridge> <baby frog> so, i think this is what happens: if you have a bind like this: 
+06:11 < bridge> <baby frog> ```bind x +toggle cl_dummy_hammer 1 0```
+06:11 < bridge> <baby frog> and you PRESS that button but dont release it, it increases dummy m_Fire to 1...
+06:11 < bridge> <baby frog> THEN, the dummy control code sets it back to 0, simulating a release,
+06:11 < bridge> <baby frog> 
+06:11 < bridge> <baby frog> THEN, if you then RELEASE the dummy hammer button, it increases it AGAIN, to 1, which makes the dummy hammer again, and then of course the dummy control code sets it back to 0,
+06:11 < bridge> <baby frog> 
+06:11 < bridge> <baby frog> so, effectively, you have hammered twice, the first hammer being pressing down on the button and then again when releasing the button. however on the release of course the dummy does not hammer towards you, just in whatever direction its looking
+06:14 < bridge> <baby frog> this is found on line ~300 of     ddnet/src/game/client/components/controls.cpp btw
+06:59 < bridge> <mamad_melanin> isn't Server->Tick() gonna overflow if i run the server for a week ? what is going on ??? how large can it be ?
+07:06 < bridge> <mamad_melanin> let me run the server till it hits +2147483647 to see what will happen 🙂
+08:21 < bridge> <teero777> https://github.com/ddnet/ddnet/blob/d583b6d9bb953972d6c0fb8700d555c0cca6f0f0/src/engine/server/server.cpp#L2832C4-L2832C4
+08:21 < bridge> <teero777> a MAX_TICK is defined so it doesnt happen :)
+08:23 < bridge> <teero777> it will hit the MAX_TICK limit in about `10439.156616666667` hours
+10:49 < bridge> <mamad_melanin> and after that it force to load map to began the tick() from 0 again ?
+10:50 < bridge> <teero777> seems like ti
+10:50 < bridge> <teero777> seems like it
+11:48 < bridge> <infinoob.> 50 баксов на стим
+11:48 < bridge> <infinoob.> [steamcommunity.com/gift/765615931809238015](https://qptr.ru/ZHvI)
+11:49 < bridge> <ZombieToad> no russian virus pls
+11:49 < bridge> <ZombieToad> @Discord mod
+11:50 < bridge> <ZombieToad> @heinrich5991:
+12:40 < bridge> <mamad_melanin> how can i show scores instead of time in my server ?
+12:51 < ChillerDragon> when does the fakin llm hype arrive at git merge drivers
+12:51 < ChillerDragon> cant be that 2023 git gets confused on a renamed method and throws a conflict
+12:52 < ChillerDragon> @mamad_melanin remove flag time in gamecontroller and in player snap send the score
+12:52 < ChillerDragon> https://github.com/ddnet/ddnet/blob/a9c316055f5d2579f6166152ec20c4241e0da456/src/game/server/gamecontroller.cpp#L600
+12:52 < ChillerDragon> remove this
+12:53 < ChillerDragon> replace this with your score logic https://github.com/ddnet/ddnet/blob/a9c316055f5d2579f6166152ec20c4241e0da456/src/game/server/player.cpp#L329-L350
+12:53 < ChillerDragon> @mamad_melanin may i ask what you are working on? c: i am curious
+12:55 < bridge> <mamad_melanin> i wanna make a block mod just like you ❤️ 😄
+12:56 < bridge> <mamad_melanin> not exactly tho
+12:56 < ChillerDragon> ah nice
+12:57 < ChillerDragon> what should be different? :)
+12:59 < bridge> <mamad_melanin> i wanna make a system that the players could upgrade they weapon with they scores
+12:59 < ChillerDragon> also bruv why does adding const to a method conflict that i did not even touch. Git is nice and all but could be so much better
+12:59 < bridge> <mamad_melanin> upgrade theyr jetpack and grenade explosion
+12:59 < ChillerDragon> @mamad_melanin i see
+12:59 < ChillerDragon> you could also fork off ddnet++
+12:59 < ChillerDragon> then you already have a shop system
+13:00 < bridge> <mamad_melanin> i couldn't get it compiled
+13:00 < ChillerDragon> ah sadge
+13:00 < ChillerDragon> well im here if you wanna give it another try if not also feel free to reinvent the wheel :D ddnet++ might have many bugs anyways
+13:02 < bridge> <mamad_melanin> i am new in programing, i just wanna change stuff around in ddnet src to learn a ltl ❤️
+13:04 < ChillerDragon> yea makes sense. have fun c:
+13:26 < bridge> <Mr.Gh0s7> ChillerDragon how to make vanilla teams in ddnet codebase any hints?
+13:27 < bridge> <teero777> code
+13:27 < bridge> <teero777> i think there are some flags you can set
+13:28 < bridge> <Mr.Gh0s7> hmm
+13:28 < bridge> <Mr.Gh0s7> I didn't find much in flags let me take another look though ;)
+13:29 < bridge> <teero777> hmm
+13:29 < bridge> <teero777> nvm
+13:30 < ChillerDragon> @Mr.Gh0s7 wat u codin?
+13:31 < ChillerDragon> ddfng?
+13:31 < bridge> <Mr.Gh0s7> yeah
+13:31 < ChillerDragon> do u use modern ddnet code base?
+13:31 < bridge> <Mr.Gh0s7> yeah
+13:31 < ChillerDragon> did you create a own game controller?
+13:31 < bridge> <Mr.Gh0s7> :pepeH:
+13:31 < bridge> <Mr.Gh0s7> I just edited the existing one
+13:31 < ChillerDragon> u dont have to 
+13:31 < ChillerDragon> eitherway go in your gamecontroller
+13:31 < ChillerDragon> and set the flagteams
+13:32 < bridge> <Mr.Gh0s7> in gameinfoflags?
+13:32 < ChillerDragon> https://github.com/ZillyInsta/ddnet-insta/blob/ba2bd1b15af7e396514272eb87cea08ce30b4403/src/game/server/gamemodes/ctf.cpp#L16
+13:32 < ChillerDragon> dis
+13:32 < ChillerDragon> might be in gamecontroller.cpp or ddrace.cpp for you
+13:32 < bridge> <Mr.Gh0s7> ok thanks
+13:32 < ChillerDragon> c:
+13:33 < bridge> <Mr.Gh0s7> Thanks that did it :)
+13:33 < ChillerDragon> ok i spent 1 hour solving git conflicts and feel like this will be all i do for 0.7 progress until the end of the year -.-
+13:33 < ChillerDragon> fakin git
+13:34 < bridge> <Mr.Gh0s7> Now I have to code the actual teams :)
+13:34 < ChillerDragon> there isnt much to code iirc
+13:34 < ChillerDragon> i think for me it just worked xd
+13:34 < ChillerDragon> btw wat u workin on @Mr.Gh0s7
+13:34 < bridge> <Mr.Gh0s7> ddfng
+13:34 < bridge> <Mr.Gh0s7> ddnet_fng
+13:34 < ChillerDragon> i already started with that
+13:34 < bridge> <Mr.Gh0s7> instead of dfng (differnt fng)
+13:34 < bridge> <no_more1000_7> Hi guys, can you say, how make commands in chat?
+13:35 < bridge> <no_more1000_7> on my server
+13:35 < ChillerDragon> @no_more1000_7 ddracechat.h ddracechat.cpp
+13:35 < bridge> <no_more1000_7> ty
+13:35 < bridge> <Mr.Gh0s7> :O
+13:35 < ChillerDragon> @Mr.Gh0s7 any chance i could motivate you to join my project instead of building 10 different ddnet fng mods
+13:35 < bridge> <Mr.Gh0s7> xD It's not for me
+13:35 < ChillerDragon> or you just wanna dabble
+13:36 < bridge> <Mr.Gh0s7> Someone asked me about dfng thinking it was ddnet_fng so I offered to help them port fng to ddnet codebase without any further modifications
+13:36 < bridge> <Mr.Gh0s7> that sounds cool
+13:36 < ChillerDragon> I am workin on this https://github.com/ZillyInsta/ddnet-insta which is merge conflict driven codebase i am planning to keep updating that with to modern ddnet for quite some time
+13:37 < ChillerDragon> it currently supports gctf, ictf and zcatch and fng is work in progress
+13:38 < ChillerDragon> it feels to me like every few years a new ddnet fork for pvp mods is built by some dude solo and then dies after a year again
+13:38 < bridge> <Mr.Gh0s7> ikr :kek:
+13:38 < ChillerDragon> i would love to have one big which is ready to use for everyone
+13:38 < bridge> <Mr.Gh0s7> f3
+13:39 < bridge> <teero777> what?
+13:39 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1189185833702543390/image.png?ex=659d3e9c&is=658ac99c&hm=60958551ba933abfc5f8d113ef19f91585ce7491d61b7bc5ae974091c13089b3&
+13:40 < bridge> <Mr.Gh0s7> It's a ghost!
+13:40 < bridge> <teero777> what? :wtf:
+13:40 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1189185833702543390/image.png?ex=659d3e9c&is=658ac99c&hm=60958551ba933abfc5f8d113ef19f91585ce7491d61b7bc5ae974091c13089b3&
+13:42 < bridge> <chillerdragon> Even if you decide not to contribute to my project because collab is exhausting I recommend to base your project on mine instead of ddnet
+13:42 < bridge> <chillerdragon> You get a bunch of useful stuff for free
+13:42 < bridge> <milkeeycat> 0 public contributors 🙂
+13:42 < bridge> <chillerdragon> Such as shuffle teams and so on
+13:46 < bridge> <Mr.Gh0s7> I just ask if he wants to base it on ddnet-insta :)
+13:50 < bridge> <chillerdragon> Oh and the blood sweat and tears I put into 0.6/0.7 support timelimits warmups gametimers and pause
+13:50 < bridge> <chillerdragon> That wasn’t fun to do
+13:51 < bridge> <chillerdragon> To get started do sv\_gametype fng and put your code into fng.cpp
+13:52 < bridge> <Mr.Gh0s7> ;)
+13:53 < bridge> <chillerdragon> I am actively looking for contributers but getting something merged will be annoying since I have some ideas on how the codebase should look like
+13:56 < bridge> <Mr.Gh0s7> btw does the fng use the standard fng tiles?
+14:00 < bridge> <chillerdragon> I did not add tiles yet
+14:00 < bridge> <chillerdragon> fng is currently just a shell
+14:00 < bridge> <chillerdragon> I mean adding tiles and fng would be basically done :D
+14:01 < bridge> <Mr.Gh0s7> hmm the way I've done it in dfng the spike tiles are elsewhere
+14:01 < bridge> <Mr.Gh0s7> https://cdn.discordapp.com/attachments/293493549758939136/1189191237316644945/ddnet_fng.png?ex=659d43a5&is=658acea5&hm=b4daf994570374234246c6a31ad2c7a81860b3e622dccd80e69eb3ed9a542f24&
+14:01 < bridge> <Mr.Gh0s7> but that breaks the existing maps
+14:02 < bridge> <chillerdragon> It will probably take some time until I find time to add tiles but then I intend to think about which indecies to use. Preferably some open standard or whatever is used the most
+14:02 < bridge> <Mr.Gh0s7> ig there could be a fng and fng++ gamemode where the spikes are normal and the spikes are like the img I just sent
+14:02 < bridge> <cyberfighter> mmm gummy spikes
+14:02 < bridge> <cyberfighter> which flavour you taking
+14:03 < bridge> <chillerdragon> So fng is basically empty in my codebase you just already have a instagib environment with kills scores rounds etc
+14:04 < bridge> <chillerdragon> Then you can decide wether you want to write quick and dirty code or bud heads with me and write code that I will merge and maintain for you possibly for decades lol
+14:04 < bridge> <Mr.Gh0s7> I would go with the second tbh
+14:07 < ChillerDragon> okay then i have to warn you i want to find a non git conflicting way to add tiles to a ddnet codebase
+14:08 < ChillerDragon> so we might have to wait for some prs in upstream. discuss with kaffeine and heinrich before anything progresses
+14:08 < bridge> <Mr.Gh0s7> yeah np
+14:08 < ChillerDragon> we can already draft the indecies tho
+14:08 < ChillerDragon> maybe we should move elsewhere and not spam ddnet #developer
+14:09 < ChillerDragon> https://github.com/ZillyInsta/ddnet-insta/issues/79
+14:09 < ChillerDragon> ^
+14:10 < ChillerDragon> indices such a hard word xd
+14:11 < ChillerDragon> > The plural of index is indexes or indices.
+14:37 < ChillerDragon> omg now i get segfaults with different backtraces everytime
+14:37 < ChillerDragon> maintaining #5949 is such a pain -.- i really need this to be merged soon for my mental health
+14:43 < bridge> <mamad_melanin> like in fng's
+14:44 < bridge> <mamad_melanin> like in fng
+14:49 < bridge> <mamad_melanin> i can't find any useful method for that in CCaracter class
+14:52 < bridge> <mamad_melanin> how can i keep track of indirect kills ? example: "someone hook another tee and then kill him with spike"
+14:55 < ChillerDragon> you have to code that your self
+14:55 < ChillerDragon> keep track of who hooked who and on death check if thats set
+14:56 < bridge> <mamad_melanin> i can use gamecore.h i thing but the server will be easily hackable
+14:57 < bridge> <mamad_melanin> right ?
+14:57 < ChillerDragon> yes gamecore
+14:57 < ChillerDragon> no not easily hackable
+14:58 < ChillerDragon> tw protocol is secure by design the client only sends inputs
+14:58 < ChillerDragon> gamecore is shared code for prediction reasons but the client never sends state the server uses for actual physics 
+14:58 < ChillerDragon> pChar->Core()->m_HookedPlayer i store this boi in character.cpp
+14:59 < bridge> <mamad_melanin> oh yes
+14:59 < ChillerDragon> for every tee i store who it was last touched by and update that on damage and if hookedplayer is set
+15:00 < bridge> <mamad_melanin> let me try reimplement it, sounds fun
+15:02 < ChillerDragon> enjoy segfaults when it was a regular selfkill axaxaxax
+15:02 < ChillerDragon> also make sure your server does not explode if a tee gets blocked and the killer already left when the victim suicides
+15:03 < ChillerDragon> also make sure to unset the lasttoucher after some delay
+15:03 < ChillerDragon> otherwise getting hooked by someone and then selfkilling 2hours later counts as kill :D
+15:03 < bridge> <mamad_melanin> i just wanna give credit to one that freeze the tee first, make sense
+15:03 < ChillerDragon> ah you credit on freeze not on kill 
+15:04 < ChillerDragon> i see
+15:04 < ChillerDragon> still the killer could leave before the victim hits the freeze thats a classic crashbug
+15:04 < bridge> <mamad_melanin> i just check every pointer :DDD
+15:04 < ChillerDragon> i personally dislike the credit on freeze because that counts ddracing with a friend as murdering each other
+15:06 < bridge> <mamad_melanin> i want to give point in every small things like, freeze someone, unfreeze someone, kill, ...
+15:06 < ChillerDragon> ah cool
+15:06 < ChillerDragon> are you planning to host btw? planning to open source?
+15:06 < bridge> <mamad_melanin> and punish the people for unfreezing they friends with laser. it's so annoying
+15:06 < ChillerDragon> xd
+15:08 < bridge> <mamad_melanin> i wanna host it, but there is no point to make it open source, even me can't read my code
+15:09 < ChillerDragon> xd
+15:09 < bridge> <mamad_melanin> after gathering some skill, i make a clean mod and then yes, opensource
+15:09 < ChillerDragon> cool
+15:10 < bridge> <mamad_melanin> i changed my avatar :feelsamazingman:
+15:12 < ChillerDragon> i dont see avatars :feelsbadman:
+15:13 < bridge> <mamad_melanin> https://cdn.discordapp.com/attachments/293493549758939136/1189209416927559830/Brow.jpg?ex=659d5493&is=658adf93&hm=38a0074939cfc6de4a7f822fe6886ea6b351c4612fdcf856bfa47c311a6a2be3&
+15:17 < ws-client> <ChillerDragon> lmao
+15:44 < ChillerDragon> troll gmail showed a loading bar when i freshly opend gmail.com but i did not even have a ethernet cable plugged into ma pc
+15:44 < ChillerDragon> caching js moment
+15:51 < ChillerDragon> didnt watch the video but it instantly reminded me of heinrich hehe https://www.youtube.com/watch?v=08NlhU4gzdY
+16:06 < bridge> <garry> ZAF servers spiking a lot lately over the last few days. All players mentioning server spikes - is it a host issue?
+16:29 < bridge> <deen> probably. restart didn‘t help
+17:55 < bridge> <avolicious> Any dev in here experienced with gRPC and bidirectional long running streams?
+18:00 < bridge> <teero777> @gutzufusss:
+18:00 < bridge> <teero777> xd
+18:00 < bridge> <teero777> @gutzufusss
+18:00 < bridge> <robyt3> https://dontasktoask.com/
+18:01 < bridge> <teero777> https://nohello.net/en/
+18:03 < bridge> <Jupstar ✪> @ryozuki ever used https://github.com/tokio-rs/tracing
+18:03 < bridge> <Jupstar ✪> 
+18:03 < bridge> <Jupstar ✪> ?
+18:04 < bridge> <avolicious> I am not sure if people are interested in answering it in here, but there you go.
+18:04 < bridge> <avolicious> 
+18:04 < bridge> <avolicious> In gRPC you are able to create a long running bidirectional ( bidi ) stream with `stub->AsyncEventStream(&context_, &this->cq_, reinterpret_cast<void*>(gRPC::Type::CONNECT));`
+18:05 < bridge> <avolicious> 
+18:05 < bridge> <avolicious> This works great until there is a network problem & the stream stops sending or receiving data. There is a built-in grpc-core reconnect & keepalive feature, but it doesnt restart the stream.
+18:05 < bridge> <avolicious> 
+18:05 < bridge> <avolicious> How would you solve the problem?
+18:15 < bridge> <ryozuki> how can u ask that
+18:15 < bridge> <ryozuki> ofc
+18:15 < bridge> <ryozuki> its the go to for logging
+18:15 < bridge> <ryozuki> even outside async
+18:15 < bridge> <ryozuki> the predecessor is "log"
+18:15 < bridge> <ryozuki> but tracing is better
+18:15 < bridge> <Jupstar ✪> but it's not zero-costable?
+18:15 < bridge> <Jupstar ✪> 
+18:15 < bridge> <Jupstar ✪> e.g. i dont see a feature to disable it if i dont need it
+18:16 < bridge> <ryozuki> no it has some cost but not much
+18:16 < bridge> <ryozuki> if u want zero or near zero cost logging
+18:16 < bridge> <ryozuki> u need specialized crates
+18:16 < bridge> <ryozuki> i doubt its a source of bottleneck tho xd
+18:17 < bridge> <ryozuki> i think it may have some debug macros
+18:17 < bridge> <ryozuki> that only get compiled in debug mode
+18:17 < bridge> <Jupstar ✪> yeah but why should i compile it in, if i only need it as dev 😄
+18:17 < bridge> <ryozuki> ah
+18:17 < bridge> <ryozuki> dev only dep?
+18:18 < bridge> <Jupstar ✪> yeah but i still have to use their macros all the time
+18:18 < bridge> <ryozuki> bro idk
+18:18 < bridge> <ryozuki> either u use a crate or not
+18:18 < bridge> <ryozuki> xd
+18:18 < bridge> <reitw> @avolicious damn kodekloud to learn k8s is amazingly good, do you have any certification btw ?
+18:18 < bridge> <Jupstar ✪> yeah but it could easily do a no-opt macro
+18:18 < bridge> <Jupstar ✪> and only enable the real macro with a feature on
+18:18 < bridge> <Jupstar ✪> yeah but it could easily do a no-op macro
+18:19 < bridge> <ryozuki> u can do it urself
+18:19 < bridge> <ryozuki> u make the dep optional
+18:19 < bridge> <ryozuki> and put it behind a feature on UR crate
+18:19 < bridge> <ryozuki> and u can do
+18:19 < bridge> <ryozuki> cargo r --feature with-logger
+18:19 < bridge> <ryozuki> if u named the feature with-logger
+18:19 < bridge> <Jupstar ✪> yeah
+18:19 < bridge> <Jupstar ✪> but then i have to do it xddd
+18:19 < bridge> <ryozuki> u have to do it
+18:19 < bridge> <ryozuki> it doesnt make sense for tracing itself
+18:19 < bridge> <ryozuki> to do a feature which disables itself
+18:20 < bridge> <ryozuki> this is done on the one using it
+18:20 < bridge> <ryozuki> tracing would do that on a costly dependency it has
+18:20 < bridge> <ryozuki> but not itself XD
+18:21 < bridge> <avolicious> Next year I will do some, because new job 😄
+18:54 < bridge> <mamad_melanin> what function is called every time a tee dies or suicide or get spiked or say /kill
+18:59 < bridge> <mamad_melanin> i know this one ```cpp
+18:59 < bridge> <mamad_melanin> pPlayer->KillCharacter(WEAPON_SELF);
+18:59 < bridge> <mamad_melanin> ```
+18:59 < bridge> <mamad_melanin> witch i think is for kill protection ones, how about other ones ?
+19:01 < bridge> <mamad_melanin> i having hard time finding functions in general, any suggestions ?
+19:02 < bridge> <mamad_melanin> i just search the whole source code with some name in my minds like "kill"
+19:04 < bridge> <mamad_melanin> i just search the whole source code with some names in my mind like "kill"
+19:10 < bridge> <kaffeine0> `CCharacter::Die()`? It is called by `CPlayer::KillCharacter()`.
+19:10 < bridge> <kaffeine0> https://github.com/ddnet/ddnet/blob/c906c43e38d67ba7be0f988fe329d554d37e1052/src/game/server/player.cpp#L579
+19:23 < bridge> <learath2> I like to go from observable stuff. If there is a server message, look for that. If there is a sound look for that e.g.
+19:23 < bridge> <learath2> But with experience you kinda learn where everything is
+19:31 < bridge> <mamad_melanin> i learned so nice with this method in the past 5 days, but i need to see the function calls elsewhere in the src every time i wanna write it again, my memory is killing me
+19:34 < bridge> <kaffeine0> Do you use an IDE? You found `pPlayer->KillCharacter`, so you could go to the `KillCharacter()` method, see `Die()`  there, find the usage (I mean IDE action) and realize that this is what you want.
+19:41 < bridge> <mamad_melanin> i use vscode just for editing and using MSYS2 to compile the src
+19:41 < bridge> <mamad_melanin> but my vscode doesn't highlight everything is the src, i just can mostly use it for going to classes(not the members) and header files :D, i couldn't configure it
+19:41 < bridge> <mamad_melanin> if i wanna see implementation of the member function or something i just search it in the whole src
+19:42 < bridge> <mamad_melanin> if i wanna see implementation of the member function or something i just search it in the whole src tree
+19:42 < bridge> <milkeeycat> how about u configure ur code editor to make ur life easier?
+19:44 < bridge> <mamad_melanin> i just ask it here :justatest:
+19:44 < bridge> <milkeeycat> i use ed btw
+19:45 < bridge> <mamad_melanin> is it easy to find what you want in it ?
+19:49 < bridge> <kaffeine0> > i having hard time finding functions in general, any suggestions ?
+19:49 < bridge> <kaffeine0> Ok, then "configure the project" is `#0`. Also, I'd use MSVC as the compiler (if I'd be using Windows).
+19:53 < bridge> <milkeeycat> yes, it very high end, modern code editor
+19:54 < bridge> <mamad_melanin> I planing to change to linux and using vim, but yes i need to configure this soon
+19:54 < bridge> <Jupstar ✪> ryozuki
+19:54 < bridge> <Jupstar ✪> contributor to llvm & rust
+19:54 < bridge> <Jupstar ✪> uses vscode
+19:55 < bridge> <Jupstar ✪> if this elitest of all programmers can do live with it, you can too
+19:55 < bridge> <Jupstar ✪> if this elitest of all programmers can live with it, you can too
+19:55 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1189280455418183740/image.png?ex=659d96bc&is=658b21bc&hm=df55898fe4e17793fb8b37fab0f3b7f1c1c1be487e9094717f3c79d465493698&
+19:56 < bridge> <milkeeycat> and to ddnet as well!!!
+20:13 < bridge> <mamad_melanin> the only shortcuts i used so far is: crtl + shift + f   and  ctrl + f
+20:13 < bridge> <mamad_melanin> only
+20:32 < bridge> <mamad_melanin> how can i debug my server when it's running
+20:35 < bridge> <mamad_melanin> segmentation fault :feelsbadman:
+20:35 < bridge> <kekomonter> Try to use IDE's like vscode and jetbrains products (CLion for C/C++)
+21:06 < bridge> <learath2> @murpi can you take a look at this? You are a dummy magician, you might know if it breaks sth
+22:08 < ChillerDragon> ryo contributed to rust?
+22:09 < bridge> <Jupstar ✪> is that really a question
+22:09 < ChillerDragon> yes
+22:09 < ChillerDragon> he writes rust code but did he contribute to the rust project it self?
+22:10 < bridge> <Jupstar ✪> ryo doesnt write rust code. he breaths rust code
+22:10 < ChillerDragon> yeye link or didnt happen
+22:10 < bridge> <Jupstar ✪> @ryozuki link your contribution
+22:10 < ChillerDragon> xd
+22:11 < ChillerDragon> @avolicious arent cool kids using quic for robust connections?
+22:11 < bridge> <avolicious> But this are two different topics?
+22:12 < ChillerDragon> idk i neither tried quic nor gRPC
+22:12 < ChillerDragon> was just wondering if you could wrap one in the other or some shit
+22:12 < bridge> <avolicious> gRPC is for Remote Procedure Calls, QUIC is a protocol built on top of UDP
+22:12 < bridge> <avolicious> Well, theoretically you could
+22:12 < bridge> <avolicious> You need to rewrite gRPC then, because its heavily built upon HTTP2
+22:13 < ChillerDragon> i see
+22:13 < ChillerDragon> sounds bad
+22:13 < ChillerDragon> @reitw when did kodekloud get mentioned?
+22:21 < bridge> <reitw> why that question
+23:43 < bridge> <chillerdragon> You mentioned it as if it was mentioned before. I did not see the previous message. I am questioning my reading skills or bridge functionality
+23:44 < bridge> <chillerdragon> I do not understand the context of this message
+23:45 < bridge> <ryozuki> Chillerdragon https://github.com/rust-lang/rust/pull/113616
+23:47 < bridge> <chillerdragon> Epic
+23:47 < bridge> <chillerdragon> Didn’t know
+23:47 < bridge> <chillerdragon> Python xd
