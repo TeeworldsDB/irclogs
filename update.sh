@@ -59,6 +59,7 @@ download_partial_newest() {
 	do
 		local url
 		url="https://ddnet.org/irclogs/$logfile"
+		log "downloading $url ..."
 		if ! curl -O "$url"
 		then
 			err "Error: curl failed to download $url"
@@ -72,6 +73,8 @@ download_partial_newest() {
 		grep -vE '^201' |
 		grep -vE "^202[0-$max_year_last_digit]")
 	# TODO: this will break in 2030
+
+	mv ./*.log ../ddnet
 }
 
 arg_full=0
@@ -81,6 +84,7 @@ do
 	if [ "$arg" == "--help" ] || [ "$arg" == "-h" ]
 	then
 		echo "usage: $0 [--full]"
+		exit 0
 	elif [ "$arg" == "--full" ]
 	then
 		arg_full=1
