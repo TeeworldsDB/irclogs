@@ -1,0 +1,519 @@
+01:10 < bridge> <chillerdragon> https://github.com/ddnet/ddnet/issues/6973
+01:10 < bridge> <chillerdragon> 
+01:10 < bridge> <chillerdragon> Saves using what password?
+01:11 < bridge> <chillerdragon> Yes c:
+02:16 < bridge> <patiga> Hey I'm helping someone use my twgpu tools (to generate images of maps). they managed to make it work on their own pc, but want to run it on a vps. however, whenever they run anything wgpu-related, they get stack smashing errors. I'm not sure if they installed graphics drivers correctly. first, wgpu went "no suitable adapter found", then they followed this https://askubuntu.com/questions/429596/how-to-choose-the-vga-when-setting-up-the-x-server, and
+02:16 < bridge> <patiga> 
+02:16 < bridge> <patiga> https://cdn.discordapp.com/attachments/969013185577381888/1198793524452261930/image.png?ex=65c03278&is=65adbd78&hm=8f1bf15c62ee0f85b7b6b6c07d096ba4c4abad145470156d5cb50592c048b28d&
+02:16 < bridge> <patiga> https://cdn.discordapp.com/attachments/969013185577381888/1198790258322591854/image.png?ex=65c02f6e&is=65adba6e&hm=47399799db95d36f273d90a4b97fb83ad5fefb2c04d6a3864669a853c8a8797f&
+02:16 < bridge> <patiga> https://cdn.discordapp.com/attachments/969013185577381888/1198797064247713812/image.png?ex=65c035c4&is=65adc0c4&hm=8ee3ee129f0793c490ff2b0aa5605d3edd124708abbdce3655a7fcf23e92dd05&
+02:16 < bridge> <patiga> wgpu-info is a simple tool that only lists the available adapters for wgpu https://crates.io/crates/wgpu-info
+02:16 < bridge> <patiga> other rust binaries still run normally, such as my map tools
+02:16 < bridge> <patiga> I honestly have no experience at all with vps and graphics drivers, so if anyone has an idea, that would be awesome ^^
+02:18 < bridge> <patiga> I haven't tried to get them to debug the crash further yet, maybe that is necessary? First wanted to see if someone here has the solution cached
+02:25 < ws-client> <ChillerDragon> "has the solution cached" love that phrase haha
+02:26 < ws-client> <ChillerDragon> can wgpu run on the cpu? Might be slower but sounds less driver issue painy
+02:27 < ws-client> <ChillerDragon> i can offer you to run the same thing on my debian 12 vps and debian 12 laptop if it helps @patiga 
+02:27 < bridge> <patiga> I think there are cpu graphics drivers exist, which wgpu could use
+02:27 < bridge> <patiga> maybe mesa?
+02:32 < bridge> <patiga> ChillerDragon: its for someone else, I'm pretty sure they want to run it on their own server
+02:33 < bridge> <patiga> but thanks for the offer :)
+02:35 < ws-client> <ChillerDragon> oh no not for production i mean to test the issue if i can reproduce it etc
+09:27 < bridge> <Jupstar ✪> I used mesas lavapipe, which is vulkan software renderer, in my vps to run try the off screen capabilities of dd-pg engine.
+09:27 < bridge> <Jupstar ✪> 
+09:27 < bridge> <Jupstar ✪> What was directly a problem is that the mesa 22 and lower didn't work at all on the vps CPU
+09:27 < bridge> <Jupstar ✪> 
+09:27 < bridge> <Jupstar ✪> I unsafely upgraded them and it worked without problems
+09:28 < bridge> <Jupstar ✪> But I'm pretty sure it was no stack smashing.. But maybe you can try your tool on your main computer using a software renderer?
+09:29 < bridge> <Jupstar ✪> Could try to also get this issue
+09:44 < bridge> <Jupstar ✪> BTW has wgpu no surface less mode if using vulkan back end?
+09:44 < bridge> <Jupstar ✪> 
+09:44 < bridge> <Jupstar ✪> Normally u don't need any x server. At least not directly.. The mesa drivers have it as dependency. But that's mostly because of the surface extension
+09:45 < bridge> <Jupstar ✪> In other words. Surfaces are a extension. Without this extension vulkan is really more a communication api for the gpu
+09:52 < bridge> <patiga> afaik, no
+09:52 < bridge> <patiga> surfaces are no extension, and there is no feature for it. you can ofc not use the surface struct, but the feature resolving happens at the device initialization, right?
+09:54 < bridge> <patiga> this sounds good, that should hopefully work
+09:55 < bridge> <patiga> yeah the stack smashing is rly weird imo, how could the graphics driver installation fail so drastically
+09:56 < bridge> <patiga> good point, I'll get back to that if all else fails 👍
+09:58 < bridge> <Jupstar ✪> For vulkan you have to explicitly enable the surface extension. Which in case of winit or SDL is a call to these APIs to fetch the correct extension name
+09:59 < bridge> <Jupstar ✪> So if you don't have this control. Then probably not possible
+09:59 < bridge> <Jupstar ✪> But yeah it happens at instance creation
+12:36 < bridge> <heinrich5991> ChillerDragon: interesting, wouldn't have thought it to be possible ^^
+12:37 < bridge> <heinrich5991> ChillerDragon: but wait, where are the packets that *also* contain snaps but also interesting other packets?
+13:10 < ws-client> <ChillerDragon> @heinrich5991 yep i also realized i didnt post my updated even more complicated filter :D 
+13:10 < ws-client> <ChillerDragon> https://gist.github.com/ChillerDragon/dff6661613533c9bd17ad790e01e8c97
+13:11 < ws-client> <ChillerDragon> it now keeps snaps if the packet also contains non snap packets. I do it by only filtering out snaps if the amount of chunks is the expected amount
+13:11 < bridge> <heinrich5991> this looks better
+13:13 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1705925584.png
+13:13 < ws-client> <ChillerDragon> sadly i didnt find a way to filter this. But its rare and its a false negative so thats not so bad. 
+13:14 < ws-client> <ChillerDragon> wireshark filters do have some count methods so it is probably possible to check if input_timing is in there twice but i did not bother yet
+13:33 < ws-client> <ChillerDragon> lmao open source china firewall i love it
+13:33 < ws-client> <ChillerDragon> https://github.com/apernet/OpenGFW
+13:33 < ws-client> <ChillerDragon> oldest commit 2days ago. And 1.6k github stars wtf. This shit is hotter than elon musk tweets
+13:34 < ws-client> <ChillerDragon> https://github.com/apernet/OpenGFW/issues/12
+13:34 < ws-client> <ChillerDragon> gold
+13:34 < ws-client> <ChillerDragon> @TsFreddie u worried too fred? :D
+13:36 < ws-client> <ChillerDragon> but it is kinda scary if this thing keeps trending like this. It might be the new normal that some bored front desk employee at a cafe or hotel starts looking at the traffoc of the customers
+14:11 < bridge> <Jupstar ✪> Tja
+14:15 < bridge> <smetanolub> ))) new normal
+14:16 < bridge> <smetanolub> u mean old normal?
+14:17 < ws-client> <ChillerDragon> I dont think its a thing. What is common as of right now that a bunch of fancy routers (at least in germany) show which sites the traffic goes to.
+14:17 < ws-client> <ChillerDragon> I could see how much traffic at work was porn :D and seen such stats in a few places
+14:18 < ws-client> <ChillerDragon> but i never heard of something so sophisticated such as the GFW. That it starts to analyze the packets deeper and migh even show which urls on a specific host are accessed
+14:19 < ws-client> <ChillerDragon> Starbucks employees might now see my rcon password for gCTF servers o.O
+14:19 < ws-client> <ChillerDragon> popping up in some fancy gui
+14:20 < ws-client> <ChillerDragon> okay thats unlikely but i mean they might see what youtube videos i watch 
+14:20 < ws-client> <ChillerDragon> which is already pretty disturbing
+14:24 < ws-client> <ChillerDragon> dude but how has this new repo so many stars?! was it force pushed?
+14:24 < ws-client> <ChillerDragon> https://news.ycombinator.com/item?id=39081860
+14:24 < ws-client> <ChillerDragon> it has like 0 upvotes on hackernews
+14:24 < ws-client> <ChillerDragon> is github algo now more viral than tiktok or what?
+14:25 < ws-client> <ChillerDragon> maybe its trending on some chines sites. Again fred help
+14:25 < ws-client> <ChillerDragon> https://twitter.com/hardenedlinux/status/1748929921345556512
+14:25 < ws-client> <ChillerDragon> also not trending on X
+14:26 < bridge> <teero777> what's gfw? My internet is bad can't open websites...
+14:26 < bridge> <milkeeycat> great firewall
+14:26 < bridge> <milkeeycat> great firewall?
+14:26 < ws-client> <ChillerDragon> the chines firewall yes GREAT FIRE WALL
+14:26 < bridge> <avolicious> yep 🙂
+14:26 < bridge> <teero777> XDD
+14:26 < ws-client> <ChillerDragon> the one that uses block chain and AI to block club penguin in china
+14:26 < bridge> <avolicious> To block nearly every western company
+14:27 < bridge> <teero777> I can't tell if you're joking or not :justatest:
+14:27 < bridge> <avolicious> Discord, Facebook, Google all is blocked due to GFW
+14:27 < bridge> <avolicious> So Tencent can build their own service called Bilibili and QQ 😄
+14:27 < bridge> <milkeeycat> if u can play ddnet there its not that bad 😏
+14:28 < ws-client> <ChillerDragon> also github is blocked so basically no dev tooling works in china
+14:28 < bridge> <avolicious> Well, its illegal in China. The game itself has no license in china
+14:28 < ws-client> <ChillerDragon> many ppl depend on github urls espeially raw.githubusercontent.com
+14:28 < bridge> <milkeeycat> i never in my life read correctly bililibilili xd
+14:28 < bridge> <avolicious> AFAIK: To sell games in china, you have to get approval by authorities, thus you need a license
+14:29 < bridge> <avolicious> Yeah, its their "youtube"
+14:29 < ws-client> <ChillerDragon> dude 12yo fred went to da polis station to register his tw server
+14:29 < ws-client> <ChillerDragon> just china things
+14:30 < bridge> <avolicious> But it seems that their services are pretty stable
+14:31 < bridge> <chillerdragon> Yes china best. I use weechat a lot
+14:31 < bridge> <fokkonaut> Hello @heinrich5991 @learath2 @deen
+14:31 < bridge> <fokkonaut> 
+14:32 < bridge> <fokkonaut> How can I apply for community feature?
+14:32 < bridge> <chillerdragon> Write hand written letter to
+14:32 < bridge> <chillerdragon> 
+14:32 < bridge> <chillerdragon> Dennis Felsing
+14:32 < bridge> <chillerdragon> Müllerstraße 6
+14:32 < bridge> <chillerdragon> 62621 Berlin
+14:32 < bridge> <chillerdragon> 
+14:32 < bridge> <chillerdragon> And attach copy of passport
+14:33 < bridge> <fokkonaut> leak?
+14:34 < bridge> <chillerdragon> opsi thought it’s private chat
+14:34 < bridge> <deen> That is not my address
+14:34 < bridge> <chillerdragon> xd fun police
+14:37 < bridge> <avolicious> PII data, please remove
+14:38 < bridge> <blaiszephyr> not yet, chiller knows you'll move to berlin in approx 5 years to exactly that adress!
+14:50 < bridge> <milkeeycat> chillerdragon: can you even remove messages? :kek:
+15:09 < bridge> <teero777> it seems not XDD
+15:36 < bridge> <chillerdragon> No irc has no such feature. And I also didn’t add a fake remove. Well matrix has one. So I could delete my matrix messages idk what exactly your asking about :D
+15:36 < bridge> <chillerdragon> 
+15:36 < bridge> <chillerdragon> Anyways everything posted in this channel stays in irc logs forever
+15:37 < bridge> <pipou_tw> Copying it here from #bugs 
+15:37 < bridge> <pipou_tw> It seems like you can't rotate quads anymore with ctrl+left click
+15:37 < bridge> <pipou_tw> It works in 17.1.1 at least
+15:37 < bridge> <pipou_tw> ctrl+click does nothing anymore
+15:57 < bridge> <Jupstar ✪> Make GH issue
+16:17 < bridge> <louis> press r
+16:17 < bridge> <louis> i beblieve
+16:21 < bridge> <coke1465> r and move mouse
+16:21 < bridge> <coke1465> again r to stop rotating
+16:39 < bridge> <pipou_tw> Lol wtf
+16:40 < bridge> <pipou_tw> Ctrl click was much simpler
+16:40 < bridge> <pipou_tw> Ctrl click was simpler
+16:40 < bridge> <♂S1mple♂> i've spent like 2 mins getting used to r, it's not bad
+16:49 < bridge> <patiga> heh, are we going blender style? :D
+16:49 < bridge> <patiga> r to rotate, g to move, s to scale
+16:52 < bridge> <pipou_tw> Is it possible to unable the fact that quads align to one another?
+16:53 < bridge> <pipou_tw> Also, would it be possible to improve the performance when zooming out in the editor (make it as smooth and as fast as the in-game zoom)
+17:05 < bridge> <borsmatyas02> is it possible to make it visible if someone is spectateing you?
+17:06 < bridge> <blaiszephyr> what exactly
+17:07 < bridge> <borsmatyas02> if i select someone with shift for spectating show it for him that i spectate him
+17:08 < bridge> <borsmatyas02> like in hearthstone
+17:15 < bridge> <archidev_> Yes, it is in the settings menu
+17:16 < bridge> <archimede67> Yes, it is in the settings menu, the last two options are about that feature
+17:17 < bridge> <archimede67> Is this considered as a bug?
+17:17 < bridge> <archimede67> Or was it simply replaced by "r"
+17:20 < bridge> <pipou_tw> I have no idea, it's less practical @archimede67
+17:21 < bridge> <heinrich5991> berlin zip codes start with 1
+17:21 < bridge> <chillerdragon> heinrich casually doxing an entire city
+17:22 < bridge> <chillerdragon> Blender keybindings are pog
+17:23 < ws-client> <MilkeeyCat> ````https://yes.no````
+17:23 < ws-client> <MilkeeyCat> whoops <:justatest:572499997178986510> 
+17:23 < bridge> <chillerdragon> Filtered by GFW
+17:23 < bridge> <Jupstar ✪> OpenGFW
+17:23 < bridge> <chillerdragon> Can’t reach in my censor country
+17:23 < bridge> <mamad_melanin> hello there
+17:23 < bridge> <Jupstar ✪> they already adapted
+17:24 < bridge> <mamad_melanin> what will happen if i use for in a tick()
+17:24 < bridge> <chillerdragon> It will cause lags if it’s too slow
+17:24 < bridge> <chillerdragon> But computers are fast
+17:25 < bridge> <mamad_melanin> what if the for takes 50 tick's to get don ?
+17:25 < bridge> <heinrich5991> by not pinging everyone
+17:25 < bridge> <Jupstar ✪> there are lot of fors in tick
+17:25 < bridge> <chillerdragon> As lerato always says: clock cycles are free. Hardware gets better so write slower code!
+17:25 < bridge> <mamad_melanin> yeh i see
+17:26 < bridge> <chillerdragon> You need a big ass for to take 50 ticks even on a raspberry pi
+17:26 < bridge> <chillerdragon> Just don’t use while (true) axaxaxax
+17:26 < bridge> <Jupstar ✪> and use more ram
+17:26 < bridge> <mamad_melanin> can you explain the process step in step ?
+17:26 < bridge> <Jupstar ✪> even if u dont need it
+17:26 < bridge> <mamad_melanin> how it will be done
+17:27 < bridge> <mamad_melanin> it will make another tread for that for ?
+17:27 < bridge> <Jupstar ✪> for (auto four = 4; four < 4 + 4; four += 4) { ... }
+17:27 < bridge> <chillerdragon> Just download more tame
+17:27 < bridge> <chillerdragon> Ram
+17:27 < bridge> <chillerdragon> It won’t
+17:27 < bridge> <chillerdragon> You have to do it your self
+17:27 < bridge> <Jupstar ✪> lmao
+17:28 < bridge> <mamad_melanin> will it mess up the tick speed ?
+17:28 < bridge> <Jupstar ✪> no
+17:28 < bridge> <chillerdragon> C++ is not web scale
+17:28 < bridge> <chillerdragon> If you turn it on it doesn’t scale right up
+17:28 < bridge> <Jupstar ✪> it depends fully on your for loop
+17:28 < bridge> <Jupstar ✪> if u download four k teeporn then yes
+17:29 < bridge> <chillerdragon> Doing 100 iterations with simple operations inside is smooth af
+17:29 < bridge> <Jupstar ✪> it's so web scale
+17:29 < bridge> <Jupstar ✪> just show your code
+17:29 < bridge> <mamad_melanin> no
+17:29 < bridge> <Jupstar ✪> u always ask questions, i dont even know what u doing
+17:29 < bridge> <chillerdragon> Web scale would turn for loops into threads xaxaxax
+17:29 < bridge> <Jupstar ✪> why not
+17:30 < bridge> <mamad_melanin> the code is personal stuff
+17:30 < bridge> <Jupstar ✪> yeah for sure
+17:30 < bridge> <Jupstar ✪> what r u working on?
+17:30 < bridge> <milkeeycat> chillerdragon: i renamed those variables :owo:
+17:30 < bridge> <chillerdragon> he switched to client side hehe
+17:31 < bridge> <mamad_melanin> just wondering about for for a second
+17:31 < bridge> <chillerdragon> Cool thanks I’m on da phone will look tomorrow @milkeeycat
+17:32 < bridge> <Jupstar ✪> i can't foresee your thoughts about using for tho
+17:32 < bridge> <Jupstar ✪> using four fors inside each other can cause a for-ception. which is bad for performance
+17:32 < bridge> <Jupstar ✪> perFORmance
+17:32 < bridge> <Jupstar ✪> to be precise
+17:33 < bridge> <chillerdragon> foresee lmao
+17:33 < bridge> <chillerdragon> yeah just use recursion it’s faster
+17:33 < bridge> <mamad_melanin> i will show my code
+17:33 < bridge> <mamad_melanin> but don't suggest anything
+17:33 < bridge> <Jupstar ✪> for four seconds
+17:33 < bridge> <mamad_melanin> it's lazy
+17:34 < bridge> <chillerdragon> Lazy code pog
+17:34 < bridge> <mamad_melanin> ```cpp
+17:34 < bridge> <mamad_melanin> void CCharacter::ExplodingProcess()
+17:34 < bridge> <mamad_melanin> {
+17:34 < bridge> <mamad_melanin>     if(m_ExplodingProcessStartTick == -1)
+17:34 < bridge> <mamad_melanin>     {
+17:34 < bridge> <mamad_melanin>         m_ExplodingProcessStartTick = Server()->Tick();
+17:34 < bridge> <mamad_melanin>         for(int i; (i <= 16) && m_ExplodingProcessStartTick*(16*10) >= Server()->Tick();)
+17:34 < bridge> <mamad_melanin>         {
+17:34 < bridge> <mamad_melanin>             if((i*10)+m_ExplodingProcessStartTick == Server()->Tick())
+17:35 < bridge> <mamad_melanin>             {
+17:35 < bridge> <mamad_melanin>                 GameServer()->SendEmoticon(m_pPlayer->GetCID(), i, -1);
+17:35 < bridge> <mamad_melanin>                 i++;
+17:35 < bridge> <mamad_melanin>             }
+17:35 < bridge> <mamad_melanin>         }
+17:35 < bridge> <mamad_melanin>     }
+17:35 < bridge> <mamad_melanin>     return;
+17:35 < bridge> <mamad_melanin> }
+17:35 < bridge> <mamad_melanin> ```
+17:36 < bridge> <chillerdragon> 0fps code
+17:36 < bridge> <Jupstar ✪> well 1. you dont init int i
+17:36 < bridge> <Jupstar ✪> that's already a bug
+17:36 < bridge> <chillerdragon> Oh true
+17:36 < bridge> <mamad_melanin> i couldn't test it, cus it's crash the sv, but not shuting it down
+17:36 < bridge> <chillerdragon> loool
+17:36 < bridge> <chillerdragon> Also where did the i++ go?
+17:36 < bridge> <Jupstar ✪> bro i am too stupid to read your code xD
+17:36 < bridge> <mamad_melanin> i know this loop took long to be done
+17:36 < bridge> <chillerdragon> Is this chatgpt
+17:36 < bridge> <milkeeycat> git gud :santatrollet:
+17:36 < bridge> <Jupstar ✪> it looks like u only increase `i` under a certain condition
+17:36 < bridge> <Jupstar ✪> that sounds pretty scarry
+17:36 < bridge> <chillerdragon> Yes
+17:36 < bridge> <chillerdragon> And the condition involves i
+17:36 < bridge> <Jupstar ✪> what if that condition is never true?
+17:37 < bridge> <chillerdragon> It goes to 0 fps
+17:37 < bridge> <mamad_melanin> i wanted to cycle throgh all the emotes every 10 tick's that's all
+17:38 < bridge> <mamad_melanin> if the tee is in exploding process
+17:39 < bridge> <mamad_melanin> and the 16 is the maximum emoteicons i guss
+17:40 < bridge> <mamad_melanin> 15 maybe
+17:41 < bridge> <patiga> okay first things first: this code should never take longer than 1 tick to run (in reality it will only take a tiny fraction of a tick), assuming that it is bug-free
+17:41 < bridge> <patiga> are you open to suggestions now, or was that the answer you were looking for?
+17:45 < bridge> <mamad_melanin> but what if it takes more than 1 tick to be done, yes im open
+17:45 < bridge> <mamad_melanin> my fucking masages don't get sent
+17:47 < bridge> <mamad_melanin> if it don't take more than 1 tick it's like every other statements in the tick, am i right ?
+17:48 < bridge> <patiga> yes
+17:48 < bridge> <patiga> then there is a bug, causing the loop to last much much longer than it should
+17:49 < bridge> <patiga> like jupstar already said, the variable `i` is not set to any number, causing undefined behavior
+17:49 < bridge> <patiga> but honestly I also struggle to understand the code at all
+17:50 < bridge> <mamad_melanin> the code is lazy
+17:50 < bridge> <mamad_melanin> like me
+17:51 < bridge> <mamad_melanin> can you envolve tick in your for ?
+17:51 < bridge> <mamad_melanin> can you involve tick in your for ?
+17:51 < bridge> <mamad_melanin> can you involve tick in your for() ?
+17:52 < bridge> <mamad_melanin> ah man i get it now
+17:52 < bridge> <mamad_melanin> you can't cus you never gonna go to the next tick
+17:52 < bridge> <mamad_melanin> you can't cus you never gonna go to the next tick in the for
+17:52 < bridge> <mamad_melanin> you can't, cus you never gonna go to the next tick in the for
+17:53 < bridge> <mamad_melanin> thanks ❤️
+17:53 < bridge> <patiga> the problem is that it doesn't seem to make sense to me @mamad_melanin 
+17:53 < bridge> <patiga> assuming that `CCharacter::ExplodingProcess` is called every tick, and `m_ExplodingProcessStartTick` is set externally to the tick when the tee explodes, you could simply do:
+17:53 < bridge> <patiga> 1. calculate `tick_duration = server_tick - current_tick`, that is the tick duration since the exploding started
+17:53 < bridge> <patiga> 2. do a `if tick_duration < 150 { return; }` to make the animation last only 3 seconds
+17:53 < bridge> <patiga> 3. `emoji = tick_duration % 16`
+17:53 < bridge> <patiga> 4. send that emoji
+17:53 < bridge> <patiga> I don't think you need a for loop for this
+17:55 < bridge> <patiga> exactly :)
+17:55 < bridge> <mamad_melanin> yeh this is smart and also fast
+17:57 < bridge> <patiga> at 2., it should be > 150, not < 150
+17:59 < bridge> <furo321> There is `NUM_EMOTICONS`, which is 15.
+18:28 < bridge> <Ewan> morning
+18:49 < bridge> <Jupstar ✪> can i safely assume that this is a fake server now?
+18:49 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1199048162325844069/image.png?ex=65c11f9f&is=65aeaa9f&hm=607c505d02e283638e3d0bf7f6a6a29ba2b52c12089a8e70151279144c09e3c6&
+18:49 < bridge> <Jupstar ✪> 37.221.67.9
+18:49 < bridge> <Jupstar ✪> $ip 37.221.67.9
+18:49 < bridge> <Jupstar ✪> 37.221.67.9:8303
+18:49 < bridge> <DDNet> 37.221.67.9:8303 is not a DDNet or KoG server.
+18:49 < bridge> <ryumaaaa> @avolicious
+18:50 < bridge> <Jupstar ✪> there is another TUR #1 server with different ip
+18:50 < bridge> <Jupstar ✪> @heinrich5991 too ^
+18:51 < bridge> <Jupstar ✪> 195.85.201.173:8303
+18:51 < bridge> <Jupstar ✪> (real server)
+18:51 < bridge> <DDNet> 195.85.201.173:8303 appears to be a KoG server. DDNet and KoG aren't affiliated. 
+18:51 < bridge> <DDNet> Join their discord and ask for help there instead. <https://discord.kog.tw/>
+18:51 < bridge> <avolicious> Yeah, its fake
+19:03 < bridge> <Mr.Gh0s7> bb = big ban
+19:04 < bridge> <Jupstar ✪> ban backwards = nab
+19:04 < bridge> <Jupstar ✪> @mr.gh0s7 btw, now that you are here.
+19:04 < bridge> <Jupstar ✪> 
+19:04 < bridge> <Jupstar ✪> Is your new fng server still a thing?
+19:04 < bridge> <Jupstar ✪> has oreo ever played it? xd
+19:05 < bridge> <Mr.Gh0s7> dfng?
+19:05 < bridge> <Jupstar ✪> i dunno how you called it
+19:06 < bridge> <Mr.Gh0s7> I mean it's up but we (me and zogtib) kinda stopped developing it xD
+19:06 < bridge> <Jupstar ✪> ok xd
+19:07 < bridge> <Mr.Gh0s7> I think oreo has played it though :)
+19:08 < bridge> <Mr.Gh0s7> It's kinda like ALIVE servers rn
+19:08 < bridge> <Mr.Gh0s7> 😬
+19:09 < bridge> <Jupstar ✪> the main reason i lost interest in dev fng is, that i want more client support
+19:09 < bridge> <Jupstar ✪> end of 2024 is the time for fng
+19:09 < bridge> <Mr.Gh0s7> yeah same
+19:11 < bridge> <Mr.Gh0s7> dd-pg is the future!
+19:13 < bridge> <Jupstar ✪> you have a good taste 😏
+20:06 < bridge> <mamad_melanin> https://drive.google.com/file/d/1E_9cr3Kj4wk_3GKM-4wjl_SSzByNg51h/view?usp=drive_link
+20:06 < bridge> <mamad_melanin> can someone explain this, i tried to compile my source on a linux server as always
+20:08 < bridge> <mamad_melanin> and why downloading and building the rust packages take ages ?
+20:08 < bridge> <diariesvexar> your network problem maybe
+20:08 < bridge> <diariesvexar> you have network problem maybe
+20:08 < bridge> <mamad_melanin> fucking rust
+20:10 < bridge> <scrumplex> @blaiszephyr and I wrote an SQL query to figure out how many new players started in 2023:
+20:10 < bridge> <scrumplex> 
+20:10 < bridge> <scrumplex> ```sql
+20:10 < bridge> <scrumplex> SELECT
+20:10 < bridge> <scrumplex>   name,
+20:10 < bridge> <scrumplex>   total_points,
+20:10 < bridge> <scrumplex>   t
+20:10 < bridge> <scrumplex> FROM
+20:10 < bridge> <scrumplex>   (
+20:10 < bridge> <scrumplex>     SELECT
+20:10 < bridge> <scrumplex>       r.name,
+20:10 < bridge> <scrumplex>       MIN(r.timestamp) AS t,
+20:10 < bridge> <scrumplex>       SUM(m.points) as total_points
+20:10 < bridge> <scrumplex>     FROM
+20:10 < bridge> <scrumplex>       race AS r
+20:10 < bridge> <scrumplex>       JOIN maps AS m ON r.map = m.map
+20:10 < bridge> <scrumplex>     WHERE
+20:10 < bridge> <scrumplex>       name
+20:10 < bridge> <scrumplex>     GROUP BY
+20:10 < bridge> <scrumplex>       name
+20:10 < bridge> <scrumplex>   ) AS subquery
+20:10 < bridge> <scrumplex> WHERE
+20:10 < bridge> <scrumplex>   t BETWEEN '2023-01-01'
+20:10 < bridge> <scrumplex>   AND '2023-12-31'
+20:10 < bridge> <scrumplex>   AND total_points > 50;
+20:10 < bridge> <scrumplex> ```
+20:10 < bridge> <scrumplex> 
+20:10 < bridge> <scrumplex> Use it here: https://db.ddstats.org/
+20:10 < bridge> <scrumplex> 
+20:10 < bridge> <scrumplex> It assumes that someone is only a new player if their first finish was in 2023 and they have collected more than 50 points in total
+20:10 < bridge> <scrumplex> 
+20:11 < bridge> <mamad_melanin> why i never get this before, i didn't changed anything on those files
+20:11 < bridge> <blaiszephyr> only 520 - considering the steam release - feels low af
+20:11 < bridge> <scrumplex> wdym. This is just new players in 2023. Steam release was in 2021 👀
+20:11 < bridge> <blaiszephyr> but i guess we can assume people not to reach 50 points before quitting if they dont like the game
+20:11 < bridge> <scrumplex> wdym. This is just new players in 2023. Steam release was in 2020 👀
+20:12 < bridge> <milkeeycat> sounds like skill isssue
+20:13 < bridge> <blaiszephyr> well steam has over 30 million players - over 6 million active ones:
+20:13 < bridge> <blaiszephyr> 
+20:13 < bridge> <blaiszephyr> https://www.statista.com/statistics/1330211/steam-peak-concurrent-players/
+20:13 < bridge> <blaiszephyr> 
+20:13 < bridge> <blaiszephyr> only 500 feels low at that point, also while ddrace beeing a good rated free2play game
+20:13 < bridge> <scrumplex> maybe the SQL is actually wrong 💀
+20:14 < bridge> <blaiszephyr> well steam has over 30 million players - over 6 million active ones:
+20:14 < bridge> <blaiszephyr> 
+20:14 < bridge> <blaiszephyr> https://www.statista.com/statistics/1330211/steam-peak-concurrent-players/
+20:14 < bridge> <blaiszephyr> 
+20:14 < bridge> <blaiszephyr> only 500 feels low at that point, also considering ddrace beeing a good rated free2play game
+20:16 < bridge> <scrumplex> found the issue
+20:16 < bridge> <scrumplex> there is a rogue `WHERE name`
+20:17 < bridge> <scrumplex> @blaiszephyr and I wrote an SQL query to figure out how many new players started in 2023:
+20:17 < bridge> <scrumplex> 
+20:17 < bridge> <scrumplex> ```sql
+20:17 < bridge> <scrumplex> SELECT
+20:17 < bridge> <scrumplex>   name,
+20:17 < bridge> <scrumplex>   total_points,
+20:17 < bridge> <scrumplex>   t
+20:17 < bridge> <scrumplex> FROM
+20:17 < bridge> <scrumplex>   (
+20:17 < bridge> <scrumplex>     SELECT
+20:17 < bridge> <scrumplex>       r.name,
+20:17 < bridge> <scrumplex>       MIN(r.timestamp) AS t,
+20:17 < bridge> <scrumplex>       SUM(m.points) as total_points
+20:17 < bridge> <scrumplex>     FROM
+20:17 < bridge> <scrumplex>       race AS r
+20:17 < bridge> <scrumplex>       JOIN maps AS m ON r.map = m.map
+20:17 < bridge> <scrumplex>     GROUP BY
+20:17 < bridge> <scrumplex>       name
+20:17 < bridge> <scrumplex>   ) AS subquery
+20:17 < bridge> <scrumplex> WHERE
+20:17 < bridge> <scrumplex>   t BETWEEN '2023-01-01'
+20:17 < bridge> <scrumplex>   AND '2023-12-31'
+20:17 < bridge> <scrumplex>   AND total_points > 50;
+20:17 < bridge> <scrumplex> ```
+20:17 < bridge> <scrumplex> 
+20:17 < bridge> <scrumplex> Use it here: https://db.ddstats.org/
+20:17 < bridge> <scrumplex> 
+20:17 < bridge> <scrumplex> It assumes that someone is only a new player if their first finish was in 2023 and they have collected more than 50 points in total
+20:17 < bridge> <scrumplex> 
+20:17 < bridge> <scrumplex> Unless there is an error in this query, this results in 521 new players. Obviously this excludes people who started playing on existing account names and it definitely includes alt names
+20:18 < bridge> <scrumplex> @blaiszephyr and I wrote an SQL query to figure out how many new players started in 2023:
+20:18 < bridge> <scrumplex> 
+20:18 < bridge> <scrumplex> ```sql
+20:18 < bridge> <scrumplex> SELECT
+20:18 < bridge> <scrumplex>   name,
+20:18 < bridge> <scrumplex>   total_points,
+20:18 < bridge> <scrumplex>   t
+20:18 < bridge> <scrumplex> FROM
+20:18 < bridge> <scrumplex>   (
+20:18 < bridge> <scrumplex>     SELECT
+20:18 < bridge> <scrumplex>       r.name,
+20:18 < bridge> <scrumplex>       MIN(r.timestamp) AS t,
+20:18 < bridge> <scrumplex>       SUM(m.points) as total_points
+20:18 < bridge> <scrumplex>     FROM
+20:18 < bridge> <scrumplex>       race AS r
+20:18 < bridge> <scrumplex>       JOIN maps AS m ON r.map = m.map
+20:18 < bridge> <scrumplex>     GROUP BY
+20:18 < bridge> <scrumplex>       name
+20:18 < bridge> <scrumplex>   ) AS subquery
+20:18 < bridge> <scrumplex> WHERE
+20:18 < bridge> <scrumplex>   t BETWEEN '2023-01-01'
+20:18 < bridge> <scrumplex>   AND '2023-12-31'
+20:18 < bridge> <scrumplex>   AND total_points > 50;
+20:18 < bridge> <scrumplex> ```
+20:18 < bridge> <scrumplex> 
+20:18 < bridge> <scrumplex> Use it here: https://db.ddstats.org/
+20:18 < bridge> <scrumplex> 
+20:18 < bridge> <scrumplex> It assumes that someone is only a new player if their first finish was in 2023 and they have collected more than 50 points in total
+20:19 < bridge> <scrumplex> 
+20:19 < bridge> <scrumplex> Unless there is an error in this query, this results in 24273 new players. Obviously this excludes people who started playing on existing account names and it definitely includes alt names
+20:19 < bridge> <scrumplex> new number is 24273
+20:19 < bridge> <scrumplex> new number is 24273 in 2023
+20:19 < bridge> <mamad_melanin> yes
+20:19 < bridge> <scrumplex> it seems rather high tbh
+20:19 < bridge> <scrumplex> but considering that there are 200.000 unique usernames it might be realistic
+20:19 < bridge> <mamad_melanin> how many names is there ?
+20:20 < bridge> <mamad_melanin> all the names who ever played ddnet
+20:20 < bridge> <scrumplex> oh sorry
+20:20 < bridge> <scrumplex> the 200.000 was unique names in 2023
+20:21 < bridge> <scrumplex> there are 1.153.219 different usernames in the whole database
+20:21 < bridge> <scrumplex> there are 1.153.219 different usernames in the whole database
+20:21 < bridge> <scrumplex> ```sql
+20:21 < bridge> <scrumplex> select count(distinct Name) from race
+20:21 < bridge> <scrumplex> ```
+20:21 < bridge> <scrumplex> there are 1.153.219 different usernames in the whole database
+20:21 < bridge> <scrumplex> ```sql
+20:21 < bridge> <scrumplex> select
+20:21 < bridge> <scrumplex>   count(distinct Name)
+20:21 < bridge> <scrumplex> from
+20:21 < bridge> <scrumplex>   race
+20:21 < bridge> <scrumplex> ```
+20:21 < bridge> <blaiszephyr> 1.138.483
+20:21 < bridge> <blaiszephyr> is the number i get ? :D
+20:22 < bridge> <mamad_melanin> how this is not wrong ? must be more than this
+20:22 < bridge> <scrumplex> i just ran it again: https://scrumplex.rocks/img/1705951331_zo0Ahl.png
+20:22 < bridge> <scrumplex> now it's cached
+20:22 < bridge> <scrumplex> now it's cached for me tho
+20:23 < bridge> <scrumplex> adding spaces to query to bypass cache results in the same number each time
+20:24 < bridge> <mamad_melanin> the number is can't cover even the chinese people
+20:24 < bridge> <scrumplex> why not? :O
+20:24 < bridge> <mamad_melanin> there are too many players and they have unique names ?
+20:24 < bridge> <blaiszephyr> hmm..
+20:24 < bridge> <blaiszephyr> https://cdn.discordapp.com/attachments/293493549758939136/1199072175953555547/image.png?ex=65c135fc&is=65aec0fc&hm=e087ab6f26c1c27b1e02f1d727222c2c4efdcc7518a5663aada9679508ad620e&
+20:25 < bridge> <scrumplex> oh i just count all players
+20:25 < bridge> <scrumplex> no matter which maps they played
+20:26 < bridge> <blaiszephyr> ah well then yeah you get `1153219`
+20:26 < bridge> <mamad_melanin> maybe it count the players with standard names
+20:26 < bridge> <scrumplex> so there are 20000 players who only played fun or 0p race maps
+20:27 < bridge> <mamad_melanin> someone heeelp
+20:27 < bridge> <scrumplex> https://scrumplex.rocks/img/1705951667_PhiaV7.png
+20:27 < bridge> <scrumplex> you need to share the file as public
+20:28 < bridge> <mamad_melanin> hah
+20:28 < bridge> <cyberfighter> that would take 10-50 novices
+20:28 < bridge> <mamad_melanin> can you see it now ?
+20:29 < bridge> <blaiszephyr> or one 5* insane - ez
+20:29 < bridge> <cyberfighter> 50 points is really a lot if u are new
+20:29 < bridge> <scrumplex> yup. How did you install rust?
+20:30 < bridge> <scrumplex> yes. But if someone just tries the game once they probably wont have 50 points
+20:30 < bridge> <cyberfighter> it would probably take them a bit for 50 even if they like it imo
+20:30 < bridge> <cyberfighter> or if they look at other modes too
+20:30 < bridge> <mamad_melanin> i just did regular cmake stuff, like cmake -B build -C . and make .
+20:30 < bridge> <cyberfighter> but its fine
+20:30 < bridge> <cyberfighter> lul
+20:31 < bridge> <cyberfighter> imagine some gigachad getting 50 points and THEN leaving
+20:31 < bridge> <scrumplex> there is a problem with the sql query though. Anyone who starts out near the end of the year and doesnt make it to 50 points is forever excluded from this
+20:31 < bridge> <cyberfighter> why does that happen
+20:33 < bridge> <cyberfighter> another screen as in like another monitor?
+20:33 < bridge> <cyberfighter> i could try it on linux
+20:34 < bridge> <robyt3> yeah, other monitor in the graphics settings
+20:34 < bridge> <diariesvexar> I can try on windows 11
+20:36 < bridge> <diariesvexar> https://cdn.discordapp.com/attachments/293493549758939136/1199075058069545070/image.png?ex=65c138ab&is=65aec3ab&hm=aebe8023e8274afdf5c96e216d2619b7cd1e9cdde1b637e1e940e4f368b15733&
+20:36 < bridge> <diariesvexar> https://cdn.discordapp.com/attachments/293493549758939136/1199075058904223895/image.png?ex=65c138ab&is=65aec3ab&hm=6600d9b50c905f6ab8b72016eee96e9e5d81ff58c91864abdc0143ecb3b09113&
+20:37 < bridge> <diariesvexar> when switch to second monitor it's change to windowed mode and resolution is still follow my first monitor that doesn't support on my second one
+20:38 < bridge> <robyt3> I meant "windowed borderless" sorry
+20:38 < bridge> <scrumplex> oh nvm actually
+20:38 < bridge> <robyt3> I guess the fix would be the same here
+20:38 < bridge> <diariesvexar> oh okay let me try again
+20:38 < bridge> <scrumplex> yeah but dont you need to download and install rust first?
+20:38 < bridge> <robyt3> Would probably work if we switch to windowed first and then switch back after changing the screen
+20:39 < bridge> <diariesvexar> yeah it's fix it
+20:39 < bridge> <diariesvexar> cuz when i manually put to window fullscreen on second one it's fine for me
+20:40 < bridge> <mamad_melanin> no, it get installed with cmake, i compiled my source about 6 times, this is the first time i getting this, and i never changed anything in *.rs files
+20:40 < bridge> <robyt3> If you start with Windowed Borderless and not screen 0 then it's still broken though
+20:41 < bridge> <diariesvexar> no it's fine with windowed borderless on screen 1
+20:42 < bridge> <robyt3> Thanks for testing, maybe it's a me-problem or specific to Windows 10 then
+20:42 < bridge> <robyt3> This issue also happens only to me for some reason #6578
+20:42 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/6578
+20:43 < bridge> <diariesvexar> maybe but it would be nice to when switch to other screen it set to highest resolution
+20:43 < bridge> <diariesvexar> it's happened to me too but In my own custom client so I had to replace restart with quit after update done
+20:44 < bridge> <diariesvexar> And there is also a bug
+20:44 < bridge> <diariesvexar> enter text in chat for example a then enter b
+20:44 < bridge> <robyt3> Seems like this fixes the issue for me. When I set the correct resultion windowed borderless also works on other screens.
+20:45 < bridge> <diariesvexar> and when you press up it's show b but press escape button on your keyboard and again open chat and press up it's show a instead of b
+20:46 < bridge> <diariesvexar> in my case my monitor highest resolution isn't same so it's goes out of monitor on second monitor
+20:48 < bridge> <robyt3> Not sure I understand correctly, do you use `cl_chat_reset 0`?
+20:48 < bridge> <diariesvexar> no
+20:49 < bridge> <diariesvexar> oh it's fixed on DDNet 18.0
+21:07 < bridge> <pipou_tw> Autorule doesn't work anymore
+23:31 < bridge> <opulently> Did anyone try to add ImGui to ddnet? Cuz default GUI sucks
+23:37 < bridge> <ryozuki> xddd
+23:55 < bridge> <Ewan> and u think imgui is better???
+23:56 < bridge> <Ewan> oh yea i discovered u can plug any stdio compliant language server into qt creator
+23:56 < bridge> <Ewan> so i can do like this
+23:56 < bridge> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1199125559154856026/image.png?ex=65c167b3&is=65aef2b3&hm=9d5f46426e16d8378dd75b1a306bf6b3b36316589ee2114481168c376149788d&
+23:57 < bridge> <Ewan> and then get rust analyzer in qt creator... <https://media.discordapp.net/attachments/1168672733060661258/1198779511030960249/image.png?ex=65c0256b&is=65adb06b&hm=f90e4ef83104eb735e10543c1a4bbe9924412f762d83e1e882b934ba3d9607b6&=&format=webp&quality=lossless&width=1440&height=735>
+23:57 < bridge> <Ewan> with build in syntax highlighting and custom build steps you can do quite a lot
+23:58 < bridge> <Ewan> no formatting for rust tho the only format plugins that exist rn use astyle, clang-format and uncrustify
