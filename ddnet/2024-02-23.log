@@ -1,0 +1,297 @@
+00:06 < bridge> <zhn> boob
+00:08 < bridge> <teero777> mark nsfw!!!
+00:08 < bridge> <zhn> ||boob||
+00:08 < bridge> <teero777> thx
+00:13 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1210363683612393502/alc7m1vnap571.png?ex=65ea4a05&is=65d7d505&hm=5c2a15f3db72197975d2cbf2b03c4a78c6adb24ffc5b13eeba67b1a2e826bee4&
+00:30 < bridge> <miguilim> Because we already have a way to encode strings into a packet. However, someone invented a way to encode string converting to ints just to have a fixed size to just to use in ONE snap item
+00:31 < bridge> <zhn> one?
+00:31 < bridge> <zhn> its used for datafile
+00:32 < bridge> <kekomonter> Oh, you about this
+00:32 < bridge> <zhn> and any other strings in protocol though
+00:33 < bridge> <miguilim> so why we are using on network?
+00:33 < bridge> <miguilim> no
+00:33 < bridge> <kekomonter> How I remember no
+00:33 < bridge> <miguilim> thats not how you code strings
+00:33 < bridge> <kekomonter> CPacker have AddString
+00:33 < bridge> <miguilim> to send a string in a control message, a chunk value or anything else you just encode the letter with a null terminator
+00:34 < bridge> <miguilim> yes, exactly, and this is not the StrToInts in the printscreen
+00:34 < bridge> <miguilim> the addString is this
+00:34 < bridge> <miguilim> to send a string in a control message, a chunk value or anything else you just encode the letters with a null terminator
+00:35 < bridge> <miguilim> but for cleint info snap info, you need to encode into multiple integers
+00:35 < bridge> <miguilim> and will need to use this object structure XD
+00:35 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210369380232200303/image.png?ex=65ea4f53&is=65d7da53&hm=194a5b533c47c9b232c7990927e8e286119f0a3857bb6d2eef8db686553ce47a&
+00:36 < bridge> <miguilim> no, we dont have 4 names here. We have 4 fragments of a name XDDDDDDDDDD
+00:44 < bridge> <chillerdragon> I didn’t know that was possible. Never.
+00:46 < bridge> <chillerdragon> For now the target audience is devs not players. The official tw binaries work okay enough. But the code is full of compile warnings and stuff like that. I do not plan to build a competing project. Just a temporary thing to get in some merges.
+00:48 < bridge> <chillerdragon> Sounds good to me but docker system prune -a should also do. Anyways don’t use docker it sucks. If you have to use podman at least.
+00:49 < bridge> <chillerdragon> iirc one of those was crucial in 0.6 I forgot which but either game data or game info is something you want to send a lot.
+00:52 < bridge> <miguilim> :thonk:
+00:52 < bridge> <miguilim> client info I need to send only one time, and when update?
+00:53 < bridge> <miguilim> obj_character_core and event_sound_global are never sent as snap items
+00:53 < bridge> <miguilim> 13 and 18
+00:57 < bridge> <miguilim> can you confirm this?
+01:00 < bridge> <miguilim> obj_character_core, event_common and event_sound_global are never sent as snap items
+01:00 < bridge> <miguilim> 8, 13 and 18
+01:31 < bridge> <chillerdragon> Yea idk sorry i only translated a snap successfully so far client side. I build a snap server side like 2 days ago and it is not working :c
+01:31 < bridge> <chillerdragon> But keep me posted maybe i finally realize whats wrong with my snap
+01:32 < bridge> <chillerdragon> Oh wait i didnt fully read the quesiton lol
+01:32 < bridge> <chillerdragon> yes so obj\_character\_core is not sent i think thats a base class. So is event\_common. The others just inherit from that.
+01:32 < bridge> <chillerdragon> Sound global i would have to check
+01:33 < bridge> <chillerdragon> So 8 is not sent but it is included in 9  https://chillerdragon.github.io/teeworlds-protocol/06/snap_items.html#obj_character
+04:17 < bridge> <miguilim> from what I can see, the sound global is sent as a SV chunk and then mocked to the netobject by the client
+04:17 < bridge> <miguilim> I just wrote the documentation about snaps
+04:17 < bridge> <miguilim> check:
+04:17 < bridge> <miguilim> 
+04:17 < bridge> <miguilim> https://protocol-docs.teeframe.com/packets/default-packets.html
+04:17 < bridge> <miguilim> https://protocol-docs.teeframe.com/snap/snap-structure.html
+04:18 < bridge> <miguilim> the thing is that everything in your snap header must be right, check the infos about CRC, Size, Removed Items Count and Delta Items Count
+04:19 < bridge> <miguilim> the only thing I'm unsure is about the Removed Items Count (I'm not really sure if its related to the last snap sent or something else) and Delta Items Count (idk if its just the current items count in the snap)
+04:20 < bridge> <miguilim> however, you can try just spamming a snap single chunk with obj_game_info and obj_player_info with 0 removed items and 2 delta chunks (and everything else correct)
+04:20 < bridge> <miguilim> after the initial handshake, the client will understand you as a server and will move you to the game screen
+04:21 < bridge> <miguilim> I'm doing this after inital handshake
+04:21 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210426115156475934/image.png?ex=65ea842a&is=65d80f2a&hm=c627a0ae47a2a8f43b110bcb92f71bfacb91e5a93676193bbfcae16566056e14&
+04:21 < bridge> <miguilim> moves to this screen
+04:21 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210426246350245899/5913e568-0285-458b-b5ad-8b96ae9d9c4b.png?ex=65ea8449&is=65d80f49&hm=2cd9dab9444ff92af148f173423778a09ac0a3a9db7b5495ec9a75d9df5bc4e7&
+04:22 < bridge> <miguilim> also give some feedbacks if you find something wrong or unclear :owo:
+04:25 < bridge> <miguilim> yes, but from a point of view of the protocol, number 8 is unused. The message id never touches the network and only exists on the teeworlds official implementation
+04:26 < bridge> <miguilim> I marked 0, 1, 8, 13, 18 as unused on my listing (https://protocol-docs.teeframe.com/snap/snap-items.html)
+04:55 < bridge> <miguilim> Another thing I'm trying to figure out is why there is a MAX_SNAPSHOT_PACKSIZE (900 value). Why we just dont use the 1400 maximum packet size to decide if we need to split the snap?
+04:55 < bridge> <miguilim> The thing is that value is also used on client. So I cant just not use it
+04:56 < bridge> <miguilim> Another thing I'm trying to figure out is why there is a MAX_SNAPSHOT_PACKSIZE (900) value. Why we just dont use the 1400 maximum packet size to decide if we need to split the snap?
+04:59 < bridge> <miguilim> Another thing I'm trying to figure out is why there is a MAX_SNAPSHOT_PACKSIZE (900) value. Why we just dont use the 1400 - (things we send) maximum packet size to decide if we need to split the snap?
+04:59 < bridge> <miguilim> Another thing I'm trying to figure out is why there is a MAX_SNAPSHOT_PACKSIZE (900) value. Why we just dont use the 1400 maximum packet size - (things we send)  to decide if we need to split the snap?
+05:08 < bridge> <miguilim> yes, but from a point of view of the protocol, number 8 is unused. The message id never touches the network and only exists on the teeworlds official code
+06:58 < bridge> <chillerdragon> Nice one good job
+06:58 < bridge> <chillerdragon> Amazing thanks
+07:17 < bridge> <milkeeycat> chillerdragon my first merged commit, even tho it's not code, let's goooo
+07:19 < bridge> <zhn> lgtm
+07:21 < ws-client> <ChillerDragon> 🚀
+07:22 < ws-client> <ChillerDragon> @milkeeycat ur ukrainian?
+07:22 < bridge> <milkeeycat> Yes ._.
+07:22 < ws-client> <ChillerDragon> pog
+07:22 < bridge> <milkeeycat> Id never learn it as a second language
+07:23 < ws-client> <ChillerDragon> how much diff to rus?
+07:24 < bridge> <milkeeycat> Few different letters and `'` character
+07:24 < ws-client> <ChillerDragon> woah much bigger diff than i expected
+07:24 < ws-client> <ChillerDragon> dude even hello is changed Привіт
+07:24 < bridge> <ryozuki> morning
+10:11 < bridge> <Jupstar ✪> Wazzupers
+10:12 < bridge> <Jupstar ✪> FFR
+10:18 < bridge> <teero777> Hmmmm
+10:18 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1210515964819415040/Screenshot_20240223-1017442.png?ex=65ead7d8&is=65d862d8&hm=3c539f6818032783c4cbbeca5ebcca2eef33bfb9e052b644cf0eb556e35c2573&
+10:18 < bridge> <teero777> Can you fix my bug problem?
+10:19 < bridge> <Jupstar ✪> What is your bug problem
+10:19 < bridge> <Jupstar ✪> Fridays for rust
+10:20 < bridge> <teero777> It's illegal robot talk so I can't ;(
+10:20 < bridge> <Jupstar ✪> Use asan
+10:20 < bridge> <Jupstar ✪> And tsan
+10:20 < bridge> <teero777> It's logic bug...
+10:21 < bridge> <Jupstar ✪> What's hard then
+10:21 < bridge> <Jupstar ✪> And some logging
+10:21 < bridge> <Jupstar ✪> See where the value gets wrong
+10:21 < bridge> <teero777> My head can't find a way to implement something some way that doesn't require a threadripper
+10:21 < bridge> <Jupstar ✪> U have a bottleneck
+10:21 < bridge> <Jupstar ✪> I see
+10:22 < bridge> <Jupstar ✪> Then you are at the right address
+10:22 < bridge> <Jupstar ✪> I make your code the fastest
+10:22 < bridge> <teero777> Well no xD I just can't think of a way to solve my problem efficiently.
+10:23 < bridge> <teero777> Has do with rating organisms while simultaneously having multiple goals.
+10:28 < bridge> <teero777> My rating is fucked and I have no clue how to get it right.
+10:28 < bridge> <teero777> I could implement a bruteforce solution but that would be a 25x slowdown which I cannot afford
+10:31 < bridge> <Jupstar ✪> Efficiency is not the key. Throw your 32 threads on your problem
+10:31 < bridge> <Jupstar ✪> And 64 GB RAM
+10:41 < bridge> <teero777> keine moneten
+10:41 < bridge> <teero777> no money
+10:51 < bridge> <deen> @zerolacqua Thanks!
+10:57 < bridge> <matodor> @miguilim don't like phpstorm?
+11:16 < bridge> <.rafaelff> @miguilim PM me please? (Your settings forbid me from starting it)
+12:48 < bridge> <ChillerDragon> @kaffeine0 I don't want to merge my own pr -.- could you add https://github.com/teeworlds-community/teeworlds/pull/61 to the merge queue pls. Ideally before I go to sleep
+12:49 < ws-client> <ChillerDragon> or jopsti u go if you have 1min to look at the change :3 
+12:50 < bridge> <kaffeine0> Is it possible to merge a MR with CI failed? I thought we'd have CI fixed before merging something.
+12:51 < ws-client> <ChillerDragon> no its not possible
+12:51 < bridge> <ryozuki> PR ☝️ 🤓
+12:51 < bridge> <kaffeine0> 😄 the best approach ever 😄
+12:51 < ws-client> <ChillerDragon> @kaffeine0 but only the jobs i activated to be required to pass
+12:52 < ws-client> <ChillerDragon> since half of the jobs fail due to the cmake issue its only 2 jobs that need to pass for now. Thats why im pussing #61  so much
+12:52 < ws-client> <ChillerDragon> thanks babe
+12:53 < bridge> <robyt3> I found out it's also possible to re-run only individual jobs that failed, so you don't need to force push to refresh if only macOS CI is acting up again
+12:53 < ws-client> <ChillerDragon> ye ik thats epic
+12:53 < ws-client> <ChillerDragon> i use rerun more than i would like to admit 
+12:54 < ws-client> <ChillerDragon> robsti wats your opinion on teeworlds-community?
+12:55 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1708689299.png watafak is going on now
+12:59 < bridge> <robyt3> I don't think I have the time and motivation to contribute code or large reviews to teeworlds-community. Seems good if you keep the scope low any only fix build issues and bugs. I'd consider most refactoring out of scope though.
+13:01 < bridge> <robyt3> For build/CI failures I'd look at the difference between teeworlds and DDNet and then cherry-pick the relevant commits
+13:18 < bridge> <Jupstar ✪> Robyte is already team dd pg
+13:22 < bridge> <ryozuki> what is teeworlds community
+13:23 < bridge> <Jupstar ✪> 0.7 maintained by the community xd
+13:23 < bridge> <ryozuki> xd
+13:23 < bridge> <ryozuki> just use ddnet 4head
+13:23 < bridge> <Jupstar ✪> If we'd have website etc would be cool. But as is, I also find it useless xdd
+13:23 < bridge> <Jupstar ✪> Official website and steam
+13:23 < bridge> <ryozuki> https://factorio.com/blog/post/fff-399
+13:24 < bridge> <ryozuki> @jupeyy_keks ah its just chiller xd
+13:26 < bridge> <Jupstar ✪> Have you ever ran into performance issues playing that game, eg with a lot of entities on the map or smth
+13:27 < bridge> <ryozuki> some ppl do with megabases but its hard to hit
+13:27 < bridge> <ryozuki> people make crazy stuff since there is no limit
+13:27 < bridge> <ryozuki> i never had personally
+13:28 < bridge> <ryozuki> this is from a video
+13:28 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1210563799535325184/image.png?ex=65eb0464&is=65d88f64&hm=9e24cf177493d3a9ceea718b3f88637ea25c6325dbc0b234697156ce78209a25&
+13:28 < bridge> <ryozuki> 50 fps on a mega base
+13:28 < bridge> <meloƞ> :wtf:
+13:28 < bridge> <ryozuki> hard to grasp how big is this cuz this is the map look
+13:30 < bridge> <Jupstar ✪> Interesting, does it then use all cores?
+13:30 < bridge> <ryozuki> probs yes
+13:30 < bridge> <ryozuki> idk
+13:30 < bridge> <ryozuki> read their blogs
+13:30 < bridge> <ryozuki> xd
+13:30 < bridge> <Jupstar ✪> Ok
+13:30 < bridge> <ryozuki> they rly care about perf
+13:30 < bridge> <ryozuki> and nice code
+13:31 < bridge> <ryozuki> i think belts are indeed threaded
+13:31 < bridge> <ryozuki> @jupeyy_keks >  Factorio is primarily limited by cache misses - which is why the (otherwise rather mediocre) 5800X3D and its enormous L3 cache dominates your linked benchmark.
+13:32 < bridge> <ryozuki> lmao
+13:32 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1210564752816869396/image.png?ex=65eb0548&is=65d89048&hm=0dcfe25c6268bd76735007b40d6327995bcd3ce247d0fbe27ddd6435635a4dd9&
+13:32 < bridge> <ryozuki> @jupeyy_keks there is a amd epyc cpu with 1gb of l3 cache
+13:32 < bridge> <ryozuki> imagine that
+13:32 < bridge> <ryozuki> https://www.servethehome.com/amd-genoa-x-the-1-1gb-l3-cache-cpu-launched/
+13:37 < bridge> <Jupstar ✪> Just too epyc
+13:37 < bridge> <Jupstar ✪> I wish future would be today
+14:11 < ws-client> <ChillerDragon> @robyt3 yea thats my plan to cherry pick ddnet fixes to get the build passing. Some of the more motivated ppl might have more ambitious plans lets see how long until i rq from democracy. Yea i assumed youd be busy but ye if you ever feel like approving a pr that would be pog.
+14:12 < ws-client> <ChillerDragon> @ryozuki yea i did not invite you or deen since i assumed you have no interest at all in the teeworlds code base. Let me know if you want write access.
+15:07 < bridge> <milkeeycat> holy hell. it doesn't look as cursed as before :poggers:
+15:07 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1210588864100573264/image.png?ex=65eb1bbc&is=65d8a6bc&hm=3aaf3b520fb95554dcb6bb8f2761e9306d2b4d988c0c90d0bd49ab44c286fe02&
+15:44 < bridge> <ryozuki> u can invite me if u want just in case
+16:25 < ws-client> <ChillerDragon> ok cool will do
+17:15 < bridge> <kekomonter> Hmmmm, looks like I saw smth like this before :thonk:
+17:16 < bridge> <milkeeycat> in ddnet code base? 😏
+17:17 < bridge> <milkeeycat> time to add textures, woo... im pretty sure it will be fun
+17:18 < bridge> <chillerdragon> @milkeeycat: you are really close to jsfiddle for tw graphics :3
+17:19 < bridge> <milkeeycat> yea, i also have thought about that
+17:19 < bridge> <chillerdragon> Pls do
+17:19 < bridge> <milkeeycat> i would need to make ui
+17:19 < bridge> <milkeeycat> sounds not fun at all
+17:20 < bridge> <milkeeycat> but i think when i make Graphics class it wont be that bad after
+17:20 < bridge> <chillerdragon> You mean an editor?
+17:20 < bridge> <chillerdragon> Use monaco editor it’s vscode as js lib
+17:20 < bridge> <chillerdragon> The rest of the ui is just the canvas
+17:21 < bridge> <milkeeycat> i mean.. basically im rewriting teeworlds graphics in js
+17:21 < bridge> <chillerdragon> Yes
+17:21 < bridge> <chillerdragon> That’s what I almost did
+17:21 < bridge> <chillerdragon> Just to build a fiddle
+17:21 < bridge> <chillerdragon> Now you did it. Pls do fiddle
+17:23 < bridge> <milkeeycat> js the best :pepeW:
+17:23 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1210623036881899600/image.png?ex=65eb3b90&is=65d8c690&hm=8ab77f56330417c78e50ffa5a0f0bbbfb66638acaa60a481de03707de86d3a28&
+17:27 < bridge> <chillerdragon> You such pro coder
+17:29 < bridge> <miguilim> nah, I use vscode for everything xd
+17:29 < bridge> <milkeeycat> yes i am, it took only one out to put `true` in setFloat32
+17:29 < bridge> <milkeeycat> yes i am, it took only one hour to put `true` in setFloat32
+18:07 < bridge> <milkeeycat> how can i draw a rotated square? xd
+18:07 < bridge> <milkeeycat> how can i draw a rotated rectangle? xd
+18:51 < bridge> <ryozuki> are these floats?
+18:52 < bridge> <ryozuki> does cpp has fused multiply add
+18:52 < bridge> <milkeeycat> yes
+18:52 < bridge> <ryozuki> https://doc.rust-lang.org/std/primitive.f64.html#method.mul_add
+18:52 < bridge> <ryozuki> i mean size * i + 4
+18:53 < bridge> <ryozuki> https://en.cppreference.com/w/cpp/numeric/math/fma
+18:53 < bridge> <ryozuki> some cpus have a fma instruction
+18:53 < bridge> <ryozuki> it can yield more accurate
+18:53 < bridge> <ryozuki> and faster probs
+18:53 < bridge> <milkeeycat> rotated square btw
+18:53 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1210645612110815232/image.png?ex=65eb5096&is=65d8db96&hm=d87a6b233da466213caacf8aef92178d19361a04585ea2c9b84e57dc44aba15c&
+18:53 < bridge> <ryozuki> > Due to its infinite intermediate precision, std::fma is a common building block of other correctly-rounded mathematical operations, such as std::sqrt or even the division (where not provided by the CPU, e.g. Itanium).
+18:54 < bridge> <milkeeycat> not rly a square, not rly rotated tho
+18:55 < bridge> <milkeeycat> it's byte offset
+18:55 < bridge> <ryozuki> nvm then
+19:21 < bridge> <sqqddd> 25$ гифт
+19:21 < bridge> <sqqddd> [steamcommunity.com/gift/765615931809238015](https://qptr.ru/Ja0l)
+19:33 < bridge> <miguilim> You say in your documentation that snap items have sizes. However, we send ints inside the items, and ints does not have fixed sizes
+19:35 < bridge> <miguilim> Ex. obj_projectile size is 6, however m_X can use 2,3,4 bytes to encode it value
+19:35 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210656250862370947/image.png?ex=65eb5a7f&is=65d8e57f&hm=7f7235bd295277e8c6aaa173ec26b6b998132e9c42092876f2eed303392c9e06&
+19:35 < bridge> <miguilim> Or no? O.o
+19:40 < bridge> <miguilim> Or not? O.o Idk if I'm missing something here
+20:08 < bridge> <learath2> All ints are 4 bytes in snapshots
+21:02 < bridge> <miguilim> hmmmmmmmmmm I didnt confirmed but from what I tested this is actually not true
+21:04 < bridge> <learath2> I really doubt we used packed integers for the contents of the snapobjects but there is a slight possibility that I'm misremembering
+21:05 < bridge> <miguilim> This is the ChillerDragon lib example
+21:05 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210678742670905344/image.png?ex=65eb6f71&is=65d8fa71&hm=33ac5d8d61e95014de554029b3cb02af9b3cfc66277a4f4ca24e0022c479726b&
+21:05 < bridge> <miguilim> You see game_start_tick is 00 -> 0, x is 90 0c -> 784 and so on
+21:06 < bridge> <miguilim> tick is 9b 13 -> 1243
+21:06 < bridge> <miguilim> :thonk:
+21:07 < bridge> <learath2> You'll see everywhere in the code that we use `sizeof(int32_t)` to iterate through the snapshot though :/
+21:08 < bridge> <miguilim> yes, thats why is so confusing
+21:08 < bridge> <miguilim> whoops
+21:08 < bridge> <miguilim> just found
+21:08 < bridge> <learath2> Maybe we do pack them but then unpack them very early and I'm just forgetting that?
+21:08 < bridge> <miguilim> when the server sends the snapshot, it compress
+21:08 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210679632412803102/image.png?ex=65eb7045&is=65d8fb45&hm=e62dad7c266438e16e24a74193389416bb20cda7a590eb5cd3d740f692b18c16&
+21:08 < bridge> <learath2> Ah, yep that would make sense
+21:08 < bridge> <miguilim> the aCompData is passed by reference and altered inside the function
+21:09 < bridge> <miguilim> https://cdn.discordapp.com/attachments/293493549758939136/1210679744748851261/image.png?ex=65eb7060&is=65d8fb60&hm=d6a92a8fe271b70604eb3bb5a8d0c04b721c9ae272d55566cb12862b367faa49&
+21:09 < bridge> <miguilim> correct if im wrong XD
+21:09 < bridge> <learath2> Soo when you get a snap, first thing you should probably do is to unpack so you can work with nice 4 byte ints all over
+21:10 < bridge> <miguilim> :yeauhuhok:
+21:11 < bridge> <miguilim> So the snap having a fixed size is a wrong assumption from a protocol perspective right?
+21:11 < bridge> <learath2> Yes that sounds wrong, most snap items however do have fixed size
+21:13 < bridge> <miguilim> :thonk: but they only have fixed size in the code, not in the encoded packet that is sent
+21:13 < bridge> <learath2> Yes, so more exactly, most snap items have fixed size after they get unpacked
+21:13 < bridge> <cyberfighter> fddrace, @fokkonaut switches arent shown, bug or intended?
+21:13 < bridge> <cyberfighter> https://cdn.discordapp.com/attachments/293493549758939136/1210680895703617638/image.png?ex=65eb7172&is=65d8fc72&hm=960f9cb481e5190750acebafbe8980ac115b6fbd896415e987171c76df41b2b0&
+21:13 < bridge> <miguilim> :pepeglasses:
+21:14 < bridge> <learath2> on the level of what ends up on the wire, you can't really say anything about sizes
+21:14 < bridge> <fokkonaut> they should, if not maybe a client update fucked something up
+21:14 < bridge> <miguilim> Now everything is more clear, thanks for the help mate
+21:14 < bridge> <fokkonaut> i dont know about recent client history
+21:14 < bridge> <cyberfighter> im in a kinda newish version
+21:17 < bridge> <robyt3> Does it work again after you disconnect and rejoin, or after you restart the client entirely?
+21:17 < bridge> <cyberfighter> disconnect rejoin doesnt fix it
+21:17 < bridge> <cyberfighter> its never shown
+21:17 < bridge> <cyberfighter> it used to be shown before on other client versions
+21:19 < bridge> <cyberfighter> ok i updated to latest nightly and its still broken
+21:20 < bridge> <robyt3> Likely caused by #7979
+21:20 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/7979
+21:20 < bridge> <cyberfighter> is there nightly before that pull i can download to check? or i dont need to
+21:21 < bridge> <robyt3> Seems like switch layer is not rendered anymore when `m_GameInfo.m_DontMaskEntities` is `true`
+21:21 < bridge> <robyt3> @fokkonaut I assume you send this flag on your servers then?
+21:22 < bridge> <fokkonaut> Ye, its required in order to show tiles which are non Default
+21:22 < bridge> <fokkonaut> It was added by Heinrich Back then
+21:22 < bridge> <fokkonaut> for this purpose
+21:22 < bridge> <robyt3> Shouldn't we just always render the switch layer if it exists? Kinda weird to render it only when DDNet and DDrace types are set
+21:22 < bridge> <fokkonaut> ye
+21:52 < bridge> <meloƞ> my brain - i cant even correctly name my issues
+21:52 < bridge> <meloƞ> feelsbadman
+22:39 < bridge> <peter44h> https://vxtwitter.com/EliasDaler/status/1761090706800537610
+22:39 < bridge> <peter44h> I have to agree it goes hard
+22:53 < bridge> <furo321> Hey, I'm trying to cross-compile DDNet to MacOS from Linux. I got osxcross installed with MacOS 11.1 SDK. My issue is that CMake complains about SQLite3 not being installed, so I'm wondering if anyone knows how to do this?
+22:53 < bridge> <furo321> 
+22:53 < bridge> <furo321> ```
+22:53 < bridge> <furo321> cmake -DPREFER_BUNDLED_LIBS=ON -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/darwin-x86_64.toolchain -DCMAKE_OSX_SYSROOT=../../osxcross/target/SDK/MacOSX11.1.sdk/ ..
+22:53 < bridge> <furo321> 
+22:53 < bridge> <furo321> CMake Error at CMakeLists.txt:638 (message):
+22:53 < bridge> <furo321>   You must install SQLite3 to compile DDNet
+22:53 < bridge> <furo321> ```
+23:03 < bridge> <peter44h> Looks like there is no sqlite3 for mac provided as a bundled lib
+23:03 < bridge> <peter44h> you could try building and installing it into the sysroot so the CMakeLists.txt of DDNet can find it
+23:05 < bridge> <peter44h> https://github.com/ddnet/ddnet-libs/tree/sqlite3
+23:05 < bridge> <peter44h> there's no "mac" directory here
+23:05 < bridge> <peter44h> personally I wonder why not just put an sqlite source file and build it? it's totally trivial
+23:08 < bridge> <meloƞ> deen is always compiling nativly on mac right? i've yet to see one person actually cross compile to that
+23:08 < bridge> <peter44h> yeah it's a bit nontrivial to do it
+23:08 < bridge> <peter44h> I've never done it before
+23:09 < bridge> <peter44h> https://github.com/ddnet/ddnet-libs/tree/master/sqlite3
+23:09 < bridge> <peter44h> there's no "mac" directory here
+23:11 < bridge> <peter44h> looking at the commits here I see:
+23:11 < bridge> <peter44h> > Revert "Remove sqlite3 on macOS since it's part of system"
+23:11 < bridge> <peter44h> but it got deleted in the next commit:
+23:11 < bridge> <peter44h> > Update libs
+23:11 < bridge> <peter44h> which seems like it's (maybe?) a mistake?
+23:11 < bridge> <peter44h> this is from 2 years ago though
+23:13 < bridge> <peter44h> could the part about "part of system" be true? since I think otherwise someone would have noticed
+23:31 < bridge> <TsFreddie> youtube, you drunk, go home
+23:31 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1210715666597023864/image.png?ex=65eb91d4&is=65d91cd4&hm=f40aff48b3814faa5344dc67e498a0731d2353e001c8c9f287638e1ccc4c3948&
+23:34 < bridge> <peter44h> okay, for some reason sqlite only provides an autotools configure script
+23:34 < bridge> <peter44h> You *might* be able to cross-compile sqlite3 like this:
+23:34 < bridge> <peter44h> `CC=target-triple-idk-clang ./configure --prefix=<wherever darwin-x86_64.toolchain specifies> --host=x86_64-pc-linux-gnu`
+23:34 < bridge> <peter44h> `make install`
+23:34 < bridge> <peter44h> though autotools is so bad and flaky this may well not work
+23:58 < bridge> <peter44h> I would try myself but it seems this osxcross requires an apple account to download build tools or whatever
+23:58 < bridge> <peter44h> I can't do that
