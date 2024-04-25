@@ -1,0 +1,195 @@
+01:58 < ws-client> <ChillerDragon> What could break the demo format retroactivly? So recording the demo works fine. Playing too. But when I connect a dummy the demo is broken from the start. I was expecting it to be broken from the point where the dummy connects.
+02:42 < bridge_> <Ewan> idk chiller
+02:42 < bridge_> <Ewan> but have u ever tried to do substitution in an associative array subscript
+02:42 < bridge_> <Ewan> it's not working for me
+02:42 < ws-client> <ChillerDragon> in bash?
+02:43 < ws-client> <ChillerDragon> @Ewan send ur code
+02:43 < ws-client> <ChillerDragon> Dude matricks code is nuts he is just too cool to use the modulo operator like anyone else
+02:43 < ws-client> <ChillerDragon> https://github.com/ddnet/ddnet/blob/39b1a0226fc30af31dbf40b2b0d52b767c3deb29/src/engine/shared/demo.cpp#L262
+02:44 < bridge_> <Ewan> ```bash
+02:44 < bridge_> <Ewan> echo ${!argv[$arg]}
+02:44 < bridge_> <Ewan> ```
+02:44 < bridge_> <Ewan> bad array subscript error
+02:44 < ws-client> <ChillerDragon> ``while(Size & 3)``
+02:44 < ws-client> <ChillerDragon> how is argv defined?
+02:46 < bridge_> <Ewan> ```bash
+02:46 < bridge_> <Ewan> declare -A argv
+02:46 < bridge_> <Ewan> for i in $#; do 
+02:46 < bridge_> <Ewan>     argv["$@[$i]"]=$i
+02:46 < bridge_> <Ewan> done
+02:46 < bridge_> <Ewan> ```
+02:46 < bridge_> <Ewan> i store arg names as keys and their indices as values
+02:46 < bridge_> <Ewan> so i don't have to reiterate to find index
+02:46 < ws-client> <ChillerDragon> why do you need the index?
+02:46 < bridge_> <Ewan> positional argument
+02:46 < bridge_> <Ewan> `--output whatever`
+02:46 < bridge_> <Ewan> need to get next
+02:46 < ws-client> <ChillerDragon> so you can do +1
+02:46 < ws-client> <ChillerDragon> i see
+02:46 < bridge_> <Ewan> yea
+02:46 < ws-client> <ChillerDragon> i use shift for that but lets look at ur code first
+02:46 < ws-client> <ChillerDragon> what do you want echo ${!argv[$arg]} to print?
+02:46 < ws-client> <ChillerDragon> and whats in arg
+02:46 < bridge_> <Ewan> arg should be the regex match of my requested expression (`'--output'.*|'-o'.*`)
+02:46 < bridge_> <Ewan> if defined as `--output=whatever` it would be `--output=whatever`
+02:46 < bridge_> <Ewan> if defined as `--output whatever` it would be `--output`
+02:46 < bridge_> <Ewan> i am not trying this subscript if defined w/ equals obviously
+02:48 < bridge_> <Ewan> ```bash
+02:48 < bridge_> <Ewan> if [[ ${!argv[*]} =~ '--output'.*|'-o'.* ]]; then
+02:48 < bridge_> <Ewan>     arg="${BASH_REMATCH[1]}"
+02:48 < bridge_> <Ewan> 
+02:48 < bridge_> <Ewan>     # -o=x
+02:48 < bridge_> <Ewan>     if [[ $arg == *'='* ]]; then # this line does not work
+02:48 < bridge_> <Ewan>         outpath="${arg#*=}"
+02:48 < bridge_> <Ewan>     # -o x
+02:48 < bridge_> <Ewan>     else
+02:48 < bridge_> <Ewan>         next=$(expr ${!argv["$arg"]} + 1)
+02:48 < bridge_> <Ewan>         outpath="${argv[$next]}"
+02:48 < bridge_> <Ewan>     fi
+02:49 < bridge_> <Ewan> fi
+02:49 < bridge_> <Ewan> ```
+02:49 < bridge_> <Ewan> it'd be like that
+02:49 < ws-client> <ChillerDragon> I don't think this line does what you think it does ``argv["$@[$i]"]=$i``
+02:49 < bridge_> <Ewan> it should do like `$@[1]=1`
+02:49 < bridge_> <Ewan> and so on
+02:50 < ws-client> <ChillerDragon> for i in 3
+02:50 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1713746971.png
+02:50 < ws-client> <ChillerDragon> you cant for loop a integer like that
+02:50 < bridge_> <Ewan> oh right
+02:50 < bridge_> <Ewan> xddd
+02:50 < bridge_> <Ewan> ..
+02:50 < bridge_> <Ewan> `..`
+02:51 < bridge_> <Ewan> that's not even something i didn't know i just neglected to change it from stuff i was doing earlier
+02:51 < ws-client> <ChillerDragon> ``for((i=0;i<$#;i++)); do``
+02:51 < bridge_> <Ewan> :feelsbadman:
+02:53 < ws-client> <ChillerDragon> But i still don't think you can index @ like that
+02:54 < bridge_> <Ewan> y not
+02:57 < bridge_> <Ewan> oh cool
+02:58 < bridge_> <Ewan> i can do like `$@[${!i}]`
+02:58 < ws-client> <ChillerDragon> wtf that works?
+02:59 < ws-client> <ChillerDragon> is this what you want?
+02:59 < bridge_> <Ewan> or so i thought
+02:59 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1713747497.png
+02:59 < bridge_> <Ewan> WTF
+02:59 < bridge_> <Ewan> yeah
+02:59 < ws-client> <ChillerDragon> https://paste.zillyhuhn.com/vP
+03:00 < bridge_> <Ewan> extra array kills me
+03:01 < ws-client> <ChillerDragon> ye @ is a bit magic not a regular array
+03:05 < ws-client> <ChillerDragon> there are also libs for that
+03:06 < ws-client> <ChillerDragon> i never tried it because i never ran into limits with my self rolled approach but just you know there is https://argbash.readthedocs.io/en/stable/
+03:07 < bridge_> <Ewan> interesting
+03:07 < bridge_> <Ewan> libraries defeat the purpose of bash imo
+03:09 < ws-client> <ChillerDragon> ye ikr xd
+03:09 < ws-client> <ChillerDragon> but then if you also want opt= you need to write more code like for example
+03:09 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1713748081.png
+03:09 < ws-client> <ChillerDragon> aa without shift
+03:17 < ws-client> <ChillerDragon> you can also have positional options and flags all together in 60 lines of bash xd
+03:17 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1713748591.png
+03:17 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1713748663.png
+04:00 < bridge_> <Ewan> yeah chiller i just ended up refactoring the argument parsing stuff
+04:00 < bridge_> <Ewan> to iterate at the beginning instead of finding as needed
+04:00 < bridge_> <Ewan> ```bash
+04:00 < bridge_> <Ewan>         elif [[ "$arg" =~ '--output'.*|'-o'.* ]]; then
+04:00 < bridge_> <Ewan>             if [[ "$arg" == *'='* ]]; then
+04:00 < bridge_> <Ewan>                 output_directory="${1#*=}"
+04:01 < bridge_> <Ewan>             else
+04:01 < bridge_> <Ewan>                 output_directory="${2}"
+04:01 < bridge_> <Ewan>                 shift
+04:01 < bridge_> <Ewan>             fi
+04:01 < bridge_> <Ewan>             shift
+04:01 < bridge_> <Ewan> ```
+04:01 < bridge_> <Ewan> this works for me
+04:01 < ws-client> <ChillerDragon> ah that looks neat
+04:03 < bridge_> <Ewan> thx for ur help man
+04:03 < ws-client> <ChillerDragon> you do not need .* in your regex btw
+04:03 < ws-client> <ChillerDragon> even without the regex you already match --outputtinger
+04:03 < bridge_> <Ewan> true
+04:58 < bridge_> <Ewan> ```
+04:58 < bridge_> <Ewan> git-sparse-clone https://github.com/DDNet/DDNet /README.md -o DDNet-Readme
+04:58 < bridge_> <Ewan> Cloning into 'DDNet-Readme'...
+04:58 < bridge_> <Ewan> ...
+04:58 < bridge_> <Ewan> ewan@machine ~/git-sparse-clone> cd DDNet-Readme/
+04:58 < bridge_> <Ewan> ewan@machine ~/g/DDNet-Readme (master)> ls
+04:58 < bridge_> <Ewan> README.md
+04:58 < bridge_> <Ewan> ```
+04:58 < bridge_> <Ewan> ```
+04:58 < bridge_> <Ewan> ewan@machine ~/git-sparse-clone> git-sparse-clone https://github.com/DDNet/DDNet /README.md -o DDNet-Readme
+04:58 < bridge_> <Ewan> Cloning into 'DDNet-Readme'...
+04:58 < bridge_> <Ewan> ...
+04:58 < bridge_> <Ewan> ewan@machine ~/git-sparse-clone> cd DDNet-Readme/
+04:58 < bridge_> <Ewan> ewan@machine ~/g/DDNet-Readme (master)> ls
+04:59 < bridge_> <Ewan> README.md
+04:59 < bridge_> <Ewan> ```
+05:01 < bridge_> <zhn> gm chat
+05:01 < bridge_> <Ewan> i heard gists are bad for networking so im just gonna start putting shit like this in their own repos <https://github.com/ewancg/git-sparse-clone>
+05:36 < bridge_> <Ewan> at what point
+06:42 < bridge_> <milkeeycat> morning 🍵
+06:43 < bridge_> <Ewan> gm
+08:05 < ws-client> <ChillerDragon> @Ewan you dont need to printf a string to compare it to another one https://github.com/ewancg/git-sparse-clone/blob/1a1df6916fbeddf48407cdf96c1ca61e2ac4e26b/git-sparse-clone.sh#L62
+08:05 < ws-client> <ChillerDragon> ``[ "$(printf "foo")" = "foo" ]`` is the same as ``[ "foo" = "foo" ]``
+08:05 < bridge_> <Ewan> oops
+08:06 < bridge_> <Ewan> i think that was residual from a formatted printf i switched over from
+08:12 < ws-client> <ChillerDragon> @Ewan wat dis do ``if [ -z "$GIT" ]; then``
+08:13 < bridge_> <Ewan> git envvar
+08:13 < bridge_> <Ewan> if not in path
+08:13 < bridge_> <Ewan> specify directly
+08:13 < ws-client> <ChillerDragon> https://github.com/ewancg/git-sparse-clone/blob/1a1df6916fbeddf48407cdf96c1ca61e2ac4e26b/git-sparse-clone.sh#L75
+08:13 < ws-client> <ChillerDragon> did you forget to use it here?
+08:13 < bridge_> <Ewan> yes 😃
+08:14 < ws-client> <ChillerDragon> you wrote almost 100 lines of bash to wrap one git clone command? :D 
+08:14 < ws-client> <ChillerDragon> average bash dev
+08:14 < bridge_> <Ewan> it's a few
+08:14 < bridge_> <Ewan> but yeah
+08:14 < bridge_> <Ewan> argument parsing is the pain
+08:14 < bridge_> <Ewan> would have been 50 lines of rust or smth
+08:14 < ws-client> <ChillerDragon> xd
+08:14 < ws-client> <ChillerDragon> rewrite in rust
+08:14 < bridge_> <Ewan> but not script
+08:15 < bridge_> <Ewan> would have to provide binaries n shit
+08:15 < bridge_> <Ewan> defeats the point
+08:15 < ws-client> <ChillerDragon> i think it is time i switch my terminal shell
+08:15 < ws-client> <ChillerDragon> from bash to rust
+10:20 < bridge_> <learath2> https://dn790009.ca.archive.org/0/items/bitsavers_computersA_13990695/196212.pdf Knuth's article on page 8 is a rather nice read
+10:22 < bridge_> <learath2> fwiw, it's probably easier to think about in terms of bitwise and here since we are aligning an address
+10:26 < bridge_> <learath2> Python would have been a good candidate for this if it wasn't so shit, maybe Perl?
+10:29 < bridge_> <Ewan> maybe
+10:29 < bridge_> <Ewan> it's just intended to be as easy as possible
+10:29 < bridge_> <Ewan> and if ur seeking out bash scripts there are no extra prerequisites for running bash scripts
+10:29 < bridge_> <Ewan> so it's just nice like that. it's kinda why i've always gravitated towards it
+10:31 < bridge_> <learath2> Yeah, bash scripts are solid
+10:32 < bridge_> <learath2> If you only use short options, getopts is POSIX
+10:33 < bridge_> <Ewan> maybe
+10:33 < bridge_> <Ewan> eventually i will use something like that
+10:33 < bridge_> <learath2> Tbf it looks good as is. I'm just yapping
+10:33 < bridge_> <Ewan> i've written like 15 different fucking arg parsing systems
+10:34 < bridge_> <Ewan> im sick of it
+10:34 < bridge_> <Ewan> 😃
+12:04 < bridge_> <cyberFighter> can we close this issue
+12:09 < bridge_> <teero777> please
+13:08 < bridge_> <nitka1920> как создать комнату чтобы с друзьями грать
+13:46 < bridge_> <meloƞ> Use /Team [1-63]  /Lock and /invite [Name]
+13:57 < bridge_> <nitka1920> 176.9.114.238:8330
+13:57 < bridge_> <DDNet> 176.9.114.238:8330 is an official DDNet server. 
+13:57 < bridge_> <DDNet> <https://ddnet.org/connect-to/?addr=176.9.114.238:8330/>
+15:29 < bridge_> <chairn> NOOOOOOOOOOOOOOOOOOOOO
+15:29 < bridge_> <chairn> https://www.techspot.com/news/102684-zilog-discontinuing-z80-microprocessor-after-almost-50-years.html
+15:29 < bridge_> <Ewan> LOL
+15:30 < bridge_> <chairn> i wonder what casio will use now in their calculator
+15:30 < bridge_> <Ewan> idk but it had a pretty good run
+16:16 < bridge_> <peter0x44> ez80
+16:17 < bridge_> <peter0x44> Probably
+16:17 < bridge_> <peter0x44> And I'm sure it won't be hard to find clones
+16:30 < bridge_> <chairn> it's not even hard to make clones either with fpga or just complete silicium clones if you have some engineers dedicated to it
+16:47 < bridge_> <Ewan> fpga much pricier no?
+16:47 < bridge_> <Ewan> they probably switch to another processor
+16:47 < bridge_> <Ewan> not hard to write a calculator
+17:47 < bridge_> <learath2> I'm curious. Do modern fpgas have enough gates to simulate these older chips?
+17:47 < bridge_> <chairn> way more than necessary
+17:55 < bridge_> <learath2> Heh, I have another question to follow that up. How do they differ in function to just a block of sram? You can use the address bits for input and data bits as the output to emulate a lot of things
+17:56 < bridge_> <chairn> they don't differ in functional way. They can differ in technology as some fpga use flash lut and some uses fused luts
+17:56 < bridge_> <chairn> nowadays, it's mostly sram luts
+18:04 < bridge_> <learath2> So is it more a tooling sort of thing that separates an fpga from just any random sram chip? I also remember you can configure pins to have different electrical characteristics
+18:04 < bridge_> <chairn> fpga is luts, registers and routing
+18:04 < bridge_> <chairn> a sram chip is just memory
+18:04 < bridge_> <learath2> Ah, registers and routing is what is different?
+18:04 < bridge_> <chairn> registers are also memories but clocked ones, routing is what allows you to connect everything to do what you want

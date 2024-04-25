@@ -1,0 +1,221 @@
+01:55 < ws-client> <ChillerDragon> @ryozuki are you saying edlang has a release, a web page, a project creation tool and a debugger but it can not do hello world?
+02:35 < bridge> <smetanolub> why i cant use prediction margin 0?
+02:35 < bridge> <smetanolub> only 1 or higher
+07:54 < bridge> <ryozuki> yes xd
+07:54 < bridge> <ryozuki> https://twitter.com/phoronix/status/1767695611808158035
+07:54 < bridge> <ryozuki> with this obs is better on linux now than on windows
+07:54 < bridge> <ryozuki> legit
+07:54 < bridge> <ryozuki> u cant do pipewire stuff in windows
+08:41 < bridge> <TsFreddie> no, but i think you can just lock the room/team to prevent spectator joining in
+08:41 < bridge> <TsFreddie> and they can still spectate using /spec player
+14:11 < bridge> <ryozuki> edlang now supports having both lib.ed and main.ed
+14:11 < bridge> <ryozuki> and builds a shared library and a binary pog
+14:12 < bridge> <ryozuki> it also doesnt require a top level module
+14:13 < bridge> <ryozuki> ```rust
+14:13 < bridge> <ryozuki> pub exported fn hello_world(a: i32) -> i32 {
+14:13 < bridge> <ryozuki>     return a;
+14:13 < bridge> <ryozuki> }
+14:15 < bridge> <ryozuki> ```
+14:15 < bridge> <ryozuki> what do u think about the exported keyword? it disables name mangling and makes it externally visible
+14:15 < bridge> <ryozuki> the pub is only within edlang
+14:15 < bridge> <ryozuki> or maybe i should just copy rust? pub extern "C" fn
+14:15 < bridge> <ryozuki> but i doubt ill support other than extern "C" itself
+14:15 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1217460708892217394/image.png?ex=66041ba4&is=65f1a6a4&hm=776b07d63f9e1c2b08a4528e39d3d21494102231358a27a90e5290c309142d86&
+14:15 < bridge> <ryozuki> :owo:
+14:15 < bridge> <learath2> Why do you do mangling at all?
+14:15 < bridge> <ryozuki> @learath2 because i have modules
+14:15 < bridge> <ryozuki> namespaces if u will
+14:15 < bridge> <ryozuki> my mangling is rly dumb tho rn
+14:16 < bridge> <ryozuki> if i mark it not exported
+14:16 < bridge> <ryozuki> the name will be
+14:16 < bridge> <ryozuki> `define private i32 @"hello_world@0@3"(i32 %0) !dbg !2 {`
+14:16 < bridge> <ryozuki> 0 is like the file id
+14:16 < bridge> <ryozuki> 3 is the definition id
+14:16 < bridge> <ryozuki> which increases when it finds definitions like functions etc
+14:16 < bridge> <ryozuki> ```llvm
+14:16 < bridge> <ryozuki> 2 = distinct !DISubprogram(name: "hello_world", linkageName: "hello_world@0@3", scope: !3, file: !1, line: 4, type: !4, scopeLine: 4, spFlags: DISPFlagDefinition, unit: !0, retainedNodes: !7)
+14:16 < bridge> <ryozuki> ```
+14:16 < bridge> <ryozuki> good debug info kek
+14:17 < bridge> <learath2> Do you have overloads?
+14:17 < bridge> <ryozuki> @learath2 i will have generics
+14:17 < bridge> <ryozuki> no overloads for now
+14:17 < bridge> <learath2> If no overloads, why do you need the definition id?
+14:17 < bridge> <ryozuki> true
+14:17 < bridge> <ryozuki> but definition id could help in generics
+14:17 < bridge> <ryozuki> xd
+14:18 < bridge> <ryozuki> cuz multiple definitions
+14:18 < bridge> <ryozuki> with diferent types
+14:18 < bridge> <learath2> Yeah, but I think you should move to a more deterministic mangling scheme
+14:18 < bridge> <ryozuki> yeah
+14:18 < bridge> <ryozuki> it was just smth quick for now
+14:18 < bridge> <ryozuki> to not get symbol conflicts
+14:18 < bridge> <learath2> Understandable
+14:18 < bridge> <ryozuki> @learath2 any known algorithm?
+14:19 < bridge> <ryozuki> also i think the linker doesnt support the @ symbol
+14:19 < bridge> <heinrich5991> I don't think rust disables "name mangling" for `extern "C"`
+14:19 < bridge> <ryozuki> oh
+14:19 < bridge> <heinrich5991> you need to add the `#[no_mangle]` attribute IIRC
+14:19 < bridge> <ryozuki> well then my exported keyword is the same as extern "C" and no_mangle
+14:21 < bridge> <ryozuki> ill change @ to $
+14:24 < bridge> <learath2> You could draw inspiration from rust or c++
+14:24 < bridge> <learath2> You want the return type, the function name (including module maybe), and argument types in order
+14:25 < bridge> <ryozuki> oh @ actually is valid
+14:25 < bridge> <heinrich5991> for whatever reason, the gdb demangler can segfault
+14:26 < bridge> <heinrich5991> and it's kinda known that it's bad code
+14:26 < bridge> <ryozuki> > In the stdcall and fastcall mangling schemes, the function is encoded as _name@X and @name@X respectively, where X is the number of bytes, in decimal, of the argument(s) in the parameter list (including those passed in registers, for fastcall). In the case of cdecl, the function name is merely prefixed by an underscore.
+14:26 < bridge> <learath2> Huh
+14:27 < bridge> <ryozuki> > All mangled symbols begin with _Z (note that an identifier beginning with an underscore followed by a capital letter is a reserved identifier in C, so conflict with user identifiers is avoided
+14:27 < bridge> <ryozuki> TIL
+14:28 < bridge> <heinrich5991> island is also a reserved name
+14:28 < bridge> <ryozuki> > All mangled symbols begin with _Z (note that an identifier beginning with an underscore followed by a capital letter is a reserved identifier in C, so conflict with user identifiers is avoided); for nested names (including both namespaces and classes), this is followed by N, then a series of <length, id> pairs (the length being the length of the next identifier), and finally E. For example, wikipedia::article::format becomes:
+14:28 < bridge> <ryozuki> > 
+14:28 < bridge> <ryozuki> > _ZN9wikipedia7article6formatE
+14:28 < bridge> <ryozuki> xd
+14:28 < bridge> <ryozuki> the full text
+14:29 < bridge> <ryozuki> ok shouldnt be hard to copy this mangling
+14:54 < bridge> <ryozuki> i keep setting aside implementing strings and arrays with other stuff
+14:54 < bridge> <ryozuki> i need to focus
+14:54 < bridge> <ryozuki> :justatest:
+14:58 < bridge> <learath2> Are you doing utf8 strings?
+14:58 < bridge> <ryozuki> :justatest:
+14:58 < bridge> <ryozuki> for now ill do just "strings"
+14:58 < bridge> <ryozuki> and not zero terminated
+14:58 < bridge> <ryozuki> but ill probs do utf8
+14:58 < bridge> <ryozuki> actually i wanna do CStr and String
+14:58 < bridge> <ryozuki> like rust
+14:59 < bridge> <ryozuki> i think ill end up doing rust2
+14:59 < bridge> <ryozuki> :justatest:
+14:59 < bridge> <ryozuki> i have 0 originality
+14:59 < bridge> <learath2> :pepeW:
+14:59 < bridge> <ryozuki> thats why i ask for ideas
+14:59 < bridge> <ryozuki> but nobody here has
+14:59 < bridge> <learath2> Rust is just perfect as it is
+14:59 < bridge> <ryozuki> xD
+14:59 < bridge> <ryozuki> indeed
+14:59 < bridge> <learath2> Do unsafe by default rust
+14:59 < bridge> <ryozuki> :justatest:
+14:59 < bridge> <ryozuki> zig comptime is interesting
+15:00 < bridge> <ryozuki> i just need to think a feature that makes edlang different
+15:00 < bridge> <ryozuki> but for now im happy to have a working language
+15:01 < bridge> <learath2> fearful concurrency
+15:01 < bridge> <ryozuki> i wanna know if there are cutting edge papers
+15:01 < bridge> <ryozuki> on borrow checkers
+15:01 < bridge> <learath2> Cutting edge borrow checkers are probably so much graph theory that your brain will melt out of your ears
+15:01 < bridge> <ryozuki> rust with good async
+15:02 < bridge> <learath2> garbage collected rust
+15:02 < bridge> <ryozuki> hey thats going too far
+15:02 < bridge> <learath2> Mark and Sweep gc isn't too hard to implement
+15:02 < bridge> <ryozuki> we dont do that here
+15:02 < bridge> <learath2> I'm about to learn some go btw
+15:02 < bridge> <ryozuki> nice
+15:02 < bridge> <ryozuki> u only need 1 day
+15:02 < bridge> <ryozuki> literally
+15:02 < bridge> <ryozuki> its the only pro of the language XD
+15:02 < bridge> <learath2> 😄
+15:03 < bridge> <ryozuki> i hate how it handles errors
+15:03 < bridge> <learath2> Why? Is it similar to some language I already know?
+15:03 < bridge> <ryozuki> makes it all so ugly
+15:03 < bridge> <ryozuki> @learath2 google made it for interns
+15:03 < bridge> <ryozuki> to learn how to code
+15:03 < bridge> <ryozuki> and have people working fast in something
+15:03 < bridge> <ryozuki> hmm u return a tuple with the error and the result
+15:03 < bridge> <ryozuki> if the error is not null u use the result
+15:04 < bridge> <ryozuki> u have to check the error on all ur function invocations
+15:04 < bridge> <ryozuki> an entire if block
+15:04 < bridge> <ryozuki> every time
+15:04 < bridge> <ryozuki> there is no sugar
+15:04 < bridge> <ryozuki> u can use the result without checking the error
+15:04 < bridge> <ryozuki> no safety
+15:04 < bridge> <ryozuki> also it has nulls
+15:04 < bridge> <ryozuki> so its already a bad lang
+15:04 < bridge> <ryozuki> :justatest:
+15:05 < bridge> <ryozuki> https://go.dev/blog/error-handling-and-go
+15:05 < bridge> <learath2> Rust honestly has it mostly right, I see no point to inventing new languages anymore. If I were making my own flavor of rust, I'd have it unsafe by default, find some way to allow self referential structs and maybe try to improve on the async
+15:05 < bridge> <ryozuki> ```go
+15:05 < bridge> <ryozuki> f, err := Sqrt(-1)
+15:05 < bridge> <ryozuki> if err != nil {
+15:05 < bridge> <ryozuki>     fmt.Println(err)
+15:05 < bridge> <ryozuki> }
+15:05 < bridge> <ryozuki> ```
+15:05 < bridge> <ryozuki> im sry but i find it rly ugly
+15:05 < bridge> <ryozuki> u have to do this
+15:06 < bridge> <ryozuki> ```rust
+15:06 < bridge> <ryozuki> func Sqrt(f float64) (float64, error) {
+15:06 < bridge> <ryozuki>     if f < 0 {
+15:06 < bridge> <ryozuki>         return 0, errors.New("math: square root of negative number")
+15:06 < bridge> <ryozuki>     }
+15:06 < bridge> <ryozuki>     // implementation
+15:06 < bridge> <ryozuki> }
+15:06 < bridge> <ryozuki> 
+15:06 < bridge> <ryozuki> ```
+15:06 < bridge> <learath2> Hm, it's just lacking some sugar, isn't this the same approach as rust Results?
+15:06 < bridge> <ryozuki> having no algebraic data types is a no go too
+15:06 < bridge> <ryozuki> u have to use a default value
+15:06 < bridge> <ryozuki> when returning a result
+15:06 < bridge> <ryozuki> bad bad bad
+15:14 < bridge> <learath2> I guess it doesn't guard as well as Results against you accidentally forgetting to check that there were no errors
+15:20 < bridge> <heinrich5991> the yoke crate is a nice way of doing self-referential structs, even though it has weird terminology
+15:21 < bridge> <louis> @ryozuki do fractional number representations
+15:21 < bridge> <ryozuki> https://ed-lang.org/
+15:21 < bridge> <ryozuki> new design
+15:21 < bridge> <ryozuki> actually i just changed the classless css framework i use
+15:21 < bridge> <ryozuki> xd
+15:22 < bridge> <heinrich5991> you mean as fractions?
+15:22 < bridge> <louis> yes @heinrich5991
+15:25 < bridge> <learath2> infinite precision arithmetic
+15:26 < bridge> <teero777> btw why is no language doing that?
+15:26 < bridge> <louis> https://code.pyret.org/editor
+15:26 < bridge> <louis> ```
+15:26 < bridge> <louis> a = 3/5
+15:26 < bridge> <louis> b = a * 14/2990
+15:26 < bridge> <louis> print(b)
+15:26 < bridge> <louis> ```
+15:29 < bridge> <heinrich5991> it seems not particularly useful as a standard representation to me because sooner or later you're going to pass the value to a non-polynomial function
+15:29 < bridge> <heinrich5991> and then your result can't be precise anymore
+15:32 < bridge> <louis> store the expression as a tree then evaluate it when it needs to be😩
+15:32 < bridge> <heinrich5991> my android calculator has infinite precision
+15:33 < bridge> <heinrich5991> I like that
+15:33 < bridge> <heinrich5991> my android calculator has arbitrary precision
+15:34 < bridge> <heinrich5991> python has fractions btw: https://docs.python.org/3/library/fractions.html
+16:58 < bridge> <learath2> Fractional representations of numbers are less performant to work with, at the end of the day when you do need the actual final value of your operation it'll incur an expensive `DIV` to get it and multiplying fractions together is two `MUL`s instead of one, adding fractions with different bases is variable cost, incurs atleast 2 muls and an add
+17:07 < bridge> <teero777> oh ok
+17:17 < bridge> <pisisik> why is this not added in new update? https://github.com/ddnet/ddnet/pull/7521
+17:18 < bridge> <pisisik> am I right that for 2 month a name can't be chosen and it is the only problem?
+17:25 < bridge> <stepfunn> Why would you add something like this to the game? I don't really get whats the use case for this
+17:26 < bridge> <devinci24> Some players enjoy doing t0 speedruns. That would be the new kind of private servers.
+17:27 < bridge> <pisisik> as written there by Robyt3 "We should better support t0 runs without having to manually set a password on servers." but I can also add that it might be helpful if you still want that t0 gameplay but not with everyone so you can go in team with this t0 mode and kick annoying people from it without it being funvote
+17:28 < bridge> <zhn> people getting mad about t0 runs cuz they're not allowed to ban everyone who joins the server
+17:28 < bridge> <zhn> and no one will set a password for them since t0 runs are unsupported
+17:53 < bridge> <bencie.> i mean sometimes admins do has happened a few times, but its a hassle for both the runners and the admins
+17:53 < bridge> <bencie.> i mean sometimes admins do and it has happened a few times, but its a hassle for both the runners and the admins
+18:07 < bridge> <pisisik> yes, and it looks like the only thing that left is to decide on a name and to add it in current update cause I guess there is still time
+18:22 < bridge> <stepfunn> ah alright that makes a lot of sense now
+22:07 < bridge> <louis> @murpi skindb bot is down
+22:07 < bridge> <louis> do you know why it's down so often?
+23:05 < bridge> <cyberFighter> watfk this button means
+23:06 < bridge> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1217594379083059271/image.png?ex=66049821&is=65f22321&hm=a8ccfd6d8879eafa193f9a162d7a1e752dd381e8a37da726d8c4bab5201b32ee&
+23:06 < bridge> <bts._.> reloading
+23:06 < bridge> <cyberFighter> its reloading way too long then
+23:07 < bridge> <frazox> i cant play ghuy
+23:07 < bridge> <frazox> i cant play guys
+23:08 < bridge> <frazox> @bts._. bro answer me
+23:11 < bridge> <bts._.> is it just the button not changing? 🤔
+23:19 < bridge> <bts._.> you cant reach the master server im guessing
+23:27 < bridge> <Ewan> masters messed i[?
+23:27 < bridge> <Ewan> masters messed up?
+23:29 < bridge> <heinrich5991> works for me. what do you see?
+23:30 < bridge> <Ewan> ```
+23:30 < bridge> <Ewan> 2024-03-13 16:26:36 E http: https://master2.ddnet.org/ddnet/15/servers.json failed. libcurl error (28): Failed to connect to master2.ddnet.org port 443 after 10000 ms: Timeout was reached
+23:30 < bridge> <Ewan> 2024-03-13 16:26:36 E http: https://master3.ddnet.org/ddnet/15/servers.json failed. libcurl error (6): Could not resolve host: master3.ddnet.org
+23:30 < bridge> <Ewan> 2024-03-13 16:26:36 E http: https://master1.ddnet.org/ddnet/15/servers.json failed. libcurl error (22): The requested URL returned error: 525
+23:30 < bridge> <Ewan> 2024-03-13 16:26:37 E http: https://master4.ddnet.org/ddnet/15/servers.json failed. libcurl error (22): The requested URL returned error: 404
+23:30 < bridge> <Ewan> ```
+23:31 < bridge> <heinrich5991> can you visit https://master1.ddnet.org/ddnet/15/servers.json in the browser?
+23:31 < bridge> <robyt3> Sometimes master1 works after refreshing for me
+23:33 < bridge> <zwelf2> Also saw this 525 once (and it gave this link): https://developers.cloudflare.com/support/troubleshooting/cloudflare-errors/troubleshooting-cloudflare-5xx-errors/#error-525-ssl-handshake-failed
+23:41 < bridge> <heinrich5991> does it work again for you?
+23:42 < bridge> <zwelf2> btw https://ddnet.org now also intermittently returns 525 errors. `curl -I https://ddnet.org`
+23:42 < bridge> <heinrich5991> yea, but that isn't as vital
+23:45 < bridge> <Ewan> Yes
+23:45 < bridge> <Ewan> 😃
+23:47 < bridge> <cyberFighter> ah yes it did die
