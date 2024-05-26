@@ -1,0 +1,497 @@
+01:26 < bridge> <lukron55> is it possible to use a cloudfare tunnels when hosting a ddnet server on my pi?
+01:26 < bridge> <lukron55> would rather my ip not be available to everyone 😭
+01:44 < bridge> <Ewan> idk try it
+01:44 < bridge> <Ewan> any of that is probably going to be bad for latency
+04:08 < bridge> <reitw> cloudflare tunnels supports udp, just prob requires you to have WARP on client side
+04:21 <+ws-client> <ChillerDragon> omagawd @milkeeycat where stream recording!
+04:23 <+ws-client> <ChillerDragon> Omg i have hot reloading working and also accessing CCollision from the plugin. But not both at the same time ._. that should be possible right? Everything is possible.
+04:23 < bridge> <Ewan> ur hot reload works via dlopen right
+04:24 <+ws-client> <ChillerDragon> If I compile with `-rdynamic` it fails on the crypto dependencies 
+04:24 <+ws-client> <ChillerDragon> yes
+04:24 < bridge> <Ewan> what are you gonna do about windows
+04:24 <+ws-client> <ChillerDragon> there is some compability wrapper for dlopen
+04:24 < bridge> <Ewan> :justatest:
+04:24 <+ws-client> <ChillerDragon> but not sure if i ever bother to support windows tbh
+04:25 <+ws-client> <ChillerDragon> It can't find `_Z10md5_finishP11MD5state_st` which demangles to `md5_finish(MD5state_st*)`
+04:25 <+ws-client> <ChillerDragon> maybe i have to link ssl into the shared object
+04:26 <+ws-client> <ChillerDragon> but the linker refuses to link unused libraries. Anyways it seems like the wrong approach.
+04:26 <+ws-client> <ChillerDragon> I am not even using crypto stuff. Its just that i can't lazy load with dlopen otherwise the hotreload does not work ._.
+04:26 < bridge> <Ewan> are you hot reloading every dynamic library
+04:27 <+ws-client> <ChillerDragon> i am only reloading the one thing i built
+04:27 <+ws-client> <ChillerDragon> `void *pHandle = dlopen(pFilename, RTLD_LAZY);` this works with hot reloading resolving the symbols lazy 
+04:27 <+ws-client> <ChillerDragon> ah wait no this works without hot reloading xd*
+04:28 <+ws-client> <ChillerDragon> i have to use `RTLD_NOW` for hot reloading which then fails on IJob which is fixed by -rdynamic which then fails on md5_finish
+04:30 <+ws-client> <ChillerDragon> ffs idk what else to tr
+04:30 < bridge> <Ewan> i guess i dont understand ur problem atm
+04:31 <+ws-client> <ChillerDragon> do you understand my goal? :D
+04:31 <+ws-client> <ChillerDragon> i need one of your genius hints or i rq here
+04:32 < bridge> <Ewan> you are trying to have one library which you can load on the fly
+04:35 < bridge> <Ewan> for the same error? how would you ever get to loading it in runtime if it can never succeed to generate at compile time
+04:35 <+ws-client> <ChillerDragon> xd
+04:35 <+ws-client> <ChillerDragon> nah i mean i tried a bunch of things and collected a bunch of errors
+04:35 <+ws-client> <ChillerDragon> idk if i am on the right path but right now i seem to be stuck at a runtime error that fails on dlopen
+04:36 <+ws-client> <ChillerDragon> but i actually blame a linker issue for it
+04:36 <+ws-client> <ChillerDragon> idk what i am doing here
+04:38 < bridge> <Ewan> if you can't expose md5 summing through ddnet then i'd advise linking it statically in your "plugin"
+04:38 < bridge> <Ewan> but bigger picture i think u need to take a walk or something xd
+04:41 <+ws-client> <ChillerDragon> dude i did a 2h walk over this
+04:41 < bridge> <Ewan> ah
+04:41 <+ws-client> <ChillerDragon> this is me progressing 0 since yesterday
+04:41 < bridge> <Ewan> i can try and help u more interactively after dinner
+04:42 <+ws-client> <ChillerDragon> lemme record epic clip
+04:42 <+ws-client> <ChillerDragon> of how it should look like
+04:42 < bridge> <Ewan> 😃
+04:42 <+ws-client> <ChillerDragon> https://tube.zillyhuhn.com/video.php?t=hot_bots.mp4&u=chiller
+04:42 <+ws-client> <ChillerDragon> is my internet too slow or is the video bugged? xd
+04:43 < bridge> <Ewan> seems fine for me
+04:44 <+ws-client> <ChillerDragon> omg it doesnt load at all for me
+04:44 <+ws-client> <ChillerDragon> anyways you can see how a recompile instantly changes the walking direction of the tee
+04:44 <+ws-client> <ChillerDragon> so that works. But it also says that the current tile is -69 which is my fallback if the collision stuff did not work so thats sad
+04:44 <+ws-client> <ChillerDragon> i can get that to work but then it does not hot reload anymore
+04:44 < bridge> <Ewan> ah
+04:47 <+ws-client> <ChillerDragon> this has to be possible rigth?
+04:53 < bridge> <Ewan> yes
+04:59 <+ws-client> <ChillerDragon> ok i managed to fix the md5 thing but it does not hot reload <:tee_thinking:478629518358085653>
+04:59 <+ws-client> <ChillerDragon> so wrong path i guess
+05:27 < bridge> <Ewan> did you figure that part out
+06:17 <+ws-client> <ChillerDragon> yea i can now build link and even load with dlopen and find the symbol with `RTLD_NOW` and `-rdynamic`
+06:17 <+ws-client> <ChillerDragon> it can access collision but it just does not reload
+06:20 <+ws-client> <ChillerDragon> to be able to receive a pointer to CCollision it needs collision.h which further depends on vmath.h and protocol.h and if i properly want to link it also on collision.cpp which well depends on everything
+07:14 < bridge> <milkeeycat> chillerdragon: I didn't select option to save vods so no recording :kek:
+08:01 < bridge> <heinrich5991> linking problems over, ChillerDragon?
+08:36 < bridge> <louis> shitty little terminal map viewer 😅
+08:36 < bridge> <louis> https://cdn.discordapp.com/attachments/293493549758939136/1242365295608201216/tw-map-cli.gif?ex=664d9258&is=664c40d8&hm=f0a6e0a907b229a9a00fe3fe797de0e3191c6ced38f31e15314e1f0b04c5696a&
+08:37 < bridge> <avolicious> looks cool 👍
+08:42 < bridge> <heinrich5991> 😄 nice
+08:42 < bridge> <heinrich5991> seems like the wrong medium though 😄
+08:43 < bridge> <louis> ideally i'd have some sort of window app that automatically updates the map whenever the file is updated
+08:43 < bridge> <louis> i wanted a quick/easy way to view maps for another project of mine
+08:48 < bridge> <heinrich5991> @patiga wrote a map viewer tool
+08:48 < bridge> <heinrich5991> it's easily compilable IIRC
+08:50 < bridge> <heinrich5991> https://gitlab.com/Patiga/twgpu
+08:51 < bridge> <heinrich5991> sample usage: `cargo run --release --bin=twgpu-map-inspect -- ~/.teeworlds/maps/Stronghold.map /usr/share/ddnet/data/mapres/`
+09:01 < bridge> <patiga> ouch, I should really merge the `new-approach` branch, as I need to tell everyone to switch to it 🫠
+09:01 < bridge> <patiga> eh I'll do that today
+09:39 <+ws-client> <ChillerDragon> @heinrich5991 i am still stuck banging my head at the same problem since over 12 hours now xd
+09:54 < bridge> <heinrich5991> ChillerDragon: what happens when you try to hot-reload? what do you expect to happen instead?
+09:59 <+ws-client> <ChillerDragon> the api thing in front of the declarations
+10:00 <+ws-client> <ChillerDragon> i tried so many things sometimes when i delete the shared library it shows errors and when i compile a new one it calls the old code
+10:00 <+ws-client> <ChillerDragon> or it doesnt error at all an keeps calling the old code
+10:01 < bridge> <heinrich5991> sounds like it doesn't unload
+10:01 < bridge> <heinrich5991> but what would help are the concrete symptoms right now, so that we could start debugging
+10:01 <+ws-client> <ChillerDragon> yes
+10:03 < bridge> <heinrich5991> for the uninitiated (like me):
+10:03 < bridge> <heinrich5991> ```c++
+10:03 < bridge> <heinrich5991> ANTIBOTAPI int AntibotAbiVersion();
+10:03 < bridge> <heinrich5991> ```
+10:03 < bridge> <heinrich5991> defined as
+10:03 < bridge> <heinrich5991> ```c++
+10:03 < bridge> <heinrich5991> #define ANTIBOTAPI DYNAMIC_IMPORT
+10:03 < bridge> <heinrich5991> ```
+10:03 < bridge> <heinrich5991> defined as
+10:03 < bridge> <heinrich5991> ```c++
+10:03 < bridge> <heinrich5991> #ifdef CONF_FAMILY_WINDOWS
+10:03 < bridge> <heinrich5991> #define DYNAMIC_EXPORT __declspec(dllexport)
+10:03 < bridge> <heinrich5991> #define DYNAMIC_IMPORT __declspec(dllimport)
+10:03 < bridge> <heinrich5991> #else
+10:03 < bridge> <heinrich5991> #define DYNAMIC_EXPORT
+10:03 < bridge> <heinrich5991> #define DYNAMIC_IMPORT
+10:03 < bridge> <heinrich5991> #endif
+10:03 < bridge> <heinrich5991> ```
+10:03 < bridge> <Ewan> I’m back
+10:03 < bridge> <heinrich5991> so only relevant on windows
+10:03 < bridge> <heinrich5991> have you verified that it unloads (with gdb), ChillerDragon
+10:03 < bridge> <heinrich5991> how do you even unload?
+10:04 <+ws-client> <ChillerDragon> sry im a bit busy sometimes but im still here thanks for helping
+10:14 <+ws-client> <ChillerDragon> ah __declspec is windows only
+10:15 <+ws-client> <ChillerDragon> i dont worry about windows for now
+10:15 <+ws-client> <ChillerDragon> but on stackoverflow i have seen a bunch of visbility annotations maybe i need some of those
+10:17 <+ws-client> <ChillerDragon> how can i verify it is unloaded? @heinrich5991 
+10:17 < bridge> <heinrich5991> can you bring the thing into some state where we can start debugging?
+10:17 < bridge> <heinrich5991> `info proc mappings`
+10:17 < bridge> <heinrich5991> in gdb
+10:18 <+ws-client> <ChillerDragon> i mean i kinda know its not unloaded
+10:18 <+ws-client> <ChillerDragon> i called dlclose and deleted the shared object
+10:18 <+ws-client> <ChillerDragon> then dlopen and dlsym and it still runs the code from that shared object
+10:18 <+ws-client> <ChillerDragon> ok lemme se
+10:18 < bridge> <heinrich5991> if you know that it's not unloaded, it's probably best to figure out why it's not unloaded ^^
+10:20 <+ws-client> <ChillerDragon> idk what else to do than call dlclose
+10:20 <+ws-client> <ChillerDragon> `info proc mappings` is huge
+10:21 <+ws-client> <ChillerDragon> maybe its never loaded in the first place
+10:21 <+ws-client> <ChillerDragon> thats also a theory of mine
+10:21 < bridge> <heinrich5991> verify your theories!
+10:21 < bridge> <heinrich5991> that makes debugging a lot easier
+10:21 <+ws-client> <ChillerDragon> ye idk how
+10:21 < bridge> <heinrich5991> because you then know which to pursue further and which not
+10:21 < bridge> <heinrich5991> then figure that out. in this specific case, I gave you the answer
+10:26 <+ws-client> <ChillerDragon> i am one step after dlsym right now
+10:26 <+ws-client> <ChillerDragon> and there does not seem to be anything
+10:26 <+ws-client> <ChillerDragon> can i grep xd
+10:27 <+ws-client> <ChillerDragon> maybe i should test that with the working hot reload first
+10:27 <+ws-client> <ChillerDragon> idk how info proc mappings work and if dlopen shows up in there and if yes how
+10:27 < bridge> <heinrich5991> there's `/proc/<pid>/maps` which contains the same things, I think
+10:27 < bridge> <heinrich5991> you can grep that
+10:29 <+ws-client> <ChillerDragon> ah nice
+10:29 <+ws-client> <ChillerDragon> and it also freezes when i break with gdb i guess 
+10:29 < bridge> <heinrich5991> yes
+10:31 <+ws-client> <ChillerDragon> ah i didnt step enough before
+10:31 <+ws-client> <ChillerDragon> i see it in gdb now 
+10:32 <+ws-client> <ChillerDragon> ou this is smooth `grep twbl /proc/$(pgrep DDNet-Server)/maps`
+10:33 <+ws-client> <ChillerDragon> interestingly it shows my lib after dlclose when hot reloading is working
+10:33 < bridge> <heinrich5991> how do you know hot reloading is workingg?
+10:33 < bridge> <heinrich5991> how do you know hot reloading is working?
+10:33 < bridge> <heinrich5991> how do you recompile the library?
+10:34 <+ws-client> <ChillerDragon> i have two ways of compiling it
+10:34 <+ws-client> <ChillerDragon> one where hot reloading works and one where my lib can access the collision pointer but cant hot reload
+10:35 <+ws-client> <ChillerDragon> i recompile both of them by running `make` in the servers build directory
+10:35 <+ws-client> <ChillerDragon> i know it is working because i can change the code and see the updates live in game without the server restarting
+10:35 < bridge> <heinrich5991> do you remove the library before recompiling it?
+10:35 <+ws-client> <ChillerDragon> sometimes
+10:36 <+ws-client> <ChillerDragon> i tried it all by now xd
+10:36 < bridge> <heinrich5991> can you check if hot reloading still works when you do that?
+10:36 < bridge> <heinrich5991> because maybe you're not hot-reloading, but simply overwriting stuff in-memory
+10:36 < bridge> <heinrich5991> ^^
+10:36 <+ws-client> <ChillerDragon> works
+10:37 <+ws-client> <ChillerDragon> eee
+10:37 <+ws-client> <ChillerDragon> proc panic
+10:37 <+ws-client> <ChillerDragon> xd
+10:37 < bridge> <heinrich5991> proc panic?
+10:37 <+ws-client> <ChillerDragon> https://paste.zillyhuhn.com/s4
+10:38 <+ws-client> <ChillerDragon> it works and all xd
+10:38 <+ws-client> <ChillerDragon> i think you are right
+10:38 <+ws-client> <ChillerDragon> it hot reloads seemingly correct
+10:38 <+ws-client> <ChillerDragon> but now when i check the maps again it says deleted 
+10:38 <+ws-client> <ChillerDragon> omg 0iq
+10:39 <+ws-client> <ChillerDragon> the grep matched the directory not the lib file xd
+10:39 <+ws-client> <ChillerDragon> but still something got deleted 
+10:39 <+ws-client> <ChillerDragon> ah now i grepped the right thing
+10:39 < bridge> <heinrich5991> seems like your linker moved some stuff away before overwriting it? do you use `mold`?
+10:39 <+ws-client> <ChillerDragon> no that looks healthy
+10:40 <+ws-client> <ChillerDragon> ye i think i use mold
+10:40 < bridge> <heinrich5991> so maybe it's deleting the file before overwriting it?
+10:40 <+ws-client> <ChillerDragon> maybe the mold stuff is not really related my grep is flawed because of the folder name
+10:40 < bridge> <heinrich5991> but what is `/home/chiller/Desktop/git/twbl-ddnet/build/.mold-hqv1pr`?
+10:40 < bridge> <heinrich5991> I doubt you linked that
+10:40 < bridge> <heinrich5991> so it's probably mold moving away the old library to a temporary name before deleting it?
+10:41 <+ws-client> <ChillerDragon> https://paste.zillyhuhn.com/0c
+10:41 <+ws-client> <ChillerDragon> here is a better one where it actually shows the lib when loaded
+10:41 <+ws-client> <ChillerDragon> then i delete it and let it reload
+10:41 <+ws-client> <ChillerDragon> then its gone
+10:41 <+ws-client> <ChillerDragon> probably some weird artifcat im not sure if that mold thing is related to anything
+10:41 < bridge> <heinrich5991> check what it says about the address where the lib was previously loaded
+10:41 < bridge> <heinrich5991> yea, I agree, seems ot be an artifact
+10:42 <+ws-client> <ChillerDragon> you mean x/s in gdb or something?
+10:42 <+ws-client> <ChillerDragon> `(gdb) x/s 0x7ffff7fb7000`
+10:42 <+ws-client> <ChillerDragon> `0x7ffff7fb7000: <error: Cannot access memory at address 0x7ffff7fb7000>`
+10:43 <+ws-client> <ChillerDragon> wow my web chat sanitized away the entire < error thing >
+10:43 < bridge> <heinrich5991> no, in the mappings
+10:43 <+ws-client> <ChillerDragon> a
+10:43 < bridge> <heinrich5991> to see if there's still a mapping there
+10:44 <+ws-client> <ChillerDragon> `grep 7ffff7fb6000 /proc/$(pgrep DDNet-Server)/maps` comes back empty
+10:45 <+ws-client> <ChillerDragon> `grep 7ffff7fb /proc/$(pgrep DDNet-Server)/maps`
+10:45 <+ws-client> <ChillerDragon> `7ffff7fbb000-7ffff7fc3000 rw-s 00000000 103:02 19352181                  /home/chiller/.teeworlds/ddnet-server.sqlite-shm`
+10:45 <+ws-client> <ChillerDragon> so nothing right?
+10:50 <+ws-client> <ChillerDragon> okay before the first load no hits
+10:51 <+ws-client> <ChillerDragon> after the first load it finds it in the mapping
+10:51 <+ws-client> <ChillerDragon> and now i gotta afk xd
+10:51 < bridge> <heinrich5991> 😄
+10:51 < bridge> <heinrich5991> nice cliffhanger
+11:03 <+ws-client> <ChillerDragon> tell me about it xd
+11:03 <+ws-client> <ChillerDragon> ye and if i step to the dlclose its gone cleanly <:tee_thinking:478629518358085653>
+11:03 <+ws-client> <ChillerDragon> lemme try to delete it and then step into the load xd
+11:04 <+ws-client> <ChillerDragon> okay it fails to load. thats weird i swear that didnt happen earlier
+11:05 < bridge> <heinrich5991> what's the error?
+11:05 <+ws-client> <ChillerDragon> that the file i try to dlopen is not on my harddrive
+11:05 <+ws-client> <ChillerDragon> which makes sense because i deleted it
+11:06 <+ws-client> <ChillerDragon> but i am so sure that didnt happen earlier it would just keep happily calling its code claming it loaded it succesfully
+11:06 <+ws-client> <ChillerDragon> anyways now i recompiled it so the file is back and then gdb hinted something interesting
+11:06 <+ws-client> <ChillerDragon> `warning: Temporarily disabling breakpoints for unloaded shared library "./libtwbl_bottick.so"`
+11:07 <+ws-client> <ChillerDragon> and now it happily called the old code somehow
+11:07 <+ws-client> <ChillerDragon> the one i deleted from my hard drive :D 
+11:07 <+ws-client> <ChillerDragon> and the maps are empty
+11:07 <+ws-client> <ChillerDragon> so unloading works
+11:07 <+ws-client> <ChillerDragon> but loading doesnt?
+11:08 <+ws-client> <ChillerDragon> but dlopen() throws no error neither does dlsym() they just find old stuff even tho there is nothing in the memory maps
+11:08 <+ws-client> <ChillerDragon> or how is this /proc/maps thing called? memory maps? ram?
+11:09 <+ws-client> <ChillerDragon> gg i spent the entire day on it with 0 progress
+11:15 < bridge> <heinrich5991> so you won't find your pointer, but you'll find a range that includes it
+11:15 <+ws-client> <ChillerDragon> ah wait
+11:15 <+ws-client> <ChillerDragon> i understand now
+11:15 <+ws-client> <ChillerDragon> its the same pointer
+11:15 <+ws-client> <ChillerDragon> it points into the same region
+11:15 <+ws-client> <ChillerDragon> which is empty in maps
+11:15 < bridge> <heinrich5991> and what is mapped in that region?
+11:15 <+ws-client> <ChillerDragon> thus never overwritten by anyone
+11:15 <+ws-client> <ChillerDragon> nothing
+11:15 < bridge> <heinrich5991> but then calling that pointer would cause a segmentation fault
+11:15 <+ws-client> <ChillerDragon> so probably freed memory that still has the old data right?
+11:15 < bridge> <heinrich5991> no
+11:15 <+ws-client> <ChillerDragon> rly?
+11:15 < bridge> <heinrich5991> yes
+11:15 <+ws-client> <ChillerDragon> hm
+11:15 <+ws-client> <ChillerDragon> but i am happily calling that xd
+11:15 <+ws-client> <ChillerDragon> lemme gdb inspect that
+11:15 < bridge> <heinrich5991> can you print the memory around it using gdb?
+11:15 <+ws-client> <ChillerDragon> `0x7fffe456fc14: <error: Cannot access memory at address 0x7fffe456fc14>`
+11:15 <+ws-client> <ChillerDragon> xd
+11:15 <+ws-client> <ChillerDragon> im telling you
+11:15 <+ws-client> <ChillerDragon> i am using non mapped memory
+11:15 < bridge> <heinrich5991> then you're maybe not calling it?
+11:15 < bridge> <heinrich5991> no, you're not, something else is off
+11:15 <+ws-client> <ChillerDragon> i see the printf result
+11:16 < bridge> <heinrich5991> go to the point where the library functon is called
+11:23 < bridge> <cyberFighter> weird name
+11:24 < bridge> <cyberFighter> suggestion: add specvoted to that menu
+11:25 <+ws-client> <ChillerDragon> omg i key slipped
+11:25 <+ws-client> <ChillerDragon> i wish prefix+space had a undo -.- https://zillyhuhn.com/cs/.1716283493.png
+11:28 <+ws-client> <ChillerDragon> window moving in tmux is honestly fucked
+11:30 <+ws-client> <ChillerDragon> okay windows back 
+11:30 <+ws-client> <ChillerDragon> uhm so what am i looking for now heinrich i forgot xd
+11:31 <+ws-client> <ChillerDragon> so it does map something now
+11:31 <+ws-client> <ChillerDragon> but the old stuff
+11:31 < bridge> <heinrich5991> you claimed that it's calling a function that is not mapped
+11:31 <+ws-client> <ChillerDragon> then it un maps it again
+11:31 <+ws-client> <ChillerDragon> yes i did claim that
+11:31 < bridge> <heinrich5991> but that's not the case?
+11:31 < bridge> <heinrich5991> now
+11:32 <+ws-client> <ChillerDragon> when i checked that it was before the call to dlopen
+11:32 < bridge> <heinrich5991> ok. so what's the current problem?
+11:32 < bridge> <heinrich5991> with the second call to dlopen, it somehow opens the old file again?
+11:32 <+ws-client> <ChillerDragon> it now seems kind of sane
+11:32 <+ws-client> <ChillerDragon> it fails nicely when i delete the file
+11:32 < bridge> <heinrich5991> yea, sounds good
+11:33 <+ws-client> <ChillerDragon> but when i compile it again it still prints the old message
+11:33 < bridge> <heinrich5991> so let's find out why it does
+11:33 < bridge> <heinrich5991> check what it maps when you dlopen again
+11:33 <+ws-client> <ChillerDragon> you mean the function pointer?
+11:33 < bridge> <heinrich5991> no, the `/proc/<pid>/maps`
+11:34 <+ws-client> <ChillerDragon> wdym check?
+11:34 <+ws-client> <ChillerDragon> how do i examine it?
+11:34 < bridge> <heinrich5991> check what filename it tells you after mapping it again
+11:35 <+ws-client> <ChillerDragon> `/home/chiller/Desktop/git/twbl-ddnet/build/libtwbl_bottick.so`
+11:35 <+ws-client> <ChillerDragon> thats from the maps
+11:35 <+ws-client> <ChillerDragon> and that file exists
+11:35 < bridge> <heinrich5991> can `ls -l` the relevant symlink in `/proc/<pid>/map_files/<addr_range>`?
+11:36 <+ws-client> <JStar> chiller u still have the problem?
+11:36 < bridge> <heinrich5991> can you somehow check in gdb which version of the library you have mapped in the program?
+11:36 <+ws-client> <ChillerDragon> `lr-------- 1 chiller chiller 64 May 21 17:36 7fffe4400000-7fffe44af000 -> /home/chiller/Desktop/git/twbl-ddnet/build/libtwbl_bottick.so`
+11:37 <+ws-client> <ChillerDragon> @JStar ? xd
+11:37 <+ws-client> <JStar> @chillerdragon u get a crash when hot reloading?
+11:37 <+ws-client> <ChillerDragon> oh you mean from a few weeks/months back?
+11:37 <+ws-client> <JStar> i dunno, i read this chat
+11:37 <+ws-client> <ChillerDragon> no that was ddnet_hotui thats working smoothly now i use it all the time 
+11:38 <+ws-client> <JStar> and u said u have trouble
+11:38 <+ws-client> <ChillerDragon> i am now since yesterdayish in deep trouble while developing hot reloading for bots
+11:38 <+ws-client> <ChillerDragon> luckily heinrich is being very helpful now
+11:38 <+ws-client> <JStar> do you automatically hot reload, or manually press a button?
+11:38 <+ws-client> <ChillerDragon> @heinrich5991 i can let it tick and call the callback and then print not sure how reliable that is but then its printing the old message
+11:39 <+ws-client> <JStar> anyway, linux touches the file (creates an empty file) before writing the content. so better be careful with automatic hot reload
+11:39 <+ws-client> <ChillerDragon> @JStar i am not that far yet for now im trying to get it to work. When comes later. As of right now i reload every tick. (its blazingly fast suprinsingly) later i might add a command or look at the timestamp of the file like i do in ddnet_hotui
+11:39 <+ws-client> <JStar> u might end up loading a partial file
+11:39 <+ws-client> <ChillerDragon> ye ik
+11:40 < bridge> <heinrich5991> (that's why you should `mv` the file over)
+11:40 < bridge> <heinrich5991> (instead of incrementally writing it)
+11:40 <+ws-client> <ChillerDragon> but i compile the file once manually then i reload every tick @JStar :D 
+11:40 <+ws-client> <ChillerDragon> those are all details for later
+11:40 <+ws-client> <ChillerDragon> first it has to work
+11:41 <+ws-client> <JStar> i dunno heinrich, i think i even had trouble with `mv`
+11:41 <+ws-client> <JStar> ok maybe only with cp
+11:41 <+ws-client> <JStar> then nvm
+11:41 < bridge> <heinrich5991> `mv` is atomic
+11:41 <+ws-client> <ChillerDragon> @heinrich5991 so what do you think? is it printing the old message a reliable check of what is mapped?
+11:41 < bridge> <heinrich5991> `cp` isn't atomic by default
+11:42 < bridge> <heinrich5991> ChillerDragon: can I see the source code somewhere?
+11:43 <+ws-client> <JStar> how do u even deal with global variables @chiller
+11:43 < bridge> <heinrich5991> not sure. depends on how you print the message. where does the message come from? static string? should be safe™. but something is off, so I'm not sure if I'd treat it as a safe signal if it says it's still the old library
+11:44 < bridge> <heinrich5991> what does the message say, ChillerDragon?
+11:44 <+ws-client> <ChillerDragon> my git work tree is a bit dirty i can tmp push that
+11:44 < bridge> <heinrich5991> I'll also have to leave for 2 hours or so, soon
+11:44 < bridge> <heinrich5991> but I'm interested in continuing
+11:44 <+ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1716284626.png
+11:45 <+ws-client> <ChillerDragon> ye i wanted to be on the beach since 40 mins
+11:45 <+ws-client> <ChillerDragon> lemme push to tmp branch
+11:47 <+ws-client> <ChillerDragon> https://github.com/TeeworldsBotLib/ddnet/tree/tmp_heino
+11:47 <+ws-client> <ChillerDragon> here is all the code
+11:48 <+ws-client> <JStar> chiller first finish work 
+11:48 <+ws-client> <ChillerDragon> @JStar for now i only wanna see the map so i pass a pointer to CCollision into my callback
+11:49 <+ws-client> <ChillerDragon> wot work jstar
+11:49 <+ws-client> <JStar> finish ur hot reload lib
+11:49 <+ws-client> <JStar> then beach
+11:49 <+ws-client> <ChillerDragon> dude im 9 to 5 tw dev
+11:49 <+ws-client> <ChillerDragon> its beach time since 50 mins
+11:49 <+ws-client> <ChillerDragon> tw life balance
+11:50 <+ws-client> <JStar> nice but it's not about time
+11:50 <+ws-client> <JStar> u finish the work then beach
+11:50 <+ws-client> <JStar> hot reloading is epyc, u need ur reward
+11:51 <+ws-client> <ChillerDragon> @heinrich5991 yes the string is static and it says UwU as you can see in the screenshot
+11:51 <+ws-client> <ChillerDragon> @JStar i wont finish this today :( 
+11:51 <+ws-client> <JStar> wtf chiller only skimmed the code, but how does it even work at all xD
+11:55 <+ws-client> <ChillerDragon> yea kinda
+11:55 < bridge> <heinrich5991> "kinda"?
+11:55 <+ws-client> <ChillerDragon> but then it does not have access to ccollision
+11:55 <+ws-client> <ChillerDragon> hot reloading works
+11:56 <+ws-client> <ChillerDragon> thats why i have two libs
+11:56 <+ws-client> <ChillerDragon> one that falls back to fake collision 
+11:56 <+ws-client> <ChillerDragon> and that one can hot reload
+11:57 <+ws-client> <ChillerDragon> but i think even that "lite" version breaks if the server is compiled with -rdynamic
+11:57 <+ws-client> <ChillerDragon> yep seems so
+11:57 <+ws-client> <ChillerDragon> adding -rdynamic "caches" hot reloading and makes it very non hot
+11:58 <+ws-client> <JStar> bro how does the code u posted even work at all
+11:58 <+ws-client> <JStar> i no understand
+11:59 <+ws-client> <JStar> im no understand
+11:59 <+ws-client> <ChillerDragon> whats unclear?
+11:59 <+ws-client> <ChillerDragon> bra im lagging af
+12:00 <+ws-client> <ChillerDragon> thank you so much for your time @heinrich5991 i rq for now
+12:00 < bridge> <heinrich5991> I'll also be gone for now
+12:02 <+ws-client> <JStar> yeah sry chiller
+12:02 <+ws-client> <JStar> i guess i am simply no genius like u
+12:05 <+ws-client> <JStar> ok i understand it now lmao
+12:05 < bridge> <chillerdragon> Pro
+12:05 <+ws-client> <JStar> chiller: how do u pass collision
+12:05 < bridge> <chillerdragon> If you understand send fix hehe
+12:05 <+ws-client> <JStar> i'm blind
+12:05 < bridge> <chillerdragon> Types.h
+12:05 < bridge> <chillerdragon> And then in character.cpp
+12:06 <+ws-client> <JStar> wtf bro
+12:06 < bridge> <chillerdragon> Ikr
+12:06 <+ws-client> <JStar> u create a new ccollision struct?
+12:07 < bridge> <chillerdragon> Just for mocking
+12:07 < bridge> <chillerdragon> When used outside of the server
+12:07 < bridge> <chillerdragon> In unit test mode
+12:07 <+ws-client> <JStar> ah ok
+12:07 < bridge> <chillerdragon> Oh and right now it’s also nice because that mock collision works with hot reload
+12:07 < bridge> <chillerdragon> But ideally real collision would hit reload too
+12:07 <+ws-client> <JStar> so your problem is only that it crashes if u pass ccollision?
+12:07 < bridge> <chillerdragon> Never crashes
+12:07 <+ws-client> <JStar> but ? i didnt read full convo sry
+12:07 <+ws-client> <JStar> just read hotreload and trouble and i was hooked
+12:07 < bridge> <chillerdragon> It just does not load new stuff with dlopen when rdynamic is set
+12:08 < bridge> <chillerdragon> It only loads once
+12:08 <+ws-client> <JStar> i see
+12:09 <+ws-client> <JStar> i wish ur epyc web client would have search function
+12:09 < bridge> <chillerdragon> And I need rdynamic on the server side otherwise it can’t find Ccollison
+12:09 < bridge> <chillerdragon> It has
+12:09 < bridge> <chillerdragon> Activate plugin
+12:09 < bridge> <chillerdragon> In settings and then reload page
+12:12 <+ws-client> <JStar> ah lol xDDD
+12:12 < bridge> <chillerdragon> ux
+12:12 <+ws-client> <JStar> it cant find it, does it have an age limit?
+12:13 < bridge> <chillerdragon> I may have reused parts of the emoji code
+12:13 < bridge> <chillerdragon> It only searches in the history known to the backend
+12:13 < bridge> <chillerdragon> Which is capped at like idk 800 msgs
+12:13 < bridge> <chillerdragon> Because bloat
+12:14 < bridge> <chillerdragon> Old stuff I grep in irc logs xd
+12:14 < bridge> <chillerdragon> It’s a works on my machine kind of chat app
+12:16 <+ws-client> <JStar> mh ok, i see, yeah. makes no sense, u are sure it never reloaded?
+12:20 <+ws-client> <JStar> anyway dragon, don't give up, just rewrite ddnet to be modular and stuff
+12:29 < bridge> <patiga> :w
+13:02 < bridge> <patiga> huh I was not in vim there :hey:
+14:24 < bridge> <heinrich5991> ChillerDragon: could you give reproducing instructions so I can try locally?
+14:42 < bridge> <1234503178> how to quickly calculate the number of hours for ALL TIME? and not in a year?
+14:42 < bridge> <1234503178> https://cdn.discordapp.com/attachments/293493549758939136/1242457578571829399/image.png?ex=664de84a&is=664c96ca&hm=1a2c31a30d391924d2ba9b3bf9d542cf98dda378a1a4bf79db624e054f1c2295&
+14:47 < bridge> <avolicious> Loop through every object & total_hours += hours_player
+14:47 < bridge> <1234503178> through every object = quickly?
+14:51 < bridge> <avolicious> Its json, what do you expect? Speed out of a sudden?
+14:52 < bridge> <1234503178> Maybe there is some special code that will calculate?
+14:52 < bridge> <zhn> cache every time you calculate it for ceratain player, you can't speed it up any other way
+14:52 < bridge> <avolicious> JSON is slow per design, its human readable. Either ask if deen can add a "total_time" to the root json or you have to parse through every object
+14:53 < bridge> <zhn> imagine protobuf ddnet api
+14:53 < bridge> <zhn> :justatest:
+14:53 < bridge> <1234503178> it's very stupid that no one thought of this, a pretty obvious thing
+14:54 < bridge> <avolicious> Because nobody asked for it I guess
+14:54 < bridge> <zhn> there's no need in total hours as if it's still not here
+14:54 < bridge> <avolicious> Why bloat JSON if there is no use-case 😄
+14:54 < bridge> <zhn> hey avo btw
+14:54 < bridge> <avolicious> Hey 👋
+14:54 < bridge> <1234503178> That’s it, keep quiet, otherwise it will start again “this person is clearly stupid”
+14:55 < bridge> <zhn> and still you did ask about how to parse it faster
+14:56 < bridge> <avolicious> But now for real, how slow is you CPU?
+14:56 < bridge> <avolicious> I guess looping through each item isnt that time consuming. Time complexity seems reasonable
+14:59 < bridge> <zhn> i bet this guy uses standard python's json module and its kinda slow
+14:59 < bridge> <avolicious> python orjson is a good replacement tho
+14:59 < bridge> <avolicious> but even the normal python standard json module is fast
+15:15 < bridge> <meloƞ> its not like you want to fetch that every day do you? :D - i just tried it, took less than 3 seconds
+15:29 < bridge> <louis> yes i suggest using a scripting language such as python or javascript instead of doing it manually with a scientific calculator
+15:31 < bridge> <murpi> @1234503178 An alternative would be to mirror our race database and then use `SELECT SUM(time) AS Time FROM record_race WHERE Name = %s;` to get your desired result
+16:38 < bridge> <peter0x44> Even better, do it on paper
+17:00 < bridge> <patiga> twgpu-map-inspect now does exactly this, in case you still need it :)
+17:01 < bridge> <patiga> you can use `--vsync` to limit the framerate. without that, it currently rust at max fps
+17:07 < bridge> <0xdeen> I think Steam Deck used to work, anyone around who had it working before? https://github.com/ddnet/ddnet/issues/8389
+17:29 < bridge> <robyt3> @cheeser0613 Can you try launching with `dbg_gfx 4` and share the console output?
+17:30 < bridge> <cheeser0613> in launch options?
+17:30 < bridge> <robyt3> yeah
+17:33 < bridge> <cheeser0613> wait for few min i want to double check that all the log that i snap is related to ddnet
+17:39 < bridge> <patiga> you can use `--vsync` to limit the framerate. without that, it currently renders at max fps
+17:44 < bridge> <cheeser0613> yeah i think the only error that shows in the screenshot means nothing because it does show before i launch ddnet
+18:44 < bridge> <b1rafa> hi dev, can u help me, how to change size of this white lines?
+18:44 < bridge> <b1rafa> https://cdn.discordapp.com/attachments/293493549758939136/1242518399515365426/image.png?ex=664e20ef&is=664ccf6f&hm=c441b1daef99a643eaafc9b6404ba048e98bb797377e1c07da8bca6f5c548a05&
+18:48 < bridge> <ryozuki> use rust simd json crate and have a cpu with avx512
+18:50 < bridge> <ryozuki> https://edgarluque.com/blog/zstd-streaming-in-rust/
+18:50 < bridge> <ryozuki> read this its ddnet related
+18:50 < bridge> <ryozuki> :gigachad:
+20:04 < bridge> <zhn> why do you need to change bordedline width
+20:04 < bridge> <cheeser0613> I find out that getting the full log from console is harder than I expected, steam console inside the steamdeck will replace everything with "..." if the text is over display and in order to break this situation is to connect the developer kit on pc. To connect it, steam deck itself must run a dev software which call "SteamOS Devkit Service". This software itself is pre-installed for the steam deck developer kit (basically you just ask valve to
+20:04 < bridge> <cheeser0613> Heres the hard part, "SteamOS Devkit Service" do run on the dev set steamdeck and selfbuild steamOS that valve provide, but if developer decide to buy himself a retail set steamdeck, it seems like it just not going to run and the CEF remote function will not going to work in order to access the steam console from pc even if valve clarify that the dev set steamdeck is same as what they deliver to consumer
+20:04 < bridge> <cheeser0613> https://cdn.discordapp.com/attachments/293493549758939136/1242538465661292675/output.pdf?ex=664e339f&is=664ce21f&hm=e5bbfa0b141c6067febd3902055e4d156b8721a27100c98daaf6d7fec8c4a1e1&
+20:04 < bridge> <zhn> why do you need to change borderline width
+20:10 < bridge> <cheeser0613> I find out that getting the full log from console is harder than I expected, steam console inside the steamdeck will replace everything with "..." if the text is over display and the way to break this situation is to connect the developer kit on pc. To connect it, steam deck itself must run a dev software which call "SteamOS Devkit Service". This software itself is pre-installed for the steam deck developer kit (basically you just ask valve to 
+20:10 < bridge> <cheeser0613> Heres the hard part, "SteamOS Devkit Service" do run on the dev set steamdeck and selfbuild steamOS that valve provide, but if developer decide to buy himself a retail set steamdeck, it seems like it just not going to run and the CEF remote function will not going to work in order to access the steam console from pc even if valve clarify that the dev set steamdeck is same as what they deliver to consumer
+20:10 < bridge> <cheeser0613> https://cdn.discordapp.com/attachments/293493549758939136/1242538465661292675/output.pdf?ex=664e339f&is=664ce21f&hm=e5bbfa0b141c6067febd3902055e4d156b8721a27100c98daaf6d7fec8c4a1e1&
+20:38 < bridge> <meloƞ> that one's new for me:
+20:38 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1242547073325465661/image.png?ex=664e3ba3&is=664cea23&hm=d9332ef8d435ac4a2092453ef6ac8b1a4fd9638c43c01e85445fc38406f5f0bd&
+20:38 < bridge> <meloƞ> it kept on downloading and eventually connecting tho
+20:40 < bridge> <Jupstar ✪> it fell back to game server download
+20:46 < bridge> <cheeser0613> right click on the layer then change the width and height, but it will extend to right and bottom, next time consider ask the mapping related question on #mapping channel
+20:46 < bridge> <cheeser0613> https://cdn.discordapp.com/attachments/293493549758939136/1242549159530070118/image.png?ex=664e3d95&is=664cec15&hm=c5cfd18623fc92ef4f091eb4924f742958a7918497aff61a84b15de18e400178&
+20:51 < bridge> <Ewan> chicken pie 2 :justatest: :justatest: :justatest:
+20:51 < bridge> <meloƞ> good map!
+21:11 < bridge> <fury0908> Does anyone know how to convert 0.6 skins to 0.7 properly? I tried out this https://www.teeworlds.com/forum/viewtopic.php?id=11527 
+21:11 < bridge> <fury0908> It kinda worked but the proportions are not matching and the skins look then awful Ingame. Also colors are way darker when you join red/blue team
+21:12 < bridge> <Jupstar ✪> that is simply bcs 0.7 skin system works so different
+21:12 < bridge> <Jupstar ✪> not bcs of the script
+21:15 < bridge> <fury0908> Ok so converting won‘t work, I‘ll have to recreate the graphics ?
+21:15 < bridge> <fury0908> I mean how they‘ve done it for default skins
+21:15 < bridge> <Jupstar ✪> default also looks different
+21:16 < bridge> <Jupstar ✪> is your original skin in a high resolutiono?
+21:16 < bridge> <Jupstar ✪> is your original skin in a high resolution?
+21:16 < bridge> <fury0908> Yes but did they make whole new graphics for cammostripes, etc. or converted them
+21:16 < bridge> <Jupstar ✪> maybe the script only works with 256x128 skins
+21:17 < bridge> <Jupstar ✪> ah i guess they used the original inkscape files and modified them a bit
+21:17 < bridge> <Jupstar ✪> but yeah i assume they are not converted
+21:17 < bridge> <Jupstar ✪> but actually created
+21:18 < bridge> <fury0908> Not sure about the skins systems in general but I only have a png version of mine
+21:19 < bridge> <Jupstar ✪> yep the original inkscape files are private sadly
+21:19 < bridge> <Jupstar ✪> nobody has them
+21:19 < bridge> <Jupstar ✪> we recreated some skins in inkscape:
+21:19 < bridge> <Jupstar ✪> https://github.com/ddnet/ddnet-data-svg/tree/main/skins
+21:19 < bridge> <fury0908> maybe I'll have to trace it with vector program
+21:19 < bridge> <fury0908> https://cdn.discordapp.com/attachments/293493549758939136/1242557426302193755/Fury.png?ex=664e4548&is=664cf3c8&hm=ae42b84d1c82fbb56c4b639e01e95236f686abcd4661c83452730535de78c1c7&
+21:19 < bridge> <fury0908> seems to be low resolution
+21:20 < bridge> <Jupstar ✪> seems like i also once wrote a converter:
+21:21 < bridge> <Jupstar ✪> https://github.com/Jupeyy/teeworlds_skin_converter_06_to_07/tree/ff0b63f8a33e18723e5ab5c46fcaa2d5c89465a4/bin
+21:21 < bridge> <fury0908> is there any docs on the 0.7 skins like what size the hands have to be and how to place them?
+21:21 < bridge> <Jupstar ✪> i think i mostly fixed eyes, bcs they looked so weird 😄
+21:21 < bridge> <Jupstar ✪> havent used that in 4 years tho
+21:21 < bridge> <fury0908> yes with the script i used the eyes where to much placed on the top they had to be lowered
+21:21 < bridge> <fury0908> and the body was to low so it was going "under" the feets
+21:21 < bridge> <Jupstar ✪> u can try mine, no idea if it still works
+21:22 < bridge> <fury0908> I will try tomorrow
+21:22 < bridge> <Jupstar ✪> i guess it's drag & drop or smth like that
+21:22 < bridge> <fury0908> Can it run on mac?
+21:22 < bridge> <Jupstar ✪> uh, i dunno, if u can compile on your mac
+21:22 < bridge> <Jupstar ✪> why not
+21:22 < bridge> <Jupstar ✪> else probably no
+21:22 < bridge> <zhn> looks easy to redraw though
+21:22 < bridge> <zhn> :justatest:
+21:23 < bridge> <fury0908> yep thats what I wanted to do maybe as well, but still I need like a template of the 0.7 "original" skins or whatever that I know where to place the parts of the skin and what sizes the images needs to be
+21:26 < bridge> <zhn> https://github.com/teeworlds/teeworlds/issues/2271
+21:26 < bridge> <Jupstar ✪> libpng error: [00][00][00][00]: invalid chunk type
+21:26 < bridge> <Jupstar ✪> 
+21:26 < bridge> <Jupstar ✪> 
+21:26 < bridge> <Jupstar ✪> btw u skin also seems buggy
+21:26 < bridge> <Jupstar ✪> this is what my converter created
+21:26 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1242559277357600828/output.zip?ex=664e4701&is=664cf581&hm=72f794062710f9b5fba6d7820abd66c4b7db5ef7cb8b888e32a9bdb7751af178&
+21:31 < bridge> <fury0908> looking better than that what the other converter did. I'll maybe just redraw it couldn't be that hard doing it in a proper vector program 😄 thought there is an quick fix. Got that skin back then from a colleague
+22:03 < bridge> <Bota> ayyo devs i got a bug 4 you. When "rcon dump_log 400" is a big number like 1000 or 6000 you get time out problems
+22:03 < bridge> <Bota> maybe limit number or change mechanism that pulls data
+23:39 < bridge> <heinrich5991> that's different, I think. yours is the time of finihsed races, the other is the online time as determined by the serverbrowser

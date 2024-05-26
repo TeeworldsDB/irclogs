@@ -1,0 +1,455 @@
+07:57 <+ws-client> <ChillerDragon> heinrich send brain
+07:58 <+ws-client> <ChillerDragon> i am starting to blame something ddnet and teeworlds do in the cmakelists that messes up my hot reloading
+07:58 <+ws-client> <ChillerDragon> so this one hot reloads perfectly https://github.com/ChillerDragon/teeworlds/blob/0470c1716f764ebe554ea2a6115e46bf8d75a2de/src/engine/server/server.cpp#L845-L909
+07:58 <+ws-client> <ChillerDragon> Its a veeeeery slimmed down version of the teeworlds code base
+07:59 <+ws-client> <ChillerDragon> and this one does not work https://github.com/TeeworldsBotLib/teeworlds/blob/3cd2607c7d322014eb0dfa6f58a9bdcbd32b478b/src/engine/server/server.cpp#L1276-L1340
+07:59 <+ws-client> <ChillerDragon> neither in ddnet nor in teeworlds
+09:05 < bridge> <ryozuki> https://github.com/koute/bytehound
+09:48 < bridge> <heinrich5991> try debugging it beyond works/doesn't work, ChillerDragon
+10:26 <+ws-client> <ChillerDragon> well its the same doesn't work it used to be
+10:27 <+ws-client> <ChillerDragon> it seems to find the symbols that were statically linked unless i copy paste the code into my minimal example -.-
+10:33 < bridge> <heinrich5991> do you enable `-rdynamic` in both cases?
+10:43 <+ws-client> <ChillerDragon> yes
+10:45 < bridge> <heinrich5991> (and you have verified that by looking at the raw build commands)
+10:46 <+ws-client> <ChillerDragon> no
+10:47 <+ws-client> <ChillerDragon> i added rdynamic because without it says symbol not found and then the `file` command says "not stripped" so i am sure its applied
+10:47 <+ws-client> <ChillerDragon> working one:
+10:48 <+ws-client> <ChillerDragon> `teeworlds_srv: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=0da68a5bc1557e6a4f79b811ca012eb174855643, for GNU/Linux 3.2.0, with debug_info, not stripped`
+10:48 <+ws-client> <ChillerDragon> non working one:
+10:48 <+ws-client> <ChillerDragon> `teeworlds_srv: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=6f05358423394232a821f8a952215a0f5f377bbe, for GNU/Linux 3.2.0, not stripped`
+10:50 < bridge> <heinrich5991> "not stripped" is unrelated to `-rdynamic`
+10:56 <+ws-client> <ChillerDragon> isnt rdynamic about exposing the symbols?
+11:02 <+ws-client> <ChillerDragon> `/usr/bin/c++ -g CMakeFiles/teeworlds_srv.dir/src/engine/server/server.cpp.o CMakeFiles/teeworlds_srv.dir/src/external/TeeworldsBotLib/src/bots/base.cpp.o CMakeFiles/teeworlds_srv.dir/src/external/TeeworldsBotLib/src/bots/sample.cpp.o CMakeFiles/teeworlds_srv.dir/src/external/TeeworldsBotLib/src/shared/hotreload.cpp.o "CMakeFiles/json.dir/src/engine/external/json-parser/json.c.o"
+11:02 <+ws-client> "CMakeFiles/engine-shared.dir/src/engine/shared/kernel.cpp.o" "CMakeFiles/game-shared.dir/src/game/collision.cpp.o" "CMakeFiles/game-shared.dir/src/generated/git_revision.cpp.o" -o teeworlds_srv  /usr/lib/x86_64-linux-gnu/libz.so /usr/lib/x86_64-linux-gnu/libcrypto.so -lrt -rdynamic `
+11:04 <+ws-client> <ChillerDragon> looking at that seems like a good idea gimme a sec
+11:04 < bridge> <heinrich5991> `-rdynamic` is about exposing the symbols of the executable to shared libraries
+11:05 <+ws-client> <ChillerDragon> and stripping is about hiding symbols
+11:06 <+ws-client> <ChillerDragon> but yea both make VERBOSE=1 show rdynamic on every target
+11:06 <+ws-client> <ChillerDragon> i will try to minimize that further so i can reason easier about it
+11:09 < bridge> <heinrich5991> only non-dynamic symbols
+11:09 < bridge> <heinrich5991> but `-rdynamic` is only about dynamic symbols
+11:09 < bridge> <learath2> TeeworldsBOTLib? <a:alarm:774780596731904032>
+11:10 <+ws-client> <ChillerDragon> <:justatest:572499997178986510>
+11:10 < bridge> <heinrich5991> ChillerDragon likes to be edgy, but it's server-side bots apparently
+11:10 < bridge> <learath2> Ah, false <a:alarm:774780596731904032>
+11:10 <+ws-client> <ChillerDragon> oh yea i somehow thought the stripping gave hints about that 
+11:11 <+ws-client> <ChillerDragon> ye either way i now verified rdynamic is applied on both i still dont really know what the difference between the working and non working code base is
+11:11 <+ws-client> <ChillerDragon> but im losing focus so ill continue tomorrow :D
+11:15 <+ws-client> <ratspuJ> chillerdragon yo
+11:16 <+ws-client> <ratspuJ> still hot reloading problems mhh
+11:16 <+ws-client> <ratspuJ> just blame global variables and live the best life
+12:14 <+ws-client> <ChillerDragon> ye but i am so close. I now know that everything i want is possible. I just can't get it to work in a real codebase :D 
+12:15 <+ws-client> <ratspuJ> sadly remote debugging is always hard
+12:15 <+ws-client> <ChillerDragon> this channel has been very helpful already
+12:15 <+ws-client> <ChillerDragon> ur name backwards is so unintuitive xd
+12:16 <+ws-client> <ratspuJ> rats
+12:16 <+ws-client> <ChillerDragon> konsti
+12:20 < bridge> <ryozuki> hi i got 1 wisdom tooth out
+12:20 < bridge> <ryozuki> half mouth sleepy
+12:20 < bridge> <ryozuki> AMA
+12:25 <+ws-client> <ratspuJ> hope it wasn't the wisdom of rust
+12:30 < bridge> <heinrich5991> is talking hard?
+12:34 < bridge> <ryozuki> ye
+12:36 <+ws-client> <ratspuJ> good that for saying "rust" u dont need to open your mouth <:lol:460429405328506900>
+12:41 < bridge> <egyt> you fooled me!
+12:41 < bridge> <egyt> you fooled me! how dare are you!
+12:46 < bridge> <learath2> Did they knock you out or did you get local?
+12:46 < bridge> <ryozuki> local lol
+12:53 < bridge> <meloƞ> i survived another week of work :dab:
+12:53 < bridge> <teero777> Not yet
+12:53 < bridge> <teero777> Or are you already home?
+12:53 < bridge> <meloƞ> i am!
+12:53 < bridge> <teero777> wooooah
+12:53 < bridge> <meloƞ> ikr!
+12:53 < bridge> <teero777> :poggers2:
+14:28 < bridge> <nouaa> hope you'll survive another weekend coding on bw
+14:28 < bridge> <nouaa> :greenthing:
+14:28 < bridge> <nouaa> :monkaStop:
+14:29 < bridge> <meloƞ> dont make me cry manm
+14:29 < bridge> <meloƞ> dont make me cry man
+14:30 < bridge> <nouaa> i'll make you enjoy your boring weeks of work
+14:30 < bridge> <nouaa> haha
+14:37 < bridge> <ryozuki> pain
+15:05 < bridge> <borsmatyas02> are you programmer?
+15:06 < bridge> <meloƞ> wouldn't call myself a good one but ye
+15:07 < bridge> <borsmatyas02> do you do opengl?
+15:07 < bridge> <meloƞ> in what context?
+15:11 < bridge> <borsmatyas02> i dont know
+15:12 < bridge> <meloƞ> https://dontasktoask.com/
+15:12 < bridge> <meloƞ> do you need help with anything?
+15:16 < sdsds> Hi, I read for days and weeks words of bigotry and hate against homo and black people in ddnet from RUS, UKR, and POL.
+15:16 < sdsds> Names like Hitler, Adolf, 88 and so on.
+15:16 < sdsds> All tolerated by their "tolerants" admins.
+15:17 < sdsds> Yesterday a crazy and cringe psycho stalked me for hours asking about black and homosexual people.
+15:17 < sdsds> Finally started like a fucking mad guy telling me he loves me and more words, i tried to ignore him, but every tim you disconnect, the ignore is forgoten.
+15:18 < sdsds> So I decided to say who is and what he does.
+15:18 < sdsds> Admin instead of helping banned me.
+15:18 < sdsds> I am going to research who are the admins in ddnet, and show the world: NAMES, SURNAMES, PHOTOS of DDNET admins tolerating nazism, fascism, racism and homophobia.
+15:18 < sdsds> To all the world. 
+15:19 < sdsds> And belive me that is not going to be a good thing for them.
+15:19 < bridge> <zhn> we have a good ticket system if you join discord server you'll be able to use it
+15:19 < sdsds> It is what they deserves.
+15:19 < sdsds> And I am starting collecting name, surname and photos of devels.
+15:19 < sdsds> All of them.
+15:19 < sdsds> Implicated in this bigotry and hateness full servers.
+15:19 < bridge> <zhn> you are multiplying this hate yourself though
+15:20 < sdsds> Believe me that I am going to do this. Indeed,I al ready started.
+15:20 < sdsds> :)
+15:20 < sdsds> Nah, I am going to create a web with names, surnames an dphotos, and what the admins tolerate: racism, fascism, nazism,. homophiobia.
+15:21 < sdsds> But not a single one in the other team: democracy and human rights.
+15:21 < sdsds> You all are a piece of shit because it is IMPOSIBLE to believe that you dont know what it is already happening there.
+15:21 < bridge> <zhn> the bad part is that we have moderators that are trying to moderate ddnet servers and they do it on their free time
+15:21 < bridge> <zhn> i have never heard an admin or moderator tolerating anything you pointed
+15:22 < sdsds> That "moderators" are tolerating nazism, racism, and homophobia. Yesterday for 2 hours I was told that I am a nigga fucker faggot.
+15:22 < sdsds> I am not black, and I am antifascist and I dont tolerate that.
+15:22 < bridge> <zhn> so who did it?
+15:22 < sdsds> Who?
+15:22 < sdsds> Go to any server from rus and pol and tell me who DONT.
+15:22 < sdsds> xD
+15:22 < bridge> <Jupstar ✪> wazzup ddnets
+15:23 < sdsds> I dont know what is happening in that countries, but that teenegers are full of hate.
+15:23 < bridge> <Jupstar ✪> and teeworlder
+15:23 < bridge> <zhn> as i said ddnet has ticket system in discord server
+15:23 < sdsds>  Iwill not change my username. I am proud of what I said.
+15:23 < bridge> <zhn> its not moderators nor admins fault for not being able to modeeate something
+15:23 < bridge> <zhn> its their free time and no one pays them
+15:23 < bridge> <Jupstar ✪> it's friday, it's weekend, it's freedom, it's FFR
+15:23 < sdsds> Nah, you are responsible of what there happens.
+15:23 < sdsds> So I will show, I made some videos.
+15:23 < sdsds> And I am editing.
+15:24 < sdsds> Name, surname, photos. And videos of what there happens.
+15:24 < bridge> <zhn> oke go ahead weirdo
+15:24 < bridge> <meloƞ> you're upset at the wrong people
+15:24 < sdsds> That is not tolerated in the Europan Union.
+15:24 < sdsds> That is ilegal. 100%
+15:24 < sdsds> So you will have the problems you created.
+15:24 < bridge> <Jupstar ✪> i am the law
+15:24 < sdsds> Tolerating that befaveiour for years.
+15:24 < bridge> <Jupstar ✪> obay me
+15:24 < bridge> <zhn> :kek:
+15:24 < sdsds> The law is what we created in european institutions, not you Freak.
+15:25 < bridge> <Jupstar ✪> your behafier is quit gud
+15:25 < sdsds> And believe me that I will put all the names and surnames and their photos with the videos.
+15:25 < bridge> <zhn> heyho jupjop
+15:25 < sdsds> Showing the world what toxic and bigotry ambient is there.
+15:25 < bridge> <zhn> and hey big melony
+15:25 < sdsds> DDNET = S H I T
+15:25 < bridge> <meloƞ> gesundheit!
+15:25 < bridge> <meloƞ> leak me aswell while you're at it
+15:25 < bridge> <Jupstar ✪> hello zohan.. u are so active since u are no mod anymore... weird
+15:25 < bridge> <Jupstar ✪> 😏
+15:25 < bridge> <meloƞ> wtf hans, stop leak
+15:25 < bridge> <zhn> finally ill see the happy father melony
+15:26 < bridge> <meloƞ> :kek:
+15:26 < sdsds> You will get what you deserve.
+15:26 < bridge> <zhn> ita kind of coincident
+15:26 < bridge> <zhn> im waiting for bus rn
+15:26 < bridge> <Jupstar ✪> it's fine @gerdoe
+15:26 < bridge> <Jupstar ✪> u prepare your return
+15:26 < bridge> <zhn> watching cpp russia
+15:26 < bridge> <Jupstar ✪> i support that
+15:27 < bridge> <meloƞ> support him even harder so he can finish our new source tiihii
+16:01 < bridge> <AssassinTee> I just managed to kill my fps in teeworlds  with animations
+16:02 < bridge> <Jupstar ✪> time for binary search
+16:05 < bridge> <Jupstar ✪> lazy devs knew it:
+16:05 < bridge> <Jupstar ✪> ```cpp
+16:05 < bridge> <Jupstar ✪> // TODO: make this smarter.. binary search
+16:05 < bridge> <Jupstar ✪> ```
+16:06 < bridge> <milkeeycat> Ah, classic, leave a todo and never look at it again
+16:10 < bridge> <AssassinTee> Do you think 200 fps are enough in teeworlds, when you own a GTX 3070 or will people start complaining about lag?
+16:11 < bridge> <Jupstar ✪> i'd complain
+16:11 < bridge> <Jupstar ✪> xd
+16:12 < bridge> <AssassinTee> I fixed this by clipping each animated quad layer
+16:13 < bridge> <AssassinTee> lol, why is this like this?
+16:13 < bridge> <AssassinTee> an animation 1000 blocks away issues the gpu otherwise
+16:13 < bridge> <AssassinTee> I fixed this by clipping each animated quad layer in it's own group
+16:14 < bridge> <learath2> We do our best to moderate the servers, if you think a moderator has failed in that duty, feel free to report the moderator. 
+16:14 < bridge> <learath2> 
+16:14 < bridge> <learath2> Under both US and EU law, best effort moderation is completely acceptable. (Section 230(c) of the Communications Decency Act in the US and Article 12 of the EU E-Commerce Directive, IANAL that's just how I understand them). Furthermore the sort of content you mentioned is under procedural accountability, so under current EU law, I believe our obligation is to only take down that sort of illegal content on notice. (Which I'm not even sure applies d
+16:14 < bridge> <learath2> 
+16:14 < bridge> <learath2> Now that we have the law out of the way, let's talk more subjectively. I do agree that we have a moral obligation to keep the chat clean. Which is why moderators exist and have a mandate to mute/ban/kick players that engage in inflammatory speech. Since moderators are not omnipotent, omniscient nor moderate 24/7 it's unreasonable to expect the chat to be completely void of any speech that might offend others at all times.
+16:14 < bridge> <learath2> 
+16:14 < bridge> <learath2> Finally, I'll speculate a bit. I think that you are just bitter because you got banned and are just using this very serious issue just as a crutch to get back at the people you blame for getting banned. If you were unjustly banned as you say, you'd simply appeal the ban and not use a random name to hide yourself. Thus I believe that you were banned for good reason, which makes it even more ironic that you'd complain about our handling of hate spee
+16:14 < bridge> <cellegenrih> :justatest:
+16:15 < bridge> <cellegenrih> I look away from a sec, immediately saw EU law
+16:19 < bridge> <TsFreddie> https://cdn.discordapp.com/attachments/293493549758939136/1243569074676699220/IMG_20240524_221923.jpg?ex=6651f373&is=6650a1f3&hm=16cf3489504b708f374625ed6df65e3a5820c2cba422c4fbfc88fc1811e925ca&
+16:19 < bridge> <TsFreddie> is this accurate
+16:20 < bridge> <meloƞ> i wouldnt say so myself °-°
+16:20 < bridge> <TsFreddie> figured
+16:20 < bridge> <Jupstar ✪> yeah ~80% correct
+16:21 < bridge> <meloƞ> do you guys think he'll leak his website when he's done?
+16:21 < bridge> <meloƞ> i really wanna see what kind of picture he chooses of me
+16:21 < bridge> <AssassinTee> yes, I never thought I can map so hard, that it causes FPS issues xD
+16:22 < bridge> <meloƞ> some maps lower my fps down to 1500 - which is impressive given i can play at ~20K if i dont cap it
+16:22 < bridge> <learath2> You are not staff, I'd guess you are safe
+16:22 < bridge> <Bota> Discord analyzing chat Is more scary than lero beeing mad :justatest:
+16:22 < bridge> <meloƞ> not yet™️_
+16:22 < bridge> <meloƞ> not yet™️
+16:22 < bridge> <AssassinTee> I bet I can make teeworlds a slide show to you
+16:23 < bridge> <TsFreddie> when did lero get mad
+16:23 < bridge> <Bota> The long text?
+16:24 < bridge> <learath2> I thought I was pretty neutral in tone
+16:24 < bridge> <TsFreddie> he's the sweetest sweetheart
+16:24 < bridge> <learath2> Don't say that, you might get cancelled by association
+16:24 < bridge> <Bota> :lol:
+16:24 < bridge> <TsFreddie> are you cancelled
+16:24 < bridge> <meloƞ> !cancel Learath2
+16:24 < bridge> <meloƞ> you're gone for
+16:24 < bridge> <TsFreddie> also why would i care about being cancelled
+16:25 < bridge> <TsFreddie> <a:catxplosion:1082715870893195274>
+16:25 < bridge> <learath2> We are all about to get cancelled for not being able to moderate our server effectively
+16:25 < bridge> <Bota> Guess
+16:25 < bridge> <areum_1021> Hi
+16:25 < bridge> <TsFreddie> old news
+16:26 < bridge> <Bota> Hi
+16:26 < bridge> <TsFreddie> Hi
+16:26 < bridge> <Bota> Choo choo 🚂
+16:28 < bridge> <Bota> I need to work on my tool
+16:28 < bridge> <Bota> Ill maybe do that later
+16:28 < bridge> <TsFreddie> i need to work on my game
+16:28 < bridge> <milkeeycat> i need to..
+16:28 < bridge> <Bota> Ah so you also lazy
+16:28 < bridge> <milkeeycat> i dont know what i need to do
+16:28 < bridge> <Bota> I like
+16:29 < bridge> <learath2> I need to get ready for cancellation
+16:29 < bridge> <TsFreddie> you need to get ready to receive a free steam key from me
+16:29 < bridge> <milkeeycat> you can start recording an apology video
+16:29 < bridge> <Bota> Ima annoy you later for my tool
+16:30 < bridge> <learath2> should I start it with a deep sigh
+16:30 < bridge> <Bota> I need smth from you
+16:30 < bridge> <Bota> You mean Testament?
+16:31 < bridge> <milkeeycat> EXACTLY
+16:34 < bridge> <cellegenrih> then after say: "So guys"
+16:34 < bridge> <meloƞ> *deep sigh* hey everyone, i am learath2, also known as *insert leaked name here*, I am deeply sorry for my mistakes, the leaked chat's confirmed i inadvertently contributed to and perpetuated racism and for that i am sorry.
+16:34 < bridge> <learath2> I'll also get a dog
+16:34 < bridge> <cellegenrih> Oh, so cyberfighter then :troll:
+16:35 < bridge> <learath2> "I have failed to remove racism that I was not alerted to, and for that I'm deeply sorry. I should have done better and existed on all servers at the same time at all hours of the day. Going forward I'll become as god and be omnipotent and omniscient."
+16:36 < bridge> <meloƞ> damn can you like, add me to the weekly prayer text?
+16:37 < bridge> <meloƞ> Our Learath2 who art in heaven,
+16:37 < bridge> <meloƞ> hallowed be thy name.
+16:37 < bridge> <meloƞ> Thy kingdom come.
+16:37 < bridge> <meloƞ> Thy will be done on earth, as it is in heaven.
+16:37 < bridge> <meloƞ> Give us this day our daily bread,
+16:37 < bridge> <meloƞ> and forgive us our trespasses,
+16:37 < bridge> <meloƞ> as we forgive those who trespass against us,
+16:37 < bridge> <meloƞ> and lead us not into temptation,
+16:37 < bridge> <meloƞ> but deliver us from evil.
+16:37 < bridge> <meloƞ> For thine is the kingdom, the power,
+16:37 < bridge> <meloƞ> and the glory, For ever and ever.
+16:37 < bridge> <meloƞ> DDNet.
+16:37 < bridge> <learath2> Worst case I'll move to new zealand and start over. I've been looking for an excuse to disappear anyway
+16:37 < bridge> <meloƞ> come visit before you do!
+16:38 < bridge> <learath2> You don't want to be seen with a racism propagator
+16:41 < bridge> <cellegenrih> In all recent times, I, as a former moderator have failed to accomplish my duty and restrict the use of a sort of negative activity called "Racism" which myself was not capable of noticing, thus for thee I, from the bottom of my heart, apologize to this community. If I would turn back time, I feel like I would've done better preparations for the mistakes I made, thus would've considered making several paralel universes which form a wormhole, th
+16:41 < bridge> <cellegenrih> What the actual fuck did I just type
+16:47 < bridge> <cellegenrih> I made the chat dead lol
+16:47 < bridge> <meloƞ> yeah wtf
+16:47 < bridge> <learath2> We are still trying to process
+16:47 < bridge> <cellegenrih> just dont
+16:47 < bridge> <cellegenrih> maybe im high
+16:49 < bridge> <TsFreddie> what do you smoke
+16:49 < bridge> <cellegenrih> I wish I could snus
+16:49 < bridge> <Bota> From Turkey to Italy and now to new zealand
+16:52 < bridge> <Bota> Even me the bot cant process it
+16:53 < bridge> <cellegenrih> https://tenor.com/view/requiem-jojo-anime-shocked-giorno-gif-16966671
+16:53 < bridge> <Bota> Response from google Gemini:
+16:53 < bridge> <Bota> 
+16:53 < bridge> <Bota> I appreciate your sincerity and willingness to take responsibility. Here's a more realistic approach to tackling racism in your future moderation efforts:
+16:53 < bridge> <Bota> 
+16:53 < bridge> <Bota> Self-Education: Racism can be subtle. Learn about racial bias and microaggressions. Read books and articles by BIPOC (Black, Indigenous, People of Color) authors who discuss their experiences.
+16:53 < bridge> <Bota> Community Guidelines: Create clear community guidelines that define racism and unacceptable behavior.
+16:53 < bridge> <Bota> Enforcement: Be consistent in enforcing the guidelines. Don't be afraid to remove racist comments or posts, even if it creates conflict.
+16:53 < bridge> <Bota> Open Communication: Encourage open communication where people can report racism.
+16:53 < bridge> <Bota> Support for Targets: Have resources available for people who experience racism on the platform.
+16:54 < bridge> <Bota> While creating parallel universes might be a creative thought, focusing on real-world solutions will be more effective.
+16:54 < bridge> <Bota> 
+16:54 < bridge> <Bota> As for forgiveness, focus on learning and doing better.  Here's how you can improve as a moderator:
+16:54 < bridge> <Bota> 
+16:54 < bridge> <Bota> Actively Listen: When someone reports racism, listen actively and believe their experience.
+16:54 < bridge> <Bota> Learn from Mistakes: Every situation is a learning opportunity. Analyze what went wrong and how to improve.
+16:54 < bridge> <Bota> Seek Guidance: Talk to other moderators or diversity experts for advice.
+16:54 < bridge> <Bota> By taking these steps, you can become a more effective moderator and create a more inclusive community.
+16:54 < bridge> <Bota> 
+16:54 < bridge> <Bota> Here are some resources that might be helpful:
+16:54 < bridge> <Bota> 
+16:54 < bridge> <Bota> The National Conference for Community and Justice of NCCJ: https://nccj.org/
+16:54 < bridge> <Bota> Southern Poverty Law Center: https://www.splcenter.org/
+16:54 < bridge> <Bota> Anti-Defamation League: https://www.adl.org/
+16:54 < bridge> <Bota> Remember, fighting racism is an ongoing process. Thank you for your commitment to making the community a better place.
+16:54 < bridge> <cellegenrih> the first lol
+16:54 < bridge> <cellegenrih> yeah educate yourself, good idea
+16:56 < bridge> <Bota> Must be funny for the google employee reading the prompt text
+16:56 < bridge> <cellegenrih> he would also need to process what the fuck is that input
+16:57 < bridge> <Bota> Xd
+16:59 < bridge> <cellegenrih> This power is only mine I guess
+16:59 < bridge> <cellegenrih> :greenthing:
+16:59 < bridge> <cellegenrih> I can make everyone be quiet for a few minutes
+17:08 < bridge> <learath2> Actually now that I think about it more, if we remove all moderation we'd be even more covered legally 🙃
+17:08 < bridge> <TsFreddie> <a:ilot_in_the_water:1243457344059342902>
+17:08 < bridge> <TsFreddie> i'm going to bed
+17:10 < bridge> <heinrich5991> the EU is trying to change that or has already done that, I think
+17:12 < bridge> <learath2> Yeah I'm unsure where that stands, but with the content he mentions iirc we are not liable either way. There is only voluntary self regulation in those things. Except for within germany, where I think you have to comply with notices to takedown
+17:12 < bridge> <Jupstar ✪> few weeks until next european parliament is elected
+17:13 < bridge> <Jupstar ✪> will we get another undemocratic elected leader
+17:13 < bridge> <learath2> why do you think the european parliament is undemocratically elected?
+17:13 < bridge> <Jupstar ✪> not the parliament
+17:13 < bridge> <Jupstar ✪> but the leader
+17:14 < bridge> <learath2> but doesn't the parliament elect it's leader?
+17:16 < bridge> <cellegenrih> the leader chooses now  which leader... oh, so how North Korea does it
+17:16 < bridge> <learath2> I find it hard to believe that the leader of the eurpean parliament chooses the next leader 😄
+17:17 < bridge> <cellegenrih> we live in wild times, you never know
+17:17 < bridge> <learath2> afaik MEPs elect the president of the european parliament, and europeans elect the MEPs, sooo I don't see why it would be undemocratic
+17:17 < bridge> <learath2> it is perhaps less democratic
+17:18 < bridge> <Jupstar ✪> i'd say that is the problem, ursula was not part of any voting list
+17:18 < bridge> <Jupstar ✪> 
+17:18 < bridge> <Jupstar ✪> she was selected bcs nobody in europe liked manfred weber to become the leader
+17:19 < bridge> <Jupstar ✪> she was basically placed by the big countries, germany/france etc.
+17:23 < bridge> <zhn> isn't it popular already :justatest:
+17:25 < bridge> <zhn> no way this guy visited every conference with this talk
+17:25 < bridge> <zhn> omagad
+17:26 < bridge> <learath2> Yeah that one is a bit too far from the people's votes for my taste, but it's also very hard to fix. The European Commission is supposed to be bureaucrats, appointed, neutral. The European Council which proposes the candidate is just leaders of member countries (not neutral), so they can't propose one of their own. MEPs are not neutral either, (though perhaps they are the best idea). Maybe the commission can itself propose one of it's own as the p
+17:26 < bridge> <learath2> but I do agree bringing in some complete unelected outsider is just not good
+17:34 < bridge> <Jupstar ✪> i dunno, hard to judge what they discussed behind the doors, i am not sure if the eu council should exist at all.
+17:35 < bridge> <learath2> Perhaps, but as far as I understand it is the compromise that is used to make the deal of joining the EU less awful for states. EU law has supremacy, so it really strips a lot of power from the leaders of it's member states, especially smaller ones
+17:39 < bridge> <learath2> (to be fair it's really hard to make the european commission in general more democratic, they are supposed to be neutral technocrats, the more you involve elections in the matter the more political and less neutral they will become)
+17:42 < bridge> <ryozuki> god this hurts
+17:42 < bridge> <ryozuki> i only wish this to rust haters
+17:42 < bridge> <ryozuki> :fuckyousnail:
+17:42 < bridge> <ryozuki> :justatest:
+17:43 < bridge> <ryozuki> i can only stay in bed
+17:44 < bridge> <Jupstar ✪> but u have ur brain with u
+17:44 < bridge> <Jupstar ✪> your whole life happens in ur head
+17:45 < bridge> <ryozuki> the pain doesnt let me think
+17:45 < bridge> <Jupstar ✪> think of the pain
+17:45 < bridge> <ryozuki> waiting 10 mins to take the med
+17:46 < bridge> <Jupstar ✪> do it without med
+17:46 < bridge> <ryozuki> i believe in drug usage
+17:46 < bridge> <Jupstar ✪> u talk about how strong u are every other day
+17:46 < bridge> <ryozuki> need the drugs
+17:46 < bridge> <ryozuki> its just enantyum
+17:46 < bridge> <Jupstar ✪> xd
+17:47 < bridge> <Jupstar ✪> just try to sleep, count an integer until it overflows and rust panics
+18:39 < bridge> <learath2> If you lived in the land of the free home of the brave they would have given you some nice painkillers for recovery
+18:41 < bridge> <meloƞ> come visit i give you my dad's morphine
+18:42 < bridge> <learath2> He is too far. Give it to me instead so I can finally achieve my dream of being a junky
+18:43 < bridge> <meloƞ> weed's legal in germany now, go go go quick
+18:43 < bridge> <meloƞ> before the illegalize it again!
+18:43 < bridge> <meloƞ> before they illegalize it again!
+18:43 < bridge> <ryozuki> ingot enantyum
+18:43 < bridge> <ryozuki> and paracetamor
+18:43 < bridge> <learath2> Weed is legal in too many places now. It's not cool anymore
+18:43 < bridge> <meloƞ> isnt that just placebo against inflammation?
+18:44 < bridge> <learath2> Paracetamol and praying to god have similar efficacy
+18:44 < bridge> <ryozuki> enantyum is effective
+18:44 < bridge> <ryozuki> i took it and now im fine
+18:44 < bridge> <learath2> Enantyum is just regular old dexketoprofen, it's not placebo
+18:45 < bridge> <meloƞ> i used to give my 4 y/o nephew a kind of spicy sweet once and told him "it hurts in your mouth but stops the pain everywhere else!" because he had a tummy ache, worked like a charm
+18:46 < bridge> <learath2> The brain has a gating mechanism for pain and can only register the most severe injuries. Hit your own leg with a baseball bat and your toothache shall go away
+19:22 < bridge> <peter0x44> I think it's really built in your nerves
+19:22 < bridge> <peter0x44> https://en.wikipedia.org/wiki/Hyperpolarization_(biology)
+19:22 < bridge> <peter0x44> that's what this is afaik
+19:54 < bridge> <RedRay32> Hello, while making my server, I wanted to add commands to rcon that have several values ​​like “command [value 1] [value 2]”, I used MACRO_CONFIG_INT but it can only take one value. I would also like to know how one could get each value separately for use in code
+20:07 < bridge> <robyt3> The `MACRO_CONFIG_*` macros specifically declare config variables, they can only have one value/parameter. See for example the `CServer::RegisterCommands` function in `server.cpp` where commands like `kick` are registered that can have multiple parameters.
+20:34 < bridge> <RedRay32> thanks, I figured it out
+21:10 < bridge> <patiga> xd I recognize that comment
+21:11 < bridge> <patiga> since those sequences are all very short, I'm relatively certain the linear search should beat binary search there
+21:17 < bridge> <Jupstar ✪> why tho? since animations are repeating u always have the best and worst case.. so in the end u have smth in the mid or not? xd
+21:19 < bridge> <patiga> afaik the operations binary search are slightly more costly for some reason, so its not worth it on tiny arrays
+21:20 < bridge> <patiga> maybe the additional branching
+21:21 < bridge> <Jupstar ✪> i rewrote it to use https://doc.rust-lang.org/std/vec/struct.Vec.html#method.partition_point now
+21:21 < bridge> <ryozuki> https://en.algorithmica.org/hpc/data-structures/binary-search/
+21:21 < bridge> <Jupstar ✪> but only bcs i tried to never use linear search anywhere
+21:22 < bridge> <Jupstar ✪> not bcs i actually fear perf loss of these 5-key frame animations giving me bad perf :lol:
+21:23 < bridge> <ryozuki> https://algorithmica.org/en/eytzinger
+21:23 < bridge> <Jupstar ✪> u go sleep bra
+21:23 < bridge> <Jupstar ✪> but ty for share 😬
+21:25 < bridge> <Jupstar ✪> the rust impl for binary search look rather simple tho
+21:26 < bridge> <Jupstar ✪> ```rs
+21:26 < bridge> <Jupstar ✪> // This control flow produces conditional moves, which results in
+21:26 < bridge> <Jupstar ✪>             // fewer branches and instructions than if/else or matching on
+21:26 < bridge> <Jupstar ✪>             // cmp::Ordering.
+21:26 < bridge> <Jupstar ✪>             // This is x86 asm for u8: https://rust.godbolt.org/z/698eYffTx.
+21:26 < bridge> <Jupstar ✪>             left = if cmp == Less { mid + 1 } else { left };
+21:26 < bridge> <Jupstar ✪>             right = if cmp == Greater { mid } else { right };
+21:26 < bridge> <Jupstar ✪>             if cmp == Equal {
+21:26 < bridge> <Jupstar ✪>                 // SAFETY: same as the `get_unchecked` above
+21:26 < bridge> <Jupstar ✪>                 unsafe { hint::assert_unchecked(mid < self.len()) };
+21:26 < bridge> <Jupstar ✪>                 return Ok(mid);
+21:26 < bridge> <Jupstar ✪>             }
+21:26 < bridge> <Jupstar ✪> ```
+21:26 < bridge> <Jupstar ✪> 
+21:26 < bridge> <Jupstar ✪> ah alright
+21:26 < bridge> <Jupstar ✪> standards are always funny to read
+22:26 < bridge> <meloƞ> Im in such a downstate with coding right now, while realising i understand more each day it gets Harder and Harder for me to actually Code? I Used to spend 8hours a day coding and now i get demotivated the Second i Open um neovim.
+22:28 < bridge> <milkeeycat> how da hell will you write the os for me with such a motivation??
+22:28 < bridge> <Ewan> need to do something new
+22:28 < bridge> <Ewan> go ride a bicycle
+22:30 < bridge> <meloƞ> Its not like i dont do anything else :D - it just makes me sad i lost the fire i had for coding i guess
+22:30 < bridge> <Ewan> do something new
+22:31 < bridge> <meloƞ> Its hard to find something new
+22:33 < bridge> <meloƞ> How to grub loader looking ?
+22:34 < bridge> <milkeeycat> https://discord.com/channels/252358080522747904/293493549758939136/1242887679880990882
+22:36 < bridge> <Ewan> how did u wanna make it
+22:37 < bridge> <milkeeycat> i wanted to make all options grey except selected one
+22:37 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1243664308362285066/image.png?ex=66524c25&is=6650faa5&hm=11b6527563c96c09469858ac15865009c2ab6cef826c1192295e65ab59ce3730&
+22:38 < bridge> <milkeeycat> but grub doesnt allow to choose place for the image
+22:38 < bridge> <milkeeycat> it can be only a small icon on the left side
+22:58 < bridge> <meloƞ> Time to rewrite grub
+22:58 < bridge> <egyt> Back on track! 368 out of 607 strings translated (60%)! Thanks to meloƞ for the advice :heartw:
+22:58 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1243669372937965698/d8ea695571cdd366.png?ex=665250dc&is=6650ff5c&hm=990306d41e60c921cdef98567b71da2032c99998548b4310c80234404ab5f653&
+22:58 < bridge> <meloƞ> Huh what did i do again
+22:58 < bridge> <meloƞ> 🥴
+22:58 < bridge> <milkeeycat> trueee
+22:58 < bridge> <milkeeycat> milklang has variables btw
+22:58 < bridge> <milkeeycat> kinda
+22:58 < bridge> <milkeeycat> :justatest:
+22:58 < bridge> <meloƞ> Kinda? :kek:
+22:59 < bridge> <egyt> https://discord.com/channels/252358080522747904/342454474117218334/1242206304089407648
+22:59 < bridge> <milkeeycat> it works
+22:59 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1243669649921540206/image.png?ex=6652511e&is=6650ff9e&hm=55babbb1b9a6b2540d7554aa17bcc9d99dc37cbdf20c47b4f6c177d96f7e5968&
+22:59 < bridge> <milkeeycat> kinda
+22:59 < bridge> <milkeeycat> :justatest:
+23:00 < bridge> <meloƞ> Oh yeah true i Said that :gigachad: :kek: :owo:
+23:00 < bridge> <meloƞ> Lgtm!
+23:01 < bridge> <egyt> I won't promise that I'll finish it on my weekends, not even by June, but who knows!
+23:03 < bridge> <meloƞ> People will be thankful when you're done! My language is sadly translated 100% already so i cant do any Translating :feelsbadman:
+23:04 < bridge> <egyt> You can always learn another language :^)
+23:05 < bridge> <milkeeycat> learn Ukrainian and contribute to translations :poggers:
+23:05 < bridge> <egyt> That's what I'm doing...
+23:05 < bridge> <meloƞ> I might actually Pick Up a new language
+23:06 < bridge> <meloƞ> Maybe properly learn Japanese ? I understand Like 40% But i cant write or speak properly
+23:08 < bridge> <egyt> I wanted to learn Esperanto or Toki Pona, because I'm into conlangs, and I already know one of them
+23:08 < bridge> <milkeeycat> learning languages hard
+23:09 < bridge> <milkeeycat> my noodle struggles to remember new words :feelsbadman:
+23:09 < bridge> <meloƞ> Your noodle can understand words ?!?!
+23:09 < bridge> <meloƞ> Damn
+23:09 < bridge> <milkeeycat> my noodle cantt remember new words :feelsbadman:
+23:10 < bridge> <milkeeycat> my noodle cant remember new words :feelsbadman:
+23:10 < bridge> <milkeeycat> brain lag
+23:14 < bridge> <egyt> I see (from bio) you are learning Czech. Maybe try out Interslavic? May help you a bit, I think.
+23:14 < bridge> <zhn> huge f3
+23:14 < bridge> <zhn> bruh i pinged the big Patiga
+23:15 < bridge> <patiga> **HUGE** ping
+23:15 < bridge> <milkeeycat> czech is my first and last slavic language i will ever learn
+23:15 < bridge> <zhn> le huge Patiga
+23:15 < bridge> <meloƞ> Ping
+23:15 < bridge> <meloƞ> So weird seeing you in Dev color Not in Mod color
+23:16 < bridge> <zhn> ye i was light blue and now purple
+23:16 < bridge> <zhn> still zhn
+23:16 < bridge> <zhn> ah im 19 now
+23:16 < bridge> <milkeeycat> still gerdoe
+23:16 < bridge> <zhn> bad news
+23:16 < bridge> <egyt> Why? Interslavic is really, really easy to learn (for slavic people, at the very least)
+23:17 < bridge> <zhn> btw i think when src2 will be production ready™ ill hop on src3 xdddddd
+23:19 < bridge> <meloƞ> Lmao why 😂
+23:19 < bridge> <meloƞ> Wanna restructure everything again ?
+23:19 < bridge> <meloƞ> Whhaaaaaa
+23:20 < bridge> <zhn> want to move to rust
+23:20 < bridge> <zhn> ye its may 25th
+23:30 < bridge> <meloƞ> Note to self, dont Fake at everyone, First time i've been timeouted :justatest:
+23:31 < bridge> <meloƞ> I Wonder why tho? Considering it doesnt Work anyway
+23:32 < bridge> <meloƞ> So move the ENTIRE Server Logic to Rust ?
+23:39 < bridge> <Ewan> happy b=irthday
+23:43 < bridge> <Ewan> lmfao
+23:48 < bridge> <zhn> ye, why not
+23:49 < bridge> <zhn> the only thing i missing is both will and time xd

@@ -1,0 +1,165 @@
+01:01 < bridge_> <heinrich5991> it's kinda hard to disallow them in a performant (or correct) way. the APIs aren't there IIRC
+08:19 < bridge_> <ryozuki> morning
+08:58 < bridge_> <fokkonaut> morning
+09:12 < bridge_> <heinrich5991> morning
+09:18 < bridge_> <Ewan> morning
+09:49 < bridge_> <meloƞ> morning
+09:58 < bridge_> <sedonya> morning
+10:10 < bridge_> <teero777> morning
+10:17 < bridge_> <Peakies> morning
+11:24 < bridge_> <learath2> morning
+11:28 < bridge_> <nawretard> morning
+12:50 < bridge_> <reitw> @heinrich5991 btw just asking, what's your point of using https for #8210 ? Why not only just a tcp socket?
+12:50 < bridge_> <DDNet> https://github.com/ddnet/ddnet/issues/8210
+12:51 < bridge_> <reitw> For the protection part only the tcp handshake is good enough, I mean I don't think having a layer above (https) is worth it
+12:52 < bridge_> <heinrich5991> https is well-supported by firewalls
+12:52 < bridge_> <heinrich5991> but this might mean we shouldn't get data from https, so that you can also use it as a tcp handshake
+12:52 < bridge_> <heinrich5991> so you can just abort it after the tcp handshake. you wouldn't have to care that the client would do a https request
+12:54 < bridge_> <reitw> Oh
+12:54 < bridge_> <reitw> Ok ok
+12:55 < bridge_> <reitw> Also u could probably make it work behind cf aswell
+14:29 < bridge_> <Jupstar ✪> yeah i also assume it's mostly missing API considering that resolving symlinks is always very racy. it kinda has to happen in an instant 😄
+15:46 < bridge_> <learath2> I think we recently got some `openat2` has `RESOLVE_NO_SYMLINKS`
+15:46 < bridge_> <heinrich5991> interesting, TIL
+15:47 < bridge_> <heinrich5991> I can see it in the man page
+15:47 < bridge_> <learath2> very recent though, it's linux 5.6 according to my man pages
+15:48 < bridge_> <heinrich5991> `RESOLVE_BENEATH` also sounds very interesting
+15:48 < bridge_> <heinrich5991> you can specify a parent path and say that the resulting file (after symlinks) must lie beneath it
+15:48 < bridge_> <learath2> Without it though, idk if there is any actual safe way to handle this without TOCTOU issues in any performant way. I guess you'd have to keep doing `open(2)` with `O_NOFOLLOW` and slowly open your way through the entire path 😄
+15:49 < bridge_> <learath2> That also sounds great for implementing something like a vfs yeah
+15:49 < bridge_> <heinrich5991> but someone could replace a part after you checked it, TOCTOU
+15:49 < bridge_> <learath2> But you can open, then openat with nofollow with a relative path
+15:50 < bridge_> <heinrich5991> I didn't consider that. that would work 😮
+15:50 < bridge_> <heinrich5991> and it's not even insanely bad, only O(number of components)
+15:50 < bridge_> <heinrich5991> and it's not even insanely bad, only O(number of path components)
+15:50 < bridge_> <learath2> but you do have to do syscalls, they have a bad constant factor
+15:52 < bridge_> <heinrich5991> yep
+16:03 < bridge_> <Jupstar ✪> but then no symlinks would work or not
+16:04 < bridge_> <Jupstar ✪> they'd need to be scoped inside the directory instead
+16:04 < bridge_> <learath2> Yeah, no symlinks at all with that method. The flag heinrich mentioned is the one you are looking for
+16:04 < bridge_> <learath2> `RESOLVE_BENEATH`
+16:05 < bridge_> <Jupstar ✪> great
+16:06 < bridge_> <heinrich5991> since there's a fallback, one could even start using that
+16:09 < bridge_> <Jupstar ✪> well the WASI team should resolve this quickly, can't be too hard to decide on such things
+16:13 < bridge_> <learath2> Problem would be compatibility I think. `openat2` is very new, and tough/slow to emulate outside the kernel correctly
+16:14 < bridge_> <Jupstar ✪> i'm ok if WASI only works on my computer 😉
+16:14 < bridge_> <learath2> true
+16:15 < bridge_> <heinrich5991> "slow" just means like 8x slower file opening
+16:15 < bridge_> <heinrich5991> I'd imagine most software isn't opening lots of files
+16:15 < bridge_> <Jupstar ✪> how so
+16:15 < bridge_> <heinrich5991> would be bad for stuff like `rg` or `fd`
+16:15 < bridge_> <learath2> Yeah, so it might be an acceptable compromise for most software
+16:15 < bridge_> <Jupstar ✪> but i think reading the file is more expensive
+16:15 < bridge_> <heinrich5991> only opening
+16:18 < bridge_> <Jupstar ✪> i guess a WASIX rg is also kinda edge case
+16:22 < bridge_> <learath2> `RESOLVE_IN_ROOT` is also useful. It should make implementing stuff like sandboxing so much easier and safer to implement
+16:22 < bridge_> <Jupstar ✪> https://wasmer.io/liftm/rg
+16:22 < bridge_> <Jupstar ✪> 😬
+16:27 < bridge_> <heinrich5991> sandboxed file systems work without replacing the entire CPU architecture
+16:27 < bridge_> <Jupstar ✪> that is true, but wasm defs makes that process easier
+16:27 < bridge_> <heinrich5991> that looks like a common subset of vector operations across CPUs
+16:28 < bridge_> <heinrich5991> I'd guess you won't be able to use most of your x86_64 vector instructions through this
+16:28 < bridge_> <ryozuki> @jupeyy_keks
+16:28 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1235961238048210964/image.png?ex=6636461a&is=6634f49a&hm=4066c509216288bdbe41d1c46546f85c43f90d8c6126b923a82489300849fdf5&
+16:28 < bridge_> <ryozuki> bevy
+16:28 < bridge_> <Jupstar ✪> sure but i'd still say depends on the program
+16:29 < bridge_> <Jupstar ✪> a game will probably not run nicely
+16:31 < bridge_> <heinrich5991> rg – I'd prefer to use native binaries. using something like WASM will leave performance on the table
+16:31 < bridge_> <Jupstar ✪> fine
+16:31 < bridge_> <learath2> Btw what is this `wasmer.io` thing? Are we getting a new flatpak kinda thing with builtin virtualization so one binary can be shipped?
+16:32 < bridge_> <heinrich5991> it's an attempt of a vc-backed company to capture the wasm platform
+16:32 < bridge_> <Jupstar ✪> i cannot judge on rg performance anyway. is the CPU slower than reading the names from the file system?
+16:32 < bridge_> <learath2> Yeah, I had a feeling from just the look of the website. It doesn't have that community feel to it 😄
+16:32 < bridge_> <Jupstar ✪> well it's one of the fastest wasm runtimes
+16:33 < bridge_> <Jupstar ✪> are in rust
+16:33 < bridge_> <learath2> I remember it being a wasm runtime. I don't remember this wrapping normal apps thing, I was curious about that part
+16:33 < bridge_> <Jupstar ✪> ^^ gotta explore what you can do with it
+16:34 < bridge_> <Jupstar ✪> it's interesting to see what programs would also work in browser
+16:34 < bridge_> <learath2> (I'm not a virtualization enjoyer)
+16:34 < bridge_> <learath2> my bank keeps calling me then hanging up as soon as I say hello
+16:35 < bridge_> <heinrich5991> at least you're not getting phished like that? 😄
+16:35 < bridge_> <learath2> true 😄
+16:35 < bridge_> <learath2> I know why btw, the CS agent doesn't want to/can't speak english
+16:35 < bridge_> <learath2> but then they send me a notification on the app saying they called but couldn't reach me
+16:36 < bridge_> <Jupstar ✪> well virtualization is never something desirable per se. it's a high level solution to handle a variety of tasks that otherwise would require manual care
+16:36 < bridge_> <Jupstar ✪> i think it's nice where you are certain about untrusted input, while still desiring to have flexibility
+16:37 < bridge_> <learath2> Is this more about untrusted input or single binary multi-arch support? Atleast this package stuff seems to be the second to me
+16:37 < bridge_> <Jupstar ✪> i honestly think they don't have any goal with it
+16:38 < bridge_> <heinrich5991> https://00f.net/2023/01/04/webassembly-benchmark-2023/
+16:38 < bridge_> <learath2> I do however like the idea of wasm in general (eventho I'm a lua enjoyer)
+16:39 < bridge_> <heinrich5991> wasmer seems to perform quite well
+16:39 < bridge_> <heinrich5991> I guess you'd want wasmer cranelift so you don't have to ship a whole LLVM
+16:40 < bridge_> <Jupstar ✪> yes, that's what i use currently too
+16:40 < bridge_> <Jupstar ✪> it's ofc still massive
+16:41 < bridge_> <learath2> cranelift is very cool, I did want to make something with it but never really found a use for it, maybe one day I'll try a gameboy emulator with JIT 😄
+16:41 < bridge_> <learath2> Absolutely 0 need for JIT with how cheap it is to emulate a gameboy, but it would be fun
+16:41 < bridge_> <Jupstar ✪> cranelift can also compile "kinda" native
+16:42 < bridge_> <learath2> RPSC3 (ps3 emulator), ships with an entire LLVM, I think it's one of the coolest projects out there
+16:43 < bridge_> <learath2> It lifts powerpc assembly to llvm ir, then compiles to native
+16:44 < bridge_> <learath2> Wasmtime doesn't look that far behind either, atleast in this set of benches
+16:44 < bridge_> <Jupstar ✪> why does it sound like it has a bad taste "attempt of a vc-backed company"
+16:45 < bridge_> <heinrich5991> vc-backed means they'll eventually try to milk their users
+16:45 < bridge_> <heinrich5991> since that's the entire point of vc-backing
+16:46 < bridge_> <heinrich5991> check e.g. https://sourcehut.org/blog/2019-10-23-srht-puts-users-first/
+16:46 < bridge_> <heinrich5991> it's a common pattern. stuff that is vc-backed will eventually become shitty
+16:47 < bridge_> <Jupstar ✪> but wasmer is currently leading, at least on the rust side
+16:47 < bridge_> <heinrich5991> (but until it becomes shitty, it's usually good. because they can pour money into stuff that doesn't make money. it's just not sustainable in the long run)
+16:48 < bridge_> <Jupstar ✪> even tho i get your argument, e.g. Bytecode Alliance sleeps on their money too
+16:48 < bridge_> <learath2> @heinrich5991 do you know anything about MPL2? I was considering contributing something to a project but don't know much about it
+16:48 < bridge_> <Jupstar ✪> they are so slow
+16:48 < bridge_> <Jupstar ✪> MPL basically weakest copy left you can imagine
+16:49 < bridge_> <Jupstar ✪> u can static link a MPL lib into a prop software
+16:49 < bridge_> <Jupstar ✪> u can static link a MPL lib into a proprietary software
+16:49 < bridge_> <heinrich5991> it's a normal open-source license, what do you want to know?
+16:50 < bridge_> <learath2> I'm curious if it has any quirks like "we can make the software closed source and revoke the old open-source license retroactively" clause 😄
+16:51 < bridge_> <heinrich5991> I don't think it can. it's seen as an open-source license
+16:51 < bridge_> <heinrich5991> open-source licenses can't do the "revoke the license retroactively" AFAIK
+16:51 < bridge_> <heinrich5991> (hmmm. except if you violate the license. see GPL)
+16:52 < bridge_> <learath2> hm, this project has a CLA that requires my name too, I wonder why they do that
+16:52 < bridge_> <heinrich5991> CLA is the thing that lets them take your contribution and relicense it
+16:53 < bridge_> <learath2> I do understand they want to avoid a voxel situation where a contributor wants to withdraw contributions, but can't you just have a catchall "any contributions can't be revoked" clause somewhere? 😄
+16:55 < bridge_> <heinrich5991> that's implicit already
+16:56 < bridge_> <heinrich5991> a CLA is only there to take away your rights under the license
+16:56 < bridge_> <heinrich5991> (if it weren't, no open source project would function)
+16:56 < bridge_> <learath2> Lately I've been vary of CLAs with the Redis incident
+16:56 < bridge_> <Jupstar ✪> why do all humans think so complicated lmao
+16:57 < bridge_> <Jupstar ✪> all these annoying setups of licensing xd
+16:57 < bridge_> <heinrich5991> all these people writing closed source software, too
+16:57 < bridge_> <learath2> well CLAs seem to be so they can go back on their commitments and sell to IBM
+16:57 < bridge_> <heinrich5991> correct
+17:00 < bridge_> <learath2> btw, I've been enjoying golang lately, it's not that bad to use, it's direly missing a `Result` type and garbage collection isn't desirable either, but it is a comfy language
+17:01 < bridge_> <learath2> One nice thing about gc is that you can just return a pointer to a temporary and it justworks, no magic rules needed, no temporary materialization conversion 😄
+17:03 < bridge_> <heinrich5991> what kind of things would you use go for?
+17:03 < bridge_> <Jupstar ✪> to quote ryo: use rust
+17:04 < bridge_> <learath2> It's very comfy to make web backends with it and concurrency is soo pleasant, with gc you don't have to worry about lifetimes at all, truly fearless concurrency.
+17:05 < bridge_> <learath2> Axiom in Rust isn't that bad either, so depending on my performance requirements, I might do Rust for web backends too
+17:07 < bridge_> <heinrich5991> axum?
+17:08 < bridge_> <learath2> oh yep, axum, axiom is the other thing
+20:29 < bridge_> <ryozuki> > 
+20:29 < bridge_> <ryozuki> > 
+20:29 < bridge_> <ryozuki> > #[diagnostic::on_unimplemented] will be huge for APIs where the user is supposed to implement a helper trait that then results in blanket implementations of other more fundamental traits.
+20:29 < bridge_> <ryozuki> > 
+20:29 < bridge_> <ryozuki> > Patterns where the user implements HelperTrait and then then the type is extended like:
+20:29 < bridge_> <ryozuki> > 
+20:29 < bridge_> <ryozuki> >     impl<T> TraitA for T 
+20:29 < bridge_> <ryozuki> >     where
+20:29 < bridge_> <ryozuki> >         T: HelperTrait
+20:29 < bridge_> <ryozuki> >     {...}
+20:29 < bridge_> <ryozuki> > 
+20:29 < bridge_> <ryozuki> > Previously this would result in difficult to reason about errors around TraitA not being implemented, but now the API writer can add detailed error messages pointing the user towards the helper trait.
+20:29 < bridge_> <ryozuki> cc @heinrich5991 a reason for diagnostic
+20:30 < bridge_> <ryozuki> > Future possibilities
+20:30 < bridge_> <ryozuki> > 
+20:30 < bridge_> <ryozuki> >     Add a versioning scheme
+20:30 < bridge_> <ryozuki> >         For specific attributes via #[diagnostic::attribute(version = 42)]
+20:30 < bridge_> <ryozuki> >         For the namespace via a crate level #[diagnostic::v{version_number}] attribute
+20:30 < bridge_> <ryozuki> >         Based on editions
+20:30 < bridge_> <ryozuki> >         Custom versioning scheme
+20:30 < bridge_> <ryozuki> >         (Each of these variants can be added in a backward compatible way if needed)
+20:30 < bridge_> <ryozuki> >     More attributes like #[diagnostics::on_type_error]
+20:30 < bridge_> <ryozuki> >     Extend the #[diagnostics::on_unimplemented] attribute to incorporate the semantics of #[do_not_recommend] or provide a distinct #[diagnostics::do_not_recommend] attribute
+20:30 < bridge_> <ryozuki> >     Un-RFC #[do_not_recommend]?
+20:30 < bridge_> <ryozuki> >     Apply #[diagnostics::on_unimplemented] to types as well
+20:30 < bridge_> <ryozuki> >     Extend the if() filter syntax to allow more complex filter expressions
+20:30 < bridge_> <ryozuki> >     Allow #[diagnostic::on_unimplemented] to be placed on types instead of traits. This would allow third party crates to customize the error messages emitted for unsatisfied trait bounds with out of crate traits.
+20:53 < bridge_> <learath2> I very very recently learned about this in a youtube video that I can't find right now, and it's so sensible too, you just don't think about it until you think about it 😄
