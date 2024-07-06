@@ -1,0 +1,917 @@
+00:43 < bridge> <heinrich5991> @learath2 does this look similar to what we need for bans? https://debezium.io/
+00:45 < bridge> <learath2> looks very new age, sounds like it is atleast similar to what we want, but one thing is it won't solve any other problem we might want to solve with a message queue, like shipping chat messages to one place, or shipping logs
+02:15 < bridge> <chillerdragon> xxxxD
+02:15 < bridge> <chillerdragon> Idk what en and pl stands for but I don’t think it’s languages. Both sounds are used to differentiate which flag was captured
+02:18 < bridge> <zhn> not which but which time
+02:18 < bridge> <zhn> sounds differ if you grab flag from stand and from died player
+02:19 < bridge> <chillerdragon> The sounds he sent is capture not grab
+02:19 < bridge> <chillerdragon> Oh wait no grab
+02:19 < bridge> <chillerdragon> Xd
+02:20 < bridge> <chillerdragon> But the same exists for capture too
+02:20 < bridge> <chillerdragon> I can’t even guess what en and pl stand for
+02:49 < bridge> <0xdeen> I didn't have that great experience trying to use Debezium to mirror our ranks from MySQL (but could have been a mistake from my side), the setup seemed complex and finicky too
+03:56 < bridge> <louis> true, but it can be used as a compromise for a smoother client experience
+03:58 < bridge> <peter0x44> doesn't sound worth the limited developer and reviewer bandwidth the project has
+04:02 < bridge> <totar> anticheat is not always a losing game, it depends on the game type
+04:03 < bridge> <totar> if you never trust the client then the cheats are limited by their ability to play the game legitimately better than a human, which is sometimes not possible depending on your game.
+05:38 < bridge> <totar> ^ the end of lag :)
+05:39 < bridge> <totar> (in solo until 8372)
+05:39 < bridge> <totar> (in solo, until 8372)
+05:46 < bridge> <vappy19> :0
+05:55 < bridge> <Ewan> 😃
+08:33 <+ws-client> <ChillerDragon> https://github.com/ddnet/ddnet/blob/64f4ea1512b5abcc1ef27b90ede05cb9934df69b/src/engine/shared/huffman.cpp#L57 this overflows on init
+08:33 <+ws-client> <ChillerDragon> not sure if that is intended i really don't understand the huffman code but even if it is intended it is a bit weird
+08:35 <+ws-client> <ChillerDragon> https://github.com/ddnet/ddnet/blob/64f4ea1512b5abcc1ef27b90ede05cb9934df69b/src/engine/shared/huffman.h#L30 symbol is a `unsigned char` and `i` reaches `256`
+08:35 <+ws-client> <ChillerDragon> so it flips to zero in the last iteration
+08:35 <+ws-client> <ChillerDragon> thats the eofSymbol so maybe its intended but still :D 
+08:39 < bridge> <totar> Where does the init table come from?
+08:45 < bridge> <totar> I thought huffman was supposed calculate the optimal frequency table for any given data then store that frequency table with the data so it can be decompressed with the optimal table, but it seems like we just use the same one for all data as far as I can tell.
+08:45 < bridge> <totar> so someone must have created it from some TW packet data?
+08:45 < bridge> <totar> or something
+08:48 < bridge> <totar> omg of course it'
+08:48 < bridge> <totar> omg of course it's 15 years old .-.
+08:48 < bridge> <totar> https://github.com/ddnet/ddnet/commit/878ede3080ab2cfb627aca505c397d9765052996#diff-c39dd1d454f6249c201c0662b73ccf1aaee23f00bcc5ae34d034f96d325d8ec0
+08:56 < bridge> <totar> someone was writing ddnet huffman file in rust? https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=8505fd268fea3cba6468da5447571347
+09:02 < bridge> <totar> unless this frequency table is some sort of standard made by someone else it's possible we are leaving free bandwidth savings on the table by either regenerating it or sending the huffman tree along with the packet, but I think our packets are too small for that
+09:06 < bridge> <Jupstar ✪> well aparently not free if u need to sync such a table with the client 😄
+09:06 < bridge> <Jupstar ✪> btw @totar ur pr sends the inputs as individual packets right?
+09:06 < bridge> <totar> it only does 1 flush which means they get compressed together
+09:06 < bridge> <totar> but they are processed individually yes
+09:06 <+ws-client> <ChillerDragon> @totar the table is pre calculated and hardcodet into the client and server
+09:07 < bridge> <Jupstar ✪> i see, maybe a new network packet would be nice where it takes the binary diff of the inputs.. since most bytes are mostly similar 😄
+09:07 < bridge> <totar> ok but it's 15 years old and highly likely does not match the current distributation of data
+09:07 <+ws-client> <ChillerDragon> someone probably ran the numbers of which format the tw trafic has
+09:07 < bridge> <totar> also there's no source in the original commit so we have no idea the quality of it's generation even 15 years ago
+09:07 <+ws-client> <ChillerDragon> i dont think that much changed in the last 15 years
+09:07 < bridge> <totar> also there's no comments in the original commit so we have no idea the quality of it's generation even 15 years ago
+09:07 <+ws-client> <ChillerDragon> idk about 15 but the last 10 years for sure it barley changed
+09:08 < bridge> <totar> simply changing which type of packet gets sent more often would significantly change the frequency table
+09:08 <+ws-client> <ChillerDragon> its mostly snap thats relevant i would say
+09:08 <+ws-client> <ChillerDragon> always has been i guess
+09:08 < bridge> <totar> true
+09:08 < bridge> <totar> but still we have no idea how much data was sampled to create it in the first place
+09:08 < bridge> <totar> or how
+09:08 <+ws-client> <ChillerDragon> yea
+09:09 < bridge> <totar> could you explain more?
+09:09 <+ws-client> <ChillerDragon> omg i dont wanna debug the fakin huffman code -.- im procrastinating so hard
+09:09 < bridge> <totar> I think compressing the inputs more would be good for sure
+09:09 < bridge> <Jupstar ✪> the oldest input packet is the base and all new inputs are binary patches of that one
+09:10 < bridge> <Jupstar ✪> so all other input packets are basically only the difference between the inputs
+09:10 < bridge> <totar> the client does that already sorta
+09:10 < bridge> <totar> or you mean something more special?
+09:10 < bridge> <Jupstar ✪> but the client uses a input packet that is ack'd by the server or not?
+09:10 < bridge> <Jupstar ✪> with 300 ping that is pretty old
+09:11 < bridge> <totar> I'm not sure storing binary patches for a 120byte struct is practical
+09:11 < bridge> <Jupstar ✪> why not
+09:11 < bridge> <totar> you need pointer to location of each patch?
+09:11 < bridge> <totar> I guess it doesn't need to be 4 byte pointer
+09:12 < bridge> <totar> actually I have no idea how binary diff algorithm works tbh
+09:12 < bridge> <totar> maybe it's more clever
+09:13 < bridge> <Jupstar ✪> let say u have two vec<u8>
+09:13 < bridge> <Jupstar ✪> 
+09:13 < bridge> <Jupstar ✪> then it simply puts a 0 where the binary diff is equal else it puts a diff
+09:13 < bridge> <Jupstar ✪> very simplificated
+09:13 < bridge> <Jupstar ✪> and then compressions can normally very well compress these 0's
+09:16 < bridge> <Jupstar ✪> very simplified
+09:16 < bridge> <totar> the client and server will bundle I think 1400bytes of data to pass to the huffman which is about ~10 inputs. I'm not sure to what extend the huffman algorithm will naturally perform something similar to your idea by nature of how it works, it would probably be quite good without the fixed frequency table but now I'm not sure it's even doing anything anymore
+09:17 < bridge> <zhn> can it :troll:
+09:17 < bridge> <Bota> 🚂
+09:20 < bridge> <Jupstar ✪> mh well i can only tell you compression algorithms as good as they are, are also not perfect.. for teeworlds snapshots taking binary diffs with zstd outperformed any compression i tested easily.
+09:20 < bridge> <Jupstar ✪> 
+09:20 < bridge> <Jupstar ✪> The only disadvantage of binary patching is that the base "file" can get old (e.g. by a higher ping)
+09:21 < bridge> <totar> well it should always arrive in the same "pack" of inputs so you start the diff from the start with every packet
+09:21 < bridge> <totar> well it should always arrive in the same "cluster" of inputs so you start the diff from the start with every packet
+09:22 < bridge> <totar> yeah probably because our huffman table is trash lol
+09:22 < bridge> <Jupstar ✪> but how do u want to create a general purpose huffman table for snapshots, inputs etc.
+09:22 < bridge> <Jupstar ✪> or do u want to use different tables per purpose?
+09:22 < bridge> <totar> I don't think there's a correct answer
+09:23 < bridge> <totar> but remember that having a fixed table means it changes the network protocol
+09:23 < bridge> <totar> but remember that having a fixed table means it changes the network protocol anytime we update it
+09:24 < bridge> <totar> I mean a seperate table for every type of message would be very good tbh but I think the network system smushes all the messages together regardless of type
+09:24 < bridge> <totar> which might be better anyway since many messages are much less than the 1400byte size
+09:24 < bridge> <Jupstar ✪> i think heinrich did tests in that direction
+09:25 < bridge> <totar> also why do we use 1400bytes
+09:25 < bridge> <totar> seems small
+09:25 < bridge> <totar> UDP can be 64kb I think
+09:26 < bridge> <zhn> cuz its data mtu
+09:26 < bridge> <Jupstar ✪> a UDP frame usually isnt much bigger than 1400 bytes if u think cross plattform afaik
+09:27 < bridge> <Jupstar ✪> here we have an expert
+09:27 < bridge> <Jupstar ✪> epyc
+09:27 < bridge> <zhn> no u
+09:27 < bridge> <zhn> i can say anything about net until Devinci comes and tells what exactly is wrong kekw
+09:28 < bridge> <zhn> bruh this uni sucks why do i need to wait like 2 years just to start mess up with networks and its internals
+09:34 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+09:34 < bridge> <egyt> 
+09:34 < bridge> <egyt> ```
+09:34 < bridge> <egyt> (paused)
+09:34 < bridge> <egyt> Add
+09:34 < bridge> <egyt> All combined
+09:34 < bridge> <egyt> Folder Link
+09:34 < bridge> <egyt> Follow
+09:34 < bridge> <egyt> Force vote
+09:34 < bridge> <egyt> Game paused
+09:34 < bridge> <egyt> Grabs
+09:34 < bridge> <egyt> Loading commands…
+09:34 < bridge> <egyt> Moved ingame
+09:34 < bridge> <egyt> No results
+09:34 < bridge> <egyt> NOT CONNECTED
+09:35 < bridge> <egyt> Personal best:
+09:35 < bridge> <egyt> Replace video
+09:35 < bridge> <egyt> Save
+09:35 < bridge> <egyt> Searching
+09:35 < bridge> <egyt> Server best:
+09:35 < bridge> <egyt> Sound error
+09:35 < bridge> <egyt> Super
+09:35 < bridge> <egyt> The audio device couldn't be initialised.
+09:35 < bridge> <egyt> The server is running a non-standard tuning on a pure game type.
+09:35 < bridge> <egyt> Try again
+09:35 < bridge> <egyt> Trying to determine UDP connectivity…
+09:35 < bridge> <egyt> Vote command:
+09:35 < bridge> <egyt> Vote description:
+09:35 < bridge> <egyt> 
+09:35 < bridge> <egyt> [Graphics error]
+09:35 < bridge> <egyt> A render command failed. Try to update your GPU drivers.
+09:35 < bridge> <zhn> last ones are pretty verbose
+09:36 < bridge> <egyt> I never heard "command rendering"
+09:36 < bridge> <egyt> I never heard "command rendering", that's why I asked about them too
+09:37 < bridge> <zhn> drawing operations and memory transfers are called render commands at least in vulkan
+09:38 < bridge> <zhn> framebuffer is buffer of frames, practically transliteration is used
+09:39 < bridge> <zhn> of frame*
+09:40 < bridge> <egyt> "did not understand anything, but very interesting"
+10:29 < bridge> <heinrich5991> "anticheat" as was used in the discussion was explicitly about trusting the client and then trying apply heuristics/detect cheats on top of it
+10:30 < bridge> <totar> yeah that's fair
+10:32 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+10:32 < bridge> <egyt> 
+10:32 < bridge> <egyt> ```
+10:32 < bridge> <egyt> (paused)
+10:32 < bridge> <egyt> Add
+10:32 < bridge> <egyt> All combined
+10:32 < bridge> <egyt> Folder Link
+10:32 < bridge> <egyt> Follow
+10:32 < bridge> <egyt> Force vote
+10:32 < bridge> <egyt> Game paused
+10:32 < bridge> <egyt> Grabs
+10:32 < bridge> <egyt> Loading commands…
+10:32 < bridge> <egyt> Moved ingame
+10:32 < bridge> <egyt> No results
+10:32 < bridge> <egyt> NOT CONNECTED
+10:32 < bridge> <egyt> Personal best:
+10:32 < bridge> <egyt> Replace video
+10:32 < bridge> <egyt> Save
+10:32 < bridge> <egyt> Searching
+10:32 < bridge> <egyt> Server best:
+10:32 < bridge> <egyt> Sound error
+10:32 < bridge> <egyt> Super
+10:33 < bridge> <egyt> The audio device couldn't be initialised.
+10:33 < bridge> <egyt> The server is running a non-standard tuning on a pure game type.
+10:33 < bridge> <egyt> Try again
+10:33 < bridge> <egyt> Trying to determine UDP connectivity…
+10:33 < bridge> <egyt> Vote command:
+10:33 < bridge> <egyt> Vote description:
+10:33 < bridge> <egyt> 
+10:33 < bridge> <egyt> <del>[Graphics error]
+10:33 < bridge> <egyt> A render command failed. Try to update your GPU drivers.</del>
+10:33 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+10:33 < bridge> <egyt> 
+10:33 < bridge> <egyt> ```
+10:33 < bridge> <egyt> (paused)
+10:33 < bridge> <egyt> Add
+10:33 < bridge> <egyt> All combined
+10:33 < bridge> <egyt> Folder Link
+10:33 < bridge> <egyt> Follow
+10:33 < bridge> <egyt> Force vote
+10:33 < bridge> <egyt> Game paused
+10:33 < bridge> <egyt> Grabs
+10:33 < bridge> <egyt> Loading commands…
+10:33 < bridge> <egyt> Moved ingame
+10:33 < bridge> <egyt> No results
+10:33 < bridge> <egyt> NOT CONNECTED
+10:33 < bridge> <egyt> Personal best:
+10:33 < bridge> <egyt> Replace video
+10:33 < bridge> <egyt> Save
+10:33 < bridge> <egyt> Searching
+10:34 < bridge> <egyt> Server best:
+10:34 < bridge> <egyt> I'll be editing this message when I find an appropriate translation for a certain string
+10:34 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+10:34 < bridge> <egyt> 
+10:34 < bridge> <egyt> ```
+10:34 < bridge> <egyt> (paused)
+10:34 < bridge> <egyt> Add
+10:34 < bridge> <egyt> All combined
+10:34 < bridge> <egyt> Folder Link
+10:34 < bridge> <egyt> Follow
+10:34 < bridge> <egyt> Force vote
+10:34 < bridge> <egyt> Game paused
+10:34 < bridge> <egyt> Grabs
+10:34 < bridge> <egyt> Loading commands…
+10:34 < bridge> <egyt> Moved ingame
+10:34 < bridge> <egyt> No results
+10:34 < bridge> <egyt> NOT CONNECTED
+10:34 < bridge> <egyt> Personal best:
+10:34 < bridge> <egyt> Replace video
+10:34 < bridge> <egyt> Save
+10:34 < bridge> <egyt> Searching
+10:34 < bridge> <egyt> Server best:
+10:34 < bridge> <egyt> Sound error
+10:34 < bridge> <egyt> Super
+10:34 < bridge> <egyt> The audio device couldn't be initialised.
+10:34 < bridge> <egyt> The server is running a non-standard tuning on a pure game type.
+10:34 < bridge> <egyt> Try again
+10:34 < bridge> <egyt> Trying to determine UDP connectivity…
+10:35 < bridge> <egyt> Vote command:
+10:35 < bridge> <egyt> Vote description:
+10:35 < bridge> <egyt> 
+10:35 < bridge> <egyt> [Graphics error]
+10:35 < bridge> <egyt> An error during command recording occurred. Try to update your GPU drivers.
+10:37 < bridge> <egyt> And, btw, the progress is 95% (581 out of 607 strings translated), so the PR is not really that far away!
+10:39 < bridge> <totar> actually double checking the inputs are only like 40bytes which is a lot less than I thought
+10:40 < bridge> <Jupstar ✪> and how many packets will be deployed when having 300ms prediction margin?
+10:40 < bridge> <totar> plus 3 ints
+10:40 < bridge> <cyberFighter> hi
+10:41 < bridge> <totar> 300/20ms = 15 inputs, so ((40+4+4+4)*15)/1400 = 0.55 packets
+10:44 < bridge> <totar> probably a bit more with the overhead from message struct but idk how big that is
+10:52 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247110654306025513/ca8a3758b1011aa9.png?ex=665ed5ce&is=665d844e&hm=d5bd03c0590179d6b9bb49047c093e24922be8deb7428ce788b6d66b00e27fea&
+10:52 < bridge> <egyt> Hm, for some reason "Time limit" is not translated, while "Score limit" is
+10:53 < bridge> <Ewan> interesting
+10:54 < bridge> <Ewan> maybe it’s worth doing a quick regex search to find which string literals are not translated, and then determine if they should be translated
+10:54 < bridge> <Ewan> not a catch-all but probably still worthwhile
+11:18 < bridge> <totar> 300/20ms = 15 inputs, so ((40+4+4+4)*15)/1400 = 0.55 packets (at most, non-unique inputs are skipped)
+12:06 < bridge> <pncka> @everyone@here
+12:06 < bridge> <pncka> 
+12:06 < bridge> <pncka> # В СТИМЕ НАЧАЛАСЬ ЛЕТНЯЯ РАЗДАЧА $10
+12:06 < bridge> <pncka> # [steamcommunity.com/gift](https://shorturl.at/QIHm2) [.](https://imgur.com/a/TCsCopk)
+12:08 < bridge> <patiga> not sure if someone already answered, but this is exactly what is done already in snap deltas ^^
+12:25 < bridge> <learath2> There probably is no reason, just an oversight
+12:34 < bridge> <egyt> Haha, by remaking the translation I found so many bugs...
+12:47 < bridge> <heinrich5991> yes, thanks for actually caring about a good translation! 🙂
+12:51 < bridge> <robyt3> Looks like there are two time limit strings, did you also translate the other one or does it not work for some reason? For example in german.txt:
+12:51 < bridge> <robyt3> ```
+12:51 < bridge> <robyt3> Time limit
+12:51 < bridge> <robyt3> == Zeitlimit
+12:51 < bridge> <robyt3> 
+12:51 < bridge> <robyt3> Time limit: %d min
+12:51 < bridge> <robyt3> == Zeitlimit: %d min
+12:52 < bridge> <robyt3> ```
+12:56 < bridge> <egyt> I translated both
+12:56 < bridge> <egyt> 
+12:56 < bridge> <egyt> ```
+12:56 < bridge> <egyt> 
+12:56 < bridge> <egyt> Time limit
+12:56 < bridge> <egyt> == Обмеження по часу
+12:56 < bridge> <egyt> 
+12:56 < bridge> <egyt> Time limit: %d min
+12:56 < bridge> <egyt> ==Обмеження по часу: %dхв
+12:56 < bridge> <egyt> ```
+12:56 < bridge> <egyt> I translated both
+12:56 < bridge> <egyt> 
+12:56 < bridge> <egyt> ```
+12:56 < bridge> <egyt> Time limit
+12:56 < bridge> <egyt> == Обмеження по часу
+12:57 < bridge> <egyt> 
+12:57 < bridge> <egyt> Time limit: %d min
+12:57 < bridge> <egyt> ==Обмеження по часу: %dхв
+12:57 < bridge> <egyt> ```
+12:57 < bridge> <egyt> This is the list of strings I haven't translated yet, btw 😏
+12:59 < bridge> <egyt> This is the list of strings I haven't translated yet, btw 😏
+12:59 < bridge> <egyt> Need some help 🥺
+13:00 < bridge> <heinrich5991> egyt: can you mark the strings that you don't know where they appear?
+13:00 < bridge> <heinrich5991> I can figure out where they appear
+13:05 < bridge> <Jupstar ✪> of multiple snaps?
+13:07 < bridge> <patiga> I think it rarely ever sends an actual full snap, and typically just deltas, which only include items that change, and for those items the binary diff
+13:07 < bridge> <patiga> yea the server diffs multiple snaps to create efficient updates
+13:07 < bridge> <Jupstar ✪> mh i see, but i think u dont even need to do the items part
+13:07 < bridge> <Jupstar ✪> 
+13:07 < bridge> <Jupstar ✪> zstd + custom dict performs just as good if not even better
+13:08 < bridge> <egyt> All of those mentioned in my list
+13:08 < bridge> <Jupstar ✪> that confuses me xD
+13:08 < bridge> <Jupstar ✪> it diffs multiple snaps for a single snap
+13:08 < bridge> <Jupstar ✪> or it sends previous snaps to create a snapshot chain?
+13:08 < bridge> <egyt> All of those mentioned in my list
+13:08 < bridge> <egyt> Would be nice if you could send screenshots of GUI too
+13:08 < bridge> <patiga> well the item part helps because most items don't need to be updated coz they stay the same
+13:08 < bridge> <fokkonaut> Server sends only the changes
+13:08 < bridge> <patiga> well thats why it *should* help
+13:08 < bridge> <fokkonaut> as snap delta
+13:09 < bridge> <patiga> in reality ofc you might find that this optimization doesn't help
+13:09 < bridge> <Jupstar ✪> yes but i don't see how that makes the binary diff better
+13:09 < bridge> <fokkonaut> a
+13:09 < bridge> <Jupstar ✪> well maybe it does, but i could not oberse it 😄
+13:09 < bridge> <Jupstar ✪> well maybe it does, but i could not observe it 😄
+13:10 < bridge> <Jupstar ✪> @patiga what i wonder tho is if the snapshot packet is used to _unpack_ old snapshots
+13:10 < bridge> <patiga> it relies on snapshots you received earlier, not ones in the future
+13:10 < bridge> <Jupstar ✪> yes
+13:10 < bridge> <Jupstar ✪> but in the input case of tater it's about actually sending old inputs
+13:10 < bridge> <Jupstar ✪> with high prediction margin they still come in before the tick that handles these inputs is used
+13:11 < bridge> <Jupstar ✪> so you basically have a higher success rate when packet drop
+13:11 < bridge> <patiga> I'm confused about your usage of "unpack"
+13:11 < bridge> <Jupstar ✪> u basically have a chain of inputs until the current one
+13:12 < bridge> <Jupstar ✪> well it sounded a bit like snapshots are used similary like the input concept here 😄
+13:12 < bridge> <Jupstar ✪> but i guess it just sends the current snapshot
+13:12 < bridge> <patiga> iirc, input isn't in the snapshot
+13:13 < bridge> <Jupstar ✪> well i think we just talk past each other xD
+13:13 < bridge> <patiga> yea seems likely 😅
+13:13 < bridge> <Jupstar ✪> like what i want is:
+13:13 < bridge> <Jupstar ✪> 
+13:13 < bridge> <Jupstar ✪> binary patch the input chain:
+13:13 < bridge> <Jupstar ✪> - very old input
+13:13 < bridge> <Jupstar ✪> - old input
+13:13 < bridge> <Jupstar ✪> - input
+13:13 < bridge> <Jupstar ✪> 
+13:13 < bridge> <Jupstar ✪> old & current input can be binary diffs of the very old one
+13:14 < bridge> <Jupstar ✪> they are directly send in the same network packet anyway
+13:14 < bridge> <Jupstar ✪> if the very old input is a binary diff smth like it's done with snapshots is ofc possible yeah
+13:14 < bridge> <Jupstar ✪> basically my _optimization_ is in first place unrelated to any binary diff of a previous packet
+13:15 < bridge> <Jupstar ✪> just so u can send a  lot of inputs in a single packet
+13:15 < bridge> <patiga> ah right, I jumped into the discussion at the wrong time, with a wrong thing in mind xd
+13:16 < bridge> <patiga> sounds fun though :)
+13:21 < bridge> <Jupstar ✪> like what i want is:
+13:21 < bridge> <Jupstar ✪> 
+13:21 < bridge> <Jupstar ✪> binary patch the input chain:
+13:21 < bridge> <Jupstar ✪> - very old input
+13:21 < bridge> <Jupstar ✪> - old input
+13:21 < bridge> <Jupstar ✪> - input
+13:21 < bridge> <Jupstar ✪> 
+13:21 < bridge> <Jupstar ✪> old input can be binary diff of the very old one
+13:21 < bridge> <Jupstar ✪> current input of old input*
+13:27 < bridge> <egyt> While I can guess where they appear, I can't be sure, as it happened with yesterday stuff
+14:02 < bridge> <AssassinTee> I had an interesting idea to improve performance in rendering on at least some maps, which is already tested and proven to be useful, is anyone interested? maybe @jupeyy_keks
+14:03 < bridge> <heinrich5991> > "NOT CONNECTED"
+14:03 < bridge> <heinrich5991> displayed in rcon while not connected to a server
+14:04 < bridge> <heinrich5991> > "Trying to determine UDP connectivity…"
+14:04 < bridge> <heinrich5991> displayed in the connecting screen when the server does not respond, but testing the internet connection hasn't finished yet
+14:07 < bridge> <egyt> Okay, 24 left
+14:10 < bridge> <heinrich5991> > "Loading commands…"
+14:10 < bridge> <heinrich5991> displayed in rcon while not all command descriptions have been downloaded from the server yet
+14:11 < bridge> <heinrich5991> > "Personal best:"
+14:11 < bridge> <heinrich5991> best race time of the current map of the current player
+14:11 < bridge> <heinrich5991> > "Server best:"
+14:11 < bridge> <heinrich5991> best race time of the current map on the server
+14:13 < bridge> <heinrich5991> > "The audio device couldn't be initialised."
+14:13 < bridge> <heinrich5991> this one looks a bit misleading. it just means "couldn't initialize the sound system, the client will not be able to play sounds"
+14:14 < bridge> <heinrich5991> > "The server is running a non-standard tuning on a pure game type."
+14:14 < bridge> <heinrich5991> displayed when the server admin changed the server source code for a vanilla gametype (DM, CTF, TDM) and changed tunings (physic parameters, like gravity) there
+14:14 < bridge> <egyt> Yet another bug? ❤️
+14:14 < bridge> <heinrich5991> > "Sound error"
+14:14 < bridge> <heinrich5991> this is just the title of the message box of the aforementioned audio initialization error
+14:15 < bridge> <heinrich5991> sure
+14:15 < bridge> <Jupstar ✪> you can share ur idea 😄
+14:17 < bridge> <heinrich5991> > "Add"
+14:17 < bridge> <heinrich5991> opposite of the "Remove" button you already translated, used for the adding vote options in the vote option menu
+14:19 < bridge> <heinrich5991> > "Try again"
+14:19 < bridge> <heinrich5991> shown in the "incorrect password" dialog that contains a field for the password, clicking "try again" will use the password in the field for connecting to the server again
+14:31 < bridge> <AssassinTee> So, In a map I am working on, I have a lot of quads, about 8000 distributed in 50 groups. For context, I would be currently on r4 on the list with the most quads per map on ddnet, if my map would be there, anyway. I noticed, that a snow Strom, which was over 500 fields away from the spawn region, greatly dropped fps beside not quad of this layer being visible or in render distance.
+14:31 < bridge> <AssassinTee> 
+14:31 < bridge> <AssassinTee> I improved the FPS by adding clip regions on every quadlayer, meaning I had to put every quad into it's own group and add a clipping region to it, because layers don't support clip regions.
+14:31 < bridge> <AssassinTee> This causes the renderer to [skip](<https://github.com/ddnet/ddnet/blob/64f4ea1512b5abcc1ef27b90ede05cb9934df69b/src/game/client/components/maplayers.cpp#L1448>) the group, if it's region is out of bounds, instead of checking EVERY QUAD if it needs rendering.
+14:31 < bridge> <AssassinTee> 
+14:31 < bridge> <AssassinTee> This improved, in my special case, the rendering up to a factor of 10 (from 500 fps to 5000) (machine one), (from 200 fps to 990 (fps cap!))(machine 2)
+14:31 < bridge> <AssassinTee> 
+14:31 < bridge> <AssassinTee> My idea: Add, when loading a map, a virtual clip region to a quad layer. This improves FPS everywhere outside of the clip and if you have multiple quad layers without overlap, it'll improve overall fps.
+14:31 < bridge> <AssassinTee> 
+14:31 < bridge> <AssassinTee> How to do this? Check every corner of a quad in a layer, min-max x/y for to generate a clip region, you only need to do this once, when loading the map
+14:31 < bridge> <AssassinTee> You'll need to add possible envelope offsets, which is easy, the maximum/minimum value has to be a point in the envelope (except when rotating)
+14:31 < bridge> <AssassinTee> TODO para X, Y, can be considered and recalculated, definately possible, para 0/0 can be skipped
+14:31 < bridge> <AssassinTee> 
+14:31 < bridge> <AssassinTee> Also, you could pre-calculate this region at a minimum quad count, which still needs to be found
+14:32 < bridge> <AssassinTee> So, In a map I am working on, I have a lot of quads, about 8000 distributed in 50 groups. For context, I would be currently on r4 on the list with the most quads per map on ddnet, if my map would be there, anyway. I noticed, that a snow Strom, which was over 500 fields away from the spawn region, greatly dropped fps beside no quad of this layer being visible or in render distance.
+14:32 < bridge> <AssassinTee> 
+14:32 < bridge> <AssassinTee> I improved the FPS by adding clip regions on every quadlayer, meaning I had to put every quad into it's own group and add a clipping region to it, because layers don't support clip regions.
+14:32 < bridge> <AssassinTee> This causes the renderer to [skip](<https://github.com/ddnet/ddnet/blob/64f4ea1512b5abcc1ef27b90ede05cb9934df69b/src/game/client/components/maplayers.cpp#L1448>) the group, if it's region is out of bounds, instead of checking EVERY QUAD if it needs rendering.
+14:32 < bridge> <AssassinTee> 
+14:32 < bridge> <AssassinTee> This improved, in my special case, the rendering up to a factor of 10 (from 500 fps to 5000) (machine one), (from 200 fps to 990 (fps cap!))(machine 2)
+14:32 < bridge> <AssassinTee> 
+14:32 < bridge> <AssassinTee> My idea: Add, when loading a map, a virtual clip region to a quad layer. This improves FPS everywhere outside of the clip and if you have multiple quad layers without overlap, it'll improve overall fps.
+14:32 < bridge> <AssassinTee> 
+14:32 < bridge> <AssassinTee> How to do this? Check every corner of a quad in a layer, min-max x/y for to generate a clip region, you only need to do this once, when loading the map
+14:32 < bridge> <AssassinTee> You'll need to add possible envelope offsets, which is easy, the maximum/minimum value has to be a point in the envelope (except when rotating)
+14:32 < bridge> <AssassinTee> TODO para X, Y, can be considered and recalculated, definately possible, para 0/0 can be skipped
+14:32 < bridge> <AssassinTee> 
+14:32 < bridge> <AssassinTee> Also, you could pre-calculate this region at a minimum quad count, which still needs to be found
+14:34 < bridge> <AssassinTee> So, In a map I am working on, I have a lot of quads, about 8000 distributed in 50 groups. For context, I would be currently on r4 on the list with the most quads per map on ddnet, if my map would be there, anyway. I noticed, that a snow Strom, which was over 500 fields away from the spawn region, greatly dropped fps beside no quad of this layer being visible or in render distance.
+14:34 < bridge> <AssassinTee> 
+14:34 < bridge> <AssassinTee> I improved the FPS by adding clip regions on every quadlayer, meaning I had to put every quad into it's own group and add a clipping region to it, because layers don't support clip regions.
+14:34 < bridge> <AssassinTee> This causes the renderer to [skip](<https://github.com/ddnet/ddnet/blob/64f4ea1512b5abcc1ef27b90ede05cb9934df69b/src/game/client/components/maplayers.cpp#L1448>) the group, if it's region is out of bounds, instead of checking EVERY QUAD if it needs rendering.
+14:34 < bridge> <AssassinTee> 
+14:34 < bridge> <AssassinTee> This improved, in my special case, the rendering up to a factor of 10 (from 500 fps to 5000) (machine one), (from 200 fps to 990 (fps cap!))(machine 2)
+14:34 < bridge> <AssassinTee> 
+14:34 < bridge> <AssassinTee> My idea: Add, when loading a map, a virtual clip region to a quad layer. This improves FPS everywhere outside of the clip and if you have multiple quad layers without overlap, it'll improve overall fps.
+14:34 < bridge> <AssassinTee> 
+14:34 < bridge> <AssassinTee> How to do this? Check every corner of a quad in a layer, min-max x/y for to generate a clip region, you only need to do this once, when loading the map
+14:34 < bridge> <AssassinTee> You'll need to add possible envelope offsets, which is easy, the maximum/minimum value has to be a point in the envelope (except when rotating)
+14:34 < bridge> <AssassinTee> TODO para X, Y, can be considered and recalculated, definately possible, para 0/0 can be skipped
+14:34 < bridge> <AssassinTee> 
+14:34 < bridge> <AssassinTee> Also, you could pre-calculate this region starting at a minimum quad count, which still needs to be found
+14:40 < bridge> <Jupstar ✪> mh i see, sounds pretty complicated to do it layer wise with all these side effects of animations. But that gave me a different idea.
+14:40 < bridge> <Jupstar ✪> 
+14:40 < bridge> <Jupstar ✪> Couldn't you use the group's clip properties to completely skip that group?
+14:40 < bridge> <Jupstar ✪> 
+14:40 < bridge> <Jupstar ✪> would be manual work which sucks, but would be safer to not imeplement it wrong
+14:40 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1247167953611522048/image.png?ex=665f0b2b&is=665db9ab&hm=81fe45741b2ed509d22ef18ff4286730e4028f9f6e139ceb1b627977f3a2df39&
+14:40 < bridge> <AssassinTee> Here an extra cherry: If this is implemented, you could split a quadlayer into multiple with their own regions, further improving the fps
+14:40 < bridge> <AssassinTee> This is what I wrote above
+14:41 < bridge> <Jupstar ✪> and that's not enough or what?
+14:41 < bridge> <cellegenrih> @jupeyy_keks Quads don't render outside the camera's view right? So regardless of clipping being off or on, this shouldn't affect performance if outside the camera's view, right?
+14:41 < bridge> <Jupstar ✪> u wrote 5000 fps
+14:42 < bridge> <gol_135> how can I create a fake bun on the server using the code?
+14:42 < bridge> <AssassinTee> This is enough, yes, the idea is to generalize this in order to improve map rendering in general?
+14:42 < bridge> <Jupstar ✪> it does, since it still has to check if the quad is inside the cameras view
+14:42 < bridge> <cellegenrih> :justatest: oh, then it's a miscalculation in performance
+14:43 < bridge> <AssassinTee> you can get a performance gain, by skipping a layer redering, because of the clip region, instead of checking every item in the layer
+14:43 < bridge> <cellegenrih> doesn't it cache all of the quads that are inside the view and check those only?
+14:43 < bridge> <AssassinTee> no, because of animations
+14:43 < bridge> <Jupstar ✪> yeah it's not trivial.. u also need to respect the quads rotation etc.
+14:43 < bridge> <Jupstar ✪> 
+14:43 < bridge> <Jupstar ✪> would be the question how well the estimation works in worst case, e.g. if you actually are where most quads are rendered
+14:44 < bridge> <cellegenrih> doesn't it cache all of the quads that are inside the view and check those only? Or better yet, check those only which are the closest within the boundary of the camera's view?
+14:44 < bridge> <Jupstar ✪> @essigautomat u do it for rain animations?
+14:44 < bridge> <cellegenrih> It needs correction on what quad can and cannot be rendered
+14:44 < bridge> <AssassinTee> rain, snow, waterfalls, bells, no-animations-at-all
+14:45 < bridge> <Jupstar ✪> i'd rather question why u need many quads for those 😄
+14:45 < bridge> <Jupstar ✪> do u need highly accurate rain drops xDD
+14:45 < bridge> <cellegenrih> I rather question, why do we need to check every single quad if it's outside the camera or not xd
+14:45 < bridge> <AssassinTee> brings me back to my initial: on ddnet are already maps, with more quads
+14:45 < bridge> <Jupstar ✪> can u name one
+14:45 < bridge> <AssassinTee> This is where I agree
+14:45 < bridge> <Jupstar ✪> i want to look
+14:46 < bridge> <cellegenrih> There are many more efficient ways to look at this problem tho
+14:46 < bridge> <AssassinTee> mud, Victory 2, I can name more @patiga had a list
+14:46 < bridge> <Jupstar ✪> the question is not about that there isnt smth better, more about complexity
+14:46 < bridge> <cellegenrih> Position based detection: based off of all quads' coordinates and the camera's front end (top left position) and back end (bottom right position), which quads are inside that position
+14:47 < bridge> <cellegenrih> if those quads' positions are inside that position, those can be rendered immediately.
+14:47 < bridge> <AssassinTee> this looks way worse then what I did
+14:47 < bridge> <cellegenrih> With this method, only the quads' positions need to be cached and no need for direct comparision with an object colliding with the camera
+14:48 < bridge> <AssassinTee> I agree, that having all things covered is complex, but we can still improve the easy cases: no animation, para 100/100, -> virtual clip
+14:48 < bridge> <cellegenrih> Count in the para multipliers, and it's done
+14:48 < bridge> <cellegenrih> Is my method any wrong by chance? 😄
+14:49 < bridge> <AssassinTee> yes, you need to check the corners
+14:49 < bridge> <AssassinTee> and points in between
+14:49 < bridge> <Jupstar ✪> the easiest approximation for quads is a circle around it, even if it rotates the circle stays the same
+14:49 < bridge> <cellegenrih> would it be more performance heavy, than checking the entire quad object directly?
+14:50 < bridge> <Jupstar ✪> additionally distance checks of circles + points are the cheapest operation
+14:50 < bridge> <cellegenrih> Just caching the quads' positions will make a huge performance difference, as long as there is no other way for a quad to move.
+14:50 < bridge> <AssassinTee> you'd still need to check every quad, instead of just having one check for ALL quads
+14:50 < bridge> <cellegenrih> I see, so in that case, if the quads move by animation, then those need to update the cache
+14:50 < bridge> <cellegenrih> :justatest:
+14:51 < bridge> <cellegenrih> Thats not how caching should work but ok
+14:51 < bridge> <cellegenrih> if the position is stable, then it should be done like that
+14:51 < bridge> <AssassinTee> and then the player moves, how do you find which quads to render?
+14:52 < bridge> <cellegenrih> But now I doubt my method due to animations changing positions of Quads
+14:52 < bridge> <cellegenrih> Can you do signalling for objects?
+14:53 < bridge> <cellegenrih> stupid question, but worth to ask
+14:53 < bridge> <cellegenrih> Damn Im so obsessed with Godot, that was the first thing in my mind lol
+14:53 < bridge> <AssassinTee> this could solve the rotation animation case for the clip region
+14:55 < bridge> <AssassinTee> so what do you say @jupeyy_keks , is the idea valid? This would be an optimization in some cases, and wouldn't change a thing in others (no quad layers)
+14:56 < bridge> <gol_135> please tell me how to create a player token for my DDN server
+14:56 < bridge> <gol_135> please tell me how to create a player token for my DDNEt server
+14:56 < bridge> <Jupstar ✪> sure but dont u need animation?
+14:59 < bridge> <AssassinTee> Yes, you can further improve on that idea a lot (since it's an optimization problem). I think I'll start an implementation of this when I am done with the map and need to measure frame times
+15:00 < bridge> <cellegenrih> maybe use that kind of method on tunes as well
+15:00 < bridge> <cellegenrih> tunes are still actively sucking off performance inside the editor
+15:00 < bridge> <Jupstar ✪> that's an editor problem
+15:00 < bridge> <cellegenrih> :FeelsBadMan:
+15:01 < bridge> <AssassinTee> @cellegenrih this is about in-game improvements (which is much more worth)
+15:01 < bridge> <cellegenrih> true
+15:01 < bridge> <Jupstar ✪> anyway, i'd still suggest to use less quads
+15:01 < bridge> <Jupstar ✪> it uses more VRAM too
+15:02 < bridge> <AssassinTee> only if you use quads with texture, or does it?
+15:02 < bridge> <Jupstar ✪> and rendering performance too
+15:02 < bridge> <cellegenrih> Idk about 6000 quads being on a map, but my idea is around 10k
+15:02 < bridge> <cellegenrih> jupstar, you have no idea about the potential of the editor
+15:02 < bridge> <Jupstar ✪> independent of if texture or not
+15:02 < bridge> <Jupstar ✪> the vertices of the quads need to be uploaded
+15:03 < bridge> <AssassinTee> The fix with the clip regions is working very good, it's not one layer with 8000 quads, I have a lot more in this map, the biggest layer has 2000, the rest has ~500, I don't see how to improve the number of quads
+15:03 < bridge> <AssassinTee> Issue is me abusing the pixelart tool
+15:04 < bridge> <Jupstar ✪> but u probably have a very good GPU
+15:04 < bridge> <Jupstar ✪> try with software renderer
+15:04 < bridge> <AssassinTee> how/like?
+15:04 < bridge> <cellegenrih> remove your driver, test it out? :troll:
+15:04 < bridge> <Jupstar ✪> mh do you use linux?
+15:05 < bridge> <AssassinTee> I _can_ if I have to 😄 for teeworlds usually not
+15:05 < bridge> <Jupstar ✪> on windows dunno xd
+15:05 < bridge> <Jupstar ✪> maybe vulkan sdk ships one
+15:05 < bridge> <AssassinTee> @jupeyy_keks do you have a tool to measure frametimes on different maps?
+15:06 < bridge> <Jupstar ✪> ddnet has a tool built in, but u'd need to manually drag it into excel to see the chart
+15:06 < bridge> <Jupstar ✪> ah actually someone wrote a python script i think
+15:06 < bridge> <AssassinTee> if sb wrote a script, it has to be patiga xD
+15:07 < bridge> <patiga> So if I understand correctly, you want to put layers into their own group to achieve more precise clipping?
+15:07 < bridge> <patiga> Such a system would not directly help on a map such as mud though, right? (as long as we don't split up the quad layer automatically)
+15:07 < bridge> <Jupstar ✪> it was chairn
+15:09 < bridge> <AssassinTee> I would implement the clip-feature virtually for quads (no editor), precalculate them. This has nothing to do with the group clips (well maybe similar code)
+15:09 < bridge> <AssassinTee> Yes, this wouldn't directly improve mud, but this would allow to, in a follow up, split a layer into two only for rendering
+15:09 < bridge> <egyt> So, 16 left (if not counting this one, still thinking of a good translation)... Nice!
+15:09 < bridge> <patiga> the graphics card is very good at throwing away quads that are not on the screen by itself. I doubt that such checks would increase the performance in most cases
+15:09 < bridge> <AssassinTee> I would implement the clip-feature virtually for quads (no editor), precalculate them. This has nothing to do with the group clips (well maybe similar code)
+15:09 < bridge> <AssassinTee> Yes, this wouldn't directly improve mud, but this would allow to, **in a follow up**, split a layer into two only for rendering
+15:09 < bridge> <Jupstar ✪> https://discord.com/channels/252358080522747904/293493549758939136/933046871943962704
+15:09 < bridge> <Jupstar ✪> i think this was the script
+15:09 < bridge> <cellegenrih> then  maybe its a gpu bottleneck?
+15:10 < bridge> <Jupstar ✪> the biggest bottleneck in ddnet is that it does these calculations on the CPU
+15:10 < bridge> <Jupstar ✪> CPU are only good if the number is not too high, then they can even outperform the GPU
+15:11 < bridge> <cellegenrih> well, positions need to be accurate, so makes sense
+15:12 < bridge> <AssassinTee> the performance gain comes only from skipping checks, if something needs rendering, not the rendering itself
+15:12 < bridge> <AssassinTee> the performance gain comes only from skipping checks if something needs rendering, not the rendering itself
+15:13 < bridge> <cellegenrih> well it depends on which method is faster, discarding quads on GPU, or conditionally skipping quads on the CPU
+15:13 < bridge> <patiga> and to get me up to speed, you achieved that optimization manually by reordering the quads layers into different groups, yea?
+15:13 < bridge> <AssassinTee> so matplotlib, I need to collect the data manually right?
+15:13 < bridge> <Jupstar ✪> ddnet has some command
+15:13 < bridge> <Jupstar ✪> let me find
+15:13 < bridge> <Jupstar ✪> bench_quit or smth
+15:13 < bridge> <AssassinTee> yes, I needed to split a group into 3 or more, where the middle one is a single group for a quad layer
+15:14 < bridge> <Jupstar ✪> benchmark_quit 60
+15:14 < bridge> <Jupstar ✪> to record 60 seconds of gameplay
+15:14 < bridge> <AssassinTee> yes, I needed to split a group into 3 or more, where the middle one is a single group for a quad layer with clipping
+15:14 < bridge> <AssassinTee> Thing is this needs to be collected over a range of maps
+15:17 < bridge> <AssassinTee> also, I have already done this in the map version you have. If you are interested measure fps, disable all clip regions, measure again
+15:17 < bridge> <AssassinTee> also, I have already done this in the map version you already have. If you are interested measure fps, disable all clip regions, measure again
+15:20 < bridge> <patiga> nice
+15:24 < bridge> <patiga> I'm uncertain if this optimization does much on most maps. I would expect only very few maps to profit from this. (quads afaik are typically only used only used in small amounts)
+15:24 < bridge> <patiga> 
+15:24 < bridge> <patiga> For the maps on which this does matter, it would be a great improvement and I like the idea!
+15:24 < bridge> <patiga> A relatively simple approach would be to simply edit the maps themselves, and simply use the group clips. that is exactly what they are for and many groups are no issue for the renderer :)
+15:27 < bridge> <Jupstar ✪> games like minecraft might use UV coordinate animations for rain
+15:27 < bridge> <Jupstar ✪> 
+15:27 < bridge> <Jupstar ✪> something ddnet maps sadly dont support
+15:28 < bridge> <Jupstar ✪> but u could defs do smth similar with fewer quads than 6000 xd
+15:30 < bridge> <AssassinTee> https://imgflip.com/i/8sm1lg
+15:30 < bridge> <cellegenrih> Use both
+15:30 < bridge> <Jupstar ✪> this is a map where i created the rain for
+15:30 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1247180679544832061/frames_by_oreo_64a72a71.map?ex=665f1705&is=665dc585&hm=1d6c320a9d6f8c18b478651e0f7f475b2bc3bfc46e2854a2346df6755492e3a2&
+15:30 < bridge> <Jupstar ✪> it uses fewer quads
+15:31 < bridge> <AssassinTee> BTW I know I could just use para 0/0, add a clip where I want rain and call it a day
+15:31 < bridge> <Jupstar ✪> u can defs improve it, bcs i am laziest mapper but looks also cleaner in the editor
+15:31 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1247180911439777802/image.png?ex=665f173c&is=665dc5bc&hm=3456a611a19bf5cb79ee77ad946ebc40eb5f71a4394ce4eb60c9210f8ccfc6a2&
+15:32 < bridge> <AssassinTee> I wonder what you'd say about my envelops if you see them, you'd probably throw a stone a t me
+15:32 < bridge> <AssassinTee> I wonder what you'd say about my envelops if you see them, you'd probably throw a stone at me
+15:33 < bridge> <cellegenrih> if the midground quads don't have para change at all, then you can resize the the boundary to be smaller
+15:34 < bridge> <cellegenrih> If as you said it affects performance, then this should also increase it's performance a bit
+15:34 < bridge> <cellegenrih> if the midground quads don't have para change at all, then you can resize the boundary to be smaller
+15:37 < bridge> <AssassinTee> This is probably the prefered solution in 99% of the cases, but not mine, because my snow flakes are 4x4 virtual pixels following a grid. The animation itself only uses step type 'N' and the pixels jump to their positions, this can't be done without para x/y being 100
+15:48 < bridge> <Jupstar ✪> u can also create an issue on github and try to explain it in more detail, i would not prevent it if u find maintainers that like your idea
+15:49 < bridge> <AssassinTee> I think I'll do a test implementation, measure, and add a PR if the stats provide it. Which maintainer would say no to 1% on average, and 1000% worst case improvements?
+15:50 < bridge> <louis> wow jupstar pro mapper
+15:52 < bridge> <cellegenrih> <a:Aware:1111862631842713650>
+15:52 < bridge> <cellegenrih> "just use less quads"
+15:56 < bridge> <Jupstar ✪> btw i think u can generally improve the quads rendering performance.
+15:56 < bridge> <Jupstar ✪> 
+15:56 < bridge> <Jupstar ✪> i quickly looked into the code, rn it calculates the envelop for every quad (even tho most quads probably have the same animation)
+15:56 < bridge> <Jupstar ✪> 
+15:56 < bridge> <Jupstar ✪> additionally env eval uses a linear search, which is probably no problem for small number of env points, but defs doesnt scale
+15:57 < bridge> <Jupstar ✪> that alone would maybe already double the fps xd
+15:57 < bridge> <Jupstar ✪> ah but animation time offsets could potentially be problematic
+15:57 < bridge> <Jupstar ✪> dunno if u use them too
+15:57 < bridge> <AssassinTee> yes, and I randomized them
+15:57 < bridge> <AssassinTee> 🙈
+15:58 < bridge> <AssassinTee> a randomize pos/col offset button would be a nice feature as well, but can't have everything
+15:58 < bridge> <patiga> yea in twmap I calculate the envelope values for each envelope_index, envelope_offset pair
+15:59 < bridge> <Jupstar ✪> ah nice, do you know a map that profits from it?
+15:59 < bridge> <Jupstar ✪> let say min. 128 quads
+16:01 < bridge> <AssassinTee> I am currently lookin into the OnMapLoading function, too. This virtual clip would be easy to implement, you are already iterating through all quads in a layer <https://github.com/ddnet/ddnet/blob/64f4ea1512b5abcc1ef27b90ede05cb9934df69b/src/game/client/components/maplayers.cpp#L811>
+16:01 < bridge> <patiga> I don't. I did it because yk I did everything differently and upload the envelope values to the gpu ^^
+16:01 < bridge> <patiga> so I just did that as a why-not optimization :d
+16:04 < bridge> <Jupstar ✪> ah u still calc them on CPU? didnt even know, but probs makes sense considering it's a loop
+16:04 < bridge> <patiga> yea, I don't think you can do that well on the gpu
+16:05 < bridge> <patiga> I put some thought into it and it just didn't sound all that good
+16:10 < bridge> <zhn> only if you know that 1 gpu thread will process contiguous-by-predicate data
+16:11 < bridge> <zhn> branch prediction powers it but not just random discarding
+16:12 < bridge> <cellegenrih> I suspect about an algorithm being ran on the GPU to select quads
+16:12 < bridge> <AssassinTee> does anyone know if quads are sorted inside a map? Or do I expect them randomly/the order the mapper added them?
+16:12 < bridge> <AssassinTee> probably the latter,
+16:12 < bridge> <zhn> latter, ye
+16:13 < bridge> <zhn> wdym by sorted btw
+16:13 < bridge> <AssassinTee> ofc, because the rendering order matters
+16:13 < bridge> <zhn> ah this
+16:13 < bridge> <AssassinTee> sorted by x/y, in order to improve rendering (like I am thinking about)
+16:14 < bridge> <zhn> hm you can rearrange them on client side
+16:14 < bridge> <AssassinTee> yes, but this would change the rendering order, so this isn't an option
+16:15 < bridge> <AssassinTee> this may work in most cases, but it breaks when quads in the same layer overlay each other
+16:15 < bridge> <zhn> but you can index them, no?
+16:15 < bridge> <AssassinTee> oh god, @patiga our np-problem is getting worse, if we allow overlays
+16:15 < bridge> <zhn> ah wait
+16:16 < bridge> <AssassinTee> hmm, you can get the most common color and overlay it with the rest of the pixelart tho 😮
+16:16 < bridge> <AssassinTee> oh god, @patiga our np-problem is getting worse, if we allow overlays with different colors
+16:16 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+16:16 < bridge> <egyt> 
+16:16 < bridge> <egyt> ```
+16:16 < bridge> <egyt> (paused)
+16:16 < bridge> <egyt> All combined
+16:17 < bridge> <egyt> Folder Link
+16:17 < bridge> <egyt> Follow
+16:17 < bridge> <egyt> Force vote
+16:17 < bridge> <egyt> Game paused
+16:17 < bridge> <egyt> Grabs
+16:17 < bridge> <egyt> Moved ingame
+16:17 < bridge> <egyt> No results
+16:17 < bridge> <egyt> Replace video
+16:17 < bridge> <egyt> Save
+16:17 < bridge> <egyt> Searching
+16:17 < bridge> <egyt> Super
+16:17 < bridge> <egyt> Vote command:
+16:17 < bridge> <egyt> Vote description:
+16:17 < bridge> <egyt> 
+16:17 < bridge> <egyt> [Graphics error]
+16:17 < bridge> <egyt> An error during command recording occurred. Try to update your GPU drivers.
+16:17 < bridge> <egyt> ```
+16:18 < bridge> <AssassinTee> yes, indexing would solve this, however this could run into other issues, e.g. caching
+16:47 < bridge> <Jaguar> How do I move to the bottom line when writing motd?
+17:02 < bridge> <meloƞ> `This is a\nMulti line\nMessage of the\nDay!`
+17:13 < bridge> <egyt> So, 16 left (counting this one, although still thinking of a good translation)... Nice!
+17:17 < bridge> <egyt> Sooo, 97.5% (591/607)... Just a little an the PR is here!
+17:18 < bridge> <egyt> Sooo, 97.5% (591/607)... Just a little and the PR is here!
+17:20 < bridge> <egyt> Sooo, 97% (590/607)... Just a little and the PR is here!
+17:20 < bridge> <egyt> So, 16 left (not counting this one, still thinking of a good translation)... Nice!
+17:33 < bridge> <egyt> Sooo, 97% (590/607)... Just a little and the PR is here!
+17:33 < bridge> <egyt> Melon, can you help here?
+17:37 < bridge> <cyberFighter> pro mapper requirements:
+17:37 < bridge> <cyberFighter> 1. knows how to copy paste bush quads 
+17:37 < bridge> <cyberFighter> 2. knows how to rotate them
+18:11 < bridge> <egyt> Sooo, 97% (590/607)... Just a little and the PR is here!
+18:11 < bridge> <egyt> Melon, can you help here? Or Heinrich?
+18:11 < bridge> <egyt> Sooo, 97% (590/607)... Just a little and the PR is here!
+18:11 < bridge> <egyt> Melon, can you help here? Or Heinrich? Anyone?
+18:22 < bridge> <zhn> ravie speedrun any%
+18:22 < bridge> <zhn> rip
+18:22 < bridge> <headshotnoby> rabies
+18:37 < bridge> <heinrich5991> egypt:
+18:37 < bridge> <heinrich5991> > "Vote command:"
+18:37 < bridge> <heinrich5991> > "Vote description:"
+18:37 < bridge> <heinrich5991> both used when adding votes to the server via the UI
+18:37 < bridge> <heinrich5991> > "Super"
+18:37 < bridge> <heinrich5991> used to indicate that a player has used the `super` command in the scoreboard, used instead of a team number (because internally, everyone using `super` joins the super team) (`super` makes you invulnerable to freeze tiles and gives you a similar thing to endless jumps)
+18:37 < bridge> <heinrich5991> > "Save"
+18:37 < bridge> <heinrich5991> like file→save. currently only used for ghosts
+18:37 < bridge> <heinrich5991> > "No results"
+18:37 < bridge> <heinrich5991> same as "Match %d of %d" that you alrready translated
+18:38 < bridge> <egyt> I'm not Egypt, but ok...
+18:38 < bridge> <learath2> You are egypt now, it's decided
+18:38 < bridge> <egyt> No.
+18:38 < bridge> <heinrich5991> egyt:
+18:38 < bridge> <heinrich5991> > "Vote command:"
+18:38 < bridge> <heinrich5991> > "Vote description:"
+18:38 < bridge> <heinrich5991> both used when adding votes to the server via the UI
+18:38 < bridge> <heinrich5991> > "Super"
+18:38 < bridge> <heinrich5991> used to indicate that a player has used the `super` command in the scoreboard, used instead of a team number (because internally, everyone using `super` joins the super team) (`super` makes you invulnerable to freeze tiles and gives you a similar thing to endless jumps)
+18:38 < bridge> <heinrich5991> > "Save"
+18:38 < bridge> <heinrich5991> like file→save. currently only used for ghosts
+18:38 < bridge> <heinrich5991> > "No results"
+18:38 < bridge> <heinrich5991> same as "Match %d of %d" that you alrready translated
+18:38 < bridge> <heinrich5991> sorry, that's my fingers autocorrecting the words I typ
+18:38 < bridge> <heinrich5991> sorry, that's my fingers autocorrecting the words I type
+18:39 < bridge> <egyt> OH, MATCH IS A VERB
+18:39 < bridge> <heinrich5991> no, match is a noun
+18:40 < bridge> <heinrich5991> "[this is] match 5 out of 12"
+18:40 < bridge> <egyt> well, noun that comes from verb
+18:40 < bridge> <heinrich5991> "[there were] no matches"
+18:40 < bridge> <heinrich5991> ah
+18:40 < bridge> <egyt> Match as a result, yeah?
+18:41 < bridge> <heinrich5991> yes
+18:41 < bridge> <egyt> Okaaay, time to fix
+18:41 < bridge> <learath2> Match "as a result"? huh
+18:42 < bridge> <learath2> Match as in "contest"~ is the meaning there
+18:42 < bridge> <egyt> Won't understand 😔
+18:42 < bridge> <egyt> ???
+18:42 < bridge> <heinrich5991> are you sure?
+18:42 < bridge> <learath2> Match %d of %d?
+18:42 < bridge> <heinrich5991> yes
+18:43 < bridge> <heinrich5991> it's in src/game/client/components/console.cpp
+18:43 < bridge> <learath2> Oh, I see. Yeah match as in "match result"
+18:43 < bridge> <heinrich5991> it's about rcon commands that match a search string, I think
+18:43 < bridge> <egyt> 😭
+18:43 < bridge> <egyt> English makes me sad
+18:44 < bridge> <egyt> next time use Esperanto as the source language
+18:44 < bridge> <egyt> ~~next time use Esperanto as the source language~~
+18:44 < bridge> <learath2> All natural languages have deficiencies because well they are mostly emergent, not of design 😄
+18:44 < bridge> <egyt> so, which match???
+18:45 < bridge> <egyt> so, which "match" it is???
+18:45 < bridge> <heinrich5991> result, something that matches
+18:45 < bridge> <egyt> okaaay
+18:45 < bridge> <heinrich5991> english is particularly bad about pronunciation. I don't know any other language that is as bad
+18:45 < bridge> <heinrich5991> okay, maybe except japanese
+18:46 < bridge> <learath2> Japanese isn't that bad
+18:46 < bridge> <heinrich5991> 学校
+18:46 < bridge> <learath2> Tough, though and plough are criminal 😄
+18:47 < bridge> <heinrich5991> nothing about that tells you something abotu the pronunciation
+18:47 < bridge> <heinrich5991> you need to learn each symbol, and they might even have different pronunciations depending on context
+18:47 < bridge> <learath2> Oh, that's what you mean, well yeah. But as soon as you know how it's written in hiragana it's mostly unique
+18:48 < bridge> <heinrich5991> yes, if you type it out in syllables, it's fine in japanese
+18:49 < bridge> <learath2> (There are a few sound changes here and there, e.g. は -> わ)
+18:49 < bridge> <egyt> > "Super"
+18:49 < bridge> <egyt> > used to indicate that a player has used the super command in the scoreboard, used instead of a team number (because internally, everyone using super joins the super team) (super makes you invulnerable to freeze tiles and gives you a similar thing to endless jumps)
+18:49 < bridge> <egyt> 
+18:49 < bridge> <egyt> Now I wonder where "Alpha" is used
+18:49 < bridge> <learath2> Alpha is always used as "Opacity"
+18:49 < bridge> <learath2> Higher values being more opaque
+18:52 < bridge> <heinrich5991> oh true. and へ → え
+18:54 < bridge> <learath2> えい -> ええ is also very common, and the す losing it's "う" in です
+19:32 < bridge> <egyt> > Adding votes to the server via UI
+19:32 < bridge> <egyt> 
+19:32 < bridge> <egyt> Can you tell more about this, please?
+19:33 < bridge> <egyt> > Adding votes to the server via UI
+19:33 < bridge> <egyt> 
+19:33 < bridge> <egyt> Could you tell me more about this, please?
+19:35 < bridge> <heinrich5991> egyt: log into a server via rcon and open the vote menu
+19:37 < bridge> <egyt> How do I log into a server?
+19:38 < bridge> <heinrich5991> start a server locally and check what password it tells you in the console. enter that in f2
+19:40 < bridge> <egyt> Good thing that I have two laptops, one with Windows and one with Linux...
+19:42 < bridge> <egyt> By the way, I replaced "resources" (as "assets" translation) with "textures", is that fine?
+19:43 < bridge> <heinrich5991> you don't need windows or linux for this, or two computers
+19:46 < bridge> <milkeeycat> you just need to press 1 button
+19:49 < bridge> <meloƞ> stick to the common terminology, assets are assets, resources are resources, textures are textures
+19:49 < bridge> <meloƞ> when someone plays with your translation, and we only really offer help in english, telling them to remove 4K assets, will tell them nothing if its translated to something else
+19:49 < bridge> <heinrich5991> but what are "assets" in ukrainian?
+19:50 < bridge> <heinrich5991> if the word that means "textures" is the best fit there, it'd make sense to translate like that
+19:51 < bridge> <robyt3> What's the difference between "resource" and "asset"? They are also synonymous in English
+19:51 < bridge> <heinrich5991> in german at least, I'd think "resources" would be a good translation for "assets"
+19:54 < bridge> <heinrich5991> seems like resource is also a word in ukrainian for that: https://uk.wikipedia.org/wiki/%D0%A0%D0%B5%D1%81%D1%83%D1%80%D1%81%D0%B8_(Windows)
+19:56 < bridge> <meloƞ> yeah it seems `ассет` (asset) is translated to `ресурс` (resource) in some contexts: that right egyt?
+19:56 < bridge> <meloƞ> yeah it seems `ассет` (asset) is translated to `Ресурси` (resource) in some contexts: that right egyt?
+19:57 < bridge> <meloƞ> yeah it seems `ассет`  or `асет` (asset) is translated to `Ресурси` (resource) in some contexts: that right egyt?
+19:58 < bridge> <heinrich5991> > "ассет" or "асет"
+19:58 < bridge> <heinrich5991> checking wiktionary, these don't seem to be russian or ukrainian words
+20:00 < bridge> <meloƞ> :YEP:  i'll drop out of this since i dont know ukrainian and i seem to google stuff wrong
+20:00 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1247248455789838388/image.png?ex=665f5624&is=665e04a4&hm=6d25d3b008f82cb8a5d47a48c2887aceb254c458cf15aa2056fa90b4aa3f5057&
+20:01 < bridge> <heinrich5991> "asset (noun)"
+20:04 < bridge> <egyt> Yes
+20:05 < bridge> <egyt> Yes, with a notion that "Ресурси" is plural
+20:05 < bridge> <egyt> Yes, with a notion that "Ресурси" is plural and "Ресурс" is singular
+20:06 < bridge> <egyt> Yes ("Ресурси" is plural and "Ресурс" is singular)
+20:06 < bridge> <egyt> That's russian
+20:09 < bridge> <meloƞ> a
+20:09 < bridge> <egyt> And, while "Asset" also translates as "актив" (https://en.wikipedia.org/wiki/Asset), I haven't seen it being translated in video game context even once
+20:09 < bridge> <egyt> And, while "Asset" also translates as "актив" (https://en.wikipedia.org/wiki/Asset), I haven't seen it being translated like that in video game context even once
+20:09 < bridge> <egyt> And, while "Asset" also translates as "актив" ([that one](https://en.wikipedia.org/wiki/Asset)), I haven't seen it being translated like that in video game context even once
+20:09 < bridge> <peter0x44> this might just be a personal thing, but to me assets are suppoesd to be edited, and resources are not
+20:09 < bridge> <peter0x44> this might just be a personal thing, but to me assets are supposed to be edited, and resources are not
+20:09 < bridge> <peter0x44> an asset would be a png, but a resource would be a GPU texture format or something
+20:10 < bridge> <egyt> really, use Esperanto as a source language to avoid confusion like this one :^)
+20:11 < bridge> <heinrich5991> does esperanto not have these problems of homonyms?
+20:11 < bridge> <peter0x44> but I'm not sure it matters in this context
+20:12 < bridge> <heinrich5991> https://esperanto.stackexchange.com/q/3446/5667
+20:12 < bridge> <heinrich5991> apparently esperanto also has homonyms
+20:13 < bridge> <robyt3> egyt: Time limit translation works for me, maybe you are running into the weird bug with the line reader. Or you accidentally changed the original translation somehow, like adding a space at the end
+20:13 < bridge> <robyt3> https://cdn.discordapp.com/attachments/293493549758939136/1247251716227727500/image.png?ex=665f592d&is=665e07ad&hm=04ad5eaf39be389bf8e6b3cb0369b81308e8ecf8dc24ad9fca2864abc9fba855&
+20:13 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247251808997347378/175a2a055f94a6c3.png?ex=665f5944&is=665e07c4&hm=39bd538e9ac9c63cea911b8db2b63dd0aecf1dfdac0a0f7d4587eba82c332a4e&
+20:13 < bridge> <egyt> Also, why does it say "-0.05" when it os "-0.06"?
+20:13 < bridge> <egyt> Also, why does it say "-0.05" when it is "-0.06"?
+20:13 < bridge> <heinrich5991> you can report that as a bug
+20:13 < bridge> <egyt> Also, why does it say "Finish time: \<...> -0.05" when it is "-0.06"?
+20:14 < bridge> <egyt> I checked it now and, well, I actually removed the space at the start :^)
+20:14 < bridge> <egyt> I checked it now and, well, I accidentaly removed the space at the start :^)
+20:17 < bridge> <egyt> The problem is, it sometimes happens, and sometimes it doesn't
+20:18 < bridge> <egyt> Also it happens when you arrived later than your best time
+20:18 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247253033184792658/599a29bc595499e4.png?ex=665f5a67&is=665e08e7&hm=f13440398f26870a5d616e588cc93de80681e8f5a8db498c118f5a6028e9b496&
+20:25 < bridge> <heinrich5991> just report it with the screenshot, should be enough
+20:30 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247256112403709993/db68801a735c7d17.png?ex=665f5d46&is=665e0bc6&hm=d90174bfb7f3223fa68a41b1fcbc89e1207ab2f84bce5a430764c8bf6ac86fc3&
+20:30 < bridge> <egyt> Here it shows correct delta both in chat and top right corner
+20:44 < bridge> <egyt> Current translation, Belarusian translation and Wiki uses "Textures", so that's why I chose this one
+20:47 < bridge> <heinrich5991> care to link the wiki?
+20:48 < bridge> <egyt> https://wiki.ddnet.org/wiki/Getting_started/uk#Вкладка_"Текстури"
+20:48 < bridge> <egyt> [here](https://wiki.ddnet.org/wiki/Getting_started/uk#%D0%92%D0%BA%D0%BB%D0%B0%D0%B4%D0%BA%D0%B0_%22%D0%A2%D0%B5%D0%BA%D1%81%D1%82%D1%83%D1%80%D0%B8%22)
+20:49 < bridge> <egyt> Also, it mentions "Тії" ("Tiyi") as the name for Tee tab
+20:49 < bridge> <egyt> I don't really like it
+20:51 < bridge> <egyt> one reason is it is not the original pronounciation, as you see
+20:51 < bridge> <egyt> I don't really like it because it is not the original pronounciation
+20:52 < bridge> <egyt> but at the same time it differs from the word "ті" ("those")
+20:53 < bridge> <egyt> but at the same time it differs from the word "ті" ("those"), so now I don't really know
+20:54 < bridge> <egyt> I also saw "персонаж" ("character") being used
+20:55 < bridge> <egyt> I also saw "персонаж" ("character") being used, but it is a regular noun, and won't really fit here
+20:55 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247262472008896632/aaa17df9d65fa9ce.png?ex=665f6332&is=665e11b2&hm=5f18a1f9d6ebaee890a91401906c03261fa776cb53c30cfe3c1a31ec512be40f&
+20:55 < bridge> <egyt> I also saw "персонаж" ("character") being used, but it is a regular noun, and won't really fit here (see picture below)
+20:57 < bridge> <egyt> so, either I stop with "Тії", or we have to change practically [all of these pages](https://wiki.ddnet.org/index.php?search=%D1%82%D1%96%D1%97)
+20:57 < bridge> <egyt> (please, make "Tee" tab translatable already!)
+21:02 < bridge> <egyt> (please, make "Tee" tab translatable already! https://github.com/ddnet/ddnet/issues/8436)
+21:02 < bridge> <egyt> Or should I open a separate issue?
+21:03 < bridge> <egyt> https://wiki.ddnet.org/wiki/Common_Terminology/uk did I struck gold?
+21:03 < bridge> <egyt> (please, make "Tee" tab translatable already! https://github.com/ddnet/ddnet/issues/8436)
+21:04 < bridge> <heinrich5991> no, that issue is fine
+21:04 < bridge> <heinrich5991> if you want to expedite the resolution of the issue, I suggest you create a pull request to make "Tee" translatabl
+21:04 < bridge> <heinrich5991> if you want to expedite the resolution of the issue, I suggest you create a pull request to make "Tee" translatable
+21:05 < bridge> <milkeeycat> Why translate tee
+21:05 < bridge> <egyt> 😫
+21:05 < bridge> <heinrich5991> e.g. because latin characters are usually not used in the language
+21:06 < bridge> <egyt> because we actually have a translation used on Wiki
+21:06 < bridge> <heinrich5991> I find the wiki reason meh
+21:06 < bridge> <milkeeycat> Thanks god i never open those pages
+21:06 < bridge> <heinrich5991> we can also adjust the wiki instead
+21:07 < bridge> <milkeeycat> my lang got casts :poggers:
+21:07 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1247265411846639737/image.png?ex=665f65ef&is=665e146f&hm=1cf8f99c2733f1bc306ea1fae9059e80819720b2c57eca8fc7e2302bca22013c&
+21:07 < bridge> <heinrich5991> what's the result of casting `-1` to `u8`?
+21:07 < bridge> <heinrich5991> is that a good result? ^^
+21:08 < bridge> <milkeeycat> It can parse casts but it cant print out stuff
+21:08 < bridge> <milkeeycat> Xd
+21:08 < bridge> <heinrich5991> ^^
+21:08 < bridge> <egyt> time to modify the source code again
+21:09 < bridge> <milkeeycat> The time has come either to add bool or 16 bit ints
+21:09 < bridge> <egyt> time to git clone again
+21:09 < bridge> <milkeeycat> Probably bool will be a better choice
+21:09 < bridge> <heinrich5991> no need to delete the clone btw 😉
+21:10 < bridge> <milkeeycat> And i redid all `From` impl into `TryFrom` :justatest:
+21:12 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+21:12 < bridge> <egyt> 
+21:12 < bridge> <egyt> ```
+21:12 < bridge> <egyt> (paused)
+21:12 < bridge> <egyt> All combined
+21:12 < bridge> <egyt> Folder Link
+21:12 < bridge> <egyt> Follow
+21:12 < bridge> <egyt> Game paused
+21:12 < bridge> <egyt> Grabs
+21:12 < bridge> <egyt> Moved ingame
+21:12 < bridge> <egyt> No results
+21:12 < bridge> <egyt> Replace video
+21:12 < bridge> <egyt> Searching
+21:12 < bridge> <egyt> 
+21:12 < bridge> <egyt> [Graphics error]
+21:13 < bridge> <egyt> An error during command recording occurred. Try to update your GPU drivers.
+21:13 < bridge> <egyt> ```
+21:20 < bridge> <milkeeycat> it works even without calling C functions 😏
+21:20 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1247268623010234487/image.png?ex=665f68ec&is=665e176c&hm=fa1d6d671ccfb026b5c2409c45f5f426f5207d25dc441d5f129153a4ca65bcb9&
+21:23 < bridge> <milkeeycat> it kinda works ™
+21:23 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1247268623010234487/image.png?ex=665f68ec&is=665e176c&hm=fa1d6d671ccfb026b5c2409c45f5f426f5207d25dc441d5f129153a4ca65bcb9&
+21:28 < bridge> <heinrich5991> nice 🙂
+21:30 < bridge> <milkeeycat> but my compiler is so high tech that it cant represent -128 as i byte :pepeW:
+21:30 < bridge> <milkeeycat> but my compiler is so high tech that it cant represent -128 as 1 byte :pepeW:
+21:31 < bridge> <egyt> Compiling time!!
+22:17 < bridge> <learath2> off by one error somewhere?
+22:18 < bridge> <milkeeycat> it's because of the way i handle integer literals
+22:18 < bridge> <milkeeycat> i have int_repr struct which stores unsigned value
+22:19 < bridge> <milkeeycat> and then it can be put in unary expr to make it negative
+22:19 < bridge> <milkeeycat> so first it's +128 which takes 2 bytes
+22:19 < bridge> <milkeeycat> and then it becomes negative
+22:49 < bridge> <egyt> Well, it works, now it is localisable
+22:49 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247291068123185286/d958fe6b017f18c2.png?ex=665f7dd4&is=665e2c54&hm=fdd7b149cecadc1b37488f16f07cf63e47ee9c21ca9f7270563703d5e7f12b62&
+22:54 < bridge> <egyt> Here we are, having a nice number
+22:57 < bridge> <egyt> So, this is the list of strings I couldn't translate, some because I don't know where they occure, and some because I don't know technical terms behind them
+22:57 < bridge> <egyt> 
+22:57 < bridge> <egyt> ```
+22:57 < bridge> <egyt> (paused)
+22:57 < bridge> <egyt> All combined
+22:57 < bridge> <egyt> Folder Link
+22:57 < bridge> <egyt> Follow
+22:57 < bridge> <egyt> Game paused
+22:57 < bridge> <egyt> Grabs
+22:57 < bridge> <egyt> Moved ingame
+22:57 < bridge> <egyt> Replace video
+22:57 < bridge> <egyt> Searching
+22:57 < bridge> <egyt> 
+22:57 < bridge> <egyt> [Graphics error]
+22:57 < bridge> <egyt> An error during command recording occurred. Try to update your GPU drivers.
+22:57 < bridge> <egyt> ```
+22:57 < bridge> <egyt> Also, 10 strings left to translate!
+23:00 < bridge> <egyt> So, I have to add
+23:00 < bridge> <egyt> 
+23:00 < bridge> <egyt> ```
+23:00 < bridge> <egyt> Tee
+23:00 < bridge> <egyt> ==
+23:00 < bridge> <egyt> ```
+23:00 < bridge> <egyt> 
+23:00 < bridge> <egyt> into my local translation, right?
+23:01 < bridge> <egyt> So, do I need to add
+23:01 < bridge> <egyt> 
+23:01 < bridge> <egyt> ```
+23:01 < bridge> <egyt> Tee
+23:01 < bridge> <egyt> ==
+23:01 < bridge> <egyt> ```
+23:01 < bridge> <egyt> 
+23:01 < bridge> <egyt> into my local translation?
+23:02 < bridge> <egyt> Or the next release will be without my translation for that tab?
+23:03 < bridge> <heinrich5991> yes
+23:03 < bridge> <egyt> Oh, and also https://github.com/ddnet/ddnet/pull/8404
+23:03 < bridge> <egyt> Informative
+23:08 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1247295759301345280/6bbd41a8c925ddcf.png?ex=665f8232&is=665e30b2&hm=ef727feee4c0348b5c76cf3d2e8e6fe3c3725a2d9306f294e1ed8607319489d9&
+23:08 < bridge> <egyt> hehehehe
+23:25 < bridge> <egyt> Huh, we actually have a word "форсувати"
+23:29 < bridge> <egyt> Huh, we actually have a word "форсувати" for that
+23:40 < bridge> <egyt> So, again, should I go into translation files of the repo to add
+23:40 < bridge> <egyt> 
+23:40 < bridge> <egyt> ```
+23:40 < bridge> <egyt> Tee
+23:40 < bridge> <egyt> ==
+23:40 < bridge> <egyt> ```
+23:40 < bridge> <egyt> 
+23:40 < bridge> <egyt> so my translation for Tee tab name will be in the next release
+23:40 < bridge> <egyt> So, again, should I go into translation files of the repo to add
+23:40 < bridge> <egyt> 
+23:40 < bridge> <egyt> ```
+23:40 < bridge> <egyt> Tee
+23:40 < bridge> <egyt> ==
+23:40 < bridge> <egyt> ```
+23:40 < bridge> <egyt> 
+23:40 < bridge> <egyt> so my translation for Tee tab name will be in the next release?
+23:40 < bridge> <egyt> So, again, should I go into translation files of the repo to add
+23:40 < bridge> <egyt> 
+23:40 < bridge> <egyt> ```
+23:40 < bridge> <egyt> Tee
+23:40 < bridge> <egyt> == Тії
+23:40 < bridge> <egyt> ```
+23:40 < bridge> <egyt> 
+23:40 < bridge> <egyt> so my translation for Tee tab name will be in the next release?
+23:40 < bridge> <learath2> Tii?
+23:43 < bridge> <egyt> https://wiki.ddnet.org/index.php?search=тії
+23:44 < bridge> <learath2> Huh, I did not know we even translated that one
+23:45 < bridge> <egyt> Because you never did
+23:46 < bridge> <egyt> I made a PR to make the "Tee" (tab name) translatable literally less then an hour ago
+23:46 < bridge> <egyt> I made a PR to make the "Tee" (tab name) translatable literally less than an hour ago
+23:50 < bridge> <egyt> I guess I'll have to ask "tomorrow"
+23:55 < bridge> <learath2> I forgot to restart my monero node after they replaced my hdd, now I fell so far behind that it'll take me days to resync
+23:55 < bridge> <meloƞ> why not PR your entire thing at once?
+23:55 < bridge> <learath2> It might be time to get a server upgrade too ngl, spinning rust is getting on my nerves lately
+23:56 < bridge> <meloƞ> https://www.youtube.com/shorts/nbVSITerFkE

@@ -1,0 +1,651 @@
+00:10 < bridge_> <learath2> The amount of pull requests have grown concerning, we should go through these before it goes completely out of hand
+00:27 < bridge_> <triki> so pplz will create one big instead 5 small.It is even worse.
+00:32 < bridge_> <heinrich5991> I think @learath2 is calling for maintainers to go through the PRs
+00:32 < bridge_> <heinrich5991> I'll try to go through the PRs tomorrow
+00:46 < bridge_> <learath2> #8386 is quite interesting
+00:46 < bridge_> <learath2> `actual 1127695164: 01000011 00110111 01000011 00111100`
+00:46 < bridge_> <learath2> `expect 1127629628: 01000011 00110110 01000011 00111100`
+00:46 < bridge_> <learath2> 
+00:46 < bridge_> <learath2> `actual -514903197: 11100001 01001111 00110011 01100011`
+00:46 < bridge_> <learath2> `expect 3779998307: 11100001 01001110 00110010 01100011`
+00:46 < bridge_> <DDNet> https://github.com/ddnet/ddnet/issues/8386
+00:46 < bridge_> <learath2> It's one bit flips
+00:57 < bridge_> <Ewan> is this a two's complement thing
+00:59 < bridge_> <Ewan> oh
+00:59 < bridge_> <Ewan> i didn't see the first pair were different
+01:00 < bridge_> <learath2> tbf I don't understand this bizarre encoding at all, `"öüä"` is just 4 bytes of utf8, why is it ending up in 2 ints?
+01:01 < bridge_> <Ewan> why is it just the 16th and 24th bits
+01:02 < bridge_> <learath2> tbf I don't understand this bizarre encoding at all, `"öüä"` is just 3 bytes of utf8, why is it ending up in 2 ints?
+01:02 < bridge_> <heinrich5991> ```py
+01:02 < bridge_> <heinrich5991> >>> len("öüä".encode())
+01:03 < bridge_> <heinrich5991> 6
+01:03 < bridge_> <heinrich5991> ```
+01:03 < bridge_> <heinrich5991> python (and my internal UTF-8 encoder) disagrees
+01:03 < bridge_> <Ewan> those might be ligatures
+01:03 < bridge_> <learath2> OH I had my encoding wrong on this stupid tool
+01:03 < bridge_> <heinrich5991> äöü are non-ASCII, thus taking up at least 2 bytes
+01:03 < bridge_> <heinrich5991> äöü are non-ASCII, thus taking up at least 2 bytes in UTF-8
+01:03 < bridge_> <Ewan> python len measures bytes and not chars of a string?
+01:03 < bridge_> <Ewan> concerning
+01:04 < bridge_> <heinrich5991> "chars" of a string is ill-defined
+01:04 < bridge_> <heinrich5991> but python does indeed measure something ill-defined for strings
+01:04 < bridge_> <heinrich5991> I asked for the length of a byte string though (`"äöü".encode()`)
+01:04 < bridge_> <learath2> for utf8 encoded strings
+01:04 < bridge_> <learath2> for ascii encoded strings it's not so ill-defined 😄
+01:04 < bridge_> <Ewan> i think the foob is to have this guy run a test on an older version of ddnet
+01:05 < bridge_> <heinrich5991> ASCII yes, "characters" seems simple enough there
+01:05 < bridge_> <heinrich5991> but in Unicode (irrespective from the encoding, be it UTF-8 or UTF-16), "character" is quite ill-defined
+01:06 < bridge_> <learath2> This test failure really makes no sense to me, did they re run it? Maybe it's cosmic rays? 🙃
+01:06 < bridge_> <Ewan> not gamma rays
+01:07 < bridge_> <Ewan> http://2143.christmas/f/d5xf.png
+01:07 < bridge_> <Ewan> probably this
+01:07 < bridge_> <learath2> I had a theory but that's probably not it
+01:07 < bridge_> <learath2> Is adding 128 there even well defined for a signec char?
+01:07 < bridge_> <learath2> Is adding 128 there even well defined for a signed char?
+01:07 < bridge_> <learath2> I think it is because it should get promoted to int
+01:08 < bridge_> <heinrich5991> there's "code unit" (byte for UTF-8, 16 bit-integer for UTF-16), "code point" (number between 0 and 0x10ffff, excluding 0xd800-0xdfff) and "user-perceived character" ("grapheme" in unicode parlance)
+01:08 < bridge_> <learath2> but idk maybe they are compiling with a weird compiler
+01:08 < bridge_> <Ewan> fedora rawhide
+01:08 < bridge_> <Ewan> gcc
+01:08 < bridge_> <heinrich5991> yes, it's promoted to `int` first
+01:08 < bridge_> <patiga> lets also blame this one on cosmic rays ^^ 
+01:08 < bridge_> <patiga> https://github.com/ddnet/ddnet/issues/8172 ☀️ ☀️ ☀️
+01:11 < bridge_> <heinrich5991> quakenet is still posting stuff to their blog: https://www.quakenet.org/news/375-port80se-delink
+01:12 < bridge_> <heinrich5991> (they still don't support TLS btw)
+01:12 < bridge_> <learath2> First thing that caught my eye was that it only happened with unicode, I wonder if it is a compiler reading the file wrong problem
+01:12 < bridge_> <Ewan> port80/"ip only" does give this impression
+01:13 < bridge_> <Ewan> wouldn't be the first time i've seen that, i just always escape
+01:13 < bridge_> <heinrich5991> port80 was just a sponsor, I think
+01:13 < bridge_> <Ewan> or file encoding issue
+01:13 < bridge_> <Ewan> but i think git should keep that proper
+01:14 < bridge_> <heinrich5991> unlikely. it's just bytes to the compiler
+01:16 < bridge_> <learath2> But there is nothing special to unicode that we do in `StrToInts`
+01:16 < bridge_> <learath2> The only other entity involved is the compiler
+01:17 < bridge_> <learath2> I can't spot any potential UB either except for the `+ 128` that sussed me out at the start
+01:18 < bridge_> <learath2> There are some absurd machines with 9 bit chars that might break it but I very much doubt this would be the only test to break 😄
+01:20 < bridge_> <heinrich5991> `(aBuf[0] + 128) << 24` this is UB
+01:20 < bridge_> <heinrich5991> shifting into the sign bit
+01:20 < bridge_> <learath2> Yep, damn
+01:21 < bridge_> <Ewan> looks like it happens on 16 too
+01:21 < bridge_> <learath2> How did I miss that, I was thinking about why these things werent unsigned to start with but didn't spot that
+01:21 < bridge_> <Ewan> i would have expected ubsan to find this
+01:22 < bridge_> <learath2> I don't know whether we run the test suite with ubsan, nor if we have the correct flag enabled
+01:24 < bridge_> <learath2> We do run tests with asan/ubsan, I wonder why it doesn't pick it up
+01:27 < bridge_> <Ewan> gamma rays
+01:29 < bridge_> <louis> that's interesting lmao
+01:30 < bridge_> <Ewan> is there an intrinsic or builtin for packing bytes into a u/int_*t?
+01:31 < bridge_> <learath2> LOL after we run the unit tests with asan and ubsan, we don't check their output properly because we don't export `ASAN_OPTIONS` and `UBSAN_OPTIONS`....
+01:33 < bridge_> <Ewan> professional
+01:33 < bridge_> <Ewan> unrelated but im trying to switch to arch/artix asap
+01:33 < bridge_> <Ewan> but i'm not sure what to do
+01:33 < bridge_> <Ewan> currently my OS is split across 3 nvme drives
+01:34 < bridge_> <Ewan> but my 2nd pcie 16x slot (which i plan to use for GPU passthrough) is switched with the third nvme slot due to pcie lane constraints
+01:35 < bridge_> <Ewan> so i wonder if i should just split my system across the first 2 drives and use the gpu, or if I should do what i'm doing rn and only use 1 16x slot
+01:35 < bridge_> <Ewan> problem is then i have a completely unused drive lol
+01:36 < bridge_> <Ewan> also still torn between arch and artix. have you ever had any systemd-related issues using arch repos on artix?
+01:37 < bridge_> <learath2> though I do find it hard to imagine what the compiler would emit that makes this happen, but would be worth fixing
+01:38 < bridge_> <learath2> You'll need to be comfortable with getting your own init files sometimes as artix is a small project that doesn't always have it packaged properly
+01:38 < bridge_> <Ewan> sounds exactly like what I want to avoid
+01:38 < bridge_> <learath2> Usually just a matter of getting it from gentoos repo
+01:39 < bridge_> <learath2> Honestly, I'm not the best person to ask this. I would not have systemd on anything I own, no matter how annoying it is to not have it
+01:39 < bridge_> <learath2> I would sooner code my own
+01:39 < bridge_> <Ewan> is compartmentalizing systemd really so far from reality
+01:40 < bridge_> <Ewan> i don't know too much about its issues
+01:40 < bridge_> <Ewan> because i generally use its features
+01:40 < bridge_> <Ewan> all at once or not at all
+01:40 < bridge_> <learath2> Well things like init files are hard, since systemd in their infinite wisdom decided moving away from shell scripts is the best idea
+01:41 < bridge_> <learath2> So any distro that wants to offer multiple init systems, has to offer a shell script for every init system ever, and a systemd unit file for systemd
+01:42 < bridge_> <Ewan> but unit files can very easily wrap shell scripts
+01:42 < bridge_> <learath2> But then you can't use the fancy functions of unit files
+01:42 < bridge_> <learath2> OpenRC offers the fancy features using extensions to the shell scripts in the form of annotations and functions, as it should be
+01:43 < bridge_> <learath2> Systemd offers fancy features by breaking every other init system support, definitely not in an attempt to push out competition for world domination
+01:44 < bridge_> <learath2> Anyway, only a few distros offers both properly. For distros that are small forks that remove systemd, you'll usually always need some manual labour to get stuff like init files
+01:44 < bridge_> <learath2> s\/offers/offer/
+01:45 < bridge_> <Ewan> offer
+01:45 < bridge_> <Ewan> i think hating systemd because it works differently is silly
+01:46 < bridge_> <Ewan> maybe sometimes it's inconvenient but i think most of the issues people have with it should be fixed in systemd
+01:46 < bridge_> <learath2> There are many reasons I hate systemd, so many that it would take us hours
+01:47 < bridge_> <learath2> So I'll give you the most important one. I don't even need to consider the others after this one. I ideologically disagree with this tumor-like development strategy and the resulting nasty monolith
+01:47 < bridge_> <Ewan> I see
+01:48 < bridge_> <Ewan> so what makes you say that their goal is to "conquer" the world of init systems
+01:48 < bridge_> <Ewan> i think they made a project that was fundamentally different and naturally as more people used it, it grew
+01:49 < bridge_> <learath2> They made a project that was fundamentally different. Then they started a marketing campaign targeting distro maintainters, they pushed their way onto mailing lists
+01:50 < bridge_> <learath2> They didn't convince the userbase, they just convinced fedora maintainers
+01:50 < bridge_> <Ewan> were they themselves not fedora maintainers
+01:50 < bridge_> <learath2> (because Poettering literally worked at Red Hat)
+01:51 < bridge_> <learath2> This is all disgusting backroom bs
+01:52 < bridge_> <Ewan> if somehow the users were involved in the decision making process, things probably would have gone the same way, no?
+01:53 < bridge_> <Ewan> i think systemd hatred is a somewhat new thing
+01:53 < bridge_> <learath2> Not even close to being new, I was there when these people infected debian too
+01:54 < bridge_> <learath2> There was always sane voices telling people the convenience was not worth introducing a million line monolith onto our computers
+01:54 < bridge_> <learath2> But linux users are not fundamentally different than users of any software. Most users only care about convenience, nothing else
+01:55 < bridge_> <Ewan> i think people will do nearly anything in the interest of time
+01:56 < bridge_> <Ewan> maybe distro maintainers could have staged systemd differently or offered an alternative version that still used sysvinit. but that's much more work
+01:56 < bridge_> <Ewan> and i think in the end most people would still want systemd
+01:57 < bridge_> <learath2> most people don't even understand what systemd is, let alone have an opinion
+01:58 < bridge_> <Ewan> they can use more software, and very rarely have to mess around with init scripts and the like, even if it takes them another second or two to boot
+01:58 < bridge_> <learath2> that's exactly what they leveraged in their marketing campaign, a less transparent piece of software that justworks(tm)
+01:58 < bridge_> <Ewan> i agree i don't like the way it is rn
+01:59 < bridge_> <learath2> systemd was faster because legacy sysvinit didn't parallelize well, that's how they convinced the ubuntu people
+01:59 < bridge_> <peter0x44> It can't be worse than sysvinit
+01:59 < bridge_> <learath2> systemd unit files were readily available and declarative, that's how they convinced the debian maintainers who were already struggling
+01:59 < bridge_> <Ewan> but I also don't think it's inherently flawed, if it was the same software package presented in a more modular fashion then people wouldn't have issues with it
+01:59 < bridge_> <learath2> poettering worked at red hat, that's how they got it into fedora
+01:59 < bridge_> <peter0x44> Out of all the software complaints I have systemd doesn't rank high
+01:59 < bridge_> <peter0x44> But I'm not a demanding user
+02:00 < bridge_> <learath2> I would just out of pure ideology use sysvinit and spend an extra minute booting
+02:01 < bridge_> <peter0x44> I'm using systemd-boot and systemd for DHCP and I think DNS
+02:01 < bridge_> <peter0x44> And it has "just worked" as much as it can
+02:01 < bridge_> <peter0x44> But I'm not defending it on some experienced level
+02:01 < bridge_> <Ewan> i don't think systemd does dns
+02:01 < bridge_> <Ewan> network-manager or dhcpcd
+02:02 < bridge_> <learath2> What's even more disgusting is how systemd slowly absorbed other projects into it. Such as udev, they promised it wouldn't become dependant on systemd. It was dependant immediately the next version. Gentoo had to maintain eudev for a decade
+02:02 < bridge_> <peter0x44> I think it does
+02:02 < bridge_> <peter0x44> https://wiki.archlinux.org/title/systemd-resolved
+02:02 < bridge_> <peter0x44> This thing
+02:02 < bridge_> <learath2> systemd does everything worry not
+02:02 < bridge_> <Ewan> oh i see
+02:02 < bridge_> <learath2> it's a nasty tumor that just has it's hand in every pie so that it becomes undissectable
+02:03 < bridge_> <Ewan> i guess it's more, like
+02:03 < bridge_> <Ewan> backdoor prone
+02:03 < bridge_> <peter0x44> "had to maintain" are they still maintaining it?
+02:03 < bridge_> <learath2> they ate consolekit, they ate polkit, they even ate cgroups support from the kernel
+02:03 < bridge_> <peter0x44> Wasn't the xz thing related to systemd in some way?
+02:04 < bridge_> <learath2> A few volunteers are still keeping it kinda up to date, but systemd gracefully allowed us to have udev back so we can use systemd-udev without systemd too
+02:06 < bridge_> <learath2> Why on gods green earth does my init system need to be connected to my dns resolver in any way? Why is my dns resolver going over dbus? Why is my init system involved in spawning containers? Why is my init system booting my computer? Why is my init system doing ntp?
+02:07 < bridge_> <learath2> ofcourse it is, just imagine the attack surface
+02:07 < bridge_> <learath2> good luck backdooring sysvinit, it's not connected to anything, it won't interpret anything itself
+02:08 < bridge_> <peter0x44> I think for DHCP I'm actually using whatever thing iwd has built in for it
+02:09 < bridge_> <learath2> Anyway, I don't really need any of these logical reasons to not like systemd. It completely goes against everything I believe fundamentally. It's like saying "autocracy is good because a good dictator can make better decisions faster than a democracy"
+02:09 < bridge_> <learath2> I still wouldn't want to live in a dictatorship
+02:10 < bridge_> <peter0x44> You already do
+02:10 < bridge_> <peter0x44> But... lets keep it technical I guess
+02:10 < bridge_> <learath2> It's a hypothetical
+02:17 <+ws-client> <ChillerDragon> ddnet 9 finds no ger servers? @heinrich5991 did we drop support for 10 yr old ddnet versions? xd
+02:17 <+ws-client> <ChillerDragon> @rafael8192 I sent you the exact code. I sent you two projects that implemented dummies and are ready to use. And the command you can use to get ddnet up and running with dummies. If you have trouble with any of those let me know some details.
+02:17 <+ws-client> <ChillerDragon> but if you keep asking for a func name you won't progress here.
+02:19 <+ws-client> <ChillerDragon> @fury0908 i don't remember seening a svg template but maybe this helps https://github.com/TeeworldsDB/graphictemplates/blob/master/grids/grid_skins_07.png
+02:21 < bridge_> <learath2> Yeah, see these people there is something wrong with them. Added Kay Sievers to my list of prayers
+02:21 <+ws-client> <ChillerDragon> @fury0908 here is greensward as svg maybe that helps you too :) https://github.com/teeworlds/teeworlds/files/3294053/greensward.zip
+02:23 < bridge_> <peter0x44> I don't remember if the fix was done on the kernel side or not
+02:23 < bridge_> <peter0x44> But just... Not prefixing your own configuration seems ridiculous
+02:25 < bridge_> <learath2> I'll tell you my opinion on it, they are entitled. This is the behaviour I've observed from these people ever since that first blog post about "Reimagining PID 1". They would eat the kernel whole if they had the development capacity
+02:29 < bridge_> <peter0x44> And regarding the init systems, is openrc or runit better? Any opinions there?
+02:29 < bridge_> <peter0x44> Regarding systemd-boot I think it might be the only part of systemd that can kind of be described as "minimal"
+02:29 < bridge_> <learath2> I've been using openrc, on everything, for a decade, it works, it's fast, it doesn't overreach
+02:30 < bridge_> <peter0x44> It's basically just a menu that lets you pick a boot entry, nothing more
+02:30 < bridge_> <peter0x44> Way better than grub ime
+02:30 < bridge_> <peter0x44> But of course grub sucking doesn't excuse systemd
+02:30 < bridge_> <learath2> I've used it before and it is surprisingly well isolated, but I've moved back to refind nowadays
+02:31 < bridge_> <peter0x44> Grub is absolutely terrible and I hate how it's pushed on new users
+02:31 <+ws-client> <ChillerDragon> lmao lerato and the big systemd conspiracy
+02:31 < bridge_> <peter0x44> It's the source of one of my 3 full arch breakages so far
+02:31 < bridge_> <learath2> Mostly because again, I find the way systemd and it's main developers conduct themselves abhorrent. Don't want anything conjured up by them anywhere near me
+                                                                                                                                                                         08:10 < bridge_> <egyt> I wish UI could adapt to strings
+08:10 < bridge_> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1244533048356372570/b187caa3c7497e53.png?ex=66557539&is=665423b9&hm=6f95666789bf05631f0f8add5f66ec5b9a383d0c72b3f38d95e4968dd19c35fc&
+08:13 < bridge_> <egyt> Also, I think that reused "Spectate" string at the right bottom should be it's own "Spectating" string instead - it would just make more sense!
+08:13 < bridge_> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1244534024894939256/6850cca7f541a004.png?ex=66557621&is=665424a1&hm=7d902d40c5c1ae388870e202b0580933217e353d0e05d15dfd94313e778469d8&
+08:14 < bridge_> <ryozuki> morning
+08:19 < bridge_> <egyt> But for now, I'll do with what I have...
+08:45 < bridge_> <Ewan> submit a pull request
+09:20 < bridge_> <egyt> Can't submit a pull request, can only make an issue
+09:23 < bridge_> <Ewan> Why
+09:26 < bridge_> <learath2> If you are going to use gnome, you almost have to use systemd. Gnome developers are the worst at isolating themselves. They link to everything and make it a dependency, including the tumor that is systemd
+09:29 < bridge_> <egyt> Can't code :^(
+09:43 < bridge_> <furo> There isn't that much coding involved, try searching the code base for `"Spectate"` which should lead you to a line in `hud.cpp` that you can change.
+10:07 < bridge_> <furo> Those two are different, so changing the line in `hud.cpp` is fine. The button you are talking about can be found in `menus_ingame.cpp`.
+10:07 < bridge_> <egyt> Okay... then I need to also add this string into l10n files, right?
+10:14 < bridge_> <egyt> But now we have SearXNG
+10:15 < bridge_> <egyt> Now we have SearXNG
+10:15 < bridge_> <egyt> Now we have SearXNG (and it's kinda good)
+10:17 < bridge_> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1244565012391919636/GOg-VPoWMAAGGJ7.jpg?ex=665592fd&is=6654417d&hm=e756c39a9dcfa5b2bbcc408e55e5f716902d376ecc9281061bd5e06c0d364569&
+10:18 < bridge_> <furo> You could, but what's wrong with name?
+10:18 < bridge_> <heinrich5991> I think so
+10:21 < bridge_> <egyt> In Ukrainian (and other Slavic languages too), we have two words: "ім'я" (first/given name) and "назва" (proper noun)
+10:25 < bridge_> <egyt> For example, "Andrew" is ім'я, and "DDNet" is назва
+10:31 < bridge_> <Ewan> @ryozuki do u know who did aur pkg for ddnet
+10:32 < bridge_> <Ewan> cargo and discord game sdk are hard deps even tho u should be able to use rustup & entirely disable the discord integration
+10:34 < bridge_> <furo> Hm, I guess changing the "name" string in server browser to "server name" should be fine?
+10:40 < bridge_> <heinrich5991> furo: have you checked the widths of the text fields?
+10:40 < bridge_> <heinrich5991> (you also don't need to change the original strings to have two different strings in a translation)
+10:40 < bridge_> <egyt> Yeah, it's gonna be fine. Thanks for help!
+10:42 < bridge_> <ryozuki> rafaelff
+10:42 < bridge_> <Ewan> i see
+10:42 < bridge_> <Ewan> maybe i will work on it later
+10:47 < bridge_> <Jupstar ✪> if the light rays were not shot perfectly orthogonal, then it's probably very hard to say how big red is
+10:48 < bridge_> <Jupstar ✪> 😬
+10:49 < bridge_> <teero777> We live in a perfect world 🌎🌍
+10:49 < bridge_> <teero777> We live in a perfect world
+10:58 < bridge_> <ryozuki> hmm no u can know the ratio from green
+11:03 < bridge_> <patiga> true, we could measure if the shadow outlines are parallel to figure that out
+11:03 < bridge_> <Jupstar ✪> there could be material in the air that makes it look like it is perfect just for the camera
+11:04 < bridge_> <Jupstar ✪> and if u'd move it 1cm it would look completely different
+11:04 < bridge_> <Jupstar ✪> similar to how water bends stuff visually
+11:04 < bridge_> <Jupstar ✪> i'd give such an answer in a math test and probably fail xD
+11:05 < bridge_> <Jupstar ✪> who even says that green and red are lighted by the same light source at all
+11:06 < bridge_> <Jupstar ✪> lit
+11:20 < bridge_> <Ewan> anyone know the state of the nvidia-open driver?
+11:20 < bridge_> <Jupstar ✪> u mean nouveuououooum
+11:20 < bridge_> <Jupstar ✪> ?
+11:20 < bridge_> <Ewan> No
+11:20 < bridge_> <Ewan> i mean the official nvidia oss driver
+11:20 < bridge_> <Jupstar ✪> ah, the kernel module?
+11:20 < bridge_> <Ewan> remember when that hacker threatened to leak
+11:20 < bridge_> <Ewan> and nvidia was like okay okay we will open source
+11:21 < bridge_> <Jupstar ✪> yeah there was smth
+11:21 < bridge_> <Ewan> <https://github.com/NVIDIA/open-gpu-kernel-modules>
+11:21 < bridge_> <Jupstar ✪> but someone still has to write the integration for it into mesa i guess
+11:21 < bridge_> <Ewan> ah
+11:21 < bridge_> <Ewan> i think i will try them
+11:22 < bridge_> <Jupstar ✪> if nvidia drivers ever get as good as amd would be epyc
+11:22 < bridge_> <Ewan> one day
+11:23 < bridge_> <Jupstar ✪> competition in the graphics card market for linux
+11:23 < bridge_> <Jupstar ✪> 😬
+11:23 < bridge_> <Ewan> properietary performance is fine but integration is terrible
+11:23 < bridge_> <Ewan> seems to make my gnome shit bricks
+11:23 < bridge_> <learath2> Thanks to the valiant efforts of the gentoo team to keep it all working
+11:23 < bridge_> <Ewan> yeah
+11:24 < bridge_> <Ewan> wonder if i can make the wm use my integrated graphics
+11:24 < bridge_> <learath2> I don't think it's in a usable state
+11:29 < bridge_> <egyt> Ah, I need to compile it... oh well.
+11:29 < bridge_> <Ewan> afaict i am using them rn but i think the modules are called the same thing
+11:29 < bridge_> <Ewan> seems to be working just as well
+11:29 < bridge_> <Ewan> still shitty in gnome
+11:30 < bridge_> <Ewan> man i really wanted this thing to mature https://github.com/jpochyla/psst/graphs/code-frequency
+11:34 < bridge_> <Ewan> wtf, i did not expect teamspeak3 to be in the extra repo
+11:43 < bridge_> <meloƞ> Im Home in Like 4 1/2 hours @egyt, If you struggle with doing a PR I can do that for you
+11:43 < bridge_> <learath2> "written in Rust, without Electron' I love it already
+11:45 < bridge_> <egyt> For now not, but still thanks!
+11:56 < bridge_> <Ewan> technically feature complete but it’s missing stuff like discovery that makes it rly viable for using instead of the official app
+12:11 < bridge_> <egyt> I compiled it and, well, no changes that I made 0\_0
+12:15 < bridge_> <Ewan> ```
+12:17 < bridge_> <Ewan> ewan@machine ~ [127]> DDNet 
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I engine: running on unix-linux-amd64
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I engine: arch is little endian
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I engine: operating system version: Linux 6.9.2-arch1-1 (x86_64, #1 SMP PREEMPT_DYNAMIC Sun, 26 May 2024 01:30:29 +0000); "Arch Linux"
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I storage: couldn't open storage.cfg
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I storage: using standard paths
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I storage: added path '$USERDIR' ('/home/ewan/.local/share/ddnet')
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I storage: added path '$DATADIR' ('/usr/share/ddnet/data')
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I storage: added path '$CURRENTDIR' ('/home/ewan')
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I console: executing 'settings_ddnet.cfg'
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I client: adding 72.204.22.162:6629 to favorites
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I sdl: SDL version 2.30.3 (compiled = 2.30.3)
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I gfx: Created Vulkan 1.1 context.
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I gfx: GPU vendor: NVIDIA
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I gfx: GPU renderer: NVIDIA GeForce RTX 3060
+12:17 < bridge_> <Ewan> 2024-05-27 04:15:22 I gfx: GPU version: Vulkan 1.3.277 (driver: 550.78.0.0)
+12:17 < bridge_> <Ewan> /usr/include/c++/14.1.1/bits/stl_vector.h:1130: std::vector<_Tp, _Alloc>::reference std::vector<_Tp, _Alloc>::operator[](size_type) [with _Tp = std::vector<CCommandProcessorFragment_Vulkan::SDelayedBufferCleanupItem>; _Alloc = std::allocator<std::vector<CCommandProcessorFragment_Vulkan::SDelayedBufferCleanupItem> >; reference = std::vector<CCommandProcessorFragment_Vulkan::SDelayedBufferCleanupItem>&; size_type = long unsigned int]: Assertion '__n < 
+12:17 < bridge_> <Ewan> fish: Job 1, 'DDNet' terminated by signal SIGABRT (Abort)
+12:17 < bridge_> <Ewan> ```
+12:17 < bridge_> <Ewan> ☹️
+12:17 < bridge_> <heinrich5991> bt
+12:17 < bridge_> <Ewan> true.
+12:17 < bridge_> <heinrich5991> index out of range? maybe a problem of our code?
+12:17 < bridge_> <Ewan> `CCommandProcessorFragment_Vulkan::SDelayedBufferCleanupItem` sounds like ddnet graphics code
+12:17 < bridge_> <egyt> I hope running grep \~/ddnet won't ruin my system...
+12:18 < bridge_> <meloƞ> Vulkan mentioned, @jupeyy_keks pinged
+12:18 < bridge_> <meloƞ> :kek:
+12:19 < bridge_> <Jupstar ✪> is that latest ddnet code?
+12:19 < bridge_> <Ewan> from aur which builds from upstream
+12:19 < bridge_> <Jupstar ✪> upstream latest?
+12:19 < bridge_> <Jupstar ✪> or upstream latest version
+12:19 < bridge_> <heinrich5991> by default latest release
+12:19 < bridge_> <Ewan> 18.2-1
+12:20 < bridge_> <heinrich5991> so not master branch
+12:20 < bridge_> <Jupstar ✪> try ddnet-git
+12:20 < bridge_> <Ewan> arch dist flags are also known to screw things up
+12:20 < bridge_> <Jupstar ✪> no
+12:20 < bridge_> <Ewan> fortify source and whatnot
+12:20 < bridge_> <Ewan> yes
+12:20 < bridge_> <Jupstar ✪> it looks like the thing melon already reported
+12:20 < bridge_> <Jupstar ✪> but it should be fixed
+12:21 < bridge_> <meloƞ> Ewan are you using X11 or wayland ? It happened on my hyprland setup, worked on cinnamon x11
+12:21 < bridge_> <Ewan> waylon
+12:21 < bridge_> <Ewan> im building from ddnet-git rn
+12:21 < bridge_> <Ewan> ah much better
+12:21 < bridge_> <Ewan> https://cdn.discordapp.com/attachments/293493549758939136/1244596408145805333/image.png?ex=6655b03b&is=66545ebb&hm=f07b6681a895807767c5ab938e3386d751b9d2b3a8f3b8729c639de57c4bc243&
+12:22 < bridge_> <heinrich5991> we fortify source in ddnet as well. also, if that breaks anything, it's usually a bug in the project
+12:22 < bridge_> <Ewan> yes
+12:22 < bridge_> <Ewan> it can expose bugs that devs didnt know about
+12:22 < bridge_> <heinrich5991> fortify source means adding more bounds checks, so less unnoticed out of bounds writes
+12:22 < bridge_> <Jupstar ✪> ah yeah LTO
+12:27 < bridge_> <Jupstar ✪> tja
+12:27 < bridge_> <Ewan> this close to going back to xorg
+12:27 < bridge_> <Jupstar ✪> wayland still beta after 20 years
+12:27 < bridge_> <Ewan> yea
+12:27 < bridge_> <heinrich5991> you can tell the compiler that `Localize` passes through the string as-is
+12:27 < bridge_> <Ewan> also doesn't help it makes all my xorg apps blurry n shit
+12:28 < bridge_> <Jupstar ✪> lmao
+12:28 < bridge_> <Jupstar ✪> soon kde6 releases, with wayland on default
+12:28 < bridge_> <Jupstar ✪> already super hyped to have a broken wm
+12:28 < bridge_> <Jupstar ✪> 😬
+12:29 < bridge_> <Jupstar ✪> i seriously wonder why they struggle so much with wayland
+12:36 < bridge_> <egyt> it has already released
+12:37 < bridge_> <Jupstar ✪> thanks for beta testing
+12:37 < bridge_> <Ewan> all of this stuff is just so fucking close to working properly
+12:38 < bridge_> <Ewan> but the tiny bugs go the furthest
+12:38 < bridge_> <Ewan> and make things completely unusable
+12:38 < bridge_> <Ewan> maybe middleware devs can’t handle wayland’s low level nature
+12:39 < bridge_> <Ewan> so much more room for error
+12:39 < bridge_> <egyt> 🤣
+13:25 < bridge_> <learath2> @heinrich5991 how did you end up sending the messages back into C++?
+13:25 < bridge_> <heinrich5991> I expose a C API
+13:25 < bridge_> <heinrich5991> modelled a bit after curl's
+13:26 < bridge_> <heinrich5991> probably only publishers can use them @avolicious https://discord.com/channels/252358080522747904/745926398140612678/1244612429422526475
+13:26 < bridge_> <avolicious> Yeah, thought so
+13:26 < bridge_> <avolicious> thanks
+13:27 < bridge_> <learath2> On which side?
+13:27 < bridge_> <heinrich5991> on rust's side
+13:28 < bridge_> <heinrich5991> it's basically a rust library with an optional C API
+13:29 < bridge_> <heinrich5991> (https://github.com/ddnet/ddnet/pull/6961 for an older version of it)
+13:29 < bridge_> <learath2> Did you make it asynchronous somehow? We can't really block waiting on two network stacks one after the other, so I'm guessing you did find a way 🙃
+13:29 < bridge_> <heinrich5991> I'll have a couple of design questions in the end
+13:29 < bridge_> <heinrich5991> I'm only blocking on the socket, feeding the stuff to the right network protocol once it comes from the socket
+13:30 < bridge_> <robyt3> We already do that I think:
+13:30 < bridge_> <robyt3> ```
+13:30 < bridge_> <robyt3> extern const char *Localize(const char *pStr, const char *pContext = "")
+13:30 < bridge_> <robyt3>     GNUC_ATTRIBUTE((format_arg(1)));
+13:30 < bridge_> <robyt3> ```
+13:30 < bridge_> <robyt3> The build failure seems related to the `str_format` template
+13:31 < bridge_> <learath2> But are you even allowed to block on that? The game code needs to keep going even if there are no packets coming in, no matter how unlikely that is
+13:31 < bridge_> <heinrich5991> ah. we might need to tell the compiler to disable the warning for the release build, I guess
+13:31 < bridge_> <heinrich5991> I'm doing the same thing as before. blocking with a timeout that the game code dictates
+13:32 < bridge_> <learath2> Oh wait is it one socket for both udp and quic?
+13:32 < bridge_> <heinrich5991> yes
+13:32 < bridge_> <learath2> Ah that's a cool way to do it
+13:32 < bridge_> <heinrich5991> (otherwise, you could select (or more modern alternatives) on two sockets)
+13:32 < bridge_> <learath2> I would have probably moved quic to 9304 and used two sockets with select/epoll
+13:33 < bridge_> <learath2> 8304* 😄
+13:33 < bridge_> <heinrich5991> the tricky stuff is all the edge cases
+13:33 < bridge_> <heinrich5991> e.g. local serverbrowser. how's that supposed to work
+13:34 < bridge_> <learath2> No broadcast in quic?
+13:34 < bridge_> <heinrich5991> no connection-less messages in quic
+13:34 < bridge_> <heinrich5991> broadcast is probably not impossible, but currently not possible with the quic library I'm using
+13:35 < bridge_> <learath2> Well if we keep the udp thing forever. I guess just using it for discoverability wouldn't be the worst
+13:35 < bridge_> <ryozuki> you talking about ddnet quic pr?
+13:35 < bridge_> <heinrich5991> ye
+13:35 < bridge_> <heinrich5991> meh, I'd like to move away from that ^^
+13:35 < bridge_> <heinrich5991> i.e. support turning off the teeworlds net protocol entirely
+13:36 < bridge_> <learath2> Well if quic doesn't support it, quic doesn't support it. Can't do any better than that
+13:36 < bridge_> <heinrich5991> getting the server info could be a thign you do with a connection
+13:36 < bridge_> <learath2> If broadcasts are somehow possible maybe you could make something work
+13:37 < bridge_> <learath2> Or abuse something like bonjour. Don't most OSs run some daemon for it?
+13:38 < bridge_> <heinrich5991> broadcasts are possible in any network protocol, as you can just broadcast the first network message and treat each answer individually
+13:38 < bridge_> <heinrich5991> btw. design questions:
+13:38 < bridge_> <heinrich5991> - review protocol for segmenting messages, is there some sort of standard maybe?
+13:38 < bridge_> <heinrich5991> - review protocol for disconnects, could we maybe get a two-way disconnect?
+13:38 < bridge_> <Ewan> Not on windows unless explicitly installed (or by iTunes)
+13:38 < bridge_> <heinrich5991> we get a byte stream from quic. how do we segment messages?
+13:39 < bridge_> <heinrich5991> on disconnects: I'm currently tending towards two-way disconnects to make them reliable
+13:40 < bridge_> <heinrich5991> and then I'd limit the amount of connections in pre-connect and disconnecting state to like 1 or 2 per IP address
+13:41 < bridge_> <heinrich5991> oh, and then there's getting server info from favorites not listed on the masterservers. also an interesting question. might get the same treatment as the local server
+13:42 < bridge_> <learath2> Isn't segmenting already handled by CNetChunk and whatever we bundle chunks in?
+13:42 < bridge_> <heinrich5991> the problem is that we get more features in QUIC
+13:43 < bridge_> <heinrich5991> we get unreliable messages (used for unreliable ddnet `CNetChunk`s)
+13:43 < bridge_> <heinrich5991> and we get byte streams (used for reliable ddnet `CNetChunk`s)
+13:44 < bridge_> <heinrich5991> but we need to segment these byte streams again. using the old structure would work, but it's kinda unnecessary because they contain an ID and some flags we don't need
+13:44 < bridge_> <learath2> Ah, so you can root out all the reliabile delivery we have to implement over udp
+13:44 < bridge_> <heinrich5991> yes!
+13:45 < bridge_> <learath2> I would just send bare CNetChunks, don't they contain enough information in the header to know when one is complete?
+13:46 < bridge_> <heinrich5991> they contain unnecessary IDs though, and unnecessary flagds
+13:46 < bridge_> <heinrich5991> they contain unnecessary IDs though, and unnecessary flags
+13:48 < bridge_> <learath2> Heh, true nothing in there is needed anymore flagwise tbh. So I guess might aswell google around to learn if there is a segmentation standard somewhere
+13:48 < bridge_> <learath2> I would just use length prefixed messages, but doesn't hurt to check around
+13:48 < bridge_> <heinrich5991> yea, that's what I'm currently using
+13:49 < bridge_> <learath2> What is the benefit of a two way disconnect btw?
+13:50 < bridge_> <heinrich5991> reliable disconnects. means that the message sent by the server will actually arrive at the client
+13:50 < bridge_> <heinrich5991> there's e.g. https://en.wikipedia.org/wiki/Consistent_Overhead_Byte_Stuffing, but I found it a bit weird
+13:50 < bridge_> <heinrich5991> not sure if it's fast, e.g.
+13:51 < bridge_> <learath2> Eeeh I wouldn't do byte stuffing
+13:51 < bridge_> <heinrich5991> is that a term you knew beforehand? ^^ I didn't know what "byte stuffing" was
+13:52 < bridge_> <learath2> I learned it in my computer networks course while talking about how one could have control bytes without constraining the content of the message
+13:52 < bridge_> <heinrich5991> interesting ^^
+13:54 < bridge_> <learath2> We could though totally check it out see how it performs
+13:56 < bridge_> <learath2> Oh this form of it I hadn't really seen before though. It is a pretty cool idea
+13:57 < bridge_> <learath2> I was thinking of HDLC framing
+16:26 < bridge_> <rafael8192> iam on windows
+16:26 < bridge_> <rafael8192> thank you for your understanding and patience
+16:47 < bridge_> <meloƞ> isnt it just 8
+16:50 < bridge_> <ryozuki> yes
+16:50 < bridge_> <meloƞ> im such a gamer
+17:09 < bridge> <egyt> I don't think we learn tangent in 8th grade
+17:09 < bridge> <meloƞ> its just a / b = a2 / b2
+17:09 < bridge> <meloƞ> 
+17:09 < bridge> <meloƞ> resolve for a
+17:09 < bridge> <meloƞ> its just a / b = a2 / b2
+17:09 < bridge> <meloƞ> 
+17:09 < bridge> <meloƞ> resolve for a2
+17:10 < bridge> <egyt> then I overcomplicated it
+17:13 < bridge> <Jupstar ✪> every number is the correct answer
+17:27 < bridge> <robyt3> 6.66m if you measure the pixels in the image :monkaS:
+17:28 < bridge> <Jupstar ✪> how so?
+17:28 < bridge> <Jupstar ✪> did u respect the perspective of the camera?
+17:29 < bridge> <meloƞ> 2 / 3 = x / 10
+17:29 < bridge> <meloƞ> 
+17:29 < bridge> <meloƞ> (2 / 3) * 10 = x
+17:29 < bridge> <meloƞ> 
+17:29 < bridge> <meloƞ> x = 6.66
+17:29 < bridge> <robyt3> left is 500 pixels high, right is 150 pixels high
+17:29 < bridge> <meloƞ> math checks out
+17:29 < bridge> <Jupstar ✪> no
+17:29 < bridge> <Jupstar ✪> perspective matters
+17:29 < bridge> <Jupstar ✪> if the right bar is thicker then the camera is closer to it (assuming normal conditions)
+17:29 < bridge> <Jupstar ✪> but anyway, i am team every number is correct
+17:29 < bridge> <Jupstar ✪> 😬
+17:29 < bridge> <Jupstar ✪> shit questions require shit answers
+17:30 < bridge> <meloƞ> an apprentice of mine almost started crying because he used circle interpolation wrong and made the machine draw cute eyes into my machine bed
+17:30 < bridge> <meloƞ> thats some fun math for you
+17:31 < bridge> <Jupstar ✪> math is no fun, math is the truth
+17:31 < bridge> <Jupstar ✪> the truth always hurts
+17:31 < bridge> <meloƞ> math is fun when you reach the point of understanding it, i hated math in school because i didnt understand it :D
+18:00 < bridge> <murpi> `chat: *** Do you know someone who uses a bot? Please report them to the moderators.` Where does this message come from? Is this hardcoded?
+18:04 < bridge> <robyt3> Yeah, it's hard-coded really old bot protection. The bad answer to the shibboleth is `xd sure chillerbot.png is lyfe`, which makes the current run not eligible for finish. It was always a bug that players could see this message though, see also #8276
+18:04 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/8276
+18:06 < bridge> <TsFreddie> <a:HUH:1178720004980605089> can i ask what the message was actually for?
+18:06 < bridge> <TsFreddie> i forgot whether i've asked about it before
+18:08 < bridge> <robyt3> It automatically makes some old chillerbot version auth itself as a bot and disabled the finish
+18:09 < bridge> <robyt3> It automatically makes some old chillerbot version auth itself as a bot and disables the finish
+18:09 < bridge> <robyt3> I suppose because the client just answers this message to any message containing the word "bot" or something like that
+18:09 < bridge> <robyt3> Should probably be removed since nobody uses it anymore and it also causes normal runs to not count anymore if the player write the message in the first 10 seconds after joining
+18:09 < bridge> <TsFreddie> so was it suppose to send it to a invalid player as a message so the normal client doesn't actually shows them?
+18:09 < bridge> <robyt3> yes, but I guess if a player joins in the right moment it will show up anyway
+18:10 < bridge> <TsFreddie> <a:vibe:1191801470945869927> that make sense. the sending message part not the showing up part.
+18:13 < bridge> <TsFreddie> i mean if the server is full there is no way for the message to be from or to a invalid player i think?
+18:13 < bridge> <robyt3> yeah, I suppose that's where it has to come from, unless it picks client ID -1 at least
+18:13 < bridge> <robyt3> looks like it uses -1 if no empty slot is found, so that's when you should see the message as a server message
+18:13 < bridge> <robyt3> it could still show up as the message of another client though
+18:14 < bridge> <TsFreddie> probably just some order of packet / race condition thing when multiple players is connecting
+18:17 < bridge> <TsFreddie> does server choose client id from 0 to max_clients? maybe reverse this loop could help, it is less likely to choose a client id that might get connected soon because another player joined. https://github.com/ddnet/ddnet/pull/7968/files#diff-aba621fd6688d4086ab40e58808cc12fdf591fdedf0d6c58cde2312b68cea5e0L1522
+18:20 < bridge> <robyt3> yeah, could help. I would vote for removing it though
+18:21 < bridge> <TsFreddie> but now that you've said it here, isn't it possible for someone to find out there is a older bot they could use.
+18:21 < bridge> <TsFreddie> :justatest:
+18:22 < bridge> <robyt3> I think that would have to be more than 10 years old already
+18:22 < bridge> <TsFreddie> fair enough
+18:23 < bridge> <TsFreddie> and version check already covers that I imagine?
+18:25 < bridge> <robyt3> not sure if it also sends a version code as well. the code to detect it was added 6 years ago when deen already said nobody seems to use it anymore: #1408
+18:25 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/1408
+18:26 < bridge> <robyt3> not sure if it also sends a version code as well. the code to detect it was added 6 years ago when deen said nobody seems to use it anymore already: #1408
+18:27 < bridge> <TsFreddie> what would happen if we just drop clients that are too old
+18:39 < bridge> <meloƞ> sad android peeps
+19:25 < bridge> <egyt> sooo, how do to **actually** do the thing I want to do?
+19:26 < bridge> <egyt> Translating DDNet-Server will be a funny expirience
+20:02 < bridge> <learath2> Heinrich would just perish
+20:27 < bridge> <egyt> I compiled my fork, but not the fork branch 🤦
+20:28 < bridge> <Jupstar ✪> @robyt3 what was changed that connecting to a server is so much faster in latest release?
+20:31 < bridge> <robyt3> #6823 ? Or more recent than that?
+20:31 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6823
+20:32 < bridge> <egyt> All we learn by mistakes, aren't we?
+20:35 < bridge> <Jupstar ✪> maybe map loading is faster?
+20:35 < bridge> <Jupstar ✪> bcs we load the file at once
+20:36 < bridge> <Jupstar ✪> wasnt there a change like that
+20:36 < bridge> <robyt3> That part was reverted I think
+20:36 < bridge> <robyt3> We don't load the map into memory
+20:36 < bridge> <Jupstar ✪> ok xd
+20:39 < bridge> <Jupstar ✪> maybe it's really just bcs of this
+20:39 < bridge> <Jupstar ✪> since it feels like u can play faster
+20:40 < bridge> <robyt3> yeah, maybe also #8228 because it removes the weird `m_aReceivedSnapshots[!g_Config.m_ClDummy] >= 3` conditions
+20:40 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/8228
+20:43 < bridge> <robyt3> Seems like it was introduced in version 17.2 from some testing with the release version, so probably #6823 then
+20:43 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6823
+21:27 < bridge> <cyberFighter> this server spawned in 2 of these star bugs lol
+21:27 < bridge> <cyberFighter> https://cdn.discordapp.com/attachments/293493549758939136/1244733793714176090/2024-05-27_21-24-26.mp4?ex=6656302e&is=6654deae&hm=84e2df5c30088bee344934edb864c979a6902426dea9cde88fcb9d0e031f85eb&
+21:34 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1244735513915687045/changes.png?ex=665631c8&is=6654e048&hm=a20c2e4bb3a5ac076289db2e33d2ebcc0c4ffda5813773190a7053e8eb5ecd8d&
+21:34 < bridge> <egyt> Yes, it works, it was just me compiling the wrong branch 😅
+21:39 < bridge> <egyt> Yeah, just wanted to post that link here, tha... wait, what?
+21:39 < bridge> <meloƞ> @egyt but you posted your images inbetween the checks? :D
+21:39 < bridge> <meloƞ> @egyt LGTM but you posted your images inbetween the checks? :D
+21:39 < bridge> <egyt> "inbetween"?
+21:39 < bridge> <meloƞ> remember that if you want to change "localize", you have to change the string in every .txt file from spectate to spectating
+21:40 < bridge> <meloƞ> otherwise translations will breka
+21:40 < bridge> <meloƞ> otherwise translations will break
+21:41 < bridge> <egyt> "inbetween"?
+21:41 < bridge> <egyt> oh yeah
+21:42 < bridge> <egyt> No, the "Spectate" button stays the same, and "Name" in the scoreboard stays the same too, so we only need to ADD a string (and I heard from furo that it is done automatically?) and not change them
+21:43 < bridge> <egyt> I'll edit that quickly now
+21:43 < bridge> <meloƞ> now "Spectating" wont be translated - because it looks for "Spectate"
+21:43 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1244737700465086534/image.png?ex=665633d1&is=6654e251&hm=ba311e02588c3da8d4538ed414b0c81250f9ebff1acfbf24dd7616b003d3e9ee&
+21:43 < bridge> <egyt> Yeah, we now need to translate those strings... sorry for the extra work
+21:44 < bridge> <egyt> Yeah, we now need to translate those two strings... sorry for the extra work
+21:44 < bridge> <meloƞ> not really translate, more like change every .txt file ^^ - your PR is incomplete that way :o
+21:44 < bridge> <meloƞ> not really translate (even tho that might break translation for some languages), more like change every .txt file ^^ - your PR is incomplete that way :o
+21:44 < bridge> <egyt> Okay, will change it too
+21:45 < bridge> <milkeeycat> good that my prs are always complete
+21:45 < bridge> <milkeeycat> amrite
+21:45 < bridge> <meloƞ> the screenshots shouldnt go inbetween the Checklist breaks format! (nitpicking at that point)
+21:45 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1244738240943231089/image.png?ex=66563452&is=6654e2d2&hm=7fafb7aa47cf76f0f9ac630063b59b44a6faa6cf90ba5c6ab4e54a74e54f4658&
+21:46 < bridge> <meloƞ> the screenshots shouldnt go inbetween the Checklist, breaks format! (nitpicking at that point)
+21:46 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1244738240943231089/image.png?ex=66563452&is=6654e2d2&hm=7fafb7aa47cf76f0f9ac630063b59b44a6faa6cf90ba5c6ab4e54a74e54f4658&
+21:47 < bridge> <egyt> Yeah, sorry for the incompetence. I'm just a translator, after all, don't have as much expirience with GitHub :^)
+21:47 < bridge> <meloƞ> yeah thats why i said im nitpicking ^^ - no worries!
+21:48 < bridge> <furo> What do you mean? Are you suggesting to use the same translation for "Spectate" and "Spectating"? That shouldn't be done, as their meanings are different.
+21:50 < bridge> <egyt> I guess they talk about "Spectating" not being in the l10n files
+21:50 < bridge> <egyt> I guess they talk about "Spectating" string not being in the l10n files
+21:57 < bridge> <meloƞ> :justatest:
+21:58 < bridge> <egyt> That's how I kinda feel, because there is this
+21:58 < bridge> <egyt> https://cdn.discordapp.com/attachments/293493549758939136/1244741623653339247/9fe20c0415fd6387.png?ex=66563779&is=6654e5f9&hm=5ba01ba000640a841b89b779fb6cf5453ccf03b7a6e9e10f1af1102e0f394e29&
+22:08 < bridge> <meloƞ> cant find the correct words to describe it non code-ish
+22:08 < bridge> <meloƞ> 
+22:08 < bridge> <meloƞ> if you have `str_format(aBuf, sizeof(aBuf), "%s: %s", Localize("Spectate")`
+22:08 < bridge> <meloƞ> it will look up the Spectate string and display the fitting translation given in the .txt files (e.G german.txt)
+22:08 < bridge> <meloƞ> 
+22:08 < bridge> <meloƞ> if you have `str_format(aBuf, sizeof(aBuf), "%s: %s", Localize("Spectate", "SpectateIngame"),`
+22:08 < bridge> <meloƞ> it still translates Spectate but will consider the context "SpectateIngame", if now the translation has a translation for Spectate with the context of SpectateIngame - it will choose that.
+22:08 < bridge> <meloƞ> 
+22:08 < bridge> <meloƞ> @jupeyy_keks did i explain that right? am i right?
+22:08 < bridge> <meloƞ> cant find the correct words to describe it non code-ish
+22:08 < bridge> <meloƞ> 
+22:08 < bridge> <meloƞ> if you have `str_format(aBuf, sizeof(aBuf), "%s: %s", Localize("Spectate")`
+22:08 < bridge> <meloƞ> it will look up the Spectate string and display the fitting translation given in the .txt files (e.G german.txt)
+22:08 < bridge> <meloƞ> 
+22:08 < bridge> <meloƞ> if you have `str_format(aBuf, sizeof(aBuf), "%s: %s", Localize("Spectate", "SpectateIngame"),`
+22:08 < bridge> <meloƞ> it still translates Spectate but will consider the context "SpectateIngame", if now the translation has a translation for Spectate with the context of SpectateIngame - it will choose that.
+22:08 < bridge> <meloƞ> 
+22:08 < bridge> <meloƞ> @jupeyy_keks did i explain that right? am i right? its late i go bed gn
+22:11 < bridge> <meloƞ> as an example:
+22:11 < bridge> <meloƞ> 
+22:11 < bridge> <meloƞ> `                if(DoButton_Menu(&s_RelativeButton, Localize("Relative", "Ingame controller mode"), g_Config.m_InpControllerAbsolute == 0, &ButtonRelative, nullptr, IGraphics::CORNER_L))`
+22:11 < bridge> <meloƞ> 
+22:11 < bridge> <meloƞ> and in the translation file:
+22:11 < bridge> <meloƞ> 
+22:11 < bridge> <meloƞ> ```
+22:11 < bridge> <meloƞ> [Ingame controller mode]
+22:12 < bridge> <meloƞ> Relative
+22:12 < bridge> <meloƞ> == Relativ
+22:12 < bridge> <meloƞ> ```
+22:12 < bridge> <meloƞ> 
+22:12 < bridge> <meloƞ> where `[Ingame controller mode]` is the context
+22:12 < bridge> <meloƞ> cant find the correct words to describe it non code-ish
+22:12 < bridge> <meloƞ> 
+22:12 < bridge> <meloƞ> if you have `str_format(aBuf, sizeof(aBuf), "%s: %s", Localize("Spectate")`
+22:12 < bridge> <meloƞ> it will look up the Spectate string and display the fitting translation given in the .txt files (e.G german.txt)
+22:12 < bridge> <meloƞ> 
+22:12 < bridge> <meloƞ> if you have `str_format(aBuf, sizeof(aBuf), "%s: %s", Localize("Spectate", "SpectateIngame"),`
+22:12 < bridge> <meloƞ> it still translates Spectate but will consider the context "SpectateIngame", if now the translation has a translation for Spectate with the context of SpectateIngame - it will choose that.
+22:16 < bridge> <egyt> Aha-a... but I still think "Server Name" is fine, unless it creates problems, in which case the only thing I can say is "my bad"
+22:24 < bridge> <egyt> My bad
+22:25 < bridge> <meloƞ> Nothing happened No worries lol
+22:25 < bridge> <Jupstar ✪> adding the context might do that too i think
+22:25 < bridge> <Jupstar ✪> or at least change the grouping or smth
+22:26 < bridge> <Jupstar ✪> But server name feels like an extra not required.. it's inside the server browser
+22:26 < bridge> <egyt> So that's not a really big trouble I've caused here, right?
+22:26 < bridge> <Jupstar ✪> server browser server name
+22:26 < bridge> <egyt> Hm, yeah, indeed.
+22:30 < bridge> <egyt> So, the only thing that is needed is to do something like
+22:30 < bridge> <egyt> 
+22:30 < bridge> <egyt> [Server browser]
+22:30 < bridge> <egyt> Name
+22:30 < bridge> <egyt> So, the only thing that is needed is to do something like
+22:30 < bridge> <egyt> 
+22:30 < bridge> <egyt> [Server browser]
+22:30 < bridge> <egyt> Name
+22:30 < bridge> <egyt> == \<translation>
+22:30 < bridge> <egyt> So, the only thing that is needed is to do something like
+22:30 < bridge> <egyt> 
+22:30 < bridge> <egyt> ```
+22:30 < bridge> <egyt> \[Server browser\]
+22:30 < bridge> <egyt> Name
+22:30 < bridge> <egyt> == \<translation>
+22:30 < bridge> <egyt> ```
+22:30 < bridge> <egyt> 
+22:30 < bridge> <egyt> yeah?
+22:31 < bridge> <egyt> So, the only thing that is needed is to do something like
+22:31 < bridge> <egyt> 
+22:31 < bridge> <egyt> ```
+22:31 < bridge> <egyt> [Server browser]
+22:31 < bridge> <egyt> Name
+22:31 < bridge> <egyt> == <translation>
+22:31 < bridge> <egyt> ```
+22:31 < bridge> <egyt> 
+22:31 < bridge> <egyt> yeah?
+22:31 < bridge> <Jupstar ✪> i dunno if there is a word for what you described in your PR
+22:31 < bridge> <Jupstar ✪> 
+22:31 < bridge> <Jupstar ✪> the difference between a name for human and things
+22:31 < bridge> <Jupstar ✪> maybe that would be the correct context here
+22:31 < bridge> <Jupstar ✪> so better don't ask me 😄
+22:33 < bridge> <egyt> Mixing up "назва" and "ім'я" == bad translation == people will switch to English == "and I made this for noone to use it?" == sad
+22:34 < bridge> <Jupstar ✪> yes mixing it sucks
+22:34 < bridge> <Jupstar ✪> i just meant. maybe there is a more general word for the context
+22:34 < bridge> <Jupstar ✪> if there is another "Name" column somewhere u have to add yet another context
+22:35 < bridge> <Jupstar ✪> a more general name would prevent such cases
+22:35 < bridge> <egyt> i guess we both aren't native to english
+22:35 < bridge> <Jupstar ✪> i suck at any language xDD
+22:36 < bridge> <egyt> at least i know my mother tongue
+22:38 < bridge> <egyt> we all need to learn esperanto or toki pona XD
+22:38 < bridge> <Jupstar ✪> we just need to ask gpt-4
+22:38 < bridge> <Jupstar ✪> the one thing that tool is good in
+22:39 < bridge> <egyt> is yoinking the code irresponsibly
+22:40 < bridge> <egyt> oh wait, that's copilot, gpt actually yoinks articles verbatim
+22:40 < bridge> <Jupstar ✪> onomastics
+22:40 < bridge> <Jupstar ✪> WTF XDD
+22:41 < bridge> <Jupstar ✪> https://en.wikipedia.org/wiki/Onomastics
+22:41 < bridge> <Jupstar ✪> there are really infinite words for stuffs
+22:42 < bridge> <Jupstar ✪> Ergonymy
+22:42 < bridge> <Jupstar ✪> https://en.wikipedia.org/wiki/Ergonym
+22:50 < bridge> <egyt> and someone even checked how much it takes to pronounce...
+22:50 < bridge> <egyt> and yeah, back to development stuff.
+22:50 < bridge> <egyt> No progress for today besides *adding* two strings and changing "replay"s to "demo"s
+22:50 < bridge> <egyt> and someone even checked how much it takes to pronounce...
+22:50 < bridge> <egyt> and yeah, back to development stuff.
+22:50 < bridge> <egyt> No progress for today besides **adding** two strings and changing "replay"s to "demo"s. (Reason: School)
+22:50 < bridge> <Jupstar ✪> you learned some ancient greek today
+22:50 < bridge> <Jupstar ✪> can't complain
+22:50 < bridge> <egyt> and someone even checked how much it takes to pronounce...
+22:50 < bridge> <egyt> and yeah, back to development stuff.
+22:50 < bridge> <egyt> No progress for today besides **adding** two strings and changing "replay"s to "demo"s. (Reason: School)
+22:50 < bridge> <egyt> (how underscore??)
+22:51 < bridge> <egyt> what are you talking about?
+22:51 < bridge> <Jupstar ✪> most of the words i posted are derived from ancient greek
+22:51 < bridge> <Jupstar ✪> linguists love latin and ancient greek
+22:52 < bridge> <egyt> well, now you can complain because I didn't learn them
+22:52 < bridge> <egyt> and someone even checked how much it takes to pronounce...
+22:52 < bridge> <egyt> and yeah, back to development stuff.
+22:52 < bridge> <egyt> No progress for today besides **adding** two strings and changing "replay"s to "demo"s. (Reason: School)
+22:52 < bridge> <egyt> (how to underscore??)
+22:54 < bridge> <egyt> and someone even checked how much it takes to pronounce...
+22:54 < bridge> <egyt> and yeah, back to development stuff.
+22:54 < bridge> <egyt> No progress for today besides **adding** two strings and changing "replay"s to "demo"s. (Reason: School)
+22:54 < bridge> <egyt> (how to underscore Markdown??)
+23:07 < bridge> <fokkonaut> history being erased
+23:18 < bridge> <heinrich5991> https://mastodon.archive.org/@internetarchive/112513905401989149
+23:18 < bridge> <heinrich5991> the internet archive is being DDoSed 😦
