@@ -1,0 +1,1411 @@
+00:22 < bridge> <zhn> but hes back
+00:33 < bridge> <teero777> yo how do i statically link the ddnet libs?
+00:33 < bridge> <teero777> yo how do i statically link all the libs ddnet needs?
+00:48 < bridge> <teero777> Why does the executable even when compiled with HEADLESS_CLIENT still depend on things like libGLEW and libSDL?
+00:48 < bridge> <teero777> any quick way to fix it?
+00:57 < bridge> <teero777> how are the linux releases for ddnet compiled?
+00:57 < bridge> <teero777> they don't rely on system deps do they?
+01:03 < bridge> <Ewan> Definitely not
+01:04 < bridge> <0xdeen> They rely on some system dependencies
+01:04 < bridge> <heinrich5991> they do AFAIK
+01:04 < bridge> <heinrich5991> not all of them though
+01:04 < bridge> <0xdeen> but we use a very old system to build it, so that any supported Linux should be fine
+01:08 < bridge> <teero777> yea i was compiling a custom headless client for a server where i can't install packages. well i keep getting missing shared libs like sdl2. any way to solve that?
+01:09 < bridge> <teero777> yea i was compiling a headless client for a server where i can't install packages. well i keep getting missing shared libs like sdl2. any way to solve that?
+01:09 < bridge> <teero777> `cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DHEADLESS_CLIENT=On -DPREFER_BUNDLED_L
+01:09 < bridge> <teero777> IBS=On -DVULKAN=Off -DVIDEORECORDER=Off -DWAVPACK_CLOSE_FILE=Off`
+01:09 < bridge> <teero777> this is my current cmake command
+01:10 < bridge> <teero777> ```cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=On -DHEADLESS_CLIENT=On -DPREFER_BUNDLED_L
+01:10 < bridge> <teero777> IBS=On -DVULKAN=Off -DVIDEORECORDER=Off -DWAVPACK_CLOSE_FILE=Off```
+01:10 < bridge> <teero777> this is my current cmake command
+01:12 < bridge> <teero777> ```
+01:12 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by ./DDNet)
+01:12 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by ./DDNet)
+01:12 < bridge> <teero777>     libSDL2-2.0.so.0 => not found
+01:12 < bridge> <teero777>     libopusfile.so.0 => not found
+01:12 < bridge> <teero777>     libopus.so.0 => not found
+01:12 < bridge> <teero777>     libogg.so.0 => not found
+01:12 < bridge> <teero777> ```
+01:12 < bridge> <teero777> output of ldd DDNet | grep "not found"
+01:13 < bridge> <teero777> ```
+01:13 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by ./DDNet)
+01:13 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by ./DDNet)
+01:13 < bridge> <teero777>     libSDL2-2.0.so.0 => not found
+01:13 < bridge> <teero777>     libopusfile.so.0 => not found
+01:13 < bridge> <teero777>     libopus.so.0 => not found
+01:13 < bridge> <teero777>     libogg.so.0 => not found
+01:13 < bridge> <teero777> ```
+01:13 < bridge> <teero777> output of `ldd DDNet | grep "not found"`
+01:16 < bridge> <0xdeen> You are building on too new of a machine, you need an older one for the glibc error
+01:17 < bridge> <0xdeen> There is probably a bug where our build system still links all these libs even though it's a headless client
+01:17 < bridge> <teero777> yea its not implemented correctly.
+01:18 < bridge> <0xdeen> the headless client was just for testing in CI I think
+01:18 < bridge> <teero777> but i wish it would link them statically atleast tho. is that possible?
+01:19 < bridge> <0xdeen> copy the .so files to the same directory and run with `LD_LIBRARY_PATH=.` I guess
+01:19 < bridge> <teero777> well i guess that works xd
+01:19 < bridge> <0xdeen> and fix it in our build system, these dependencies should not be linked in for headless client
+01:20 < bridge> <0xdeen> search for `if(CLIENT` in CMakeLists.txt, most of the `find_package` etc should not run for `HEADLESS_CLIENT`
+01:21 < bridge> <teero777> you would need to completely exclude all sdl code in the src if HEADLESS_CLIENT is defined tho no?
+01:21 < bridge> <0xdeen> hm, might be more complex, not sure
+01:22 < bridge> <heinrich5991> what are you trying to use the headless client for? ^^
+01:22 < bridge> <patiga> heyo, I want some input for twmap. I recently changed the compression backend to zlib-ng, as this sped up the parsing of maps with a factor between 2 and 3.
+01:22 < bridge> <patiga> One kinda downside is that now the maps twmap produces arent the exact same anymore, but that is fine imo(?)
+01:22 < bridge> <patiga> With the same compression level 6 (number between 1 and 9), the files are slightly bigger, which is ofc negative.
+01:22 < bridge> <patiga> I was thinking about which level I could choose alternatively (higher -> smaller files, but takes longer)
+01:22 < bridge> <patiga> So I made this table, which was made with all brutal maps, and the different compression backends
+01:22 < bridge> <patiga> the times are `time/usr time`, in this case the `usr` time is the significant one
+01:22 < bridge> <patiga> ```
+01:22 < bridge> <patiga>          size  load  load+save
+01:22 < bridge> <patiga> zlib     231M  34s   174s
+01:22 < bridge> <patiga> zlib-ng6 238M  12s    67s
+01:22 < bridge> <patiga> zlib-ng7 225M         89s
+01:22 < bridge> <patiga> zlib-ng8 216M        119s
+01:22 < bridge> <patiga> zlib-ng9 209M        186s
+01:22 < bridge> <patiga> ```
+01:22 < bridge> <patiga> imo, the compression level 7 looks reasonable. what do you think?
+01:23 < bridge> <patiga> ah, I removed the non-usr time in the table
+01:23 < bridge> <heinrich5991> how does the zlib-ng* compression affect zlib decompression timese?
+01:24 < bridge> <heinrich5991> i.e. for the maps compressed with zlib-ng*, how long does it take to load them with zlib? (as an approximation for the ddnet client)
+01:24 < bridge> <patiga> 👍 will test
+01:24 < bridge> <0xdeen> I think zlib-ng6 looks best
+01:25 < bridge> <0xdeen> compared to ng7: 25% faster and only 6% larger file size
+01:25 < bridge> <0xdeen> Can we use zlib-ng in DDNet? Would it be faster there?
+01:26 < bridge> <patiga> hm, my motivation for this investigation was that Welf noticed that `$optimize` in the testing channels sometimes increased the file size, which was the result of the backend change
+01:27 < bridge> <mazty> does anyone know what is this client? its on a chillerdragon website
+01:27 < bridge> <mazty> https://cdn.discordapp.com/attachments/293493549758939136/1270523573735391286/image.png?ex=66b402c9&is=66b2b149&hm=2b1e95deb5ce12e0bc184aeb0b4308170d4d7131c97b11c867a832adebe35c6f&
+01:27 < bridge> <0xdeen> You can also respond to Welf with "small file size increase doesn't matter much, map loads faster now"
+01:28 < bridge> <0xdeen> but I'm ok with ng7 too
+01:28 < bridge> <patiga> should be possible, not sure if it would come with other issues
+01:29 < bridge> <patiga> well the faster load is only in the twmap library right now, where it doesn't matter all that much I think
+01:29 < bridge> <patiga> maps are rarely saved, but downloaded very often, so smaller file sizes could be neat
+01:30 < bridge> <patiga> doesn't seem to be affected, also 12 seconds for ng to load the compression level 9 maps
+01:34 < bridge> <teero777> this works ig.
+01:34 < bridge> <teero777> only issue is glibc now:
+01:34 < bridge> <teero777> ```
+01:34 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by ./DDNet)
+01:34 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by ./DDNet)
+01:34 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.38' not found (required by ./libSDL2-2.0.so.0)
+01:34 < bridge> <teero777> ./DDNet: /lib/x86_64-linux-gnu/libm.so.6: version `GLIBC_2.38' not found (required by ./libSDL2-2.0.so.0)
+01:34 < bridge> <teero777> ```
+02:16 < bridge> <zhn> you need to downgrade ur host or upgrade ur server ig
+02:24 < bridge> <heinrich5991> that's annoying and I don't know a good solution for it
+02:24 < bridge> <heinrich5991> it just shouldn't be so hard™ 😦
+02:27 < bridge> <zhn> is docker an option?
+02:42 < bridge> <totar> the solution was find a third pc with a lower version and move all the files there to compile it lmao
+02:48 < bridge> <Ewan> despite its drawbacks, i think statically linking glibc would still be a good solution for this
+03:18 < bridge> <teero777> how...
+03:18 < bridge> <teero777> i would
+03:18 < bridge> <teero777> if i knew
+03:19 < bridge> <teero777> ```./DDNet: error while loading shared libraries: libpulse.so.0: cannot open shared object file: No such file or directory```???
+03:19 < bridge> <Ewan> from SDL
+03:19 < bridge> <teero777> FK
+03:21 < bridge> <Ewan> right
+03:22 < bridge> <Ewan> u can use ldd to find out all runtime dependent lbs
+03:23 < bridge> <Ewan> well
+03:23 < bridge> <Ewan> those needed by ld.so
+03:23 < bridge> <Ewan> and static linking is stupid
+03:24 < bridge> <Ewan> and static linking libc is stupid
+03:25 < bridge> <Ewan> there's no abstraction for it in cmake so it's essentially a matter of providing the right compiler/linker args for the right system/config
+03:26 < bridge> <Ewan> you may want `-static`
+03:26 < bridge> <Ewan> there are more tho
+03:26 < bridge> <Ewan> u may wanna just try it out
+03:27 < bridge> <poorlypuppy1942> am i a developer?
+03:27 < bridge> <Ewan> do you develop?
+03:27 < bridge> <teero777> this is a public chat
+03:27 < bridge> <poorlypuppy1942> i tend to dabble in the arts
+03:27 < bridge> <Ewan> then yea
+03:28 < bridge> <poorlypuppy1942> im honored
+03:28 < bridge> <Ewan> but to be purple i think u have to commit to ddnet
+03:28 < bridge> <poorlypuppy1942> i believe this is my game
+03:28 < bridge> <poorlypuppy1942> i have a whole 5.5hrs you know
+03:28 < bridge> <Ewan> nice
+03:28 < bridge> <teero777> nice
+03:29 < bridge> <zhn> change something crucial in readme :troll:
+03:29 < bridge> <Ewan> actually
+03:29 < bridge> <Ewan> if u are a capable dev there should still be some pretty simple chores
+03:29 < bridge> <Ewan> lots of unsolved issues rn
+03:29 < bridge> <poorlypuppy1942> woah woah woah slow down there bud, i said dev not capable dev
+03:29 < bridge> <Ewan> fair
+03:30 < bridge> <teero777> xD
+03:30 < bridge> <Ewan> i'd say try it anyway
+03:30 < bridge> <zhn> so you are a /dev/
+03:30 < bridge> <poorlypuppy1942> i develope deseases
+03:30 < bridge> <zhn> i should grab some signals from ya
+03:30 < bridge> <poorlypuppy1942> i develop deseases
+03:31 < bridge> <poorlypuppy1942> i develope deseases
+03:31 < bridge> <Ewan> i've known taylor for 5 mins and i already trust him with my block devices
+03:31 < bridge> <poorlypuppy1942> i appreciate that friend
+03:31 < bridge> <teero777> already dmed him my private keys
+03:31 < bridge> <Ewan> o geez
+03:31 < bridge> <poorlypuppy1942> why is there a lil heart next to my name
+03:31 < bridge> <zhn> gg teerosrc leaked
+03:32 < bridge> <teero777> xD
+03:32 < bridge> <Ewan> it's an icon Discord automatically adds to members who are new to a server
+03:32 < bridge> <totar> everyone loves you
+03:32 < bridge> <teero777> oh no, ddnet will fall to ruin
+03:32 < bridge> <poorlypuppy1942> how lovely
+03:32 < bridge> <Ewan> i concur
+03:32 < bridge> <zhn> i purr
+03:33 < bridge> <poorlypuppy1942> i
+03:33 < bridge> <poorlypuppy1942> cant think of anything witty
+03:33 < bridge> <zhn> damn
+03:33 < bridge> <poorlypuppy1942> maybe the lack of sleep
+03:33 < bridge> <zhn> ah ye its 4 am
+03:33 < bridge> <zhn> eepy time
+03:33 < bridge> <poorlypuppy1942> my clock has said 8:45am for the past 2 weeks
+03:33 < bridge> <zhn> gn everyone
+03:34 < bridge> <poorlypuppy1942> only 2:30 for me
+03:34 < bridge> <Ewan> mine says 1:33 rn because i think whenever i resume from suspend systemd does some dumb shit
+03:34 < bridge> <Ewan> mine says 1:33 AM rn because i think whenever i resume from suspend systemd does some dumb shit
+03:34 < bridge> <Ewan> but it is 7:34 pm
+03:34 < bridge> <poorlypuppy1942> where abouts do you live
+03:34 < bridge> <zhn> smells like france or spain
+03:35 < bridge> <Ewan> im mountain time
+03:35 < bridge> <poorlypuppy1942> nope, guess again
+03:35 < bridge> <Ewan> so USA
+03:35 < bridge> <Ewan> so I'm from the USA
+03:35 < bridge> <zhn> funny enough i3 freezes after suspend id you try to use input device
+03:35 < bridge> <poorlypuppy1942> i have a mate on holiday in the USA as we speak
+03:35 < bridge> <Ewan> english?
+03:36 < bridge> <poorlypuppy1942> oh no my vocabulary may have given away where i'm from
+03:36 < bridge> <Ewan> lol
+03:36 < bridge> <zhn> i did watch movie and suspended it midway xd
+03:36 < bridge> <zhn> launched pc again
+03:36 < bridge> <zhn> and watched until end
+03:36 < bridge> <poorlypuppy1942> I'm rather bored
+03:36 < bridge> <Ewan> ye same
+03:36 < bridge> <zhn> so it stuck right after i touched mouse
+03:37 < bridge> <poorlypuppy1942> the sensible thing to do in this situation would normally be to sleep as i have important things happening tommorow and it's 2:37am
+03:37 < bridge> <zhn> hm so you are zombietroll timezone neighbor
+03:37 < bridge> <poorlypuppy1942> i'm not sure
+03:38 < bridge> <poorlypuppy1942> i could be however i do not have he foggiest clue as to what that is
+03:38 < bridge> <poorlypuppy1942> i could be, however i do not have he foggiest clue as to what that is
+03:38 < bridge> <zhn> its gb
+03:38 < bridge> <poorlypuppy1942> come again?
+03:38 < bridge> <poorlypuppy1942> oh great britain
+03:39 < bridge> <zhn> nah gorgeous bahrain
+03:39 < bridge> <poorlypuppy1942> have you ever made contact with a live rat?
+03:39 < bridge> <zhn> ye
+03:39 < bridge> <zhn> theyre pretty big
+03:39 < bridge> <poorlypuppy1942> was it a pet or a wild rat
+03:39 < bridge> <zhn> especially if you compare their sizes with mice
+03:39 < bridge> <zhn> ofc wild
+03:40 < bridge> <poorlypuppy1942> my father had 2 pet rats when i was younger
+03:40 < bridge> <poorlypuppy1942> their little tails were really odd
+03:40 < bridge> <zhn> imagine 2 pet rats racing
+03:40 < bridge> <poorlypuppy1942> i was a bafoon for not making that happen
+03:40 < bridge> <poorlypuppy1942> silly 8 year old me
+03:40 < bridge> <zhn> unfortunately
+03:41 < bridge> <poorlypuppy1942> are you also a developer of DDnet?
+03:42 < bridge> <poorlypuppy1942> oh the heart is because i'm new, not because everyone loves me. That's slightly disappointing.
+03:50 < bridge> <poorlypuppy1942> You, my friend, have lied to me. I'll have you demoted for that.
+05:19 < bridge> <sans._.> why do i always miss the tomfoolery moments in every single server im in
+05:19 < bridge> <sans._.> 😩
+06:05 < bridge> <chillerdragon> Oh boi thats old. I think I never even tried that client haha. Its based on teeworlds 0.6 so its pretty outdated these days. If I remember correctly it added fun cosmetics such as more particles when tees die.
+06:06 < bridge> <chillerdragon> or i confuse it with Goreworlds
+06:40 < bridge> <milkeeycat> Maybe that's a better idea xd
+06:43 < bridge> <milkeeycat> It's not that wrong if it works :justatest:
+07:45 < bridge> <milkeeycat> but isn't it wrong? for example if the struct has 3 fields of type `u8` and I want to write to the first one(for example struct offset is 0), if i use struct offset + field offset, it would write to `rbp - 1` but it actually has to write to `rbp - 3`
+07:45 < bridge> <milkeeycat> it has to write in reverse order, if that makes sense
+08:07 < bridge> <ryozuki> are u even taking in consideration alignment? xd
+08:07 < bridge> <milkeeycat> no, aligment for noobs
+08:10 < bridge> <ryozuki> hmm idk what u struggling with, but yes make it all 0-based, structs fields are usually all laid sequentially, even nested structs, you kind of "flatten" them in memory, i dont think it should be that hard
+08:10 < bridge> <ryozuki> the only thing a bit hard is to think about alignments
+08:11 < bridge> <milkeeycat> https://tenor.com/view/smh-gif-21608426
+08:12 < bridge> <ryozuki> why the gif
+08:12 < bridge> <ryozuki> xd
+08:14 < bridge> <ryozuki> - stack offset: where your stack starts
+08:14 < bridge> <ryozuki> - struct offset: the offset from your stack offset to where the first field of the struct is
+08:14 < bridge> <ryozuki> - field offset: the offset from the start of your struct offset to where the field is
+08:14 < bridge> <ryozuki> 
+08:14 < bridge> <ryozuki> addr = stack offset - struct offset - field offset
+08:14 < bridge> <ryozuki> read (size of field) on addr
+08:14 < bridge> <ryozuki> its - cuz stack on x86 grows downwards (iirc its morning need coffee)
+08:15 < bridge> <ryozuki> if u wanna take alignment in consideration, the only thing u would change is make the struct offset and field offsets differ from their sizes if needed
+08:15 < bridge> <ryozuki> cuz u need padding
+08:28 < bridge> <jxsl13> definitly 6 or 7, the jump from 7 to 8 has a way bigger increase in time.
+08:52 < bridge> <learath2> DDNet-musl when?
+08:52 < bridge> <ChillerDragon> What do you mean not the same anymore? They get different sha sums when being resaved with twmap? Or the same map created with twmap is different than the one with the ddnet client?
+08:53 < bridge> <meloƞ> I took that personally...
+08:54 < bridge> <jimmyjazzthe1st> hi please help. Why cant i update my ddnet since 18.01
+08:54 < bridge> <jimmyjazzthe1st> Learath gg help
+08:54 < bridge> <ChillerDragon> In general I appreciate if the files do not change. I track everything in git at all times. And use a dirty working tree to monitor unexpected changes to files.
+08:54 < bridge> <jimmyjazzthe1st> sorry Learath2
+08:54 < bridge> <meloƞ> This Client Versions Auto updated is broken, Download Off the website
+08:54 < bridge> <meloƞ> This Client Versions Auto updater is broken, Download Off the website
+08:54 < bridge> <jimmyjazzthe1st> i dont want to have to redownload off of site each time
+08:54 < bridge> <meloƞ> Not each time, Just once ^^
+08:55 < bridge> <meloƞ> Its fixed again, it was that one Release where it broke
+08:55 < bridge> <jimmyjazzthe1st> oh
+08:55 < bridge> <jimmyjazzthe1st> xDD i wasnt reading
+08:55 < bridge> <jimmyjazzthe1st> lets see
+08:55 < bridge> <meloƞ> No worries jimmy, gimme Credit on your next Song and we're good :greenthing:
+08:55 < bridge> <jimmyjazzthe1st> https://tenor.com/view/kurt-angle-stare-100-yard-stare-meme-gif-251436459491629941
+09:00 < bridge> <learath2> Why are you reversing the field order? Even if you are doing that (which I think you shouldn’t), you’d be calculating the offsets at compile time for your fields
+09:03 < bridge> <milkeeycat> is `rbp - 1` correct for first element?
+09:04 < bridge> <learath2> Yes
+09:04 < bridge> <learath2> Well it’s your language, you can lay out your structs however you damn well please
+09:05 < bridge> <milkeeycat> what the hell is this then :feelsbadman:
+09:05 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1270638825554841612/image.png?ex=66b46e1f&is=66b31c9f&hm=c9acce757a5685bc5b0281253c80549f238ad9df7d531ae7525078581d3c6645&
+09:11 < bridge> <milkeeycat> what the hell is this then :feelsbadman: why value 1 isn't moved in `rbp - 1`
+09:11 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1270638825554841612/image.png?ex=66b46e1f&is=66b31c9f&hm=c9acce757a5685bc5b0281253c80549f238ad9df7d531ae7525078581d3c6645&
+09:11 < bridge> <learath2> Why do you care what C does?
+09:12 < bridge> <milkeeycat> i want to be able to call C functions xd
+09:12 < bridge> <Ewan> when they make a c++ std lib :feelsbadman:
+09:12 < bridge> <Ewan> (never)
+09:15 < bridge> <learath2> Well if you want to lay it out like that, then have the offset of the struct point at the end
+09:22 < bridge> <headshotnoby> your first problem is calling the struct and variable the o face
+09:22 < bridge> <patiga> chillerdragon: yeah different sha sums
+09:22 < bridge> <headshotnoby> :justatest:
+09:22 < bridge> <patiga> the speedup is just so darn significant
+09:23 < bridge> <learath2> ```c
+09:23 < bridge> <learath2> struct foo { // stack offset 0xC
+09:23 < bridge> <learath2>   uint32_t first; // field offset 0x0, stack offset 0xC - 0x0 = 0xC
+09:23 < bridge> <learath2>   uint32_t second; // field offset 0x4, stack offset 0xC - 0x4 = 0x8
+09:23 < bridge> <learath2>   uint32_t third; // field offset 0x8, stack offset 0xC - 0x8 = 0x4
+09:23 < bridge> <learath2> }
+09:23 < bridge> <learath2> ```
+09:25 < bridge> <patiga> do you actively resave the file and check for changes?
+09:32 < bridge> <learath2> To be fair. Maybe I misread your image. The lowest address is where you want to be pointing with your offset for all types on a little endian stack
+10:01 < bridge> <didaxicao_04281> Does anyone know how to solve being banned for using a VPN?
+10:03 < bridge> <meloƞ> Use #✉-create-a-ticket and click on `Admin-mail`, they will Help you Out ^^
+10:15 < bridge> <milkeeycat> Thanks for taking time and explaining xd I.. came up with something which seems to work xdddd
+10:16 < bridge> <learath2> Please don't have 1-based offsets, I beg of you
+10:16 < bridge> <milkeeycat> i made it 0-based
+10:16 < bridge> <0xdeen> Do we have anyone around who has this graphics bug where with Vulkan backend some text is invisible? https://wiki.ddnet.org/wiki/GFX_Troubleshooting#Some_text_is_invisible_with_the_Vulkan_backend If so, can you try out https://ddnet.org/downloads/DDNet-vulkan-win64.zip and see if it fixes it?
+10:19 < bridge> <Jupstar ✪> I'll see if i can downgrade the GPU of my father
+10:22 < bridge> <patiga> okay different take @heinrich5991 @0xdeen @jxsl13 chillerdragon
+10:22 < bridge> <patiga> map files are typically distributed and read many many times more than they are written.
+10:22 < bridge> <patiga> this is ofc highly true for released maps, but I think even also true for maps shared in the map testing channels.
+10:22 < bridge> <patiga> the only case I can currently think of, where maps are not really shared, is maps being auto-saved in the editor
+10:22 < bridge> <patiga> 
+10:22 < bridge> <patiga> we have the trade-off between speed and size, where we need to find some kind of sweet spot
+10:22 < bridge> <patiga> so, as the load+save time with zlib and zlib-ng9 is comparable, why not go there?
+10:22 < bridge> <patiga> we distribute map files potentially thousands of times, so 2.25x* the effort on saving between zlib-ng7 and zlib-ng9 isn't that huge, for a ~9% reduction in file size
+10:22 < bridge> <patiga> 
+10:22 < bridge> <patiga> *load+save time subtracted by the load time, then divided for percentage
+10:23 < bridge> <milkeeycat> here's the abomination btw `stack_offset - struct_size + field_offset + field_type_size` looks bad but at least works 😬
+10:24 < bridge> <learath2> This doesn't look too wrong, but why are your offsets not precalculated to point at the end?
+10:25 < bridge> <learath2> Offsets to the wrong side of a value are pretty useless, the cpu can't do anything with those, you'll pretty much always have a + size wherever you use them
+10:26 < bridge> <milkeeycat> `field_offset`?
+10:27 < bridge> <learath2> Yes, why doesn't `struct_offset - field_offset` point to the lowest byte of the field directly?
+10:30 < bridge> <milkeeycat> probably it's because of how I calculate the offset :\
+10:30 < bridge> <milkeeycat> ```rust
+10:30 < bridge> <milkeeycat>     pub fn offset(
+10:30 < bridge> <milkeeycat>         &self,
+10:30 < bridge> <milkeeycat>         ...
+10:30 < bridge> <milkeeycat>     ) -> Result<usize, TypeError> {
+10:30 < bridge> <milkeeycat>         let mut offset = 0;
+10:30 < bridge> <milkeeycat> 
+10:30 < bridge> <milkeeycat>         for (field_name, type_) in &self.fields {
+10:31 < bridge> <milkeeycat>             if name == field_name {
+10:31 < bridge> <milkeeycat>                 break;
+10:31 < bridge> <milkeeycat>             }
+10:31 < bridge> <milkeeycat> 
+10:31 < bridge> <milkeeycat>             offset += type_.size(arch, scope)?;
+10:31 < bridge> <milkeeycat>         }
+10:31 < bridge> <milkeeycat> 
+10:31 < bridge> <milkeeycat>         Ok(offset)
+10:31 < bridge> <milkeeycat>     }
+10:31 < bridge> <milkeeycat> ```
+10:42 < ws-client> <ChillerDragon> @patiga so what makes the shasum change? Is there no way whatsoever anymore to recreate the same map file?
+10:42 < bridge> <patiga> a different zlib compression backend
+10:42 < bridge> <patiga> I will probably try to get the same change into ddnet
+10:42 < ws-client> <ChillerDragon> but the zlib backends will match between each other?
+10:43 < ws-client> <ChillerDragon> and if its also in ddnet everything matches again?
+10:43 < bridge> <patiga> different zlib backends don't produce the same binary data
+10:43 < ws-client> <ChillerDragon> but same do?
+10:43 < bridge> <patiga> yes
+10:44 < ws-client> <ChillerDragon> Ah then its fine with me
+10:44 < bridge> <patiga> nice :)
+10:45 < ws-client> <ChillerDragon> but yeah ideally the switch in ddnet would also actually happen :p 
+10:45 < bridge> <patiga> yea 😇
+10:46 < bridge> <learath2> Mh, I actually don't get it. This looks fine. Maybe I'm stupid
+10:47 < bridge> <milkeeycat> nah, it's my skill issues xdd
+10:50 < bridge> <avolicious> Several people asked over the past months if we can enable it for KoG too, is there any way to get it into the client or is there proper support planned or no support planned for 3rd party mods?
+10:50 < bridge> <avolicious> https://cdn.discordapp.com/attachments/293493549758939136/1270665428024295425/indicate_finish.png?ex=66b486e5&is=66b33565&hm=5bc555f7f98575decd321816cb6a7824aa6432a623b8a376bc9e5794ed1bca56&
+10:51 < bridge> <ryozuki> btw its not as low level but this is how llvm gets the struct/array/etc addresses at compile time https://llvm.org/docs/GetElementPtr.html
+10:51 < bridge> <ryozuki> btw its not as low level but this is how llvm gets the struct/array/fields addresses at compile time https://llvm.org/docs/GetElementPtr.html
+10:51 < bridge> <ryozuki> https://llvm.org/docs/LangRef.html#getelementptr-instruction
+10:52 < bridge> <ryozuki> ```c
+10:52 < bridge> <ryozuki> For example, let’s consider a C code fragment and how it gets compiled to LLVM:
+10:52 < bridge> <ryozuki> 
+10:52 < bridge> <ryozuki> struct RT {
+10:52 < bridge> <ryozuki>   char A;
+10:52 < bridge> <ryozuki>   int B[10][20];
+10:52 < bridge> <ryozuki>   char C;
+10:52 < bridge> <ryozuki> };
+10:52 < bridge> <ryozuki> struct ST {
+10:52 < bridge> <ryozuki>   int X;
+10:52 < bridge> <ryozuki>   double Y;
+10:52 < bridge> <ryozuki>   struct RT Z;
+10:52 < bridge> <ryozuki> };
+10:52 < bridge> <ryozuki> 
+10:52 < bridge> <ryozuki> int *foo(struct ST *s) {
+10:52 < bridge> <ryozuki>   return &s[1].Z.B[5][13];
+10:52 < bridge> <ryozuki> }
+10:52 < bridge> <ryozuki> 
+10:52 < bridge> <ryozuki> The LLVM code generated by Clang is approximately:
+10:52 < bridge> <ryozuki> 
+10:52 < bridge> <ryozuki> %struct.RT = type { i8, [10 x [20 x i32]], i8 }
+10:52 < bridge> <ryozuki> %struct.ST = type { i32, double, %struct.RT }
+10:52 < bridge> <ryozuki> 
+10:52 < bridge> <ryozuki> define ptr @foo(ptr %s) {
+10:52 < bridge> <ryozuki> entry:
+10:52 < bridge> <ryozuki>   %arrayidx = getelementptr inbounds %struct.ST, ptr %s, i64 1, i32 2, i32 1, i64 5, i64 13
+10:52 < bridge> <ryozuki>   ret ptr %arrayidx
+10:52 < bridge> <ryozuki> }
+10:52 < bridge> <ryozuki> ```
+10:53 < bridge> <jxsl13> do you have benchmarks for the missing load times :?
+10:54 < bridge> <patiga> they are same for all zlib-ng compression levels
+10:54 < bridge> <patiga> as far as I can tell
+10:54 < bridge> <jxsl13> 12s?
+10:55 < bridge> <patiga> yes
+10:55 < bridge> <jxsl13> I think there are no real maps as big as 200+MB
+10:56 < bridge> <jxsl13> is it possible to like find the biggest ddnet map and have those benchmarked
+10:56 < bridge> <jxsl13> or an average of a few big maps
+10:57 < bridge> <jxsl13> I cannot really imagine how those times will be with real maps
+10:57 < bridge> <haramownermyslimipidorasi> why was I banned for vpn even though I don't have it?
+10:57 < bridge> <patiga> those stats are from all brutal maps
+10:57 < bridge> <jxsl13> hm
+10:58 < bridge> <jxsl13> how would it impact someone using an editor ._.
+10:58 < bridge> <jxsl13> but twmap is not used in the editor, I guess
+10:58 < bridge> <avolicious> How to set `has_finishes: false`  to true for the KoG community on info.ddnet.org?
+10:59 < bridge> <jxsl13> would definitly make sense to use the highest compression.
+10:59 < bridge> <jxsl13> then
+11:00 < bridge> <patiga> I don't know if the editor saves asynchronously, if yes, then it wouldn't even really have an effect there
+11:04 < bridge> <jxsl13> does one want to save asynchronously at all. Save -> quit -> map saved in a broken state?
+11:05 < bridge> <patiga> interesting point, I don't know what happens there
+11:05 < bridge> <patiga> at least the autosaves in the background should be asynchronous though
+11:05 < bridge> <jxsl13> hmhm
+11:11 < bridge> <ryozuki> https://github.com/khonsulabs/pot
+11:11 < bridge> <ryozuki> @heinrich5991 did u know it?
+11:11 < bridge> <ryozuki> ```
+11:11 < bridge> <ryozuki> $ cargo test --example logs -- average_sizes --nocapture
+11:11 < bridge> <ryozuki> Generating 1000 LogArchives with 100 entries.
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | Format          | Bytes     | Self-Describing |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | pot             | 2,627,586 | yes             |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | cbor            | 3,072,369 | yes             |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | msgpack(named)  | 3,059,915 | yes             |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | msgpack         | 2,559,907 | no              |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | bincode(varint) | 2,506,844 | no              |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> | bincode         | 2,755,137 | no              |
+11:11 < bridge> <ryozuki> +-----------------+-----------+-----------------+
+11:11 < bridge> <ryozuki> ```
+11:17 < ws-client> <ChillerDragon> @avolicious imo that would belong in a per community json api endpoint. So every community has their info endpoint. But that would mean every launching client would do a bunch of http requests to all communities so thats a bit meh
+11:17 < ws-client> <ChillerDragon> also heinrich said communities should not have an advantage
+11:19 < bridge> <learath2> We intended to, but I don't think we figured out how we can expose this feature to 3rd parties
+11:19 < bridge> <heinrich5991> if you can provide us with a list of (playername, finished map) pairs, we can include them in the info.json
+11:19 < bridge> <learath2> Mh, this would work for kog since we don't have an overlapping map pool. But it's just a stopgap
+11:20 < bridge> <heinrich5991> nah, we'd save (community, player name, finished map) tuples
+11:20 < bridge> <avolicious> We can add map hash if needed, there are some maps on both networks
+11:22 < bridge> <learath2> Still not my very favourite tbf, so do all communities give us an endpoint that we fetch that from whenever we get an info request?
+11:22 < bridge> <avolicious> So the only param you need is the username? is the username encoded somehow? urlencode?
+11:22 < bridge> <heinrich5991> opposite way around. we provide an endpoint to add a pair (player name, finished map) to the community
+11:23 < bridge> <heinrich5991> we store tuples (community, player name, finished map) and do a DB query when we get a request
+11:23 < bridge> <heinrich5991> this way, we don't need to make a request and leak no player data
+11:24 < bridge> <learath2> But in exchange we have to keep a db of all communities finishes
+11:24 < bridge> <avolicious> pair it with the "leak ip address" option
+11:24 < bridge> <avolicious> 
+11:24 < bridge> <avolicious> So if this is enabled for a server, then the community endpoint is called directly else over your endpoint
+11:24 < bridge> <heinrich5991> yes
+11:24 < bridge> <heinrich5991> no, I'd like to not leak IP addresses to servers unless the player actively connects
+11:25 < bridge> <Jupstar ✪> if you find a binary serialization crate that uses **serde**
+11:25 < bridge> <Jupstar ✪> 
+11:25 < bridge> <Jupstar ✪> And beats bincode in speed, ping me 😄
+11:25 < bridge> <avolicious> But with the leak ip option they leak it anyways
+11:25 < bridge> <Jupstar ✪> This is apparently slower :/
+11:25 < bridge> <heinrich5991> usually not. leak IP only leaks it if the server is not in the server list
+11:26 < bridge> <Jupstar ✪> @ryozuki https://github.com/djkoloski/rust_serialization_benchmark
+11:26 < bridge> <Jupstar ✪> 
+11:26 < bridge> <Jupstar ✪> this is good
+11:26 < bridge> <Jupstar ✪> here you see bincode 2 is much faster than pot
+11:26 < bridge> <heinrich5991> is that a problem? it doesn't sound like a particularly huge DB
+11:27 < bridge> <arijanj> if we only have a "add finish" endpoint community server owners would have no way of resetting finishes if they need to for some reason, but i dont know if this would matter that much
+11:28 < bridge> <heinrich5991> we can add a remove finish endpoint as well I guess
+11:29 < bridge> <heinrich5991> bincode is probably not self-describing, so they seem to solve different problems
+11:29 < bridge> <avolicious> Sounds nice, but a lot of maintenance for ddnet
+11:29 < bridge> <heinrich5991> no. interesting. I like the self-describing without repeating keys
+11:29 < bridge> <heinrich5991> I wonder how it compares to zstd'ing the output of cbor or msgpack or json
+11:30 < bridge> <Jupstar ✪> true, i am still interested in a faster binary serialization lib that uses serde, if you find one, ping me
+11:31 < bridge> <Jupstar ✪> for self-describing things, i simply use json
+11:31 < bridge> <milkeeycat> make one yourself 😏
+11:31 < bridge> <Jupstar ✪> then i probably dont care about speed & size anyway xd
+11:31 < bridge> <heinrich5991> do you know why they don't use serde? is it because of optimizations?
+11:31 < bridge> <Jupstar ✪> yeah but it will take at least a month again
+11:31 < bridge> <Jupstar ✪> i have no time xD
+11:31 < bridge> <Jupstar ✪> i assume so
+11:31 < bridge> <milkeeycat> where did you lose all your time?
+11:32 < bridge> <Jupstar ✪> but no serde is still not possible.. too many crates only use serde for serialization
+11:32 < bridge> <Jupstar ✪> in fixing bugs that aren't bugs
+11:32 < bridge> <Jupstar ✪> haters gonna hate
+11:32 < bridge> <milkeeycat> why fix features 😬
+11:32 < bridge> <Jupstar ✪> you understand me 😭
+11:33 < bridge> <tsfreddie> he is a master baiter afterall
+11:37 < bridge> <Jupstar ✪> 🫠
+11:38 < bridge> <milkeeycat> https://qntm.org/suicide
+11:45 < bridge> <arijanj> i think it would be better to give communities control over this so that they can send the client their own finishes endpoint, API wouldn't ever change probably, just mapname and user name
+11:45 < bridge> <arijanj> worst case scenario a community goes rogue they get the ip address of the client, wouldn't really happen and if it does not a big deal
+11:45 < bridge> <heinrich5991> the problem with this is that this would give communities the possibility to observe the client IP address or at least the client join time
+11:45 < bridge> <heinrich5991> I'd like to avoid that
+11:47 < bridge> <arijanj> and they sell that data to zuckerberg? :happy:
+11:47 < bridge> <heinrich5991> if they don't have the data, we don't have to worry about it
+11:47 < bridge> <0xdeen> We could go through DDNet server for that, similar to how we collect the new http master data
+11:48 < bridge> <heinrich5991> then we still leak to everyone when a certain player opens their client
+11:48 < bridge> <tsfreddie> everyone is not literal i think?
+11:49 < bridge> <heinrich5991> everyone with a community set up. we haven't even talked with communities how they shoul handle player data
+11:49 < bridge> <arijanj> he has a point, even only username without ip address is not good
+11:49 < bridge> <tsfreddie> i always thought that we stopped pinging servers because some attackers are using that to track vaild IPs to spoof from?
+11:49 < bridge> <heinrich5991> yese
+11:49 < bridge> <heinrich5991> yes
+11:50 < bridge> <heinrich5991> but I'd like to leak as little player data as possible to third-party servers
+11:51 < bridge> <heinrich5991> as data minimization strategy
+11:52 < bridge> <tsfreddie> honestly if dos is not a concern i don't see too many reasons to minimize data visibility to that extreme
+11:52 < bridge> <arijanj> maybe just a warning modal if they try to enable it for a community? we can make it sound scary but opt-in
+11:52 < bridge> <heinrich5991> warnings don't work
+11:52 < bridge> <heinrich5991> what is actionable there?
+11:52 < bridge> <heinrich5991> we can make it work without data leakage, so why not do it?
+11:53 < bridge> <arijanj> it would all be centralized on ddnet servers, not optimal imo
+11:53 < bridge> <heinrich5991> yes, that's a downside
+11:53 < bridge> <arijanj> the communities provide the servers, may as well provide the finishes
+11:53 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274> i think a lot of people would agree the latency measure is already a downgrade bcsof that
+11:53 < bridge> <learath2> I guess the only proper worry would be that running ddnet will always require a central entity
+11:53 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274> i think a lot of people would agree the latency measuremen is already a downgrade bcsof that
+11:54 < bridge> <heinrich5991> yes, it'd be a server like the masterserver
+11:54 < bridge> <heinrich5991> but the masterserver is easier to run
+11:54 < bridge> <tsfreddie> teeworlds has to have master running too so not that different there
+11:54 < bridge> <learath2> finishserver 😄
+11:55 < bridge> <tsfreddie> <a:vibe:1191801470945869927> is he saying that he wants players to ping server for stats
+11:55 < bridge> <heinrich5991> no
+11:55 < bridge> <heinrich5991> other way around. people ping the finishserver for new finishes that appeared in their community
+11:56 < bridge> <tsfreddie> like a webhook from client?
+11:56 < bridge> <heinrich5991> from the game server
+11:56 < bridge> <tsfreddie> oh ok
+11:56 < bridge> <jxsl13> wild
+11:56 < bridge> <tsfreddie> and you are saying we should just allow a json url to be set for a community to query that?
+11:57 < bridge> <learath2> no
+11:57 < bridge> <learath2> We have the endpoint, communities ping us with finishes
+11:57 < bridge> <learath2> We don't poll
+11:57 < bridge> <arijanj> either ddnet provides endpoint for adding finishes for a community, or we allow communities to provide their own endpoint for querying
+11:57 < bridge> <arijanj> either ddnet provides endpoint for adding finishes for a community, or we allow communities to provide their own endpoint for querying from the client
+11:57 < bridge> <tsfreddie> i don't follow
+11:57 < bridge> <learath2> Yeah, these are the two options
+11:57 < bridge> <heinrich5991> actually, I found another option
+11:57 < bridge> <tsfreddie> it is for pushing finishes to ddnet database?
+11:58 < bridge> <learath2> No, it's for showing finished flags in the serverbrowser
+11:58 < bridge> <tsfreddie> cuz i don't see why communities couldn't implement their own finish json servers.
+11:58 < bridge> <learath2> DHT
+11:58 < bridge> <arijanj> put them on the blockchain
+11:58 < bridge> <learath2> P2P finish network 😄
+11:58 < bridge> <heinrich5991> we could make the game servers push a URL to download
+11:58 < bridge> <heinrich5991> this way, the finished flags will only update while you're on their servers
+11:58 < bridge> <heinrich5991> I guess that doesn't behave nice wrt. nickname changes
+11:59 < bridge> <heinrich5991> I guess that doesn't behave nicely wrt. nickname changes
+11:59 < bridge> <learath2> Nah, it'd feel weird and sluggish with no apparent reason
+11:59 < bridge> <tsfreddie> :justatest: so why couldn't we just do what ddnet is doing but just allowing communities to do the same?
+11:59 < bridge> <heinrich5991> without nickname changes, it'd always be up-to-date if you're not on a shared nickname
+11:59 < bridge> <heinrich5991> player data going to third parties
+11:59 < bridge> <learath2> We can, but then clients would leak information to 3rd parties without joining their servers
+11:59 < bridge> <arijanj> i don't think you would notice the sluggishness, you could just make it reset on username change but it's not a very robust solution
+12:00 < bridge> <heinrich5991> ah, and if you're only playing from one place. I guess it doesn't work nicely
+12:00 < bridge> <tsfreddie> then proxy through ddnet's free cloudflare enterprise:justatest:
+12:00 < bridge> <heinrich5991> then we still leak when people open their clients
+12:00 < bridge> <learath2> still leaks that a client has just come online
+12:01 < bridge> <tsfreddie> i don't think a username only leak is that much
+12:01 < bridge> <heinrich5991> fine, but I like to avoid leaking any player data
+12:01 < bridge> <heinrich5991> we have a solution that doesn't leak that part, so we shouldn't leak that part
+12:01 < bridge> <tsfreddie> sounds too extreme for me tbh. besides, are we allowing anyone to communities without auditing or something
+12:02 < bridge> <heinrich5991> we haven't audited anything for the communities
+12:02 < bridge> <heinrich5991> the only thing I proposed (open-sourceness) was rejected without notice
+12:02 < bridge> <tsfreddie> <a:catbite:1080459483345584160>
+12:02 < bridge> <jxsl13> username + time = personalized ads
+12:02 < bridge> <tsfreddie> i think we should giveup
+12:02 < bridge> <tsfreddie> not that it would help other gamemodes
+12:02 < bridge> <tsfreddie> and if we trust kog then add one for kog and call it a day
+12:03 < bridge> <heinrich5991> I don't wnat to give other people a special status here
+12:03 < bridge> <heinrich5991> it'll lead to more people asking for a special status
+12:03 < bridge> <tsfreddie> <a:catbite:1080459483345584160>
+12:03 < bridge> <heinrich5991> which will be granted, if I look at the history
+12:04 < bridge> <tsfreddie> i vote for just don't do it
+12:04 < bridge> <tsfreddie> :kek:
+12:05 < bridge> <arijanj> how about a manual update finishes button? with a warning and everything
+12:05 < bridge> <tsfreddie> warning is useless
+12:05 < bridge> <arijanj> why is warning useless
+12:05 < bridge> <tsfreddie> we can't act on bad actors
+12:05 < bridge> <avolicious> But the user accepted the risk on his own behalf
+12:06 < bridge> <tsfreddie> which is why heinrich is so hard on not leaking anything
+12:06 < bridge> <tsfreddie> which is why heinrich is so hard on not leaking anything in the first place
+12:06 < bridge> <meloƞ> That was a discussion on Server redirection aswell, it's annoying and usually won't Stop users
+12:06 < bridge> <avolicious> We are using not encrypted UDP communication 🤔
+12:06 < bridge> <learath2> Well I wouldn't be completely against, opt-in per community get finishes from community option
+12:07 < bridge> <tsfreddie> i'm not saying we shouldn't do it
+12:07 < bridge> <tsfreddie> i'm just saying it sounds like it is hard to get pass heinrich
+12:07 < bridge> <avolicious> But lets not talk about security-first approach, if the underlying protocol is insecure
+12:07 < bridge> <avolicious> But lets not talk about security/privacy-first approach, if the underlying protocol is insecure
+12:07 < bridge> <tsfreddie> <a:dumbduck:1191800929679310919> the protocol is insecure only begins when you connect
+12:08 < bridge> <learath2> Why is it? I'm thinking we'd be using https whichever direction this integration ends up being
+12:08 < bridge> <tsfreddie> heinrich already made sure the client does not connect to anything other than ddnet without joining servers
+12:08 < bridge> <learath2> The insecure UDP thing happens after the user actually consents to connecting to a 3rd party
+12:08 < bridge> <arijanj> if the user can click on a server and leak everything they have, they can read a warning connected to that same community i think
+12:09 < bridge> <avolicious> But if you display a warning then, its the same as consenting to connect
+12:09 < bridge> <learath2> They need to double click actually 🤓
+12:09 < bridge> <jxsl13> alt + f4 twice
+12:09 < bridge> <meloƞ> You only have the choice of pressing yes or not playing, which Sounds Like horrible practice for a small Community Like us :P
+12:09 < bridge> <learath2> As I said, I'd be okay with a per community opt-in. @heinrich5991 would you be against this?
+12:10 < bridge> <arijanj> the main problem is timing, if a user consents once it doesn't mean that they should be leaking info every time they open the community tab
+12:10 < bridge> <arijanj> i think that's what heinrich is afraid of
+12:11 < bridge> <heinrich5991> I'm not sure why we should choose a less privacy-aware solution when we have a better one
+12:11 < bridge> <jxsl13> is there a summary of this conversation somewhere?
+12:11 < bridge> <heinrich5991> so yes, I'm against opt-in when we can avoid the opt-in altogether
+12:11 < bridge> <arijanj> yes, at the end of the day the ddnet endpoint is a decent solution
+12:11 < bridge> <learath2> I wouldn't take connecting to a community server as consent. But a "show finishes from kog: this will retrieve a list of your finishes from kog at client startup" is pretty much fine, that's what we have for the ddnet one
+12:11 < bridge> <meloƞ> Redirect on Port on GitHub has similarities to this one, i'll Look it Up rq
+12:11 < bridge> <arijanj> communities could save the info locally when they call your endpoint anyway if they want redundancy
+12:11 < bridge> <learath2> It's much less integration burden on the community owner side
+12:12 < bridge> <learath2> And less code from our side too, no need to code up a new finishserver
+12:12 < bridge> <heinrich5991> I see. I'd say "less", not "much less" though, it's one API call per finish
+12:12 < bridge> <heinrich5991> true. I'd say this could be done in a day. it's a server literally storing tuples 😄
+12:13 < bridge> <learath2> Yeah I guess
+12:13 < bridge> <avolicious> And less centralized to keep community sovereignty
+12:13 < bridge> <arijanj> honestly loss of data is a non-issue, every community already keeps its own data somewhere
+12:13 < bridge> <arijanj> they would just have to +1 loc
+12:13 < bridge> <heinrich5991> I don't want sovereignity of the community to see player data when it's not a must
+12:14 < bridge> <learath2> Ofc, just giving you my thought process. It technically should be trivial, just any kvstore and a single endpoint `PUT /finishes/:community/player` `DELETE /finishes/:community/player`
+12:15 < bridge> <learath2> Ofc, just giving you my thought process. It technically should be trivial, just any kvstore and a single endpoint `PUT /finishes/:community/:map/:player` `DELETE /finishes/:community/:map/:player`
+12:15 < bridge> <heinrich5991> `:map`
+12:15 < bridge> <avolicious> and GET, no?
+12:15 < bridge> <jxsl13> extra sausage for communities?
+12:16 < bridge> <avolicious> Yes
+12:16 < bridge> <jxsl13> 😦 no extra sausage
+12:16 < bridge> <learath2> Yeah I guess we can use http on our side too
+12:16 < bridge> <avolicious> but its then `GET /finishes/:community/:player`, no?
+12:16 < bridge> <avolicious> So we get a list of all finishes to iterate through and see what has to be deleted
+12:16 < bridge> <learath2> Hm actually I don't like my endpoints now,  we need to query all finishes by player
+12:16 < bridge> <learath2> We can work on the names 😄
+12:17 < bridge> <arijanj> i think they have an optimized system already
+12:17 < bridge> <heinrich5991> the client would probably continue to fethc finishes from https://info.ddnet.org/info as before
+12:17 < bridge> <heinrich5991> we already have support for it
+12:17 < bridge> <learath2> Yeah but we'd need to query this new service for the community finishes now. I was thinking that part
+12:18 < bridge> <learath2> I guess just `GET /finishes?player`
+12:18 < bridge> <learath2> I guess just `GET /finishes?:player`
+12:18 < bridge> <heinrich5991> yea. needs to be designed. but it's internal and doesn't any guarantees
+12:18 < bridge> <heinrich5991> could even be reading from the DB of hte server directly
+12:18 < bridge> <learath2> Yeah probably what we'd end up doing. Much easier
+12:19 < bridge> <arijanj> yeah, good solution if you want to take on that extra processing
+12:21 < bridge> <arijanj> you would also have to provide api keys or something similar maybe
+12:21 < bridge> <chillerdragon> @milkeeycat: https://youtu.be/CgdKYBqe6QA
+12:22 < bridge> <chillerdragon> Extra sausage xd
+12:23 < bridge> <avolicious> It adds some overhead to ddnet, but its doable. Only if the key gets lost or leaked, they have to assign a new one.
+12:23 < bridge> <arijanj> it's not a very high-risk thing to happen anyway, can just reset and repush
+12:23 < bridge> <arijanj> it's not a very high-risk thing to happen anyway, can just reset and repush the finishes with a script
+12:24 < bridge> <avolicious> Exactly. But if we introduce authentication for communities, we can link it with pushing server info as well
+12:24 < bridge> <avolicious> Like adding or removing a server from the community server list
+12:25 < bridge> <learath2> I remember someone was going to write a very naive reference antibot module, did that ever come to pass?
+12:25 < bridge> <learath2> I always wanted to give communities either a certificate or a static key so that we can let them update their own server lists
+12:26 < bridge> <learath2> I'm also not the biggest fan of how the community feature ended up tbf, very manual and strict. I imagined a world where anyone could group together their servers
+12:26 < bridge> <avolicious> You can do, but you need a chain of trust
+12:27 < bridge> <arijanj> you could just let users import communities themselves from a json file
+12:27 < bridge> <arijanj> or just an ip address
+12:27 < bridge> <avolicious> Please dont xD This will be a big mess
+12:28 < bridge> <arijanj> well you could have "add community" button -> enter "kog.tw/add"
+12:28 < bridge> <learath2> I really didn't want "community" to imply any trust. I just imagined it as a group of servers hosted by a single person. In that model you could just send us a secret token within the serverinfo that would be hashed on the masterserver, all servers with the same hash would be grouped together
+12:28 < bridge> <learath2> We could further bolt on certificates and stuff too to mark "trusted" communities and things like that, but eh whatever. It's just what could have been
+12:29 < bridge> <avolicious> But communities should imply trust, no? Why should a community form if they dont trust each other
+12:30 < bridge> <heinrich5991> currently, communities don't imply trust
+12:30 < bridge> <milkeeycat> chillerdragon: I'm 200% more productive now xddd
+12:30 < bridge> <learath2> That’s trust within the community. That you maintain by hiding your secret token. I meant trust from us the ddnet developers
+12:31 < bridge> <learath2> Currently there is a bar to entry that isn’t very explicit. You must have many servers is almost the only thing and even that we broke because users and fokkonaut felt “community” implies “trust”/“endorsement”
+12:31 < bridge> <avolicious> But I am a ddnet developer and I trust myself 😄
+12:32 < bridge> <avolicious> Same with Blockworlds, no?
+12:33 < bridge> <milkeeycat> chillerdragon: https://youtu.be/CgdKYBqe6QA?si=uvkKlx56M4-pzGgf&t=50 i feel attacked :pepeH:
+12:33 < bridge> <learath2> It’s also a very manual process, you need to give us a list of servers. That we just post verbatim. I feel this could have been extremely hands off, just a simple token that groups together servers and maybe some extra info object on the master server where you could get the community metadata
+12:34 < bridge> <heinrich5991> deen was against that because not all servers support the https master
+12:34 < bridge> <heinrich5991> but maybe we can still implement it for all servers that do
+12:35 < bridge> <learath2> Could be. I don’t remember how many servers they have
+12:35 < bridge> <learath2> The community order on the list of communities also became a pissing contest of sorts. Just overall, very much not what I had in mind 😄
+12:36 < bridge> <avolicious> 1
+12:36 < bridge> <Jupstar ✪> i remember the vanilla times where all servers had a prefix like `!                                         FNG`
+12:36 < bridge> <Jupstar ✪> just to be first in the server browser xD
+12:37 < bridge> <milkeeycat> that's what people do now in discord
+12:37 < bridge> <learath2> Eh could be thought about. Not urgent anymore since we have something that kinda does work
+12:49 < bridge> <learath2> This dude at work has taken a ticket that's blocking 4 other tickets. Spent a couple days on it, handed it over today before going on vacation. He said "it's unfinished". It's just boilerplate, there is no logic at all
+12:49 < bridge> <learath2> <a:FrierenDies:1198335807686193182>
+12:51 < bridge> <milkeeycat> @learath2 everything didn't work because i was calculating offset for local variables incorrectly :kek:
+12:51 < bridge> <learath2> Yeah, that makes sense
+12:51 < bridge> <milkeeycat> i have no idea how that code even worked before xd
+12:54 < bridge> <learath2> If you consistently put everything in the wrong place, it's the correct place
+12:54 < bridge> <ryozuki> :fuckyousnail:
+12:54 < bridge> <learath2> And instead of handing it over to me, he handed it over to a very incompetent dude. One more part of the code ruined forever :pepeW:
+12:55 < bridge> <learath2> I have to stay on it and review bombard his PR before it gets merged
+12:55 < bridge> <milkeeycat> ah, i was using u8 in tests, so they were never overwritten, gg
+12:55 < bridge> <milkeeycat> ah, i was using u8 in tests, so they were never overwritten, gg :oop:
+12:55 < bridge> <milkeeycat> ah, i was using u8 in tests, so they were never overwritten :oop:
+13:06 < bridge> <Jupstar ✪> does any1 know where exactly ddnet copied the SourceHanSans from?
+13:07 < bridge> <Jupstar ✪> 
+13:07 < bridge> <Jupstar ✪> Like where did it download it? xd
+13:07 < bridge> <Jupstar ✪> e.g. i find them here:
+13:07 < bridge> <Jupstar ✪> https://github.com/adobe-fonts/source-han-sans/releases
+13:08 < bridge> <syrinok> Or get unlucky and have your right click alone connect you when you don't want to join the server :feelsbadman:
+13:08 < bridge> <learath2> No idea, check the blame and ask that person directly I guess
+13:09 < ws-client> <ChillerDragon> xd @milkeeycat 
+13:09 < bridge> <syrinok> Or get unlucky and have your right click alone connect you when you don't want to join the server :feelsbadman:
+13:09 < bridge> <syrinok> 
+13:09 < bridge> <syrinok> stupid bug
+13:09 < bridge> <syrinok> Ah, seems you can join servers with right click now in general :justatest:
+13:12 < bridge> <syrinok> I hate it
+13:17 < bridge> <Jupstar ✪> but where
+13:21 < bridge> <syrinok> The only way to look at servers without accidentally joining them is with arrows now? (Right click would make you connect sometimes with 1 click due to a bug, but it was still nice to have) :feelsbadman:
+13:23 < bridge> <Jupstar ✪> was that ever not the case?
+13:24 < bridge> <syrinok> Yes, since forever, it's a recent change
+13:24 < bridge> <syrinok> Double right click wouldn't connect you
+13:24 < bridge> <Jupstar ✪> maybe bcs of android 😬
+13:25 < bridge> <louis> cant u just left click?
+13:25 < bridge> <syrinok> Yes, but the point is that double clicks are easy to do on accident
+13:25 < bridge> <syrinok> And double right click now makes you connect as well
+13:25 < bridge> <louis> i suggest a better mouse if double clicks are easy to do accidentally
+13:26 < bridge> <syrinok> Idk, it's been this way since 2007, so I'd prefer if it was fixed
+13:27 < bridge> <louis> better add accessibility tab and have double click time sensitivity slider
+13:27 < bridge> <heinrich5991> https://xkcd.com/1172/
+13:27 < bridge> <Jupstar ✪> but i must admit double right click is not really common in UIs
+13:27 < bridge> <Jupstar ✪> i wonder why it was added
+13:28 < bridge> <syrinok> :pepeW:
+13:28 < bridge> <louis> right click to select isn't common either 😅
+13:28 < bridge> <murpi> How do you accidentally double click?
+13:28 < bridge> <murpi> One click, fine but twice?
+13:29 < bridge> <syrinok> Habit
+13:29 < bridge> <Jupstar ✪> Gores elite players do that
+13:29 < bridge> <Jupstar ✪> right click is key
+13:29 < bridge> <murpi> Skeith is a filthy casual though
+13:30 < bridge> <Jupstar ✪> wow that was personal
+13:30 < bridge> <syrinok> And when human error means I leak my IP, you should protect me, I want a safe way to click, right click was the safe way to click
+13:30 < bridge> <syrinok> Well, semi safe, as I started before, it would still sometimes connect you
+13:30 < bridge> <syrinok> Well, semi safe, as I stated before, it would still sometimes connect you
+13:31 < bridge> <syrinok> with 1 click
+13:32 < bridge> <murpi> Do you accidentally double click the left click too? 👀
+13:32 < bridge> <syrinok> I'm paranoid so I don't even press it when looking at the browser, unless I 100% want to connect
+13:33 < bridge> <Jupstar ✪> Skeith is one of these ppl that doesn't have a q kill bind
+13:33 < bridge> <syrinok> I don't like accidentally joining servers that I'm just looking at to see who's in them
+13:33 < bridge> <Jupstar ✪> bcs fat fingers xd
+13:33 < bridge> <syrinok> I have it bound to Z actually, I just have another bind to turn it off
+13:34 < bridge> <heinrich5991> q kill bind all day :p
+13:35 < bridge> <murpi> People seem to use the ESC menu to kill nowadays
+13:35 < bridge> <syrinok> Q is my dummy swap
+13:35 < bridge> <Jupstar ✪> ikr, wtf
+13:35 < bridge> <Jupstar ✪> we have to make binds more discoverable
+13:35 < bridge> <louis> i feel like u need that razer mouse with 12 buttons to play dummy efficiently
+13:36 < bridge> <murpi> We need to make the console less discoverable and have the useful settings in our menus instead
+13:37 < bridge> <heinrich5991> we also have some less useful settings in the menus
+13:37 < bridge> <syrinok> Should rework all of the menus in general, vote menu etc
+13:37 < bridge> <heinrich5991> someone would need to go over the settings and decide which settings to include there
+13:39 < bridge> <murpi> I.e hy do we have separate sliders for client refresh rate and graphics refresh rate, and why are they located in entirely different tabs?
+13:40 < bridge> <murpi> I.e why do we have separate sliders for client refresh rate and graphics refresh rate, and why are they located in entirely different tabs?
+13:40 < bridge> <zhn> ye, in 2011 you could see people rejoining instead :kek:
+13:40 < bridge> <syrinok> I've seen a few people do that less than a year ago...
+13:41 < bridge> <murpi> Yeah, people still do that
+13:42 < bridge> <milkeeycat> show somewhere a client feature when you are joining a server, like when discord is loading
+13:43 < bridge> <zhn> will help with ~1% of such players
+13:44 < bridge> <Jupstar ✪> we need insta tooltips, then kill could explain itself that it is bindable xd
+13:45 < ws-client> <ChillerDragon> q kill bind is suicidal
+13:45 < bridge> <Jupstar ✪> i played gores all my life with q kill
+13:45 < ws-client> <ChillerDragon> woah
+13:45 < bridge> <Jupstar ✪> i think i only hit it accidentially twice
+13:45 < ws-client> <ChillerDragon> i do f1 "kill"
+13:45 < bridge> <Jupstar ✪> lmao
+13:45 < ws-client> <ChillerDragon> jk
+13:46 < ws-client> <ChillerDragon> "k" all the way
+13:46 < bridge> <heinrich5991> I've not hit my q kill bind accidentally in years
+13:46 < bridge> <milkeeycat> i have unbound f3 because i voted f3 one time accidentally after playing solo map for a few hours
+13:46 < ws-client> <ChillerDragon> @heinrich5991 maybe you need to play more then :p 
+13:46 < bridge> <Jupstar ✪> chiller it sounds scarier than it is
+13:47 < ws-client> <ChillerDragon> q?
+13:47 < bridge> <syrinok> Ya, it helps when you don't play much
+13:47 < bridge> <Jupstar ✪> no need. all ppl always vote f3, no matter the vote
+13:47 < bridge> <heinrich5991> it's in a very convenient place
+13:47 < ws-client> <ChillerDragon> ye so it shouldnt be kill
+13:47 < ws-client> <ChillerDragon> selfkill should not be convienient in ddrace
+13:47 < bridge> <Jupstar ✪> i have at least 10k h with q kill
+13:47 < ws-client> <ChillerDragon> in race maybe
+13:48 < ws-client> <ChillerDragon> I am the dude that requested kill protection to become a feature xd
+13:48 < bridge> <learath2> I can't have q kill, I always had spec on q. I'd randomly kill myself all the time
+13:48 < ws-client> <ChillerDragon> I am scared of dieing
+13:48 < bridge> <syrinok> I was mostly talking to hein
+13:48 < bridge> <Jupstar ✪> now comes chiller with awesome new features xD
+13:48 < ws-client> <ChillerDragon> q is show chat obviously
+13:48 < bridge> <Jupstar ✪> in t0 kill is disallowed
+13:49 < bridge> <Jupstar ✪> it harms t0 gameplay
+13:49 < ws-client> <ChillerDragon> indeed
+13:49 < bridge> <Jupstar ✪> disconnect is also disallowed
+13:49 < bridge> <Jupstar ✪> if u start play, u finish
+13:49 < ws-client> <ChillerDragon> sounds good
+13:49 < bridge> <syrinok> I'm never getting the security of my right click back am I 🥹  (going through stages of grief right now)
+13:49 < ws-client> <ChillerDragon> thats the spirit
+13:49 < ws-client> <ChillerDragon> @Jupstar ✪ if you get frozen you connect dummy
+13:49 < bridge> <Jupstar ✪> find however added it
+13:49 < bridge> <Jupstar ✪> and ask him why he added it
+13:50 < bridge> <Jupstar ✪> that sounds like the t0 spirit anyway xd
+13:50 < ws-client> <ChillerDragon> if dummy froze
+13:50 < ws-client> <ChillerDragon> 2nd client
+13:50 < ws-client> <ChillerDragon> if 2nd client froze
+13:50 < ws-client> <ChillerDragon> vpn
+13:50 < bridge> <Jupstar ✪> dummy drive network
+13:50 < ws-client> <ChillerDragon> xd good one
+13:52 < bridge> <syrinok> I don't even know how I'd find this
+13:53 < bridge> <Jupstar ✪> search on github
+13:53 < bridge> <Jupstar ✪> or in other words
+13:53 < bridge> <Jupstar ✪> ping robyte, bcs he is only contributor
+13:54 < bridge> <Jupstar ✪> 😬
+13:54 < bridge> <syrinok> Ya I might've seen something about it by Robyt awhile ago but I didn't bother to look at it properly
+13:56 < bridge> <murpi> The controls menu already includes it, so we just need to ensure people actually go through the settings menu at some point
+13:57 < bridge> <Jupstar ✪> yeah but that apparently doesnt happen
+13:57 < bridge> <syrinok> @robyt3 Was it you 🧑‍🌾  (did you change right click behavior in the menus? Double clicking right click now connects you to a server, it never used to do this)
+13:57 < bridge> <murpi> (A very good way to make people go into the settings is to blast peoples ears with annoying main menu soundtracks and intro's as loud as possible :greenthing: )
+13:57 < bridge> <Jupstar ✪> good idea
+13:58 < bridge> <Jupstar ✪> i like that
+13:58 < bridge> <zhn> 100%
+13:58 < bridge> <zhn> what about setting binds settings page as first before joining tutorial btw?
+13:59 < bridge> <meloƞ> How Dare you call Our Soundtrack annoying, i listen to the 10 hour Version every 11 hours!
+13:59 < bridge> <murpi> Or add an easy softlock to the tutorial where people have to kill
+13:59 < bridge> <zhn> hey meloni
+13:59 < bridge> <syrinok> @robyt3 Was it you 🧑‍🌾  (did you change right click behavior in the browser? Double clicking right click now connects you to a server, it never used to do this)
+14:00 < bridge> <meloƞ> Hey gärduh
+14:01 < bridge> <murpi> I haven't listened to it in years 😄
+14:01 < bridge> <murpi> I only have hammer and hook sounds enabled
+14:01 < bridge> <meloƞ> :angy:
+14:01 < bridge> <meloƞ> I have those disabled :kek:
+14:02 < bridge> <louis> the soundtrack is iconic but i also have it muted
+14:02 < bridge> <syrinok> **uses a very specific command on noby's server to play said music at a specific location**
+14:02 < bridge> <syrinok> For non troll reasons ofc
+14:02 < bridge> <tsfreddie> noby server more like noisy server
+14:03 < bridge> <zhn> i thought noby disabled earrape
+14:03 < bridge> <syrinok> :(
+14:03 < bridge> <meloƞ> Where IS noby anyway, He randomly spawns without warning
+14:03 < bridge> <zhn> i couldn't get it to work for some reason xd
+14:03 < bridge> <syrinok> Ya I just tried, you're right
+14:03 < bridge> <tsfreddie> working
+14:03 < bridge> <Mr.Gh0s7> It's rng if earrape is enabled
+14:03 < bridge> <zhn> weeding
+14:03 < bridge> <tsfreddie> dude got a job
+14:04 < bridge> <meloƞ> Have reitw Scream at people
+14:04 < bridge> <zhn> z team pack 4 soundtrack fires ngl
+14:08 < bridge> <louis> idk what z team pack 4 is
+14:11 < bridge> <zhn> oh no
+14:11 < bridge> <zhn> https://www.teeworlds.com/forum/viewtopic.php?id=5796
+14:12 < bridge> <Jupstar ✪> where is the soundtrack
+14:12 < bridge> <Jupstar ✪> i want to hear xd
+14:15 < bridge> <zhn> ye wait, all links are dead
+14:15 < bridge> <zhn> found this one though
+14:15 < bridge> <zhn> https://gist.github.com/VeH-c/bbeb21d5b5808f811b10853d102b4c80
+14:16 < bridge> <zhn> https://github.com/gerich-home/zteeworlds/blob/master/data/audio/music.wv
+14:17 < bridge> <Jupstar ✪> lmao, nice but 8bit doesnt fit teeworlds i guess 😄
+14:17 < bridge> <Jupstar ✪> the fng capture sound is nice
+14:17 < bridge> <Jupstar ✪> nice beat xd
+14:18 < bridge> <Jupstar ✪> i think we should all put our money together and buy nintendo and then steal their soundtracks.
+14:18 < bridge> <Jupstar ✪> 
+14:18 < bridge> <Jupstar ✪> They are kid friendly and epyc xdd
+14:18 < bridge> <zhn> :justatest:
+14:18 < bridge> <louis> how does it even work though
+14:18 < bridge> <louis> for tw it would be nice to have soundtracks that play randomly like minecraft
+14:18 < bridge> <louis> not just main menu music
+14:19 < bridge> <zhn> ye id like to have random soundtracks play while i tryhard on gctf :troll:
+14:19 < bridge> <Jupstar ✪> when louis enters server it must play boss music
+14:21 < bridge> <zhn> it should spawn nouis and spam with link to biggernouis
+14:21 < bridge> <zhn> :justatest:
+14:28 < bridge> <Mr.Gh0s7> solve the captacha to enter boss fight
+14:31 < bridge> <Mr.Gh0s7> *Listening to teeworlds menu music*
+14:31 < bridge> <Mr.Gh0s7> Where's the ctf on the browser
+14:39 < bridge> <tsfreddie> wdym, web teeworlds?
+14:40 < bridge> <Mr.Gh0s7> I mean ctf servers on the ddnet browser (it was rhetorical like "I am feeling nostalgic and I want to join a 8/16 ctf server") :)
+14:40 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274>
+15:00 < bridge> <rutujek> ummm i have problem, bc i cant create account at hetzner
+15:00 < bridge> <rutujek> i dont have paypal
+15:01 < bridge> <rutujek> do you have other website with google pay or something?
+15:02 < bridge> <heinrich5991> do you have a bank account in europe? SEPA would work for that
+15:02 < bridge> <heinrich5991> (with hetzner)
+15:05 < bridge> <rutujek> i have bank account in europe but I can't make transfers, I will only be able to do it in 1 week because I blocked my card
+15:07 < bridge> <avolicious> You can pay with Paypal too
+15:07 < bridge> <Mr.Gh0s7> ^ xD
+15:08 < bridge> <avolicious> You can use the debit function as well
+15:08 < bridge> <avolicious> Hetzner offers a lot of different payment solutions
+15:33 < bridge> <robyt3> Was probably an oversight when refactoring the double-click handling to be aware of UI elements, can fix it later
+15:33 < bridge> <syrinok> Thanks
+15:38 < bridge> <robyt3> yeah, likely from there according to my browser history. I last updated all fonts in #6952
+15:38 < bridge> <robyt3> https://cdn.discordapp.com/attachments/293493549758939136/1270737824068665364/image.png?ex=66b4ca52&is=66b378d2&hm=7804d0daedae1c2c9d3879f5a88ace3c15e05bdeb4f2aa97165c740182140d84&
+15:38 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/6952
+15:38 < bridge> <Jupstar ✪> 👌
+15:42 < bridge> <jxsl13> *onbgy we summon you*
+15:42 < bridge> <jxsl13> 👻
+15:42 < bridge> <reitw> whos onbgy
+15:43 < bridge> <heinrich5991> noby
+15:43 < bridge> <jxsl13> fng onbgy
+15:43 < bridge> <reitw> fng sux :ReiTroll:
+15:43 < bridge> <jxsl13> :kek:
+15:43 < bridge> <fokkonaut> @heinrich5991 ban !!!
+15:43 < bridge> <fokkonaut> xdxdxd
+15:43 < bridge> <reitw> big troll, noby knows
+15:44 < bridge> <avolicious> fake news
+15:45 < bridge> <fokkonaut> ik, heinrich knows why i say this
+15:45 < bridge> <fokkonaut> xd
+15:52 < bridge> <ryozuki> noby and his C code
+15:52 < bridge> <ryozuki> :justatest:
+16:03 < bridge> <fokkonaut> Lol, BW had a community way before me. Not my fault tbh. They also only have 1-2 real servers, that other one is a shop and the other one is not visited at all.
+16:05 < bridge> <fokkonaut> It's just that from the beginning on @avolicious was kind enough to add me to KoG tab in order to protect my server from being faked and copied for IP grabbing etc.
+16:05 < bridge> <fokkonaut> This was (for me) one of the main reasons to add something like a community tab.
+16:05 < bridge> <fokkonaut> And since that wasn't the way to go, it was very much needed to have another solution to a problem like that
+16:06 < bridge> <fokkonaut> And there's no reason to add a minimum amount of servers required for it to be a community.
+16:06 < bridge> <meloƞ> #8407
+16:06 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/8407
+16:06 < bridge> <meloƞ> Feel free to begin :gigachad:
+16:06 < bridge> <fokkonaut> Yea, but all of that was after it had been implemented already
+16:06 < bridge> <fokkonaut> I don't know why stuff doesnt seem to be discussed beforehand anymore
+16:06 < bridge> <heinrich5991> you truly cannot imagine a single reason for a minimum amount of serveres?
+16:06 < bridge> <heinrich5991> stuff was discussed beforehand
+16:07 < bridge> <fokkonaut> I mean, measuring it based on my server for example, it has more players on one single server than BW has on all of their servers together often times
+16:07 < bridge> <fokkonaut> So, my argument was I could easily host more empty servers just for the sake of hosting them
+16:07 < bridge> <fokkonaut> Which is dumb, the community is still there
+16:08 < bridge> <fokkonaut> And shouldn't be measured on "yea this guy has like 100 servers running, big big community"
+16:08 < bridge> <fokkonaut> That's not really a community, if there would he no players
+16:08 < bridge> <heinrich5991> it seems like you're against the rule, but that's different from "there's no reason for…"
+16:08 < bridge> <fokkonaut> Please
+16:09 < bridge> <fokkonaut> I just explained my view on that
+16:09 < bridge> <heinrich5991> you gave reasons against the rule
+16:09 < bridge> <fokkonaut> A community != many servers
+16:09 < bridge> <fokkonaut> is my point
+16:09 < bridge> <heinrich5991> that's great. apparently you wanted to say "I see many points in favor of allowing single-server communities"
+16:09 < bridge> <heinrich5991> and not "there's no reason for disallowing signle-server communities"
+16:10 < bridge> <fokkonaut> Okay whatever, you got my point and I'm not 100% fluid in english. Don't take it too literal when you know exactly what I mean
+16:10 < bridge> <fokkonaut> (happens too often)
+16:10 < bridge> <heinrich5991> I did not know what you meant before you expanded
+16:10 < bridge> <fokkonaut> Ok
+16:10 < bridge> <heinrich5991> I did not know what you meant before you elaborated
+16:11 < bridge> <fokkonaut> But you answered before you read
+16:11 < bridge> <fokkonaut> So
+16:11 < bridge> <fokkonaut> It's whatever
+16:12 < bridge> <fokkonaut> The reason why all of this is my POV is because initially we had the checkmark on KoG/DDNet servers, which in fact "verified" a trustful server, which got replaced by community tab, implying a community might be safer to join than a normal server
+16:12 < bridge> <heinrich5991> we should try to work agains that somehow
+16:12 < bridge> <fokkonaut> Yes
+16:13 < bridge> <heinrich5991> perhaps we could give special treatment to the non-community servers
+16:13 < bridge> <heinrich5991> so that they get some more visibility
+16:13 < bridge> <fokkonaut> What would that change? Broadcasting potentionally harmful servers again so faking (e.g. my server) would be easier again?
+16:14 < bridge> <fokkonaut> We have to think of it from all perspectives,
+16:14 < bridge> <heinrich5991> it'd give people less of a feeling that "community" servers are "trusted"
+16:14 < bridge> <heinrich5991> which is not the intention right now
+16:14 < bridge> <learath2> That's how it was initially designed, which is why you were very mad at us for months
+16:14 < bridge> <avolicious> But in fact they are. Would you count DDNet as untrusted server?
+16:15 < bridge> <heinrich5991> we try to not give special treatment to ddnet gameservers, yes
+16:15 < bridge> <fokkonaut> I wasnt mad, I just stated why I think that whole thing wasnt thought through, and if i would've been active during the time of discussion, I would for sure have mentioned the same points
+16:15 < bridge> <avolicious> But you do
+16:15 < bridge> <fokkonaut> But it doesnt seem to matter, as things I say only seem to be talked down upo
+16:15 < bridge> <heinrich5991> can you give an example of what you're thinking of?
+16:15 < bridge> <fokkonaut> Same like the freeze star indicator thing
+16:15 < bridge> <fokkonaut> I made a vote, majority was for an option
+16:15 < bridge> <fokkonaut> Still nothing
+16:15 < bridge> <learath2> A community was literally supposed to be a "a grouping of servers hosted by a single entity". So your assertion becomes
+16:15 < bridge> <learath2> `A grouping of servers hosted by a single entity != many server` which is why the thing you asked for sounded so absurd to us
+16:16 < bridge> <avolicious> Defaults to DDNet Tutorial servers
+16:16 < bridge> <fokkonaut> Ok, then the term community per definition is wrong here
+16:16 < bridge> <meloƞ> it is the DDNet Client after all, which is more than okay imho
+16:16 < bridge> <avolicious> > we try to not give special treatment to ddnet gameservers, yes
+16:16 < bridge> <heinrich5991> that's kinda irrelevant. if someone makes a vote to delist fokkonaut's server, we shouldn't do it, just because there's a majority in favor of it (on some random medium)
+16:16 < bridge> <avolicious> Then this statement is not correct.
+16:17 < bridge> <fokkonaut> But this impacts literally everyone using the client.
+16:17 < bridge> <fokkonaut> You compare 2 different things
+16:17 < bridge> <avolicious> I dont mind if they default to DDNet Tutorial servers if its "their" client, but the statement is not correct
+16:17 < bridge> <fokkonaut> whataboutism, basically
+16:17 < bridge> <learath2> So does delisting fokkonaut servers tbf, so this isn't really the difference between the two
+16:17 < bridge> <fokkonaut> No
+16:18 < bridge> <fokkonaut> whatever man :D
+16:18 < bridge> <learath2> If we delist it, anyone using the ddnet client wouldn't be able to see your servers. Thus impacting everyone using the ddnet client, no?
+16:18 < bridge> <heinrich5991> > whataboutism, basically
+16:18 < bridge> <heinrich5991> throwing words at people isn't a good discussion strategy
+16:18 < bridge> <heinrich5991> > whataboutism, basically
+16:18 < bridge> <heinrich5991> throwing labels at people isn't a good discussion strategy
+16:18 < bridge> <fokkonaut> And your strategy of discussing is not focussing on the essential
+16:18 < bridge> <meloƞ> i think the meaning of "special treatment" differs from person to person, but i see your point now, thinking about it :P
+16:18 < bridge> <fokkonaut> Neither helpful aswell
+16:19 < bridge> <avolicious> Its all about the user experience, so communities add a lot for the playerbase
+16:19 < bridge> <fokkonaut> Very frustrating, actually and makes it difficult to even argue in the first place
+16:19 < bridge> <fokkonaut> Ddnet maintainers seem to be pushing their personal opinion on things too much, without leaving room for others
+16:19 < bridge> <learath2> Anyway, why are we relitigating this? At some point I assume deen got bored of people messaging him about becoming a community with a single server. So he just added blockworlds, then using that precedent we added yours too. Now I guess single servers are also fine
+16:19 < bridge> <fokkonaut> (see chillers broadcast attenpt(
+16:19 < bridge> <fokkonaut> attempt)*
+16:19 < bridge> <avolicious> I would do it like discord does
+16:20 < bridge> <avolicious> use status.tw and check their avg. playerbase
+16:20 < bridge> <learath2> I mean that's the point of having maintainers. We aren't here to just merge everything everyone makes
+16:20 < bridge> <fokkonaut> See oy for example, he lets a community driven game be community driven
+16:20 < bridge> <avolicious> If this is above a threshold, they can open a ticket & get "the" approval
+16:20 < bridge> <Jupstar ✪> that isnt a ddnet maintainer problem, that is a maintaining problem.
+16:20 < bridge> <Jupstar ✪> 
+16:20 < bridge> <Jupstar ✪> our code base just gets bigger with useless features. tomorrow chiller rq and we have some feature nobody uses
+16:20 < bridge> <fokkonaut> (e.g. majority wants smth)
+16:20 < bridge> <heinrich5991> LOL
+16:20 < bridge> <learath2> LOL
+16:20 < bridge> <Jupstar ✪> xDDDDDDDDDDDD
+16:20 < bridge> <fokkonaut> Besides hes not active
+16:20 < bridge> <meloƞ> :justatest:
+16:21 < bridge> <learath2> `wontfix`
+16:21 < bridge> <fokkonaut> but when hes active
+16:21 < bridge> <Jupstar ✪> not even then xD
+16:21 < bridge> <heinrich5991> this is just straight up untrue
+16:21 < bridge> <heinrich5991> ddnet is much more open to contributions than teeworlds is
+16:21 < bridge> <fokkonaut> I see more stuff going througu vanilla than ddnet when its about stuff like that (see broadcast)
+16:21 < bridge> <heinrich5991> I've contributed to both projects
+16:21 < bridge> <learath2> I have, not once in more than a decade being involved in teeworlds developer, ever seen oy take a vote on anything
+16:21 < bridge> <avolicious> Why is status.tw broken?
+16:21 < bridge> <learath2> Even when he was active
+16:21 < bridge> <learath2> I have, not once in more than a decade being involved in teeworlds development, ever seen oy take a vote on anything
+16:21 < bridge> <heinrich5991> broken in what way? you can ask on their discord
+16:22 < bridge> <fokkonaut> Anyways
+16:22 < bridge> <avolicious> https://status.tw/server/list/ is empty
+16:22 < bridge> <heinrich5991> not empty for me
+16:22 < bridge> <avolicious> Mhmm
+16:22 < bridge> <heinrich5991> now empty for me 😮
+16:22 < bridge> <fokkonaut> Cache
+16:22 < bridge> <meloƞ> `Showing 0 to 0 of 0 entries`
+16:22 < bridge> <meloƞ> :P
+16:23 < bridge> <Nouaa> :HappyCursed:
+16:23 < bridge> <fokkonaut> No offense
+16:23 < bridge> <fokkonaut> objectively seen
+16:23 < bridge> <Nouaa> none were taken
+16:24 < bridge> <Nouaa> (as long as everyone knows that we don't allow dummies)
+16:24 < bridge> <fokkonaut> hidden offense?
+16:24 < bridge> <heinrich5991> https://discord.gg/Sktuqa5Hjr
+16:24 < bridge> <learath2> Would you be happy if another version of the same feature made it in? I have a feeling you are more annoyed that we didn't really like this specific format for colored broadcasts rather than the feature not making it in
+16:24 < bridge> <Nouaa> nah xd
+16:25 < bridge> <learath2> I did not know discord used that symbol for community servers now
+16:25 < bridge> <avolicious> Thanks. Urgh 10 minutes dono-walled 😄
+16:25 < bridge> <fokkonaut> I'm on chillers side about this
+16:25 < bridge> <learath2> That is obvious. I'm just curious whether you want the feature or chillers version of the feature
+16:25 < bridge> <heinrich5991> screenshot? the logo is just the letters "t.d" for me
+16:25 < bridge> <Jupstar ✪> The fact that you have to use broadcasts instead a _the_ feature you actually want, shows that you are just adding a workaround
+16:26 < bridge> <fokkonaut> I want a good balance, which seems to be achieved the best by 0.7 format, yes. Potentionally we could use HEX ^rgb, then we'd have the same spectrum of colors
+16:26 < bridge> <learath2> The home thing
+16:26 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1270749885666295938/comm.png?ex=66b4d58e&is=66b3840e&hm=5926538d5eb51c87fac4c5acdc7359d42df5a1a0d4340cb23e0f3a5704e84692&
+16:26 < bridge> <fokkonaut> would just not be compatible with 0.7 without translating them
+16:27 < bridge> <learath2> I would probably be okay with the `^.....^` version with a sequence terminator. Dunno about @heinrich5991 though, he didn't reply to my message here 😄
+16:27 < bridge> <fokkonaut> Anyways im not here to discuss that rn, that's chillers thing and this is distracting rn :D
+16:27 < bridge> <Jupstar ✪> https://en.wikipedia.org/wiki/ANSI_escape_code#24-bit
+16:28 < bridge> <learath2> Yeah, what are we discussing now anyway? You have your community, no?
+16:28 < bridge> <fokkonaut> It's not about that LOL
+16:28 < bridge> <learath2> This is not typeable by hand easily. I also proposed this
+16:28 < bridge> <learath2> Are we discussing the fact that we are doing fascism?
+16:28 < bridge> <fokkonaut> And dont treat me like that, please. I'm not a child which you can ""give what he wants so he shuts up""
+16:28 < bridge> <fokkonaut> missing the entire point
+16:28 < bridge> <painn1013> i mean we can enable dummy on our server and probably triple ur player numbers idk what this is
+16:29 < bridge> <fokkonaut> missing the point
+16:29 < bridge> <fokkonaut> no need to feel offended on this
+16:29 < bridge> <fokkonaut> I just took BW as an example of another small community with de-facto 1-2 sevrers
+16:29 < bridge> <heinrich5991> > no need to feel offended on this
+16:29 < bridge> <heinrich5991> drop this
+16:29 < bridge> <learath2> Well it's not a child thing. People want things, they usually are happy when they get them. Then there is usually no reason to discuss it further
+16:29 < bridge> <heinrich5991> this just offends people
+16:29 < bridge> <painn1013> nah it just feels weird flexing ur 4ips/server thing
+16:29 < bridge> <fokkonaut> It literally offended him, "idk what this is"
+16:29 < bridge> <fokkonaut> please drop that too, then
+16:30 < bridge> <fokkonaut> omg
+16:30 < bridge> <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/1270750813547008013/Heinorich.png?ex=66b4d66b&is=66b384eb&hm=629e2b362d313adf99b0c53f68f4c51caa98a28c9bc79a6feb2a1c470ba691da&
+16:30 < bridge> <heinrich5991> discuss moderation in DMs
+16:30 < bridge> <fokkonaut> deletorich
+16:30 < bridge> <fokkonaut> anyways, bb for now
+16:30 < bridge> <fokkonaut> xd
+16:30 < bridge> <fokkonaut> this is useless
+16:30 < bridge> <Jupstar ✪> @fokkonaut cya later aligator
+16:30 < bridge> <meloƞ> cya fokko!
+16:30 < bridge> <fokkonaut> in a while crocodile 🐊
+16:30 < bridge> <learath2> I'll actually go back and read the entire thing again because I did not even understand what the issue was here
+16:30 < bridge> <meloƞ> XD
+16:31  * bridge <fokkonaut> (yeah that happens when not focussing on a specific thing)
+16:31 < bridge> <painn1013> i just got linked here cus fokko made stupid comparision
+16:31 < bridge> <fokkonaut> @heinrich5991
+16:32 < bridge> <fokkonaut> the fact that nouaa linked you to here for that is HILARIOUS
+16:32 < bridge> <meloƞ> :pepeangryping:
+16:32 < bridge> <fokkonaut> and proofs both of you are offended
+16:32 < bridge> <painn1013> who said it was noua lmao
+16:32 < bridge> <avolicious> Initially community requirements were based on server count. Now less-sized communities are communities as well because they asked for it, which is imho fine if the there is an higher avg. playerbase on it than 0
+16:32 < bridge> <Nouaa> :CH_PepeCryingSoWhat: didn't do anything
+16:32 < bridge> <heinrich5991> timed out @fokkonaut for deliberately not following the rules. if anyone wants to discuss this, they're welcome in my DMs
+16:32 < bridge> <avolicious> Initially community requirements were based on server count. Now less-sized servers are communities as well because they asked for it, which is imho fine if the there is an higher avg. playerbase on it than 0
+16:32 < bridge> <heinrich5991> (after being told twice)
+16:32 < bridge> <painn1013> :peepoCry:
+16:33 < bridge> <meloƞ> RIP
+16:33 < bridge> <learath2> Exactly, but I don't get what we are discussing here. The change he wanted already happened
+16:33 < bridge> <avolicious> Its still unclear how communities are treated. As a player PoV, they should be "trusted"
+16:33 < bridge> <meloƞ> tbh i thought the discussion started again because he still isn't part of it, but he is from what i could tell, anyway - thanks for the chat, was fun, but i rather not keep bashing fokko while he can't answer
+16:34 < bridge> <avolicious> "Accepted" communities with their own icon show trust in the serverlist, because they are different than normal serverlist entries
+16:34 < bridge> <avolicious> The player knows what he gets from the community, if he recognizes the icon
+16:34 < bridge> <learath2> This war is already kinda over. The players treat it as if it's "trusted" nothing more we can really do about it
+16:34 < bridge> <avolicious> They know the brand
+16:35 < bridge> <avolicious> Thats good
+16:35 < bridge> <tsfreddie> <a:vibe:1191801470945869927>
+16:35 < bridge> <meloƞ> to avoid this i opened up #8407, but not a single message for 2 1/2 months :/
+16:35 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/8407
+16:35 < bridge> <learath2> I kinda disagree. I'd rather have had just "any grouping of servers = community", then we wouldn't have to quantify anything or have to discuss in here about who should get a community when
+16:36 < bridge> <avolicious> I guess we have different views on the term "community" then. In your mind its "a grouping of servers" in my mind its "an established playerbase"
+16:36 < bridge> <avolicious> I can have 1 server, but 128p for example
+16:37 < bridge> <avolicious> Or i can have 128 servers with 1 player
+16:37 < bridge> <learath2> My definition was to avoid exactly this issue of heated discussions on "who deserves the ddnet mark of approval"
+16:37 < bridge> <Jupstar ✪> i dunno, then i call my servers foggonaut servers and nobody can do anything
+16:37 < bridge> <Jupstar ✪> queen of gores
+16:37 < bridge> <learath2> That's the status quo already. People fake servers all the time
+16:37 < bridge> <meloƞ> BlockUniverse!
+16:37 < bridge> <avolicious> This is already reserved on KoG xD
+16:37 < bridge> <louis> omg new argument dropped
+16:37 < bridge> <avolicious> Someone had this title years ago
+16:38 < bridge> <learath2> fo𝑘konaut's playground
+16:38 < bridge> <avolicious> And thats why community marked servers are important
+16:38 < bridge> <painn1013> pretty easily identifyable with accounts
+16:38 < bridge> <avolicious> Servers?
+16:38 < bridge> <painn1013> ye
+16:39 < bridge> <learath2> That I don't follow
+16:39 < bridge> <avolicious> Me neither
+16:39 < bridge> <learath2> What do accounts have to do with server legitimacy?
+16:39 < bridge> <Jupstar ✪> i mean we can use ddnet account system for servers too 😄
+16:39 < bridge> <painn1013> if u cant login its fake
+16:40 < bridge> <avolicious> ? But thats up to the server how he treats login requests, no?
+16:40 < bridge> <learath2> Anyway, no need to discuss this more since we did end up with a community system with some "trust" implied already. Unlikely to change
+16:40 < bridge> <avolicious> I am confused by @painn1013 😄
+16:40 < bridge> <learath2> I guess we should find some concrete rules on when a community can be created
+16:40 < bridge> <avolicious> I am confused by & with @painn1013 😄
+16:40 < bridge> <learath2> At that point you've already given your username and password to the fake server <a:alarm:774780596731904032>
+16:41 < bridge> <heinrich5991> not with accounts as proposed
+16:41 < bridge> <avolicious> Depending on the authentication mechanism
+16:41 < bridge> <learath2> Yeah the one we are implementing is immune to that
+16:41 < bridge> <avolicious> and KoG doesnt use usernames 😄
+16:41 < bridge> <avolicious> we only use random strings to prevent leaking your passwords
+16:41 < bridge> <Nouaa> elaborate
+16:41 < bridge> <learath2> Something something, asymmetric cryptography, something something
+16:42 < bridge> <Nouaa> :kek:
+16:43 < bridge> <louis> a community can exist on a single server though
+16:43 < bridge> <Jupstar ✪> i think with ddnet accounts, rcon auth problems wont matter anymore anyway. If servers then still use string based auth, then rip.
+16:43 < bridge> <Jupstar ✪> So let's not use that as argument
+16:43 < bridge> <Jupstar ✪> 
+16:43 < bridge> <Jupstar ✪> If we use accounts to show that multiple servers are part of the same group, that would be possible i think
+16:43 < bridge> <learath2> It's just a definitional thing. I was not talking about a community of players. I was talking about a "community of servers"
+16:43 < bridge> <heinrich5991> > If servers then still use string based auth, then rip.
+16:43 < bridge> <heinrich5991> we can rip this out hopefully
+16:44 < bridge> <heinrich5991> rip. haha
+16:44 < bridge> <Jupstar ✪> at least for the bigger communities, then it is probably not attractive anymore anyway
+16:44 < bridge> <louis> string based auth is terrible i agree xd
+16:44 < bridge> <louis> always gotta use some random silly password since i'm sure everyone stores info in a plaintext dictionary
+16:45 < bridge> <learath2> @heinrich5991, rich text, control sequences, not xml, what think? I want to do something about it over the weekend
+16:45 < bridge> <learath2> Tbf only very janky solutions store passwords in plaintext
+16:46 < bridge> <heinrich5991> honestly, I think your time might be better spent elsewhere ^^ not sure, I think the xml-like stuff is still best
+16:46 < bridge> <Jupstar ✪> ah now i got it, haha
+16:47 < bridge> <learath2> Why though? It's not any better at this flat task we are doing, and the typing friendly derivative we came up with loses all benefits of being close to standard
+16:47 < bridge> <louis> isn't the teeworlds way of string passwords always kinda insecure anyways? since the plaintext password is still processed serverside before it gets stored somehow
+16:48 < bridge> <heinrich5991> yes
+16:48 < bridge> <learath2> Yes
+16:48 < bridge> <heinrich5991> it seems more obvious how to extend, and it was pretty close to another engine's format, no?
+16:48 < bridge> <learath2> `^.....^` is pretty simple to extend too, just add new characters
+16:49 < bridge> <heinrich5991> but this is us inventing our own thing. just copy the thing off some other popular game if absolutely need be
+16:50 < bridge> <heinrich5991> e.g. with the xml-like format, we get escaping for free, because escaping is a solved problem for xml
+16:50 < bridge> <learath2> Trackmania uses this kind of formatting apparently, but why wouldn't we invent our own? The xml derivative is also pretty much unparseable with standard parsers
+16:51 < bridge> <heinrich5991> `<c=#123456>foobar</c>` seems reasonable to type for me
+16:51 < bridge> <learath2> It seems you and I are the only people that think that
+16:51 < bridge> <louis> i think that too.
+16:51 < bridge> <learath2> Ok, you me and louis
+16:52 < bridge> <0xdeen> Why are we thinking about xml?
+16:52 < bridge> <learath2> See deen doesn't feel the xml 😄
+16:52 < bridge> <heinrich5991> we'd not parse it as XML
+16:52 < bridge> <heinrich5991> it's not even XML
+16:52 < bridge> <heinrich5991> it's just a rather obvous format to format text with
+16:52 < bridge> <learath2> Yeah it just kinda looks like it
+16:53 < bridge> <Jupstar ✪> BBCode
+16:53 < bridge> <0xdeen> That is even worse!
+16:53 < bridge> <louis> bbcode goated 😭 🙏
+16:53 < bridge> <heinrich5991> the plan would be to parse it as tokens with `<c=#`, `>`, `</c>` being tokens, and rejecting invalid input
+16:53 < bridge> <0xdeen> What are we trying to do?
+16:53 < bridge> <heinrich5991> markup for colors in broadcasts
+16:53 < bridge> <learath2> Colored broadcasts to begin with
+16:53 < bridge> <heinrich5991> (potentially elsewhere)
+16:53 < bridge> <0xdeen> Hm, I don't like colors
+16:53 < bridge> <heinrich5991> that's also an option ^^
+16:54 < bridge> <learath2> Could we interest you in italic broadcasts instead?
+16:54 < bridge> <0xdeen> When you allow colors/styling server hosters will do horrible-looking stuff
+16:54 < bridge> <louis> for every 5 horrible looking stuff there's usually 1 amazingly cool new thing though
+16:54 < bridge> <learath2> Well what is it to us what they do with it?
+16:55 < bridge> <0xdeen> Do we have a use case for it?
+16:55 < bridge> <heinrich5991> only vague stuff
+16:55 < bridge> <heinrich5991> "could be cool to highlight player names in broadcasts"
+16:55 < bridge> <avolicious> But thats an assumption, no?
+16:56 < bridge> <Jupstar ✪> i can give you shaders that greyscale, np
+16:56 < bridge> <0xdeen> Did you feel like I was addressing you? 😄
+16:56 < bridge> <avolicious> you said "server hosters"
+16:56 < bridge> <avolicious> Ofc I am addressed 😄
+16:56 < bridge> <learath2> It'd also serve as a peace offering to the 0.7 people so they don't track us down and burn us in pyres for not letting them have rainbow broadcasts
+16:56 < bridge> <louis> you can imagine it on infclass, color coding zombie names vs human names etc.. also good for accessibility, better readability
+16:57 < bridge> <heinrich5991> I don't think this is a good strategy
+16:57 < bridge> <avolicious> Add the "rainbow" broadcast for community servers only 😏
+16:57 < bridge> <heinrich5991> no
+16:57 < bridge> <learath2> Appeasement never hurts just ask Neville Chamberlain :justatest:
+16:58 < bridge> <louis> whatever gets added, please add hex code support instead of the heinous 0.7 format
+16:58 < bridge> <heinrich5991> can you give me the reference?
+16:59 < bridge> <avolicious> getting a fluid rainbow is important 👍
+16:59 < bridge> <heinrich5991> it does, in terms of code complexity
+16:59 < bridge> <Jupstar ✪> looks horrible
+16:59 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1270758133060599963/image.png?ex=66b4dd3c&is=66b38bbc&hm=f2ed6877bdec13a0d6cd7e8ce206b84038ae7f48bfc8f28bdbcde20a78776574&
+16:59 < bridge> <Jupstar ✪> without colors
+16:59 < bridge> <learath2> It's a famous case of appeasement not working 😄
+16:59 < bridge> <learath2> pre-WW2 british prime minister
+17:00 < bridge> <0xdeen> Hitler = Teeworlds 0.7 lovers, British Prime Minister = us in this example
+17:01 < bridge> <Jupstar ✪> wow
+17:01 < bridge> <Jupstar ✪> https://registry.khronos.org/OpenGL-Refpages/gl4/html/noise.xhtml
+17:01 < bridge> <Jupstar ✪> that is cool
+17:01 < bridge> <learath2> I guess we can have the xml but it won't be very well utilised imo, and it won't make the 0.7 people happy AND we don't have a usecase so it kinda feels like the worst of all worlds
+17:02 < bridge> <learath2> "well utilised" as in the format btw, we are styling flat text, xml is much better suited for more structured stuff
+17:03 < bridge> <murpi> Let's rename Communities to just Networks
+17:03 < bridge> <Jupstar ✪> ddrace networks
+17:04 < bridge> <zhn> ye it's half true
+17:05 < bridge> <heinrich5991> another option: you could also not implement a feature you don't like
+17:06 < bridge> <heinrich5991> I've also not started with the finish server yet, if you're looking for some small neat thing
+17:06 < bridge> <learath2> It's not that I don't like it, I'm just unsure whether the way you want to take it is the correct answer
+17:07 < bridge> <heinrich5991> ah, sorry, misinterpreted
+17:07 < bridge> <heinrich5991> disregard my message then
+17:08 < bridge> <0xdeen> I believe 128 player servers might actually reduce the CPU usage on our servers because context switching becomes expensive when you run 150 servers on a single dedicated server
+17:08 < bridge> <heinrich5991> really 😮
+17:08 < bridge> <heinrich5991> I find that hard to believe
+17:08 < bridge> <heinrich5991> our O(n²) algorithms should outweigh the gains
+17:08 < bridge> <learath2> I saw that you wanted to get 128p in. Are you thinking with the playermapping or with that part stripped out so only new clients?
+17:08 < bridge> <murpi> Well, there goes my rainbow skin request :PeepoSad:
+17:08 < bridge> <heinrich5991> with playermapping AFAIK
+17:09 < bridge> <heinrich5991> but only for old clients
+17:09 < bridge> <0xdeen> I noticed a few times that RUS2 had fewer players than RUS1, spread across more game servers, and had higher CPU usage. That is the only data point I have
+17:09 < bridge> <heinrich5991> maybe different CPUs
+17:09 < bridge> <0xdeen> No, same
+17:09 < bridge> <learath2> Different kernel?
+17:09 < bridge> <heinrich5991> interesting
+17:09 < bridge> <0xdeen> There is some cost to having a game server running with > 0 players
+17:09 < bridge> <0xdeen> I think 0.5-1% cpu when I last measured it 10 years ago
+17:10 < bridge> <0xdeen> because it has to do something on each tick, and we only don't do that when the server is empty
+17:10 < bridge> <learath2> So you are thinking that constant factor is adding up?
+17:10 < bridge> <learath2> It is possible
+17:10 < bridge> <0xdeen> yes
+17:10 < bridge> <0xdeen> 150*0.5% is 75% of one core used, we only have 8 cores
+17:11 < bridge> <learath2> I did not know we were running 150 servers btw
+17:11 < bridge> <0xdeen> https://cdn.discordapp.com/attachments/293493549758939136/1270761221406064650/Screenshot_2024-08-07_at_17.11.19.png?ex=66b4e01c&is=66b38e9c&hm=0f773c15b17fa3f2e5d6c812facbd94c48665aa6d656ac84008670f5c4ce8aea&
+17:11 < bridge> <teero777> gm
+17:12 < bridge> <Jupstar ✪> mh, doesnt work xd
+17:12 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1270761577313996890/image.png?ex=66b4e071&is=66b38ef1&hm=6528f89f189106e8d671d8ecfc41bff9cc91e50049116cc6772386e002f20461&
+17:15 < bridge> <Jupstar ✪> we should really have two race tables
+17:15 < bridge> <Jupstar ✪> one with top races only and one with all races
+17:15 < bridge> <Jupstar ✪> the queries are so slow bcs of grouping
+17:16 < bridge> <murpi> I wonder, is being ranked above ~ 100 even interesting to people?
+17:17 < bridge> <Jupstar ✪> what i meant with top rank, is per player the best rank
+17:18 < bridge> <0xdeen> What query is slow?
+17:18 < bridge> <0xdeen> I thought I made them all relatively fast
+17:21 < bridge> <Jupstar ✪> i dunno /rank for example takes a few seconds on my pc on lot played maps
+17:22 < bridge> <Jupstar ✪> well on my server which uses a skylake intel, but yeah i think it could be faster
+17:22 < bridge> <louis> oh yeah, /rank on tutorial is pretty slow
+17:22 < bridge> <cyberfrighter> more like a few minutes
+17:22 < bridge> <0xdeen> It used to be a few minutes, I got it down to a few seconds
+17:23 < bridge> <cyberfrighter> its still very slow
+17:25 < bridge> <0xdeen> ```
+17:25 < bridge> <0xdeen> MariaDB [teeworlds]> SELECT Ranking, Time, PercentRank
+17:25 < bridge> <0xdeen>     -> FROM (
+17:25 < bridge> <0xdeen>     ->   SELECT RANK() OVER w AS Ranking, PERCENT_RANK() OVER w as PercentRank, MIN(Time) AS Time, Name
+17:25 < bridge> <0xdeen>     ->   FROM record_race
+17:25 < bridge> <0xdeen>     ->   WHERE Map = 'Tutorial'
+17:25 < bridge> <0xdeen>     ->   AND Server LIKE '%'
+17:25 < bridge> <0xdeen>     ->   GROUP BY Name
+17:25 < bridge> <0xdeen>     ->   WINDOW w AS (ORDER BY MIN(Time))
+17:25 < bridge> <0xdeen>     -> ) as a
+17:25 < bridge> <0xdeen>     -> WHERE Name = 'deen';
+17:25 < bridge> <0xdeen> +---------+--------+--------------+
+17:25 < bridge> <0xdeen> | Ranking | Time   | PercentRank  |
+17:25 < bridge> <0xdeen> +---------+--------+--------------+
+17:25 < bridge> <0xdeen> |   13674 | 191.54 | 0.0230672938 |
+17:25 < bridge> <0xdeen> +---------+--------+--------------+
+17:25 < bridge> <0xdeen> 1 row in set (2.388 sec)
+17:25 < bridge> <0xdeen> ```
+17:25 < bridge> <0xdeen> I'm ok with this considering we have to actually go through all ranks in that map:
+17:25 < bridge> <0xdeen> ```
+17:25 < bridge> <0xdeen> MariaDB [teeworlds]> explain SELECT Ranking, Time, PercentRank FROM (   SELECT RANK() OVER w AS Ranking, PERCENT_RANK() OVER w as PercentRank, MIN(Time) AS Time, Name   FROM record_race   WHERE Map = 'Tutorial'
+17:25 < bridge> <0xdeen>  AND Server LIKE '%'   GROUP BY Name   WINDOW w AS (ORDER BY MIN(Time)) ) as a WHERE Name = 'deen';
+17:25 < bridge> <0xdeen> +------+-------------+-------------+------+----------------------------------------------------+------+---------+-------+---------+-------------------------------------------+
+17:25 < bridge> <0xdeen> | id   | select_type | table       | type | possible_keys                                      | key  | key_len | ref   | rows    | Extra                                     |
+17:25 < bridge> <0xdeen> +------+-------------+-------------+------+----------------------------------------------------+------+---------+-------+---------+-------------------------------------------+
+17:25 < bridge> <0xdeen> |    1 | PRIMARY     | <derived2>  | ALL  | NULL                                               | NULL | NULL    | NULL  | 4222528 | Using where                               |
+17:26 < bridge> <0xdeen> |    2 | DERIVED     | record_race | ref  | Map,MapTimestamp,idx_map,idx_map_name_time,MapTime | Map  | 514     | const | 4222528 | Using where; Using index; Using temporary |
+17:26 < bridge> <0xdeen> +------+-------------+-------------+------+----------------------------------------------------+------+---------+-------+---------+-------------------------------------------+
+17:26 < bridge> <0xdeen> 2 rows in set (0.001 sec)
+17:26 < bridge> <0xdeen> ```
+17:26 < bridge> <Jupstar ✪> yes but isnt that part of the problem? 😄
+17:26 < bridge> <Jupstar ✪> if we'd only have the top rank per player it would probably be instant with an index
+17:27 < bridge> <teero777> Hey somehow the client can't find any data files? it worked fine yesterday, sadly the client doesn't print any complete paths and only relative onces where i have no idea what they are relative to. Everything is in /usr/share/ddnet by default. idk everything worked yesterday. now smth is broken. any idea?
+17:27 < bridge> <louis> i don't think its about going through all the ranks of a single player, it's going through every single map rank
+17:27 < bridge> <Jupstar ✪> look in the console log
+17:27 < bridge> <Jupstar ✪> there it says where it searched
+17:27 < bridge> <teero777> Hey somehow the client can't find any data files? it worked fine yesterday, sadly the client doesn't print any complete paths and only relative ones where i have no idea what they are relative to. Everything is in /usr/share/ddnet by default. idk everything worked yesterday. now smth is broken. any idea?
+17:28 < bridge> <0xdeen> Exactly, because that is required to calculate your rank
+17:28 < bridge> <teero777> cant find anything
+17:28 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1270765492449312838/message.txt?ex=66b4e417&is=66b39297&hm=a9c68dd18867a96c40c2dc863935ba5da52d81d512ffa88e7b92857750598703&
+17:29 < bridge> <Jupstar ✪> 2024-08-07 17:24:06 I storage: added path '$USERDIR' ('/home/teero/.local/share/ddnet')
+17:29 < bridge> <Jupstar ✪> 2024-08-07 17:24:06 I storage: added path '$DATADIR' ('data')
+17:29 < bridge> <Jupstar ✪> 2024-08-07 17:24:06 I storage: added path '$CURRENTDIR' ('/home/teero')
+17:29 < bridge> <Jupstar ✪> it usese data directly where the exe is apparently
+17:29 < bridge> <teero777> but why?
+17:29 < bridge> <teero777> it wasn't like that before xd
+17:29 < bridge> <Jupstar ✪> storage.cfg changed?
+17:29 < bridge> <teero777> storage.cfgh?
+17:30 < bridge> <teero777> storage.cfg?
+17:30 < bridge> <Jupstar ✪> yeah
+17:30 < bridge> <Jupstar ✪> but tbh it sounds pretty normal to me
+17:30 < bridge> <teero777> where
+17:30 < bridge> <Jupstar ✪> maybe it was just broken before 😄
+17:30 < bridge> <Jupstar ✪> or do you exec your binary from another dir?
+17:30 < bridge> <teero777> it is installed system-wide at /usr/bin/DDNet
+17:31 < bridge> <learath2> IIRC for distros that install split data, we have is compiled in
+17:31 < bridge> <teero777> can't find any storage.cfg where is it?
+17:32 < bridge> <teero777> can't find any storage.cfg where is it supposed to be?
+17:32 < bridge> <heinrich5991> @teero777 is there a `data/mapres` from the place where you start ddnet from?
+17:32 < bridge> <0xdeen> We can get rid of the `faster than X%`, then I can speed up the query
+17:33 < bridge> <learath2> Check out `CStorage::FindDatadir`
+17:33 < bridge> <learath2> It has the entire search sequence in there. It's probably finding an early one
+17:33 < bridge> <teero777> no. the whole data folder is located at `usr/share/ddnet/data`
+17:33 < bridge> <teero777> but why was it working yesterday and the whole eternity of me using ddnet on this machine before?
+17:33 < bridge> <learath2> But if there is a datadir detected in PWD it will not get to that ever
+17:34 < bridge> <teero777> ah ok
+17:34 < bridge> <learath2> You are starting the client from a different pwd perhaps
+17:34 < bridge> <learath2> Or perhaps you moved an incomplete data folder to the current directory
+17:34 < bridge> <teero777> that might be yea
+17:34 < bridge> <Jupstar ✪> how much faster is it then?
+17:34 < bridge> <teero777> let me check
+17:35 < bridge> <teero777> you are correct. there was a data directiory in my home directory. apparently it was using that
+17:35 < bridge> <teero777> thx, issue resolved by deleting that
+17:36 < bridge> <learath2> This weird behaviour is why I was terrified of completing my data integrity pr
+17:37 < bridge> <0xdeen> ```
+17:37 < bridge> <0xdeen> MariaDB [teeworlds]> WITH m AS (
+17:37 < bridge> <0xdeen>     ->   SELECT MIN(Time) as minTime
+17:37 < bridge> <0xdeen>     ->   FROM record_race
+17:37 < bridge> <0xdeen>     ->   WHERE Map = 'Tutorial'
+17:37 < bridge> <0xdeen>     ->   AND Name = 'deen'
+17:37 < bridge> <0xdeen>     ->   AND Server LIKE '%'
+17:37 < bridge> <0xdeen>     ->   GROUP BY Name
+17:37 < bridge> <0xdeen>     -> )
+17:37 < bridge> <0xdeen>     -> SELECT COUNT(DISTINCT Name) + 1, minTime
+17:37 < bridge> <0xdeen>     -> FROM record_race, m
+17:37 < bridge> <0xdeen>     -> WHERE Map = 'Tutorial'
+17:37 < bridge> <0xdeen>     -> AND Server LIKE '%'
+17:37 < bridge> <0xdeen>     -> AND Time < minTime;
+17:37 < bridge> <0xdeen> 
+17:37 < bridge> <0xdeen> +--------------------------+---------+
+17:37 < bridge> <0xdeen> | COUNT(DISTINCT Name) + 1 | minTime |
+17:37 < bridge> <0xdeen> +--------------------------+---------+
+17:37 < bridge> <0xdeen> |                    13674 |  191.54 |
+17:38 < bridge> <0xdeen> +--------------------------+---------+
+17:38 < bridge> <0xdeen> 1 row in set (0.790 sec)
+17:38 < bridge> <0xdeen> ```
+17:39 < bridge> <Jupstar ✪> ui so much faster
+17:41 < bridge> <0xdeen> Ok, got it to a good speed:
+17:41 < bridge> <0xdeen> ```
+17:41 < bridge> <0xdeen> MariaDB [teeworlds]> SELECT COUNT(DISTINCT Name) + 1, (SELECT MIN(Time)
+17:41 < bridge> <0xdeen>     ->   FROM record_race
+17:41 < bridge> <0xdeen>     ->   WHERE Map = 'Tutorial'
+17:41 < bridge> <0xdeen>     ->   AND Name = 'deen'
+17:41 < bridge> <0xdeen>     ->   AND Server LIKE '%'
+17:41 < bridge> <0xdeen>     ->   GROUP BY Name
+17:41 < bridge> <0xdeen>     ->   LIMIT 1) as minTime
+17:41 < bridge> <0xdeen>     -> FROM record_race
+17:41 < bridge> <0xdeen>     -> WHERE Map = 'Tutorial'
+17:41 < bridge> <0xdeen>     -> AND Server LIKE '%'
+17:41 < bridge> <0xdeen>     -> AND Time < (SELECT MIN(Time)
+17:41 < bridge> <0xdeen>     ->   FROM record_race
+17:41 < bridge> <0xdeen>     ->   WHERE Map = 'Tutorial'
+17:41 < bridge> <0xdeen>     ->   AND Name = 'deen'
+17:41 < bridge> <0xdeen>     ->   AND Server LIKE '%'
+17:41 < bridge> <0xdeen>     ->   GROUP BY Name
+17:41 < bridge> <0xdeen>     ->   LIMIT 1
+17:41 < bridge> <0xdeen>     -> );
+17:41 < bridge> <0xdeen> +--------------------------+---------+
+17:41 < bridge> <0xdeen> | COUNT(DISTINCT Name) + 1 | minTime |
+17:41 < bridge> <0xdeen> +--------------------------+---------+
+17:41 < bridge> <0xdeen> |                    13674 |  191.54 |
+17:41 < bridge> <0xdeen> +--------------------------+---------+
+17:41 < bridge> <0xdeen> 1 row in set (0.028 sec)
+17:42 < bridge> <0xdeen> ```
+17:42 < bridge> <Jupstar ✪> what kind of hardware do you have xD
+17:42 < bridge> <Jupstar ✪> `1 row in set (1,966 sec)` on my desktop pc
+17:42 < bridge> <0xdeen> You don't have good indexes probably
+17:42 < bridge> <0xdeen> We have a lot of indexes on the productive db based on what got slower over the years
+17:42 < bridge> <Jupstar ✪> i imported ddnet database
+17:42 < bridge> <Jupstar ✪> but maybe the database was too cold
+17:42 < bridge> <0xdeen> We don't export the indexes
+17:42 < bridge> <0xdeen> and the entire db is kept in memory 😉
+17:42 < bridge> <Jupstar ✪> well the sql scripts export quite a lot indices
+17:42 < bridge> <Jupstar ✪> but yeah my database was cold
+17:42 < bridge> <0xdeen> oh, you are probably creating temporary files then
+17:42 < bridge> <0xdeen> cold/hot doesn't exist here. using query cache is cheating
+17:43 < bridge> <0xdeen> do an explain and check for temporary file, if so, bump the in-memory sizes to prevent using disk
+17:44 < bridge> <Jupstar ✪> yeah but doesnt the file system also do caching and stuff xd
+17:44 < bridge> <Jupstar ✪> there are so many factors
+17:45 < bridge> <0xdeen> Still super expensive to go through the kernel's filesystem layer compared to doing everything in memory in process in mariadb
+17:45 < bridge> <0xdeen> This was the part that made us go from multi-minute to 2-3 seconds
+17:45 < bridge> <Jupstar ✪> yeah
+17:45 < bridge> <Jupstar ✪> can imagine that for sure
+17:46 < bridge> <Jupstar ✪> dunno if i want to load the whole db into my memory tho xd
+17:46 < bridge> <Jupstar ✪> on desktop
+17:46 < bridge> <0xdeen> ```
+17:46 < bridge> <0xdeen> [mysqld]
+17:46 < bridge> <0xdeen> tmp_table_size = 128M
+17:46 < bridge> <0xdeen> max_heap_table_size = 128M
+17:46 < bridge> <0xdeen> sort_buffer_size = 128M
+17:46 < bridge> <0xdeen> ```
+17:46 < bridge> <0xdeen> This helps already, because temporary tables up to 128 MB can stay in memory, which is enough for all maps currently
+17:46 < bridge> <Jupstar ✪> ah nice
+17:47 < bridge> <Jupstar ✪> didnt know ddnet has so many micro optimizations
+17:47 < bridge> <0xdeen> After 11 years you collect some tricks
+17:47 < bridge> <Jupstar ✪> we should maybe add all indices to our SQL code some day tho
+17:48 < bridge> <Jupstar ✪> in our source
+17:48 < bridge> <0xdeen> Most of them are to make the website faster
+17:48 < bridge> <Jupstar ✪> mh ok
+17:48 < bridge> <0xdeen> not the game server responses
+17:49 < bridge> <Jupstar ✪> but i will defs test how fast my bad setup compares to this if i create a table that uses only top ranks per player
+17:49 < bridge> <0xdeen> I feel like 0.02 s is good enough
+17:50 < bridge> <Jupstar ✪> how did u make sure the cache was disabled? 😄
+17:50 < bridge> <Jupstar ✪> or does mysql always do that for new queries
+17:51 < bridge> <0xdeen> Very easy, with the cache it's aways 0.000s for me, and whenever a query comes in the cache is reset
+17:51 < bridge> <0xdeen> an insert/update comes in
+17:51 < bridge> <0xdeen> query_cache_limit = 0 works too
+17:51 < bridge> <0xdeen> query_cache_type = 0
+19:00 < bridge> <milkeeycat> everything works after fixing offsets :greenthing:
+19:00 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1270788663407673366/image.png?ex=66b4f9ab&is=66b3a82b&hm=739f57a3752aae26630d0ec8e61cef8e346bd279a7ab58c036d28160522a77f2&
+19:00 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1270788663969714176/image.png?ex=66b4f9ab&is=66b3a82b&hm=c0f704662e3afa47b52c1f6e9551d164851012129f39366008fce95c9759996f&
+19:00 < bridge> <milkeeycat> everything works after fixing offsets calculating :greenthing:
+19:00 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1270788663407673366/image.png?ex=66b4f9ab&is=66b3a82b&hm=739f57a3752aae26630d0ec8e61cef8e346bd279a7ab58c036d28160522a77f2&
+19:00 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1270788663969714176/image.png?ex=66b4f9ab&is=66b3a82b&hm=c0f704662e3afa47b52c1f6e9551d164851012129f39366008fce95c9759996f&
+20:28 < bridge> <teero777> @fokkonaut close this then?
+20:28 < bridge> <teero777> or provide more info xd
+22:22 < bridge> <soulyvevo> :justatest:
+22:30 < bridge> <teero777> :justatest:
+22:36 < bridge> <totar> Processing passwords on the server is standard for pretty much all applications. Usually the server will handle the hashing and the plaintext password is sent over https. In this way ddnet is not less secure other than lacking https.
+22:39 < bridge> <totar> Hashing on the client does not really increase security because the server will use the hash to authenticate the user anyway so it's just as sensitive as the plaintext password.
+22:43 < bridge> <Jupstar ✪> i disagree with that, hashing on client keeps the password on one machine.
+22:43 < bridge> <Jupstar ✪> 
+22:43 < bridge> <Jupstar ✪> if you also use user-names alogn with passwords, an attacker can guess user-names, because the client cannot save the hash(since it would not work on other devices like that) it must query the hash from the server, and this query is already an attack surface 😄
+22:46 < bridge> <Jupstar ✪> but you can argue that the whole idea of https is that you can send secure information. assuming a plain pw on the server is insecure is not wrong, but pedantic
+22:49 < bridge> <Jupstar ✪> i disagree with that, hashing on client keeps the password on one machine.
+22:49 < bridge> <Jupstar ✪> 
+22:49 < bridge> <Jupstar ✪> if you also use user-names alogn with passwords, an attacker can guess user-names, because the client cannot save the salt*(since it would not work on other devices like that) it must query the hash from the server, and this query is already an attack surface 😄
+22:57 < bridge> <totar> maybe you disagree but almost everyone sends password and hashes on server
+22:57 < bridge> <totar> google, facebook, ect
+23:07 < bridge> <learath2> There is zero knowledge proof of knowledge algorithms ZKPP e.g. EKE.
+23:07 < bridge> <learath2> There are zero knowledge proof of knowledge algorithms ZKPP e.g. EKE.
+23:07 < bridge> <patiga> iirc, the server typically sends a random string, which needs to be included with the hash. this way, the hash is not really all that sensitive
+23:08 < bridge> <learath2> Um, I'm unsure. I think google/facebook still send your plain password over https
+23:12 < bridge> <learath2> Oh, I misread, yeah I guess I disagree with jupstars disagreement with you
+23:16 < bridge> <learath2> Actually I have no idea who I disagree with. There are ZPKK algorithms. No one really uses them in the wild for common stuff
+23:16 < bridge> <Jupstar ✪> does it make it more secure that facebook and google do it?
+23:16 < bridge> <Jupstar ✪> it is less secure, doesn't mean it isn't still secure enough
+23:21 < bridge> <learath2> but if more secure, why 86 sextillion$ company not implement?
+23:21 < bridge> <learath2> we might be missing something 🙃
+23:22 < bridge> <Jupstar ✪> i think your argumentation is more than flawed
+23:22 < bridge> <learath2> Or they sell the plain passwords to the NSA nd GCHQ
+23:22 < bridge> <learath2> it's not only flawed, it's obviously flawed
+23:22 < bridge> <Jupstar ✪> if i design some hashing function that uses 5 trillion bytes as output len it might also be better than i dunno bcrypt or smth
+23:22 < bridge> <Jupstar ✪> it's flowered

@@ -1,0 +1,444 @@
+00:07 < bridge> <patiga> if you would need to match often, you could do smth like
+00:07 < bridge> <patiga> ```rust
+00:07 < bridge> <patiga> fn edit_tilemap<T: AnyTile, F: Fn(&mut Array2<T>)>(layer: &mut Layer, f: F) {
+00:07 < bridge> <patiga>     match layer {
+00:07 < bridge> <patiga>         Layer::Tiles(l) => f(l.tiles.unwrap_mut()),
+00:07 < bridge> <patiga>         Layer::Quads(l) => {},
+00:07 < bridge> <patiga>         Layer::Game(l) => f(l.tiles.unwrap_mut()),
+00:07 < bridge> <patiga>         etc
+00:07 < bridge> <patiga>     }
+00:07 < bridge> <patiga> }
+00:07 < bridge> <patiga> ```
+00:07 < bridge> <patiga> This doesn't actually use the `TilemapLayer` trait. now you can just do a function like yours
+00:07 < bridge> <patiga> ```rust
+00:07 < bridge> <patiga> fn clear_layer<T: AnyTile>(tiles: &mut Array2<T>) {
+00:07 < bridge> <patiga>     tiles.fill(Default::default())
+00:07 < bridge> <patiga> }
+00:07 < bridge> <patiga> ```
+00:07 < bridge> <patiga> and then use that function with
+00:07 < bridge> <patiga> ```rust
+00:07 < bridge> <patiga> let mut layer: Layer = todo!();
+00:07 < bridge> <patiga> edit_tilemap(&mut layer, clear_layer)
+00:07 < bridge> <patiga> ```
+00:07 < bridge> <patiga> ( @gerdoe )
+00:08 < bridge> <zhn> thank you once more!
+00:17 < bridge> <zhn> seems rust can't distinguish types in this case:
+00:17 < bridge> <zhn> ```
+00:17 < bridge> <zhn> mismatched types
+00:17 < bridge> <zhn> expected mutable reference `&mut ArrayBase<OwnedRepr<T>, _>`
+00:17 < bridge> <zhn>    found mutable reference `&mut ArrayBase<OwnedRepr<twmap::Tile>, _>`
+00:18 < bridge> <zhn> ```
+00:18 < bridge> <patiga> pls give related code ^^
+00:18 < bridge> <zhn> it comes from `edit_tilemap` itself
+00:19 < bridge> <zhn> on `unwrap_mut()`
+00:19 < bridge> <patiga> the code is just copied over?
+00:20 < bridge> <patiga> (I'm ingame rn, hard to type a lot)
+00:20 < bridge> <zhn> ```rust
+00:20 < bridge> <zhn> fn edit_tilemap<T: AnyTile, F: Fn(&mut Array2<T>)>(layer: &mut Layer, f: F) {
+00:20 < bridge> <zhn>     match layer {
+00:20 < bridge> <zhn>         Layer::Game(l) => f(l.tiles.unwrap_mut()),
+00:20 < bridge> <zhn>         Layer::Front(l) => f(l.tiles.unwrap_mut()),
+00:20 < bridge> <zhn>         Layer::Tele(l) => f(l.tiles.unwrap_mut()),
+00:20 < bridge> <zhn>         Layer::Speedup(l) => f(l.tiles.unwrap_mut()),
+00:20 < bridge> <zhn>         Layer::Tune(l) => f(l.tiles.unwrap_mut()),
+00:20 < bridge> <zhn>         _ => {}
+00:20 < bridge> <zhn>     }
+00:20 < bridge> <zhn> }```
+00:25 < bridge> <zhn> ah, `T` is defined by caller, seems thats why it can't infer it from inside
+00:33 < bridge> <patiga> hm, I tried out similar code ant that worked
+00:33 < bridge> <patiga> *and
+00:38 < bridge> <zhn> maybe rust analyzer just fools me
+00:38 < bridge> <zhn> closed laptop, eep time
+00:53 < bridge> <patiga> nah, have the same error in the playground rn
+00:54 < bridge> <patiga> but tbf, this code isn't all that necessary, a match each time is fine ^^
+02:06 < ws-client> <ChillerDragon> @ryozuki thanks for putting your trust into my data backup skills xd. But i just upload stuff to github. I am too lazy to do it now but i might do it one day. Also btw heinrich is also pro data backupper i sent him all my maps.
+02:08 < ws-client> <ChillerDragon> Woah so many users with master server registration issues.
+02:08 < ws-client> <ChillerDragon> I can reproduce btw. The ddnet-insta GER8 server only registers on 0.7 and fails for 0.6.
+02:08 < ws-client> <ChillerDragon> but i assumed it was the weird GER8
+02:09 < ws-client> <ChillerDragon> oh no did i break master stuff in the 0.7 pr?
+02:17 < ws-client> <ChillerDragon> yep updating ddnet breaks 0.6 master
+02:18 < ws-client> <ChillerDragon> @0xdeen maybe chill a bit with updating official servers at the moment <:justatest:572499997178986510> https://github.com/ddnet/ddnet/issues/8722
+02:20 < ws-client> <ChillerDragon> @heinrich5991 could the 0.7 pr break the master? I thought the master is just a http request? Or does it also do some actual tw protocol udp stuff? How would you recommend debugging that?
+02:40 < bridge> <animepdf> Removing 07 <a:HUH:1178720004980605089>
+04:03 < bridge> <soulyvevo> no U
+04:14 < bridge> <Tyrone> @heinrich5991 Could I get my dev role? I had a pr merge a while ago and just forgot to ask for my role, i can link the pr if u want
+04:25 < bridge> <meloƞ> (He calmly asks, at 4am) :gigachad:
+06:14 < ws-client> <ChillerDragon> @joaquocl @.a0040 the master server issue was not on your side. I messed that up sorry. Fix is on its way https://github.com/ddnet/ddnet/pull/8725
+06:20 < bridge> <matodor> 0.7 merged moment?
+06:21 < ws-client> <ChillerDragon> yes
+06:22 < ws-client> <ChillerDragon> but im here to fix it. Took me quite some time to find that bug -.-
+06:23 < bridge> <matodor> \🙂
+08:38 < bridge> <jxsl13> 🥳
+09:11 < bridge> <0xdeen> Thanks for quickly analyzing and fixing!
+09:18 < bridge> <chillerdragon> :)
+09:47 < bridge> <heinrich5991> permalink (press 'y' anywhere on github): https://github.com/ddnet/ddnet/blob/f14ae6bf13ccd8366a322ab448fd782952107b7c/.github/CODEOWNERS
+09:48 < bridge> <totar> ?
+09:59 < bridge> <heinrich5991> when you create a link to the master branch, the link might become invalid after we move or delete the `.github/CODEOWNERS` file. because I like working links, I usually post the permanent link if someone posts a link to the master branch. you can obtain the permanent link by pressing the 'y' key on github
+10:00 < bridge> <totar> I was on mobile
+10:03 < bridge> <heinrich5991> (I quickly googled:) then you can press the three dots in the top right corner and click "copy permalink"
+10:28 < bridge> <Jupstar ✪> or he waits until you post the permalink :lol:
+10:44 < ws-client> <ChillerDragon> I doubt the usefulness of me opening the pr https://github.com/ddnet/ddnet/pull/8716 I predicted that you would request a 100% code rewrite @heinrich5991 would be much faster and less stress for me if you just had committed the stuff in first place ... what do you think about that?
+10:47 < ws-client> <ChillerDragon> Also for you it should be faster. If you come up with your own idea anyways its one less step to read my code in the first place.
+10:50 < bridge> <heinrich5991> might have been faster in this case, yes…
+10:51 < ws-client> <ChillerDragon> Its not always the case. But this time I knew. Its just because I promised I will fix the 0.7 stuff I felt like I had to.
+10:52 < ws-client> <ChillerDragon> You have these very specific ideas of how everything should work and im not getting better at predicting how you want the stuff done.
+10:53 < bridge> <heinrich5991> in this case, filtering the connect addresses earlier is better because we have a limit of 16 addresses per browser
+10:53 < bridge> <heinrich5991> if those are full with 0.7 addresses, we won't even get to the 0.6 addresses at a later stage
+10:54 < ws-client> <ChillerDragon> are you back to reviewing prs btw?
+10:54 < bridge> <remakepower> Ah
+10:54 < ws-client> <ChillerDragon> still 70 prs open :( I have the urge to comment "bump" on like 20 prs and issues
+10:55 < bridge> <heinrich5991> not really, I only reviewed the new PRs
+10:55 < bridge> <remakepower> I couldn't connect to github now, that's too bad 😦
+10:55 < ws-client> <ChillerDragon> Yea new ones get processed but the older ones all got stale
+10:57 < bridge> <heinrich5991> happens. takes quite some energy to go through all these PRs
+10:57 < ws-client> <ChillerDragon> hire more maintainers
+10:57 < bridge> <heinrich5991> especially fun if you get insulted by some people if you do
+10:57 < ws-client> <ChillerDragon> you can also not do all at once
+10:58 < bridge> <heinrich5991> > especially fun if you get insulted by some people if you do
+10:58 < bridge> <heinrich5991> (not you IIRC)
+10:58 < ws-client> <ChillerDragon> who is insulting?
+10:58 < ws-client> <ChillerDragon> i dont follow much but from what i see on github its all professional
+10:59 < bridge> <heinrich5991> I can DM you somewhere, but I don't feel like opening up another can of worms
+10:59 < bridge> <heinrich5991> in this public channel
+10:59 < ws-client> <ChillerDragon> https://chat.zillyhuhn.com/
+10:59 < ws-client> <ChillerDragon> pw nimrocks
+10:59 < ws-client> <ChillerDragon> write in #off-topic
+10:59 < ws-client> <ChillerDragon> or join via irc
+10:59 < ws-client> <ChillerDragon> quakenet #ddnet-off-topic
+11:00 < bridge> <heinrich5991> I DMed you on IRC
+11:00 < ws-client> <ChillerDragon> bru
+11:00 < ws-client> <ChillerDragon> bali ping dragon is booting ssh client ... sec
+11:01 < bridge> <louis> now i wanna know too 🤣
+11:01 < ws-client> <ChillerDragon> yea i feel like a 12yo girl whispering secrets and everyone around is super annoyed
+11:02 < ws-client> <ChillerDragon> nothing juicy i promise @louis xd
+11:02 < bridge> <heinrich5991> nimrocks gave me "wrong credentials" btw
+11:02 < ws-client> <ChillerDragon> woah
+11:02 < ws-client> <ChillerDragon> nimrocks is signup token
+11:02 < ws-client> <ChillerDragon> if you want to login to any name you can use vulkanGaming69 as password
+11:03 < ws-client> <heinrich5991> signed up, but I don't see the option to DM
+11:03 < ws-client> <ChillerDragon> ye u got clickbaited
+11:03 < ws-client> <ChillerDragon> but #off-topic is not bridged so its "like dm"
+11:23 < bridge> <heinrich5991> @ryozuki https://stdrs.dev/nightly/x86_64-unknown-linux-gnu/std/vec/struct.Vec.html std's docs with internals 🙂
+11:27 < ws-client> <ChillerDragon> @fokkonaut did you subscribe to this issue? https://github.com/ChillerDragon/ddnet-meta/issues/1
+11:28 < ws-client> <ChillerDragon> like, share, subscribe and activate the bell
+11:45 < bridge> <zhn> u did it third time
+11:45 < bridge> <zhn> stop:justatest:
+11:47 < ws-client> <ChillerDragon> building dms is so much work ._. nobody reads #off-topic anyways xd
+11:47 < bridge> <zhn> u lazy ass
+11:47 < bridge> <zhn> be ready for offtopunishment
+11:47 < ws-client> <ChillerDragon> the chat platform has never more than 1 active user so public global chat is private dms by default
+12:17 < bridge> <ryozuki> nice
+12:17 < bridge> <ryozuki> whats different?
+12:19 < bridge> <ryozuki> @heinrich5991 i think the interesting doc is this https://stdrs.dev/nightly/x86_64-unknown-linux-gnu/alloc/raw_vec/struct.RawVec.html
+12:29 < ws-client> <jxsl13> huhn com online
+12:29 < bridge> <jxsl13> hehe
+12:45 < bridge> <fix_ale> Ddos?
+12:45 < bridge> <fix_ale> Lags all servers
+12:45 < bridge> <0xdeen> Yes, for RUS1/RUS2. Play on GER2/GER10/POL instead
+12:46 < bridge> <fix_ale> Fix? Ddos?
+12:47 < bridge> <0xdeen> I can't fix it.
+12:50 < ws-client> <ChillerDragon> @Learath2 I have a proposal. I think it would be really cool to fix the ddos. Have you thought about that?
+12:51 < bridge> <learath2> Damn, really? How did I not come up with this before?
+12:52 < ws-client> <ChillerDragon> you are welcome
+12:52 < bridge> <learath2> Also your hilite didn’t work. Borked 3rd party client
+12:52 < ws-client> <ChillerDragon> if you need more good ideas im here
+12:52 < ws-client> <ChillerDragon> @learath2 :c 
+12:52 < ws-client> <ChillerDragon> lowercase L i guess
+12:52 < ws-client> <ChillerDragon> smol lerato
+13:16 < bridge> <mian_ku> I get a problem when I compiling DDNet on Windows. It's happened on `Compiling link-cplusplus v1.0.6`. This the screenshots of console. What can I do?
+13:16 < bridge> <mian_ku> https://cdn.discordapp.com/attachments/293493549758939136/1273238774112981066/image.png?ex=66bde383&is=66bc9203&hm=85f92d1ff5970960b2608c19ccabf674e70bd83a659ff636ad6bbcb2e458d367&
+13:18 < bridge> <Jupstar ✪> wtf is link-cplusplus xd
+13:18 < bridge> <meloƞ> your target is gnu, are you following the github readme? you want to use either the `msvc` build tools - or use mingw64 with gnu
+13:20 < bridge> <meloƞ> rust lib
+13:21 < bridge> <meloƞ> your target is gnu, are you following the github readme? you want to use either the `msvc` build tools with msvc rust toolchain - or use mingw64 with gnu rust toolchain
+13:24 < bridge> <mian_ku> Sorry? My target just is windows? or my understanding fault?
+13:24 < bridge> <Jupstar ✪> what he means is, you use mingw
+13:24 < bridge> <Jupstar ✪> there is also microsoft cpp
+13:25 < bridge> <Jupstar ✪> for mingw you have to make sure to use the correct rust toolchain
+13:25 < bridge> <Jupstar ✪> `rustup target add x86_64-pc-windows-gnu`
+13:25 < bridge> <Jupstar ✪> `rustup default stable-x86_64-pc-windows-gnu`
+13:26 < bridge> <Jupstar ✪> maybe without the stable-
+13:27 < bridge> <meloƞ> `rustup default stable-x86_64-pc-windows-msvc` type this in your console and try again
+13:27 < bridge> <mian_ku> emm, is weird. but I build with MSVC, and building use MSVC too, i don't know why it choose my mingw when its build about rust
+13:28 < bridge> <meloƞ> rust doesnt automatically choose msvc, i'm not sure if it defaults to gnu but when you just run `rustup default stable` - it might've chosen gnu
+13:28 < bridge> <meloƞ> rust doesnt automatically choose msvc, i'm not sure if it defaults to gnu but when you just run `rustup default stable` - it might've
+13:28 < bridge> <Jupstar ✪> mh that way around i hvent heard about it xd
+13:28 < bridge> <Jupstar ✪> usually it chooses the msvc rust 😄
+13:29 < bridge> <Jupstar ✪> but yeah then this
+13:29 < bridge> <Jupstar ✪> 
+13:29 < bridge> <Jupstar ✪> and if that fails, add the target
+13:52 < bridge> <Jupstar ✪> would you use kibi or kilo bytes to show memory usage to a "normal" user?
+13:52 < bridge> <Jupstar ✪> 
+13:52 < bridge> <Jupstar ✪> it seems like most gpus sold are actuall in GibiBytes. which surprises me a bit, since i think there was a time where this confusion was used to cheat some bytes.
+13:52 < bridge> <Jupstar ✪> 
+13:52 < bridge> <Jupstar ✪> They are still listed as "GB".. which is kinda wrong then xdd
+13:52 < bridge> <Jupstar ✪> i know, very hard question
+13:52 < bridge> <heinrich5991> I'd use the technically more correct thing and confuse users
+13:52 < bridge> <heinrich5991> GiB
+13:53 < bridge> <heinrich5991> I think we also use it for map downloads
+13:55 < bridge> <Jupstar ✪> but you'd also say that 1024 is better than 1000?
+13:56 < bridge> <heinrich5991> yes
+13:56 < bridge> <Jupstar ✪> ok
+13:56 < bridge> <heinrich5991> (but no strong opinion on this from me, you can choose what you want)
+13:57 < bridge> <Jupstar ✪> yeah i think i go with an i and 1024 then
+13:57 < bridge> <Jupstar ✪> on linux i often see a small letter for the k in kB
+13:57 < bridge> <Jupstar ✪> so seems in unix 1000 is more common (?)
+13:58 < bridge> <Jupstar ✪> according to wikipedia there is a standard:
+13:58 < bridge> <Jupstar ✪> https://en.wikipedia.org/wiki/ISO/IEC_80000
+13:58 < bridge> <Jupstar ✪> lmao
+14:42 < bridge> <meloƞ> @learath2 what text editor are you using to code if i may ask?
+14:51 < bridge> <chillerdragon> lerato is vscode enjoyer
+14:51 < bridge> <chillerdragon> electron maximalist
+14:51 < bridge> <learath2> Neovim nowadays but I used vscode for a long time yoo
+14:52 < bridge> <milkeeycat> chillerdragon: have you already written your text editor in bash?
+14:52 < bridge> <meloƞ> what golang LSP are you using? i tried golangci-lint-langserver, but i can't make it attach onto .go files, so i'm thinking about just using gopls
+14:52 < bridge> <milkeeycat> gopls :gigachad:
+14:53 < bridge> <meloƞ> its literally called gopls :kekw:
+14:53 < bridge> <ryozuki> i only heard of gopls
+14:53 < bridge> <chillerdragon> Wot when did you switch?
+14:54 < bridge> <chillerdragon> I missed your message saying „I use neovim BTW“
+14:54 < bridge> <meloƞ> look at me coding go in neovim like a gigachad
+14:54 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1273263468618846260/grafik.png?ex=66bdfa83&is=66bca903&hm=d946f069e2010547b9c736855f9ecf0822763fe03d70cdc159f17a81523fb35c&
+14:54 < bridge> <chillerdragon> I liked gopls
+14:54 < bridge> <chillerdragon> No .\_.
+14:56 < bridge> <chillerdragon> var number int looks like Java xd. I would just do number := 20
+14:56 < bridge> <milkeeycat> at first `:=` looked ugly for me
+14:56 < bridge> <chillerdragon> Yea
+14:57 < bridge> <chillerdragon> So robsti is the last ddnet maintainer who does not use vim?
+14:58 < bridge> <meloƞ> i suck at go, so i'm just reading through some docs atm `:=` is the same as `auto` right?, i find it fine, the thing i hate is multi line variable declarations, they look ugly af
+14:58 < bridge> <Jupstar ✪> i also use modern technology
+14:58 < bridge> <Jupstar ✪> 😏
+14:58 < bridge> <chillerdragon> Eh admin maybe. Idk who counts as maintainer. Jopsti is also big windows vscoder
+14:58 < bridge> <meloƞ> jupsti is graphics gigachad, he could use nano and i wouldnt mind
+14:58 < bridge> <chillerdragon> gpu accelerated type script editor
+14:59 < bridge> <Jupstar ✪> funnily in terminal i use a editor made in go
+14:59 < bridge> <Jupstar ✪> called micro
+14:59 < bridge> <Jupstar ✪> https://github.com/zyedidia/micro
+14:59 < bridge> <chillerdragon> micro nano pico
+14:59 < bridge> <chillerdragon> vim
+14:59 < bridge> <Jupstar ✪> vs-macro
+15:00 < bridge> <chillerdragon> lol
+15:00 < bridge> <meloƞ> how is
+15:00 < bridge> <meloƞ> `func main(x int, y int)`
+15:00 < bridge> <meloƞ> easier to read than
+15:00 < bridge> <meloƞ> `func main(int x, int y)`
+15:01 < bridge> <meloƞ> 
+15:01 < bridge> <meloƞ> :(
+15:01 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1273265097141125190/grafik.png?ex=66bdfc07&is=66bcaa87&hm=0226e61e646b0b2ba6fbf8c57353e6b4f6171dd60a4f893be19b1b78211b6ba7&
+15:01 < bridge> <chillerdragon> I suck at vim bindings I just use it for the startup times xd
+15:01 < bridge> <chillerdragon> Yea that also trolled me melon
+15:01 < bridge> <milkeeycat> `func main(x, y int)` 😏
+15:01 < bridge> <Jupstar ✪> style discussion are always an endless discussion
+15:02 < bridge> <chillerdragon> Some styles are superior
+15:02 < bridge> <heinrich5991> it's easier to parse for a computer, because it doesn't have to guess where the type ends
+15:02 < bridge> <chillerdragon> Like tabs over spaces
+15:02 < bridge> <heinrich5991> that's very cool. parsing C++ is very hard, for example
+15:02 < bridge> <meloƞ> i think i'm just so used to c
+15:02 < bridge> <Jupstar ✪> xdd
+15:02 < bridge> <Jupstar ✪> 
+15:03 < bridge> <Jupstar ✪> i guess the best argument for tabs is indeed that tabs are configurable in size
+15:03 < bridge> <meloƞ> i think i'm just so used to c++ syntax that anything else looks odd
+15:03 < bridge> <chillerdragon> And they work well with indented here docs in bash and Makefiles
+15:03 < bridge> <Jupstar ✪> dont u also write rust code a lot
+15:04 < bridge> <chillerdragon> Intel or AT&T?
+15:04 < bridge> <meloƞ> ye :justatest:
+15:04 < bridge> <Jupstar ✪> also tbf.. data types are highlighted in a color
+15:04 < bridge> <heinrich5991> it also makes functions more greppable
+15:04 < bridge> <Jupstar ✪> so it'sprobs that, which makes it ez to read
+15:05 < bridge> <heinrich5991> you can search for a rust function using `fn function_name`
+15:05 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1273266158895759380/image.png?ex=66bdfd04&is=66bcab84&hm=357a3bb1e7fcabb4fd412e84d1931857055b3886ac34309b3b4c048486b5edc5&
+15:05 < bridge> <milkeeycat> intel
+15:05 < bridge> <Jupstar ✪> i can directly see it
+15:05 < bridge> <Jupstar ✪> without parsing xd
+15:05 < bridge> <heinrich5991> I haven't found an easy pattern for C/C++ functions
+15:05 < bridge> <chillerdragon> Good taste catto
+15:06 < bridge> <milkeeycat> i have no idea how to read AT&T syntax xdd
+15:06 < bridge> <chillerdragon> It’s the worst
+15:06 < bridge> <chillerdragon> It’s like Chinese
+15:06 < bridge> <chillerdragon> No front fred but your lang has some complicated symbols
+15:07 < bridge> <Jupstar ✪> i am used to whatever IDA uses
+15:07 < bridge> <Jupstar ✪> i guess intel like
+15:11 < bridge> <meloƞ> espacially with things like function overloading(? is that the right word)  you have to basically grep the entire thing if you want a clear result
+15:11 < bridge> <meloƞ> 
+15:11 < bridge> <meloƞ> ```cpp
+15:11 < bridge> <meloƞ> void CJsonOptionalField<char *>::ToJsonImpl(char *pBuffer, int BufferSize) const;
+15:11 < bridge> <meloƞ> void CJsonOptionalField<char *>::ToJsonImpl(char *pBuffer, int BufferSize, int x) const;
+15:11 < bridge> <meloƞ> ```
+15:11 < bridge> <meloƞ> for example
+15:11 < bridge> <meloƞ> is that possible in go?
+15:12 < bridge> <chillerdragon> Ok hackerman
+15:12 < bridge> <chillerdragon> What did you use IDA for?
+15:13 < bridge> <Jupstar ✪> yeah i am hacker.
+15:13 < bridge> <Jupstar ✪> 
+15:13 < bridge> <Jupstar ✪> i used it do inject code into a 32bit exe
+15:13 < bridge> <Jupstar ✪> 
+15:13 < bridge> <Jupstar ✪> that's all you need to know xd
+15:13 < bridge> <Jupstar ✪> i havent touched disassembling since like 8 years
+15:13 < bridge> <chillerdragon> Also isn’t IDA this proprietary for profit ransomware?
+15:13 < bridge> <Jupstar ✪> what?
+15:13 < bridge> <chillerdragon> If you do again try r2
+15:14 < bridge> <chillerdragon> Isn’t ida pro like 40 bucks
+15:14 < bridge> <chillerdragon> And it’s closed source
+15:14 < bridge> <heinrich5991> more like 4000 bucks
+15:14 < bridge> <matodor> adaptive height dont work?
+15:14 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1273268449594052733/image.png?ex=66bdff26&is=66bcada6&hm=68be5482e271c83ba11e1ed11e62fa02400cb4328604c1e45a493dce4a2be2f1&
+15:14 < bridge> <chillerdragon> Oh boi
+15:14 < bridge> <heinrich5991> but there's a free version
+15:14 < bridge> <heinrich5991> but there's a gratis version
+15:14 < bridge> <Jupstar ✪> yeah ofc i used free version
+15:14 < bridge> <Jupstar ✪> 😉
+15:14 < bridge> <meloƞ> `gratis` :gigachad:
+15:14 < bridge> <chillerdragon> It caps some ratios it’s a feature I guess @matodor
+15:15 < bridge> <Jupstar ✪> yeah our UI breaks, so 5:4 is smallest aspect ratio
+15:15 < bridge> <Jupstar ✪> we already discussed letting ui break instead
+15:15 < bridge> <heinrich5991> we decided to not support arbitrary aspect ratios
+15:16 < bridge> <Jupstar ✪> if u grep function names to find stuff. then you could also overload in rust using traits xd
+15:16 < bridge> <chillerdragon> 12yo jopsti cracking lego starwars for windows gaming
+15:16 < bridge> <Jupstar ✪> xD
+15:16 < bridge> <Jupstar ✪> psst
+15:16 < bridge> <artemivashchuk> hello everyone I'm nen and just started playing ddnet tell me pls ddnet normal game?
+15:16 < bridge> <Jupstar ✪> no it's AAAA
+15:16 < bridge> <meloƞ> very normal game! - the core-game is teeworlds
+15:16 < bridge> <milkeeycat> it's actually AAAAA
+15:17 < bridge> <chillerdragon> It’s good e-dating game
+15:17 < bridge> <meloƞ> !timeout chillerdragon MilkeeyCat Jupstar 300 rude
+15:17 < bridge> <Jupstar ✪> we have all kinds of ppl
+15:17 < bridge> <matodor> imagine chiller implements adaptive ui instead of 07 support
+15:17 < bridge> <Jupstar ✪> from doctors to drug dealers
+15:17 < bridge> <Jupstar ✪> this is no joke
+15:17 < bridge> <Jupstar ✪> xd
+15:17 < bridge> <artemivashchuk> okay thx i go playing ddnet bye all
+15:17 < bridge> <meloƞ> bye artem!
+15:17 < bridge> <chillerdragon> Have fun
+15:17 < bridge> <chillerdragon> Watch out for herobrine
+15:18 < bridge> <meloƞ> <a:peeposcare:784828457993502741>
+15:18 < bridge> <heinrich5991> the problem is that adaptive UI is that it's hard to support. also, people can develop the stuff that they want to
+15:19 < bridge> <chillerdragon> What is it about then? Cheating?
+15:19 < bridge> <matodor> I think it would be easy if implement it in CSS style
+15:19 < bridge> <chillerdragon> Viewport advantage?
+15:20 < bridge> <chillerdragon> Oh I read a „isn’t“ xd
+15:20 < bridge> <Jupstar ✪> if ddnet ui would be DPI aware it could already save lot of space
+15:21 < bridge> <Jupstar ✪> i often code in weird aspect ratios
+15:21 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1273270194655068323/image.png?ex=66be00c6&is=66bcaf46&hm=8fc3f648fd359a9a39ff3e7c72c968791e888069c7fcd617a3e0e68dab89cb03&
+15:21 < bridge> <Jupstar ✪> like this
+15:22 < bridge> <chillerdragon> When 0.5 font for dd-pg
+15:22 < bridge> <Jupstar ✪> what is 0.5 font
+15:22 < bridge> <matodor> server name 5:4, maybe make map name less wide
+15:22 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1273270566115217501/image.png?ex=66be011f&is=66bcaf9f&hm=3196a5b2e15a5f8bfae36237656888a1867968d3785436541910e16bf3f156f7&
+15:22 < bridge> <Jupstar ✪> did 0.5 use a different font?
+15:22 < bridge> <Jupstar ✪> it's about all UI
+15:22 < bridge> <chillerdragon> Jopsti steam player confirmed
+15:23 < bridge> <Jupstar ✪> why?
+15:23 < bridge> <Jupstar ✪> what did i leak
+15:23 < bridge> <Jupstar ✪> i started exactly when 0.6 came out
+15:23 < bridge> <chillerdragon> You never played 0.5?
+15:23 < bridge> <Jupstar ✪> i think i started it once
+15:23 < bridge> <chillerdragon> Yea I also never played 0.5 xd
+15:23 < bridge> <Jupstar ✪> but yeah never played
+15:23 < bridge> <chillerdragon> Woah
+15:23 < bridge> <Jupstar ✪> lmao
+15:23 < bridge> <chillerdragon> Yea idk your fonts look so unteeish
+15:24 < bridge> <Jupstar ✪> it's the 0.6 font
+15:24 < bridge> <chillerdragon> No way
+15:24 < bridge> <Jupstar ✪> i just has no outline
+15:24 < bridge> <chillerdragon> Looks weird
+15:24 < bridge> <Jupstar ✪> for UI it doesnt even matter i think.. for nameplates i gotta think about it some day
+15:24 < bridge> <Jupstar ✪> low prio
+15:24 < bridge> <chillerdragon> Imo UI suffers more from the vibe than the nameplates
+15:25 < bridge> <Jupstar ✪> i mean basically all text you ever see has no outline
+15:25 < bridge> <Jupstar ✪> you really get used to it fast xD
+15:25 < bridge> <chillerdragon> Maybe
+15:25 < bridge> <Jupstar ✪> readability is the bigger problem
+15:25 < bridge> <Jupstar ✪> and that is mostly for stuff like nameplates with changing background
+15:26 < bridge> <chillerdragon> Ye
+15:31 < bridge> <louis> nameplates outline is nice
+15:31 < bridge> <louis> but yeah the ui looks more 'clean' without the weird outline imo, not sure if its a good thing or not
+15:31 < bridge> <Jupstar ✪> i never play with nameplates, so dunno xD
+15:31 < bridge> <meloƞ> never?!
+15:31 < bridge> <Jupstar ✪> i think they block too much of the view
+15:31 < bridge> <louis> i have a +toggle for them
+15:31 < bridge> <Jupstar ✪> more annoying than good 😄
+15:31 < bridge> <meloƞ> not even strong indicator?!
+15:32 < bridge> <Jupstar ✪> yeah me too
+15:32 < bridge> <Jupstar ✪> but i rarely click it 😄
+15:32 < bridge> <Jupstar ✪> i can remember it
+15:32 < bridge> <Jupstar ✪> xd
+15:32 < bridge> <Jupstar ✪> on KoG there is also storng only
+15:32 < bridge> <meloƞ> :justatest:  yeah i can't
+15:32 < bridge> <louis> play without all that stuff, its refreshing
+15:32 < bridge> <meloƞ> i have a keybind to toggle it, so it's not always on
+15:32 < bridge> <meloƞ> but i like to leave it on espacially in t0
+15:34 < ws-client> <jxsl13> huhn chat <:cateeholic:849742650076823577> 
+16:06 < bridge> <Tyrone> Morning
+16:09 < bridge> <meloƞ> who added this - this is cool
+16:09 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1273282270224056340/grafik.png?ex=66be0c05&is=66bcba85&hm=0ffab2c0d6100e1e13513f30f51cb36e4469f2864fef0e5827dffec2f80cdd3b&
+16:10 < bridge> <heinrich5991> thank @robyt3
+16:10 < bridge> <heinrich5991> https://github.com/ddnet/ddnet/pull/8659
+16:14 < bridge> <zhn> freesans
+16:14 < bridge> <zhn> freesans bold
+16:14 < bridge> <zhn> + atlased
+16:16 < bridge> <Jupstar ✪> would you 10/10 recommend it?
+16:17 < bridge> <Jupstar ✪> a serious reason why i could imagine using a diff font is, that l and I look almost the same on 0.6
+16:17 < bridge> <Jupstar ✪> that sucks
+16:17 < bridge> <zhn> it misses like 70% of symbols but it's way better than dejavu
+16:17 < bridge> <zhn> im playing with unpatched freesans bold rn
+16:18 < bridge> <Jupstar ✪> screenshot of server browser xd
+16:18 < bridge> <zhn> wait
+16:20 < bridge> <zhn> https://cdn.discordapp.com/attachments/293493549758939136/1273285054142877757/screenshot_2024-08-14_20-19-24.png?ex=66be0e9d&is=66bcbd1d&hm=09d9181085f8b78ac02e3a1890e8231e2f95c26895dce97dc6f4fbefd79f5e71&
+16:21 < bridge> <Jupstar ✪> ah that one
+16:21 < bridge> <Jupstar ✪> i remember the ingame timer looked so fat
+16:21 < bridge> <Jupstar ✪> in earlier versions
+16:22 < bridge> <zhn> and its so good
+16:26 < bridge> <louis> more symbopls is better though
+16:26 < bridge> <cyberfrighter> i like it
+17:30 < bridge> <heinrich5991> https://cdn.discordapp.com/attachments/293493549758939136/1273302655485218980/5991.png?ex=66be1f01&is=66bccd81&hm=eaef6e5af68be21d688b0c12743787a0134b4818bb5a0db2b04335683fcecaeb&
+17:30 < bridge> <heinrich5991> all-time peak: 5991 players
+17:35 < bridge> <meloƞ> :gigachad:
+17:44 < bridge> <Tyrone> We need like a big content creator to try it out
+17:47 < bridge> <Tyrone> But this is still amazing to see
+17:59 < bridge> <matodor> @0xdeen where you bought host for RUS2 ?
+18:01 < bridge> <heinrich5991> you can check the source code of https://ddnet.org/funding/
+18:01 < bridge> <heinrich5991> search for rus2
+18:01 < bridge> <matodor> 608 / 608 € (sponsored by heinrich5991, Exit, Lumpy ◐ω◑ & iwa)
+18:01 < bridge> <heinrich5991> the source code
+18:01 < bridge> <heinrich5991> press ctrl-u in your browser
+18:02 < bridge> <matodor> oh, thx
+18:12 < bridge> <matodor> i have some randoms lags on myarena host vps (on my own vps)
+18:12 < bridge> <matodor> its not snapshot/prediction errors
+18:12 < bridge> <matodor> there doesn't even seem to be any packet loss 
+18:12 < bridge> <matodor> I even tried reinstalling the VPS
+18:12 < bridge> <matodor> which way to debug?)
+18:12 < bridge> <matodor> 
+18:12 < bridge> <matodor> https://github-production-user-asset-6210df.s3.amazonaws.com/1778417/356813181-b7d9f7bb-50f5-4de8-aea7-0618eec5613f.mp4?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAVCODYLSA53PQK4ZA%2F20240814%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20240814T160916Z&X-Amz-Expires=300&X-Amz-Signature=f9f3cc674da371155072c96a668bec5662607dfc9bdfb6edfc50d1699ee3c112&X-Amz-SignedHeaders=host&actor_id=1778417&key_id=0&repo_id=22821674
+18:13 < bridge> <matodor> it's work fine on another cheapest vps
+18:15 < bridge> <heinrich5991> the image doesn't work for me
+18:17 < bridge> <matodor> open in browser by link
+18:17 < bridge> <heinrich5991> > `<Message>Request has expired</Message>`
+18:18 < bridge> <matodor> sorry, It seems to be loading from cache (for me), I'll re-upload it now
+18:20 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1273315323134738492/bandicam_2024-08-14_21-19-32-821.mp4?ex=66be2ace&is=66bcd94e&hm=5a902e192bf478dd21f6e1f1c8b2560c4cba6f7bc51872135b7ea1a43aed760d&
+18:20 < bridge> <matodor> i have some randoms lags on myarena host vps (on my own vps)
+18:20 < bridge> <matodor> its not snapshot/prediction errors
+18:20 < bridge> <matodor> there doesn't even seem to be any packet loss 
+18:20 < bridge> <matodor> I even tried reinstalling the VPS
+18:20 < bridge> <matodor> which way to debug?)
+19:14 < bridge> <cellegenrih> I had similar issues on my own internet, it shouldn't lag all the time on Europian servers, but still lagspikes happened
+19:14 < bridge> <cellegenrih> I used pingplotter to see whatsup, didn't find much.
+19:15 < bridge> <cellegenrih> I figured maybe it's my DNS that is set up wrong, so my router is shitting on itself finding the best one. Switched to cloudflare WARP (application) and it solved most lagspike issues for me.
+19:16 < bridge> <cellegenrih> (Mind you, cable internet had no difference, it was an ISP problem, better to call the ISP to help)
+19:36 < bridge> <abricotiabricota> I've same lagspikes but i'm child can'r change cuz parents 😭
+19:37 < bridge> <cellegenrih> well, that sucks
+20:18 < bridge> <matodor> the problem is not only with me, but with different players from different regions
+20:19 < bridge> <cellegenrih> well then, if it happens simultaniously, then it's server issue
+21:07 < bridge> <matodor> :greenthing:
+21:07 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1273357400572956754/bandicam_2024-08-15_00-05-05-381.mp4?ex=66be51fe&is=66bd007e&hm=d0ef5373863cf3235f7d78df18c994d93436f4620185119a0f519dcdaea1b1d0&
+21:24 < bridge> <milkeeycat> 😏
+21:24 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1273361569560006746/image.png?ex=66be55e0&is=66bd0460&hm=467ebc226a45a6ca594891ceb1d2796a3ccca68b22d46d16458135aefc0d61e5&
+21:25 < bridge> <milkeeycat> are exit codes `u8`s btw? :justatest:
+21:53 < bridge> <smetanolub> hookline doesnt teleport when going in hooktele
+22:01 < bridge> <milkeeycat> @learath2 function moves all its arguments on da local stack, ye? Even parameters which were passed on stack(for example 7th integer class argument)
+22:39 < bridge> <Ewan> IDA pro is like thousands of dollars
+22:40 < bridge> <Ewan> they don't have a flat rate on it
+22:40 < bridge> <Ewan> iirc they have a price calculator
+22:40 < bridge> <Ewan> classic
+22:41 < bridge> <Ewan> here's my custom 100% safe dsound.dll 😃
+22:48 < bridge> <heinrich5991> on linux, libc truncates them to u8

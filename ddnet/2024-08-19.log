@@ -1,0 +1,791 @@
+08:05 < ws-client> <ChillerDragon> i red something about binds recently if my compose zoom bind no longer works is that a me issue or a ddnet issue?
+08:05 < ws-client> <ChillerDragon> nvm still works
+08:05 < ws-client> <ChillerDragon> i forgot zoozing is not allowed in onbgy fng
+08:12 < bridge> <reitw> Locally I can try, other than that I'm out since years
+09:34 < bridge> <soulyvevo> zooz
+09:47 < bridge> <meloƞ> 🧢
+11:34 < bridge> <Jupstar ✪> @learath2 final update, for now i'll not optimize it further.
+11:34 < bridge> <Jupstar ✪> 
+11:34 < bridge> <Jupstar ✪> I tried different grid sized 3x3 and even 0.5x0.5.
+11:34 < bridge> <Jupstar ✪> All perform much worse than 1x1. I think this is already pretty optimal for the average case.
+11:34 < bridge> <Jupstar ✪> 
+11:34 < bridge> <Jupstar ✪> What however improved performance was to replace BTreeSet with a manually sorted Vec, >20% with 4096 Ent, >6% with 64 Ent.
+11:35 < bridge> <Jupstar ✪> 
+11:35 < bridge> <Jupstar ✪> I dunno wtf Rust std is doing, but it sucks hard.
+11:35 < bridge> <Jupstar ✪> 
+11:35 < bridge> <Jupstar ✪> the interesting doc:
+11:35 < bridge> <Jupstar ✪> ```
+11:35 < bridge> <Jupstar ✪> A B-Tree instead makes each node contain B-1 to 2B-1 elements in a contiguous array. By doing this, we reduce the number of allocations by a factor of B, and improve cache efficiency in searches. However, this does mean that searches will have to do more comparisons on average. The precise number of comparisons depends on the node search strategy used. For optimal cache efficiency, one could search the nodes linearly. For optimal comparisons, o
+11:35 < bridge> <Jupstar ✪> 
+11:35 < bridge> <Jupstar ✪> Currently, our implementation simply performs naive linear search. This provides excellent performance on small nodes of elements which are cheap to compare. However in the future we would like to further explore choosing the optimal search strategy based on the choice of B, and possibly other factors. Using linear search, searching for a random element is expected to take B * log(n) comparisons, which is generally worse than a BST. In practice
+11:35 < bridge> <Jupstar ✪> ```
+11:35 < bridge> <Jupstar ✪> https://doc.rust-lang.org/std/collections/struct.BTreeMap.html
+11:35 < bridge> <Jupstar ✪> 
+11:35 < bridge> <Jupstar ✪> But honestly I doubt i hit the `2B-1` element limit. so i cannot understand it sucks so hard compared to a Vec.
+11:35 < bridge> <Jupstar ✪> I still find the 2nd section of the doc really concerning, isn't that the whole sense of a btreemap xddd
+11:35 < bridge> <learath2> Have you tried 1.5x btw? Just curious
+11:35 < bridge> <Jupstar ✪> Mhh i don't think so
+11:36 < bridge> <learath2> It's surprising how much you got from switching to a vec
+11:36 < bridge> <Jupstar ✪> i should have stashed that shit, took me few hours and i deleted it bcs i was mad xDD
+11:37 < bridge> <Jupstar ✪> yes me too, esp. bcs the flamegraph didnt hit such a improvement
+11:37 < bridge> <Jupstar ✪> i saw btreemap sucked.. but not that much
+11:37 < bridge> <Jupstar ✪> yes me too, esp. bcs the flamegraph didnt show such a improvement
+11:39 < bridge> <Jupstar ✪> i add btreemaps now to my hashmap benchmark
+11:39 < bridge> <Jupstar ✪> i wonder how it compares 😄
+11:39 < bridge> <Jupstar ✪> iteration must be slower than a hashmap xD
+11:41 < bridge> <learath2> I really want to experiment with this too. But it would be so much work to abstract away the current C++ implementation enough to bench it and it would be even more work to make my own ddnet implementation
+11:42 < bridge> <Jupstar ✪> btw @learath2 
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> generally the number of ticks proof it must be O(1) ig.
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> 17k ticks with 64 tees
+11:42 < bridge> <Jupstar ✪> 250 ticks with 4096 tees
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> that's _almost_ linear
+11:42 < bridge> <Jupstar ✪> btw @learath2 
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> generally the number of ticks prove it must be O(1) ig.
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> 17k ticks with 64 tees
+11:42 < bridge> <Jupstar ✪> 250 ticks with 4096 tees
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> that's _almost_ linear
+11:42 < bridge> <Jupstar ✪> btw @learath2 
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> generally the number of ticks proof it must be O(1) ig.
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> 17k ticks with 64 tees
+11:42 < bridge> <Jupstar ✪> 250 ticks with 4096 tees
+11:42 < bridge> <Jupstar ✪> 
+11:42 < bridge> <Jupstar ✪> that's _almost_ linear
+11:42 < bridge> <learath2> I wanted to try sweep and prune too, it would be trivial and might just work well with most usual situations
+11:43 < bridge> <learath2> O(n) no? O(1) wouldn't change as the number of tees changes
+11:44 < bridge> <Jupstar ✪> yeah o(n) on the whole physics true
+11:44 < bridge> <Jupstar ✪> i always think of the collision code
+11:46 < bridge> <learath2> Next step is making it O(1) by precalculating all possible collisions
+11:48 < bridge> <Jupstar ✪> a neural net that just guesses the physics
+11:51 < bridge> <Jupstar ✪> ```
+11:51 < bridge> <Jupstar ✪> #iterate
+11:51 < bridge> <Jupstar ✪> indexmap took 150ns:
+11:51 < bridge> <Jupstar ✪> vec took 140ns:
+11:51 < bridge> <Jupstar ✪> hashmap took 350ns:
+11:51 < bridge> <Jupstar ✪> linked-hashmap took 240ns:
+11:51 < bridge> <Jupstar ✪> fx hashmap took 361ns:
+11:51 < bridge> <Jupstar ✪> btreemap took 822ns:
+11:51 < bridge> <Jupstar ✪> indexmap (values only) took 141ns:
+11:51 < bridge> <Jupstar ✪> linked-hashmap (with view) took 251ns:
+11:51 < bridge> <Jupstar ✪> linked-hashmap (values only) took 220ns:
+11:51 < bridge> <Jupstar ✪> fx hashmap (values only) took 361ns:
+11:51 < bridge> <Jupstar ✪> btreemap (values only) took 611ns:
+11:51 < bridge> <Jupstar ✪> ```
+11:51 < bridge> <Jupstar ✪> 
+11:51 < bridge> <Jupstar ✪> with 64 entities btreemap is already complete trash xD
+11:51 < bridge> <Jupstar ✪> 
+11:51 < bridge> <Jupstar ✪> how is that possible
+11:51 < bridge> <Jupstar ✪> i always thought hashmaps start to scale at like 200-300 entries
+11:52 < bridge> <Jupstar ✪> ```
+11:52 < bridge> <Jupstar ✪> #iterate
+11:52 < bridge> <Jupstar ✪> indexmap took 50ns:
+11:52 < bridge> <Jupstar ✪> vec took 50ns:
+11:52 < bridge> <Jupstar ✪> hashmap took 60ns:
+11:52 < bridge> <Jupstar ✪> linked-hashmap took 50ns:
+11:52 < bridge> <Jupstar ✪> fx hashmap took 60ns:
+11:52 < bridge> <Jupstar ✪> btreemap took 571ns:
+11:52 < bridge> <Jupstar ✪> indexmap (values only) took 50ns:
+11:52 < bridge> <Jupstar ✪> linked-hashmap (with view) took 50ns:
+11:52 < bridge> <Jupstar ✪> linked-hashmap (values only) took 50ns:
+11:52 < bridge> <Jupstar ✪> fx hashmap (values only) took 60ns:
+11:52 < bridge> <Jupstar ✪> btreemap (values only) took 100ns:
+11:52 < bridge> <Jupstar ✪> ```
+11:52 < bridge> <Jupstar ✪> 
+11:52 < bridge> <Jupstar ✪> 8 entries
+11:53 < bridge> <Jupstar ✪> guess i have to do 1 entry, since that is a common case in the physics
+11:53 < bridge> <Jupstar ✪> ```
+11:53 < bridge> <Jupstar ✪> #iterate
+11:53 < bridge> <Jupstar ✪> indexmap took 31ns:
+11:53 < bridge> <Jupstar ✪> vec took 30ns:
+11:53 < bridge> <Jupstar ✪> hashmap took 40ns:
+11:53 < bridge> <Jupstar ✪> linked-hashmap took 30ns:
+11:53 < bridge> <Jupstar ✪> fx hashmap took 40ns:
+11:53 < bridge> <Jupstar ✪> btreemap took 180ns:
+11:53 < bridge> <Jupstar ✪> indexmap (values only) took 30ns:
+11:53 < bridge> <Jupstar ✪> linked-hashmap (with view) took 40ns:
+11:53 < bridge> <Jupstar ✪> linked-hashmap (values only) took 30ns:
+11:54 < bridge> <Jupstar ✪> fx hashmap (values only) took 40ns:
+11:54 < bridge> <Jupstar ✪> btreemap (values only) took 60ns:
+11:54 < bridge> <Jupstar ✪> ```
+11:54 < bridge> <Jupstar ✪> how can it be so bad?
+11:54 < bridge> <Jupstar ✪> it just casually takes double as long
+11:54 < bridge> <Jupstar ✪> full results:
+11:54 < bridge> <Jupstar ✪> https://pastebin.com/tqzHRJtz
+12:05 < bridge> <AssassinTee> what are you doing here? Do you need a map with a lot of physics and tunings?
+12:06 < bridge> <Jupstar ✪> that was just a joke response to learath.
+12:06 < bridge> <Jupstar ✪> 
+12:06 < bridge> <Jupstar ✪> Generally i just tried to improve core physics without breaking physics.
+12:06 < bridge> <Jupstar ✪> 
+12:06 < bridge> <Jupstar ✪> So e.g. 4000 Tees could be possible.
+12:06 < bridge> <Jupstar ✪> 
+12:06 < bridge> <Jupstar ✪> The current ddnet physics are O(n²) which completely breaks it
+12:06 < bridge> <Jupstar ✪> core physics*
+12:07 < bridge> <AssassinTee> I also played with the thought of using quadtrees in teeworlds long time ago, because you usually don't have too many entities reacting with each other anyways
+12:08 < bridge> <Jupstar ✪> yep, it insanely improves the throughput.
+12:08 < bridge> <Jupstar ✪> 
+12:08 < bridge> <Jupstar ✪> but physics are still rather slow generally
+12:08 < bridge> <Jupstar ✪> with 4096 tees i can barely hit 250 ticks/s
+12:10 < bridge> <0xdeen> Can we get a PR for this improvement please? Our servers are overloaded
+12:11 < bridge> <AssassinTee> link for anyone interested: [here](<https://github.com/AssassinTee/teeworlds/blob/feature/quad-tree-test2/src/game/server/worldtree.cpp>) However I rand into troubles updating the tree properly, because the UPDATE SEQUENCE MATTERS A LOT in teeworlds
+12:11 < bridge> <Jupstar ✪> it's in rust and uses RAII. i cannot really guess how hard it is to port
+12:11 < bridge> <learath2> It's a completely different implementation of teeworlds
+12:11 < bridge> <AssassinTee> link for anyone interested: [here](<https://github.com/AssassinTee/teeworlds/blob/feature/quad-tree-test2/src/game/server/worldtree.cpp>) However I ran into troubles updating the tree properly, because the UPDATE SEQUENCE MATTERS A LOT in teeworlds
+12:11 < bridge> <Jupstar ✪> but i share all code and insight if somebody wants to try
+12:11 < bridge> <learath2> I don't think the O(n^2) physics pops up in our profiling yet
+12:12 < bridge> <Jupstar ✪> but without RAII i fear that i miss a character remove or insert
+12:12 < bridge> <Jupstar ✪> and then it's broken xD
+12:12 < bridge> <Jupstar ✪> but with 128p support, how fast is that?
+12:13 < bridge> <Jupstar ✪> i get `8255 t/s`
+12:13 < bridge> <Jupstar ✪> 
+12:13 < bridge> <Jupstar ✪> that is defs enough to not destroy FPS too much
+12:13 < bridge> <AssassinTee> increase grenade "damage" (and therefore force) to max and see how many players can be moved simultanously
+12:14 < bridge> <Jupstar ✪> since prediction must run every frame
+12:15 < bridge> <learath2> With 128p I think the playermapping implementation to reduce to 64p was the thing that took most time
+12:16 < bridge> <Jupstar ✪> yeah i meant native support 128p in client
+12:16 < bridge> <Jupstar ✪> if that ever comes 😄
+12:17 < bridge> <Jupstar ✪> i think robster once did it
+12:17 < bridge> <Jupstar ✪> let me search
+12:17 < bridge> <Jupstar ✪> doesnt sound tooo bad
+12:18 < bridge> <Jupstar ✪> .
+12:18 < bridge> <0xdeen> We have native 128 players in client
+12:18 < bridge> <0xdeen> Will come with the native 128 server change
+12:18 < bridge> <Jupstar ✪> Ok
+12:18 < bridge> <matodor> deen why rus3 in finland?)
+12:19 < bridge> <0xdeen> Because I have trouble getting money into Russia
+12:19 < bridge> <0xdeen> So I'm trying if the ping is good enough to Helsinki, is it?
+12:19 < bridge> <matodor> for me yes ~60
+12:19 < bridge> <0xdeen> From what I checked it should be 20 from St. Petersburg and 40 from Moscow (for server connections, maybe +20 for home)
+12:20 < bridge> <0xdeen> Anyone else from Russia want to try if it's ok before I order a larger server for a month therE?
+12:22 < bridge> <matodor> how much players can handle vps with 1CPU and 512ram?)
+12:22 < bridge> <matodor> 
+12:22 < bridge> <matodor> maybe abuse cheap 130rub/month vps
+12:23 < bridge> <0xdeen> I don't want to deal with that. I want to get one huge server and be done with it, it's cheap enough
+12:23 < bridge> <0xdeen> Not sure if Russians will join if I call it DDNet FIN instead of RUS3/4
+12:24 < bridge> <mr_rim> Rus3 - 60 ping.If u asked that
+12:24 < bridge> <0xdeen> Thanks
+12:26 < bridge> <matodor> @0xdeen don't use cryptocurrency?
+12:28 < bridge> <matodor> you can make an exchange through the exchange and withdraw into rubles
+12:28 < bridge> <0xdeen> I have a strong aversion to crypto
+12:29 < bridge> <0xdeen> Don't want to support scams
+12:29 < bridge> <matodor> but stablecoins...
+12:42 < bridge> <learath2> Tbf, if RUS hosters do take it, it might be acceptable as a compromise to give players a new server
+12:49 < bridge> <sans._.> sneaky
+12:50 < bridge> <sans._.> https://cdn.discordapp.com/attachments/293493549758939136/1275044086298185738/image.png?ex=66c474d7&is=66c32357&hm=1a44f45329961dbfb616de062e35f92d32530cf7d1e7cb97edf7ac3d62f84e99&
+12:50 < bridge> <sans._.> How come rus3 is hosted in finland?
+12:50 < bridge> <0xdeen> They don't. I'd have to get a Russian bank account
+12:51 < bridge> <learath2> Read up a little...
+12:51 < bridge> <0xdeen> Experiment to see if ping is fine from Russia
+12:51 < bridge> <sans._.> oh
+13:06 < bridge> <0xdeen> https://www.reuters.com/markets/currencies/russia-weighs-risk-embracing-crypto-international-payments-2024-07-17/
+13:06 < bridge> <0xdeen> > Cryptocurrencies are currently not allowed for payments inside Russia, and the new law is unlikely to change that.
+13:06 < bridge> <0xdeen> Which is why our hoster stopped accepting them I guess.
+13:22 < bridge> <animepdf> Very stable, like luna/terra :Pepechill:
+13:22 < bridge> <Jupstar ✪> first time i noticed how unbalanced ctf1 actually is 😄
+13:22 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275052220190035968/image.png?ex=66c47c6a&is=66c32aea&hm=5cb462d3f09bcf04e7f56909667a2a3bb456b78355efa5415910785d81362186&
+13:22 < bridge> <Jupstar ✪> blue fills so heavily
+13:22 < bridge> <Jupstar ✪> the reds are stuck again :c
+13:25 < bridge> <chillerdragon> @jupeyy_keks: that’s why you swap sides in serious games. Both teams get equal amount of rounds on each side.
+13:25 < bridge> <Jupstar ✪> ok vanilla legend
+13:26 < bridge> <Jupstar ✪> but you do agree that you should join team red? xdd
+13:26 < bridge> <chillerdragon> Are you saying crypto is a scam? .\_.
+13:28 < bridge> <learath2> Someone should make this meme with chillers tee <a:SGuraWoke:844928542897995776>
+13:29 < bridge> <むぎ> no difference from ger for me :sanyakamen:
+13:29 < bridge> <chillerdragon> ??
+13:29 < bridge> <chillerdragon> Which meme lerato
+13:29 < bridge> <むぎ> 80-100 ping with packet loss
+13:29 < bridge> <Jupstar ✪> when will you install discord so we can talk about vanilla?
+13:29 < bridge> <sans._.> Why are all rus3 servers hidden
+13:29 < bridge> <chillerdragon> Let’s talk here
+13:29 < bridge> <chillerdragon> What about team red I don’t get it
+13:30 < bridge> <Jupstar ✪> there is nothing about team red, it's just funny that the red side didnt fill up completely
+13:30 < bridge> <Jupstar ✪> but the spawns are so small that the tees always stack
+13:31 < bridge> <chillerdragon> I would join red for sure
+13:31 < bridge> <chillerdragon> I quit playing for blue years ago
+13:31 < bridge> <chillerdragon> CTF players hated me so much for it xd
+13:31 < bridge> <learath2> is it racist to discriminate against blue?
+13:32 < bridge> <chillerdragon> No it’s being loyal to red
+13:32 < bridge> <chillerdragon> I picked a side for ctf
+13:44 < bridge> <0xdeen> Too bad. It should still help you if more people play on FIN, then RUS1/RUS2 will be less laggy, we'll keep them
+13:45 < bridge> <Jupstar ✪> what makes RUS1 & 2 laggy?
+13:45 < bridge> <Jupstar ✪> CPU or network?
+13:46 < bridge> <0xdeen> CPU
+13:46 < bridge> <Jupstar ✪> wow what kind of cpu do they have?
+13:46 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275058294410579989/image.png?ex=66c48212&is=66c33092&hm=c4039b9f2a2301457dd14dd602b773f70ca7cca3b2941152894cc2b928399ce7&
+13:46 < bridge> <0xdeen> They are clogged at 100% CPU, Intel i7 7700k each
+13:46 < bridge> <Jupstar ✪> wtf
+13:46 < bridge> <Jupstar ✪> and they struggle so much
+13:47 < bridge> <0xdeen> They can do 2500 players per dedicated server
+13:47 < bridge> <Jupstar ✪> ah ok that's ofc a lot
+13:47 < bridge> <Jupstar ✪> i guess
+13:47 < bridge> <0xdeen> FIN is a Ryzen 5 3600, so it should handle a bit more
+13:48 < bridge> <Jupstar ✪> i wonder if it helps to compile the whole server with MAX_CLIENTS set to 32
+13:48 < bridge> <Jupstar ✪> then the loops get smaller
+13:48 < bridge> <0xdeen> I'm planning to go to 128 players as soon as the PR lands
+13:48 < bridge> <Jupstar ✪> well network stuff ofc uses lot of CPU time too
+13:48 < bridge> <Jupstar ✪> but wont this make things even worse 😄
+13:49 < bridge> <0xdeen> Maybe, maybe not
+13:49 < bridge> <0xdeen> It definitely makes it more *fun* though
+13:49 < bridge> <sans._.> :PES_SweatPopcorn:
+13:50 < bridge> <Jupstar ✪> yeah more tees are always more fun
+13:50 < bridge> <chillerdragon> thats why we should remove /team
+13:50 < bridge> <chillerdragon> more fun
+13:51 < bridge> <sans._.> chiller please no
+13:51 < bridge> <matodor> and dummy on novice servers
+13:51 < bridge> <sans._.> I love chill t0 runs
+13:51 < bridge> <matodor> more slots for real players
+13:52 < bridge> <sans._.> i dont think dummies can be removed that easily
+13:52 < bridge> <sans._.> i remember something about not every cilent reporting their dummies
+13:52 < bridge> <sans._.> i remember something about not every client reporting their dummies
+13:52 < bridge> <sans._.> and also what about players on the same ip
+13:52 < bridge> <Jupstar ✪> 500 dummies explosions are fun too
+13:52 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275059936388321290/boom.mp4?ex=66c4839a&is=66c3321a&hm=af3347f2967d5cf38c6750195518e3faea2cda05afc67d7b1050e6b54c354bed&
+13:53 < bridge> <sans._.> what are you testing here XD
+13:53 < bridge> <Jupstar ✪> i simply enabled dummy copy moves
+13:53 < bridge> <Jupstar ✪> and pressed fire
+13:53 < bridge> <sans._.> but why are there so many dummies XD
+13:54 < bridge> <Jupstar ✪> dunno, more tees are _fun_
+13:54 < bridge> <itom6176> it looks a bit like bomberman
+15:01 < bridge> <unterdev.eth> maybe i'm dumb, but i'm getting error
+15:01 < bridge> <unterdev.eth> 
+15:01 < bridge> <unterdev.eth> ```CMake Error: The source directory "/home/lukron/DDNet-Server" does not appear to contain CMakeLists.txt.
+15:01 < bridge> <unterdev.eth> Specify --help for usage, or press the help button on the CMake GUI.```
+15:01 < bridge> <unterdev.eth> 
+15:01 < bridge> <unterdev.eth> this is what i did:
+15:01 < bridge> <unterdev.eth> ```git clone --recursive https://github.com/ddnet/ddnet
+15:01 < bridge> <unterdev.eth> 
+15:01 < bridge> <unterdev.eth> sudo apt install build-essential cargo cmake git glslang-tools google-mock libavcodec-extra libavdevice-dev libavfilter-dev libavformat-dev libavutil-dev libcurl4-openssl-dev libfreetype6-dev libglew-dev libnotify-dev libogg-dev libopus-dev libopusfile-dev libpng-dev libsdl2-dev libsqlite3-dev libssl-dev libvulkan-dev libwavpack-dev libx264-dev python3 rustc spirv-tools
+15:01 < bridge> <unterdev.eth> 
+15:01 < bridge> <unterdev.eth> mkdir build
+15:01 < bridge> <unterdev.eth> 
+15:01 < bridge> <unterdev.eth> cd build
+15:01 < bridge> <unterdev.eth> 
+15:01 < bridge> <unterdev.eth> cmake ..```
+15:02 < bridge> <0xdeen> `cmake ../ddnet`
+15:03 < bridge> <jxsl13> true
+15:03 < bridge> <chillerdragon> hi jiggsel
+15:03 < bridge> <jxsl13> hey chilli
+15:03 < bridge> <jxsl13> ._.
+15:03 < bridge> <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/1275077764025815040/image.png?ex=66c49434&is=66c342b4&hm=f72ec8765f32db625b2a5b21267697882045e43510a23337a458f60b6006ab05&
+15:03 < bridge> <chillerdragon> xxD
+15:04 < bridge> <jxsl13> hö
+15:04 < bridge> <chillerdragon> i rofled so hard
+15:04 < bridge> <jxsl13> xD
+15:05 < bridge> <jxsl13> sometimes I wonder whether the people in here even work in any day job
+15:05 < bridge> <jxsl13> so much activity
+15:05 < bridge> <jxsl13> ciz they are so active in here
+15:06 < bridge> <jxsl13> cuz they are so active in here
+15:06 < bridge> <jxsl13> jiggsel.de
+15:06 < bridge> <jxsl13> reserved
+15:11 < ws-client> <ChillerDragon> <:justatest:572499997178986510> all hard workers here
+15:12 < ws-client> <ChillerDragon> sometimes I wonder whether the people in here even play the game
+15:12 < ws-client> <ChillerDragon> so much activity
+15:12 < ws-client> <ChillerDragon> cuz they are so active in here
+15:24 < bridge> <Jupstar ✪> Yes, want a insane gores battle against me?
+15:24 < bridge> <Jupstar ✪> Or r u chilling on the beach too much xdd
+15:40 < bridge> <jxsl13> you even copied my initial message which I updated :0
+15:45 < bridge> <zhn> godouly
+15:45 < bridge> <soulyvevo> most important thing ive ever done
+15:45 < bridge> <soulyvevo> chillerdragon: are you proud of me i made a pr
+15:45 < bridge> <soulyvevo> with an actual comment
+15:46 < bridge> <jxsl13> sickouly
+15:47 < bridge> <jxsl13> 🎉
+15:49 < bridge> <unterdev.eth> how can i change flag of my server
+15:49 < bridge> <unterdev.eth> https://cdn.discordapp.com/attachments/293493549758939136/1275089134695878848/image.png?ex=66c49ecb&is=66c34d4b&hm=ab1437da333c82a234784a7391677dcc7aae0f3f2f880177da11a699955ac813&
+15:49 < bridge> <zhn> wait it's now shifted to right
+15:49 < bridge> <zhn> you have to register a community
+15:49 < bridge> <zhn> thru any of admin's dm i suppose
+15:50 < bridge> <heinrich5991> a community is supposed to be a collection of servers. if you just set up a server, then you probably don't qualify
+15:50 < bridge> <heinrich5991> otherwise, it's #✉-create-a-ticket → admin mail
+15:57 < bridge> <animepdf> I can't see the difference :justatest:
+15:57 < bridge> <animepdf> i need pixel-to-pixel comparision to see
+15:58 < bridge> <soulyvevo> its just shifted 2 pixels to the right
+15:58 < bridge> <animepdf> oh, nice :owo:
+15:58 < bridge> <soulyvevo> ik big change
+16:09 < bridge> <3x1st_> how to get a snapshot info? like character->freezetime. client side
+16:10 < bridge> <Peakies> I love kill moment 😄
+16:11 < bridge> <Jupstar ✪> but it laggs too hard
+16:11 < bridge> <Peakies> yeah I can feel lag
+16:12 < bridge> <0dpododdododo> 😲
+16:12 < bridge> <Jupstar ✪> it might render around 20k-30k particles here
+16:12 < bridge> <Jupstar ✪> since it must update them on CPU it's too slow
+16:12 < bridge> <Jupstar ✪> we need to move everything to GPU 😬
+16:12 < bridge> <3x1st_> .
+16:12 < bridge> <Peakies> but gpu can handle it easier than cpu in that case cuz it's visual ?
+16:13 < bridge> <Jupstar ✪> it can handle the update of the particles better
+16:13 < bridge> <0dpododdododo> https://cdn.discordapp.com/attachments/1216731900467482635/1231932345351798814/skid.gif
+16:13 < bridge> <Peakies> hmm
+16:14 < bridge> <Peakies> when we see your pull request about GIF support on client ? 🤟 :brownbear:
+16:14 < bridge> <0dpododdododo> https://tenor.com/view/funny-emo-wolf-werewolf-transform-gif-27196401
+16:14 < bridge> <Jupstar ✪> for what
+16:14 < bridge> <Jupstar ✪> xd
+16:14 < bridge> <Jupstar ✪> before i add gif i'd add a video player directly
+16:15 < bridge> <Jupstar ✪> and before doing that i prefer FPS-unrelated animations
+16:15 < bridge> <0dpododdododo> https://tenor.com/view/%D1%8D%D1%89%D0%BA%D0%B5%D1%80%D0%B5-%D0%BA%D0%BE%D1%82%D0%B8%D0%BA%D0%B8-%D0%BA%D0%BE%D1%82%D0%B8%D0%BA%D0%B8-%D0%BF%D1%80%D1%8B%D0%B3%D0%B0%D1%8E%D1%82-gif-3604606172745210651
+16:15 < bridge> <Jupstar ✪> @0dpododdododo thanks for you contributions
+16:15 < bridge> <Peakies> I don't know I feel like DDNet need some gif or some animations can be very cool
+16:16 < bridge> <3x1st_> https://media.discordapp.net/attachments/951234143130370078/957957409354186752/unknown-9.gif
+16:16 < bridge> <Peakies> yeah he remained me about gif and animation for ddnet 😄
+16:16 < bridge> <0dpododdododo> @jupeyy_keks niaa
+16:16 < bridge> <Jupstar ✪> @0dpododdododo ich verstehe sie nicht
+16:17 < bridge> <0dpododdododo> k
+16:17 < bridge> <Peakies> I studying Germany and just know ich = I, that all I know and learned for now 😄
+16:17 < bridge> <Jupstar ✪> depends on what you want to do with them.
+16:17 < bridge> <Jupstar ✪> 
+16:17 < bridge> <Jupstar ✪> i'd not use them for any kind of animations.
+16:17 < bridge> <Jupstar ✪> 
+16:17 < bridge> <Jupstar ✪> if you add a TV in a 2D house where there is a video playing.. ok maybe cool
+16:18 < bridge> <heinrich5991> if videos are added as resources for maps, we should use a sane format, not GIF
+16:18 < bridge> <heinrich5991> but I don't think we need videos for maps tbh
+16:18 < bridge> <Peakies> now I was planned for using gif as body particle animation and add some gif like this one I'll send for happy birthday and even finishing a map as rank 1
+16:19 < bridge> <learath2> webm?
+16:19 < bridge> <Jupstar ✪> yeah but on 240hz screen it will look bad xD
+16:19 < bridge> <Peakies> I have 60hz 😄
+16:19 < bridge> <Jupstar ✪> so what kind of GIF/video do you use? 1000 fps video? XD
+16:19 < bridge> <Peakies> that fine for me I think 🙂
+16:19 < bridge> <heinrich5991> I don't know. anything is saner than GIF
+16:19 < bridge> <learath2> 😄
+16:19 < bridge> <Peakies> didn't think about that part
+16:19 < bridge> <Jupstar ✪> that is what i mean with fps-bound animations
+16:20 < bridge> <Peakies> I saw my intro video for client right ?
+16:20 < bridge> <Jupstar ✪> yes
+16:20 < bridge> <3x1st_> hey , can u help me with snapshots? idk how to use it client-side like snapshot->freezetime
+16:20 < bridge> <Jupstar ✪> u sent it a while back here
+16:20 < bridge> <Peakies> in that case I convert video to jpg files
+16:20 < bridge> <0dpododdododo> https://tenor.com/view/high-quality-diagonally-spinning-rat-spinning-rat-rat-spin-gif-26228806
+16:20 < bridge> <Peakies> yeah
+16:20 < bridge> <0dpododdododo> i'll add it to gifs in ddnet
+16:20 < bridge> <Peakies> then render jpg files in a loop to end of it
+16:21 < bridge> <0dpododdododo> why
+16:21 < bridge> <Peakies> video was 3mb or something but after convert it's 12mb of jpg files so if DDNet had support for video or gif that would be better don't know
+16:21 < bridge> <heinrich5991> that seems entirely unrelated to my message
+16:21 < bridge> <zhn> apng?
+16:21 < bridge> <heinrich5991> that's not a video format
+16:21 < bridge> <3x1st_> ye, i just ping u
+16:22 < bridge> <0dpododdododo> who deleted high quality diagonally spinning rat
+16:22 < bridge> <zhn> can u send 0.5 shift to left?
+16:22 < bridge> <soulyvevo> ?
+16:22 < bridge> <zhn> oh sorry, i read @diariesvexar message about animations in first
+16:23 < bridge> <3x1st_> не поможешь?) как юзать снапшоты типо snapshot->freezetime именно со стороны клиента
+16:23 < bridge> <heinrich5991> russian → #off-topic
+16:23 < bridge> <0dpododdododo> https://tenor.com/view/funny-emo-wolf-werewolf-transform-gif-27196401
+16:23 < bridge> <zhn> i had never touched client side @3x1st_
+16:23 < bridge> <3x1st_> ladno
+16:24 < bridge> <Peakies> dude stop sending gif that even doesn't related to programming or this channel or even ddnet 😄
+16:24 < bridge> <zhn> can you shift feet x pos for 0.5 pixels to left and send screenshot?
+16:24 < bridge> <sans._.> Where is RUS3/FIN2 ?
+16:24 < bridge> <zhn> :justatest:
+16:24 < bridge> <soulyvevo> ?
+16:33 < bridge> <zhn> ok nvm ill test it myself
+16:34 < bridge> <unterdev.eth> how can i change flag of my server? (i repeat the message)
+16:34 < bridge> <unterdev.eth> https://cdn.discordapp.com/attachments/293493549758939136/1275100596243796080/image.png?ex=66c4a978&is=66c357f8&hm=557b5b8fa52a1db6c3253779b1e6457d41efd7b97f32b9822cb70038ddcc60e2&
+16:35 < bridge> <0xdeen> It's FIN now
+16:35 < bridge> <0xdeen> You cannot (i repeat the answer)
+16:36 < bridge> <unterdev.eth> thank you
+16:39 < bridge> <0dpododdododo> how to get a snapshot info? like character->freezetime. client side
+16:41 < bridge> <heinrich5991> please only reply if it's relevant to the original message
+16:41 < bridge> <heinrich5991> this is the third time you've replied to someone with this message, even though it's entirely unrelated
+16:44 < bridge> <zhn> that's another person though
+16:45 < bridge> <heinrich5991> ah, thanks
+16:49 < bridge> <jxsl13> -gif +blender animations
+16:50 < bridge> <zhn> @soulyvevo wait it was a mistake in .png?
+16:51 < bridge> <zhn> i thought it's wrong value in image atlas cropper
+16:53 < bridge> <zhn> for real lmfao
+16:53 < bridge> <zhn> :kek:
+16:56 < bridge> <.paxtell> \zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzoi
+16:56 < bridge> <.paxtell> uioufkiuzrju8m6ey75w7rtder5ur
+17:03 < bridge> <louis> i agree
+17:03 < bridge> <louis> how about we add tune lock first 😼
+17:35 < bridge> <Peakies> well maybe not specific just GIF but playing and rendering video files would be good or maybe add support for GIF too, but it's just an idea and suggestion about DDNet features
+17:36 < bridge> <heinrich5991> any GIF can be converted to a proper video. please don't add GIF support — GIF is horribly inefficient
+17:36 < bridge> <heinrich5991> even websites like giphycat or so don't serve GIFs for that reason
+17:37 < bridge> <Peakies> if it's possible to have like transparent video I'm okey with that like adding some cool animated particle gonna be really cool
+17:40 < bridge> <learath2> I'd guess webp or webm are the modern replacements
+17:42 < bridge> <Peakies> which one has better quality and less size ?
+17:43 < bridge> <Peakies> https://cdn.discordapp.com/attachments/293493549758939136/1275118052178133002/image.png?ex=66c4b9ba&is=66c3683a&hm=463151ca6b5b882606f3dc001dfb6da556a047a800e1520e9f5a5461f141b893&
+17:44 < bridge> <heinrich5991> every video format has better quality and smaller size than gif
+17:45 < bridge> <Peakies> yeah you right I remember once I converted short video to gif and it's really had big size than it's source
+17:53 < bridge> <louis> why even need videos?
+17:53 < bridge> <louis> for custom particles better to let server send png assets and add a nice custom particle message into ddnet
+17:54 < bridge> <louis> it would be nice to have animated particles but aren't those usually done with spritesheets
+18:07 < bridge> <Peakies> I was read maplayers.cpp files as `ma players .cpp` for years just now noticed that it's `map layers .cpp` 😐
+18:08 < bridge> <heinrich5991> same
+18:08 < bridge> <Peakies> 😄
+18:08 < bridge> <heinrich5991> (noticed a while back though)
+18:09 < bridge> <Peakies> I'm glad that I'm not alone thank you ❤️
+18:09 < bridge> <Peakies> I noticed after 10 years 🙂
+18:42 < bridge> <learath2> I've thought it was someones attempt at a cool shortening of `map players .cpp`
+18:42 < bridge> <learath2> for a long while
+18:44 < bridge> <Peakies> I've thought `m` and `a` is short of some kind of system like `manage actor players .cpp`
+18:44 < bridge> <Peakies> oh my God :kek:
+18:47 < bridge> <learath2> I forgot we even hosted this repo
+21:13 < bridge> <ris_ok51> всем ку
+21:29 < bridge> <animepdf> I finally tested new nightly 07 thing and I'm ouraged, why was this added, its completely useless and unfitting.
+21:30 < bridge> <animepdf> First of all, 2.5 0.7 servers can't offer anything new or cool, best gamemodes were already ported to ddnet/0.6 trunk.
+21:30 < bridge> <animepdf> Secondly, if Chiller is 07 fan, why would he add 07 to ddnet, this change supposes 07 players will use ddnet instead of teeworlds client, and obviously they will stay and play ddnet servers instead, cuz they don't suck. We already have sixup support in case someone wants to play from 07, sixup and ddnet07 are opposite by purpose, this makes no sense.
+21:30 < bridge> <animepdf> Thirdly, It looks fucking bad, chiller copy-pasted skin and player rendering from 07, I didn't dive into actual code, but I suppose it looks like mess. DDNet already loses its unique style cuz of weird community skins, now this, completely non-fitting 07 skin rendering among 06 gameskins/entities/menu/maps
+21:30 < bridge> <animepdf> If this still in nighly, is it possible to be reverted by any chance, I see a lot of negative reviews from old community members, few maintainers and people who lurk on updates time-to-time
+21:45 < bridge> <Ewan> lol
+21:45 < bridge> <Ewan> I think the UI could use some work but the ability to connect to more server typer is not going to be a detriment
+21:57 < bridge> <animepdf> There are no "more server types", as I said best 07 gamemodes were ported to ddnet and work better than originals, moreover most 07 servers are default vanilla where you can meet few players  a day. Not sure how much it bloats the network code since it was bloated with sixup update, but jupstar mentioned it would add more pain in the ass to make secure connections and accounts stuff with this.
+21:58 < bridge> <animepdf> That's basically like adding game's network protocol to a smart fridge os, you can flex but that's useless
+22:03 < bridge> <Ewan> I think the UI could use some work but the ability to connect to more server types is not going to be a detriment
+22:03 < bridge> <Ewan> I can't take u seriously
+22:07 < bridge> <Jupstar ✪> he states an argument: all gamemodes that 0.7 offers are ported. Thus 0.7 support is direct bloat
+22:07 < bridge> <Jupstar ✪> 
+22:07 < bridge> <Jupstar ✪> Independent if true or not, why can you not take it serious?
+22:09 < bridge> <Jupstar ✪> But if you know smth we don't, go ahead^^
+22:15 < bridge> <zhn> 100% of argeement :greenthing:
+22:23 < bridge> <heinrich5991> > Secondly, if Chiller is 07 fan, why would he add 07 to ddnet, this change supposes 07 players will use ddnet instead of teeworlds client, and obviously they will stay and play ddnet servers instead, cuz they don't suck.
+22:23 < bridge> <heinrich5991> I think the plan was to get more vanilla players
+22:23 < bridge> <heinrich5991> > Thirdly, It looks fucking bad
+22:23 < bridge> <heinrich5991> huh. wdym? the feet? can you elaborate?
+22:23 < bridge> <heinrich5991> > DDNet already loses its unique style cuz of weird community skins, now this
+22:23 < bridge> <heinrich5991> seems unrelated to the main point
+22:23 < bridge> <heinrich5991> > I see a lot of negative reviews from old community members
+22:23 < bridge> <heinrich5991> I don't know why everyone needs to say "I know a lot of people who dislike this". it's doubly weird here, because you can just not play on 0.7 servers if you don't like it
+22:23 < bridge> <heinrich5991> @jupeyy_keks's arguments are better
+22:24 < bridge> <heinrich5991> > First of all, 2.5 0.7 servers can't offer anything new or cool, best gamemodes were already ported to ddnet/0.6 trunk.
+22:24 < bridge> <heinrich5991> this, too
+22:25 < bridge> <louis> i too fail to see how the change benefits ddnet client / 0.6 players
+22:26 < bridge> <fokkonaut> poor chillerhuuhn
+22:26 < bridge> <fokkonaut> 🐔
+22:27 < bridge> <heinrich5991> it doesn't really need to benefit anyone, as long as it doesn't hurt anyone. @jupeyy_keks gives a point why it hurts someone
+22:27 < bridge> <heinrich5991> if people can play more vanilla, then I'd say that's a benefit for everyone
+22:28 < bridge> <louis> does it not create a huge amount of code maintenance
+22:29 < bridge> <louis> by that argument it would be better to give lots more client options for various settings, but we don't do that
+22:29 < bridge> <fokkonaut> no if its ugly when i tried it even tho i did not plan on using it it is bad for everyone
+22:29 < bridge> <fokkonaut> :kek:
+22:30 < bridge> <heinrich5991> we tried to keep it low, it's not as optimal as I'd like. I would have liked to abstract it out a little more
+22:32 < bridge> <ryozuki> 0.7 is not more vanilla tho
+22:32 < bridge> <ryozuki> iwant to state that i am also against adding 0.7 stuff
+22:33 < bridge> <ryozuki> i guess chiller finally made heinrich fall
+22:33 < bridge> <zhn> vanilla players that do play on 07 vanilla will not switch to ddnet anyway since they "feel physics different" in first, and 07 vanillers that could play with 06 players do play on bridge servers in second
+22:33 < bridge> <Jupstar ✪> we should download servers.json today
+22:33 < bridge> <Jupstar ✪> 
+22:33 < bridge> <Jupstar ✪> and compare it against server.json 2 months after release
+22:33 < bridge> <Jupstar ✪> 
+22:33 < bridge> <Jupstar ✪> and then see that vanilla still has no new players 😬
+22:35 < bridge> <ryozuki> 😬 😬 😬
+22:35 < bridge> <ryozuki> russians are going to ddnet anyway
+22:35 < bridge> <ryozuki> not vanilla keks
+22:36 < bridge> <ryozuki> and we are under russian ddinvasion
+22:36 < bridge> <ryozuki> :justatest:
+22:36 < bridge> <zhn> they don't even know about term "vanilla"
+22:36 < bridge> <animepdf> > I think the plan was to get more vanilla players
+22:36 < bridge> <animepdf> All vanilla players already play ddnet
+22:36 < bridge> <animepdf> 
+22:36 < bridge> <animepdf> > huh. wdym? the feet? can you elaborate?
+22:36 < bridge> <animepdf> > seems unrelated to the main point
+22:36 < bridge> <animepdf> There is no main point, I expressed my thoughts on this update's impact, including style and appearance, 07 style is different from ddnet, when you see copy-pasted character from 07 on 06 map with 06 entities and 06 gametextures it looks unfitting to say the least.
+22:36 < bridge> <animepdf> 
+22:36 < bridge> <animepdf> > I don't know why everyone needs to say "I know a lot of people who dislike this". it's doubly weird here, because you can just not play on 0.7 servers if you don't like it
+22:36 < bridge> <animepdf> Fair, just needed 3rd point, 2 seemed lame, but there were a lot of negative messages in this chat and town-hall, and answering to all of them were just few people, that what i mainly wanted to point out
+22:37 < bridge> <heinrich5991> > 07 style is different from ddnet
+22:37 < bridge> <heinrich5991> is it? character rendering changed a little, but I think there's a PR to align it a little more
+22:37 < bridge> <Jupstar ✪> do they really claim that?
+22:38 < bridge> <Jupstar ✪> 0.7 client has vsync on, mouse acceleration on and no anti ping
+22:38 < bridge> <Jupstar ✪> maybe that is why physics feel different
+22:38 < bridge> <Jupstar ✪> and 0.7 renders the hook differently
+22:38 < bridge> <Jupstar ✪> in smaller chain sizes
+22:39 < bridge> <zhn> colors are very different, 07 is a bit more bright
+22:39 < bridge> <Jupstar ✪> 0.7 chain
+22:39 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275192428982308936/image.png?ex=66c4fefe&is=66c3ad7e&hm=cd3876395c46e4ce62a1f3d0292c9777c0a4d7f733a450bdbd01de22066d3c23&
+22:39 < bridge> <zhn> some of them refuse to use 06 only because of mentioned reasons
+22:40 < bridge> <zhn> idk i think its only kind of gatekeeping, i don't see any difference
+22:40 < bridge> <heinrich5991> hmmm. it seems right now the vanilla activity is on bridge servers
+22:40 < bridge> <Jupstar ✪> xd
+22:40 < bridge> <zhn> ye try to count 07 players
+22:41 < bridge> <Jupstar ✪> i am happy that we removed mouse acceleration and nobody complained since years
+22:41 < bridge> <Jupstar ✪> skill boost for whole community
+22:42 < bridge> <Jupstar ✪> @gerdoe where do you even chat with these ppl
+22:42 < bridge> <Jupstar ✪> ingame?
+22:42 < bridge> <Jupstar ✪> i gonna beat them and say "good that i play ddnet 0.6"
+22:42 < bridge> <louis> i dont think mouse acceleration is inherently bad, it's just a preference thing. but better off by default
+22:42 < bridge> <zhn> ingame + 06 vanillers info
+22:43 < bridge> <louis> its pretty silly to support two entirely different versions in a single game though regardless
+22:44 < bridge> <zhn> there were talks about deprecating 06 protocol and implement entirely new one
+22:45 < bridge> <heinrich5991> not really just talks, it's going to happen
+22:46 < bridge> <heinrich5991> currently 1 player in teeworlds 0.7, 6663 in 0.6 servers
+22:46 < bridge> <avolicious> So we drop 0.7?
+22:46 < bridge> <avolicious> Thanks god
+22:46 < bridge> <animepdf> Thanks god
+22:46 < bridge> <heinrich5991> currently 1 player in teeworlds 0.7,  6514 in 0.6 servers, 0 in 0.5 servers and 149 in ddper servers
+22:47 < bridge> <heinrich5991> currently 1 player in teeworlds 0.7-only servers,  6514 in 0.6 servers, 0 in 0.5 servers and 149 in ddper servers
+22:47 < bridge> <heinrich5991> hey @ryozuki, can your tool give me statistical data on that?
+22:47 < bridge> <heinrich5991> *historical data
+22:48 < bridge> <ryozuki> hmm its been years since i used itr
+22:48 < bridge> <ryozuki> but maybe
+22:50 < bridge> <heinrich5991> I worked a bit on that, mastersrv support for quic
+22:52 < bridge> <avolicious> Not sure if cloudflare is the way to go. I have recently deployed websockets & my connected clients drop after cloudflare deploys a new version of smth on their network
+22:52 < bridge> <avolicious> I mean it would be still nice to have quic.
+22:53 < bridge> <heinrich5991> my work on that is unrelated to cloudflare. how does cloudflare enter the picture hre?
+22:53 < bridge> <avolicious> Using cloudflare as anti-ddos provider
+22:53 < bridge> <avolicious> they support quic
+22:53 < bridge> <heinrich5991> ah, but they don't support webtransport yet
+22:53 < bridge> <heinrich5991> which would be needed for udp-like connections
+22:53 < bridge> <avolicious> You have the benefit of using the closest cloudflare entry + fastest route in their network
+22:54 < bridge> <avolicious> and their network is fast
+22:57 < bridge> <avolicious> Yeah, its based on HTTP3 😄 Actually websockets are out for cool kids
+22:57 < bridge> <avolicious> But Webtransport is fairly new, so cool kids have already adopted, but major players have to
+22:58 < bridge> <avolicious> But its pretty neat, I've tried it once (https://github.com/BiagioFesta/wtransport). The browser support is meh, but in general it works pretty neat
+22:59 < bridge> <Jupstar ✪> based on quinn
+22:59 < bridge> <Jupstar ✪> which i use
+22:59 < bridge> <Jupstar ✪> 😏
+22:59 < bridge> <avolicious> Yeah, because its based on HTTP3 😄
+22:59 < bridge> <avolicious> Yeah, because its based on HTTP3/QUIC 😄
+23:00 < bridge> <avolicious> Have you tried https://github.com/cloudflare/quiche once?
+23:00 < bridge> <Jupstar ✪> that is what heinrich uses
+23:00 < bridge> <heinrich5991> I tried that one
+23:00 < bridge> <heinrich5991> but the good thing about standards is that those libraries *probably* interoperate 🙂
+23:00 < bridge> <Jupstar ✪> yeah
+23:01 < bridge> <avolicious> Their api is slightly diff, no?
+23:01 < bridge> <Jupstar ✪> i think they are not async, are they?
+23:01 < bridge> <Jupstar ✪> quinn is async. and maybe also more high-level
+23:02 < bridge> <Jupstar ✪> but i moved network stuff into a thread anyway
+23:02 < bridge> <Jupstar ✪> sys calls on windows are still a performance hit
+23:03 < bridge> <heinrich5991> quiche is like quinn-proto
+23:03 < bridge> <heinrich5991> I'm currently trying to use quinn for the mastersrv integration
+23:03 < bridge> <heinrich5991> since the mastersrv is rust-only, I can actually use quinn instead of quinn-proto
+23:04 < bridge> <Jupstar ✪> ah nice
+23:04 < bridge> <Jupstar ✪> how has your experience been?
+23:04 < bridge> <heinrich5991> haven't progressed far enough
+23:04 < bridge> <heinrich5991> actually, maybe I can look at your code
+23:04 < bridge> <heinrich5991> how do you do cert creation and private key creation?
+23:05 < bridge> <Jupstar ✪> do you mean for the server's network?
+23:06 < bridge> <heinrich5991> the mastersrv wants to connect to a game server, it needs to present a private key for that, so that the game server knows it's the mastersrv connecting
+23:07 < bridge> <Jupstar ✪> so you want the TLS code?
+23:07 < bridge> <heinrich5991> for that I need a certificate for the private key in TLS, I think
+23:07 < bridge> <heinrich5991> yes
+23:07 < bridge> <heinrich5991> not sure if you have code like this. do you?
+23:08 < bridge> <Jupstar ✪> i am unsure why exactly the master server presents a private key
+23:09 < bridge> <heinrich5991> maybe I meant public key. I use it to identify the client. in my network model, all clients need to present a public key (that they know the private key of)
+23:09 < bridge> <Jupstar ✪> yeah
+23:09 < bridge> <Jupstar ✪> that i needed for accounts anyway
+23:10 < bridge> <Jupstar ✪> currently all the TLS backend does it making sure the client cert is valid.
+23:10 < bridge> <Jupstar ✪> 
+23:10 < bridge> <Jupstar ✪> a higher level component checks if the cert is actually signed by the account server or self signed
+23:10 < bridge> <Jupstar ✪> and based on that it decides if the user has an account
+23:11 < bridge> <Jupstar ✪> for the master server it could probably already handle it inside the connecting phase
+23:11 < bridge> <Jupstar ✪> or right after connecting, but before connected
+23:11 < bridge> <heinrich5991> ye
+23:11 < bridge> <Jupstar ✪> yeah i dont have anything for the master server, but i guess it shouldn't be too hard to add
+23:12 < bridge> <heinrich5991> can you link me the code where you use a client cert with quinn?
+23:12 < bridge> <Jupstar ✪> https://github.com/Jupeyy/dd-pg/blob/f60e56a5601b58177437e6f24ad09fa992b6e4c9/lib/network/src/network/connections.rs#L378-L404
+23:12 < bridge> <Jupstar ✪> well here i simply copy the cert into a game event
+23:12 < bridge> <Jupstar ✪> https://github.com/Jupeyy/dd-pg/blob/f60e56a5601b58177437e6f24ad09fa992b6e4c9/lib/network/src/network/quinnminimal.rs#L278-L289
+23:12 < bridge> <Jupstar ✪> here i verify the cert
+23:13 < bridge> <Jupstar ✪> mh ignore the comment xD
+23:16 < bridge> <Jupstar ✪> also note some stuff is abstracted away
+23:16 < bridge> <Jupstar ✪> https://github.com/Jupeyy/dd-pg/blob/f60e56a5601b58177437e6f24ad09fa992b6e4c9/lib/network/src/network/quinn_network.rs#L258-L262
+23:16 < bridge> <avolicious> Where should the cert be used?
+23:16 < bridge> <avolicious> So the client can verify if the server is the correct server?
+23:17 < bridge> <Jupstar ✪> that is job of the master server, but the client simply gets this information from the master server
+23:17 < bridge> <Jupstar ✪> since communication to the master server is already https, i guess there isn't really lot of security behind it.
+23:17 < bridge> <Jupstar ✪> 
+23:17 < bridge> <Jupstar ✪> simply send the public key fingerprint
+23:18 < bridge> <avolicious> mhmmm
+23:18 < bridge> <Jupstar ✪> (the game server sends it while registering)
+23:18 < bridge> <avolicious> So communities can have a root cert & sign their servers & each signed cert from a server is then being sent to the master srv?
+23:18 < bridge> <avolicious> so you can have basically root certs, intermediate and leafs
+23:18 < bridge> <Jupstar ✪> i'd sent a cert per game server actually
+23:18 < bridge> <Jupstar ✪> no root certs
+23:19 < bridge> <avolicious> ah, I see
+23:19 < bridge> <heinrich5991> no, every server has a single private key
+23:19 < bridge> <heinrich5991> yes @ what @jupeyy_keks sadi
+23:19 < bridge> <heinrich5991> yes @ what @jupeyy_keks said
+23:19 < bridge> <Jupstar ✪> in my version it's also generated on the fly actually
+23:19 < bridge> <heinrich5991> yep, same for me
+23:19 < bridge> <avolicious> Should it be permanent then?
+23:19 < bridge> <avolicious> Or everytime the server starts, it gets generated?
+23:19 < bridge> <Jupstar ✪> i guess registering to master server takes longer
+23:19 < bridge> <Jupstar ✪> xD
+23:19 < bridge> <Jupstar ✪> yes
+23:19 < bridge> <Jupstar ✪> from what i see that is fast enough
+23:20 < bridge> <heinrich5991> could be improved in the future for saving favorites that move between IP addresses
+23:20 < bridge> <heinrich5991> I'd like to handle communities in the mastersrv by just letting them send a token. but I haven't implemented that yet, and I'm currently implementing quic
+23:21 < bridge> <Jupstar ✪> yeah that sounds cool
+23:21 < bridge> <Jupstar ✪> maybe they could directly use the account system actually
+23:22 < bridge> <Jupstar ✪> @heinrich5991 i am really cursious about the network traffic for your quic version
+23:22 < bridge> <heinrich5991> in what way?
+23:22 < bridge> <Jupstar ✪> either u know smth i dont know, or you must also see a bit of overhead 😄
+23:23 < bridge> <Jupstar ✪> i already ack packets only once per second now, bcs the ack packets are insanely huge
+23:23 < bridge> <Jupstar ✪> and acking 25 packets per second is quite some traffic
+23:23 < bridge> <heinrich5991> I have some TODOs for that
+23:24 < bridge> <heinrich5991> but "can't you just"™ send the acks together with the game traffic
+23:24 < bridge> <heinrich5991> but "can't you just"™ send the acks together with the game traffic?
+23:24 < bridge> <Jupstar ✪> i dunno, does quic allow that?
+23:24 < bridge> <Jupstar ✪> i havent seen smth like that in quinn at least
+23:25 < bridge> <heinrich5991> quic itself allows for that
+23:25 < bridge> <heinrich5991> acks can be part of a bigger packet
+23:25 < bridge> <Jupstar ✪> mh ok
+23:25 < bridge> <totar> quic itself requires ack packets?
+23:25 < bridge> <Jupstar ✪> for all packets yes
+23:25 < bridge> <Jupstar ✪> even DATAGRAMs
+23:26 < bridge> <avolicious> yeah, they are part of the protocol
+23:26 < bridge> <avolicious> But you dont have to rely on them 😄
+23:26 < bridge> <totar> so all packets are under a reliability layer?
+23:26 < bridge> <totar> or it just acks for fun?
+23:26 < bridge> <Jupstar ✪> there are basically 3 modes
+23:27 < bridge> <Jupstar ✪> unreliable
+23:27 < bridge> <Jupstar ✪> reliable  ordered
+23:27 < bridge> <Jupstar ✪> ordered and reliable
+23:27 < bridge> <Jupstar ✪> it acks all, to make sure that reliable packets are quicker resent
+23:27 < bridge> <Jupstar ✪> and messure packet loss etc.
+23:27 < bridge> <Jupstar ✪> at least that is what i read xd
+23:27 < bridge> <totar> what is the difference between "reliable ordered" and "ordered and reliable"
+23:28 < bridge> <Jupstar ✪> oh
+23:28 < bridge> <Jupstar ✪> it should say unordered
+23:28 < bridge> <Jupstar ✪> so 2 packets can came at once
+23:28 < bridge> <Jupstar ✪> and be handled at once
+23:28 < bridge> <totar> ok yeah
+23:28 < bridge> <Jupstar ✪> like separately
+23:28 < bridge> <totar> that makes more sense
+23:28 < bridge> <Jupstar ✪> unreliable
+23:28 < bridge> <Jupstar ✪> reliable unordered
+23:28 < bridge> <Jupstar ✪> ordered and reliable
+23:28 < bridge> <totar> but order must have some latency overhead?
+23:29 < bridge> <Jupstar ✪> order is basically TCP
+23:29 < bridge> <totar> so we use mode 1/2
+23:29 < bridge> <Jupstar ✪> what is that?
+23:29 < bridge> <totar> the ones you listed
+23:29 < bridge> <Jupstar ✪> ah
+23:29 < bridge> <totar> so we use mode 1/2?
+23:29 < bridge> <Jupstar ✪> yeah i use ordered for chat for example
+23:29 < bridge> <totar> ah fair
+23:30 < bridge> <heinrich5991> ddnet already uses reliable, ordered packets for chat etc.
+23:30 < bridge> <Jupstar ✪> also even ordered packets can still be in different channels
+23:30 < bridge> <Jupstar ✪> so e.g. chat and kill msgs could be 2 channels
+23:30 < bridge> <Jupstar ✪> individually ordered
+23:30 < bridge> <Jupstar ✪> generally quic is really cool
+23:30 < bridge> <totar> discord does not even ensure correct chat message order lol
+23:30 < bridge> <Jupstar ✪> it abstracts away lot of stuff and makes it easy to use it that way we talk about it here
+23:31 < bridge> <totar> yeah it sounds good
+23:31 < bridge> <Jupstar ✪> i guess it simply doesnt scale well ennough xD
+23:31 < bridge> <avolicious> but thats by design
+23:31 < bridge> <Jupstar ✪> i guess it simply doesnt scale well enough xD
+23:32 < bridge> <totar> probably true but I think it could at least re-order them on the client but that's a different conversation.
+23:32 < bridge> <avolicious> discord does discord things
+23:32 < bridge> <avolicious> they implement polls without adding permissions to manage it as a server
+23:32 < bridge> <Jupstar ✪> i remember in skype you could change your system time and it send with that time and showed that timestamp on the other side xDDD
+23:33 < bridge> <heinrich5991> skype was p2p
+23:33 < bridge> <Jupstar ✪> we always trolled back when we were teenagers that we had bets etc.
+23:33 < bridge> <heinrich5991> quite cool, actually
+23:33 < bridge> <reitw> only calls no ?
+23:33 < bridge> <Jupstar ✪> cool until ddos
+23:33 < bridge> <Jupstar ✪> 😬
+23:33 < bridge> <Jupstar ✪> call.element.io still uses p2p afaik
+23:34 < bridge> <avolicious> skype had a concept called supernodes 😄
+23:34 < bridge> <Jupstar ✪> good to hop into a call without an account
+23:34 < bridge> <heinrich5991> nno, all AFAIK
+23:35 < bridge> <reitw> was cool being able to send html tags on chat, one of my favorite was to crash skype clients on windows when some people invited me on groups with 200+ people
+23:35 < bridge> <reitw> (fun fact, was Pikotee who found this lol)
+23:35 < bridge> <totar> when did they allow groups with 200 people?
+23:35 < bridge> <avolicious> 2011?
+23:35 < bridge> <reitw> no clue but it was on the old client, not the win10 one
+23:36 < bridge> <reitw> long long time ago
+23:36 < bridge> <totar> pretty sure I ran into group limits of like 50 when I was using it
+23:36 < bridge> <totar> idk
+23:36 < bridge> <heinrich5991> the newer client was a bog-standard electron app with client-server architecture
+23:37 < bridge> <reitw> was at this time I left skype for discord
+23:37 < bridge> <totar> we had to kick people from my gaming clan because the skype group was full 😔
+23:38 < bridge> <totar> discord was such an improvement
+23:38 < bridge> <totar> actually we moved to slack for few months before discord
+23:38 < bridge> <reitw> lmao look at this, so old : https://youtu.be/EE5oP9G_n6s?t=21
+23:38 < bridge> <reitw> 
+23:38 < bridge> <reitw> Was highly used and was a teeworlds player who did it lol
+23:38 < bridge> <reitw> "by Piko and MJavad"
+23:39 < bridge> <Jupstar ✪> discord is sadly still the only well working chat where you can stream with more than 5fps without laggs.
+23:39 < bridge> <Jupstar ✪> 
+23:39 < bridge> <Jupstar ✪> 
+23:39 < bridge> <Jupstar ✪> me & my friends currently use a private webrtc server, but webrtc is extremly network sensitive, if u want low latency
+23:39 < bridge> <reitw> electron sux
+23:39 < bridge> <reitw> and discord since some years, they do shitty updates
+23:39 < bridge> <totar> which direction is the 25 ack packets per second going?
+23:40 < bridge> <Jupstar ✪> that was just an example, but lets say server sends snapshots
+23:40 < bridge> <Jupstar ✪> client acks them all
+23:40 < bridge> <Jupstar ✪> u can control the ack speed
+23:40 < bridge> <Jupstar ✪> but by default it would simply send 25 packets xD
+23:40 < bridge> <totar> what about input and inputtiming packets. those are also very frequent?
+23:40 < bridge> <reitw> but still discord is a good thing to learn about, they had some huge challenges to solve lol
+23:40 < bridge> <Jupstar ✪> yeah
+23:40 < bridge> <Jupstar ✪> same
+23:40 < bridge> <Jupstar ✪> server would ack them
+23:41 < bridge> <Jupstar ✪> currently i batch into 1 sec delay, that reduced network insanely
+23:41 < bridge> <totar> hmm
+23:41 < bridge> <Jupstar ✪> i think it's not even that bad. chat etc. are not crucial to the game
+23:41 < bridge> <Jupstar ✪> if they are resent in a bad rate, so be it
+23:42 < bridge> <heinrich5991> it'd make sense to include the acks with the input/snap packets, then they don't require much extra traffic. but I don't know if that's possible or how that works with quinn
+23:42 < bridge> <heinrich5991> (that's how the current ddnet network handles acks btw)
+23:42 < bridge> <Jupstar ✪> yeah
+23:43 < bridge> <totar> you mean acks not related to the network layer not the actual game logic?
+23:43 < bridge> <totar> you mean acks related to the network layer not the actual game logic?
+23:43 < bridge> <Jupstar ✪> i still manually ack snaps and inputs btw.
+23:43 < bridge> <Jupstar ✪> 
+23:43 < bridge> <Jupstar ✪> bcs:
+23:43 < bridge> <Jupstar ✪> 1. snap/input diff
+23:43 < bridge> <Jupstar ✪> 2. the connection RTT meassure is waaaay to inaccurate for gaming. the prediction timer suffered from it
+23:44 < bridge> <Jupstar ✪> (but i do include them into existing packets)
+23:44 < bridge> <totar> prediction timer relied on the servers calculation of time remaining I thought
+23:44 < bridge> <totar> prediction timer relies on the servers calculation of time remaining I thought
+23:45 < bridge> <totar> not actual ping calculations
+23:46 < bridge> <Jupstar ✪> i dunno how cpp version is doing it.
+23:46 < bridge> <Jupstar ✪> 
+23:46 < bridge> <Jupstar ✪> but i thought it makes sense to try to rely on ping stats only, since packets are send in high frequence and quic has to ack everything.
+23:46 < bridge> <Jupstar ✪> 
+23:46 < bridge> <Jupstar ✪> then i noticed the timing was off, and additionally acks are too much traffic -> i thought about doing it the legacy way xdd
+23:47 < bridge> <totar> I think you need information from the server to know the timing of your packets, otherwise you are blind. but ping stats can still be incorporated in the final prediction amount
+23:47 < bridge> <Jupstar ✪> you know the ping and you know when snapshots arrived
+23:47 < bridge> <Jupstar ✪> that is good info 😄
+23:48 < bridge> <Jupstar ✪> it's not possible to know the real half RTT anyway
+23:48 < bridge> <totar> is that enough to know the one way delay from client to server?
+23:48 < bridge> <totar> if you just divide RTT/2 I don't think it's as good
+23:48 < bridge> <Jupstar ✪> you cannot meassure it
+23:48 < bridge> <totar> cpp version does
+23:48 < bridge> <Jupstar ✪> u'd need to be faster than light
+23:48 < bridge> <Jupstar ✪> to know
+23:48 < bridge> <totar> that's not really important
+23:49 < bridge> <totar> you just need to know it relative to the gametick on the server
+23:49 < bridge> <Jupstar ✪> let's say you have ping 20
+23:49 < bridge> <Jupstar ✪> 
+23:49 < bridge> <Jupstar ✪> 15 to server, 5 back
+23:49 < bridge> <Jupstar ✪> 
+23:49 < bridge> <Jupstar ✪> even if u know the 5, your input still takes 15
+23:49 < bridge> <Jupstar ✪> 
+23:49 < bridge> <Jupstar ✪> so in the end you have 20
+23:49 < bridge> <totar> the server will just tell the client "you're a little bit early" "you're a little bit late" and the client adjusts blindly on this info in cpp
+23:50 < bridge> <Jupstar ✪> yes, but the client knows this too, bcs it knows if the snapshot arrived too early 😄
+23:50 < bridge> <Jupstar ✪> 
+23:50 < bridge> <Jupstar ✪> if the sending to the server is unstable that can be seen in the ping
+23:50 < bridge> <Jupstar ✪> like if snaps always arrive perfect but ping is janky
+23:51 < bridge> <totar> snapshot is server -> client tho. it's basically a different connection with different stability
+23:51 < bridge> <totar> you can have health in only 1 direction
+23:51 < bridge> <Jupstar ✪> what however is nice in the rust version is. that it respects overhead of the server's calculations, i dunno if cpp version is doing that too
+23:51 < bridge> <Jupstar ✪> 
+23:51 < bridge> <Jupstar ✪> like creating snapshots for 64 tees can cost quite a bit of time
+23:52 < bridge> <totar> input timing messages allow the client to know the health of client->server even if those input timing messages are send on a bad connection
+23:52 < bridge> <Jupstar ✪> but then you must sent input at a specific point in time
+23:52 < bridge> <Jupstar ✪> i can sent input whenever i want
+23:52 < bridge> <Jupstar ✪> well you can add the time til next  tick
+23:53 < bridge> <Jupstar ✪> the increases input packet
+23:54 < bridge> <totar> idk in what way this could be different tho, youd still want to send input as soon as possible in order to keep a low buffer margin to improve gameplay?
+23:55 < bridge> <heinrich5991> you can only measure the sum of latency from server to client and client to server
+23:55 < bridge> <heinrich5991> @jupeyy_keks already said that
+23:55 < bridge> <Jupstar ✪> the buffer margin is indeed smaller and automatic
+23:55 < bridge> <Jupstar ✪> i dunno, if u draw it for me on paint, maybe i understand your point xd
+23:56 < bridge> <totar> actual latency is not important, only "timing"
+23:56 < bridge> <heinrich5991> what's timing? jitter?
+23:57 < bridge> <heinrich5991> ah, the server tells the client whether the input packet needs to be sent a bit earlier or a bit later?
+23:57 < bridge> <heinrich5991> to hit the sweet spot?
+23:58 < bridge> <totar> client sends an input packet for tick 25, it should arrive at the server when the server is on tick 24 so it can be proccessed in the server's physics. but when the client is basically "guessing" the timing of when the packet will arrive at the server and adjusting it's prediction time up/down in order to keep the input arriving with as little time as possible on the server.
+23:58 < bridge> <totar> client sends an input packet for tick 25, it should arrive at the server when the server is on tick 24 so it can be proccessed in the server's physics. but when the client is sending it's basically "guessing" the timing of when the packet will arrive at the server and adjusting it's prediction time up/down in order to keep the input arriving with as little time as possible on the server.
+23:58 < bridge> <totar> client sends an input packet for tick 25, it should arrive at the server when the server is on tick 24 so it can be proccessed in the server's physics. but the client is basically "guessing" the timing of when the packet will arrive at the server and adjusting it's prediction time up/down in order to keep the input arriving with as little time as possible on the server.
+23:59 < bridge> <totar> so any time the packet arrives at the server the server will respond with how close it got to the "sweet spot" as you mention
+23:59 < bridge> <totar> the actually RTT doesn't really matter here and isn't part of the calculation
+23:59 < bridge> <Jupstar ✪> so in your version the client sends input in a fixed rate?

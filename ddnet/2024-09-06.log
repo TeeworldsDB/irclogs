@@ -1,0 +1,272 @@
+02:16 < bridge_> <learath2> https://youtu.be/-w4H2-LLVdY new linux kernel drama with rust flavoring
+02:25 < bridge_> <learath2> (the video is a little biased but that’s basically unavoidable when it’s language wars content)
+02:28 < bridge_> <meloƞ> :angy: :angy: :angy: <a:kekw:1106634599221698571>
+02:31 < bridge_> <chillerdragon> yes
+02:31 < ws-client> <ChillerDragon> @Jupstar ✪ yea small bugs that require huge refactors are the worst. If that happens to me I add a lot of big bugs during refactor xd
+02:33 < ws-client> <ChillerDragon> Or are you saying the bug is not even demanding that but you planned to do a 5 min coding session and then get caught by flow and code until you refactored everything? Yea no i do not know these moments xd
+02:54 < bridge_> <meloƞ> You don't?? I once wanted to fix a small bug on Blockworlds and ended up refactoring random things for 4 hours straight :justatest:
+03:39 < bridge_> <totar> I skipped most of the video because it was hard to watch but the comments are pretty interesting.
+03:43 < bridge_> <totar> I think the most salient point is that rust requires the internal C api to be stable but C devs do not want to fix rust code whenever they change the internal api.
+07:29 < bridge_> <learath2> Yes. The rust for linux project basically wants previously private internal apis to be stable. Which the C people see as undue burden on them to support something they either actively don't like or don't care about
+07:42 < bridge_> <milkeeycat> @learath2 are mutable global variables bad?
+09:05 < bridge_> <meloƞ> Why should it be bad :o
+09:54 < bridge_> <ryozuki> i saw the original video, the c linux maintainers were rly acting like kids tbh xD
+09:55 < bridge_> <ryozuki> its not exactly like this, with rust you can define the semantics with types, in C you had to read the function code to understand the semantics, asahi lina explained this in a thread and im sure they know better
+09:56 < bridge_> <ryozuki> https://vt.social/@lina/113045455229442533
+09:57 < bridge_> <ryozuki> https://www.theregister.com/2024/09/02/rust_for_linux_maintainer_steps_down/
+09:57 < ws-client> <ChillerDragon> lina pog
+09:57 < ws-client> <ChillerDragon> my fav vtuber
+09:59 < bridge_> <ryozuki> >  Making the Rust bindings safe would have required duplicating much of the functionality of the C code just to track things to uphold the lifetime requirements. It made no sense. It would have been easier to just rewrite the whole thing in Rust (I might end up doing that).
+09:59 < bridge_> <ryozuki> > 
+09:59 < bridge_> <ryozuki> > To this day, bugs in the DRM scheduler have been the only causes of kernel panics triggered via my Apple GPU driver in production.
+09:59 < bridge_> <ryozuki> > 
+09:59 < bridge_> <ryozuki> > The design of that component is just bad. But because I come from the Rust world, the maintainer didn't want to listen to my suggestions.
+09:59 < bridge_> <ryozuki> > 
+09:59 < bridge_> <ryozuki> > If it takes a whole year to get a concept as simple as a trivial "device" wrapper upstreamed (not any device model functionality, literally just an object wrapping a struct device so we can pass it around) then how is Rust for Linux ever going to take off?
+09:59 < bridge_> <ryozuki> > 
+09:59 < bridge_> <ryozuki> > Rust works. I'm pretty sure I'm the only person ever to single handedly write a complex GPU kernel driver that has never had a memory safety kernel panic bug (itself) in production, running on thousands of users' systems for 1.5 years now.
+09:59 < bridge_> <ryozuki> > 
+09:59 < bridge_> <ryozuki> > Because I wrote it in Rust.
+09:59 < bridge_> <ryozuki> > 
+09:59 < bridge_> <ryozuki> > But I get the feeling that some Linux kernel maintainers just don't care about future code quality, or about stability or security any more. They just want to keep their C code and wish us Rust folks would go away. And that's really sad... and isn't helping make Linux better.
+10:00 < bridge_> <ryozuki> they unsafe if accessed via muiltiple threads
+10:00 < bridge_> <ryozuki> unless they are atomic
+10:01 < bridge_> <ryozuki> btw const by default is better than mutable by default, even in c++ world., because u can have const correctness, mutable should be opt in not opt out
+10:01 < bridge_> <ryozuki> also const allows more optimizations
+10:01 < bridge_> <ryozuki> even without a borrow checker
+10:02 < bridge_> <ryozuki> anyway now im a risc-v maximalist
+10:02 < bridge_> <ryozuki> (only cuz im writing a emulator keks)
+10:13 < bridge_> <learath2> They aren't. But as with all of these contentious features, they are very easy to misuse. As a rule of thumb, I reserve globals only for truly global program state, configuration and inter-thread communication. We teach beginners not to use globals because they are bad at using function arguments and returns so they just add globals, which is not what they are good for
+10:15 < bridge_> <learath2> There is also an argument to be made that globals make it harder to reason about code locally, because technically your functions now depend on the state of all the globals they use which could be modified from all over the program, suddenly codeflow isn't obvious at all
+10:19 < bridge_> <learath2> I fully understand, but the issue is that they are complaining about (from what I gather) the semantics of internal apis not being documented and concrete, (which is fair, to implement a stable public rust api, they need a stable foundation to base it upon).
+10:20 < bridge_> <learath2> 
+10:20 < bridge_> <learath2> For example I can see why the DRM people care much more about not breaking the very commonly used amdgpu then accepting patches to support rust which currently is used only by a very small group of people
+10:20 < bridge_> <totar> I think this really comes down to an annoyance thing, if you are doing something where 90% of your variables are mutable then the const by default will not be helping much. If you have good tooling in your IDE/compiler/warnings it shouldn't make much difference either way.
+10:20 < bridge_> <learath2> Data races are unpredictable whether a variable is global or not, no? You need sychnronization one way or another if more than one thread is involved
+10:25 < bridge_> <learath2> There is a decent argument to be made for const by default: it's nice for optimization. There are many options available to the compiler if it knows a variable can't change.
+10:25 < bridge_> <Jupstar ✪> Ok, didn't know you the best bro xd
+10:25 < bridge_> <Jupstar ✪> 
+10:25 < bridge_> <Jupstar ✪> I meant that yeah
+10:26 < bridge_> <totar> is it really so hard for the compiler to figure out if the variable can change? maybe in c++ but any modern language should be able to do this easily
+10:29 < bridge_> <Jupstar ✪> here a keks for you 🍪
+10:29 < bridge_> <learath2> Well there are bounds to a compilers authority, in C it's the translation unit. So it can't optimize across those.
+10:29 < bridge_> <learath2> 
+10:29 < bridge_> <learath2> But yes, all modern compilers do some form of data flow analysis, so as long as all your code is contained within one translation unit, they should(tm) figure out what is const
+10:30 < bridge_> <milkeeycat> I already have 5 stashes in git repo while I was trying to add possibility to use struct type in itself and global variable which is declared after it's used in a function, it all came down to moving out symbol table from parser but if I do, one feature will break :pepeW:
+10:30 < bridge_> <totar> I guess this is true yeah
+10:31 < bridge_> <Jupstar ✪> In c++ const isn't attractive, bcs you have to manually type it xd
+10:31 < bridge_> <learath2> I think framework (or a partner) will release an experimental framework motherboard with a StarFive processor. So we can have riscv laptops
+10:33 < bridge_> <totar> well the issue is simply that if you do not know if your variable with be const or mutable at the time you write then you have to pick and change it later. So if you want to be perfect you will pick const and then make it mutable.
+10:33 < bridge_> <totar> which is why I think it's an IDE problem
+10:34 < bridge_> <Jupstar ✪> Also what i hate about all common languages except rust is, that if you initialize a variable that requires more logic you directly have to use a full function.
+10:34 < bridge_> <Jupstar ✪> 
+10:34 < bridge_> <Jupstar ✪> In rust you have code blocks `{ }` where you can put encapsuled logic into.
+10:34 < bridge_> <totar> having hotkey to change variable without going to it's definition solved the issue
+10:34 < bridge_> <totar> having hotkey to change variable without going to it's definition solves the issue
+10:34 < bridge_> <Jupstar ✪> This also makes immutable more attractive IMO
+10:34 < bridge_> <milkeeycat> I just recently learned you can return value from loops in rust xd
+10:35 < bridge_> <Jupstar ✪> Yeah master teero tought me xd
+10:35 < bridge_> <totar> what does that even mean
+10:35 < bridge_> <totar> return value from loops is a special thing?
+10:35 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1281533300774666261/image.png?ex=66dc1064&is=66dabee4&hm=45e46298b5f3c3feca599c9ea21c553cc70e2eac7f2a33768e42877d065115d2&
+10:36 < bridge_> <Jupstar ✪> Directly found a usecase after Teero told about it
+10:36 < bridge_> <totar> ah
+10:36 < bridge_> <totar> that is nice
+10:36 < bridge_> <learath2> I wish C++ const would propagate to object members :/
+10:36 < bridge_> <totar> wait but couldn't you just use 2 lines of code to set the variable and then break?
+10:37 < bridge_> <learath2> One of my favourite features in any language is all blocks being able to have a return and become a typed expression
+10:38 < bridge_> <Jupstar ✪> What do you mean by that?
+10:38 < bridge_> <Jupstar ✪> 
+10:38 < bridge_> <Jupstar ✪> You can defs solve this problem differently
+10:40 < bridge_> <totar> nvm I'm dumb
+10:41 < bridge_> <learath2> How often do you see the pattern, if found set variable, break? It takes one line out of that, it's if found break with value in rust
+10:44 < bridge_> <totar> yes it's nice but it's one of those rust things where the behavior is not obvious if you don't know the hidden rule.
+10:45 < bridge_> <learath2> Hm, I remember it being part of the tutorial
+10:45 < bridge_> <totar> ok well I never used a tutorial for any other language lol
+10:46 < bridge_> <totar> I just read existing code and google things
+10:46 < bridge_> <totar> rust has the highest frequency of google things by far
+10:46 < bridge_> <totar> not even close
+10:46 < bridge_> <milkeeycat> if I had to read this, ain't no way I understand anything here
+10:47 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1281536113642700800/syntax_dark_plus.png?ex=66dc1303&is=66dac183&hm=e40a70d39ccb22969776d7d7333bac74a9519ba6333d9241d84bed4c22cc84fa&
+10:47 < bridge_> <learath2> :PepeCross:
+10:47 < bridge_> <learath2> Idk what sort of madman it takes to enjoy lisp and lisplikes
+10:48 < bridge_> <learath2> I guess atleast it's very easy to parse :justatest:
+10:48 < bridge_> <milkeeycat> https://blog.cleancoder.com/uncle-bob/2019/08/22/WhyClojure.html
+10:48 < bridge_> <totar> ``;;`` for comments is so cursed lmao
+10:49 < bridge_> <Jupstar ✪> ;~;
+10:49 < bridge_> <totar> literally why
+10:49 < bridge_> <milkeeycat> assembly uses `;` so Im fine with it :greenthing:
+10:50 < bridge_> <totar> assembly gets a pass for being assembly
+10:51 < bridge_> <milkeeycat> chilledragon: can you write teeworlds client in lisp?
+10:52 < bridge_> <learath2> Chiller teeworlds client in drracket pls
+10:52 < bridge_> <totar> the first example is so funny. the java code is actually smaller if you remove the "boilerplate" lines
+10:52 < bridge_> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1281537483649323019/image.png?ex=66dc1449&is=66dac2c9&hm=ef4f291b71d2ce0fd8cae251672d32dcb4096258e9abd2630ae50aa34773562c&
+10:53 < bridge_> <learath2> To be fair, they are both complete programs of their respective languages
+10:55 < bridge_> <totar> it's true but you could easily write a java interpreter where the middle 2 lines become a valid program. they would be in C#
+10:55 < bridge_> <totar> (very new C#)
+10:55 < bridge_> <robyt3> That will be a feature in newer Java versions
+10:56 < bridge_> <learath2> Really?
+10:56 < bridge_> <robyt3> https://openjdk.org/jeps/445
+10:59 < bridge_> <nu_tip_da> ребят помогите как сделать из демки в видео
+10:59 < bridge_> <totar> also I don't understand how he says that "youve seen about 90% of closure" when this screenshot seems to have like 2 dozen more keywords
+10:59 < bridge_> <learath2> Now that is a nice change
+11:00 < bridge_> <totar> maybe those are declared keywords
+11:01 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1281539725941014560/image.png?ex=66dc1660&is=66dac4e0&hm=43118c6a1f16063b1b704bb766d881b1f64ed748d070a42162330a19b1fb5ce3&
+11:01 < bridge_> <totar> this guy cannot be serious lmao
+11:01 < bridge_> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1281539745113047040/image.png?ex=66dc1665&is=66dac4e5&hm=ae05a4268850ad15e3df291e31f5dc4d37cf087e455a8414e6d4baf1bba56228&
+11:01 < ws-client> <ChillerDragon> @milkeeycat lisp hm. Its somewhat OG from what i understand. I tried functional a few times and rage quitted instantly i cant wrap my head around it. But sounds like a good idea. We definitely need a 0.7 protocol implementation in lisp.
+11:02 < ws-client> <ChillerDragon> watf is drracket
+11:02 < bridge_> <Jupstar ✪> In teeworlds physics, this is very fast 😂
+11:03 < bridge_> <milkeeycat> chiller dragon: after list you can write scientific paper about teeworlds and use haskell for code examples
+11:03 < bridge_> <nu_tip_da> https://cdn.discordapp.com/attachments/293493549758939136/1281540218801094666/Linear_2024-09-06_11-40-08SADASDSADSAD.demo?ex=66dc16d6&is=66dac556&hm=75fdc514e7b3ba7ce51a2b65a7163fd58639d00272f2655833f4903be7d7c808&
+11:03 < bridge_> <milkeeycat> chillerdragon: after list you can write scientific paper about teeworlds and use haskell for code examples
+11:03 < ws-client> <ChillerDragon> sounds good
+11:03 < bridge_> <Jupstar ✪> Thanks for posting a random demo without any context
+11:03 < bridge_> <nu_tip_da> make a video of the pj
+11:04 < bridge_> <nu_tip_da> make a video please
+11:04 < bridge_> <Jupstar ✪> You can also do that
+11:04 < bridge_> <nu_tip_da> I can't
+11:04 < bridge_> <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/1281540441614843985/image.png?ex=66dc170b&is=66dac58b&hm=4c213e94106e023ddc3d3377bba0df7a36eb6893bf0f20d33b8a5c298a241cfc&
+11:04 < bridge_> <Jupstar ✪> Why not 😮
+11:04 < bridge_> <chillerdragon> omg no matrix images
+11:05 < bridge_> <nu_tip_da> Will you do it?
+11:05 < bridge_> <Jupstar ✪> MHHHHHHHHH, ok, but next time please ask in #general chat or smth
+11:06 < bridge_> <nu_tip_da> ok sorry I just joined
+11:08 < bridge_> <totar> > But isn’t it slow?
+11:08 < bridge_> <totar> > 
+11:08 < bridge_> <totar> > No. Clojure is not slow. Oh, look, it’s not C. It’s not assembler. If nanoseconds are your concern than you probably don’t want Clojure in your innermost loops. You also probably don’t want Java, or C#. But 99.9% of the software we write nowadays has no need of nanosecond performance. I’ve built a real time, GUI based, animated space war game using Clojure. I could keep the frame rates up in the high 20s even with hundreds of objects on 
+11:10 < bridge_> <Jupstar ✪> can't even PM you the video
+11:10 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1281541974201208954/Linear_2024-09-06_11-40-08SADASDSADSAD.mp4?ex=66dc1878&is=66dac6f8&hm=22028a92c4925f59c98a8a6c6b589bfaa494e31ba9c20b0aa31c50375b248b66&
+11:10 < bridge_> <Jupstar ✪> bcs i have no nitro
+11:10 < bridge_> <nu_tip_da> thank you very much brother so that the dick stands and the women give bro
+11:12 < bridge_> <Jupstar ✪> Np, have a nice day
+12:11 < bridge_> <sotr1xx> за 500 руб скажу
+12:11 < bridge_> <milkeeycat> to go #off-topic to write in russian -.-
+12:11 < bridge_> <sotr1xx> меня чел спросил тут
+12:12 < bridge_> <sotr1xx> ну ладно(((
+12:13 < bridge_> <sotr1xx> https://tenor.com/view/%D0%BD%D0%B5%D0%B1%D0%B0%D0%BD%D1%8C%D0%BD%D0%B0%D1%81%D0%BC%D0%BE%D0%B4%D0%B5%D1%80%D0%B0%D1%82%D0%BE%D1%80-%D0%BE%D0%B2%D0%B5%D0%BB%D0%B8%D0%BA%D0%B8%D0%B9%D0%BC%D0%BE%D0%B4%D0%B5%D1%80%D0%B0%D1%82%D0%BE%D1%80-%D0%BD%D0%B5%D0%B1%D0%B0%D0%BD%D1%8C%D0%BD%D0%B0%D1%81%D0%BE%D0%B2%D0%B5%D0%BB%D0%B8%D0%BA%D0%B8%D0%B9%D0%BC%D0%BE%D0%B4%D0%B5%D1%80%D0%B0%D1%82%D0%BE%D1%80-gif-27545173
+12:13 < bridge_> <sotr1xx> https://tenor.com/view/%D0%B2%D0%B0%D1%85%D1%83%D0%B8-%D0%BF%D0%BE%D0%B4%D0%B2%D0%BE%D0%B4%D0%BD%D1%8B%D0%B9-%D0%BA%D0%BE%D1%81%D0%BC%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8-gif-26069330
+12:14 < bridge_> <sotr1xx> https://tenor.com/view/artemvchate-artem-gif-25038421
+12:15 < bridge_> <sotr1xx> https://tenor.com/view/%D0%B8%D0%BD%D1%82%D1%80%D0%BE-intro-%D0%BA%D0%B0%D0%BD%D0%B0%D0%BB-%D0%BF%D0%BE%D1%88%D1%91%D0%BB-%D0%BF%D0%BE%D1%88%D0%B5%D0%BB-gif-24514313
+12:15 < bridge_> <sotr1xx> https://tenor.com/view/%D0%B8%D0%BD%D1%82%D1%80%D0%BE-intro-%D0%BA%D0%B0%D0%BD%D0%B0%D0%BB-%D0%BF%D0%BE%D1%88%D1%91%D0%BB-%D0%BF%D0%BE%D1%88%D0%B5%D0%BB-gif-24514313
+12:16 < bridge_> <sotr1xx> https://tenor.com/view/%D0%B6%D0%B4%D0%B8-%D0%B4%D0%BE%D0%BA-%D1%81-%D1%81%D0%B2%D0%B0%D1%82%D1%8C-%D1%81%D0%BF%D0%BE%D1%80%D1%82%D0%B8%D0%BA%D0%BE%D0%B2-gif-14204984123776520178
+12:16 < bridge_> <teero777> Be happy that Heinrich isn't here right now
+12:16 < bridge_> <sotr1xx> https://cdn.discordapp.com/attachments/1250349665551908959/1251573469980786688/deanon.gif
+12:17 < bridge_> <sotr1xx> https://media.discordapp.net/attachments/701897638685048954/1064227801374408724/attachment-1.gif
+12:20 < bridge_> <zhn> if you violate server rules once again, i'll be forced to timeout you for a week
+12:21 < bridge_> <zhn> its impolite
+12:21 < bridge_> <milkeeycat> go to #off-topic to write in russian -.-
+12:41 < bridge_> <learath2> It's a lisp dialect derived from scheme
+13:07 < bridge_> <ryozuki> i missed it, what was it? :justatest:
+13:18 < bridge_> <reitw> @animepdf @davide55 , u can ask him
+13:18 < bridge_> <reitw> In pm
+13:19 < bridge_> <animepdf> Thanks :YEP:
+13:32 < bridge_> <ryumaaaa> Hey everyone, would it be possible to get some auto-verification feature for servers that need a verification?
+13:32 < bridge_> <ryumaaaa> Primarily talking about servers that need you to verify on a website. KoG has GER3 and USA3 for example.
+13:32 < bridge_> <ryumaaaa> There are a few clients that already have this feature and I was wondering if we could get such a feature in the official DDNet Client.
+13:36 < bridge_> <0xdeen> Yes, there is an issue for that
+13:37 < bridge_> <0xdeen> https://github.com/ddnet/ddnet/issues/6808
+14:37 < bridge_> <zakharkosh> hi how edit other massage in News Tab ? actually i create one more client
+14:40 < bridge_> <murpi> @0xdeen  The PR message in #8822 still contains .tw links. Do you generate these using a script? 😄 Not sure if you've already addressed this already, but thought it was worth pointing out.
+14:40 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/8822
+14:40 < bridge_> <murpi> @0xdeen  The PR message in #8822 still contains .tw links. Do you generate these using a script? 😄 Not sure if you've addressed this already, but thought it was worth pointing out.
+14:52 < bridge_> <bebrik4560488> о русс
+14:52 < bridge_> <murpi> The news are fetched from https://info.ddnet.org/info which seems to be hardcoded: https://github.com/ddnet/ddnet/blob/e0a95d14a69e72b82ba959fd5e630d1da1bccdbe/src/engine/serverbrowser.h#L18
+14:53 < bridge_> <egyt> Will get an antifeature on F-Droid
+14:53 < bridge_> <zakharkosh> 👌 ❤️
+15:00 < bridge_> <ryozuki> https://matklad.github.io/2023/11/15/push-ifs-up-and-fors-down.html
+15:01 < bridge_> <ryozuki> i want to write more blog posts and usually have ideas but when i have the ideas i feel lazy to write and when i dont feel lazy the ideas are gone
+15:06 < bridge_> <learath2> This kinda depends on the language and it's conventions. In go and C e.g. library code is usually expected to handle `nil`/`NULL` gracefully. So you wouldn't really push that if out to the user of the library usualyl
+15:06 < bridge_> <learath2> This kinda depends on the language and it's conventions. In go and C e.g. library code is usually expected to handle `nil`/`NULL` gracefully. So you wouldn't really push that if out to the user of the library usually
+15:06 < bridge_> <learath2> But in general I agree very much with both his rules of thumb
+15:10 < bridge_> <0xdeen> Thanks!
+16:12 < bridge_> <_nrx> how can I get clientId in spawn event? like in death event
+16:12 < bridge_> <_nrx> https://cdn.discordapp.com/attachments/293493549758939136/1281618036784238652/image.png?ex=66dc5f4f&is=66db0dcf&hm=c5a4961d142e32d5714e1ed1fb605cda1ac5e8b6d7a57828292105c919ce4df2&
+16:15 < bridge_> <learath2> You can't, spawn events don't contain the clientid
+16:15 < bridge_> <_nrx> sad
+16:16 < bridge_> <Jupstar ✪> ikr
+16:16 < bridge_> <Jupstar ✪> i disliked that too about old teeworlds
+16:16 < bridge_> <_nrx> just wanted to colorize spawn particles in team colors
+16:17 < bridge_> <Jupstar ✪> i want star wars in fng, everyone own laser color
+16:17 < bridge_> <_nrx> don't really like purple ones :D
+16:17 < bridge_> <Jupstar ✪> but i think we already have extensions for entities
+16:17 < bridge_> <Jupstar ✪> maybe you can also add them to events
+16:18 < bridge_> <Jupstar ✪> but i have no idea how that system works xd
+16:19 < bridge_> <_nrx> np, I just thought something like this would be cool
+16:19 < bridge_> <_nrx> https://cdn.discordapp.com/attachments/293493549758939136/1281619780079718410/ctf7_spawn_color.demo.mp4?ex=66dc60ee&is=66db0f6e&hm=bdeedd5456fa77de0ca758b118036b4ed374732e619f8e71cea1e306e7434cb2&
+16:23 < bridge_> <learath2> You can do very hacky stuff to infer who spawned
+16:26 < bridge_> <learath2> 1) Keep track of spawns using who gets added to the snap.
+16:26 < bridge_> <learath2> 2) Keep a vector of their positions
+16:26 < bridge_> <learath2> 3) When you get a spawn event, go through the vector of latest spawn positions, find the closest one, that's your id
+16:26 < bridge_> <learath2> 4) Remove the spawn from the vector
+16:33 < bridge_> <_nrx> hm, looks 2 complicated 2 me xd, but thanks anyway, maybe i'll try
+16:40 < bridge_> <Jupstar ✪> I just had the most random github moment ever
+16:40 < bridge_> <Jupstar ✪> I 100% created a new post, and it edited one that i didn't even click on xddd
+16:41 < bridge_> <Jupstar ✪> what kind of hot-keys should i have been clicked
+17:19 < ws-client> <ChillerDragon> whats a github post? xd
+17:21 < bridge_> <Jupstar ✪> smng
+17:21 < bridge_> <Jupstar ✪> nsg
+17:22 < bridge_> <Jupstar ✪> msg
+18:14 < bridge_> <zakharkosh> hi how fix it?
+18:15 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281648644558295103/Screenshot_2024-09-06_192644.png?ex=66dc7bd0&is=66db2a50&hm=eee4950199b1885591a9d20c686c28f0b99b2509bdf9ecfd5225e0b9f822f73b&
+18:15 < bridge_> <zakharkosh> how fix it?
+18:15 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281648644558295103/Screenshot_2024-09-06_192644.png?ex=66dc7bd0&is=66db2a50&hm=eee4950199b1885591a9d20c686c28f0b99b2509bdf9ecfd5225e0b9f822f73b&
+18:16 < bridge_> <ebusrazgona> рш
+18:16 < bridge_> <ebusrazgona> hi
+18:17 < bridge_> <meloƞ> more information would be helpful - what are you trying to do - did you modify anything etc
+18:18 < bridge_> <zakharkosh> Yes, I made a change from Menu_background.h because I created a new window
+18:20 < bridge_> <zakharkosh> Yes, I made a change from Menu_background.h , menus.h because I created a new window
+18:20 < bridge_> <zakharkosh> but idk what is this
+18:20 < bridge_> <zakharkosh> and icant find this
+18:21 < bridge_> <meloƞ> what kind of "new window" were you trying to create? can you send the code snippet in here please
+18:21 < bridge_> <zakharkosh> ok
+18:21 < bridge_> <zakharkosh> ```cpp
+18:21 < bridge_> <zakharkosh>     else if(g_Config.m_UiSettingsPage == SETTINGS_INFORMATION)
+18:21 < bridge_> <zakharkosh>     {
+18:21 < bridge_> <zakharkosh>         GameClient()->m_MenuBackground.ChangePosition(CMenuBackground::POS_SETTINGS_INFORMATION);
+18:21 < bridge_> <zakharkosh>         RenderSettingsInformation(MainView);
+18:21 < bridge_> <zakharkosh>     }
+18:21 < bridge_> <zakharkosh> ```
+18:22 < bridge_> <zakharkosh> and this to menu.h
+18:22 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281650674458689648/Screenshot_2024-09-06_195159.png?ex=66dc7db4&is=66db2c34&hm=216bd673c542c49bc3403265a55de91df15dd7e2254852e25782e22d93e51f41&
+18:22 < bridge_> <zakharkosh> menu.h
+18:22 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281650790536319038/Screenshot_2024-09-06_195229.png?ex=66dc7dd0&is=66db2c50&hm=35283c2c1d165388223edf7e096bb99a776669d047c16050aff684c01dd8d1b1&
+18:23 < bridge_> <zakharkosh> menu_background.h
+18:23 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281650932639203388/Screenshot_2024-09-06_195300.png?ex=66dc7df2&is=66db2c72&hm=49c26570d212bcda8d80bba565c6e74a1753dc565b794ddd0231444581c66515&
+18:23 < bridge_> <zakharkosh> menu_background.cpp
+18:23 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281650932639203388/Screenshot_2024-09-06_195300.png?ex=66dc7df2&is=66db2c72&hm=49c26570d212bcda8d80bba565c6e74a1753dc565b794ddd0231444581c66515&
+18:23 < bridge_> <zakharkosh> menu_background.h
+18:23 < bridge_> <zakharkosh> https://cdn.discordapp.com/attachments/293493549758939136/1281651107382165504/Screenshot_2024-09-06_195344.png?ex=66dc7e1b&is=66db2c9b&hm=43cc52ce17e7480da8ac4403a8c5a1b40a2eab7d930015970bef006c294380ee&
+18:25 < bridge_> <meloƞ> did you add it to CProofMode::SetMenuBackgroundPositionNames
+18:25 < bridge_> <zakharkosh> No where ?
+18:26 < bridge_> <meloƞ> also is this under CMenus::RenderSettings?
+18:26 < bridge_> <meloƞ> proof_mode.cpp
+18:26 < bridge_> <meloƞ> ah wait i'm stoopid, that's editor
+18:27 < bridge_> <zakharkosh> oo i find that
+18:29 < bridge_> <zakharkosh> No
+18:39 < bridge_> <chillerdragon> Jopsti started to drink?
+18:42 < bridge_> <Jupstar ✪> I drink every day
+18:42 < bridge_> <Jupstar ✪> Thanks for reminder
+18:43 < bridge_> <chillerdragon> lol
+18:48 < bridge_> <chillerdragon> @jupeyy_keks: I need financial advice
+18:48 < bridge_> <chillerdragon> Maybe offtopix
+19:13 < bridge_> <zhn> is this right place to ask about linux kernel synchronization primitives performance? xd
+19:14 < bridge_> <Jupstar ✪> they fast
+19:14 < bridge_> <zhn> i have a part in kernel module which is slow (in compare with other calls) and seems that part uses spinlock to lock object ptr
+19:14 < bridge_> <zhn> like 3 ms
+19:14 < bridge_> <Jupstar ✪> wtf
+19:14 < bridge_> <zhn> i wonder if theres something faster than spinlock
+19:15 < bridge_> <zhn> i don't know the context though, i don't think if it's irq related thing
+19:15 < bridge_> <Jupstar ✪> the problem isnt the spinlock itself
+19:15 < bridge_> <Jupstar ✪> the question is, why is it blocking so long?
+19:16 < bridge_> <Jupstar ✪> a spinlock is spinning
+19:16 < bridge_> <zhn> good question, continuing my investigation
+19:16 < bridge_> <zhn> yeah fair xd
+19:16 < bridge_> <Jupstar ✪> if there is no contention it's probably the fastest locking primitive
+19:16 < bridge_> <Jupstar ✪> if there is another thread. then the kernel has a hard decision
+19:16 < bridge_> <Jupstar ✪> i must guess when to halt the thread to not block other processes
+19:17 < bridge_> <Jupstar ✪> and this is why in user land code it's often considered bad practice to use them
+19:17 < bridge_> <zhn> there's another thread i believe
+19:17 < bridge_> <zhn> but ig its not a case
+19:17 < bridge_> <zhn> theres some kind of info dumping on lock, maybe it's the reason
+22:14 < bridge_> <kebscs> 😎

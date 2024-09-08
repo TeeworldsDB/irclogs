@@ -1,0 +1,762 @@
+00:10 < bridge> <egyt> No devs, only a translator
+01:13 < bridge> <Ewan> rip
+01:16 < bridge> <fokkonaut> chillerdragon: wire pls
+01:53 < ws-client> <ChillerDragon> omw
+02:00 < bridge> <mian_ku> wordle update for broadcast
+02:00 < bridge> <mian_ku> https://cdn.discordapp.com/attachments/293493549758939136/1267632847926329387/image.png?ex=66a97e96&is=66a82d16&hm=82c5974c030a79ca077c873f4d49ba0e6e2961d7629a5172d933b6ddfc1fa1f5&
+02:16 < bridge> <sedonya> gm
+02:38 < ws-client> <ChillerDragon> ryo and catto i have another feature request for your languages. Pick a style for hex values. Either upper or lower case. So ``0xff`` or ``0xFF`` and then make it a compiler error if its not correct.
+03:00 < bridge> <fokkonaut> Why are my nameplates this far up all of sudden?
+03:00 < bridge> <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/1267648005931012136/image.png?ex=66a98cb4&is=66a83b34&hm=814db543ca8777a88a9c27d4c7a104a638cf3f1b3f46c83d7cbc9af2e8d3dfde&
+03:00 < bridge> <fokkonaut> client restart does not help
+03:03 < bridge> <fokkonaut> ahhh, cl_show_direction 0
+03:04 < bridge> <fokkonaut> i turned that on for a second to test smth
+05:21 < ws-client> <ChillerDragon> a `qword` should be 8 byte right?
+05:21 < ws-client> <ChillerDragon> This works fine ``mov qword [generic_buffer_512], 0xff_ff_ff``
+05:21 < ws-client> <ChillerDragon> This throws a warning?? ``mov qword [generic_buffer_512], 0xff_ff_ff_ff``
+05:22 < ws-client> <ChillerDragon> actually two warnings ``warning: signed dword immediate exceeds bounds [-w+number-overflow]``
+05:22 < ws-client> <ChillerDragon> ``warning: dword data exceeds bounds [-w+number-overflow]``
+05:22 < ws-client> <ChillerDragon> why is he talking about a dword??
+05:24 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722309845.png
+05:25 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722309903.png
+05:25 < ws-client> <ChillerDragon> interesting if i provide it a 8 byte value it is not complaining
+05:25 < ws-client> <ChillerDragon> seems like the value was not fat enough hmm
+05:26 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722309960.png
+05:26 < ws-client> <ChillerDragon> for a dword it does not complain if i only give it one byte <:tee_thinking:478629518358085653>
+07:22 < bridge> <milkeeycat> chillerdragon: can you gimme the file
+07:47 < bridge> <milkeeycat> there's definitely some reason why compiler moves this value in register first, and only then moves it into stack, let's wait for lerato xd
+07:47 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267720089159860224/image.png?ex=66a9cfd6&is=66a87e56&hm=7b6491727aae39405d193f5df8364eae19395758969cb03a26ab96223c970572&
+08:06 < bridge> <chillerdragon> Why does it move rsp into rbp? Can’t it use rsp directly? Also why zero eax in the end?
+08:08 < bridge> <milkeeycat> maybe it's cleanup step
+08:08 < bridge> <chillerdragon> Yes looks like it but how is that clean xd
+08:09 < bridge> <chillerdragon> Does a c compiler keep the registers at 0? Why? Will it optimize out zero assignments then?
+08:10 < bridge> <milkeeycat> oh, it's return value xd
+08:10 < bridge> <milkeeycat> from main function
+08:11 < bridge> <chillerdragon> Ah fair
+08:11 < bridge> <chillerdragon> What about implicit rsp usage
+08:12 < bridge> <milkeeycat> hm?
+08:13 < bridge> <chillerdragon> Why not remove the push rbp
+08:13 < bridge> <chillerdragon> And use rsp in the move
+08:13 < bridge> <milkeeycat> it's -O0
+08:14 < bridge> <chillerdragon> So it inserts random instructions xd
+08:14 < bridge> <chillerdragon> Trol compiler
+08:14 < bridge> <milkeeycat> no
+08:14 < bridge> <milkeeycat> it sets up stack frame
+08:15 < bridge> <chillerdragon> Idk what that is I should probably read up on the basics
+08:15 < bridge> <learath2> Look at what it does when you only give it one byte to move. Then it'll be obvious why this is happening
+08:16 < bridge> <milkeeycat> here you can see it reserves some bytes for function stack
+08:16 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267727432996229162/image.png?ex=66a9d6ad&is=66a8852d&hm=059f6b262001da0803f7003ab0337eb3eb435417246493c68e2f7ba3a05c6838&
+08:16 < bridge> <milkeeycat> before there wasn't sub because it was a leaf function xd
+08:17 < bridge> <chillerdragon> It no longer pops
+08:17 < bridge> <chillerdragon> What leave do?
+08:17 < bridge> <milkeeycat> and if it's a leaf function it can you 128 bytes red zone something to store local variables 🤓
+08:17 < bridge> <milkeeycat> maybe*
+08:17 < bridge> <milkeeycat> and if it's a leaf function there's 128 bytes red zone something to store local variables 🤓
+08:19 < bridge> <milkeeycat> >Releases the stack frame set up by an earlier ENTER instruction. The LEAVE instruction copies the frame pointer (in the EBP register) into the stack pointer register (ESP), which releases the stack space allocated to the stack frame. The old frame pointer (the frame pointer for the calling procedure that was saved by the ENTER instruction) is then popped from the stack into the EBP register, restoring the calling procedure’s stack frame.
+08:19 < bridge> <milkeeycat> 
+08:19 < bridge> <milkeeycat> A RET instruction is commonly executed following a LEAVE instruction to return program control to the calling procedure.
+08:19 < bridge> <milkeeycat> > Releases the stack frame set up by an earlier ENTER instruction. The LEAVE instruction copies the frame pointer (in the EBP register) into the stack pointer register (ESP), which releases the stack space allocated to the stack frame. The old frame pointer (the frame pointer for the calling procedure that was saved by the ENTER instruction) is then popped from the stack into the EBP register, restoring the calling procedure’s stack frame.
+08:19 < bridge> <milkeeycat> 
+08:19 < bridge> <milkeeycat> A RET instruction is commonly executed following a LEAVE instruction to return program control to the calling procedure.
+08:19 < bridge> <milkeeycat> > Releases the stack frame set up by an earlier ENTER instruction. The LEAVE instruction copies the frame pointer (in the EBP register) into the stack pointer register (ESP), which releases the stack space allocated to the stack frame. The old frame pointer (the frame pointer for the calling procedure that was saved by the ENTER instruction) is then popped from the stack into the EBP register, restoring the calling procedure’s stack frame.
+08:19 < bridge> <milkeeycat> 
+08:19 < bridge> <milkeeycat> > A RET instruction is commonly executed following a LEAVE instruction to return program control to the calling procedure.
+08:21 < bridge> <milkeeycat> not gonna lie, it told me nothing xddd
+08:21 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267728661537099828/image.png?ex=66a9d7d2&is=66a88652&hm=d2c85e33d8993960b29e411b536682a719d5cc5184c630c231bde4a73dce1bff&
+08:23 < bridge> <learath2> Ok now I'm confused too. I assumed it'd generate something else
+08:23 < bridge> <milkeeycat> xdd
+08:25 < bridge> <reitw> no it's to save the stack pointer
+08:26 < bridge> <reitw> you want to keep track of the stack for each calling function whenever you enter a called function
+08:26 < bridge> <reitw> so you save where it was before, and it'll get it back when returning
+08:26 < bridge> <reitw> no it's to save the base pointer
+08:26 < bridge> <milkeeycat> chillerdragon: did you delete the message -.-
+08:26 < bridge> <milkeeycat> or i can't read
+08:26 < bridge> <reitw> ah this is
+08:27 < bridge> <reitw> but the best way is to draw it, you'll understand it better
+08:27 < bridge> <milkeeycat> i understand it, i have kinda working functions in my compiler xd
+08:28 < bridge> <learath2> Ah okay, I get it, sorry, just woke up
+08:29 < bridge> <learath2> `0xFFFFFFFF` is a negative number, mov immediate will sign extend it into the 64 bit register, but that's not what we want, we want it zero extended
+08:29 < bridge> <learath2> That's why chiller was getting the weird "overflow" warning too
+08:32 < bridge> <milkeeycat> are immediates signed numbers?
+08:33 < bridge> <learath2> not in general, but some instructions treat them as such
+08:33 < bridge> <milkeeycat> but mov is one of them?
+08:33 < bridge> <learath2> if you open the mov documentation, you'll see that there is one single exception, `MOV r/m64, imm32` that's the one that treats it as signed 😄
+08:34 < bridge> <tsfreddie> we assembling now?
+08:34 < bridge> <learath2> I don't remember the history of it, but I'd guess it's to allow legacy 32 bit code to run on 64 bit seamlessly
+08:34 < bridge> <reitw> more for chiller as he asked I meant
+08:34 < bridge> <milkeeycat> fuck, i need instruction docs from smart language into grug cave man
+08:36 < bridge> <milkeeycat> @learath2 how does this work if there's no in docs for `mov` anything about imm64 :\
+08:37 < bridge> <learath2> There is?
+08:38 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1267733060984766579/image.png?ex=66a9dbeb&is=66a88a6b&hm=c3e299a68d48bbab379d65d1588149d47b1468915cb3e99fe825121c2fd942f0&
+08:39 < bridge> <milkeeycat> ok, i had x86 instruction set reference opened all this time :lol:
+08:39 < bridge> <learath2> Oh actually, that's a memory mov
+08:39 < bridge> <learath2> That one truly doesn't exist
+08:39 < bridge> <learath2> It's cheating
+08:40 < bridge> <milkeeycat> :pepeH:
+08:40 < bridge> <learath2> It's using the sign extension behaviour and just moving `0xFFFFFFFF`
+08:40 < bridge> <learath2> If you make it `0xDEADBEEFDEADBEEF` it'll mov it in two pieces
+08:41 < bridge> <learath2> Or it'll mov into a register then mov into memory
+08:42 < bridge> <milkeeycat> can you send the link of this website, i can't find reference for x64 :pepeW:
+08:42 < bridge> <learath2> idk what compilers do now
+08:42 < bridge> <learath2> https://www.felixcloutier.com/x86/mov
+08:42 < bridge> <learath2> This isn't really an authoritative source tbf, but it's much more pleasant to use than reading intels manual 😄
+08:43 < bridge> <learath2> I'm guessing this, memory access is expensive
+08:48 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267735575964680243/image.png?ex=66a9de42&is=66a88cc2&hm=2a736f8451f7f2382ec18160f4782348b804b798d0290936910cd0a6f62b421d&
+08:48 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267735576271126609/image.png?ex=66a9de42&is=66a88cc2&hm=c40cc7aef1ab696d97e7996a75ed1a46776fbe181f722c7e1a2bf3130d8a1ee6&
+08:51 < bridge> <learath2> It's lying, look at the actual immediate encoded in the instruction
+08:51 < bridge> <learath2> it's clearly moving `0xffffffff` and allowing sign extension to take care of the rest of the fs
+08:51 < bridge> <learath2> try `0xde_ad_be_ef_de_ad_be_ef`
+08:52 < bridge> <milkeeycat> ```
+08:52 < bridge> <milkeeycat> foo.asm:8: warning: signed dword immediate exceeds bounds [-w+number-overflow]
+08:52 < bridge> <milkeeycat> foo.asm:8: warning: dword data exceeds bounds [-w+number-overflow]
+08:52 < bridge> <milkeeycat> ```
+08:52 < bridge> <milkeeycat> ```0000000000000000 <_start>:
+08:52 < bridge> <milkeeycat>    0:    48 c7 04 25 00 00 00     movq   $0xffffffffdeadbeef,0x0
+08:52 < bridge> <milkeeycat>    7:    00 ef be ad de 
+08:52 < bridge> <milkeeycat> ```
+08:52 < bridge> <tsfreddie> my wifi be like
+08:52 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1267736616072511498/image.png?ex=66a9df3a&is=66a88dba&hm=702a6e962195dd4970a38c3109eb806d924a9510dd0a44781242f36c3a5e8afd&
+08:53 < bridge> <learath2> I actually don't really know how nasm works to be fair. I'm guessing it knows mov with memory target can't take anything bigger than a dword immediate
+08:54 < bridge> <learath2> If you try it in C you'll see the compiler will do it in one mov if its `0xffffffffffffffff` and two movs otherwise
+08:56 < bridge> <milkeeycat> ye, it uses `movabs` first and then moves from a register
+08:56 < bridge> <learath2> @milkeeycat https://www.nasm.us/doc/nasmdo12.html#section-12.2 here you go, it seems nasm does truncate all immediates EXCEPT the outlier r64 imm64
+08:57 < bridge> <learath2> I never really understood why it was called movabs. The intel manual calls it mov
+08:59 < bridge> <chillerdragon> That explains why it got all goofed up when passing it to a syscall xd
+09:05 < bridge> <milkeeycat> at first i though it takes absolute value of a number xd
+09:05 < bridge> <learath2> metoo
+09:05 < bridge> <learath2> I was like huh, what a niche instruction
+09:07 < bridge> <Jupstar ✪> around 2% slower than std mscp for me
+09:07 < bridge> <Jupstar ✪> 
+09:07 < bridge> <Jupstar ✪> lmao, synthetic benchmarks
+09:08 < bridge> <learath2> For things like channels, stuff like batching and bursts matter very much, which makes the performance really workload dependent
+09:08 < bridge> <Jupstar ✪> yeah but then he should write different benchmarks and not show one where it's like 20x faster than std xd
+09:08 < bridge> <Jupstar ✪> that is just clickbait
+09:11 < bridge> <Jupstar ✪> @learath2 you are go pro, right? like not the camera but yeah.
+09:11 < bridge> <Jupstar ✪> 
+09:11 < bridge> <Jupstar ✪> have u ever used "chan" in go?
+09:11 < bridge> <learath2> Ofc, chans are our main synchronization primitive almost
+09:12 < bridge> <Jupstar ✪> nice.. i saw it a few times in benchmarks for channels
+09:12 < bridge> <Jupstar ✪> was performing quite well, is it std?
+09:12 < bridge> <learath2> Not only is it std, it's also built into the syntax
+09:12 < bridge> <learath2> There is special syntax to receive from a chan in go
+09:13 < bridge> <Jupstar ✪> ah cool
+09:18 < bridge> <learath2> Go chans are not very fair though so that becomes a concern sometimes
+10:26 < ws-client> <ChillerDragon> omg i hate assembly
+10:26 < ws-client> <ChillerDragon> somehow my rcx goes all blaze it 420 for no reason
+10:26 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722327967.png
+10:27 < bridge> <learath2> Well obviously whatever `dbg_print_reg` is destroys it
+10:27 < bridge> <learath2> just pull out gdb
+10:28 < ws-client> <ChillerDragon> i dont like debuggers
+10:28 < ws-client> <ChillerDragon> i like print driven debugging
+10:28 < ws-client> <ChillerDragon> but ye seems like there is a bug in my printer omagawd
+10:30 < bridge> <heinrich5991> > i dont like debuggers
+10:30 < bridge> <heinrich5991> they can help you a lot. even more so in assembly…
+10:30 < bridge> <milkeeycat> print driver debugging is good when you can easily print stuff xd
+10:31 < bridge> <learath2> print driven debugging is good iff you are debugging something single threaded and your print doesn't have bugs 😄
+10:32 < ws-client> <ChillerDragon> i fixed the bug in my print method but i dont understand how it was one in the first place
+10:32 < ws-client> <ChillerDragon> does the write syscall set rcx?
+10:33 < ws-client> <ChillerDragon> i thought syscalls only set rax
+10:34 < bridge> <heinrich5991> > A system-call is done via the syscall instruction. This clobbers %rcx and %r11 as well as the %rax return value, but other registers are preserved.
+10:34 < bridge> <milkeeycat> > The syscall instruction uses rcx to store the address of the next instruction to return to
+10:34 < bridge> <milkeeycat> > https://stackoverflow.com/questions/50571275/why-does-a-syscall-clobber-rcx-and-r11
+10:34 < bridge> <heinrich5991> according to some random stackoverflow answer
+10:34 < bridge> <heinrich5991> (https://stackoverflow.com/a/2538212/870079)
+10:34 < bridge> <milkeeycat> > The syscall instruction uses rcx to store the address of the next instruction to return to
+10:34 < bridge> <milkeeycat> https://stackoverflow.com/questions/50571275/why-does-a-syscall-clobber-rcx-and-r11
+10:35 < ws-client> <ChillerDragon> omagawd good to know
+10:35 < bridge> <learath2> rcx isn't preserved in sysv abi
+10:35 < ws-client> <ChillerDragon> trol abi
+10:35 < bridge> <learath2> I'm guessing that's just directly inherited from linux kernel
+10:35 < bridge> <learath2> Though idk I don't remember exactly
+10:36 < bridge> <learath2> Yeah
+10:36 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1267762695919112222/image.png?ex=66a9f784&is=66a8a604&hm=eb88f0d95406e272702506b0debd88a5101e58f481a12f56fdd1d7965172c4c1&
+10:37 < bridge> <learath2> https://gitlab.com/x86-psABIs/x86-64-ABI/-/jobs/artifacts/master/raw/x86-64-ABI/abi.pdf?job=build A2.1p2 to be exact
+10:56 < bridge> <heinrich5991> I wonder how people design new ABIs
+10:56 < bridge> <heinrich5991> there's no data to come from, for new architectures
+10:56 < bridge> <heinrich5991> and it's going to be fixed forever
+10:56 < bridge> <heinrich5991> and have quite some impact on the speed of code
+11:06 < bridge> <learath2> I'm guessing it happens along with chip design for new architectures
+11:06 < bridge> <heinrich5991> so amd designed the calling convention for amd64?
+11:07 < bridge> <learath2> I'd say that's "old architectures". I was thinking more riscv or aarch64
+11:10 < bridge> <learath2> Or perhaps they don't think too too hard about it. We don't really see wildly different abis very often do we?
+11:11 < bridge> <learath2> I guess we do see internal abis that are pretty different now that I think about it
+11:11 < bridge> <heinrich5991> you thinking of go? ^^
+11:12 < bridge> <learath2> yeah, go is a bit of a standout 😄
+11:12 < bridge> <heinrich5991> maybe luajit also has one
+11:12 < bridge> <heinrich5991> probably, or other JITs
+11:17 < bridge> <heinrich5991> I've had another idea for https://github.com/ddnet/ddnet/pull/8283:
+11:19 < bridge> <heinrich5991> we coul parse a very limited subset of html, only accepting `<span style="color: #`, `">`, `</span>`, `&lt;` and `&gt;` as tokens. no xml parsing required, only string searching
+11:19 < bridge> <learath2> I don't like it at all
+11:19 < bridge> <heinrich5991> we know from the client version that it supports precisely this, so it's not a backcompat hazard
+11:19 < bridge> <learath2> It's very long
+11:19 < bridge> <heinrich5991> it is. why is that a problem?
+11:19 < bridge> <learath2> The broadcast string is already length limited
+11:20 < bridge> <heinrich5991> to ~1KiB
+11:21 < bridge> <louis> why parse html
+11:21 < bridge> <learath2> And xml implies some sort of hierarchy in my mind. There is no hierarchy we support here. It just feels like we are bolting on html because we want a standard
+11:21 < bridge> <louis> where else is html used in tw?
+11:21 < bridge> <learath2> There just is no standard for this
+11:21 < bridge> <louis> the standard is hex codes just like the editor
+11:21 < bridge> <archimede67> it's not real html
+11:21 < bridge> <heinrich5991> html is a standard for text formatting
+11:21 < bridge> <learath2> So is LaTeX
+11:22 < bridge> <louis> just do <#ffffff>
+11:22 < bridge> <louis> sometimes you have to sacrifice the standard to give the user a better experience
+11:22 < bridge> <heinrich5991> eh, it's just one program. it's an old program,  guess
+11:22 < bridge> <heinrich5991> eh, it's just one program. it's an old program, I guess
+11:22 < bridge> <learath2> We can't chillerdragon will have an aneursym if the 0.7 thing isn't supported
+11:22 < bridge> <Jupstar ✪> use linux command line colors
+11:22 < bridge> <Jupstar ✪> 😏
+11:22 < bridge> <heinrich5991> I think we should really not require 0.7 compatiblity
+11:23 < bridge> <heinrich5991> that should just not be an argument
+11:23 < bridge> <learath2> This is also an in-band standard for coloring text
+11:23 < bridge> <louis> well compatibility btwn the two wont be hard to code. putting in that heinous format is weird just to keep 0.7 broadcast compat though
+11:23 < bridge> <louis> err as long as broadcasting between different client versions is not hard to code*
+11:24 < bridge> <learath2> "Should" being the operative word here. Politics is also sadly a factor in what is supposed to be a technical decision
+11:24 < bridge> <heinrich5991> I say *we* should ignore that argument
+11:24 < bridge> <heinrich5991> i.e. as maintainers of ddnet, we should decide that we don't base technical discussions on 0.7
+11:25 < bridge> <learath2> I don't like pissing off the 0.7 people, they get very mean
+11:25 < bridge> <heinrich5991> then we'll tell them to go away
+11:25 < bridge> <heinrich5991> if they get mean
+11:25 < bridge> <heinrich5991> I don't think it'll be hard to find a majority in ddnet maintainers for this
+11:25 < bridge> <louis> why not implement it the way you want and have them do the work of compatibility if they want
+11:25 < bridge> <heinrich5991> I don't think it'll be hard to find a majority in ddnet maintainers in favor of this
+11:26 < bridge> <louis> then if 0.7 is ever completely dropped it can get refactored out
+11:27 < bridge> <learath2> Well if we don't care what they think. I think being typeable is nice. But I don't think there is any point to pretending we support xml.
+11:27 < bridge> <learath2> 
+11:27 < bridge> <learath2> Just have <#abc> or <#aabbcc>
+11:27 < bridge> <learath2> Do we ever want to add more formatting then just color?
+11:27 < bridge> <heinrich5991> the point in pretending we support xml is that we can easily support more formatting in the future
+11:27 < bridge> <heinrich5991> the point in pretending we support html is that we can easily support more formatting in the future
+11:28 < bridge> <heinrich5991> the point in pretending we support a subset of html is that we can easily support more formatting in the future
+11:28 < bridge> <heinrich5991> e.g. bold text
+11:28 < bridge> <Jupstar ✪> even tho i agree with it.
+11:28 < bridge> <Jupstar ✪> 
+11:28 < bridge> <Jupstar ✪> there will be some minor API change, and then YOU have to fix the 0.7 port, bcs the 0.7 ppl go afk forever 😂 
+11:28 < bridge> <Jupstar ✪> 
+11:28 < bridge> <Jupstar ✪> it's always like that
+11:28 < bridge> <Jupstar ✪> no matter the abstraction you use, it will always be at least a small burden to carry around
+11:28 < bridge> <archimede67> that means we have to write `<#aabbcc>some text</#aabbcc>` ?
+11:28 < bridge> <heinrich5991> or `<#aabbcc>` and `</>`
+11:29 < bridge> <learath2> Can this handle a span in a span? Can we add a short alias for span?
+11:29 < bridge> <louis> thats nicer
+11:29 < bridge> <learath2> I was thinking no terminator needed. Behaves more like console color change escapes
+11:30 < bridge> <learath2> But yeah a terminator to reset the color is also fine to have
+11:30 < bridge> <heinrich5991> also works
+11:30 < bridge> <louis> or <c="#aabbcc">text</> ?
+11:30 < bridge> <archimede67> `</c>`
+11:30 < bridge> <heinrich5991> no span in a span
+11:30 < bridge> <heinrich5991> is what I'd go with
+11:30 < bridge> <learath2> This I would be more interested in. Xml with our own tags instead of html
+11:30 < bridge> <archimede67> that's similar to rich text in Unity for example
+11:30 < bridge> <heinrich5991> do you have a link to the unity stuff?
+11:30 < bridge> <archimede67> https://docs.unity3d.com/Packages/com.unity.ugui@1.0/manual/StyledText.html
+11:31 < bridge> <louis> that would make it easier to do things like <b> as well i guess
+11:31 < bridge> <learath2> I was more curious whether the naive parser would choke on it
+11:31 < bridge> <louis> ^
+11:31 < bridge> <Jupstar ✪> sad that markdown has no colors
+11:32 < bridge> <heinrich5991> that looks like html ^^
+11:32 < bridge> <Jupstar ✪> seems like a cleaner text formatting thing xd
+11:32 < bridge> <heinrich5991> unfortunately not really well-defined. each parser does its own thing
+11:32 < bridge> <archimede67> it's not quite html but similar
+11:32 < bridge> <heinrich5991> oh, true. not html
+11:33 < bridge> <archimede67> > The markup system is inspired by HTML but isn't intended to be strictly compatible with standard HTML.
+11:41 < bridge> <teero777> what is the CLight entity?
+11:42 < bridge> <Jupstar ✪> wow, i have never seen that xdd
+11:42 < bridge> <teero777> are those the retracting laser beams?
+11:42 < bridge> <teero777> might be
+11:42 < bridge> <louis> whats it look like
+11:43 < bridge> <teero777> but they apparently have a curvature
+11:43 < bridge> <Jupstar ✪> it's funny how these oldschool ddrace things are almost not used anymore
+11:43 < bridge> <teero777> i dont know
+11:43 < bridge> <Jupstar ✪> ENTITY_LASER_C_SLOW,
+11:43 < bridge> <Jupstar ✪>     ENTITY_LASER_C_NORMAL,
+11:43 < bridge> <Jupstar ✪>     ENTITY_LASER_C_FAST,
+11:43 < bridge> <teero777> yea
+11:43 < bridge> <louis> could be spinning laser too (those have speeds)
+11:44 < bridge> <Jupstar ✪> "LASER LENGTH CHANGE: Put next to LASER LENGTH, causes it to length and shorten constantly. Works only on (NON-)SPINNING LASER, not on DOOR. Lengthen, slow.";
+11:44 < bridge> <teero777> ah okay
+11:44 < bridge> <teero777> thx
+11:44 < bridge> <teero777> so they are the retracting thingies
+11:45 < bridge> <Jupstar ✪> and i almost hopped we have a hidden RTX impl
+11:45 < bridge> <teero777> xDD
+11:45 < bridge> <teero777> imagine
+11:45 < bridge> <teero777> these mfs
+11:45 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1267780168269824010/image.png?ex=66aa07ca&is=66a8b64a&hm=9917ac4996fa24cf518b38569632fe7bcb49c11135c735bdd4a0503d4ee2418d&
+11:45 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1267780168630538285/image.png?ex=66aa07ca&is=66a8b64a&hm=2ca73402d965038feece6eaf81c2d28dbacb9ca704a56566ee1ece7c408afed8&
+11:45 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1267780168869744692/image.png?ex=66aa07ca&is=66a8b64a&hm=5e7e71bff4a0bc135e15622737b8812d6728fcbae9fb5cc72559fb2d0debdfcf&
+11:46 < bridge> <Jupstar ✪> bro i hate them so hard
+11:46 < bridge> <Jupstar ✪> their hitbox is so random
+11:47 < bridge> <teero777> but who tf thought to themselves "huh lets call these moving lasers light"
+11:48 < bridge> <teero777> but the other moving lasers are not called that xd
+11:48 < bridge> <Jupstar ✪> https://github.com/GreYFoX
+11:48 < bridge> <Jupstar ✪> thank this guy
+11:48 < bridge> <teero777> gonna email him
+11:49 < bridge> <Jupstar ✪> "Yo wtf is CLight man. WTF?!"
+11:49 < bridge> <teero777> xD
+11:49 < bridge> <teero777> damn
+11:49 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1267781203025723542/image.png?ex=66aa08c1&is=66a8b741&hm=d43bbaf563f5a0c9dee4ae5ada937afab40476dbb41b96d701220a3108af5aed&
+11:50 < bridge> <Jupstar ✪> xDDDDDDDDDDDDDDDDDDDDDD
+11:50 < bridge> <Jupstar ✪> nice achievement
+11:50 < bridge> <Jupstar ✪> if we ever add achievements: You made 0 points in this FNG round
+11:51 < bridge> <milkeeycat> i would have this achievement every round 😬
+11:51 < bridge> <teero777> stackable achievements
+11:51 < bridge> <teero777> aka. stats
+11:51 < bridge> <teero777> xd
+12:06 < ws-client> <ChillerDragon> GreYFoX is goat don't question is namings!
+12:06 < ws-client> <ChillerDragon> his* ffs
+12:23 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722335015.png
+12:23 < ws-client> <ChillerDragon> thanks spell checker
+12:24 < bridge> <milkeeycat> you have spell checker in neovim? :monkaS:
+12:35 < ws-client> <ChillerDragon> yea i was surprised too. But you wont believe the typo fixes i commited in the last few days. Its a game changer. Also I don't have to google how to type some english words anymore xd. It just auto fixes it.
+12:36 < bridge> <heinrich5991> autofix is dangerous
+12:36 < bridge> <milkeeycat> just type with errors :gigachad:
+12:36 < ws-client> <ChillerDragon> Well i see the suggestion
+12:36 < bridge> <heinrich5991> ah, with manual verification it's fine again
+12:36 < ws-client> <ChillerDragon> ye
+12:36 < ws-client> <ChillerDragon> i gotta press the fix button
+12:37 < ws-client> <ChillerDragon> otherwise this mf would have corrupted my hexdump haha
+12:37 < bridge> <heinrich5991> ^^
+12:45 < bridge> <mian_ku> @0xdeen cheat client sale on the list
+12:45 < bridge> <mian_ku> https://cdn.discordapp.com/attachments/293493549758939136/1267795297791115287/image.png?ex=66aa15e1&is=66a8c461&hm=1257c8692ec689636baf77deaced10675ab5d2e1759b22416c508fbc9d3103c9&
+12:46 < bridge> <mian_ku> krx
+12:46 < bridge> <mian_ku> https://cdn.discordapp.com/attachments/293493549758939136/1267795543170486322/image.png?ex=66aa161b&is=66a8c49b&hm=615613e4bbe76765539fb13a4e27c4a0d6cf57d611e7695ff45b281c226d70c1&
+12:57 < bridge> <meloƞ> :dab1: :dab2: :dab3: 
+12:57 < bridge> <meloƞ> 
+12:57 < bridge> <meloƞ> nix goated
+12:57 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1267798140950675466/image.png?ex=66aa1887&is=66a8c707&hm=5828503d5dd41d531d37e00ed4a5edda251299c90d22470fd5989342509583d2&
+12:57 < bridge> <draggory> can you make an admin ticket about this instead? It's better to not give them attention @mian_ku
+12:57 < bridge> <draggory> And also delete the message here
+12:58 < bridge> <draggory> Thanks
+12:58 < bridge> <mian_ku> ok
+13:01 < bridge> <heinrich5991> server banned
+13:01 < bridge> <teero777> :D
+13:02 < bridge> <opulently> what rule did the server break?
+13:02 < bridge> <heinrich5991> advertising cheat clients
+13:02 < bridge> <opulently> is there any rule list I can see please
+13:04 < bridge> <heinrich5991> there's https://www.teeworlds.com/?page=docs&wiki=rules/server_rules I guess
+13:04 < bridge> <heinrich5991> it doesn't list the cheat client rule. I guess we could at some point create our own
+13:04 < bridge> <heinrich5991> it doesn't list the cheat client rule. I guess we could at some point create our own list
+13:05 < bridge> <milkeeycat> You shall have no other gods before Me.
+13:05 < bridge> <milkeeycat>     You shall not make idols.
+13:05 < bridge> <milkeeycat>     You shall not take the name of the LORD your God in vain.
+13:05 < bridge> <milkeeycat>     Remember the Sabbath day, to keep it holy.
+13:05 < bridge> <milkeeycat>     Honor your father and your mother.
+13:05 < bridge> <milkeeycat>     You shall not murder.
+13:05 < bridge> <milkeeycat>     You shall not commit adultery.
+13:05 < bridge> <milkeeycat>     You shall not steal.
+13:05 < bridge> <milkeeycat>     You shall not bear false witness against your neighbor.
+13:05 < bridge> <milkeeycat>     You shall not covet.
+13:05 < bridge> <milkeeycat>     You shall not advertise bot clients.
+13:05 < bridge> <learath2> If you are getting masterbanned you are doing something very wrong
+13:05 < bridge> <opulently> doesn't that kinda break the freedom, others could have sponsoring info, just not if it's a cheat
+13:05 < bridge> <opulently> https://cdn.discordapp.com/attachments/293493549758939136/1267800196478406726/brave_jy271ISBz9.png?ex=66aa1a71&is=66a8c8f1&hm=aaf9381706526ad8fbf7290f5c15baf8cf1b7de25975e7dc43de4073fe07557c&
+13:05 < bridge> <milkeeycat> You shall have no other gods before Me.
+13:05 < bridge> <milkeeycat>     You shall not make idols.
+13:05 < bridge> <milkeeycat>     You shall not take the name of the LORD your God in vain.
+13:05 < bridge> <milkeeycat>     Remember the Sabbath day, to keep it holy.
+13:05 < bridge> <milkeeycat>     Honor your father and your mother.
+13:05 < bridge> <milkeeycat>     You shall not murder.
+13:05 < bridge> <milkeeycat>     You shall not commit adultery.
+13:05 < bridge> <milkeeycat>     You shall not steal.
+13:05 < bridge> <milkeeycat>     You shall not bear false witness against your neighbor.
+13:05 < bridge> <milkeeycat>     You shall not covet.
+13:06 < bridge> <milkeeycat>     You shall not advertise bot clients.
+13:06 < bridge> <heinrich5991> correct
+13:06 < bridge> <learath2> The operative word is "purely" in that rule. But in general rules are limits on "freedoms"
+13:07 < bridge> <opulently> interesting ideology, but seems like the same rules don't apply for everyone 😄
+13:07 < bridge> <meloƞ> the server shouldnt exist purely for advertisement, (e.g, dont create 500 ghost-servers advertising you have a single fng server) or in that case, advertise a modified cheat client
+13:07 < bridge> <heinrich5991> the cheat client thing is separate from that
+13:08 < bridge> <heinrich5991> you're not allowed to advertise cheat clients
+13:08 < bridge> <heinrich5991> don't get hung up on that advertising rule
+13:08 < bridge> <meloƞ> fari
+13:08 < bridge> <meloƞ> fair
+13:08 < bridge> <opulently> add that rule to teeworlds.com so they know then
+13:08 < bridge> <heinrich5991> that's common sense
+13:08 < bridge> <milkeeycat> you think it's ok to advertise cheat clients? xd
+13:09 < bridge> <heinrich5991> feel free to create a ruleset for the website if you'd like to see one @opulently
+13:09 < bridge> <heinrich5991> https://github.com/ddnet/ddnet-web/
+13:09 < bridge> <opulently> I think it's not okay that someone doesn't know that he's violating a rule, because that rule doesn't exist
+13:09 < bridge> <learath2> Extraordinary claims require extraordinary evidence. Do you see other cheat client advertisments on the serverlist?
+13:10 < bridge> <learath2> If the rules are not being applied equally, you should be able to show an example of it
+13:11 < bridge> <opulently> I was talking about getting banned for a non-existent rule. Anyone can make up a rule and tell me I broke it. It's just like getting cancelled but in teeworlds
+13:12 < bridge> <milkeeycat> https://tenor.com/view/smh-gif-21608426
+13:12 < bridge> <Jupstar ✪> xd
+13:12 < bridge> <learath2> It's just undocumented. It should be obvious that you can't advertise bot clients. Just like you can't advertise hitman services on craigslist
+13:12 < bridge> <jxsl13> add that rule to the website so that the next person does not step on that exact same trap
+13:12 < bridge> <krixx1337> I think @opulently  is right, it’s a bit unfair to ban someone for breaking a rule they couldn’t have known about. Could you please add this rule to the official list so everyone’s clear on it?
+13:12 < bridge> <milkeeycat> @heinrich5991 it was on topic gif :feelsbadman:
+13:12 < bridge> <learath2> Disclaimer, the person above me actively develops and sells a bot
+13:13 < bridge> <milkeeycat> cap
+13:13 < bridge> <learath2> Noo, you got in the way
+13:13 < bridge> <heinrich5991> disclaimer, the person two above Learath2 is banned
+13:13 < bridge> <jxsl13> sell bots for other games in teeworlds
+13:13 < bridge> <jxsl13> that's allowed
+13:13 < bridge> <heinrich5991> ehh
+13:13 < bridge> <jxsl13> :kek:
+13:13 < bridge> <murpi> Oh look who we have here 😬
+13:13 < bridge> <learath2> We should add a list of rules probably, but as I said if you run afoul of this rule, you are just a bad actor
+13:14 < bridge> <learath2> There is no accidentally running into it
+13:15 < bridge> <learath2> It seems I've gotten censored
+13:15 < bridge> <jxsl13> well
+13:16 < bridge> <opulently> yep, ddnet respetcs free speech and doesn't abuse powers 😄
+13:16 < bridge> <jxsl13> one could say if one cannot talk about something, them the problem of said "something" does not exist.
+13:16 < bridge> <jxsl13> then*
+13:17 < bridge> <jxsl13> that's sarcasm
+13:19 < bridge> <milkeeycat> melon is cooking something really huge
+13:19 < bridge> <meloƞ> :pepe_ew92: it's not really free speech if you advertise a closed source, mabe malware infected modification of an open source client to sell it for money
+13:19 < bridge> <meloƞ> i have fast hands but a slow mind okay :/
+13:19 < bridge> <milkeeycat> words hard
+13:19 < bridge> <jxsl13> type faster, so that I can react with a melon emoji and continue working 😄
+13:20 < bridge> <meloƞ> lmao
+13:20 < bridge> <meloƞ> :pepe_ew92: it's not really free speech if you advertise a closed source, maybe malware infected modification of an open source client to sell it for money
+13:20 < bridge> <learath2> 🦅 🦅 🇺🇸 🇺🇸
+13:20 < bridge> <jxsl13> melons have no mind
+13:20 < bridge> <milkeeycat> when will be the results of mod applications btw
+13:21 < bridge> <jxsl13> just seeds of evil
+13:21 < bridge> <meloƞ> @makeitaquote
+13:21 < bridge> <meloƞ> oh wait wrong app..
+13:21 < bridge> <learath2> Probably this weekend. I compiled like half of my decisions. I'm hoping murpi has some time too soon
+13:21 < bridge> <opulently> that's literally what I wasn't talking about. I was talking about this guy gettings banned and like half the messages deleted. There's also undocumented rules you can think up of when you are staff. So stop responding if you don't know what we're talking about
+13:21 < bridge> <meloƞ> how many memory leaks you got from compiling
+13:22 < bridge> <learath2> Zero. I'm proficient in C
+13:22 < bridge> <meloƞ> `I was talking about getting banned for a non-existent rule. Anyone can make up a rule and tell me I broke it. It's just like getting cancelled but in teeworlds` - i'd say my context is fitting
+13:22 < bridge> <meloƞ> :D
+13:22 < bridge> <opulently> yeah gaslight me, go on
+13:22 < bridge> <opulently> I am gonna leave
+13:22 < bridge> <meloƞ> HuH
+13:22 < bridge> <jxsl13> I find it ok to add said rule
+13:23 < bridge> <jxsl13> just to prevent further lifetime wasting conversations like this
+13:23 < bridge> <learath2> This isn't an airport. You don't need to announce your departure
+13:23 < bridge> <heinrich5991> @jxsl13 please, do. the repository is https://github.com/ddnet/ddnet-web/
+13:23 < bridge> <jxsl13> and specifics?
+13:23 < bridge> <jxsl13> no advertising cheat clients in general?
+13:23 < bridge> <jxsl13> or only teeworlds
+13:23 < bridge> <milkeeycat> "cheat clients bad. no advertise chat clients"
+13:24 < bridge> <milkeeycat> "cheat clients bad. no advertise cheat clients"
+13:24 < bridge> <learath2> Bro was trying to defend the fundamental right of tees to advertise bot clients for financial gain, is confused when no one but the bot developer agrees
+13:24 < bridge> <learath2> We truly live in a time
+13:24 < bridge> <teero777> 😂
+13:24 < bridge> <jxsl13> no advertising of cheats (might be not even a client, imagine teeworlds hardware cheats)
+13:24 < bridge> <heinrich5991> add a file like the following, I guess: https://github.com/ddnet/ddnet-web/blob/79036aa77fd2fbb7ad08879bf7abeaab0938c395/www/rules/index.html
+13:25 < bridge> <heinrich5991> sounds good
+13:25 < bridge> <jxsl13> no advertising of cheats for online games
+13:25 < bridge> <learath2> I'd say all teeworlds master rules apply + whatever we add I guess
+13:25 < bridge> <teero777> if someone pulls of hardware cheats they deserve it xD
+13:26 < bridge> <teero777> imagine having a a proxy that interferes with your inputs to make you not die lmao
+13:26 < bridge> <teero777> imagine having a proxy that interferes with your inputs to make you not die lmao
+13:26 < bridge> <teero777> well thats not really hardware i guess
+13:26 < bridge> <lsdglsgdflk> hey
+13:26 < bridge> <teero777> idk
+13:26 < bridge> <lsdglsgdflk> my friend have problem @mik209
+13:26 < bridge> <jxsl13> I mean, advertising a baldur's gate 3 godmode mod would be ok, I guess
+13:26 < bridge> <teero777> imagine having a proxy that interferes with your input packets to make you not die lmao
+13:26 < bridge> <lsdglsgdflk> he cant join for servers
+13:27 < bridge> <lsdglsgdflk> https://cdn.discordapp.com/attachments/293493549758939136/1267805646976319538/image.png?ex=66aa1f84&is=66a8ce04&hm=689ba8d7cd09808b56d24d005ae1e355eeb0f9fae88fb18a936fad6321ab23b1&
+13:27 < bridge> <Jupstar ✪> better ask such questions in #questions next time 😄
+13:27 < bridge> <learath2> It's not the place tbf. I'd only allow hosting sponsors
+13:27 < bridge> <lsdglsgdflk> k
+13:27 < bridge> <Jupstar ✪> #✉-create-a-ticket ban-appeal
+13:27 < bridge> <lsdglsgdflk> @mik209 ало уебан
+13:27 < bridge> <0xdeen> or send me a DM with the ipv4 address
+13:28 < bridge> <jxsl13> not necessarily paid
+13:29 < bridge> <jxsl13> free god mod mod for an (primarily) offline game
+13:29 < bridge> <jxsl13> just an example
+13:30 < bridge> <learath2> But why do you need to advertise it in the ddnet serverlist?
+13:30 < bridge> <lsdglsgdflk> @mik209
+13:30 < bridge> <lsdglsgdflk> отправь ему
+13:30 < bridge> <jxsl13> dunno
+13:30 < bridge> <jxsl13> increase user base of a mod
+13:31 < bridge> <lsdglsgdflk> 2024-07-30 14:31:34 I teamchat: хлеб: smit1x: кого чуркой назвал уебище
+13:34 < bridge> <heinrich5991> I'd be fine with "no cheats of online multiplayer games" and let the "not purely advertising" rule take care of the rest
+13:36 < bridge> <Jupstar ✪> i think it should also add: "no advertising for clients with custom features".
+13:37 < bridge> <Jupstar ✪> 
+13:37 < bridge> <Jupstar ✪> Because else they come with their flawed argumentation that on their mod it is no cheat
+13:37 < bridge> <Jupstar ✪> (this is only for the server list right?)
+13:37 < bridge> <Jupstar ✪> it should generally not advertise any clients i guess xd
+13:37 < bridge> <heinrich5991> I think the rule should still allow stuff like advertising T-Client
+13:38 < bridge> <Jupstar ✪> in the server list?
+13:39 < bridge> <Jupstar ✪> i think that creates more harm than good, simply don't advertise any clients.
+13:39 < bridge> <Jupstar ✪> 
+13:39 < bridge> <Jupstar ✪> if ppl join that server fine
+13:40 < bridge> <heinrich5991> we currently don't moderate the masterserver list a lot
+13:40 < bridge> <heinrich5991> I like that, it doesn't create a lot of owrk
+13:40 < bridge> <heinrich5991> by adding a lot of rules, I feel that people are going to come to me for smaller things
+13:41 < bridge> <Jupstar ✪> sure, but then you also have to deal with the edge cases that come with flawed arguments
+13:41 < bridge> <heinrich5991> yes. I'll just ban them. so far, no problem has arisen from my serverlist dictatorship
+13:41 < bridge> <heinrich5991> AFAIK
+13:42 < bridge> <Jupstar ✪> lmao
+13:42 < bridge> <Jupstar ✪> how surprising
+13:50 < nameless_tee> Hello, i would like to suggest something
+13:50 < nameless_tee> for the ddnet.org platform
+13:53 < bridge> <zhn> xd
+13:53 < bridge> <zhn> anyway im against having servers that promote/allow bot clients on them in serverlist, if people want to hvh, share ip by yourself
+13:54 < bridge> <heinrich5991> nobody here is in favor of allowing to advertise bot clients
+13:57 < bridge> <zhn> what do you want to suggest huh
+14:03 < bridge> <milkeeycat> Chrome's L of the day. It's not possible to copy color from input of type color :pepeW:
+14:04 < bridge> <Jupstar ✪> what is type color? xd
+14:04 < bridge> <milkeeycat> it's like color picker
+14:05 < bridge> <Jupstar ✪> https://www.w3schools.com/tags/tryit.asp?filename=tryhtml5_input_type_color
+14:05 < bridge> <Jupstar ✪> this thing?
+14:05 < bridge> <milkeeycat> ye
+14:05 < bridge> <Jupstar ✪> how do you copy from that generally? xd
+14:05 < bridge> <milkeeycat> click on it
+14:05 < bridge> <Jupstar ✪> firefox gives me a full palette
+14:05 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1267815432581287968/image.png?ex=66aa28a1&is=66a8d721&hm=89e3c53fdfbd4250e9d21b29964324781c607e0f6de6403e495f49c496bed5e1&
+14:05 < bridge> <Jupstar ✪> but how can i copy xd
+14:06 < bridge> <milkeeycat> it took some time to find out but you can right click on color
+14:06 < bridge> <Jupstar ✪> in the user defined i can copy the #color code
+14:07 < bridge> <Jupstar ✪> these html input elements really need some standard xd
+14:07 < bridge> <Jupstar ✪> well i cant copy anything from firefox except opening the color picker
+14:08 < bridge> <milkeeycat> you can right click on color and there will be "customize" text
+14:08 < bridge> <milkeeycat> and from there you can copy hex
+14:08 < bridge> <Jupstar ✪> yeah wow xD
+14:08 < bridge> <Jupstar ✪> then i can also open a tab and search for color picker online xdd
+14:09 < bridge> <milkeeycat> xd
+14:09 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1267816244866715668/image.png?ex=66aa2963&is=66a8d7e3&hm=c91662f9e7e7b034c99578b76a2ce3439b4950337b6e88558051e7d4d8a2a444&
+14:09 < bridge> <Jupstar ✪> better than all the shitty native ones
+14:09 < bridge> <milkeeycat> ye, one dude at work was yapping that he can't copy color from chrome I told him to switch to firefox 😬
+14:10 < bridge> <Jupstar ✪> and did he switch? XD
+14:10 < bridge> <milkeeycat> no
+14:10 < bridge> <Jupstar ✪> :/
+14:10 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1267816654503678011/image.png?ex=66aa29c5&is=66a8d845&hm=528322536a17464e54e263dd4881a967731caca0b27681c495202fde505f1570&
+14:10 < bridge> <Jupstar ✪> on hex mode chrome lets me copy it too
+14:10 < bridge> <Jupstar ✪> in one go
+14:11 < bridge> <Jupstar ✪> well i ofc use chromium
+14:11 < bridge> <milkeeycat> wot
+14:11 < bridge> <milkeeycat> what version you use
+14:11 < bridge> <Jupstar ✪> Version 126.0.6478.182 (Official Build) built on Debian trixie/sid, running on Debian trixie/sid (64-bit)
+14:12 < bridge> <milkeeycat> I have  125.0.6422.60
+14:12 < bridge> <milkeeycat> did they fix it
+14:12 < bridge> <Jupstar ✪> i dunno
+14:12 < bridge> <Jupstar ✪> i honestly never used a native color picker yet xD
+14:12 < bridge> <Jupstar ✪> or i didnt notice
+14:17 < bridge> <milkeeycat> :pepeW:
+14:17 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267818451515347067/image.png?ex=66aa2b71&is=66a8d9f1&hm=5609d8a0abe961b8a2959edeaef45808dcff7deb19cf204ae7c091fbd06912f7&
+14:18 < bridge> <milkeeycat> I still can't copy even tho I have version 127
+14:18 < bridge> <Jupstar ✪> famous last words
+14:18 < bridge> <milkeeycat> watafak
+14:18 < bridge> <Jupstar ✪> ??????
+14:18 < bridge> <Jupstar ✪> u need tutorial? xd
+14:18 < bridge> <milkeeycat> paste value from input here
+14:18 < bridge> <milkeeycat> right now!
+14:18 < bridge> <Jupstar ✪> FBI
+14:19 < bridge> <Jupstar ✪> ah lol
+14:19 < bridge> <Jupstar ✪> but it even marks it
+14:19 < bridge> <fokkonaut> I somehow managed to join my local server, connected dummy, and it went to my main server
+14:19 < bridge> <milkeeycat> YUP
+14:19 < bridge> <fokkonaut> my main is now on my local server and my dummy is on the real server
+14:19 < bridge> <Jupstar ✪> mh second time i hear this
+14:19 < bridge> <Jupstar ✪> maybe we added a bug somehow
+14:19 < bridge> <fokkonaut> probably
+14:20 < bridge> <Jupstar ✪> https://issues.chromium.org/issues/40124558
+14:20 < bridge> <Jupstar ✪> 4 years
+14:20 < bridge> <Jupstar ✪> to fix such a simple thing
+14:21 < bridge> <milkeeycat> and you can't paste as well
+14:21 < bridge> <milkeeycat> that's crazy
+14:22 < bridge> <Jupstar ✪> totally bullshit
+14:22 < bridge> <Jupstar ✪> who made that thing xDD
+14:22 < bridge> <milkeeycat> thanks god I use firefox and never had this problem before 😏
+14:23 < bridge> <Jupstar ✪> if it wouldnt be so hard to contribute to such projects
+14:23 < bridge> <Jupstar ✪> i'd still not do it anyway, don't lie to myself
+14:23 < bridge> <murpi> Were you able to play on both servers at the same time? That'd be lit
+14:23 < bridge> <fokkonaut> yes, since it loaded the same map it was possible. but it was laggy on my main, only dummy worked nicely. i could use rcon on both, tho
+14:23 < bridge> <fokkonaut> seperately
+14:24 < bridge> <murpi> Let's make that a feature :greenthing:
+14:24 < bridge> <fokkonaut> k-client
+14:24 < bridge> <fokkonaut> xd
+14:24 < bridge> <murpi> outdated af
+14:25 < bridge> <cellegenrih> I liked the client back then
+14:38 < bridge> <_z_e_n_i_t_h_> hi
+14:39 < bridge> <Jupstar ✪> hi, welcome to #developer chat room
+14:39 < bridge> <tsfreddie> hi, im new
+14:40 < bridge> <Jupstar ✪> hi tsfreddie, nice to see you back in new
+14:40 < bridge> <tsfreddie> can i pm you
+14:41 < bridge> <teero777> no
+14:41 < bridge> <Jupstar ✪> no, everyone here wants to know our secrets
+14:41 < bridge> <Jupstar ✪> "but my custom client wont compile" xd
+14:41 < bridge> <tsfreddie> okay then, i wont send private funnies then
+14:42 < bridge> <Jupstar ✪> fak u got me
+14:42 < bridge> <Jupstar ✪> now i am curios
+14:53 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267827480941695087/schrodingers-error-handling-v0-ubp4pi671luc1.png?ex=66aa33da&is=66a8e25a&hm=b366d87ab977b4a506666c3af26547301f0f76559c474f12a9d6de1a772bf648&
+15:13 < bridge> <forgottenabscat> Pictures of four fingers from a Discord Admin. Only cost 1billion yuan. Good deal consider
+15:14 < bridge> <Jupstar ✪> wow now you even have the ones from discord admin
+15:14 < bridge> <Jupstar ✪> u really collect fast
+15:15 < bridge> <tsfreddie> ive met deen in person, so ill pass the offer.
+15:15 < bridge> <forgottenabscat> Not deen
+15:15 < bridge> <forgottenabscat> If you accept, Jupstar will get 1cent
+15:15 < bridge> <forgottenabscat> Thats a lot
+15:15 < bridge> <tsfreddie> jupeyy is vegan, they don't eat fingers
+15:15 < bridge> <forgottenabscat> Doubt
+15:16 < bridge> <forgottenabscat> The video show his fingers
+15:17 < bridge> <forgottenabscat> I think he was going to eat
+16:27 < bridge> <robyt3> See #2804. I don't understand how this can happen if the servers don't have the same IP though, since the dummy should always connect to the same IP as the main though.
+16:27 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/2804
+16:31 < bridge> <Jupstar ✪> buffer overflow 😬
+16:49 < bridge> <milkeeycat> never knew it's possible to print n chars from string using printf 
+16:49 < bridge> <milkeeycat> ```c
+16:49 < bridge> <milkeeycat> #include <stdio.h>
+16:49 < bridge> <milkeeycat> #include <unistd.h>
+16:49 < bridge> <milkeeycat> 
+16:49 < bridge> <milkeeycat> int main() {
+16:49 < bridge> <milkeeycat>     const char *owo = "That's my string, hell yeah";
+16:49 < bridge> <milkeeycat> 
+16:49 < bridge> <milkeeycat>     printf("%.*s", 9, owo);
+16:49 < bridge> <milkeeycat> }
+16:49 < bridge> <milkeeycat> ```
+16:49 < bridge> <milkeeycat> will print
+16:49 < bridge> <milkeeycat> ```
+16:49 < bridge> <milkeeycat> That's my
+16:49 < bridge> <milkeeycat> ```
+16:49 < bridge> <milkeeycat> never knew it's possible to print n chars from string using printf 
+16:49 < bridge> <milkeeycat> ```c
+16:49 < bridge> <milkeeycat> #include <stdio.h>
+16:49 < bridge> <milkeeycat> 
+16:49 < bridge> <milkeeycat> int main() {
+16:49 < bridge> <milkeeycat>     const char *owo = "That's my string, hell yeah";
+16:49 < bridge> <milkeeycat> 
+16:50 < bridge> <milkeeycat>     printf("%.*s", 9, owo);
+16:50 < bridge> <milkeeycat> }
+16:50 < bridge> <milkeeycat> ```
+16:50 < bridge> <milkeeycat> will print
+16:50 < bridge> <milkeeycat> ```
+16:50 < bridge> <milkeeycat> That's my
+16:50 < bridge> <milkeeycat> ```
+16:50 < bridge> <tsfreddie> utf8 gore moment
+17:02 < bridge> <learath2> printf is soooo good
+17:07 < bridge> <tsfreddie> give me a game idea
+17:22 < bridge> <fokkonaut> Weird
+17:25 < bridge> <teero777> huh? i thought it was fixed. i gave a way to reliably replicate that bug did i not?
+17:26 < bridge> <teero777> i reported it on discord and someone made a issue
+17:26 < bridge> <teero777> oh yea
+17:26 < bridge> <teero777> im too dumb to scroll
+17:26 < bridge> <teero777> im too dumb to scroll
+17:26 < bridge> <teero777> didnt see the video in the comments mb
+17:28 < bridge> <melon> okay hear me out, ddnet.. but written in 100% pure zig
+17:29 < bridge> <teero777> genius game idea
+17:29 < bridge> <melon> or just 3D ddnet with VR
+17:29 < bridge> <tsfreddie> rustaceans will eat you alive
+17:29 < bridge> <milkeeycat> since his name is TS Freddie the game obviously should be in TypeScript
+17:37 < bridge> <learath2> If I had a game idea, I'd make games 😄
+17:42 < bridge> <tsfreddie> make one please
+17:42 < bridge> <learath2> I always wanted to make a platformer, but I'm shit at the art part
+18:22 < bridge> <manikoo> ddnet story edition
+18:55 < bridge> <milkeeycat> oh man there're so many things to learn, C has such a syntax for declaring arrays, dat's cool
+18:55 < bridge> <milkeeycat> ```c
+18:55 < bridge> <milkeeycat> uint8_t foo[] = {
+18:55 < bridge> <milkeeycat>     [10] = 12,
+18:55 < bridge> <milkeeycat>     [5] = 5,
+18:55 < bridge> <milkeeycat> };
+18:55 < bridge> <milkeeycat> ```
+19:03 < bridge> <milkeeycat> @learath2 is there a way how to parse a struct expression(if that's how it's called) using pratt parser? xd
+19:52 < bridge> <learath2> I don't think so. Not sure why but it feels impossible to me. Though I'm not a huge theory enjoyer
+19:55 < bridge> <learath2> Oh actually perhaps it is possible, if you treat the keyword `struct` as a unary operator 😛
+19:59 < bridge> <milkeeycat> i have struct expression like
+19:59 < bridge> <milkeeycat> ```
+19:59 < bridge> <milkeeycat> Foo {
+19:59 < bridge> <milkeeycat>   a: 0x45,
+19:59 < bridge> <milkeeycat> }
+19:59 < bridge> <milkeeycat> ```
+19:59 < bridge> <milkeeycat> i have struct expression slike
+19:59 < bridge> <milkeeycat> ```
+19:59 < bridge> <milkeeycat> Foo {
+19:59 < bridge> <milkeeycat>   a: 0x45,
+19:59 < bridge> <milkeeycat> }
+19:59 < bridge> <milkeeycat> ```
+19:59 < bridge> <milkeeycat> i have struct expressions like
+19:59 < bridge> <milkeeycat> ```
+19:59 < bridge> <milkeeycat> Foo {
+19:59 < bridge> <milkeeycat>   a: 0x45,
+19:59 < bridge> <milkeeycat> }
+19:59 < bridge> <milkeeycat> ```
+20:12 < bridge> <chairn> isn't that gcc extension only ?
+20:14 < bridge> <chairn> apparently not, however ranged init is gcc extension
+20:14 < bridge> <chairn> https://gcc.gnu.org/onlinedocs/gcc/Designated-Inits.html
+20:17 < bridge> <learath2> It may technically be possible but why do you want to do this?
+20:19 < bridge> <milkeeycat> because i still have to parse them somehow xdd
+20:19 < bridge> <milkeeycat> rn i just check if next token is `{` xd
+20:20 < bridge> <learath2> Usually you use operator precedence parsers to well parse operator languages. A programming language is rarely an operator language
+20:20 < bridge> <learath2> E.g. gcc parses c with a recursive descent parser, with an operator precedence parser bolted on to parse arithmetic expressions faster
+20:22 < bridge> <milkeeycat> it's working right now, so it's good enough
+20:33 < bridge> <learath2> ```
+20:33 < bridge> <learath2> struct_field_expr : label colon value;
+20:33 < bridge> <learath2> struct_field_exprs: struct_field_expr
+20:33 < bridge> <learath2>     | struct_field_exprs comma struct_field_expr
+20:33 < bridge> <learath2>     ;
+20:33 < bridge> <learath2> struct_expr : brace_left struct_field_exprs brace_right
+20:33 < bridge> <learath2> ```
+20:35 < bridge> <learath2> This looks parseable with an operator precedence parser. No consecutive nonterminals or epsilons on the rhs.
+20:35 < bridge> <learath2> 
+20:35 < bridge> <learath2> @milkeeycat I guess it is possible atleast so if you can't do it it's a skill issue
+20:36 < bridge> <learath2> Though I did write the grammar in a bus on a phone, so maybe I overlooked something 🙃
+20:39 < bridge> <milkeeycat> time to check how to read bnf notation, i was never paying attention to it xddd
+20:40 < bridge> <soulyvevo> @ryozuki help
+20:42 < bridge> <meloƞ> > IsImageFormatRgba
+20:42 < bridge> <meloƞ> 
+20:42 < bridge> <meloƞ> RGBA is an alias for Red Green Blue Alpha? Rgba looks wrong - why the change? :o
+20:42 < bridge> <meloƞ> > IsImageFormatRgba
+20:42 < bridge> <meloƞ> 
+20:42 < bridge> <meloƞ> RGBA is an alias for Red Green Blue Alpha, Rgba looks wrong - why the change? :o
+20:46 < bridge> <robyt3> We already had a discussion about capitalization of acronyms, the only special cases we allow are `DDNet` and `DDRace` IIRC
+20:47 < bridge> <learath2> Bro is just winging the compiler
+20:47 < bridge> <learath2> Isn't RGBA an acronym?
+20:47 < bridge> <learath2> Tbf iirc we murdered GPU too
+20:47 < bridge> <robyt3> yeah, we decided the only acronyms that are allowed to have their prefered spelling are those two
+20:48 < bridge> <meloƞ> i did! XD
+20:48 < bridge> <learath2> I still can not believe that I let that PR through :pepeW:
+20:48 < bridge> <meloƞ> #7642
+20:48 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/7642
+20:48 < bridge> <meloƞ> :kek:
+20:49 < bridge> <learath2> Gfx isn't an ancronym though. It's a contraction
+20:50 < bridge> <learath2> Gfx isn't an acronym though. It's a contraction
+20:51 < bridge> <learath2> Apparently the proper term is abbreviation
+20:55 < bridge> <learath2> Actual acronyms being wrongly capitalized because muH coNsISteNt CaMuHlCasE is insane
+20:55 < bridge> <learath2> Sorry, PascalCase actually
+20:57 < bridge> <meloƞ> https://federation.edu.au/staff/business-and-communication/communication-guidelines/our-preferred-style/abbreviations,-contractions-and-acronyms
+20:57 < bridge> <meloƞ> 
+20:57 < bridge> <meloƞ> the definition of Contraction doesnt fit, given the "last letter of the original word" is not `X` but `cs`
+20:57 < bridge> <meloƞ> it seems to fall both under abbreviation and Acronym? god i should go back to school
+20:58 < bridge> <learath2> I think gfx would be an abbreviation. Acronyms are supposed to be from the initials
+20:59 < bridge> <meloƞ> i see
+21:17 < bridge> <zhn> did you hear about https://c3-lang.com
+21:17 < bridge> <zhn> did you hear about https://c3-lang.org
+21:17 < bridge> <zhn> did you hear about https://c3-lang.org
+21:22 < bridge> <meloƞ> `for the next generation`
+21:23 < bridge> <meloƞ> gerdoe wanna rewrite api once more? :greenthing:
+21:23 < bridge> <meloƞ> @learath2 that sounds like something for you :kekw:
+21:23 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1267925553630154853/image.png?ex=66aa8f30&is=66a93db0&hm=d3ceb3b79d1ef11627690de4e7dd698ceab016a2d3510d4f2f1a728f0d96a718&
+21:24 < bridge> <meloƞ> ```
+21:24 < bridge> <meloƞ> 
+21:24 < bridge> <meloƞ> fault Err
+21:24 < bridge> <meloƞ> {
+21:24 < bridge> <meloƞ>     OOPS,
+21:24 < bridge> <meloƞ>     LOTS_OF_OOPS
+21:24 < bridge> <meloƞ> }
+21:24 < bridge> <meloƞ> ```
+21:24 < bridge> <meloƞ> 
+21:24 < bridge> <meloƞ> gigachad error handling
+21:28 < bridge> <learath2> Oh wow, this has a lot of things I was planning for my C evolution
+21:30 < bridge> <learath2> I wish they had implicit this for methods
+21:31 < bridge> <milkeeycat> make C4 with implicit this
+21:32 < bridge> <milkeeycat> ok, maybe skip to C5 :justatest:
+21:45 < bridge> <zhn> where's NSE language
+21:45 < bridge> <zhn> i'll not expand it though xd
+22:04 < bridge> <meloƞ> still no answer on my #todo.txt :(
+22:04 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1267935906661138442/image.png?ex=66aa98d5&is=66a94755&hm=dfc7e8e36674dd316bfe66070d82e9da8c9cb95f6e8127b8834522050e86f564&
+22:27 < bridge> <zhn> watafak
+22:27 < bridge> <zhn> wait i didn't even see it
+22:28 < bridge> <meloƞ> :feelsbadman:
+23:25 < bridge> <jxsl13> html skills
+23:25 < bridge> <jxsl13> top tier
+23:43 < bridge> <zhn> why there is no jxsl
+23:45 < bridge> <zhn> jackass eXtreme static language
+23:46 < bridge> <jxsl13> credits?
+23:47 < bridge> <jxsl13> rip
+23:48 < bridge> <jxsl13> just because jxsl is the defacto standard for web development, does not mean that we should use it here.
+23:48 < bridge> <jxsl13> it's too powerful
+23:49 < bridge> <jxsl13> for mortals
+23:49 < bridge> <zhn> ISO jxsl-13
+23:49 < bridge> <zhn> they really did last update 11 years ago smh
+23:51 < bridge> <jxsl13> hyper stable.
+23:53 < bridge> <jxsl13> blazingly fast, GenAI and DegenAI, web1-n, flexible, future proof.
+23:53 < bridge> <jxsl13> need more buzzwords

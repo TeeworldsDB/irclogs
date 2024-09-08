@@ -1,0 +1,614 @@
+00:06 < bridge_> <cyberfrighter> tee has like 3 hitboxes of different sized and shapes
+00:15 < bridge_> <maksfjy> where to write to unban
+00:15 < bridge_> <syrinok> #✉-create-a-ticket Ban appeal
+00:16 < bridge_> <deathgood> he wants to unban why you talking about banana peel
+00:23 < bridge_> <0xdeen> We also need a good way to roll back to opengl when your client doesn't start anymore after selecting vulkan
+00:24 < bridge_> <0xdeen> exactly, something like that would be ideal, or catch the crash and suggest to reset the cfg
+00:36 < bridge_> <cyberfrighter> resetting like the entire config file or just the setting
+01:28 < bridge_> <animepdf> mousewheelleft....
+01:28 < bridge_> <animepdf> https://cdn.discordapp.com/attachments/293493549758939136/1277771779363831848/image.png?ex=66ce6134&is=66cd0fb4&hm=6d8ec07ff2492665fc34db8fb7a51589b22514274fbde9d4e5131c42d3497e4f&
+01:28 < bridge_> <animepdf> :pepeW:
+01:31 < bridge_> <soulyvevo> :justatest:
+01:34 < bridge_> <hookz1> How do I change the position of the buttons on ddnet mobile?
+02:15 < bridge_> <animepdf> wasn't [Issue 3994](https://github.com/ddnet/ddnet/issues/3994) resolved by #4383 ?
+02:15 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/4383
+02:15 < bridge_> <animepdf> wasn't [Issue 3994](<https://github.com/ddnet/ddnet/issues/3994>) resolved by #4383 ?
+02:17 < bridge_> <murpi> This feature only allows slash commands
+02:17 < bridge_> <chillerdragon> You have a client? o.0 is it open source? Can it connect to ddnet servers?
+02:19 < bridge_> <animepdf> That's unfortunate :pepeW:
+02:33 < bridge_> <zhn> godot one i suppose
+02:58 < bridge_> <zhn> @soulyvevo soulin
+02:59 < bridge_> <soulyvevo> they see me soulin
+03:22 < bridge_> <kebscs> @murpi typo   `<li><a href="/players/Knuski/">Kicker</a></li>`
+03:23 < bridge_> <murpi> Oops
+04:21 < bridge_> <tsfreddie> seems like SDL do give you the actual device sample rate. we stored it in `FormatOut`. And we do have a resampling algo that resamples from default 48k to format out for `CSamples`.
+04:21 < bridge_> <tsfreddie> 
+04:21 < bridge_> <tsfreddie> would it be possible that the resample code never runs on desktop (bcs modern audio driver does resampling themselves and allows application to provide 48k audio even if the device does not support it and mappers somehow figured only 48k audio does not sound bad so they just thought they have to use 48k audio) and the algo is just fucked up. cuz the resampling code looks very crude, forget about fft, it does not even interpolate
+04:22 < bridge_> <tsfreddie> seems like SDL do give you the actual device sample rate. we stored it in `FormatOut`. And we do have a resampling algo that resamples from default 48k to `FormatOut` for `CSamples`.
+04:22 < bridge_> <tsfreddie> 
+04:22 < bridge_> <tsfreddie> would it be possible that the resample code never runs on desktop (bcs modern audio driver does resampling themselves and allows application to provide 48k audio even if the device does not support it and mappers somehow figured only 48k audio does not sound bad so they just thought they have to use 48k audio) and the algo is just fucked up. cuz the resampling code looks very crude, forget about fft, it does not even interpolate
+04:23 < bridge_> <tsfreddie> i'll repost this on github actually
+07:32 < bridge_> <Ewan> w
+08:27 < bridge_> <learath2> Nice catch, that resampler doesn’t look very sane at all
+08:27 < bridge_> <tsfreddie> also changing to 44.1k works seems like a myth. it might sound ok because the resampler is skipped, but it is probably pitched / speed changed
+08:28 < bridge_> <tsfreddie> cuz it looks like the resampler assumes all CSample is snd_rate
+08:28 < bridge_> <learath2> Changing to 44.1k where?
+08:28 < bridge_> <tsfreddie> snd_rate 44100
+08:29 < bridge_> <tsfreddie> headbot said he changed the config and it fixed it on android
+08:29 < bridge_> <tsfreddie> i didn't confirm any of that tho, i just looked at the code and assumed
+08:29 < bridge_> <learath2> Ah, idk in what condition we resample, but if we ignore the original sample rate of the audio file that also sounds wrong
+08:30 < bridge_> <tsfreddie> if the playback device sample rate != snd_rate(which is 48000)
+08:30 < bridge_> <tsfreddie> yes, but i think headbot just didn't notice it was pitched
+08:31 < bridge_> <learath2> Okay yeah your analysis sounds about right
+08:31 < bridge_> <tsfreddie> 48000 playback at 44100 is probably not a crazy jump
+08:32 < bridge_> <tsfreddie> a better resampler is definetly needed regardless, especially if we want to properly support map audio that uses different sample rate than 48000
+08:32 < bridge_> <learath2> I wonder what the playback loop looks like though, if it were playing back at 44100 but the sample array has 48k spacing, it should create much weirder artifacts than just pitch
+08:33 < bridge_> <tsfreddie> the resampler resamples the whole PCM array in CSample. it was not a live resample
+08:34 < bridge_> <tsfreddie> playback is probably just dump as much as it could from CSample.
+08:35 < bridge_> <learath2> Yeah, but our audio files are 48k, if we load them, then set 41.1k snd_rate, how can they even be played properly?
+08:36 < bridge_> <tsfreddie> the logic is kinda wrong. the resampler assumed every CSample is just snd_rate.
+08:36 < bridge_> <tsfreddie> let me double check one sec
+08:37 < bridge_> <tsfreddie> i was filling resignation forms lol
+08:37 < bridge_> <tsfreddie> nope, i was wrong
+08:38 < bridge_> <learath2> I should look at the code myself. I just checked the resampling loop and it's just decimating which is not ideal but not completely wrong
+08:39 < bridge_> <tsfreddie> oh wait
+08:39 < bridge_> <tsfreddie> ye right
+08:39 < bridge_> <tsfreddie> we resampled to snd_rate
+08:39 < bridge_> <tsfreddie> not the actual sample rate provided by SDL
+08:40 < bridge_> <tsfreddie> https://github.com/ddnet/ddnet/blob/028bd148f34abbab0aea2381709ca8fe3bf2c273/src/engine/client/sound.cpp#L317
+08:40 < bridge_> <tsfreddie> https://github.com/ddnet/ddnet/blob/028bd148f34abbab0aea2381709ca8fe3bf2c273/src/engine/client/sound.cpp#L342
+08:40 < bridge_> <tsfreddie> we never used `FormatOut.freq`
+08:41 < bridge_> <learath2> Though we should do better than decimating because why not. We can atleast do linear interpolation like the comment suggests, or even cubic
+08:42 < bridge_> <tsfreddie> is audio resampling a solved problem. iirc i read somewhere any audio that does not have information below nyquist and resample basically lossless.
+08:42 < bridge_> <tsfreddie> is audio resampling a solved problem. iirc i read somewhere if an audio does not have information below nyquist then resample basically lossless.
+08:43 < bridge_> <tsfreddie> or was it about dac
+08:43 < bridge_> <tsfreddie> <a:HUH:1178720004980605089>
+08:43 < bridge_> <tsfreddie> is audio resampling a solved problem. iirc i read somewhere if an audio does not have information below nyquist then resample is basically lossless.
+08:45 < bridge_> <learath2> It should be lossless, but I think you need sinc interpolation for it. Which isn't finite impulse response, so idk maybe not very realtime friendly
+08:45 < bridge_> <tsfreddie> isn't CSample resamples at load time anyway
+08:45 < bridge_> <tsfreddie> 👀
+08:46 < bridge_> <learath2> Well I wouldn't want to implement sinc interpolation myself. We could just offload this to `libswresample`
+08:46 < bridge_> <learath2> It should even take care of high frequency components properly by filtering them out before resampling
+08:46 < bridge_> <tsfreddie> well, let's fix the audio device thing first.
+08:46 < bridge_> <tsfreddie> i never heard a decimated audio resample, idk how crude it was
+08:47 < bridge_> <tsfreddie> now. if only i know how to compile ddnet in 2024
+08:48 < bridge_> <tsfreddie> oh wait i have a working directory for compiling ddnet on my work machine somehow.
+08:50 < bridge_> <learath2> There is a way for decimation to be accurate. You first upsample so the new frequency is an integer multiple of the target frequency. Then you apply a lowpass filter to filter out anything that can't be properly sampled at the target frequency. Then you decimate
+08:50 < bridge_> <tsfreddie> huh?
+08:50 < bridge_> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1277882953472409697/image.png?ex=66cec8be&is=66cd773e&hm=8b578669adbfd89c6d49624228c2230755771858cdbdb83b01ec7af6e471a1c8&
+08:50 < bridge_> <learath2> Did you clone ddnet-libs?
+08:51 < bridge_> <tsfreddie> i thought i did
+08:51 < bridge_> <tsfreddie> i did
+08:52 < bridge_> <tsfreddie> ah it was on a different commit
+08:52 < bridge_> <tsfreddie> i never understood submodules fully
+08:53 < bridge_> <tsfreddie> btw we already had libswresample
+08:54 < bridge_> <learath2> What do we use it for?
+08:54 < bridge_> <tsfreddie> ffmpeg
+08:54 < bridge_> <learath2> Ah it's part of ffmpeg
+08:54 < bridge_> <tsfreddie> :kek:
+08:55 < bridge_> <learath2> So we probably only have it if we have the demo2mp4 thing
+08:55 < bridge_> <tsfreddie> ye
+08:55 < bridge_> <tsfreddie> i honestly don't know why we need a render feature
+08:55 < bridge_> <tsfreddie> but it is there i guess
+08:55 < bridge_> <learath2> Well theoretically we can do it muuuch muuch faster than just watching the entire demo
+08:56 < bridge_> <tsfreddie> theoretically
+08:57 < bridge_> <tsfreddie> after i quit, i can take a look. it feels quite janky iirc
+08:58 < bridge_> <learath2> Idk if we do rn tbf
+09:01 < bridge_> <tsfreddie> decimate sounds fine
+09:01 < bridge_> <tsfreddie> i'm surprised
+09:05 < bridge_> <tsfreddie> do we have a android build github action
+09:09 < bridge_> <tsfreddie> apparently not
+09:10 < bridge_> <headshotnoby> :justatest:
+09:11 < bridge_> <tsfreddie> i have no idea how to build for android
+09:11 < bridge_> <tsfreddie> :kek:
+09:11 < bridge_> <headshotnoby> catxplosion
+09:11 < bridge_> <tsfreddie> <a:catxplosion:1082715870893195274>
+09:12 < bridge_> <learath2> Well it's fine as long as there are no high frequency components getting clipped, those will end up getting aliased if I remember my signal theory lessons
+09:13 < bridge_> <tsfreddie> based
+09:13 < bridge_> <tsfreddie> honestly `m_MixingRate` became unused. probably would be better just used it for the playback rate.
+09:13 < bridge_> <learath2> Try decimating down to 16k or sth
+09:13 < bridge_> <tsfreddie> i just tried 22100 it sounds ok
+09:13 < bridge_> <tsfreddie> and i'm lazy now
+09:14 < bridge_> <tsfreddie> tried 5512
+09:14 < bridge_> <tsfreddie> sounds okay still
+09:15 < bridge_> <learath2> Now that's curious 😄
+09:15 < bridge_> <tsfreddie> i mean apart from the usual loss of frequency
+09:15 < bridge_> <learath2> The clipped high frequency components should be audible in lower frequencies
+09:16 < bridge_> <learath2> perhaps there just aren't that many obvious high frequency components in the tw music
+09:17 < bridge_> <tsfreddie> i mean i can record
+09:17 < bridge_> <learath2> It is possible I'm just a fool
+09:17 < bridge_> <tsfreddie> my work pc's headphone is like 2 dollars
+09:18 < bridge_> <tsfreddie> @learath2 do you know how to compile for android btw
+09:18 < bridge_> <learath2> nope
+09:18 < bridge_> <tsfreddie> brilliant
+09:22 < bridge_> <tsfreddie> oh no, deen approved too fast
+09:23 < bridge_> <tsfreddie> <a:catxplosion:1082715870893195274>
+09:27 < bridge_> <tsfreddie> would the crude resampling mess with upsampling?
+09:28 < bridge_> <tsfreddie> like from 16k to 48k
+09:37 < bridge_> <tsfreddie> snd_rate 5512 killed the render feature
+09:37 < bridge_> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1277894659624013895/solofng5ez_2023-03-24_20-39-05.mp4?ex=66ced3a4&is=66cd8224&hm=b2e0defd783829ed4ef30f04f2458cb29e4fc743d270ab6a5b3fe94a281cb014&
+09:45 < bridge_> <cute_lamb_01180> Why does the tutorial not start
+09:54 < bridge_> <matodor> overskilled
+10:14 < bridge_> <0xdeen> Most popular google result for ddnet: https://forum.ddnet.org/viewtopic.php?t=7248
+10:25 < bridge_> <tsfreddie> wait. godot dev is ddnet player?
+10:26 < bridge_> <tsfreddie> https://github.com/ddnet/ddnet/issues/8138#issuecomment-2019221327 i thought i was looking at the wrong repo.
+10:33 < bridge_> <tsfreddie> @0xdeen thoughts on #7142 ?
+10:33 < bridge_> <DDNet> https://github.com/ddnet/ddnet/issues/7142
+11:12 < bridge_> <ryozuki> one of my projects i want to do is a ebuild package manager (a.k.a portage alternative) https://projects.gentoo.org/pms/8/pms.html in rust
+11:12 < bridge_> <ryozuki> :justatest:
+11:20 < bridge_> <learath2> eh, why would you?
+11:20 < bridge_> <learath2> I guess it would be cool but portage isn't exactly too slow
+11:21 < bridge_> <ryozuki> it feels criminally slow resolving dependencies
+11:21 < bridge_> <ryozuki> it should take less than a sec
+11:21 < bridge_> <ryozuki> its the only part i care tbh xd
+11:22 < bridge_> <learath2> Mh, are you sure? I'm pretty certain the problem it's solving is NP-Complete
+11:22 < bridge_> <ryozuki> hmm yarn handles also thousand packages and feels faster
+11:22 < bridge_> <ryozuki> i wonder if it can be parallelized
+11:23 < bridge_> <ryozuki> im sure its single core rn
+11:23 < bridge_> <learath2> Well yarn, npm, brew, they all share one thing, they just don't resolve dependencies
+11:23 < bridge_> <ryozuki> xd
+11:23 < bridge_> <learath2> They just download every version of it needed
+11:23 < bridge_> <ryozuki> idk.. i just wonder if it can be made multithreaded if it isnt and faster
+11:24 < bridge_> <learath2> Well I guess it's worth giving it a look over
+11:24 < bridge_> <ryozuki> the document describes some algorithms, so maybe rust wins there simply by optimization of that
+11:24 < bridge_> <ryozuki> i want my portage with avx-512 kek
+11:26 < bridge_> <ryozuki> ```
+11:26 < bridge_> <ryozuki> 
+11:26 < bridge_> <ryozuki> Algorithm 5.1: USE masking logic
+11:26 < bridge_> <ryozuki> 1:  let masked = false
+11:26 < bridge_> <ryozuki> 2:  for each profile in the inheritance tree, depth first do
+11:26 < bridge_> <ryozuki> 3:  if use.mask contains flag then
+11:26 < bridge_> <ryozuki> 4:  let masked = true
+11:26 < bridge_> <ryozuki> 5:  else if use.mask contains -flag then
+11:26 < bridge_> <ryozuki> 6:  let masked = false
+11:26 < bridge_> <ryozuki> 7:  end if
+11:26 < bridge_> <ryozuki> 8:  if stable keyword in use then
+11:26 < bridge_> <ryozuki> 9:  if use.stable.mask contains flag then
+11:26 < bridge_> <ryozuki> 10:  let masked = true
+11:26 < bridge_> <ryozuki> 11:  else if use.stable.mask contains -flag then
+11:26 < bridge_> <ryozuki> 12:  let masked = false
+11:26 < bridge_> <ryozuki> 13:  end if
+11:26 < bridge_> <ryozuki> 14:  end if
+11:26 < bridge_> <ryozuki> 15:  for each line in package.use.mask, in order, for which the spec matches package do
+11:26 < bridge_> <ryozuki> 16:  if line contains flag then
+11:26 < bridge_> <ryozuki> 17:  let masked = true
+11:26 < bridge_> <ryozuki> 18:  else if line contains -flag then
+11:26 < bridge_> <ryozuki> 19:  let masked = false
+11:26 < bridge_> <ryozuki> 20:  end if
+11:26 < bridge_> <ryozuki> 21:  end for
+11:26 < bridge_> <ryozuki> 22:  if stable keyword in use then
+11:26 < bridge_> <ryozuki> 23:  for each line in package.use.stable.mask, in order, for which the spec matches package do
+11:26 < bridge_> <ryozuki> 24:  if line contains flag then
+11:26 < bridge_> <ryozuki> 25:  let masked = true
+11:26 < bridge_> <ryozuki> 26:  else if line contains -flag then
+11:27 < bridge_> <ryozuki> 27:  let masked = false
+11:27 < bridge_> <ryozuki> 28:  end if
+11:27 < bridge_> <ryozuki> oh it doesnt preserve tabs
+11:27 < bridge_> <ryozuki> meh
+11:30 < bridge_> <learath2> Yeah ok, the problem is most definitely np complete, it reduces to 3SAT I think
+11:30 < bridge_> <learath2> So you'll basically be looking to code a sat solver
+11:33 < bridge_> <ryozuki> https://purplesyringa.moe/blog/division-is-hard-but-it-does-not-have-to-be/
+11:33 < bridge_> <ryozuki> interesting
+11:53 < Klee_> ）
+12:06 < bridge_> <milkeeycat> @learath2 are only 64bit registers allowed in effective adrrss?
+12:07 < bridge_> <milkeeycat> You know that thing in `[]` whatever it's called
+12:09 < bridge_> <learath2> Well what are you trying to do even?
+12:10 < bridge_> <learath2> How would a 32bit register address 64bit address space anyway?
+12:10 < bridge_> <milkeeycat> I'm making structs for working with instructions parameters
+12:10 < bridge_> <milkeeycat> https://github.com/MilkeeyCat/meraki/blob/main/src/codegen/operands.rs here's what i have so far
+12:11 < bridge_> <milkeeycat> And there's a struct called `EffectiveAddress` and it uses structure for register which includes a size
+12:12 < bridge_> <milkeeycat> But it's not necessary if it's possible to use only 64bit registers
+12:15 < bridge_> <learath2> Ah, good question, in 64 bit mode, only 64bit full registers can be the base
+12:15 < bridge_> <learath2> I'm guessing you are not supporting 32 bit anyway, so only 64 bit base
+12:16 < bridge_> <milkeeycat> Even then, it's used in arch/amd64.rs
+12:32 < bridge_> <milkeeycat> Even then, it's used in arch/amd64.rs, each architecture implements a display trait for those structs, so in 32bit arch i can use 32bit register instead of 64bit one
+12:33 < bridge_> <learath2> cool cool cool
+12:34 < bridge_> <learath2> Careful btw, `ESP` for 32bit and `RSP` for 64bit can't be used as `Index`
+12:36 < bridge_> <milkeeycat> https://github.com/MilkeeyCat/meraki/blob/76624b10242be8d84e41ac1546542e3740928b69/src/archs/amd64/amd64.rs#L65-L76 i use only these registers xd
+12:44 < bridge_> <learath2> "there's no one byte one, hmmmm" there is tho?
+12:44 < bridge_> <learath2> bpl?
+12:44 < bridge_> <milkeeycat> i was looking at some image and there was no name for it
+12:44 < bridge_> <milkeeycat> xdd
+12:45 < bridge_> <tsfreddie> :owo:
+12:45 < bridge_> <learath2> It's probably less used because it requires a REX.B prefix
+12:45 < bridge_> <tsfreddie> why do they have an approval process for resignation
+12:46 < bridge_> <learath2> It seems to be harder for you to resign than for me to find a job wtf
+12:46 < bridge_> <tsfreddie> wouldn't it be weird if resignation is deniable
+12:46 < bridge_> <learath2> Though now that I think about it it shouldn't result in longer instructions, hm curious
+12:47 < bridge_> <milkeeycat> After 1k loc refactor i can finally use `offset` keyword for moving a pointer instead of using lea 😏
+12:47 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1277942486383198299/image.png?ex=66cf002f&is=66cdaeaf&hm=52ecefd7a15ef2576f87367ddd10457815f9e67b8b2a4f728eb36ddb3418d6b6&
+12:48 < bridge_> <learath2> What document are you referring to for `as` documentation?
+12:49 < bridge_> <milkeeycat> stackoverflow :justatest:
+12:49 < bridge_> <milkeeycat> and maybe dis https://sourceware.org/binutils/docs/as/
+12:49 < bridge_> <milkeeycat> oh and i just look at what gcc spits out
+12:53 < bridge_> <ryozuki> @learath2 is it unholy to store info in the unused bits of a pointer address?
+12:53 < bridge_> <ryozuki> iirc addresses are only 48bit
+12:55 < bridge_> <learath2> No, verysoon(tm) we'll even have official support for it so you no longer need to mask it out again. `LAM` for intel, `UAI` for amd, `TBI` for aarch64
+12:56 < bridge_> <learath2> For now sadly the kernel people just can't agree on how to expose the functionality properly to users
+12:57 < bridge_> <learath2> Well also the fault of the cpu people tbh, they ended up with 3 very different implementations
+13:01 < bridge_> <milkeeycat> @learath2 what do you think about `()` in if, for statements?
+13:04 < bridge_> <learath2> Not needed, except probably easier to parse with parens 😄
+13:05 < bridge_> <milkeeycat> They only feature they give is that you can write an expression without `{}` but I never use it anyways
+13:06 < bridge_> <milkeeycat> The only feature they give is that you can write an expression without `{}` but I never use it anyways
+13:47 < bridge_> <milkeeycat> ```rust
+13:47 < bridge_> <milkeeycat>     fn if_stmt(&mut self) -> Result<Stmt, ParserError> {
+13:47 < bridge_> <milkeeycat>         self.expect(&Token::If)?;
+13:47 < bridge_> <milkeeycat> 
+13:47 < bridge_> <milkeeycat>         let condition = self.expr(Precedence::default())?;
+13:47 < bridge_> <milkeeycat>         let consequence = self.compound_statement(None)?;
+13:47 < bridge_> <milkeeycat>         let alternative = if self.cur_token_is(&Token::Else) {
+13:47 < bridge_> <milkeeycat>             self.expect(&Token::Else)?;
+13:47 < bridge_> <milkeeycat> 
+13:47 < bridge_> <milkeeycat>             Some(self.compound_statement(None)?)
+13:47 < bridge_> <milkeeycat>         } else {
+13:47 < bridge_> <milkeeycat>             None
+13:47 < bridge_> <milkeeycat>         };
+13:47 < bridge_> <milkeeycat> 
+13:47 < bridge_> <milkeeycat>         Ok(Stmt::If(StmtIf {
+13:47 < bridge_> <milkeeycat>             condition,
+13:47 < bridge_> <milkeeycat>             consequence,
+13:47 < bridge_> <milkeeycat>             alternative,
+13:47 < bridge_> <milkeeycat>         }))
+13:47 < bridge_> <milkeeycat>     }
+13:47 < bridge_> <milkeeycat> ```
+13:47 < bridge_> <milkeeycat> it wasn't that hard to parse xd
+13:48 < bridge_> <learath2> cool cool cool
+13:48 < bridge_> <milkeeycat> :justatest:
+13:49 < bridge_> <zhn> as always xd
+13:49 < bridge_> <ryozuki> lam seems to be supported on linux since 6.4
+13:49 < bridge_> <learath2> Yep, but I think only LAM48 for now, so no level 5 paging
+13:50 < bridge_> <learath2> Yep, but I think only LAM48 for now, so no 5 level paging
+14:40 < bridge_> <milkeeycat> @learath2 🎉
+14:40 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1277971076793503898/image.png?ex=66cf1ad0&is=66cdc950&hm=799f7cbd78d4f5e666454622fd45e3e157a0d68da29129e919a705694c7be7f2&
+14:40 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1277971077066395740/image.png?ex=66cf1ad0&is=66cdc950&hm=37967917a43245febfd7c216bf1114f45028858aff94def77fce60adb60402fa&
+14:50 < bridge_> <learath2> Let's goooo \o/
+14:51 < bridge_> <milkeeycat> && and || doesn't work tho
+14:55 < bridge_> <learath2> Let's not gooooo /o\
+15:02 < bridge_> <Peakies> 😄
+15:04 < bridge_> <milkeeycat> It has cool syntax highlighting tho
+15:04 < bridge_> <learath2> Make logical and and logical or work rn or we riot
+15:05 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1277977281519812709/image.png?ex=66cf2097&is=66cdcf17&hm=33260035767e70727578fd97aa4fdc88b1bf78262eb8f10193e680160baa2a8e&
+15:06 < bridge_> <milkeeycat> btw, in my language if you declare `u8* a, b` both of them will be of a pointer type
+15:06 < bridge_> <learath2> <a:FrierenDies:1198335807686193182>
+15:22 < bridge_> <learath2> Does anyone know a hoster other than hetzner that has desktop hardware?
+15:37 < bridge_> <milkeeycat> Is that bad? :justatest:
+15:38 < bridge_> <learath2> No, but I'm a C addict so it feels wrong to me
+15:39 < bridge_> <meloƞ> Can you declare vars of different types that way aswell?
+15:39 < bridge_> <meloƞ> u8 *a, i32 *b
+15:39 < bridge_> <milkeeycat> Just put it on a new line
+15:39 < bridge_> <meloƞ> No way you can do that ???
+15:39 < bridge_> <meloƞ> :poggers2:
+15:40 < bridge_> <milkeeycat> u8* a;
+15:40 < bridge_> <milkeeycat> i32* b;
+15:40 < bridge_> <milkeeycat> You're welcome
+15:41 < bridge_> <meloƞ> a, b, c := 10, 20, 30
+15:41 < bridge_> <meloƞ> 
+15:41 < bridge_> <meloƞ> I Like this in Go for inner scopes of Things, helps keeping Things tidy
+15:41 < bridge_> <milkeeycat> Time to learn new things old man
+15:42 < bridge_> <learath2> Nooooooo not new things :AaAAAAAAAAAAAAAAA:
+15:43 < bridge_> <milkeeycat> At first I thought it was a bug, but then I realized it's a feature
+15:43 < bridge_> <learath2> There are a fair bit of go users here now. Would y'all like to start a go revolution and riot against the rusters?
+15:43 < bridge_> <meloƞ> Both.. both is good
+15:43 < bridge_> <learath2> Yes, let's make it even more complicated
+15:43 < bridge_> <meloƞ> WE all drop Go AND Rust and Just Use Zig
+15:44 < bridge_> <meloƞ> i hate german Keyboards
+15:44 < bridge_> <milkeeycat> I like dereferencing nil map
+15:44 < bridge_> <meloƞ> Autocorrection capitalizes every word
+15:44 < bridge_> <milkeeycat> I like dereferencing nil maps
+15:45 < bridge_> <meloƞ> Don't let ryozuki hear this :justatest:
+15:48 < bridge_> <teero777> I bought the rust book today I can't turn back in sorry
+15:48 < bridge_> <teero777> 😔
+15:48 < bridge_> <teero777> I bought the rust book today I can't turn back I'm sorry
+15:48 < bridge_> <milkeeycat> Wat book?
+15:49 < bridge_> <milkeeycat> Which book?
+15:49 < bridge_> <teero777> Rust language book thing part 2
+15:49 < bridge_> <teero777> uhm
+15:49 < bridge_> <teero777> Wait
+15:49 < bridge_> <teero777> https://nostarch.com/rust-programming-language-2nd-edition
+15:50 < bridge_> <teero777> I need smth to read when I'm not on my pv
+15:50 < bridge_> <teero777> I need smth to read when I'm not on my pc
+15:56 < bridge_> <cyberfrighter> where is heinrich map database
+16:02 < bridge_> <cyberfrighter> nevermind
+16:04 < bridge_> <patiga> https://heinrich5991.de/teeworlds/maps/maps/
+16:05 < bridge_> <cyberfrighter> does someone know how to open these maps?
+16:05 < bridge_> <cyberfrighter> https://cdn.discordapp.com/attachments/293493549758939136/1277992280069767228/image.png?ex=66cf2e8f&is=66cddd0f&hm=9a6489f190d6c3c222ed1fac9bc96e1fed306970f27204f77c2d8f96a1fbafd9&
+16:05 < bridge_> <cyberfrighter> they have some kind of unsupported version
+16:06 < bridge_> <patiga> you could try opening them with older clients
+16:06 < bridge_> <cyberfrighter> older ddnet client or vanilla?
+16:08 < bridge_> <patiga> vanilla I suppose, the first map is older than ddnet
+16:08 < bridge_> <cyberfrighter> 0.6.5 doesnt work
+16:09 < bridge_> <zhn> try vanilla 0.5
+16:09 < bridge_> <cyberfrighter> neither does even 0.5.2
+16:09 < bridge_> <cyberfrighter> it just crashed
+16:09 < bridge_> <zhn> try 0.4 :troll:
+16:09 < bridge_> <cyberfrighter> really
+16:09 < bridge_> <zhn> send map download link
+16:09 < bridge_> <patiga> oh god
+16:09 < bridge_> <patiga> it might be a simple fix
+16:10 < bridge_> <patiga> gimme a sec
+16:10 < bridge_> <cyberfrighter> doesnt work
+16:10 < bridge_> <cyberfrighter> https://heinrich5991.de/teeworlds/maps/maps/Inf_MARIO-2012_66f6accb53b486ce8afaffb5e1b93370e6d153e4ac8847ee30e830fa8365f158.map
+16:10 < bridge_> <cyberfrighter> https://heinrich5991.de/teeworlds/maps/maps/Inf_MARIO-2012_4d5ed812b37abddf650c9d67c87703cb6a972657b57f0dd88aec154fd72e70d9.map
+16:11 < bridge_> <cyberfrighter> im just assuming its some weird client mod
+16:11 < bridge_> <cyberfrighter> then
+16:12 < bridge_> <cyberfrighter> asking since this map seems to have the same map as those 2
+16:12 < bridge_> <cyberfrighter> https://cdn.discordapp.com/attachments/293493549758939136/1277994190395019358/image.png?ex=66cf3056&is=66cdded6&hm=cc6a3ab20ca22ca5fd0c2a604632d54ca61d2ffa55f888a8078bc46c767f27a9&
+16:12 < bridge_> <cyberfrighter> and it also cant be loaded
+16:12 < bridge_> <cyberfrighter> asking since this server seems to have the same map as those 2
+16:12 < bridge_> <cyberfrighter> https://cdn.discordapp.com/attachments/293493549758939136/1277994190395019358/image.png?ex=66cf3056&is=66cdded6&hm=cc6a3ab20ca22ca5fd0c2a604632d54ca61d2ffa55f888a8078bc46c767f27a9&
+16:30 < bridge_> <patiga> wasn't too simple, but did this only with editing hex :D @cyberfrighter
+16:30 < bridge_> <patiga> https://cdn.discordapp.com/attachments/293493549758939136/1277998573241503744/Inf_MARIO-2012_4d5ed812b37abddf650c9d67c87703cb6a972657b57f0dd88aec154fd72e70d9.map?ex=66cf346b&is=66cde2eb&hm=0468969b2a9fb96d8b6c21442adb7f129606c6c82f9cc177952978cbc01b2b7c&
+16:30 < bridge_> <cyberfrighter> sick
+16:30 < bridge_> <cyberfrighter> what was wrong with it btw
+16:31 < bridge_> <patiga> they edited some values to prevent people from opening it with the editor
+16:32 < bridge_> <cyberfrighter> gonna see if i can try joining that server now
+16:33 < bridge_> <cyberfrighter> also thats weird, why would they do that xd
+16:34 < bridge_> <hhajee666> Hello guys, are there any people here from Russia?
+16:35 < bridge_> <patiga> not sure tbh
+16:35 < bridge_> <patiga> yes, there are plenty russian players in here, if you want to write in russian, you can go over to #off-topic
+16:35 < bridge_> <cyberfrighter> weird
+16:35 < bridge_> <cyberfrighter> https://cdn.discordapp.com/attachments/293493549758939136/1278000015544942643/image.png?ex=66cf35c3&is=66cde443&hm=b0b9db8a6170626c9987b753f908abe0460b663ec39d1502efd23f0ce42c2fba&
+16:37 < bridge_> <patiga> dunno what that error is
+16:44 < bridge_> <hhajee666> Sorry for the possibly stupid question, I was told that DDNT can be installed on a phone, is this true?
+16:48 < bridge_> <meloƞ> yes! you can download the .APK here: https://discord.com/channels/252358080522747904/293493549758939136/1277352378538000496
+16:48 < bridge_> <meloƞ> since it's basically a "beta" version expect bugs!
+16:48 < bridge_> <meloƞ> since it's basically a "beta" version expect bugs! (and feel free to report them) - best place to do so would be here: https://discord.com/channels/252358080522747904/1277345584080097320
+16:49 < bridge_> <meloƞ> also - reminder: there are no stupid questions, only stupid answers
+17:36 < bridge_> <learath2> `2^5 * 9^2 = 2592`
+17:39 < bridge_> <Jupstar ✪> chillerdragon:
+17:39 < bridge_> <Jupstar ✪> pls install discord
+17:39 < bridge_> <Jupstar ✪> we need you
+17:46 < bridge_> <dick_1488> help please
+17:48 < bridge_> <dick_1488> when I try to record a demo, I see a black screen when I record this demo via OBS
+17:48 < bridge_> <dick_1488> how fix it?
+17:49 < bridge_> <meloƞ> you dont need to record your demo - you can render it right in the client as an .mp4
+17:49 < bridge_> <dick_1488> how&
+17:49 < bridge_> <dick_1488> ?
+17:51 < bridge_> <syrinok> You should trim the part of the demo you want to upload, using these buttons within the demo
+17:51 < bridge_> <syrinok> https://cdn.discordapp.com/attachments/293493549758939136/1278019015276761118/image.png?ex=66cf4775&is=66cdf5f5&hm=e9a7f4f745462cb340577b65f64b4fbb84f053845683a6aabb3944bf7fc9601a&
+17:51 < bridge_> <meloƞ> click on this button on your demo replay - you can choose a name and a few options, when its done you can open up the folder with your rendered video by clicking on "Video directory"
+17:51 < bridge_> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1278019021425479770/grafik.png?ex=66cf4777&is=66cdf5f7&hm=cf25861bed07b7f86568739486344094043265e9b7a0e96709dcc1b70b210ef8&
+17:51 < bridge_> <meloƞ> also what Skeith says, you can cut it
+17:52 < bridge_> <syrinok> It'll add red markers to the start and end points that you'll trim
+17:52 < bridge_> <syrinok> https://cdn.discordapp.com/attachments/293493549758939136/1278019349093023744/image.png?ex=66cf47c5&is=66cdf645&hm=1dbb563dfdf6780554d1cd32cfd5e64470c96421c5b846f2560211a2617d8ebe&
+17:55 < bridge_> <milkeeycat> generating code for logical operators seems not as easy as I thought :pepeW:
+17:55 < bridge_> <dick_1488> Thank you very much
+18:03 < bridge_> <dynastydead> https://cdn.discordapp.com/attachments/293493549758939136/1278022197796933763/image.png?ex=66cf4a6c&is=66cdf8ec&hm=53f4bf0ed675af1528c8e920da35d9a27e2e0dc29fa6a43cf2ea888ebe7eba25&
+18:46 < bridge_> <itom6176> New 18.5 features look great :owo:
+18:56 < bridge_> <0xdeen> I would have called it 19.0 if I had realized there are that many big features before starting to build it 😄
+19:00 < bridge_> <antiseptik999> Кто поможет с ошибкой в дднет?
+19:00 < bridge_> <Jupstar ✪> what?
+19:01 < bridge_> <antiseptik999> what?
+19:01 < bridge_> <antiseptik999> error ddnet
+19:01 < bridge_> <Jupstar ✪> i cant read russian
+19:02 < bridge_> <antiseptik999> ошибка assertion error из за текстур
+19:02 < bridge_> <lockzeee_95860> I will translate, he asks for help with the error
+19:02 < bridge_> <Jupstar ✪> this chat is devloper chat
+19:02 < bridge_> <lockzeee_95860> error due to textures
+19:02 < bridge_> <Jupstar ✪> what kind of textures
+19:02 < bridge_> <Jupstar ✪> does the error not tell what the problem is?
+19:03 < bridge_> <antiseptik999> i am not speak english
+19:03 < bridge_> <meloƞ> send error into #bugs please
+19:04 < bridge_> <lockzeee_95860> then you can end the conversation in this chat 🙂
+19:04 < bridge_> <lockzeee_95860> especially the chat by the developer
+19:18 < bridge_> <kebscs> 😎
+19:54 < bridge_> <zhn> wheres 0.6 skin save button :troll:
+20:14 < bridge_> <0dpododdododo> -- Configuring incomplete, errors occurred!
+20:14 < bridge_> <0dpododdododo> MSBuild version 17.10.4+10fbfbf2e for .NET Framework
+20:14 < bridge_> <0dpododdododo> MSBUILD : error MSB1009: Project file does not exist.
+20:14 < bridge_> <0dpododdododo> Switch: everything.vcxproj
+20:14 < bridge_> <0dpododdododo> 
+20:14 < bridge_> <0dpododdododo> Error: Process completed with exit code 1.
+20:14 < bridge_> <0dpododdododo> pls help
+20:15 < bridge_> <meloƞ> are you following the readme ? -- Configuring incomplete, errors occurred!
+20:15 < bridge_> <meloƞ> MSBuild version 17.10.4+10fbfbf2e for .NET Framework
+20:15 < bridge_> <meloƞ> MSBUILD : error MSB1009: Project file does not exist.
+20:15 < bridge_> <meloƞ> Switch: everything.vcxproj
+20:15 < bridge_> <meloƞ> 
+20:15 < bridge_> <meloƞ> Error: Process completed with exit code 1.
+20:15 < bridge_> <meloƞ> pls help
+20:16 < bridge_> <meloƞ> are you following the readme? https://github.com/ddnet/ddnet?tab=readme-ov-file#building-on-windows-with-standalone-msvc-build-tools
+20:16 < bridge_> <meloƞ> are you following the readme? https://github.com/ddnet/ddnet?tab=readme-ov-file#building-on-windows-with-standalone-msvc-build-tools
+20:16 < bridge_> <0dpododdododo> thanks u
+20:16 < bridge_> <soulyvevo> would be cool tho i think some custom clients have something like that
+20:16 < bridge_> <meloƞ> tater's "profile" has that
+20:17 < bridge_> <meloƞ> see this @totar ??? i'm a pro in your client now!
+20:17 < bridge_> <0dpododdododo> lmfao
+20:17 < bridge_> <0dpododdododo> im got error in workflow in my fork
+20:17 < bridge_> <0dpododdododo> on github
+20:17 < bridge_> <meloƞ> happens - what are you trying to do? send link!
+20:20 < bridge_> <0dpododdododo> 😲
+20:20 < bridge_> <0dpododdododo> second
+20:24 < bridge_> <0dpododdododo> u wanna steal my code ik
+20:24 < bridge_> <0dpododdododo> My most useful features won't be in the hands of a melon
+20:24 < bridge_> <0dpododdododo> 🇬 🇳 🇮 🇦
+20:24 < bridge_> <meloƞ> :pepe_ew92:  i have access to so many clients - i'm just interested >:c
+20:49 < bridge_> <milkeeycat> Who gave the access to a fruit?
+21:03 < bridge_> <louis> https://discord.com/channels/252358080522747904/342454474117218334/1265666879565856818
+21:04 < bridge_> <louis> can i actually pay someone here $100 to upload ddnet to ios?
+21:10 < bridge_> <robyt3> #8821 is not merged yet
+21:10 < bridge_> <DDNet> https://github.com/ddnet/ddnet/pull/8821
+21:10 < bridge_> <egyt> please, update [this](https://ddnet.org/news/client-translations/) at least
+21:10 < bridge_> <egyt> last update: 2020-06-27 (!)
+21:11 < bridge_> <zhn> almost 17 lines to translate! how queer
+21:11 < bridge_> <robyt3> The date is probably when this page was created, but confusing indeed
+21:12 < bridge_> <egyt> well, still outdated, because it shows Ukrainian at 97% while it is for sure at 100%
+21:12 < bridge_> <egyt> well, still outdated, because it shows Ukrainian at 97% while it is clearly at 100%
+21:23 < bridge_> <Jupstar ✪> heelo guis
+21:23 < bridge_> <Jupstar ✪> 
+21:23 < bridge_> <Jupstar ✪> is `tune_zone 0` unused? like, does the ddnet server ignore that.
+21:23 < bridge_> <Jupstar ✪> i dont ask if that is a valid config, i just wonder if you _have_ to use tune for the "global" tuning.
+21:23 < bridge_> <Jupstar ✪> 
+21:23 < bridge_> <Jupstar ✪> i read this
+21:23 < bridge_> <Jupstar ✪> https://discord.com/channels/252358080522747904/757720336274948198/1273613887232802868
+21:23 < bridge_> <Jupstar ✪> 
+21:23 < bridge_> <Jupstar ✪> if it is unused -> it can be dropped
+21:23 < bridge_> <Jupstar ✪> if it is somehow actually used -> i am doomed
+21:23 < bridge_> <Jupstar ✪> heelo guis
+21:23 < bridge_> <Jupstar ✪> 
+21:23 < bridge_> <Jupstar ✪> is `tune_zone 0` unused? like, does the ddnet server ignore that.
+21:23 < bridge_> <Jupstar ✪> i dont ask if that is a valid config, i just wonder if you _have_ to use `tune` for the "global" tuning.
+21:23 < bridge_> <Jupstar ✪> 
+21:23 < bridge_> <Jupstar ✪> i read this
+21:23 < bridge_> <Jupstar ✪> https://discord.com/channels/252358080522747904/757720336274948198/1273613887232802868
+21:23 < bridge_> <Jupstar ✪> 
+21:23 < bridge_> <Jupstar ✪> if it is unused -> it can be dropped
+21:23 < bridge_> <Jupstar ✪> if it is somehow actually used -> i am doomed
+21:26 < bridge_> <robyt3> I thought about this code as some point. The server and client code for tune zones could be made a lot cleaner if `tune_zone 0` would be considered identical to the global tune zone with `tune` but I was never sure enough if this was actually the case everywhere.
+21:27 < bridge_> <Jupstar ✪> yeah i think that makes sense 😄
+21:27 < bridge_> <Jupstar ✪> twgame uses tune zone 0 as global tune
+21:28 < bridge_> <Jupstar ✪> so i actually think it can be done
+21:32 < bridge_> <.lepinpin> does there is a deepfly command to turn it on/off in one line ?
+21:33 < bridge_> <lockzeee_95860> will it be available soon?
+21:34 < bridge_> <lockzeee_95860> Or did I misunderstand
+21:34 < bridge_> <Jupstar ✪> this isn't #questions , please use the correct channel
+21:46 < bridge_> <robyt3> In a few weeks probably, I don't have much time next week
+21:50 < bridge_> <lockzeee_95860> I will be looking forward to it)
+21:50 < bridge_> <lockzeee_95860> I will be looking forward to it
+21:56 < bridge_> <milkeeycat> @learath2 that's the unholiest thing I've written so far
+21:56 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1278080779104292896/image.png?ex=66cf80fb&is=66ce2f7b&hm=af0d6cba6ae157bf60bd3dc343d0fb7b9f865fb0a5ef893ecb472dd420d8926e&
+21:57 < bridge_> <milkeeycat> i don't even understand what it does, i just yoinked it from other person's c compiler 😬
+21:59 < bridge_> <spyres.> ChatGPT will tell you what it does
+22:00 < bridge_> <milkeeycat> no it won't, it will just pretend like it knows and actually will just spit out mumbo jumbo nonsense
+22:00 < bridge_> <spyres.> Sounds good to me
+22:01 < bridge_> <milkeeycat> I'll just leave a comment to never touch this piece of code and call it a day
+22:02 < bridge_> <spyres.> If you Ctrl + A and then delete, you won't ever see it again. Why never touch when you don't have to see it.
+22:02 < bridge_> <spyres.> :gigachad:
+22:18 < bridge_> <.lepinpin> {Localizable("Deep Fly (Fixed)"), "bind mouse1 \"+fire; +toggle cl_dummy_hammer 1 0\";cl_message_client_color green; echo Deep Fly ON; bind x \"bind mouse1 +fire; cl_dummy_hammer 0; cl_message_client_color red; echo Deep Fly OFF; exec deepfly.cfg\"", 0, 0}
+22:18 < bridge_> <.lepinpin>  for this does someone know a solution to fix it, the command only enable and idk what to do
+22:22 < bridge_> <meloƞ> you want to.. hardcode the deep fly command? on a fixed key? why :D
+22:23 < bridge_> <.lepinpin> i try to edit client
+22:23 < bridge_> <meloƞ> also you ofc need 2 .cfg files, one for toggle on and one for toggle off
+22:23 < bridge_> <meloƞ> $rtfm deepfly
+22:24 < bridge_> <.lepinpin> but in cfg same thing it only turn on it didnt turn off
+22:24 < bridge_> <.lepinpin> bc in cfg it dont take the key i want
+22:25 < bridge_> <meloƞ> @murpi bot down? :(
+22:25 < bridge_> <meloƞ> huh - you can change the .cfg to fit your key
+22:25 < bridge_> <.lepinpin> i dont want that
+22:25 < bridge_> <.lepinpin> in settings/commands
+22:26 < bridge_> <.lepinpin> i want to set a button
+22:26 < bridge_> <learath2> I can try to explain if you tell me what you dont understand
+22:26 < bridge_> <milkeeycat> did you understand how it works? :justatest:
+22:27 < bridge_> <.lepinpin> i want when in commands i change the key the commands change the keys with the KeyId
+22:29 < bridge_> <meloƞ> i'm fairly sure you're escaping the command wrong if you want to do it like this
+22:29 < bridge_> <meloƞ> did you use the template from the wiki?
+22:30 < bridge_> <.lepinpin> yes
+22:30 < bridge_> <.lepinpin> https://wiki.ddnet.org/wiki/Binds#Using_1_Config_File\
+22:30 < bridge_> <learath2> Sort of, I think
+22:30 < bridge_> <meloƞ> at this point just ship a config file with your repo that executes this in a .cfg file
+22:31 < bridge_> <meloƞ> `{Localizable("Move left"), "exec deepfly.cfg", 0, 0}`
+22:33 < bridge_> <.lepinpin> so it will active and desactive ?
+22:33 < bridge_> <meloƞ> if you do it like that - yes, it'll behave the same way as if you'd use a regular .cfg file
+22:33 < bridge_> <meloƞ> but if you want to distribute your client in any way shape or form, you need to do a workaround ig
+22:33 < bridge_> <meloƞ> since you can't just ship .cfg files in your repo, because the client looks for them in your local directory IIRC
+22:33 < bridge_> <meloƞ> ^ dangerous half-knowledge btw
+22:35 < bridge_> <milkeeycat> After trying to use my noodle I think I understood how it works :DD
+22:39 < bridge_> <learath2> It is very suboptimal assembly tbf
+22:39 < bridge_> <learath2> But it is implementing shortcircuiting behaviour
+22:40 < bridge_> <milkeeycat> I spent a few hours thinking I have to implement something like gcc, no way I can do that xddd
+22:40 < bridge_> <milkeeycat> if it works, it works
+22:40 < bridge_> <learath2> The weird jumping is to prevent the later expressions from even getting evaluated if one is zero
+22:41 < bridge_> <learath2> Wym something like gcc?
+22:41 < bridge_> <milkeeycat> it generates readable stuff xd
+22:41 < bridge_> <milkeeycat> and it looks hard
+22:41 < bridge_> <learath2> Even at O0?
+22:42 < bridge_> <learath2> I can't type on godbolt on a phone, can you show me what that snippet looks like in gcc?
+22:42 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1278092238022377492/image.png?ex=66cf8ba7&is=66ce3a27&hm=4e74de6636af8cabbcdf14a9ae97104a8bb1a22363a86de1588c189c8be1672f&
+22:42 < bridge_> <milkeeycat> ill paste mine now :justatest:
+22:42 < bridge_> <meloƞ> :cammostripes:
+22:42 < bridge_> <.lepinpin> no it activate and instant desactivate
+22:43 < bridge_> <meloƞ> send me the .cfg file in my dms really quick
+22:43 < bridge_> <learath2> This actually looks better, idk how hard it'd be to generate tho
+22:43 < bridge_> <meloƞ> (dont wanna flood developer chat)
+22:43 < bridge_> <.lepinpin> np
+22:44 < bridge_> <milkeeycat> Pfff, that's what read men use 
+22:44 < bridge_> <milkeeycat> ```
+22:44 < bridge_> <milkeeycat> .section .text
+22:44 < bridge_> <milkeeycat> .global main
+22:44 < bridge_> <milkeeycat> main:
+22:44 < bridge_> <milkeeycat>     push rbp
+22:44 < bridge_> <milkeeycat>     mov rbp, rsp
+22:44 < bridge_> <milkeeycat>     sub rsp, 16
+22:44 < bridge_> <milkeeycat>     mov dword ptr [rbp - 4], 5
+22:44 < bridge_> <milkeeycat>     mov dword ptr [rbp - 8], 10
+22:44 < bridge_> <milkeeycat>     mov dword ptr [rbp - 12], 1
+22:44 < bridge_> <milkeeycat>     lea r15, [rbp - 4]
+22:44 < bridge_> <milkeeycat>     mov r14d, dword ptr [r15]
+22:44 < bridge_> <milkeeycat>     mov dword ptr [rbp - 13], r14d
+22:44 < bridge_> <milkeeycat>     cmp byte ptr [rbp - 13], 0
+22:44 < bridge_> <milkeeycat>     sete byte ptr [rbp - 13]
+22:44 < bridge_> <milkeeycat>     je .L2
+22:44 < bridge_> <milkeeycat>     lea r15, [rbp - 8]
+22:44 < bridge_> <milkeeycat>     mov r14d, dword ptr [r15]
+22:44 < bridge_> <milkeeycat>     mov dword ptr [rbp - 13], r14d
+22:44 < bridge_> <milkeeycat>     cmp byte ptr [rbp - 13], 0
+22:44 < bridge_> <milkeeycat>     sete byte ptr [rbp - 13]
+22:44 < bridge_> <milkeeycat>     je .L2
+22:44 < bridge_> <milkeeycat>     mov byte ptr [rbp - 13], 1
+22:44 < bridge_> <milkeeycat>     jmp .L3
+22:44 < bridge_> <milkeeycat> .L2:
+22:44 < bridge_> <milkeeycat>     mov byte ptr [rbp - 13], 0
+22:44 < bridge_> <milkeeycat> .L3:
+22:44 < bridge_> <milkeeycat>     cmp byte ptr [rbp - 13], 0
+22:45 < bridge_> <milkeeycat>     sete byte ptr [rbp - 13]
+22:45 < bridge_> <milkeeycat>     je .L0
+22:45 < bridge_> <milkeeycat> wall of text :justatest:
+22:45 < bridge_> <milkeeycat> Pfff, that's what real men use 
+22:45 < bridge_> <milkeeycat> ```
+22:45 < bridge_> <milkeeycat> .section .text
+22:45 < bridge_> <milkeeycat> .global main
+22:45 < bridge_> <milkeeycat> main:
+22:45 < bridge_> <milkeeycat>     push rbp
+22:45 < bridge_> <milkeeycat>     mov rbp, rsp
+22:45 < bridge_> <milkeeycat>     sub rsp, 16
+22:45 < bridge_> <milkeeycat>     mov dword ptr [rbp - 4], 5
+22:45 < bridge_> <milkeeycat>     mov dword ptr [rbp - 8], 10
+22:45 < bridge_> <milkeeycat>     mov dword ptr [rbp - 12], 1
+22:45 < bridge_> <milkeeycat>     lea r15, [rbp - 4]
+22:45 < bridge_> <milkeeycat>     mov r14d, dword ptr [r15]
+22:45 < bridge_> <milkeeycat>     mov dword ptr [rbp - 13], r14d
+22:45 < bridge_> <milkeeycat>     cmp byte ptr [rbp - 13], 0
+22:45 < bridge_> <milkeeycat>     sete byte ptr [rbp - 13]
+22:45 < bridge_> <milkeeycat>     je .L2
+22:45 < bridge_> <milkeeycat>     lea r15, [rbp - 8]
+22:45 < bridge_> <milkeeycat>     mov r14d, dword ptr [r15]
+22:45 < bridge_> <milkeeycat>     mov dword ptr [rbp - 13], r14d
+22:45 < bridge_> <milkeeycat>     cmp byte ptr [rbp - 13], 0
+22:45 < bridge_> <milkeeycat>     sete byte ptr [rbp - 13]
+22:45 < bridge_> <milkeeycat>     je .L2
+22:45 < bridge_> <milkeeycat>     mov byte ptr [rbp - 13], 1
+22:45 < bridge_> <milkeeycat>     jmp .L3
+22:45 < bridge_> <milkeeycat> .L2:
+22:46 < bridge_> <milkeeycat>     mov byte ptr [rbp - 13], 0
+22:46 < bridge_> <milkeeycat> .L3:
+22:46 < bridge_> <milkeeycat>     cmp byte ptr [rbp - 13], 0
+22:46 < bridge_> <milkeeycat>     sete byte ptr [rbp - 13]
+22:46 < bridge_> <milkeeycat>     je .L0
+22:46 < bridge_> <meloƞ> https://tenor.com/view/imostergolfra-gif-25274972
+22:46 < bridge_> <learath2> Actually what gcc generates looks easy enough to generate, what did you have trouble with?
+22:50 < bridge_> <milkeeycat> it just doesn't compute in my head how it has to work
+22:50 < bridge_> <milkeeycat> classic skill issues
+22:51 < bridge_> <meloƞ> my knowledge of assembly beeing tested rn
+22:52 < bridge_> <meloƞ> is this an if else statement?
+22:53 < bridge_> <milkeeycat> ```
+22:53 < bridge_> <milkeeycat> u8 main() {
+22:53 < bridge_> <milkeeycat>     u32 a = 5;
+22:53 < bridge_> <milkeeycat>     u32 b = 10;
+22:53 < bridge_> <milkeeycat>     u32 c = 1;
+22:53 < bridge_> <milkeeycat> 
+22:53 < bridge_> <milkeeycat>     bool foo = a && b && (c || a);
+22:53 < bridge_> <milkeeycat> }
+22:53 < bridge_> <milkeeycat> ```
+22:53 < bridge_> <meloƞ> basically an if else statement...
+22:56 < bridge_> <learath2> Two escape labels, one for true result, one for false result. Always compare with false. For && if you compare equal jump to the false escape (je). For || if you compare unequal jump to the true escape (jne).
+22:57 < bridge_> <louis> does anyone have some sort of script that checks when a file is modified and then echos reload into ddnet fifo?
+23:02 < bridge_> <milkeeycat> Ig the most problematic part for me is to find out how to generate labels for example like `.L2`
+23:02 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1278097382084706386/image.png?ex=66cf9071&is=66ce3ef1&hm=91654042e7a5b3137525e8871d71781e9619a3cd514fe8f9cb32b4191bc8cfe0&
+23:16 < bridge_> <louis> where do i put .fifo file?
+23:16 < bridge_> <louis> to pass rcon to a running ddnet server
+23:16 < bridge_> <Ewan> l
+23:16 < bridge_> <louis> wat
+23:19 < bridge_> <furo> You specify a path with `sv_input_fifo`, and it will automatically create the file.
+23:20 < bridge_> <louis> ty
+23:23 < bridge_> <milkeeycat> Ig the most problematic part for me is to understand how to generate labels for example like `.L2`
+23:23 < bridge_> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1278097382084706386/image.png?ex=66cf9071&is=66ce3ef1&hm=91654042e7a5b3137525e8871d71781e9619a3cd514fe8f9cb32b4191bc8cfe0&

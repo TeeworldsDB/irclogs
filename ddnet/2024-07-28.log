@@ -1,0 +1,280 @@
+03:42 < ws-client> <ChillerDragon> ryo "linkit" is a cool name!
+04:28 < ws-client> <ChillerDragon> How do I correctly fill a integer from a 4 byte memory region into a 64 bit register?
+04:28 < ws-client> <ChillerDragon> In my .bss section i have `udp_payload_index resb 4` and now i want to move its value into `rax` but `rax` is 8 byte.
+04:29 < ws-client> <ChillerDragon> So this is reading out of bounds if i understood it correctly `mov rax, [udp_payload_index]`
+04:29 < ws-client> <ChillerDragon> the register name determins the size so its reading 8 bytes starting at my udp_payload_index label which is only a 4 byte region
+04:30 < ws-client> <ChillerDragon> `mov edx, [udp_payload_index]` should do a 4 byte move but then only half of `rax` is set and there might be other garbage in the other half
+04:31 < ws-client> <ChillerDragon> So i did a `xor rax, rax` first hoping it would all just work. Does that make sense? Or did i miss something?
+04:45 < ws-client> <ChillerDragon> I just had an interesting denial of service idea for the 0.7 protocol to basically ban one player quite efficiently. Can I post it here? xd
+04:47 < ws-client> <ChillerDragon> Ah nvm it doesnt work so i can share the idea
+04:48 < ws-client> <ChillerDragon> So the security tokens are used to make sure I can not impersonate another ip and act on their behalf because i never get back the reponse with the token from the server.
+04:49 < ws-client> <ChillerDragon> My idea was to spoof the connect message to generate a token which i do not get but thats fine. If now the real owner of the ip tries to connect they will be rejected because the token is wrong.
+04:49 < ws-client> <ChillerDragon> But it does not work. You need to send ctrl_msg_connect for the server to drop invalid tokens which depends on the server token.
+08:18 < bridge> <milkeeycat> yikes, there's no `movzx` instruction with 32 bit source 😬
+08:31 < bridge> <chillerdragon> Wat even movzx do?
+08:32 < bridge> <milkeeycat> mov zero extend, it takes value and moves it into bigger place
+08:32 < bridge> <milkeeycat> `mov rax, byte [label]` moves 1 byte from label into rax
+08:32 < bridge> <milkeeycat> probably*
+08:33 < bridge> <chillerdragon> Filling the rest of rax with zeros?
+08:33 < bridge> <milkeeycat> yep
+08:33 < bridge> <chillerdragon> Epic that’s what I need
+08:33 < bridge> <milkeeycat> but it doesnt exist for 32 bit xd
+08:33 < bridge> <chillerdragon> Do you think my xor hack works as well?
+08:33 < bridge> <chillerdragon> Im scared about endianess  and stuff
+08:34 < bridge> <milkeeycat> never heard of her
+08:34 < bridge> <chillerdragon> endianness!
+08:34 < bridge> <milkeeycat> i mean i heard of it but never had problems with it xd
+08:34 < bridge> <chillerdragon> nessendian!
+08:35 < bridge> <chillerdragon> Okay I will use that from now on everywhere
+08:35 < bridge> <milkeeycat> `mozx`?
+08:35 < bridge> <milkeeycat> `movzx`?
+08:35 < bridge> <chillerdragon> no xor rax and mov eax
+08:35 < bridge> <milkeeycat> ah xd
+08:36 < bridge> <milkeeycat> ye, i think it's the only way to make it work for 32 bit value :thonk:
+08:36 < bridge> <chillerdragon> Since you said it can’t fail it’s not gonna add bugs
+08:36 < bridge> <chillerdragon> Compiler dev approved
+08:36 < bridge> <milkeeycat> better not trust my words :justatest:
+08:36 < bridge> <chillerdragon> Too late
+10:24 < ws-client> <ChillerDragon> i have the feeling 64 bit is like ipv6
+10:24 < ws-client> <ChillerDragon> nobody actually uses it
+10:25 < bridge> <jxsl13> maybe more like ipv6 devided by 2 ._.
+10:28 < ws-client> <ChillerDragon> feels like every `push` and `pop` is bloating around 64 bits while `cmp` only checks 32 or all my C bros use `int32` in their apis
+10:29 < ws-client> <ChillerDragon> @jxsl13 you would love what im working on right now
+10:29 < ws-client> <ChillerDragon> selfrolling my testing framework in assembly
+10:29 < bridge> <jxsl13> urgh
+10:29 < bridge> <jxsl13> too low level for mein geschmack.
+10:30 < ws-client> <ChillerDragon> average go enjoyer
+10:30 < bridge> <jxsl13> classic
+10:30 < bridge> <jxsl13> static linking enjoyer
+10:30 < ws-client> <ChillerDragon> i dont link shit
+10:30 < ws-client> <ChillerDragon> libc is bloat
+10:30 < bridge> <jxsl13> libc is bloat
+10:44 < ws-client> <ChillerDragon> cleaner than go lang test code
+10:45 < ws-client> <ChillerDragon> change my mind
+10:45 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722156277.png
+10:45 < ws-client> <ChillerDragon> assembly with macros is a underrated simple language
+10:58 < bridge> <learath2> There is no movzx for 32 bit source because it would make no sense to have one
+10:59 < bridge> <learath2> In x86-64, 32bit operands by definition create a 32 bit result zero extended to 64 bits
+11:01 < bridge> <jxsl13> cannot deny
+11:21 < bridge> <milkeeycat> it would make sense to me, so i  can write `movzx rax, dword ptr [foo]` :kek:
+11:22 < bridge> <learath2> Just use mov instead
+11:23 < bridge> <milkeeycat> but what if there's some data in upper 32 bits of a register
+11:23 < bridge> <learath2> It's discarded, as I said, 32 bit operands create 32 bit results zero extended to 64 bits
+11:25 < bridge> <learath2> https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-1-manual.pdf 3.4.1.1
+11:28 < bridge> <learath2> `mov eax, dword ptr [foo]`
+11:28 < bridge> <milkeeycat> and in rax there won't be garbage value, right?
+11:28 < bridge> <learath2> Yes, the upper half will get zero'd
+11:28 < bridge> <milkeeycat> chilllerdragon: you can remove that xor xd
+11:35 < ws-client> <ChillerDragon> woah no xor?
+11:36 < ws-client> <ChillerDragon> just ``mov eax, 0xBABE`` and im good? the entire `rax` register only contains babe? thats op
+11:37 < bridge> <milkeeycat> register wont contain garbage if you move into eax 32 bit operand
+11:37 < ws-client> <ChillerDragon> so you basically can't shoot your self i the foot with assembly
+11:37 < ws-client> <ChillerDragon> easier than pyson
+11:37 < bridge> <milkeeycat> if you want just a number you can just write `mov rax, 0xBABE`, can't you? :thonk:
+11:38 < ws-client> <ChillerDragon> i read from some label
+11:38 < ws-client> <ChillerDragon> thats a 4 byte region
+11:38 < bridge> <milkeeycat> ye, so it will work
+11:39 < ws-client> <ChillerDragon> i might ditch bash as my fav language
+11:39 < bridge> <milkeeycat> also you don't need xors before `movzx` as here https://github.com/ChillerDragon/teeworlds-asmr/blob/b52f44e3a94e7af03341b18fa85ccde329ed02cd/src/udp.asm#L78-L79
+11:40 < ws-client> <ChillerDragon> basically grep xor &>/dev/null
+11:40 < ws-client> <ChillerDragon> its cring anyways why not mov 0
+11:42 < ws-client> <ChillerDragon> i fixed quitting btw xd
+11:42 < ws-client> <ChillerDragon> no more `pkill`
+11:42 < ws-client> <ChillerDragon> better quit support than vim
+11:46 < bridge> <learath2> No, only 32 bit operands have this behaviour, it's for legacy reasons
+11:46 < ws-client> <ChillerDragon> aaaaaaaaaaaaaaaa
+11:46 < ws-client> <ChillerDragon> i removed it all xd
+11:46 < bridge> <learath2> Oh actually wait, I didn't look at it
+11:46 < bridge> <learath2> It's fine, you don't need the xor
+11:47 < ws-client> <ChillerDragon> it still works 
+11:47 < ws-client> <ChillerDragon> but that doesnt mean much does it
+11:47 < bridge> <learath2> Yeah yeah, it's fine. I misunderstood what catperson said. I thought he meant those can also be mov
+11:48 < bridge> <milkeeycat> im not a furry :justatest:
+11:48 < ws-client> <ChillerDragon> so either mov on `edi` or `movzx byte` on `rdi`?
+11:48 < ws-client> <ChillerDragon> eh well different sizes trol
+11:49 < bridge> <learath2> Chiller when code directly in bytecode?
+11:49 < ws-client> <ChillerDragon> once i spawned a tee with assembly
+11:50 < ws-client> <ChillerDragon> but then i also gotta learn elf format and shits
+11:50 < ws-client> <ChillerDragon> its gonna be much harder
+11:50 < bridge> <milkeeycat> chillerdragon: when vulkan support?
+11:50 < ws-client> <ChillerDragon> and offsets
+11:50 < ws-client> <ChillerDragon> i leave vulkan to jopsti and lerato
+11:50 < ws-client> <ChillerDragon> they already pro in it
+11:50 < bridge> <learath2> There was this weird dude in an irc channel that I used to be in that made a really interesting machine code writing tool. Then he turned out to be a massive racist transphobe so he got exiled. Now I can't find the tool and my irclogs aren't complete from those days
+11:51 < ws-client> <ChillerDragon> racist byte ode
+11:51 < ws-client> <ChillerDragon> code
+11:51 < ws-client> <ChillerDragon> <:justatest:572499997178986510>
+12:21 < bridge> <jxsl13> the double edginess of a sword
+12:52 < bridge> <vlad09380> всем привет
+12:52 < bridge> <Jupstar ✪> yeah
+12:52 < bridge> <Jupstar ✪> #off-topic
+14:17 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1722169010.png
+14:17 < ws-client> <ChillerDragon> here we go again
+14:17 < ws-client> <ChillerDragon> @vlad09380 helo
+14:32 < bridge> <meloƞ> :kek:
+14:36 < bridge> <chairn> most likely cosmic ray 😛
+14:52 < bridge> <jxsl13> time to test your testing framework
+14:52 < bridge> <jxsl13> with another testing framework
+14:53 < bridge> <jxsl13> :kek:
+14:58 < ws-client> <ChillerDragon> yes it was totally cosmic ray! and no bug in my testing framework xd
+14:59 < ws-client> <ChillerDragon> that sounds like dangerous recursion @jxsl13 !
+15:23 < bridge> <milkeeycat> lgtm
+15:52 < bridge> <milkeeycat> have anyone had such problems with docker ```Post "https://auth.docker.io/token": dial tcp: lookup auth.docker.io on 192.168.0.1:53: read udp 192.168.0.101:51560->192.168.0.1:53: i/o timeout``` :feelsbadman: any ideas how to fix
+15:52 < bridge> <DDNet> 192.168.0.1:53 is not a DDraceNetwork or Community server.
+16:30 < bridge> <jxsl13> dns server dead in your local network?
+16:30 < bridge> <jxsl13> router's dns dead?
+16:30 < bridge> <jxsl13> pihole down?
+16:38 < ws-client> <ChillerDragon> which command are you running? docker push? or why does it try to auth?
+16:38 < ws-client> <ChillerDragon> have you tried using podman? :p 
+16:45 < bridge> <milkeeycat> I like your funny words magic man
+16:46 < bridge> <milkeeycat> docker pull xd
+16:47 < bridge> <jxsl13> have you tried turning it off and on again?
+16:47 < bridge> <jxsl13> dns lookup fails
+16:47 < bridge> <milkeeycat> turning off wat
+16:47 < bridge> <jxsl13> router, your local dns server
+16:47 < bridge> <jxsl13> whatever you have in your network
+16:47 < bridge> <jxsl13> or on your pc/laptop
+16:48 < bridge> <milkeeycat> i have a solution, execute same command 50 times and it will succeed once
+16:48 < bridge> <jxsl13> nslookup docker.io
+16:48 < bridge> <jxsl13> or
+16:48 < bridge> <jxsl13> nslookup auth.docker.io
+16:48 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267131688220098621/image.png?ex=66a7abd8&is=66a65a58&hm=fd66e933754344d7208924942364ec74cadfc095b859555937b1bee4358a4b31&
+16:49 < bridge> <jxsl13> are you in some weird vpn?
+16:49 < bridge> <milkeeycat> no -.-
+16:49 < bridge> <jxsl13> nslookup auth.docker.io
+16:49 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1267131913898954762/image.png?ex=66a7ac0e&is=66a65a8e&hm=a0a519c3d73798ffd4e5e211aff59605ad495dee7ebe23e46b7346303fdc8093&
+16:50 < bridge> <jxsl13> https://stackoverflow.com/questions/44761246/temporary-failure-in-name-resolution-errno-3-with-docker
+16:51 < bridge> <jxsl13> https://cdn.discordapp.com/attachments/293493549758939136/1267132284193083546/Bildschirmfoto_2024-07-28_um_16.51.10.png?ex=66a7ac66&is=66a65ae6&hm=b3af82367ec3be71e7006cd3de31e59dd5043f074641bab7844d548c6acb316c&
+16:53 < bridge> <jxsl13> might tell docker to use some specific dns server
+16:56 < bridge> <mikhuillll> @jupeyy_keks Hi, please give me a discord forgottencat I want to talk to him
+16:57 < bridge> <milkeeycat> i uncommented default ones i had in the file and nothing changed xd
+16:57 < bridge> <jxsl13> what are the default ones and what is the error message
+16:57 < bridge> <Jupstar ✪> he is on this discord
+16:58 < bridge> <jxsl13> did the dns server ips in the error message change at all?
+16:58 < bridge> <milkeeycat> ```failed to solve: node:18: failed to resolve source metadata for docker.io/library/node:18: failed to do request: Head "https://registry-1.docker.io/v2/library/node/manifests/18": dial tcp [2600:1f18:2148:bc01:20a3:9c3e:d4a7:9fb]:443: connect: network is unreachable```
+16:58 < bridge> <milkeeycat> is this better? xd
+16:58 < bridge> <milkeeycat> 8.8.8.8 & 8.8.4.4
+16:58 < bridge> <0xdeen> your ipv6 is probably not working
+16:59 < bridge> <milkeeycat> how can i not use ipv6 then? xd
+17:00 < bridge> <milkeeycat> i need good ol' ipv4
+17:01 < bridge> <mikhuillll> How can I talk to a forgottencat?
+17:02 < bridge> <milkeeycat> after 20 times it worked, yey
+17:03 < bridge> <jxsl13> go to #general and talk to \@forgottenabscat
+17:07 < bridge> <mikhuillll> thanks
+17:16 < bridge> <milkeeycat> @jxsl13 thanks for linking da page, even tho i still get these errors sometimes it works much better! xd
+17:17 < bridge> <jxsl13> xD np
+17:17 < bridge> <jxsl13> tried my best
+17:17 < bridge> <jxsl13> but networking is far from my strong point
+17:37 < bridge> <milkeeycat> can anyone show your output of `nslookup google.com` pls :owo:
+17:49 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1267146916949397596/image.png?ex=66a7ba07&is=66a66887&hm=6590facc659a15fce7d729bc0d86013b5794eaf3a4e5cad851d4bcd8d1a187a5&
+17:57 < bridge> <milkeeycat> i think i know how i fix my ass connection :poggers2:
+17:58 < bridge> <milkeeycat> i was wondering why when i connected to work vpn in ddnet list of servers always loads instantly
+17:58 < bridge> <milkeeycat> but when im not connected it takes forever
+17:59 < bridge> <milkeeycat> and i just checked, it uses different dns server, maybe that's the problem
+18:11 < bridge> <milkeeycat> yup, now it loads blazingly fast
+18:14 < bridge> <learath2> I spent 1 hour today not implementing a 64-ary trie. Just mentally got stuck randomly
+18:15 < bridge> <learath2> I still can't decide how to make it, random total mental block
+18:18 < bridge> <milkeeycat> and it fixed docker as well 😏
+18:18 < bridge> <learath2> Maybe I'll make a 256-ary trie instead, hm
+18:18 < bridge> <learath2> but it's probably worse on cache
+18:30 < bridge> <jxsl13> what you do
+18:30 < bridge> <jxsl13> share the knowledge
+18:30 < bridge> <milkeeycat> changed dns ip in `/etc/resolv.conf` xd
+18:30 < bridge> <jxsl13> :0 to google ip?
+18:31 < bridge> <milkeeycat> i chose cloudflare
+18:31 < bridge> <jxsl13> ok
+18:31 < bridge> <jxsl13> good to know
+18:31 < bridge> <jxsl13> thanks
+19:04 < bridge> <trexic> Hello guys, I have a question.
+19:04 < bridge> <trexic> Im new to the ddrace project and I want to add my own component.
+19:04 < bridge> <trexic> So I created my own folder called features (game/client/features)
+19:05 < bridge> <trexic> I created a class, which extends the CComponent class.
+19:05 < bridge> <trexic> Now I want to override the OnRender class.
+19:05 < bridge> <trexic> I've also overridden the Sizeof method with a return of sizeof(*this).
+19:05 < bridge> <trexic> 
+19:05 < bridge> <trexic> So now I have to register the component.
+19:05 < bridge> <trexic> I did this in the gameclient.h by adding this:
+19:05 < bridge> <trexic> // all components
+19:05 < bridge> <trexic> CTestComponent m_TestComponent;
+19:05 < bridge> <trexic> 
+19:05 < bridge> <trexic> Then I added it to the insert call in the gameclient.cpp:
+19:05 < bridge> <trexic> m_vpAll.insert(m_vpAll.end(), {&m_Skins,
+19:05 < bridge> <trexic>                           &m_CountryFlags,
+19:05 < bridge> <trexic>                           &m_MapImages,
+19:05 < bridge> <trexic>                           &m_Effects, // doesn't render anything, just updates effects
+19:05 < bridge> <trexic>                           &m_Binds,
+19:05 < bridge> <trexic>                           &m_Binds.m_SpecialBinds,
+19:05 < bridge> <trexic>                           &m_TestComponent, <-------
+19:05 < bridge> <trexic> 
+19:05 < bridge> <trexic> 
+19:05 < bridge> <trexic> Unfortunately I get the error, that m_TestComponent is an unknown overwrite specifier.
+19:05 < bridge> <trexic> The error leads to the gameclient.h, where I put CTestComponent m_TestComponent;
+19:05 < bridge> <trexic> 
+19:05 < bridge> <trexic> 
+19:05 < bridge> <trexic> Can anybody help me with this?
+19:10 < bridge> <meloƞ> is CTestcomponent correctly declared to extend CComponent?
+19:10 < bridge> <meloƞ> eg `class CTestComponent : public CComponent`
+19:10 < bridge> <Jupstar ✪> only ask in 1 channel
+19:10 < bridge> <Jupstar ✪> delete one msg
+19:11 < bridge> <trexic> As I said, idk where that belongs to... sry
+19:12 < bridge> <Jupstar ✪> np, here in dev it fits quite well i'd say
+19:12 < bridge> <Jupstar ✪> questions is more for beginners
+19:12 < bridge> <trexic> Yes its is:
+19:12 < bridge> <trexic> class CTestComponent : public CComponent
+19:12 < bridge> <trexic> {
+19:12 < bridge> <trexic> public:
+19:12 < bridge> <trexic>     virtual int Sizeof() const override { return sizeof(*this); }
+19:12 < bridge> <trexic>     virtual void OnRender() override;
+19:12 < bridge> <trexic> };
+20:09 < bridge> <teero777> did you define OnRender somewhere?
+20:09 < bridge> <teero777> can you provide the exact error?
+20:10 < bridge> <teero777> can you provide the exact error? (just copy logs)
+20:10 < bridge> <trexic> Im sorry, I was just about to tell you that I have found the issue 😄 
+20:10 < bridge> <trexic> I was including the gameclient.h in the testcomponent.h and that caused the issue
+21:16 < bridge> <jxsl13> roby the machine
+21:41 < bridge> <milkeeycat> i actually had to change settings in router because `/etc/resolv.conf` was overwritten by dhcpcd service :\
+21:49 < bridge> <heinrich5991> you can also stop the dhcpcd from doing that
+21:50 < bridge> <milkeeycat> i didn't find how to do that so i changed in router 😄
+22:59 < bridge> <teero777> how are jump and other particles packed into demos?
+23:00 < bridge> <heinrich5991> as snapshot items
+23:00 < bridge> <teero777> an explosion is `CNetEvent_Explosion` for example but what would a jump be?
+23:00 < bridge> <teero777> i cant find the correct struct
+23:00 < bridge> <heinrich5991> maybe as an event on the character
+23:00 < bridge> <heinrich5991> don't quite remember
+23:01 < bridge> <teero777> there is `CNetEvent_Common` but it defined as
+23:01 < bridge> <teero777> ```cpp
+23:01 < bridge> <teero777> struct CNetEvent_Common
+23:01 < bridge> <teero777> {
+23:01 < bridge> <teero777>     static constexpr int ms_MsgId = NETEVENTTYPE_COMMON;
+23:01 < bridge> <teero777>     int m_X;
+23:01 < bridge> <teero777>     int m_Y;
+23:01 < bridge> <teero777> };
+23:01 < bridge> <teero777> ```
+23:01 < bridge> <teero777> no idea how i would use that
+23:01 < bridge> <teero777> ah nvm
+23:02 < bridge> <teero777> thats just the parent of all the other ones
+23:02 < bridge> <teero777> ~~there is `CNetEvent_Common` but it defined as~~
+23:02 < bridge> <teero777> ```cpp
+23:02 < bridge> <teero777> struct CNetEvent_Common
+23:02 < bridge> <teero777> {
+23:02 < bridge> <teero777>     static constexpr int ms_MsgId = NETEVENTTYPE_COMMON;
+23:02 < bridge> <teero777>     int m_X;
+23:02 < bridge> <teero777>     int m_Y;
+23:02 < bridge> <teero777> };
+23:02 < bridge> <teero777> ```
+23:02 < bridge> <teero777> ~~no idea how i would use that~~
+23:07 < bridge> <teero777> if you don't have infinite jumps everything works fine but as soon as you get infinite jumps the sounds and jump particles disappears
+23:07 < bridge> <teero777> if you don't have infinite jumps everything works fine but as soon as you get infinite jumps the sounds and jump particles disappear
+23:07 < bridge> <teero777> maybe the physics code is just playing with me and its not correctly implemented
+23:20 < bridge> <teero777> ok
+23:20 < bridge> <teero777> that is literally the default demo behaviour
+23:20 < bridge> <teero777> if you have endless jumps it doesn't give sounds nor particles
+23:20 < bridge> <teero777> thats so stupid
+23:21 < bridge> <heinrich5991> what are you trying to do?
+23:23 < bridge> <teero777> im making a new TAS video and im rendering the run directly to a demo. Since the tas includes infinite jump you can't really witness the absurd amount of jumps the tas makes since it endless jumps apparently isn't visualized in the demo player.
+23:23 < bridge> <teero777> no problem tho i can fix it
+23:25 < bridge> <teero777> im making a new TAS video and im rendering the run directly to a demo. Since the tas includes infinite jump you can't really witness the absurd amount of jumps the tas makes since it endless jumps apparently are not visualized in the demo player.
+23:33 < bridge> <teero777> okay seems like all endless jumps are handled as ground jumps thats why they don't have particles or sounds in demos
+23:33 < bridge> <teero777> the sounds for ground jumping are sent manually from the server
+23:34 < bridge> <teero777> the sounds for ground jumping are sent manually from the server only if you don't have endless jumps
+23:43 < bridge> <teero777> just increasing m_Jumpled on the player core by one before putting it into the demo works fine.

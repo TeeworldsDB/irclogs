@@ -1,0 +1,572 @@
+00:00 < bridge> <Jupstar ✪> or does it include some kind of "time until next tick" info
+00:00 < bridge> <Jupstar ✪> oh new day already
+00:00 < bridge> <totar> the client does not include that info only the server
+00:00 < bridge> <Jupstar ✪> but does it send in a fixed rate?
+00:00 < bridge> <Jupstar ✪> how else can the server guess if the timing was off
+00:00 < bridge> <totar> the client sends the "intendedtick" along with the input
+00:01 < bridge> <totar> so the server looks at its own gametick and references the input's intended tick
+00:01 < bridge> <Jupstar ✪> sure but how does the server know the client was 2ms too late
+00:01 < bridge> <totar> the server knows it's sub tick timing
+00:01 < bridge> <Jupstar ✪> so the client sends in a fixed rate?
+00:01 < bridge> <totar> no not really
+00:01 < bridge> <totar> it sends whenever it feels like it
+00:01 < bridge> <Jupstar ✪> but when the client sends 20 inputs for a single tick
+00:01 < bridge> <Jupstar ✪> all were off or what
+00:01 < bridge> <heinrich5991> the client basically sends: this packet is supposed to ariive at "12:00:00.000"
+00:02 < bridge> <Jupstar ✪> so a timestamp?
+00:02 < bridge> <Jupstar ✪> the server sends back the timestamp then?
+00:02 < bridge> <heinrich5991> and then the server says "your packet that was supposed to arive at "12:00:00.000" actually arrived 0.120s late
+00:02 < bridge> <heinrich5991> and then the server says your packet that was supposed to arive at "12:00:00.000" actually arrived 0.120s late
+00:02 < bridge> <Jupstar ✪> your input was for tick 25, which is in 5ms
+00:02 < bridge> <Jupstar ✪> this?
+00:02 < bridge> <totar> it says "input for tick 25 was 5ms early"
+00:03 < bridge> <heinrich5991> the "tick" is the timestamp here
+00:03 < bridge> <heinrich5991> which client and server share
+00:03 < bridge> <Jupstar ✪> yeah, and it sends it back in the snapshot packet i guess?
+00:03 < bridge> <heinrich5991> I think it's a separate packet
+00:03 < bridge> <totar> not currently
+00:03 < bridge> <heinrich5991> NETMSG_INPUTTIMING
+00:03 < bridge> <heinrich5991> but sent in the same packet as the snap
+00:03 < bridge> <totar> it could be in the snap if bandwidth was a concern but it's not that big
+00:03 < bridge> <totar> oh maybe it is
+00:03 < bridge> <totar> does it flush?
+00:04 < bridge> <totar> ok it doesnt
+00:04 < bridge> <totar> heinrich is correct
+00:04 < bridge> <heinrich5991> I think only connection establishment stuff, NETMSG_INPUT and NETMSG_SNAP flush
+00:05 < bridge> <Jupstar ✪> i'd still say this information is already in the ping + snapshots packet timing
+00:05 < bridge> <heinrich5991> anyway, I'm off to sleep. good night 🙂
+00:05 < bridge> <Jupstar ✪> gn8
+00:05 < bridge> <totar> gn
+00:07 < bridge> <Jupstar ✪> but manually acking has one huge advantage, it includes the overhead of the network code
+00:07 < bridge> <Jupstar ✪> 
+00:07 < bridge> <Jupstar ✪> even if it might be small, CPUs ofc also generate a bit of jitter, and this must be handled by a margin for example.
+00:07 < bridge> <Jupstar ✪> but manually acking has one huge advantage, it includes the overhead of the network code (on server & client)
+00:07 < bridge> <Jupstar ✪> 
+00:07 < bridge> <Jupstar ✪> even if it might be small, CPUs ofc also generate a bit of jitter, and this must be handled by a margin for example.
+00:08 < bridge> <Jupstar ✪> (it must be handled by a margin, if it wouldnt be so accurate as with normal ack'ing ^^)
+00:08 < bridge> <totar> isn't manually acking already what happens?
+00:08 < bridge> <Jupstar ✪> my old version used ping + snapshot timing only
+00:08 < bridge> <totar> ah you mean dd pg
+00:08 < bridge> <Jupstar ✪> yeah 😄
+00:15 < bridge> <Jupstar ✪> @totar does your issue about the prediction code also help with ping jitter, or was that unrelated?
+00:15 < bridge> <Jupstar ✪> 
+00:15 < bridge> <Jupstar ✪> 
+00:15 < bridge> <Jupstar ✪> like that it resets the auto prediction margin all the time
+00:15 < bridge> <totar> idk
+00:17 < bridge> <totar> you would need to spike to 800+ ms for long enough that the m_PredictedTime smoothtime reaches a high enough value to trigger the prediction reset. which maybe takes 0.2-0.4s of input timing messages from the server.
+00:18 < bridge> <totar> it can certainly happen but only for super major lag spikes, not really normal jitter
+00:19 < bridge> <totar> the other issue with csmoothtime being wrong does have a huge impact on ping jitter
+00:19 < bridge> <totar> csmoothtime should really be re-written because it's not very good at it's job but if you patch that one issue it becomes kinda ok
+00:20 < bridge> <Jupstar ✪> mh ok
+00:20 < bridge> <Jupstar ✪> i thought the reset was related to an early packet arriving
+00:21 < bridge> <Jupstar ✪> vs slow ones
+00:21 < bridge> <totar> another issue with csmoothtime is that the speed it adjusts your prediction amount is proportional to your ping. so if you have 500ms it literally adjust like 20x faster than if you have 30ms. so people with high latency will experience small jitters much worse
+00:22 < bridge> <totar> reset can't really happen from a single packet, you need a real high ping connection
+00:22 < bridge> <totar> well
+00:22 < bridge> <Jupstar ✪> oh yeah
+00:23 < bridge> <totar> actually maybe it can happen for a single packet if the server sends you one that says you're like 20000ms off? lol
+00:23 < bridge> <Jupstar ✪> i swear, a good prediction timer is harder than a vulkan backend
+00:23 < bridge> <Jupstar ✪> not joking xD
+00:23 < bridge> <Jupstar ✪> i struggle so much with it
+00:23 < bridge> <totar> hmm
+00:23 < bridge> <totar> trml did a lot of good work to make the cpp version much better
+00:24 < bridge> <Jupstar ✪> how do you react to laggs
+00:24 < bridge> <Jupstar ✪> how fast should you consider a connection stable again
+00:24 < bridge> <Jupstar ✪> how far back should your ping/timer data reach back to give a good automatic prediction margin
+00:24 < bridge> <Jupstar ✪> how to deal with packet loss
+00:24 < bridge> <Jupstar ✪> 
+00:24 < bridge> <Jupstar ✪> and so on
+00:24 < bridge> <Jupstar ✪> so many factors
+00:24 < bridge> <totar> have you found any articles describing how to implement this system? I know that other games also use client prediction in the same way as ddnet but I haven't found any that explain their methods
+00:25 < bridge> <totar> only that overwatch GDC talk explains it a little bit but they do not talk about the deep specifics
+00:26 < bridge> <Jupstar ✪> nope, i couldnt even find math/statistics that is directly connected to it.
+00:26 < bridge> <Jupstar ✪> 
+00:26 < bridge> <Jupstar ✪> i only find things for physics that are similar to a ping jitter from the curves
+00:27 < bridge> <totar> also this article but it's not a full implementation https://gabrielgambetta.com/client-side-prediction-server-reconciliation.html
+00:27 < bridge> <Jupstar ✪> i sometimes write test cases with specific start conditions and jitter and see how it evolves xD
+00:27 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275219586714697728/image.png?ex=66c51849&is=66c3c6c9&hm=aecbd661351d79af97d0e614180b7029e089681aa990a8d6f84971634dd67ce8&
+00:28 < bridge> <Jupstar ✪> for the prediction timer, which is basically csmoothtime in the cpp version i guess
+00:30 < bridge> <totar> https://tenor.com/view/cat-touch-dont-gif-9258567
+00:30 < bridge> <totar> cpp version is basically this gif
+00:30 < bridge> <totar> except the fish is dropping an input message on the server
+00:31 < bridge> <Jupstar ✪> my version still suffers insanly from when the lag initially happens, once it's stable, it's kinda ok
+00:31 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275220581100421190/lag.mp4?ex=66c51936&is=66c3c7b6&hm=5beaf7c171e17436679714078c746703ea80404742705a89cf89d837b2d251c9&
+00:31 < bridge> <Jupstar ✪> on the right you see the ping jitter etc.
+00:32 < bridge> <totar> I didn't still any insane suffering lol
+00:32 < bridge> <totar> I didn't see any insane suffering lol
+00:32 < bridge> <Jupstar ✪> ok i show you, don't laugh xd
+00:32 < bridge> <totar> cpp version also has insane suffering so I don't think it can be much worse
+00:33 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275221233012834304/laggyaf.mp4?ex=66c519d2&is=66c3c852&hm=9674ab4c562ed86fe7750b26578418213ac7e5034474f68994080be74290b788&
+00:33 < bridge> <totar> if you introduce delay instantly there's physically no way you can smoothly adjust without misprediction
+00:34 < bridge> <Jupstar ✪> it is
+00:34 < bridge> <Jupstar ✪> i still struggle to find a way to make the lag not too impactful
+00:34 < bridge> <Jupstar ✪> but if this would be ddos, rip
+00:34 < bridge> <totar> have you tested this also on cpp?
+00:34 < bridge> <totar> it looks similar tbh
+00:34 < bridge> <Jupstar ✪> it cannot deal with it without your issue being fixed xD
+00:34 < bridge> <totar> ah
+00:35 < bridge> <Jupstar ✪> but yeah it adjust to the lag faster, but you cannot really play well with the lag
+00:35 < bridge> <Jupstar ✪> mine adjust extremly bad, but once it's adjusted it's playable
+00:35 < bridge> <totar> idk I was waiting on trml to give me his ancient wisdom on what "prediction time reset" does before I delete it
+00:36 < bridge> <totar> I guess we can just increase MaxLatencyTicks() to 3s without any issues but the predicton time reset can still cause issues
+00:36 < bridge> <totar> I guess we can just increase MaxLatencyTicks() to 3s to fix high ping but the predicton time reset can still cause issues
+00:37 < bridge> <Jupstar ✪> ok gotta head out, else i die by sleep loss xd
+00:37 < bridge> <Jupstar ✪> night
+00:37 < bridge> <totar> ok gn
+00:37 < bridge> <zhn> gn big boys
+00:38 < bridge> <totar> I'm not going to sleep yet lol. it's only 5pm for me
+02:32 < bridge> <chillerdragon> PikoTee? Love that guy
+02:36 < bridge> <chillerdragon> Yes
+02:36 < bridge> <chillerdragon> irc moment I realized too late it was an edit xd
+02:36 < bridge> <chillerdragon> .\_.
+02:40 < bridge> <reitw> yea Pikotee @chillerdragon
+02:41 < bridge> <chillerdragon> He is OG
+02:43 < bridge> <chillerdragon> Also jopsti I do my gaming on the beach
+02:44 < bridge> <chillerdragon> https://cdn.discordapp.com/attachments/293493549758939136/1275253979504447540/ima_12b463e.png?ex=66c53851&is=66c3e6d1&hm=11250174049132d66526c45df150710bcca4046cfb84c26a5d3bbd0a6856fda0&
+03:44 < bridge> <headshotnoby> qwertz sux
+04:14 < bridge> <vappy19> usa moment 😉
+05:02 < ws-client> <ChillerDragon> LMAO I just pumped teeworlds music max volume by accident in a quiet co working space. I forgot that vanilla teeworlds client has music on by default xxxxxxD then i tried to panic quit with "q" but i was in the pick a name menu xxxxD
+05:02 < ws-client> <ChillerDragon> resetting settings to default is dangerous
+07:08 < bridge> <meloƞ> So Close to installing teeworlds on here fr
+07:08 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1275320518194626661/rn_image_picker_lib_temp_57eb46a7-931f-4f2d-a0f0-08498dd6cf1d.jpg?ex=66c57649&is=66c424c9&hm=172192bcf66af3be0d64ae8c678160c21b0f30e7172c12518782b97c5f039133&
+07:09 < bridge> <meloƞ> Gm btw
+07:23 < bridge> <matodor> at work i am developing a web application for monitoring and analytic such machines like fanuc / mitsubishi / headman, etc)
+07:23 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1275324183185723463/image.png?ex=66c579b3&is=66c42833&hm=9be5ef2a9a6dd8e41a389ee57b3f7c167a75580cef7d4f10d78ecfcca606a276&
+07:23 < bridge> <meloƞ> Oh wow thats cool!
+07:31 < bridge> <tsfreddie> poor chiller has to play with himself
+07:38 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1275327958139142215/image.png?ex=66c57d37&is=66c42bb7&hm=2eb8ff329defe2463bf151b0f310b873e42506a197dc11917ece7d09475e3c39&
+07:38 < bridge> <meloƞ> Wording Freddie.. WORDING!!!
+07:38 < bridge> <meloƞ> 
+07:38 < bridge> <meloƞ> By himself = alone
+07:38 < bridge> <meloƞ> With himself = {redacted}
+07:38 < bridge> <reitw> Tf is this
+07:38 < bridge> <meloƞ> CNC milling
+07:38 < bridge> <reitw> Could host a ddnet server on a cisco switch at work
+07:38 < bridge> <reitw> They support docker
+07:39 < bridge> <meloƞ> lmao
+07:46 < bridge> <tsfreddie> clearly i meant the latter
+07:47 < bridge> <meloƞ> :justatest:
+07:48 < bridge> <tsfreddie> i mean... there are two chillers on screen. definitely what i mean.
+07:48 < bridge> <tsfreddie> 👀
+08:23 < bridge> <jxsl13> he must love his laptop so much.
+08:46 < bridge> <mikhuillll> hello, please download the latest version of the mobile ddnet at the moment, I am grateful in advance
+08:47 < bridge> <chillerdragon> it says Matodor top right? You use your gamer tag at work?
+08:51 < bridge> <matodor> yes, its account login)
+08:51 < bridge> <matodor> yes, its account name)
+08:54 < bridge> <ryozuki> gm
+08:54 < ws-client> <ChillerDragon> i always try not to leak my gamertag at work xd
+08:59 < bridge> <jxsl13> because you are Batman. Chiller at night Hans Müller during the day.
+09:01 < ws-client> <ChillerDragon> xd
+09:01 < ws-client> <ChillerDragon> @robyt3
+09:01 < ws-client> <ChillerDragon> rossbit u here?
+09:02 < ws-client> <ChillerDragon> idk what to do about 0.7 skin info message stuff
+09:14 < ws-client> <ChillerDragon> @jxsl13 so people greet you as jiggsel at work? xd
+09:16 < bridge> <meloƞ> Ive met people from ddnet in real Life a few Years ago, they Always called Me Melon :kek:
+09:16 < ws-client> <ChillerDragon> i would call you melon too
+09:16 < bridge> <meloƞ> I would call you drache
+09:16 < ws-client> <ChillerDragon> xd
+09:18 < ws-client> <ChillerDragon> @ryozuki when transfer ddnet points from Ryozuki to edg-l
+09:32 < ws-client> <ChillerDragon> @soulyvevo very epic pr btw. You are such smooth githubber heinrich and deen forgot to say something like "thanks for your first contribution" they were blown away by your professionalism and thought you were OG develeoper already.
+09:38 < bridge> <jxsl13> yes 🥲
+09:39 < bridge> <jxsl13> Chilleroni, Chiller at night, peperoni during the day :p
+09:41 < ws-client> <ChillerDragon> peperoni lol
+09:47 < bridge> <AssassinTee> öäüß 😘
+09:47 < bridge> <headshotnoby> Ñ
+09:51 < bridge> <tsfreddie> chillerdragon: did you include the stencil thing that we never merged in 0.7
+09:56 < bridge> <tsfreddie> ~~i actually don't like that we now intentionally used different default asset from teeworlds, but that's just me and probably doesn't matter that much.~~
+10:09 < bridge> <Jupstar ✪> rich experience
+10:11 < ws-client> <ChillerDragon> @tsfreddie nah because im not porting it to vulkan
+10:11 < bridge> <tsfreddie> @jupeyy_keks help
+10:11 < ws-client> <ChillerDragon> indeed
+10:11 < bridge> <tsfreddie> my thought exactly really
+10:11 < ws-client> <ChillerDragon> jopsti biggest 0.7 supported can do it
+10:11 < ws-client> <ChillerDragon> @tsfreddie what different default asset?
+10:12 < bridge> <tsfreddie> what different?
+10:12 < ws-client> <ChillerDragon> you said that
+10:12 < bridge> <tsfreddie> oh, the souly pr
+10:12 < ws-client> <ChillerDragon> ah
+10:12 < ws-client> <ChillerDragon> we can also send a pr in teeworlds
+10:12 < bridge> <tsfreddie> i'm not sure if our 0.7 is directly copied from 0.7 to begin with tho
+10:12 < ws-client> <ChillerDragon> im sure oy will merge it
+10:13 < bridge> <Jupstar ✪> helped
+10:13 < bridge> <tsfreddie> chillerdragon: do you know if we actually want the adaptive marking tho
+10:13 < ws-client> <ChillerDragon> @soulyvevo send same pr in github.com/teeworlds/teeworlds
+10:13 < bridge> <tsfreddie> i can learn vulkan and do it || probably ||
+10:14 < ws-client> <ChillerDragon> @tsfreddie i do want it. soli does want it.
+10:14 < bridge> <tsfreddie> ye that's what I mean, does anyone apart from souly wants it lol
+10:14 < ws-client> <ChillerDragon> oy?
+10:14 < bridge> <tsfreddie> we have to update all marking assets too
+10:14 < bridge> <Jupstar ✪> that would introduce a stencil buffer.
+10:14 < bridge> <Jupstar ✪> i dunno if we are ready for that
+10:15 < ws-client> <ChillerDragon> Stiopa
+10:15 < ws-client> <ChillerDragon> Sonix
+10:15 < bridge> <tsfreddie> it's pretty trivial in 0.7's sdl
+10:15 < bridge> <tsfreddie> or are you talking about we just don't want to enable stencil buffer for this one particular use case
+10:16 < bridge> <tsfreddie> i would agree enabling an entire buffer for this is a lot
+10:16 < bridge> <tsfreddie> <a:vibe:1191801470945869927>
+10:16 < bridge> <Jupstar ✪> yeah i guess this
+10:16 < bridge> <Jupstar ✪> plus overhead per tee
+10:17 < bridge> <tsfreddie> wait. aren't scrollrect already stenciled
+10:17 < bridge> <Jupstar ✪> clipped
+10:17 < bridge> <tsfreddie> oh right
+10:17 < bridge> <tsfreddie> i remember now
+10:17 < bridge> <soulyvevo> wasnt there one already?
+10:17 < bridge> <soulyvevo> or at least i remember some talk about it
+10:17 < ws-client> <ChillerDragon> i also remember some talk
+10:18 < ws-client> <ChillerDragon> https://github.com/teeworlds/teeworlds/issues/1398
+10:18 < ws-client> <ChillerDragon> this?
+10:18 < ws-client> <ChillerDragon> or is this what caused it xd
+10:18 < ws-client> <ChillerDragon> idk i care too little about the feet to search for me they all look the same
+10:19 < ws-client> <ChillerDragon> lmao fred
+10:19 < ws-client> <ChillerDragon> https://github.com/teeworlds/teeworlds/issues/1400#issuecomment-139928311
+10:24 < bridge> <tsfreddie> but it looks cool tho
+10:24 < bridge> <tsfreddie> :kek:
+10:24 < bridge> <Jupstar ✪> yeah
+10:25 < bridge> <Jupstar ✪> raytracing also looks cool 😬
+10:25 < bridge> <tsfreddie> call it DDNet2 so the fps drop is expected
+10:26 < bridge> <Jupstar ✪> in my opinion the 0.7 skin system isnt good enough anyway.
+10:26 < bridge> <Jupstar ✪> 
+10:26 < bridge> <Jupstar ✪> changing some markings is cool yes.
+10:26 < bridge> <Jupstar ✪> 
+10:26 < bridge> <Jupstar ✪> But look at our "normal" database for skins:
+10:26 < bridge> <Jupstar ✪> https://ddnet.org/skins/index.php?search=%24type%3Anormal
+10:26 < bridge> <Jupstar ✪> for 99% of the skins the 0.7 concept simply aint working
+10:26 < bridge> <tsfreddie> i thought that's why we kept both
+10:27 < bridge> <Jupstar ✪> if you really want to do a modular skin system you have to plan what you need before hand.
+10:27 < bridge> <Jupstar ✪> 
+10:27 < bridge> <Jupstar ✪> 
+10:27 < bridge> <Jupstar ✪> like if u want hats, your base skins must never include hats or ears or other stuff that blocks hats
+10:28 < bridge> <Jupstar ✪> yeah but that is quite some work.. also ppl seem to enjoy having a database behind it. the 0.7 database defs has more overhead
+10:28 < bridge> <Jupstar ✪> it needs to query per changable item e.g.
+10:28 < bridge> <Jupstar ✪> yeah but that is quite some work.. also ppl seem to enjoy having a database behind it. the 0.7 database defs has more overhead (would have9
+10:28 < bridge> <Jupstar ✪> yeah but that is quite some work.. also ppl seem to enjoy having a database behind it. the 0.7 database defs has more overhead (would have, if it existed)
+10:28 < bridge> <Jupstar ✪> imo 0.7 skins are already planned out too bad.
+10:29 < bridge> <Jupstar ✪> ears shouldnt be part of the main skin
+10:29 < bridge> <Jupstar ✪> ears shouldnt be part of the base skin
+10:29 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274> i don't think we need to have whether 0.7 skins are good idea just to avoid stencil
+10:29 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274> i don't think we need to have whether 0.7 skins are good idea convo, just to avoid stencil
+10:30 < bridge> <tsfreddie> <a:vibe:1191801470945869927> i'd like to stick to whether we should try to implement the adaptive markings
+10:31 < bridge> <Jupstar ✪> then you have adaptive markings and then?
+10:31 < bridge> <Jupstar ✪> 
+10:31 < bridge> <Jupstar ✪> u still cant have hats xd
+10:31 < bridge> <Jupstar ✪> 
+10:31 < bridge> <Jupstar ✪> it sounds to me like this is just one idea of a new better skin system generally
+10:32 < bridge> <tsfreddie> i have no words. i won't touch it then
+10:33 < bridge> <Jupstar ✪> i wont prevent you from. but you should make clear that we add a buffer that has to be cleared every frame, and has overhead for every tee rendered
+10:33 < bridge> <Jupstar ✪> for markings xd
+10:33 < bridge> <Jupstar ✪> on 0.7
+10:33 < bridge> <Jupstar ✪> xDD
+10:34 < bridge> <Jupstar ✪> @tsfreddie the idea is cool tho
+10:34 < bridge> <tsfreddie> <a:dumbduck:1191800929679310919> i mean i kinda want your help
+10:34 < bridge> <tsfreddie> i don't think i can make vulkan work in a short amount of time
+10:34 < bridge> <Jupstar ✪> i'd love to see some mmo teeworlds that allows to wear custom clothes etc 😄
+10:35 < bridge> <tsfreddie> if it is not immensely complicated we could benchmark a bit to weight our options before merging.
+10:35 < bridge> <meloƞ> ahaha thats one way to revive teecity!
+10:36 < bridge> <Jupstar ✪> it's dead?
+10:36 < bridge> <meloƞ> I dont See many people playing it - its AFK city
+10:37 < bridge> <meloƞ> It was really cool Back then tho - No Zoom meaning you actually Had to follow the signs, getting oneshot by npcs etc
+10:37 < bridge> <tsfreddie> i mean it's not like ddnet currently runs terribly. *unless it is, cuz i haven't played it for quite some time now*
+10:39 < bridge> <Jupstar ✪> yeah but e.g. stencil buffers are not core in ogl 1.x, so we have to make sure it runs on every hardware and stuff like that
+10:39 < bridge> <Jupstar ✪> it's quite a bit of complexity
+10:39 < bridge> <Jupstar ✪> if u want to try out, you can also start with opengl
+10:40 < bridge> <tsfreddie> we already did in 0.7
+10:40 < bridge> <Jupstar ✪> and its not merged, and not realed to public
+10:40 < bridge> <Jupstar ✪> and its not merged, and not released to public
+10:41 < bridge> <tsfreddie> not merged sure, not sure how released to public relates to anything.
+10:42 < bridge> <tsfreddie> you could say it's not thoroughly tested, that i would agree.
+10:42 < bridge> <Jupstar ✪> how does it play together with multi sampling?
+10:43 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274> that's why i think we need your help
+10:44 < bridge> <Jupstar ✪> xd
+10:44 < bridge> <tsfreddie> iirc in 0.7 i drew the border on top of the markings to hide the edges so i actually never checked how it looks by itself
+10:48 < bridge> <Jupstar ✪> i guess it's no secret that i'd prefer if we don't depend on 0.7, which is a dead project for me.
+10:48 < bridge> <Jupstar ✪> if we want a better skin system, then it's not 0.7 ones IMO
+10:56 < bridge> <tsfreddie> <a:catbite:1080459483345584160>
+10:56 < bridge> <tsfreddie> we know that
+10:58 < bridge> <Jupstar ✪> at least you didnt explode
+10:58 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274>
+11:36 < bridge> <Peakies> maybe having skin system with attachment feature (hats, glass, earing, glowing effect or particles) would be better than having 0.7 customized skin system that even not work on most of DDNet's skins that currently exist in skins database
+11:41 < bridge> <tsfreddie> <a:InsaneCat:1135575687172980866> if chiller can add 0.7 into ddnet, someone could add new skin system too. it's just no one took the liberty of designing the thing, probably due to fear of potentially throwing a huge amount of efforts to waste.
+11:41 < bridge> <Jupstar ✪> tru 😄
+11:41 < bridge> <Jupstar ✪> 
+11:41 < bridge> <Jupstar ✪> and you need artists that help you design your concept
+11:42 < bridge> <tsfreddie> i also never thought chiller's 0.7 pr could go anywhere
+11:42 < bridge> <tsfreddie> and i'm apparently wrong
+11:42 < bridge> <Jupstar ✪> i just hope we get android & accounts this year
+11:42 < bridge> <Jupstar ✪> and don't put too much focus on other things
+11:43 < bridge> <tsfreddie> I like hope
+11:43 < bridge> <tsfreddie> i wish i could help, but my life is weird rn
+11:43 < bridge> <milkeeycat> 2024 year when ddnet gets accounts
+11:43 < bridge> <tsfreddie> and apparently has been for years
+11:43 < bridge> <tsfreddie> we have 4 months left
+11:44 < bridge> <matodor> 2024 year when ddnet gets accounts_FINAL_123123_TEST.psd
+11:44 < bridge> <Jupstar ✪> speedrun time
+11:44 < bridge> <matodor> 2024 year when ddnet gets accounts_FINAL_123123_TEST_2025.psd
+11:44 < bridge> <tsfreddie> does chiller work?
+11:44 < bridge> <Jupstar ✪> no, he chills on the beach
+11:45 < bridge> <tsfreddie> i wonder how he can pump out so many teeworlds projects
+11:45 < bridge> <Jupstar ✪> since 1 year
+11:45 < bridge> <tsfreddie> <a:dumbduck:1191800929679310919>
+11:45 < bridge> <learath2> he is paid by the 0.7 consortium
+11:46 < bridge> <tsfreddie> maybe i should stop throwing myself into difficult situations and just accept that I should have a normal job
+11:46 < bridge> <tsfreddie> <a:vibe:1191801470945869927>
+11:46 < bridge> <sans._.> he secretely lives inside a tw map, probably with a beach and a hut
+11:46 < bridge> <tsfreddie> i forgot to have lunch again...
+11:47 < bridge> <tsfreddie> it's 5:46pm
+11:47 < bridge> <sans._.> don't have lunch at that hour, have dinner XD
+12:05 < bridge> <Peakies> maybe focusing on android release and accounts is best purpose for now other thing will get implementation by time, so far DDNet really improved from time that I was played for first time I think that was DDNet 6 or 8 with DDRace tournament of map Kobra 2 I think
+12:05 < bridge> <Peakies> maybe focusing on android release and accounts is best purpose for now other thing will get implementation by time, so far DDNet really improved from time that I was played for first time I think that was DDNet 6 or 8 with DDRace tournament of map Kobra 3 I think
+12:27 < bridge> <chillerdragon> @diariesvexar: don’t worry our best man is working non stop on android
+12:28 < bridge> <chillerdragon> @headshotnoby: when port ddnet to android
+12:29 < bridge> <krevetochka0986> DDNet RUS1 - Oldschool
+12:29 < bridge> <krevetochka0986> Address: ddnet://37.230.162.50:8304
+12:29 < bridge> <krevetochka0986> My IGN: паша кру
+12:29 < bridge> <DDNet> 37.230.162.50:8304 is an official DDraceNetwork (DDNet, Region: 🇷🇺) server.
+12:29 < bridge> <DDNet> Quick join: <https://ddnet.org/connect-to/?addr=37.230.162.50:8304/>
+12:30 < bridge> <Peakies> I thought Robyt working on android :justatest:
+12:30 < bridge> <Jupstar ✪> :lol:  dont trick the system
+12:31 < bridge> <chillerdragon> Yes he is
+12:31 < bridge> <chillerdragon> He is the „best man“ I was talking about
+12:31 < bridge> <Peakies> yeah I agree
+12:31 < bridge> <chillerdragon> I just pinged headbot because he ported ddnet to every console on the planet
+12:31 < bridge> <Peakies> he's hard trying on ddnet
+12:31 < bridge> <Peakies> Oh yeah I remember now
+12:32 < bridge> <Peakies> I don't know that consoles but we have ddnet on all of them
+12:32 < bridge> <chillerdragon> Yeah xd
+12:32 < bridge> <Peakies> I think he's trying to port on smart watches
+12:33 < bridge> <Peakies> cuz we want to play DDNet in bus or in toilet
+12:33 < bridge> <chillerdragon> I play zCatch on my smart fridge thanks to headbot
+12:33 < bridge> <Peakies> thank you Headshot for porting DDNet to all kind of devices
+12:34 < bridge> <Peakies> do we have it on smart tv ?
+12:34 < bridge> <chillerdragon> Don’t think so .\_.
+12:34 < bridge> <chillerdragon> Just attach a pc duh
+12:34 < bridge> <Peakies> hmm I think it's need android version first
+12:34 < bridge> <chillerdragon> Smart tv = android
+12:34 < bridge> <chillerdragon> Somehow
+12:34 < bridge> <Peakies> of course I don't have even any kind of console just pc 😄
+12:34 < bridge> <Peakies> yeah I noticed after I asked
+12:35 < bridge> <chillerdragon> @diariesvexar: when become ddnet contributor and help with android version?
+12:35 < bridge> <Peakies> is there any wiki or guide to learn ddnet UI edit ?
+12:35 < bridge> <chillerdragon> Let’s go
+12:36 < bridge> <chillerdragon> There is a smol ddnet dev wiki
+12:36 < bridge> <Peakies> I can just test it on arm-8a as 64 cpu if robyt need it 😄
+12:36 < bridge> <chillerdragon> And a blog from king Edgar
+12:36 < bridge> <Peakies> oh Ryo educated that too hmm
+12:37 < bridge> <Peakies> then I should check it
+13:33 < bridge> <tsfreddie> chillerdragon: are you available for hire
+13:48 < ws-client> <ChillerDragon> @tsfreddie mostly not. What do you need?
+13:48 < bridge> <tsfreddie> nothing, just asking lol
+13:49 < ws-client> <ChillerDragon> ?xd
+13:49 < ws-client> <ChillerDragon> why
+13:49 < bridge> <tsfreddie> wondering what do you do normally
+13:49 < ws-client> <ChillerDragon> oh thats confidental
+13:49 < bridge> <tsfreddie> <a:catxplosion:1082715870893195274> german rich spy
+13:49 < bridge> <reitw> chillerdragon is ur pc sand proof
+13:50 < bridge> <tsfreddie> code teeworlds for fun when not spying
+13:50 < ws-client> <ChillerDragon> @reitw dont think so. But i usually dont put it IN the sand
+13:50 < bridge> <tsfreddie> do you own that island
+13:50 < bridge> <reitw> yes but wind can put sand on urs, so when u play tw on the beach u risk it
+13:50 < ws-client> <ChillerDragon> @tsfreddie i can not comment on that
+13:51 < ws-client> <ChillerDragon> @reitw its like smoking. Everything that can kill you is cool.
+13:51 < bridge> <tsfreddie> chillerdragon: have you been interrogated by russian spy and deemed neither an asset nor a threat.
+13:52 < ws-client> <ChillerDragon> stop doxing me i wont reveal anything
+13:52 < bridge> <tsfreddie> ok then
+13:53 < bridge> <reitw> @blaiszephyr :issou:
+13:53 < bridge> <reitw> https://cdn.discordapp.com/attachments/293493549758939136/1275422431523110933/image.png?ex=66c5d533&is=66c483b3&hm=2c5d2e71e1140334359fdf80a5cabdd96565f598c679e4be8ac78d5ae9a1a401&
+13:53 < bridge> <reitw> lets bring a ddnet server on a Cisco sw
+13:55 < bridge> <meloƞ> LETSGOOOOOO
+13:55 < bridge> <tsfreddie> what
+15:07 < bridge> <learath2> Chiller is 1000000% an international arms or drugs trader. He has like 500 different emails, refuses to give his phone number to any service
+15:07 < bridge> <learath2> Don’t ask too many questions or he’ll have you terminated
+15:08 < bridge> <tsfreddie> okay
+15:17 < bridge> <meloƞ> Mafia boss
+15:17 < bridge> <meloƞ> 102%
+15:17 < bridge> <reitw> Prob why he works in different places, like forest or beach
+15:17 < bridge> <meloƞ> :KEKW:
+15:17 < bridge> <reitw> He's hiding
+15:17 < bridge> <learath2> Also the fluctuating timezones that are wildly apart
+15:18 < bridge> <tsfreddie> we need to double check all his commit to see if he planted backdoor in ddnet to spy on players
+15:18 < ws-client> <ChillerDragon> try ``git log -Schillerbot.png``
+15:19 < bridge> <meloƞ> :monkaStop:
+15:21 < bridge> <Jupstar ✪> chillerdragon is the big boss of teeworlds mafia
+15:21 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275444495705440276/image.png?ex=66c5e9c0&is=66c49840&hm=c3ae03f4004bb24c1bdc3f7954b5f3ec28ca9ec213b88ddcddc2f74c0ab71b68&
+15:21 < bridge> <soulyvevo> kinda hard to argue because most skin combinations dont work at all, try using random skin option there, it's just awful :justatest:
+15:22 < bridge> <soulyvevo> i think that just stacking a few images on top of each other doesnt quite work that well
+15:33 < bridge> <Jupstar ✪> If I'd do a pro vs cons what i think 0.7 skin system does better:
+15:33 < bridge> <Jupstar ✪> 
+15:33 < bridge> <Jupstar ✪> Pro:
+15:33 < bridge> <Jupstar ✪> - Better color range
+15:33 < bridge> <Jupstar ✪> - Colorize markings individually (1)
+15:33 < bridge> <Jupstar ✪> - Colorize hands
+15:33 < bridge> <Jupstar ✪> 
+15:33 < bridge> <Jupstar ✪> Cons:
+15:33 < bridge> <Jupstar ✪> - Different markings make the skin ugly very quick (2)
+15:33 < bridge> <Jupstar ✪> - Decorations don't work at all (3)
+15:33 < bridge> <Jupstar ✪> - Coloring eyes doesn't convince me either (4)
+15:33 < bridge> <Jupstar ✪> 
+15:33 < bridge> <Jupstar ✪> Except for coloring markings individually, all other pros could be done with our current skins too, I think
+15:33 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275447533640093789/image.png?ex=66c5ec94&is=66c49b14&hm=a968f3a34277d8901c3bdd94cb179669270850b746b51e3fcc6107eba4d538f3&
+15:33 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275447533996478584/image.png?ex=66c5ec94&is=66c49b14&hm=5704d9022930395004e828d68df47f2cb266e42191b7ee66dc509b32c35992c0&
+15:33 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275447534416040096/image.png?ex=66c5ec94&is=66c49b14&hm=fd039beeb180b4872a3ac3f2ec62ece7414b8325eaf5cae4e2d8579f3ea7cc47&
+15:33 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275447534873215018/image.png?ex=66c5ec94&is=66c49b14&hm=0651e4bd7cb4b22d34ebbb889f5c364f0dae4de0535435a3db2083748fd83265&
+15:34 < bridge> <Jupstar ✪> (eyes could ofc also be colorized in current system, just dunno if that works out considering lot of skins have very specific eyes)
+15:35 < bridge> <Jupstar ✪> Neither 0.7 nor 0.6 scale for decorations or different markings tho. They will look very ugly on many skins making the tee look like trash
+15:35 < bridge> <Jupstar ✪> 
+15:35 < bridge> <Jupstar ✪> A real working system would need to be designed differently from ground up
+15:35 < bridge> <Jupstar ✪> I don't see this happening very soon, since that also requires motivated artists
+15:36 < bridge> <Jupstar ✪> the last motivated artist vanished after he noticed he doesnt like rust 😬
+15:36 < ws-client> <ChillerDragon> voxel mentioned <:justatest:572499997178986510>
+15:37 < bridge> <Jupstar ✪> sad he's gone
+15:37 < ws-client> <ChillerDragon> +1
+15:46 < bridge> <jxsl13> 0.7 skin system had higher resolution skins iirc
+15:47 < bridge> <jxsl13> look in the ddnet skin db and you will find ugly skins as well, I'd assume
+15:47 < bridge> <jxsl13> (first con is no con)
+15:47 < bridge> <Jupstar ✪> but you cant create them
+15:47 < bridge> <Jupstar ✪> louis could pull out his ban hammer and remove it
+15:48 < bridge> <eghwand> hello i did this for see mod auth levels but i want the colorize it
+15:48 < bridge> <eghwand> https://cdn.discordapp.com/attachments/293493549758939136/1275451278314442846/image.png?ex=66c5f011&is=66c49e91&hm=4fb8d3d20f3725ce001192f3b9e60a2d4578fc1f3ddadfbc628d909839197e2f&
+15:48 < bridge> <eghwand> for example admin=red
+15:48 < bridge> <Jupstar ✪> `cl_skin_community_download_url https://ddnet.org/skins/skin/community/uhd/`
+15:48 < bridge> <Jupstar ✪> then u have HD skins too
+15:48 < bridge> <jxsl13> that's good
+15:48 < bridge> <Jupstar ✪> they should already be colored
+15:49 < bridge> <Jupstar ✪> `cl_skin_community_download_url https://ddnet.org/skins/skin/community/uhd/`
+15:49 < bridge> <Jupstar ✪> and
+15:49 < bridge> <Jupstar ✪> `cl_skin_download_url https://skins.ddnet.org/skin/uhd/`
+15:49 < bridge> <jxsl13> I don't know how much customization people actually used on 0.7. You had the tools to combine everything but did players actually use that flexibility there
+15:50 < bridge> <eghwand> i need to add TextRender()->TextColor thing?
+15:50 < bridge> <eghwand> https://cdn.discordapp.com/attachments/293493549758939136/1275451941744541718/image.png?ex=66c5f0af&is=66c49f2f&hm=4f0140dc2ec8948f9e763ec1a436d46d5c6face488e8792c26e147b6d66d6444&
+15:50 < bridge> <jxsl13> in general I liked the skin system better just for tue flexibility but dunno if that flexibility is needed.
+15:51 < bridge> <Jupstar ✪> but this is what u get
+15:51 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1275452060824899726/image.png?ex=66c5f0cc&is=66c49f4c&hm=a5261a0da95c8e559d5412e2038c8666ea84c4727c44047a60149527083cca36&
+15:51 < bridge> <Jupstar ✪> broken skins
+15:51 < bridge> <Jupstar ✪> even on a skin i like in 0.7
+15:51 < bridge> <Jupstar ✪> with tsfreddies marking thing it would at least not look as broken
+15:51 < bridge> <jxsl13> that's the problem, especially for graphics people
+15:52 < bridge> <Jupstar ✪> yes
+15:52 < bridge> <jxsl13> it's nearly impossible to test one new added marling with all other body parts in the db
+15:52 < bridge> <jxsl13> marking
+15:52 < bridge> <jxsl13> or at least marking + all body variants
+15:52 < bridge> <Jupstar ✪> yes but that just tells me that this system doesnt scale
+15:52 < bridge> <louis> ravie still somewhat around
+15:53 < bridge> <jxsl13> it might make sense to only allow a subset of those 0.7 body parts
+15:53 < bridge> <jxsl13> which do not collide
+15:54 < bridge> <learath2> Move the TextColor line before the start of your if statements
+15:55 < bridge> <louis> hmm i guess u need to implement some sort of intersection code for the skin body and the marking, is that what 0.7 does?
+15:55 < bridge> <Jupstar ✪> no that screenshot is from 0.7
+15:55 < bridge> <jxsl13> or keep as is, because when you combine a super thin body with feet that are far apart, you also get ugly combinations
+15:55 < bridge> <Jupstar ✪> tsfreddie did smth like that using the stencil buffer
+15:55 < bridge> <Jupstar ✪> but it wasnt merged
+15:57 < bridge> <learath2> It won't happen, we can't maintain 3 skin systems lol
+15:57 < bridge> <louis> drop 0.7 skin system, implement new one and give accessories to main database skins :brownbear:
+15:58 < bridge> <learath2> Can't, we added it once, now we need to support it until 2052
+15:58 < bridge> <Jupstar ✪> and another bad thing is simply that we go from 1 key to multiple keys
+15:58 < bridge> <Jupstar ✪> 
+15:58 < bridge> <Jupstar ✪> imagine skin parts as hashmaps, then u have many hashmaps.
+15:58 < bridge> <Jupstar ✪> 
+15:58 < bridge> <Jupstar ✪> Currently 0.7 only works because there is no lazy loading involved
+15:58 < bridge> <Jupstar ✪> otherwise it would either need to load the whole skin, or load from many hashmaps
+15:59 < bridge> <Jupstar ✪> or does it already use different hashmaps
+15:59 < bridge> <louis> an idea for hats in 2052: each main db skin can be given a "bodyshape" attribute or smth and each hat has "supported_attributes"
+15:59 < bridge> <Jupstar ✪> havent looked into the code yet xd
+15:59 < bridge> <Jupstar ✪> yeah, that could work indeed, but defs also complex 😄
+16:00 < bridge> <robyt3> All the skin parts are in one vector 👀
+16:00 < bridge> <Jupstar ✪> oh ok
+16:00 < bridge> <Jupstar ✪> xdd
+16:00 < bridge> <louis> is it rly complex? if skin.shape in hat.supported_shapes : render 😹
+16:01 < bridge> <Jupstar ✪> well if u add a hat that probably wont just work on all skins that _could_ have hats
+16:01 < bridge> <Jupstar ✪> so u have other type of hats
+16:01 < bridge> <Jupstar ✪> xD
+16:02 < bridge> <jxsl13> If one would change the skin system, I'd rather prefer a skin format where the author allows a player to combine different body parts from a properly designer set of body parts but not with. Basically a png with N body variations, M hands, P feet, etc.
+16:02 < bridge> <jxsl13> but not with the whole skin database
+16:02 < bridge> <jxsl13> If one would change the skin system, I'd rather prefer a skin format where the author allows a player to combine different body parts from a properly designer set of body parts but not with.l tue whole skin database. Basically a png with N body variations, M hands, P feet, etc.
+16:03 < bridge> <jxsl13> If one would change the skin system, I'd rather prefer a skin format where the author allows a player to combine different body parts from a properly designed set of body parts but not with.l tue whole skin database. Basically a png with N body variations, M hands, P feet, etc.
+16:03 < bridge> <jxsl13> If one would change the skin system, I'd rather prefer a skin format where the author allows a player to combine different body parts from a properly designed set of body parts but not with the whole skin database. Basically a png with N body variations, M hands, P feet, etc.
+16:03 < bridge> <jxsl13> If one would change the skin system, I'd rather prefer a skin format where the author allows a player to combine different body parts from a properly designed set of body parts but not combine body parts with the whole skin database. Basically a png with N body variations, M hands, P feet, etc.
+16:05 < bridge> <louis> yeah thats kinda what i proposed
+16:08 < bridge> <learath2> So silly of us not to have logged the errno aswell
+16:08 < bridge> <Jupstar ✪> farm commits
+16:09 < bridge> <learath2> `EEXIST` is probably unlikely
+16:11 < bridge> <learath2> `ENFILE` maybe if something else was opening lots of files
+16:11 < bridge> <learath2> `ENOSPC` could happen if you are on a full disk but that breaks a lot more you'd notice
+16:11 < bridge> <learath2> 
+16:11 < bridge> <learath2> I can't really see any of the others really being possible
+16:11 < bridge> <0xdeen> disk isn't full, nothing else running on my system
+16:12 < bridge> <heinrich5991> do you have the coredump?
+16:13 < bridge> <heinrich5991> it should contain the error
+16:13 < bridge> <heinrich5991> it should contain the errno
+16:13 < bridge> <learath2> Extremely unlucky ASLR and the OS not cleaning up the last ddnet execution properly for some reason, could perhaps lead to `EEXIST`
+16:14 < bridge> <Jupstar ✪> filesystem hardest api
+16:15 < bridge> <Jupstar ✪> graphics, buggiest api
+16:15 < bridge> <Jupstar ✪> network, slowest api
+16:15 < bridge> <heinrich5991> do coredumps exist on mac? @learath2
+16:15 < bridge> <learath2> if you enable them, yes
+16:16 < bridge> <0xdeen> nope!
+16:17 < bridge> <heinrich5991> something like crashpad would be amazing
+16:17 < bridge> <heinrich5991> so users could send bug reports automatically, if they wish
+16:17 < bridge> <learath2> Did they remove them? This macbook I'm on has them inside `/cores` still, on Catalina though
+16:24 < bridge> <robyt3> Is it possible another process randomly used exactly the same semaphore name? Our way of generating names on macOS is not globally unique and from what I'm reading semaphore names are global and multiple processes can act on them
+16:26 < bridge> <eghwand> i just want the admin part to be this color
+16:26 < bridge> <eghwand> https://cdn.discordapp.com/attachments/293493549758939136/1275460891307020343/image.png?ex=66c5f905&is=66c4a785&hm=3d0231422cf3f815f0fb57583351de8a9e19fb5f93fcab6d756d789cbdd6e2fa&
+16:26 < bridge> <eghwand> but full name is red now
+16:26 < bridge> <robyt3> Reset to default color after rendering the admin text
+16:38 < bridge> <0xdeen> I remember it was extemely difficult to enable coredumps on ARM macs, so I just use my Linux server
+17:01 < bridge> <milkeeycat> @learath2  🎉
+17:01 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1275469831017336873/image.png?ex=66c60158&is=66c4afd8&hm=0d0d3c17670d2229e8cf8e92d40746cb33bfaaa640b73df554240bbcd00c3126&
+17:04 < bridge> <soulyvevo> should be easy to do i guess
+17:04 < bridge> <soulyvevo> considering how lazy some of them were in the first place :justatest:
+21:10 < bridge> <0xfaulty> @robyt3 could we migrate from JsonStringWriter to nlohmann::json? It is hpp single header lib file. I could make pr in this case (for server info)
+21:10 < bridge> <0xfaulty> I know that you added JsonStringWriter and it much more lightweight, but less convenient
+21:10 < bridge> <0xfaulty> https://github.com/nlohmann/json/releases/tag/v3.11.3
+21:11 < bridge> <0xfaulty> ```
+21:11 < bridge> <0xfaulty>     nlohmann::json InfoJson = {
+21:11 < bridge> <0xfaulty>         {"max_clients", MaxClients},
+21:11 < bridge> <0xfaulty>         {"max_players", MaxPlayers},
+21:11 < bridge> <0xfaulty>         {"passworded", g_Config.m_Password[0] ? true : false},
+21:11 < bridge> <0xfaulty>         {"game_type", GameServer()->GameType()},
+21:11 < bridge> <0xfaulty>         {"name", g_Config.m_SvName},
+21:11 < bridge> <0xfaulty>         {"map", {{"name", m_aCurrentMap},
+21:11 < bridge> <0xfaulty>                 {"sha256", aMapSha256},
+21:11 < bridge> <0xfaulty>                 {"size", m_aCurrentMapSize[MAP_TYPE_SIX]}}},
+21:11 < bridge> <0xfaulty>         {"version", GameServer()->Version()},
+21:11 < bridge> <0xfaulty>         {"client_score_kind", ScoreKind},
+21:11 < bridge> <0xfaulty>         {"requires_login", false},
+21:11 < bridge> <0xfaulty>         {"clients", nlohmann::json::array()}};
+21:11 < bridge> <0xfaulty> ```
+21:11 < bridge> <0xfaulty> 
+21:11 < bridge> <0xfaulty> instead of 
+21:11 < bridge> <0xfaulty> 
+21:11 < bridge> <0xfaulty> ```
+21:11 < bridge> <0xfaulty>     CJsonStringWriter JsonWriter;
+21:11 < bridge> <0xfaulty>     JsonWriter.BeginObject();
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteAttribute("max_clients");
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteIntValue(MaxClients);
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteAttribute("max_players");
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteIntValue(MaxPlayers);
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteAttribute("passworded");
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteBoolValue(g_Config.m_Password[0]);
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteAttribute("game_type");
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteStrValue(GameServer()->GameType());
+21:11 < bridge> <0xfaulty>     JsonWriter.WriteAttribute("name");
+21:12 < bridge> <0xfaulty>     JsonWriter.WriteStrValue(g_Config.m_SvName);
+21:20 < bridge> <robyt3> Seems overkill to add a 25k line inclusion to save 50 lines while writing json. This library also includes json parsing so at that point we should ditch the existing json parser, which would require changing a lot of code
+21:21 < bridge> <0xdeen> There is also risk in switching
+21:21 < bridge> <0xdeen> Is something not working with what we currently have?
+21:22 < bridge> <learath2> It's just not as cool and as hip
+21:23 < bridge> <robyt3> I like whatever this macro is https://github.com/nlohmann/json/blob/9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03/single_include/nlohmann/json.hpp#L2613-L2742
+21:26 < bridge> <learath2> :PepeCross:
+21:26 < bridge> <Jupstar ✪> i wonder if our formatter would leave the good looking one as is
+21:28 < bridge> <heinrich5991> single header lib sounds bad. linux distributions don't like that. does that also have a normal library?
+21:31 < bridge> <0xfaulty> I completely agree with this, it is indeed true, I just found it convenient and use it in many places in my modification, and including I changed the Info generation to this approach, if you are not comfortable with this I don't insist on it
+21:31 < bridge> <learath2> It's the most common json lib afaik btw
+21:32 < bridge> <heinrich5991> c++ seems to have a bad library story if "single header library" sounds goo
+21:32 < bridge> <heinrich5991> d
+21:32 < bridge> <heinrich5991> this means that the whole library needs to be parsed for every compilation unit that includes it
+21:34 < bridge> <learath2> C++20 modules woooooooooo :Celebrate:
+21:34 < bridge> <learath2> I actually don't know if compilers utilize it properly yet. But it should allow this
+21:35 < bridge> <Jupstar ✪> last time i used it (~3 years ago) and enabled auto modules for standard includes, it improved compile times by like 5-10%
+21:52 < bridge> <godly13> Guys why u add fin and Ukraine servers, but not romanian or bolgarian servers
+21:53 < bridge> <godly13> Ita very need bc if u live in turkey u dont have normal servers
+21:53 < bridge> <godly13> All servers start at 80-90 ping
+21:53 < bridge> <godly13> Only tur servers 20 ping but all ways have ddos
+21:59 < bridge> <Jupstar ✪> you can simply sponsor one to ddnet, i guess
+21:59 < bridge> <Jupstar ✪> if it's so important to you
