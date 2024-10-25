@@ -1,0 +1,795 @@
+00:46 < bridge> <learath2> https://lkml.org/lkml/2024/10/5/453 the new linus is boring, I want the old Linus back
+02:10 < bridge> <totar> It must get tiring to ferociously defend the codebase for so long, I don't think I could do it
+02:14 < bridge> <totar> I agree with his side, the other guy should do more testing
+02:14 < bridge> <Ewan> the last night thing is crazy
+02:17 < bridge> <totar> I think the actual patches are 2 weeks old but the commits were reformatted the night before. but still I would think for the kernel you'd want to have them in their final format for a while before shipping them
+02:19 < bridge> <Ewan> yeah
+07:32 < bridge> <ryozuki> good morning vietnam
+08:34 < bridge> <meloƞ> :crylove:
+08:34 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1293461616427401248/image.png?ex=67077580&is=67062400&hm=d7a7e074951bca7d41cf8a0cf22fb2b88bb933e5d1033fb98f8af21fde8739c4&
+08:38 < bridge> <milkeeycat> Yo, I'm writing a "type checker" for my language and I wanted to ask if you know how to make the code better because what I made is... not the best code 
+08:38 < bridge> <milkeeycat> ```rust
+08:38 < bridge> <milkeeycat> pub fn check_sub(lhs: &Expr, rhs: &Expr, scope: &Scope) -> Result<()> {
+08:38 < bridge> <milkeeycat>     // This function has to check if subtract expression has valid operands
+08:38 < bridge> <milkeeycat>     // Rules:
+08:38 < bridge> <milkeeycat>     // `foo - 69` check if type of 69 is not bigger than type of foo
+08:38 < bridge> <milkeeycat>     // `69 - foo` check if type of 69 is not bigger than type of foo
+08:38 < bridge> <milkeeycat>     // `foo - bar` check if foo and bar of the same type
+08:39 < bridge> <milkeeycat>     // `ptr - offset` variable offset has to be either variable of type usize or immediate
+08:39 < bridge> <milkeeycat> 
+08:39 < bridge> <milkeeycat>     let left_type = lhs.type_(scope)?;
+08:39 < bridge> <milkeeycat>     let right_type = rhs.type_(scope)?;
+08:39 < bridge> <milkeeycat> 
+08:39 < bridge> <milkeeycat>     if left_type.ptr() {
+08:39 < bridge> <milkeeycat>         if !Expr::int_lit_only(rhs) {
+08:39 < bridge> <milkeeycat>             assert_eq!(right_type, Type::UInt(UintType::Usize));
+08:39 < bridge> <milkeeycat>         }
+08:39 < bridge> <milkeeycat>     }
+08:39 < bridge> <milkeeycat> 
+08:39 < bridge> <milkeeycat>     if left_type.int() && right_type.int() {
+08:39 < bridge> <milkeeycat>         match (Expr::int_lit_only(lhs), Expr::int_lit_only(rhs)) {
+08:39 < bridge> <milkeeycat>             (true, false) => {
+08:39 < bridge> <milkeeycat>                 assert!(Type::common_type(left_type, right_type.clone()) < right_type);
+08:39 < bridge> <milkeeycat>             }
+08:39 < bridge> <milkeeycat>             (false, true) => {
+08:39 < bridge> <milkeeycat>                 assert!(Type::common_type(left_type.clone(), right_type) < left_type);
+08:39 < bridge> <milkeeycat>             }
+08:39 < bridge> <milkeeycat>             (false, false) => assert_eq!(left_type, right_type),
+08:39 < bridge> <milkeeycat>             (true, true) => (),
+08:39 < bridge> <milkeeycat>         };
+08:39 < bridge> <milkeeycat>     }
+08:43 < bridge> <teero777> mornin
+08:55 < bridge> <kollpotato> hi developa
+08:56 < bridge> <cellegenrih> hi
+08:58 < bridge> <rutsu0264_98592> Hi
+10:06 < bridge> <milkeeycat> why does rust implement `std::ops::Shl`/`std::ops::Shr` for all possible integer types but not for addition / subtraction etc.?
+10:07 < bridge> <milkeeycat> why does rust implement `std::ops::Shl`/`std::ops::Shr` for all possible integer type combinations but not for addition / subtraction etc.?
+10:44 < bridge> <heinrich5991> maybe because the inputs to `<<` and `>>` are treated differently
+10:45 < bridge> <heinrich5991> how would you even define "correct"?
+10:51 < bridge> <teero777> "correct" would be a model that if simulated results in the exact same behaviour as real life in every case. But there is no way to know if smth is "correct" except observing things. I'm just ranting that people just accept the current models as correct.
+10:53 < bridge> <heinrich5991> in practice, all of the models I use are incorrect then, I think
+10:54 < bridge> <heinrich5991> but I find them much more useful than their more correct counterparts, because I can actually compute stuff with them and make useful predictions
+10:57 < bridge> <Jupstar ✪> ddnet physics are better than RL physics
+10:57 < bridge> <Jupstar ✪> no falldmg is just a selling argument
+12:53 < bridge> <learath2> The other guy has to play by the release cycle rules. You don't blindside the maintainer with critical patches in rc...
+13:02 < bridge> <Jupstar ✪> What is the sense of rc then?
+13:03 < bridge> <learath2> Rcs are release candidates, they are for minor touchups if needed, not critical patches that have been held for 2 weeks because mr man didn't feel like putting it up before the rc
+13:04 < bridge> <Jupstar ✪> And now?
+13:04 < bridge> <Jupstar ✪> How can you tell the patches were ready 2 weeks ago?
+13:05 < bridge> <learath2> He said they were ready 2 weeks ago
+13:05 < bridge> <Jupstar ✪> And how did Linus not notice it when he prepared the rc?
+13:06 < bridge> <learath2> Because he didn't say it 2 weeks ago. He said in that mail chain when submitting the patches
+13:07 < bridge> <learath2> When accused of pushing untested commits into an rc the night before it's release, he said he had been testing the changes in his tree for 2 weeks now
+13:07 < bridge> <learath2> The kernel has a way of doing release cycles, you just have to play by the rules. It's non-negotiable, everyone else has no issue pushing their changes in time
+13:08 < bridge> <Jupstar ✪> I dunno I read the dialog a bit and to me it sounds like both sides are at fault. But I am not so much in the material
+13:08 < bridge> <learath2> If you don't want to play by the rules, you can ship your thing as a kernel module
+13:09 < bridge> <learath2> The only context you need to know is that idk any other mainline project that is having this issue of not putting up their patches in time
+13:10 < bridge> <learath2> Mr Kent thinks his project needs special treatment
+13:12 < bridge> <Jupstar ✪> Ok sure. But the question I have is, why did Linus then pull his tree at all. Did the other maintainer say he wants "this" for the RC?
+13:12 < bridge> <Jupstar ✪> 
+13:12 < bridge> <Jupstar ✪> Like is there no communication or smth
+13:12 < bridge> <Jupstar ✪> Sounds all so random lmao
+13:13 < bridge> <Jupstar ✪> They should just switch to a proper git and do pull requests properly lmao
+13:15 < bridge> <learath2> Idk why Linus still let these patches in because last rc when Kent tried to pull the same shit he didn't let them in.
+13:15 < bridge> <learath2> 
+13:15 < bridge> <learath2> My guess would be that these ones are actually critical unlike the last ones
+13:16 < bridge> <learath2> Also his jabs towards btrfs throughout his mails were a little disgusting ngl. I wouldn't tolerate that attitude
+13:17 < bridge> <Jupstar ✪> tja, 2 egos hit each others xd
+13:17 < bridge> <ryozuki> @learath2 do u know where to find gcc docs on weakref attribute?
+13:18 < bridge> <ryozuki> ```C
+13:18 < bridge> <ryozuki> extern uint64_t* X;
+13:18 < bridge> <ryozuki> 
+13:18 < bridge> <ryozuki> int main()
+13:18 < bridge> <ryozuki> {
+13:18 < bridge> <ryozuki>     X = ...;
+13:18 < bridge> <ryozuki>     return 0;
+13:18 < bridge> <ryozuki> }
+13:18 < bridge> <ryozuki> ```
+13:18 < bridge> <ryozuki> 
+13:18 < bridge> <ryozuki> if i have a static lib .a that defines a global like this, and define in a C file this global with extern, it will modify it right?
+13:18 < bridge> <learath2> I only know this https://gcc.gnu.org/onlinedocs/gcc-4.2.4/gcc/Function-Attributes.html
+13:18 < bridge> <ryozuki> xd
+13:18 < bridge> <learath2> Idk if there is anything more detailed about weakref specifically
+13:18 < bridge> <Jupstar ✪> @learath2 have you ever contributed to a project that uses mailing lists btw?
+13:19 < bridge> <learath2> Not yet, I always wanted to get something into the kernel but never found what to do
+13:20 < bridge> <learath2> Yes, if I understood you correctly
+13:20 < bridge> <Jupstar ✪> I see. I always wonder if these older than oldschool projects are unattractive for young ppl
+13:21 < bridge> <ryozuki> if the global is a pointer the extern should be a double ptr?
+13:21 < bridge> <ryozuki> xd
+13:21 < bridge> <Jupstar ✪> I once contributed to an SVN project, and it was really annoying how they did things xD
+13:21 < bridge> <learath2> The barrier to entry is just too high I guess. When contributing something to a git project on github it's a breeze
+13:21 < bridge> <learath2> No not like that
+13:22 < bridge> <ryozuki> ok
+13:22 < bridge> <Jupstar ✪> Yeah but also depends on the project.
+13:22 < bridge> <Jupstar ✪> 
+13:22 < bridge> <Jupstar ✪> I doubt I want to pr smth to rust upstream again. Overloaded maintainers with no idea what they want
+13:23 < bridge> <zhn> @gdin hi
+13:23 < bridge> <Jupstar ✪> I guess maintaining is always a _annoying_ job xD
+13:23 < bridge> <Jupstar ✪> You have to deal with so many different ppl of different skill sets & language
+13:23 < bridge> <Jupstar ✪> You alive bro
+13:35 < bridge> <learath2> Sorry had to step away for a second. Think of it like the names directly aliasing eachother
+13:35 < bridge> <ryozuki> ye it worked
+13:37 < bridge> <learath2> Rust imo also has a governance issue.
+13:37 < bridge> <learath2> There are features and proposals that have been just waiting around for yeaaaars now
+13:39 < bridge> <Jupstar ✪> Yep true. It's also a very divisive topic ig.
+13:39 < bridge> <Jupstar ✪> 
+13:39 < bridge> <Jupstar ✪> Some ppl work a lot with rust, so any cool feature makes the life easier. And then there are ppl that want the language to stay clean and not too overpowered.
+13:39 < bridge> <Jupstar ✪> 
+13:39 < bridge> <Jupstar ✪> Yeah dunno, where are my AI friends hhehehe
+13:39 < bridge> <learath2> It seems after a language gets to a certain level of adoption, things just grind to a halt because of all the politics and expectations involved
+13:40 < bridge> <learath2> Atleast rust has the mechanism of editions to let them break stuff
+13:40 < bridge> <Jupstar ✪> But I feel likey they don't do that
+13:40 < bridge> <Jupstar ✪> Like really breaking stuff
+13:40 < bridge> <Jupstar ✪> Just like cpp would never do
+13:41 < bridge> <learath2> Yeah, it feels underused. Is a 6 year discussion worth not breaking stuff when we have a mechanism that explicitly allows us to get out of this stalemate?
+13:41 < bridge> <Jupstar ✪> But I still find that interesting. It seems like almost all projects suffer from that, and in the end there is smth new that simply replaces it until it suffers the same fate
+13:42 < bridge> <learath2> I wonder if a scheduled edition break every 2 years would help with these projects. If breakage is inevitable maybe the maintainers would become less conservative
+13:43 < bridge> <Jupstar ✪> Maybe the problem is also simply that maintainers are not replaced.
+13:43 < bridge> <Jupstar ✪> 
+13:43 < bridge> <Jupstar ✪> To not sound unfair. ofc the old maintainers have much more experience and probably carry that a project stays stable.
+13:43 < bridge> <Jupstar ✪> 
+13:43 < bridge> <Jupstar ✪> But I guess humans are simply not motivated over years to come
+13:44 < bridge> <learath2> This is also an issue yeah. Term limits for maintainers when?
+13:44 < bridge> <Jupstar ✪> 😬
+13:46 < bridge> <learath2> I guess the issue is the caliber of individual required to be a maintainer of something like rust. You can't just pick any random programmer for the job. So maybe it's not even easy to replace them even if you wanted
+13:46 < bridge> <Jupstar ✪> Yeah true
+13:48 < bridge> <0xdeen> I think Rust suffers from being designed by committee, similar to C++. Languages like that end up adding a lot of features, which makes it extremely hard to become proficient in the language
+13:51 < bridge> <learath2> Hm, perhaps you do have a point. The standard libraries of both are huuuge and they have many tools available for the same job. What do you think is a viable alternative? A language designed by a BDFL?
+13:52 < bridge> <learath2> Useless English word of the day: `loquacious`, means `talkative`
+13:53 < bridge> <Jupstar ✪> And what does talkative mean
+13:53 < bridge> <Jupstar ✪> Well I translated it now, so you don't need to answer anymore xd
+13:55 < bridge> <0xdeen> Strongly opinionated BDFL who doesn't approve most ideas (Python), or just a small team that develops the product without accepting any outside contributions (SQLite)
+13:55 < bridge> <0xdeen> but there has to be a vision, and it's usually easier for a person to have that vision compared to an organization/committee
+13:56 < bridge> <0xdeen> (DDNet also suffers from this, we just merge a lot of stuff)
+13:56 < bridge> <Jupstar ✪> I have a vision about ddnet too
+13:56 < bridge> <learath2> Given I'm not a huge fan of either, I'm unsure whether I agree that's a good way to run a project. But given their success in the market it's hard to deny that their approach delivers a decent product
+13:56 < bridge> <0xdeen> I wanted to fix something in SQLite and that's when I found out you can't contribute at all 😄
+13:58 < bridge> <learath2> We are faar too soft indeed, we should really stop accepting anything that hasn't gone through a discussion and pre-approved
+13:59 < bridge> <learath2> We just end up merging because someone put in the time to develop something, but that's not a great reason
+14:00 < bridge> <Jupstar ✪> I think our problem is somewhere else.
+14:00 < bridge> <Jupstar ✪> We mod to be mod friendly and have backward compatiblity and compatible to all versions of teeworlds and motivate people to contribute their ideas to ddnet and want to be stable xD
+14:00 < bridge> <Jupstar ✪> I think our problem is somewhere else.
+14:00 < bridge> <Jupstar ✪> We want to be mod friendly and have backward compatiblity and compatible to all versions of teeworlds and motivate people to contribute their ideas to ddnet and want to be stable xD
+14:00 < bridge> <learath2> Yeah and the solution is so obvious actually
+14:02 < bridge> <learath2> All this crud has to be chopped off. Plugin support, downloadable gamecore, separate backwards compatibility layer
+14:02 < bridge> <Jupstar ✪> Well I defs have ideas to solve some of our problems, but defs not all xD
+14:02 < bridge> <Jupstar ✪> E.g. I'd NEVER accept plugin support for ddnet
+14:02 < bridge> <Jupstar ✪> Just as modloaders for minecraft don't upstream their stuff
+14:02 < bridge> <fokkonaut> Russia and Turkey banned discord
+14:03 < bridge> <Jupstar ✪> What I'd accept is to replace components in total (at once) where the interface is clear
+14:03 < bridge> <Jupstar ✪> That is also what the idea of dd-pg is. You can replace ingame rendering and physics
+14:03 < bridge> <Jupstar ✪> But you cannot load a plugin that only changes 1 line of code
+14:03 < bridge> <learath2> That is a thing I'm not a huge fan of. But I do understand why they do it. It's really hard to ensure outside contributions quality. People hate their code getting reviewed and get argumentative
+14:03 < bridge> <Jupstar ✪> :c
+14:04 < bridge> <heinrich5991> rust is relatively easy to contribute to IME
+14:04 < bridge> <fokkonaut> Learath2, how are you here? VPN? xd
+14:04 < bridge> <heinrich5991> well, it's good that not everything is accepted. I guess it needs more explicit rejections though
+14:04 < bridge> <Jupstar ✪> Mh maybe u got a better experience then xD.
+14:04 < bridge> <Jupstar ✪> 
+14:04 < bridge> <Jupstar ✪> I literally felt the burn out of rust maintainers
+14:04 < bridge> <learath2> You just don't want to make any API promises? Idk I think if we had an easy way for people to modify their clients and servers we wouldn't get so many complaints
+14:05 < bridge> <Jupstar ✪> Yes, that is allowed, but not as plugin system. Well depends on the definition of plugin maybe
+14:05 < bridge> <heinrich5991> 😄 yesterday I read something on reddit, people complaining about the rust stdlib being way too small
+14:06 < bridge> <learath2> Huh, what are they missing even lol 😄
+14:06 < bridge> <Jupstar ✪> I wouldn't want to allow "small" lua scripts for example.
+14:06 < bridge> <Jupstar ✪> 
+14:06 < bridge> <Jupstar ✪> I prefer it to see it like mc, there can be a mod loader that replaces the whole physics system and add their lua support
+14:06 < bridge> <Jupstar ✪> That is the reason I chose WASM
+14:07 < bridge> <learath2> So less granular hooks
+14:07 < bridge> <Jupstar ✪> Yeah exactly
+14:07 < bridge> <learath2> But the less granular your hooks the harder it is to make a mod/plugin
+14:07 < bridge> <Jupstar ✪> I feel like upstream code with 
+14:07 < bridge> <Jupstar ✪> 
+14:07 < bridge> <Jupstar ✪> call_lua_this
+14:07 < bridge> <Jupstar ✪> call_lua_that
+14:07 < bridge> <Jupstar ✪> 
+14:07 < bridge> <Jupstar ✪> will just be a pain
+14:07 < bridge> <Jupstar ✪> 
+14:07 < bridge> <Jupstar ✪> But that's my opinion
+14:07 < bridge> <Jupstar ✪> Well the mod loader has to deal with it
+14:08 < bridge> <heinrich5991> I think @gutzufusss made a nice lua client that shows how it could work
+14:08 < bridge> <Jupstar ✪> Yes, but not upstream
+14:08 < bridge> <learath2> With C++ it's much harder, you can't really replace entire classes on the go like with Java
+14:08 < bridge> <heinrich5991> btw, I actually didn't think that rust's stdlib is too large. what makes you feel that way? @learath2
+14:09 < bridge> <Jupstar ✪> Yeah, so if you want it like java, compile your java runtime to wasm xDDD
+14:11 < bridge> <learath2> I feel every type has so many methods available. E.g. just check the doc page for Vec
+14:12 < bridge> <heinrich5991> I feel like that isn't a problem
+14:12 < bridge> <heinrich5991> at least that in particular: vec having many methods
+14:13 < bridge> <learath2> It isn't a problem per se, but it makes it harder to be proficient
+14:13 < bridge> <gutzufusss> I have a v8 client aswell
+14:13 < bridge> <Jupstar ✪> So javascript
+14:14 < bridge> <gutzufusss> that could be merged with upstream
+14:14 < bridge> <gutzufusss> and WASM so virtually any programming language
+14:14 < bridge> <Jupstar ✪> Yeah but not wasm only
+14:14 < bridge> <learath2> E.g. in Python, List has like 6-7 methods. It's usually obvious how to use a List properly
+14:15 < bridge> <Jupstar ✪> I assume this:
+14:15 < bridge> <Jupstar ✪> https://github.com/AllTheHaxx/CDXX
+14:15 < bridge> <gutzufusss> yes
+14:15 < bridge> <gutzufusss> it just has console.print bound iirc
+14:16 < bridge> <Jupstar ✪> How do you share memory with your v8 engine?
+14:16 < bridge> <Jupstar ✪> 
+14:16 < bridge> <Jupstar ✪> Is it uploaded on fly for single functions?
+14:16 < bridge> <Jupstar ✪> 
+14:16 < bridge> <Jupstar ✪> E.g. let's say you have a `OnClientJoin`, how would that look like?
+14:16 < bridge> <learath2> Once upon a time, I imagined a future where this worked in a layered way. Only level of abstraction "upstream" would be aware of would be a `CPluginManager` which would load a `.so` file and just call hooks in it, nothing more. Then one could implement a python or lua or whatever loader plugin
+14:17 < bridge> <gutzufusss> you can just bind variables and callbacks as you said
+14:17 < bridge> <Jupstar ✪> So the c++ object gets transformed into what? 😄
+14:17 < bridge> <gutzufusss> I did not spend a lot of thought on how to approach that
+14:17 < bridge> <Jupstar ✪> Oh ok
+14:17 < bridge> <gutzufusss> javascript objects
+14:17 < bridge> <Jupstar ✪> Is there any limitations?
+14:17 < bridge> <Jupstar ✪> 
+14:18 < bridge> <Jupstar ✪> U have no raw pointers at least ig :d
+14:18 < bridge> <heinrich5991> `extract_if`, `pop_if`, `into_flattened` are the methods that I didn't know from just their names. after looking at the methods, I feel like this is okay
+14:18 < bridge> <zhn> not really
+14:18 < bridge> <zhn> discord refuses to work at times
+14:18 < bridge> <heinrich5991> I think it makes sense that rust has a lot more functions on a vector since it wants to have performant ways to manipulate it
+14:19 < bridge> <Jupstar ✪> Additionally how is the performance if an object needs to be translated to js object every frame
+14:20 < bridge> <learath2> @jupeyy_keks do you share your host memory directly with wasm?
+14:21 < bridge> <Jupstar ✪> @heinrich5991 I'd really like to see how you want to integrate lua in a sane matter and also deliver a good amount of customization.
+14:21 < bridge> <Jupstar ✪> 
+14:21 < bridge> <Jupstar ✪> I mean it's not like I never thought about not doing the approach I do rn.
+14:21 < bridge> <Jupstar ✪> 
+14:21 < bridge> <Jupstar ✪> But just bcs factario uses LUA, I don't think that this is generally a good approach. It depends on what your goal is ig^^
+14:21 < bridge> <Jupstar ✪> 
+14:21 < bridge> <Jupstar ✪> So I am seriously interested, also about how much complexity is added with such an approach
+14:22 < bridge> <Jupstar ✪> I literally stopped it when I noticed that switching to a wasm runtime all the time is annoying and also not _that_ fast
+14:22 < bridge> <Jupstar ✪> Ofc not, that's not even possible 😄
+14:22 < bridge> <Jupstar ✪> I serialize and deserailize it
+14:22 < bridge> <Jupstar ✪> That is also costly btw, but apparently not my bottleneck
+14:23 < bridge> <Jupstar ✪> Since it happens on low rates currently
+14:23 < bridge> <learath2> It would be cool if you could expose parts of host memory directly
+14:23 < bridge> <heinrich5991> wdym, directly?
+14:23 < bridge> <heinrich5991> share a byte array with the VM, that the VM has bounds-checked access to?
+14:23 < bridge> <heinrich5991> sounds doable
+14:23 < bridge> <learath2> Yes
+14:24 < bridge> <Jupstar ✪> I want to support complex types tho
+14:25 < bridge> <heinrich5991> factorio for example implements much of the game logic in lua, in a sense, the actual game is just a mod as well
+14:25 < bridge> <learath2> But complex types are only a composition of primitive types. As long as you can ensure the layout is the same, you could share data that way. Pointers are probably the biggest issue in there. Idk how one would keep that safe
+14:25 < bridge> <heinrich5991> I'd probably go with a similar approach for ddnet
+14:25 < bridge> <Jupstar ✪> Ah yeah, that is what I do with wasm too then, and can still support lua
+14:25 < bridge> <Jupstar ✪> 
+14:25 < bridge> <Jupstar ✪> I just don't get why lua instead of wasm
+14:26 < bridge> <heinrich5991> wasm is good if you want to have first-class support for C/C++/Rust
+14:26 < bridge> <learath2> 3 letter word is quicker to type than 4 letter word, it's obvious
+14:26 < bridge> <heinrich5991> lua is good if you want first-class support for lua
+14:26 < bridge> <Jupstar ✪> And the lua interpreter compiles to wasm, since it's in c
+14:27 < bridge> <Jupstar ✪> and thus u have lua support
+14:27 < bridge> <Jupstar ✪> without upstreaming it
+14:27 < bridge> <heinrich5991> I would guess, but would be happy to be convinced otherwise, that the lua support is not going to be first class
+14:27 < bridge> <heinrich5991> i.e. that you need a lot of tinkering to make it work — but I'd like for anyone with a text editor to be able to make a mod, that'd be amazing
+14:27 < bridge> <learath2> Actually I wonder if anyone wrote a lua to wasm compiler
+14:27 < bridge> <Jupstar ✪> But why.. If you add lua support in your rust library or if you add lua support to your rust library that compiles to wasm
+14:28 < bridge> <Jupstar ✪> where is the difference xD
+14:28 < bridge> <Jupstar ✪> Yes but that is required anyway
+14:28 < bridge> <Jupstar ✪> WASM is just an additional layer
+14:28 < bridge> <heinrich5991> it's not a given that a lot of tinkering is required
+14:28 < bridge> <Jupstar ✪> I could also say it differently. You don't even notice dd-pg has WASM
+14:29 < bridge> <Jupstar ✪> Since the code is the same rust code
+14:29 < bridge> <stormaxd> while trying to cross-compile client on windows to .exe file, it just won't open for some reason... any ideas?
+14:29 < bridge> <stormaxd> https://cdn.discordapp.com/attachments/293493549758939136/1293550812034760776/image.png?ex=6707c892&is=67067712&hm=f67e306050de4cb71c2490dc47afa01373e88e438bac60fd0f0048066438f5ae&
+14:29 < bridge> <learath2> This is probably the most important thing. The ability to mod with just a text editor is great for so many games
+14:29 < bridge> <Jupstar ✪> But I don't see how wasm isntead of lua stops that. Your lua stuff can be hot reloaded too in a wasm module
+14:30 < bridge> <Jupstar ✪> it's literally like you code native minus some stuff like threading
+14:30 < bridge> <learath2> You are saying someone develops and maintains a wasm-lua-loader layer that handles this?
+14:30 < bridge> <Jupstar ✪> Apparently there is an interest for that
+14:30 < bridge> <Jupstar ✪> I mean someone has to maintain the lua part
+14:30 < bridge> <Jupstar ✪> and that's what he ends up doing
+14:30 < bridge> <stormaxd> i've used a ddnet documentation for cross compile from -> https://github.com/ddnet/ddnet
+14:30 < bridge> <heinrich5991> my russian isn't good enough, could you help me?
+14:31 < bridge> <Jupstar ✪> he doesn't care about WASM
+14:31 < bridge> <Jupstar ✪> he doesn't need to care about WASM
+14:31 < bridge> <stormaxd> impossible to launch this application in this pc
+14:31 < bridge> <stormaxd> impossible to launch this application on this pc
+14:32 < bridge> <heinrich5991> do you know which CPU architecture the binary is for and which CPU architecture your computer has? there's probably some way to find out what the actual error in launching was, too…
+14:33 < bridge> <heinrich5991> and that's where I think a standardized language might be superior, be it lua or javascript
+14:33 < bridge> <Jupstar ✪> But that makes no sense xD
+14:33 < bridge> <Jupstar ✪> It's the same for whoever maintains that project
+14:33 < bridge> <Jupstar ✪> ok
+14:33 < bridge> <Jupstar ✪> let's do it differently
+14:34 < bridge> <Jupstar ✪> let's say i load a .so file
+14:34 < bridge> <Jupstar ✪> 
+14:34 < bridge> <Jupstar ✪> and the .so file has all lua stuff
+14:34 < bridge> <Jupstar ✪> is it 
+14:34 < bridge> <Jupstar ✪> 1. harder for that person
+14:34 < bridge> <Jupstar ✪> 2. just the same as if there is no .so file
+14:34 < bridge> <heinrich5991> it'd mean there aren't mutually incompatible mod source bases. also if you start depending on ddnet-pg-lua, then you might be worried if that is maintained forever. but if the lua binding is *THE* official modding API, then you think that it'll probably stay around
+14:35 < bridge> <Jupstar ✪> But that would mean that ddnet maintainers have to maintain it, even if they dislike it.
+14:35 < bridge> <Jupstar ✪> 
+14:35 < bridge> <Jupstar ✪> While a cleanly separated project would be maintained by ppl that actually like lua
+14:36 < bridge> <heinrich5991> yes. it'd also mean that it'll probably stay maintained, and that people can rely on it
+14:36 < bridge> <Jupstar ✪> And even if we'd accept first class lua support, we could still allow wasm on top, so someone can opt-out of the lua stuff
+14:36 < bridge> <Jupstar ✪> bcs the wasm stuff is simply not dominating the source code
+14:36 < bridge> <Jupstar ✪> it's a wasm manager, and some macros
+14:37 < bridge> <Jupstar ✪> that's it, the rest is normal dd-pg code
+14:37 < bridge> <heinrich5991> I'm not super focused on lua tbh btw
+14:37 < bridge> <stormaxd> not my pc tho, so i can't, well i mostly sure its exactly cmake problem, cause i'm getting this somehow
+14:37 < bridge> <stormaxd> 
+14:37 < bridge> <stormaxd> cmake options `-DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/mingw64.toolchain`
+14:37 < bridge> <stormaxd>  and i just relize it compiling as shell fine xd
+14:37 < bridge> <stormaxd> https://cdn.discordapp.com/attachments/293493549758939136/1293553005169344573/image.png?ex=6707ca9d&is=6706791d&hm=f451a34bac88dfda5bf6116655d154293fc824fdd9b1cdb2ed4cd12559ed94e8&
+14:38 < bridge> <heinrich5991> just something that can be edited without installing further programs
+14:38 < bridge> <teero777> Im not gonna code gamemodes in lua please spare me
+14:38 < bridge> <Jupstar ✪> Yes, I am just interested in the arguments for lua or js.
+14:38 < bridge> <Jupstar ✪> 
+14:38 < bridge> <Jupstar ✪> I am all for mod support, I guess I kinda hope to demotivate ppl from upstreaming every change they have to make _their_ mods easier to use
+14:39 < bridge> <Jupstar ✪> If it makes ddnet code more readable. fine
+14:39 < bridge> <Jupstar ✪> 
+14:39 < bridge> <Jupstar ✪> If it adds some weird hacks so they can add some extra parameter to some function.. I dunno 😄
+14:40 < bridge> <learath2> Are you just loading and running a massive wasm blob?
+14:40 < bridge> <Jupstar ✪> Yes
+14:40 < bridge> <Jupstar ✪> Well depends on massive
+14:40 < bridge> <Jupstar ✪> physics are really small
+14:40 < bridge> <Jupstar ✪> but rendering is quite a bit bigger yeah
+14:41 < bridge> <Jupstar ✪> rendering is a different problem anyway.. much harder to sandbox etc.
+14:41 < bridge> <learath2> I think this is not very modding friendly. To make a mod now you need to rewrite or copy the entire wasm code you have.
+14:41 < bridge> <learath2> 
+14:41 < bridge> <learath2> I think granular hooks are a better way to make userfriendly modding possible
+14:41 < bridge> <Jupstar ✪> I'd already be happy to some day have really good physics modding support
+14:42 < bridge> <Jupstar ✪> No wasm code is copied tho. It's the rust code that is copied
+14:42 < bridge> <Jupstar ✪> > I think granular hooks are a better way to make userfriendly modding possible
+14:42 < bridge> <Jupstar ✪> Again, this still works
+14:42 < bridge> <learath2> Whatever. They need to basically fork your copy and mod it, just the way mods are currently made
+14:42 < bridge> <Jupstar ✪> You can fork the dd-pg physics, add your lua runtime
+14:42 < bridge> <Jupstar ✪> 
+14:42 < bridge> <Jupstar ✪> compile to wasm
+14:42 < bridge> <Jupstar ✪> and that's it
+14:42 < bridge> <Jupstar ✪> But they don't need to upstream it
+14:43 < bridge> <Jupstar ✪> Bcs the client will have the exact same support
+14:43 < bridge> <Jupstar ✪> If ddnet wants ddnet physics to be lua friendly, so be it
+14:43 < bridge> <learath2> The value is in allowing the client to download a blob from the server. Not the way you pick your hooks
+14:43 < bridge> <Jupstar ✪> That doesn't mean fng has to be
+14:44 < bridge> <Jupstar ✪> Ok, and for client side prediction you then download lua scripts
+14:44 < bridge> <Jupstar ✪> is that better?
+14:44 < bridge> <Jupstar ✪> Or is 1MB blob too much traffic
+14:46 < bridge> <learath2> Yes, that's what I would experiment with. I'm not saying your way is wrong. I'm saying it's better UX for the mainline to have easy moddability
+14:46 < bridge> <Jupstar ✪> Ok twgame is currently 2.9 after 
+14:46 < bridge> <Jupstar ✪> wasm-strip
+14:46 < bridge> <Jupstar ✪> and
+14:46 < bridge> <Jupstar ✪> wasm-opt
+14:46 < bridge> <Jupstar ✪> calls to it
+14:46 < bridge> <Jupstar ✪> 2.9MB
+14:47 < bridge> <Jupstar ✪> Yes and i totally don't block that, we can have a repo:
+14:47 < bridge> <Jupstar ✪> ddnet-physics
+14:47 < bridge> <Jupstar ✪> 
+14:47 < bridge> <Jupstar ✪> and you can maintain it 😄
+14:47 < bridge> <Jupstar ✪> I am not super interested in ddnet as physics anyway.. 
+14:47 < bridge> <Jupstar ✪> Enough to play gores if fine for me
+14:48 < bridge> <Jupstar ✪> Kaffaine might need different things u _can_ support in ddnet modding anyway
+14:48 < bridge> <Jupstar ✪> So he can do his infection-class however he wants, and ddnet as they want
+14:48 < bridge> <Jupstar ✪> and chiller can add his epyc stuff as he wants
+14:48 < bridge> <learath2> This is the issue. I'm saying the MAINLINE needs to have good moddability UX. Not a fork, what if we go away and you break some api promise? Now all lua mods are broken
+14:48 < bridge> <Jupstar ✪> and all are happy
+14:48 < bridge> <Jupstar ✪> until someone wants to change the interface :lol:
+14:49 < bridge> <Jupstar ✪> But what if MAINLINE has a bug in the API.. then it might also break everything
+14:49 < bridge> <learath2> Anyway, your project, your rules. Knock yourself out. I'm just telling you what I would experiment with
+14:49 < bridge> <Jupstar ✪> I trust other devs as much as a trust myself
+14:49 < bridge> <Jupstar ✪> NOT AT ALL
+14:50 < bridge> <Jupstar ✪> And I am just saying that I feel like my idea is a superset of what you want and thus not blocking your idea
+14:51 < bridge> <learath2> It's not blocking technically, but it requires the modders to trust a second third party repo
+14:51 < bridge> <learath2> Now your mod is on shaky ground because it depends on 2 layers of api provided by distinct vendors
+14:52 < bridge> <Jupstar ✪> but in minecraft it kinda works too, bcs the modding community simply decided that they get what they need.
+14:52 < bridge> <Jupstar ✪> 
+14:52 < bridge> <Jupstar ✪> So mojang can still do whatever the shit they want. And they even break the game very often. Smth ddnet will probs not do (as much at least)
+14:52 < bridge> <learath2> Again, I do not care particularly what you do. It's your business. I'm just letting you know my opinion on it
+14:53 < bridge> <Jupstar ✪> Yes
+14:53 < bridge> <Jupstar ✪> All fine
+14:54 < bridge> <learath2> In this case there is one vendor you can't interact with at all. So the stable middleman is the best you can do. It's better than nothing, but is it as good as a first party api, unlikely, you can see how often stuff breaks on updates
+14:55 < bridge> <Jupstar ✪> Sure but I don't see how ddnet never breaks their API ever
+14:55 < bridge> <learath2> There is also a bit of a performance concern as you keep adding on layers, though I doubt it's bad enough to consider
+14:55 < bridge> <Jupstar ✪> Do you want to first try a perfect API or what
+14:56 < bridge> <Jupstar ✪> Sure, benchmarking is always important
+14:56 < bridge> <Jupstar ✪> for example:
+14:56 < bridge> <Jupstar ✪> The rendering module is defs slower than the physics module, bcs it interacts much more with the client
+14:57 < bridge> <Jupstar ✪> (Or with outside apis, fs, graphics etc.)(
+14:57 < bridge> <Jupstar ✪> (Or with outside apis, fs, graphics etc.)
+14:58 < bridge> <learath2> No, but you can version an api, you can be considerate with how you make changes. With Microsoft and Minecraft you get 0 promises.
+14:58 < bridge> <learath2> 
+14:58 < bridge> <learath2> With dd-pg and dd-pg-lua you have already implied that you don't care much about a lua layer on top. How much would you care about that layers stability? Is it better than Microsoft, sure. Is it better than you personally being responsible for it's stability, unlikely
+14:59 < bridge> <learath2> I'm just not a huge fan of third party middleware
+15:00 < bridge> <Jupstar ✪> I personally would not maintain the lua api anyway, so it's more about other ddnet maintainers anyway.
+15:00 < bridge> <Jupstar ✪> 
+15:00 < bridge> <Jupstar ✪> So why should it even be my problem, I don't directly understand 😄
+15:00 < bridge> <Jupstar ✪> Like if you think it has to be stable, you can invest as much time as you want
+15:00 < bridge> <Jupstar ✪> Totally fine by me
+15:00 < bridge> <Jupstar ✪> Your project defines the stability of the LUA API
+15:00 < bridge> <Jupstar ✪> not dd-pg
+15:01 < bridge> <learath2> Exactly, you don't care, you break an api promise, dd-pg-lua can no longer provide a lua api they used to provide, now mods broke
+15:01 < bridge> <Jupstar ✪> Well why was the API break needed? How did lua prevent this from breaking
+15:01 < bridge> <Jupstar ✪> I don't understand your point tbh
+15:01 < bridge> <Jupstar ✪> The lua api can maybe workaround the API change
+15:02 < bridge> <learath2> E.g. say you decided to multithread the server, now I can no longer provide a sync teleport function because all entity teleports are async now
+15:02 < bridge> <Jupstar ✪> If the mods are _only_ lua files then this is probably as easy as replacing a binary bob or not?
+15:03 < bridge> <Jupstar ✪> Uff
+15:03 < bridge> <Jupstar ✪> But that isn't an API break
+15:03 < bridge> <Jupstar ✪> that is a new game xD
+15:04 < bridge> <learath2> Anyway, I don't like this sort of relationship to begin with. Middleware that the mainline doesn't care about is doomed to fall out of sync and die off
+15:04 < bridge> <Jupstar ✪> I can still make fng multi threaded, if the multi threaded ends exactly when `Tick()` ends
+15:04 < bridge> <Jupstar ✪> Bcs then it's part of the FNG physics module not the server code
+15:05 < bridge> <Jupstar ✪> Well honestly I don't even completely understand your problem.
+15:05 < bridge> <Jupstar ✪> 
+15:05 < bridge> <Jupstar ✪> If there is an API change that affects the LUA API then that API change was really needed or not
+15:05 < bridge> <Jupstar ✪> I still try to make a teeworlds game
+15:05 < bridge> <Jupstar ✪> and not a 3D game engine
+15:09 < bridge> <learath2> You are thinking too concretely. You have a wasm api, I use your wasm api to provide a lua api. If you break your promise to me, I now have to (if possible) work around it to keep my promise to my users
+15:09 < bridge> <learath2> 
+15:09 < bridge> <learath2> I would rather not take part in this sort of relationship
+15:10 < bridge> <learath2> IMO these sort of things ideally belong in the upstream
+15:10 < bridge> <Jupstar ✪> But what promise exactly do you break?
+15:10 < bridge> <Jupstar ✪> 
+15:10 < bridge> <Jupstar ✪> That if they update the game, also have to update the wasm blob?
+15:10 < bridge> <Jupstar ✪> 
+15:10 < bridge> <Jupstar ✪> The lua scripts stay untouched if you didn't break the lua API or not?
+15:11 < bridge> <learath2> If I can't work around your change now the lua mods need updating. Just like in minecraft
+15:12 < bridge> <Jupstar ✪> But I cannot really imagine a case here.
+15:12 < bridge> <Jupstar ✪> 
+15:12 < bridge> <Jupstar ✪> What changes that you need to break the LUA api too?
+15:12 < bridge> <Jupstar ✪> 
+15:12 < bridge> <Jupstar ✪> Like if the player name is allowed to be longer, that doesn't break your API
+15:12 < bridge> <learath2> Anyway, I have wasted enough company time on this. I need to go write tests
+15:13 < bridge> <Jupstar ✪> Ok, sry to disturb you, I really just try to understand
+15:16 < bridge> <learath2> Idk your exact api so it's hard for me to give you a concrete example. Say you were providing an `OnRender` hook for characters. Then you found a sick optimization that gave you 900% better performance if you batch render all the characters at once.
+15:16 < bridge> <learath2> 
+15:16 < bridge> <learath2> I used to provide this OnRender hook to my downstream lua clients. You no longer even have this hook, it's now just not available
+15:17 < bridge> <learath2> I have a feeling you keep your blobs even larger so that specific example probably isn't possible. But it's just an example
+15:17 < bridge> <Jupstar ✪> Then you have to work around it or break API yes.
+15:17 < bridge> <Jupstar ✪> 
+15:17 < bridge> <Jupstar ✪> But does it help that the code is upstream?
+15:17 < bridge> <Jupstar ✪> 
+15:17 < bridge> <Jupstar ✪> I'd be in the same situation or couldn't even optmize it, which sounds even worse IMO
+15:17 < bridge> <Jupstar ✪> Yes they are bigger than that indeed
+15:18 < bridge> <Jupstar ✪> I try to minize the size of the interface, for rendering it's currently like 3 functions
+15:18 < bridge> <Jupstar ✪> 
+15:18 < bridge> <Jupstar ✪> For physics it's a bit bigger, with player_join, leave etc.
+15:18 < bridge> <Jupstar ✪> But rendering takes smth similar to a snapshot (just for rendering), which could defs break between versions
+15:18 < bridge> <learath2> You'd be motivated to find a way to still provide it or provide a replacement. It's an incentives thing, by making you commit to an api, you create trust in downstream users
+15:19 < bridge> <learath2> I really gotta go, this needs to be merged tonight or this russian product manager will actually get mad
+15:20 < bridge> <meloƞ> :justatest:
+15:20 < bridge> <Jupstar ✪> Well I think API changes are more than fine, just not every other day.
+15:20 < bridge> <Jupstar ✪> 
+15:20 < bridge> <Jupstar ✪> If deprecation is possible i'd try that first.
+15:20 < bridge> <Jupstar ✪> 
+15:20 < bridge> <Jupstar ✪> Else I need to tell the users somehow.
+15:20 < bridge> <Jupstar ✪> 
+15:20 < bridge> <Jupstar ✪> But there is no perfect API, especially not with something as critical as rendering. Rendering changes very often.. I guess most changes in ddnet are rendering related actually.
+15:20 < bridge> <Jupstar ✪> 
+15:20 < bridge> <Jupstar ✪> Some weird indicator here, some other stuff there
+15:21 < bridge> <Jupstar ✪> Yeah yeah leave
+15:21 < bridge> <Jupstar ✪> Good bye
+15:22 < bridge> <meloƞ> Sounds like you want proper version control for server, client and Api support (just like Minecraft), allows for backwards compat and provides a stable version of everything
+15:22 < bridge> <meloƞ> Just annoying to setup
+15:22 < bridge> <learath2> There is value to a stable api. If you put 0 value to it, it would be worth breaking at every step. It's hard to figure out the exact value but sometimes 2% better performance is maybe not worth breaking an api, especially if it can't be worked around
+15:22 < bridge> <learath2> Okok I will actually put this phone away from my desk because I can't control myself
+15:23 < bridge> <Jupstar ✪> Would be cool too, but as said it's not like I want to break the API every other day.
+15:23 < bridge> <Jupstar ✪> 
+15:23 < bridge> <Jupstar ✪> Maybe better reject some features than to add random changes that nobody uses and break the API
+15:23 < bridge> <meloƞ> :poggers2: :kek:  addict, go work!
+15:23 < bridge> <learath2> You can respon. I'll read tonight
+15:23 < bridge> <meloƞ> Fair
+15:23 < bridge> <Jupstar ✪> Sure. I guess in some sense it's easier for physics to stay stable than rendering tho.
+15:23 < bridge> <Jupstar ✪> 
+15:23 < bridge> <Jupstar ✪> Rendering is simply super hard xD
+15:23 < bridge> <Jupstar ✪> Maybe simply don't provide lua support there if api changes are not acceptable
+15:24 < bridge> <Jupstar ✪> Or lua support only that doesn't touch existing rendering pipelines. E.g. extra components only
+17:12 < bridge> <pioooooo> I actually thought ddpg was something I don't know rather than a wip
+17:12 < bridge> <pioooooo> So what does pg stand for
+17:12 < bridge> <jxsl13> :poggers:
+17:12 < bridge> <jxsl13> :poggers2:
+17:13 < bridge> <pioooooo> Pog
+17:13 < bridge> <jxsl13> dunno
+17:13 < bridge> <jxsl13> just guessing
+17:13 < bridge> <heinrich5991> playground
+17:13 < bridge> <pioooooo> :poggers2:
+17:22 < bridge> <milkeeycat> postgresql
+17:51 < bridge> <jxsl13> oof
+17:57 < bridge> <heinrich5991> https://chadnauseam.com/coding/pltd/the-good-and-bad-of-cpp-as-a-rust-dev
+18:00 < bridge> <jxsl13> cpp borrow checker incoming
+18:06 < bridge> <jxsl13> time to throw rust out if the windows
+18:06 < bridge> <jxsl13> :kek:
+18:06 < bridge> <jxsl13> of
+18:35 < bridge> <jxsl13> what api endpoint does the client use to check for th elatest ddnet version?
+18:35 < bridge> <jxsl13> what api endpoint does the client use to check for the latest ddnet version?
+18:43 < bridge> <learath2> It's in the info json iirc
+18:43 < bridge> <learath2> Yes it is
+18:45 < bridge> <jxsl13> https://info.ddnet.org/info ?
+18:46 < bridge> <jxsl13> hm, there is something at the bottom
+18:47 < bridge> <jxsl13> is there a way to calculate the version flag from that version number? like 18.6 -> blub? or is that flag version manually incremented?
+19:18 < bridge> <robyt3> Not sure what you mean with version flag. The client uses the `ToVersion` function in `client.cpp` to parse the version string to compare it
+19:19 < bridge> <jxsl13> 18060
+19:19 < bridge> <jxsl13> is what I meant by version glag
+19:19 < bridge> <jxsl13> is what I meant by version flag
+19:19 < bridge> <jxsl13> it's not a flag, tho
+19:20 < bridge> <robyt3> You can mostly convert the string to integer version, but IIRC there is at least one version where the integer version doesn't follow the correct scheme
+19:21 < bridge> <jxsl13> just want to vonvert the version from https://info.ddnet.org/info
+19:21 < bridge> <jxsl13> that should work for the near future, I guess
+19:22 < bridge> <jxsl13> convert
+19:23 < bridge> <robyt3> Yeah, then you could parse the string into X.Y.Z (with Z being 0 if not set) (like `ToVersion`) then calculate the code as `X * 1000 + Y * 10 + Z` I guess
+19:23 < bridge> <maratik_m> :banhammer:
+19:35 < bridge> <sqwinix> Hi guys, tell me please how to make a "Bomb tag" Server
+19:35 < bridge> <DDNet> Hellou :3
+19:36 < bridge> <deathgood> stfu
+19:37 < bridge> <heinrich5991> what are you trying to do? ^^
+19:39 < bridge> <animepdf> @heinrich5991 
+19:39 < bridge> <animepdf> ```cmake
+19:39 < bridge> <animepdf> if(ANTIBOT)
+19:39 < bridge> <animepdf>   # Allow the antibot library to use functions from the server binary.
+19:39 < bridge> <animepdf>   add_cxx_compiler_flag_if_supported(OUR_FLAGS_LINK -rdynamic)
+19:39 < bridge> <animepdf>   set_own_rpath(game-server)
+19:39 < bridge> <animepdf> endif()
+19:39 < bridge> <animepdf> ```
+19:39 < bridge> <animepdf> Properly works only on linux, windows linker not gaining access to `game-server`. Not sure if someone builds AB on windows, but worth mentioning
+19:41 < bridge> <learath2> @heinrich5991 it seems we ran out of bans
+19:41 < bridge> <learath2> `MAX_BANS = 1024,` could you somehow bump this?
+19:44 < bridge> <learath2> Also it seems we fail very silently on this, it says "banned" but it doesn't ban
+19:45 < bridge> <heinrich5991> sounds good, we can bump this
+19:45 < bridge> <heinrich5991> we might want to check for old leftover bans though, too
+19:45 < bridge> <jxsl13> well, that's a secrent 😮
+19:45 < bridge> <jxsl13> secret
+19:46 < bridge> <meloƞ> :think_bot:
+19:46 < bridge> <kekomonter> Bump limit of master server payload
+20:26 < bridge> <fokkonaut> is it intended that you can use any character as gametype / map name?
+20:26 < bridge> <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/1293640831823253576/image.png?ex=67081c68&is=6706cae8&hm=cddedb1dc2a5d79a2e2ddca3ddbb0e4092f6062425650ca6f29fabfc3647fae3&
+20:28 < bridge> <Jupstar ✪> I would not rely on that
+20:30 < bridge> <Jupstar ✪> Does the map file downloaded by the client also use utf8 chars?
+20:30 < bridge> <Jupstar ✪> Or only a server browser cheat
+20:30 < bridge> <fokkonaut> thats the map name
+20:31 < bridge> <Jupstar ✪> Mh, that sucks xd
+20:31 < bridge> <Jupstar ✪> I banned utf8 for filenames in rs version xd
+20:33 < bridge> <matodor> hey, it's my map
+20:35 < bridge> <matodor> lol its #1  if you server order by map name (DESC)
+20:35 < bridge> <matodor> I didn't know
+20:36 < bridge> <fokkonaut> #2 actually, and no, i used a little hack to include the header
+20:38 < bridge> <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/1293643295825723544/image.png?ex=67081eb4&is=6706cd34&hm=652d962ba7dcc660dbedc634a71cf46350230d5063bb5a7613097e157daba125&
+20:40 < bridge> <matodor> ?
+20:40 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1293643452780908574/image.png?ex=67081ed9&is=6706cd59&hm=08da2ed342ff54f36078098ac81e687352f31364e9cd4782dc49cb725363b777&
+20:40 < bridge> <fokkonaut> Ah
+20:40 < bridge> <fokkonaut> i didnt understand you correctly
+20:40 < bridge> <matodor> well, I wasn't trying to get to the top, I just made a map in the shape of a triangle)))
+20:43 < bridge> <learath2> I'm out and as far as I understand all new bans are failing until either this is bumped or some old ones are cleared out if there are any
+20:48 < bridge> <heinrich5991> @learath2 ^
+20:48 < bridge> <avolicious> it gets spammed with DNSBL stuff, no?
+20:49 < bridge> <learath2> I'm guessing the hashlist bucket size is "good enough", right?
+20:49 < bridge> <heinrich5991> ah, true, dnsbl also goes in there. but only for 10 minutes, so it should be fine
+20:49 < bridge> <avolicious> But in case of an attack, it gets filled up
+20:50 < bridge> <avolicious> I am not sure if it is suitable, but maybe a local DNS server can cache the dns entry for a specific TTL
+20:50 < bridge> <avolicious> Then all servers on the same machine can use this cached thingy & we dont have to store any ban in the BANS
+20:51 < bridge> <Jupstar ✪> when do we get a crates.io bot 😏
+20:52 < bridge> <avolicious> Lol, I thought this arrow up is some sort of "sorter" 😄
+20:53 < bridge> <justniceasalways> When mast server payload's size bump
+20:53 < bridge> <justniceasalways> When master server payload's size bump
+21:10 < bridge> <edrub> @cyberfrighter its so over
+21:11 < bridge> <learath2> The CI pipeline is reeeeaaal long 😄
+21:12 < bridge> <edrub> cant wait to hit 2048 bans and have to update the limit again
+21:14 < bridge> <Jupstar ✪> you want to imply a soft limit is better
+21:14 < bridge> <Jupstar ✪> aint no way
+21:14 < bridge> <Jupstar ✪> 4096
+21:14 < bridge> <edrub> nope, its just funny that you can run out of bans
+21:14 < bridge> <Jupstar ✪> 8192
+21:15 < bridge> <edrub> yep, 8192 bans would be enough
+21:15 < bridge> <Jupstar ✪> why nope xd
+21:16 < bridge> <edrub> clearly you dont want some admin to ban every single ip in the game
+21:16 < bridge> <edrub> that's what the max bans for!
+21:17 < bridge> <cyberfrighter> ban range exists tho
+21:17 < bridge> <jxsl13> hw doe sthe release process work for the ddnet repo?
+21:17 < bridge> <jxsl13> how does the release process work for the ddnet repo?
+21:17 < bridge> <cyberfrighter> you can ban 0.0.0.0 - 255.255.255.255
+21:17 < bridge> <jxsl13> just tagging will trigger the full build chain?
+21:18 < bridge> <jxsl13> do tags need a specific format?
+21:19 < bridge> <learath2> We don't have automatic deployment
+21:19 < bridge> <Ewan> deen makes them by hand
+21:19 < bridge> <Ewan> iirc
+21:19 < bridge> <jxsl13> no auto artifacts in the github release section?
+21:20 < bridge> <Ewan> cuz the ddnet CI never exports artifacts
+21:20 < bridge> <learath2> For the server we deploy whatever commit we want by hand when needed
+21:20 < bridge> <Ewan> afaik
+21:20 < bridge> <Ewan> windows builds always have deen’s user account name in the debug asserts
+21:20 < bridge> <learath2> For the client we have an rc process which deen runs by hand
+21:20 < bridge> <Ewan> I assume it’s built on a vm or dev machine of his
+21:21 < bridge> <jxsl13> so it's not possible to trigger the ci pipeline and get it to build all binaries for me D:
+21:21 < bridge> <jxsl13> for all OSes
+21:21 < bridge> <Ewan> you could make it do that fairly easy
+21:21 < bridge> <Jupstar ✪> ?
+21:21 < bridge> <Jupstar ✪> the CI exports artifacts
+21:21 < bridge> <robyt3> I think there are problems with the macOS CI artifact, but the others should work
+21:21 < bridge> <Ewan> where do u get them
+21:21 < bridge> <learath2> Nope, they are not how we build anyway, we crossbuild. But yes you can grab the ci artifacts if you want
+21:22 < bridge> <Jupstar ✪> in every github action u can download them
+21:22 < bridge> <robyt3> Expand the "Upload Artifacts" step in the log
+21:22 < bridge> <Jupstar ✪> https://github.com/ddnet/ddnet/actions/runs/11250330769
+21:22 < bridge> <Jupstar ✪> (maybe scroll)
+21:22 < bridge> <learath2> I now wonder if you need some permissions in the repo to get those 🤔
+21:22 < bridge> <Jupstar ✪> & u need gh acc to download them
+21:22 < bridge> <Jupstar ✪> no
+21:23 < bridge> <Jupstar ✪> i often share my builds with randoms xd
+21:24 < bridge> <totar> you need to be logged into your account to see/download them
+21:24 < bridge> <jxsl13> those artifacts would be enough for me
+21:24 < bridge> <jxsl13> that's indeed true
+21:24 < bridge> <Ewan> TIL
+21:24 < bridge> <learath2> But the official builds are not done like that. So don't expect them to be reproduced
+21:25 < bridge> <Jupstar ✪> also the windows builds use microsoft tools
+21:25 < bridge> <Jupstar ✪> so they are less open source 😬
+21:25 < bridge> <robyt3> When MSYS2 CI :justatest:
+21:25 < bridge> <learath2> Actually might even behave differently in some edgecases now that I think about it. There are some msys quirks
+21:25 < bridge> <learath2> Actually might even behave differently in some edgecases now that I think about it. There are some mingw quirks
+21:26 < bridge> <Jupstar ✪> If it doesnt take 3h to build then xD
+21:26 < bridge> <Jupstar ✪> Omg i already fear the CI of dd-pg
+21:26 < bridge> <Jupstar ✪> 5h or smth
+21:26 < bridge> <Jupstar ✪> even on my vps it takes 30mins
+21:26 < bridge> <Jupstar ✪> and i think it's faster than gh actions xD
+21:27 < bridge> <Jupstar ✪> but at least it doesn't need clang-tidy hehehe
+21:27 < bridge> <jxsl13> those pipelines take forever D:
+21:28 < bridge> <learath2> Clippy much faster
+21:28 < bridge> <Jupstar ✪> No need for static analyzer at all 😄
+21:29 < bridge> <Jupstar ✪> The compiler does the same
+21:29 < bridge> <learath2> Wtf, @ryozuki scold him rn, he is breaking holy rust rules
+21:29 < bridge> <Jupstar ✪> I guess xd
+21:29 < bridge> <Jupstar ✪> Ryo the rust prophet
+21:29 < bridge> <learath2> Wooooo, CI done
+21:30 < bridge> <Jupstar ✪> took 35min
+21:31 < bridge> <heinrich5991> to run the CI twice
+21:31 < bridge> <Jupstar ✪> ez
+21:31 < bridge> <heinrich5991> for whatever reason, github merge queue doesn't fast-forward when the commit has already been tested…
+21:31 < bridge> <heinrich5991> must be at least a couple of percent of compute they could save by fixing this
+21:32 < bridge> <Jupstar ✪> so then we can assume half the time?
+21:32 < bridge> <Jupstar ✪> 
+21:32 < bridge> <Jupstar ✪> then rust is really slow xD
+21:32 < bridge> <Jupstar ✪> the account stuff already took 14mins
+21:33 < bridge> <Jupstar ✪> i mean it has to build a http server and tokio and shit, but rip xd
+21:34 < bridge> <heinrich5991> this will be fun to build on the servers ^^
+21:34 < bridge> <heinrich5991> they have slow CPUs
+21:34 < bridge> <learath2> Rust is definitely not winning build time olympics
+21:34 < bridge> <heinrich5991> even the mastersrv rebuild takes ages
+21:34 < bridge> <Jupstar ✪> https://raw.githubusercontent.com/rochacbruno/rust_memes/master/img/faster_compiler.jpg
+21:35 < bridge> <learath2> Lets port the account server to portable c99
+21:35 < bridge> <Jupstar ✪> Yeah, but the good is, when it compiles it checked lot of stuff and often works 😄
+21:35 < bridge> <Jupstar ✪> for ddnet-cpp we could really just include them as c lib
+21:35 < bridge> <Jupstar ✪> cxx is too complicated for me xD
+21:35 < bridge> <learath2> Or account server in turbopascal
+21:36 < bridge> <Jupstar ✪> yeah pascal really compiles fast.. and the syntax is bit like rust xd
+21:36 < bridge> <Jupstar ✪> but sometimes so insanely verbose xD
+21:36 < bridge> <Jupstar ✪> procedure
+21:36 < bridge> <Jupstar ✪> being
+21:36 < bridge> <Jupstar ✪> end
+21:36 < bridge> <Jupstar ✪> begin
+21:37 < bridge> <Jupstar ✪> i really hate that discord does not have a hover color for msgs.
+21:37 < bridge> <Jupstar ✪> 
+21:37 < bridge> <Jupstar ✪> When i have it in maximized mode i always have to guess hard which like i hit xD
+21:37 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1293658629303566436/image.png?ex=67082cfc&is=6706db7c&hm=a2bef34174c37125cef2f78cbd0cf51356186f8f2512066fee5f65b08947ed79&
+21:37 < bridge> <heinrich5991> hmmm when I hover discord messages, they get colored differently
+21:37 < bridge> <Jupstar ✪> in browser?
+21:37 < bridge> <heinrich5991> electron
+21:38 < bridge> <Jupstar ✪> oh ok
+21:38 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1293658803702730772/image.png?ex=67082d25&is=6706dba5&hm=34c9a8676993590dfba90330faaf2189bc943e176c08a1afd46089123cd673d8&
+21:38 < bridge> <milkeeycat> in browser
+21:38 < bridge> <heinrich5991> I guess you get highlighting due to the timestamp
+21:38 < bridge> <heinrich5991> I guess you also get some highlighting with the timestamp
+21:39 < bridge> <Jupstar ✪> yeah true
+21:39 < bridge> <Jupstar ✪> can also just rightclick the msg
+21:39 < bridge> <Jupstar ✪> with rightclick i also get color, nice
+21:40 < bridge> <Jupstar ✪> btw do you build all ddnet servers on the target vps?
+21:40 < bridge> <heinrich5991> I think we changed it to all build on the strongest one
+21:41 < bridge> <heinrich5991> but the strongest one is still not very strong
+21:41 < bridge> <heinrich5991> ah, I guess ger2 would be strongest. but we build on ddnet.org
+21:41 < bridge> <Jupstar ✪> don't they use the same debian version? xd
+21:42 < bridge> <Jupstar ✪> with rust i can luckily build them locally and just upload, even on newer debians
+21:42 < bridge> <Jupstar ✪> fcking discord down again for me
+21:42 < bridge> <Jupstar ✪> lmao
+21:42 < bridge> <Jupstar ✪> in west germany they often have problems xD
+21:42 < bridge> <heinrich5991> they all use the same debian version, yes
+21:47 < bridge> <jxsl13> can someone point me to the file where the client sends its ddnet version to the server
+21:48 < bridge> <heinrich5991> can I help you find it yourself?
+21:49 < bridge> <jxsl13> you can
+21:50 < bridge> <heinrich5991> do you know which version number (numerically) the client sends that you have currently checked out?
+21:50 < bridge> <heinrich5991> if so, look for that number in the source code
+21:50 < bridge> <jxsl13> it's the latest ddnet master branch
+21:50 < bridge> <jxsl13> I found the makro
+21:50 < bridge> <jxsl13> macro
+21:51 < bridge> <heinrich5991> then look for where that macro is used
+21:52 < bridge> <jxsl13> that's what I also already found
+21:52 < bridge> <heinrich5991> it's used in one message and one function
+21:52 < bridge> <heinrich5991> where is that function used?
+21:52 < bridge> <jxsl13> might need to look for where those const methods are called
+21:52 < bridge> <jxsl13> of CGameClient
+21:52 < bridge> <heinrich5991> you can search the source code for `DDNetVersion()` to find the places
+21:53 < bridge> <heinrich5991> although I do wonder what you're up to
+21:54 < bridge> <heinrich5991> the version is used for backward compatibility stuff
+21:54 < bridge> <jxsl13> wanna make that version dynamic
+21:54 < bridge> <heinrich5991> don't mess with it to much
+21:54 < bridge> <heinrich5991> why? that messes with backward compatibility…
+21:54 < bridge> <learath2> There is lots of versiongated behaviour. If you are not careful you'll break a lot
+21:55 < bridge> <jxsl13> will then probably set the version to one that's higher than the latest released one
+21:55 < bridge> <jxsl13> that's fine
+21:55 < bridge> <heinrich5991> I guess I'll have to enable the "newer than latest release version" kick again
+21:56 < bridge> <heinrich5991> why even make it dynamic? it's a static property of the client what it supports. that's why the version number should also be static
+21:56 < bridge> <jxsl13> you can do whatever. that's just a potential client for a rudementary "trusted client" for the gctf league matches
+21:56 < bridge> <jxsl13> just some version magic or whatever
+21:57 < bridge> <heinrich5991> could you choose a non-dynamic version number instead?
+21:58 < bridge> <heinrich5991> e.g. the version number this is based on + 1?
+21:59 < bridge> <jxsl13> I mean, what's the point them 😄
+21:59 < bridge> <heinrich5991> what is the point?
+21:59 < bridge> <jxsl13> time required to reverse engineer
+22:00 < bridge> <jxsl13> is the point
+22:00 < bridge> <heinrich5991> the point of not dynamically choosing the newest release version plus one is that you break backward compatibility
+22:00 < bridge> <heinrich5991> because the client advertises features it cannot deal with
+22:00 < bridge> <heinrich5991> can you accept my friend request?
+22:00 < bridge> <jxsl13> it's a one time use client. nobody is supposed to play with it more than for the gctf stuff
+22:01 < bridge> <jxsl13> sure
+22:02 < bridge> <heinrich5991> (doesn't look like you did, can't send you a DM)
+22:04 < bridge> <learath2> Did I post a weird ancient english word today?
+22:04 < bridge> <heinrich5991> if it's one-time use only, why not set a static version number?
+22:04 < bridge> <heinrich5991> the dynamic newest ddnet version number is not going to change during the event
+22:05 < bridge> <heinrich5991> so it's static for the event in any case
+22:14 < bridge> <Ewan> dont think so
+22:14 < bridge> <Ewan> but i also couldnt handle the offtopic brainrot
+22:14 < bridge> <Ewan> so i muted it
+22:19 < bridge> <learath2> I do it in developer now, the russians took over
+22:19 < bridge> <learath2> I did apparently. Will have to wait until midnight
+22:35 < bridge> <heinrich5991> where do you get those from?
+22:47 < bridge> <Ewan> his test or smth
+22:48 < bridge> <heinrich5991> @learath2 ping
+22:49 < bridge> <learath2> I'm studying for the GRE
+22:50 < bridge> <heinrich5991> https://en.wikipedia.org/wiki/Graduate_Record_Examinations ?
+22:50 < bridge> <heinrich5991> wtf are those words. why are they required for that?
+22:50 < bridge> <learath2> The test is made by stupid people to scam people out of money
+22:50 < bridge> <heinrich5991> > The cost to take the test is US$205,[6]
+22:51 < bridge> <heinrich5991> that does not sound like stupid people 🤔
+22:51 < bridge> <learath2> It's one test that is supposed to measure ones admissibility to ANY graduate program. If you want to study 18th century english literature, you take this test. If you want to study finance at Harvard you take this test
+22:52 < bridge> <learath2> So for it to be able to measure english majors it needs to have stupidly specific english in it too
+22:52 < bridge> <heinrich5991> that sounds stupid
+22:52 < bridge> <learath2> Atleast that's their reasoning. I think the design of the test is stupid
+22:52 < bridge> <heinrich5991> good that you need to do an intelligence test after doing a bachelors at a reasonable university
+22:53 < bridge> <learath2> It's not very popular in the EU except for business/finance masters
+22:54 < bridge> <learath2> It's so bad at measuring for top level courses that all the top level courses have quant scores maxed out. MIT Msc in Finance has 168 as a minumum quantitative reasoning score out of 170
+22:54 < bridge> <learath2> 170 is the 96th percentile. It's just bad at measuring people in general
+22:56 < bridge> <learath2> Idk if I want to do a masters yet tbh. But I'm taking it just in case. I just don't really know what I want to do with my life 😄
+22:58 < bridge> <learath2> Maybe I'll do an MBA just to spend some time and think of what's next
+23:02 < bridge> <heinrich5991> https://archive.org/
+23:02 < bridge> <heinrich5991> > Have you ever felt like the Internet Archive runs on sticks and is constantly on the verge of suffering a catastrophic security breach? It just happened. See 31 million of you on HIBP!
+23:02 < bridge> <learath2> Ouch
+23:03 < bridge> <heinrich5991> let's hope it's just some defacing
+23:03 < bridge> <learath2> I didn't have an account thankfully
+23:03 < bridge> <heinrich5991> well, I'm logged in on archive.org, guess my account is breached now
+23:03 < bridge> <heinrich5991> any suggestions?
+23:04 < bridge> <heinrich5991> cookies aren't httponly
+23:04 < bridge> <heinrich5991> nice
+23:04 < bridge> <learath2> Hopefully they aren't stupid enough to store plaintext passwords. So nothing to really do
+23:04 < bridge> <learath2> Even if you lost your cookie it's only your archive.org account
+23:05 < bridge> <totar> do the english majors also need to learn mathematics then?
+23:05 < bridge> <heinrich5991> yes, would be annoying, I backed up youtube ddnet videos there
+23:05 < bridge> <learath2> Their unis probably don't care much about the quant part of the score
+23:06 < bridge> <Jupstar ✪> I hope i never created an acc there and forgot about it xD
+23:06 < bridge> <learath2> But if they want a good overall score, yes they do need to learn math. 😄
+23:07 < bridge> <learath2> The math is trivial if you have uni level math, it's a very bizarre exam. It's like it's for measuring high school math level
+23:07 < bridge> <learath2> But it's for graduate level programs, idk maybe americans really dont learn math well
+23:08 < bridge> <Jupstar ✪> I have 4 breach warnings, and from none of them i ever got an email that their data was leaked xd
+23:08 < bridge> <learath2> Me neither
+23:08 < bridge> <learath2> I have more than 4
+23:11 < bridge> <heinrich5991> https://polyfill.archive.org/v3/polyfill.min.js?features=fetch%2CIntersectionObserver%2CResizeObserver%2CglobalThis%2CElement.prototype.getAttributeNames%2CString.prototype.startsWith%2CArray.prototype.flat%2CURL%2CURLSearchParams
+23:11 < bridge> <heinrich5991> looks like my account data is safe(?)
+23:12 < bridge> <Jupstar ✪> i dont understand
+23:12 < bridge> <Jupstar ✪> explain
+23:13 < bridge> <heinrich5991> (only visit in private mode or if you're not logged in)
+23:13 < bridge> <heinrich5991> archive.org seems to run third-party scripts on their domain, probably accidentally
+23:18 < bridge> <heinrich5991> https://github.com/rust-lang/rust/pull/130350 rust getting provenance
+23:27 < bridge> <jxsl13> hm, as robyt3 already said, the macOS build is broken
+23:28 < bridge> <learath2> Nice, I don't have a use for it but nice that it's finally there
+23:28 < bridge> <jxsl13> hm, guess imma build locally
+23:28 < bridge> <learath2> It's non-trivial if you are not building directly on macOS btw
+23:28 < bridge> <jxsl13> i am
+23:29 < bridge> <jxsl13> thankfully
+23:29 < bridge> <learath2> Make sure you have build for aarch64 and amd64
+23:29 < bridge> <heinrich5991> a build for amd64 would suffice, no?
+23:30 < bridge> <jxsl13> doesn't the default cmake build do that?
+23:30 < bridge> <jxsl13> I'm on m2
+23:31 < bridge> <jxsl13> doesn't default cmake + make .j whatever build for both :o?
+23:31 < bridge> <jxsl13> -j
+23:31 < bridge> <learath2> I guess it would run fine under rosetta yeah
+23:31 < bridge> <heinrich5991> not sure, I'd guess no, but no idea
+23:32 < bridge> <jxsl13> -DCMAKE_BUILD_TYPE=[Release|Debug|RelWithDebInfo|MinSizeRel]
+23:33 < bridge> <jxsl13> release it is, ig
+23:35 < bridge> <heinrich5991> that's the default if you don't pass any
+23:46 < bridge> <jxsl13> hm, ok (Y)
+23:54 < bridge> <Jupstar ✪> who broke nightly build
+23:54 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1293693211310821458/image.png?ex=67084d31&is=6706fbb1&hm=8812fb072a809db48f32b09bb0e254c7a24bdc855f330a0487d07cc11caf6a6b&
+23:56 < bridge> <Jupstar ✪> @0xdeen dunno why but steam build is broken in nightly for linux
+23:56 < bridge> <Jupstar ✪> (data dir doesn't exist at all)

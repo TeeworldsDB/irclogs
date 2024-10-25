@@ -1,0 +1,446 @@
+00:26 < bridge> <pathos3005> Nice, do you have link?
+01:13 < bridge> <learath2> I forgot to give out useless words yesterday, so I'll give two now:
+01:13 < bridge> <learath2> `recondite` = `obscure`
+01:13 < bridge> <learath2> `diffident` = `shy`
+02:44 < ws-client1> <ChillerDragon> @zhn i actually changed my mind about that. Since I recently managed to get vanilla gameplay working without causing too much git conflict surface ddnet-insta can now do CTF and DM too
+02:45 < ws-client1> <ChillerDragon> did you find any bugs @pathos3005 ?
+05:07 < bridge> <pathos3005> Everyone just moved to the usual server instead -- will take some time to try some full games on the new experimental server
+11:40 < bridge> <kekomonter> Nice, when post/pre increment :owo:
+11:40 < bridge> <milkeeycat> i don't need that
+11:41 < bridge> <milkeeycat> And I almost made macros loading work :lol:
+11:41 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1294958112150786048/image.png?ex=670ce739&is=670b95b9&hm=9acae15e741b6b0e1130b42f825ed5f557fe9c23ee760f9ba8e4866b1f782266&
+11:41 < bridge> <milkeeycat> I have no idea how to debug that
+11:43 < bridge> <jxsl13> preincrement booh
+11:45 < bridge> <milkeeycat> ```c
+11:45 < bridge> <milkeeycat> typedef struct {
+11:45 < bridge> <milkeeycat>     const char *name;
+11:45 < bridge> <milkeeycat>     Data *(*fn)(Data *);
+11:45 < bridge> <milkeeycat> } Macro;
+11:45 < bridge> <milkeeycat> 
+11:45 < bridge> <milkeeycat> typedef struct {
+11:45 < bridge> <milkeeycat>     size_t size;
+11:45 < bridge> <milkeeycat>     Macro macros[];
+11:46 < bridge> <milkeeycat> } Macros;
+11:46 < bridge> <milkeeycat> ```
+11:46 < bridge> <milkeeycat> how to make such structs in rust?
+11:46 < bridge> <milkeeycat> to be precise how to do this part `Macro macros[];`
+11:55 < bridge> <learath2> Flexible Array Members don't exist in many languages. You'll have to just take the L and usea Vec
+11:55 < bridge> <learath2> Flexible Array Members don't exist in many languages. You'll have to just take the L and use a Vec
+11:56 < bridge> <learath2> C is such a brilliant language, makes me feel warm and fuzzy inside
+12:59 < bridge> <milkeeycat> Look at dis :santatrollet: 
+12:59 < bridge> <milkeeycat> ```rust
+12:59 < bridge> <milkeeycat> #[repr(C)]
+12:59 < bridge> <milkeeycat> struct Macros {
+12:59 < bridge> <milkeeycat>     size: usize,
+12:59 < bridge> <milkeeycat>     _macros: [Macro; 0],
+12:59 < bridge> <milkeeycat> }
+12:59 < bridge> <milkeeycat> 
+12:59 < bridge> <milkeeycat> trait GimmeMacros<'a> {
+12:59 < bridge> <milkeeycat>     fn macros(self) -> &'a [Macro];
+12:59 < bridge> <milkeeycat> }
+12:59 < bridge> <milkeeycat> 
+12:59 < bridge> <milkeeycat> impl<'a> GimmeMacros<'a> for *const Macros {
+12:59 < bridge> <milkeeycat>     fn macros(self) -> &'a [Macro] {
+12:59 < bridge> <milkeeycat>         unsafe {
+12:59 < bridge> <milkeeycat>             let skip_size = self.byte_add(size_of_val(&self.read().size));
+12:59 < bridge> <milkeeycat>             std::slice::from_raw_parts(skip_size as *const Macro, self.read().size)
+12:59 < bridge> <milkeeycat>         }
+12:59 < bridge> <milkeeycat>     }
+13:00 < bridge> <milkeeycat> }
+13:00 < bridge> <milkeeycat> ```
+13:01 < bridge> <learath2> @ryozuki scold him rn, disgusting unsafe used
+13:02 < bridge> <milkeeycat> Look at dis :santatrollet: 
+13:02 < bridge> <milkeeycat> ```rust
+13:02 < bridge> <milkeeycat> #[repr(C)]
+13:02 < bridge> <milkeeycat> struct Macros {
+13:02 < bridge> <milkeeycat>     size: usize,
+13:02 < bridge> <milkeeycat>     _macros: [Macro; 0],
+13:02 < bridge> <milkeeycat> }
+13:02 < bridge> <milkeeycat> 
+13:02 < bridge> <milkeeycat> trait GimmeMacros {
+13:02 < bridge> <milkeeycat>     fn macros(&self) -> &[Macro];
+13:02 < bridge> <milkeeycat> }
+13:02 < bridge> <milkeeycat> 
+13:02 < bridge> <milkeeycat> impl GimmeMacros for *const Macros {
+13:02 < bridge> <milkeeycat>     fn macros(&self) -> &[Macro] {
+13:02 < bridge> <milkeeycat>         unsafe {
+13:02 < bridge> <milkeeycat>             let skip_size = self.byte_add(size_of_val(&self.read().size));
+13:02 < bridge> <milkeeycat>             std::slice::from_raw_parts(skip_size as *const Macro, self.read().size)
+13:02 < bridge> <milkeeycat>         }
+13:02 < bridge> <milkeeycat>     }
+13:02 < bridge> <milkeeycat> }
+13:02 < bridge> <milkeeycat> ```
+13:02 < bridge> <ryozuki> whats this
+13:03 < bridge> <milkeeycat> I have global variable of type `Macros` in shared object, and I had to get it somehow
+13:04 < bridge> <ryozuki> why u hace a global var
+13:04 < bridge> <reitw> h-1 for the departure of SpaceX Starship
+13:04 < bridge> <learath2> Emulating FAMs in Rust
+13:30 < bridge> <learath2> @robyt3 I don't think #9145 is sane. You have to be holding the mutex while modifying the condition
+13:30 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/9145
+13:39 < bridge> <robyt3> This answer looked good enough to me: https://stackoverflow.com/a/17102100
+13:40 < bridge> <rossingol_> всем привет
+13:41 < bridge> <rossingol_> можете подсказать,как скачать текстуры в ddnet
+13:43 < bridge> <learath2> You don't need to be holding the lock. But you do need to modify the condition itself under lock
+13:43 < bridge> <Jupstar ✪> $english
+13:43 < bridge> <DDNet> Hi! Most of us communicate in English. If you’re having trouble with English, use <https://www.deepl.com/en/translator> to help you out.
+13:44 < bridge> <learath2> You don't need to be holding the lock to notify. But you do need to modify the condition itself under lock
+13:44 < bridge> <learath2> E.g. the state needs to change under lock
+13:44 < bridge> <learath2> IOW the state needs to change under lock
+13:46 < bridge> <learath2> https://en.cppreference.com/w/cpp/thread/condition_variable first paragraph
+13:48 < bridge> <robyt3> I see. I can fix it later
+13:57 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1294992371867713616/yx5CBFJggJmedf9MvmCQd1S5wNYlCi2sRoxAAAAABJRU5ErkJggg.png?ex=670d0721&is=670bb5a1&hm=8c6654330087d018820fd32390aea7399d1e2149ffe9bfb1866637477b26a850&
+14:29 < bridge> <jxsl13> #off-topic or english in #questions
+14:33 < bridge> <reitw> LMAOOO
+14:33 < bridge> <reitw> spacex landed it
+14:34 < bridge> <reitw> https://cdn.discordapp.com/attachments/293493549758939136/1295001610870591560/image.png?ex=670d0fbb&is=670bbe3b&hm=8d678fe60c229e63a97f6a9502c03ba4f3aab2c15f22c78675af2de59713f323&
+14:42 < bridge> <cellegenrih> Ez Clap
+14:42 < bridge> <cellegenrih> Promising future is ahead, space era
+14:45 < bridge> <Jupstar ✪> `android:supportsRtl="true"` biggest lie in ddnet code 😂
+14:47 < bridge> <robyt3> Technically true since we don't have any Android-native layout code
+14:48 < bridge> <robyt3> > Declares whether your application is willing to support right-to-left (RTL) layouts.
+14:48 < bridge> <robyt3> Also this doesn't say anything about the actual effort that we take, just that we are willing 😄
+14:48 < bridge> <Jupstar ✪> I don't understand why landscape is working properly in cpp version for the vk backend, but not in my app.
+14:48 < bridge> <Jupstar ✪> 
+14:48 < bridge> <Jupstar ✪> What black magic do we use.
+14:48 < bridge> <Jupstar ✪> 
+14:48 < bridge> <Jupstar ✪> I always get a surface suboptimal, bcs the orientation is 90° rotated (probably bcs teh default mode is not landscape)
+14:49 < bridge> <Jupstar ✪> xD
+14:49 < bridge> <learath2> We pay google extra
+14:50 < bridge> <Jupstar ✪> Maybe I should just debug cpp version if that claim is even true
+14:50 < bridge> <Jupstar ✪> When latest NDK support @robyt3 xd
+14:51 < bridge> <robyt3> How outdated are we? I think I had build problems with some newer versions :pepeW:
+14:51 < bridge> <Jupstar ✪> Yeah, can i force the NDK toolkit to use?
+14:52 < bridge> <robyt3> You mean if you have multiple installed?
+14:53 < bridge> <Jupstar ✪> `mold: fatal: ddnet_engine_shared-cd5af9afb6c5385a.1x1mslembt45wzvj8781d2swp.rcgu.o: incompatible file type: arm64 is expected but got x86_64`
+14:53 < bridge> <Jupstar ✪> 
+14:53 < bridge> <Jupstar ✪> This is the err in newer NDK versions, so weird
+14:53 < bridge> <Jupstar ✪> I have yes
+14:55 < bridge> <robyt3> And it works when you use mold with older NDK? Or does it maybe use a different linker with newer NDKs?
+14:55 < bridge> <Jupstar ✪> as far as i remembered it worked in ndk 26
+14:56 < bridge> <Jupstar ✪> it's compiling
+14:56 < bridge> <Jupstar ✪> *elevator music*
+14:56 < bridge> <Jupstar ✪> ok no
+14:56 < bridge> <Jupstar ✪> it does not 😮
+14:57 < bridge> <Jupstar ✪> ah wait
+14:57 < bridge> <Jupstar ✪> that was about rust stable
+14:57 < bridge> <Jupstar ✪> vs nightly, right
+14:57 < bridge> <Jupstar ✪> `mold: error: undefined symbol: __sendto_chk`
+14:57 < bridge> <Jupstar ✪> 
+14:57 < bridge> <Jupstar ✪> man ndk 26 used to work
+14:57 < bridge> <Jupstar ✪> now it doesnt anymore :c
+14:58 < bridge> <robyt3> ```
+14:58 < bridge> <robyt3> ANDROID_NDK_VERSION="$(cd "$ANDROID_HOME/ndk" && find . -maxdepth 1 | sort -n | tail -1)"
+14:58 < bridge> <robyt3> ANDROID_NDK_VERSION="${ANDROID_NDK_VERSION:2}"
+14:58 < bridge> <robyt3> # ANDROID_NDK_HOME must be exported for cargo-ndk
+14:58 < bridge> <robyt3> export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION"
+14:58 < bridge> <robyt3> ```
+14:58 < bridge> <robyt3> Seems like the build script currently uses the folder based on the sorting the filenames, so you can't easily use an older NDK
+14:58 < bridge> <Jupstar ✪> ah yeah i remember that code
+15:00 < bridge> <Jupstar ✪> well anyway, can't compile anyway, bcs this
+15:00 < bridge> <Jupstar ✪> dunno if i need to recompile the libs again
+15:00 < bridge> <robyt3> Did you make sure to clean the build directory after changing NDK?
+15:01 < bridge> <Jupstar ✪> yeah it doesn't change it otherwise 😄
+15:04 < bridge> <Jupstar ✪> ok recompiling android libs fixed it:
+15:04 < bridge> <Jupstar ✪> 
+15:04 < bridge> <Jupstar ✪> next challenge
+15:04 < bridge> <Jupstar ✪> ```
+15:04 < bridge> <Jupstar ✪> Path for java installation '/usr/lib/jvm/openjdk-17' (Common Linux Locations) does not contain a java executable
+15:04 < bridge> <Jupstar ✪> Path for java installation '/usr/lib/jvm/openjdk-21' (Common Linux Locations) does not contain a java executable
+15:04 < bridge> <Jupstar ✪> 
+15:04 < bridge> <Jupstar ✪> ```
+15:04 < bridge> <Jupstar ✪> xD
+15:04 < bridge> <Jupstar ✪> it's just way too hard to compile for android
+15:05 < bridge> <Jupstar ✪> openjdk-21-jdk ist schon die neueste Version (21.0.5~8ea-1).
+15:05 < bridge> <robyt3> You should only have JDK 21 I guess. But the warnings can be ignored: https://stackoverflow.com/a/77799747
+15:05 < bridge> <Jupstar ✪> ah it's  only a warning i see
+15:06 < bridge> <Jupstar ✪> confused me that they put it under the error
+15:06 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1295009722164056156/image.png?ex=670d1749&is=670bc5c9&hm=20d484e3d2abb6ee858c4f3edf40e1cdec248ea3c414dc346692ffc295c58529&
+15:06 < bridge> <robyt3> Yeah, I also get them though I only have JDK 21
+15:06 < bridge> <Jupstar ✪> ok nice
+15:06 < bridge> <robyt3> Did you pass a package name by argument?
+15:06 < bridge> <Jupstar ✪> works now i think
+15:06 < bridge> <robyt3> You passed `DDNet` when you should have passed `org.ddnet.client` I guess
+15:07 < bridge> <Jupstar ✪> ```
+15:07 < bridge> <Jupstar ✪> Doppelte Klasse: org.ddnet.client.NativeMain
+15:07 < bridge> <Jupstar ✪> public class NativeMain extends SDLActivity {
+15:07 < bridge> <Jupstar ✪> 
+15:07 < bridge> <Jupstar ✪> ```
+15:07 < bridge> <Jupstar ✪> 
+15:07 < bridge> <Jupstar ✪> lmao
+15:08 < bridge> <Jupstar ✪> it trolls now
+15:08 < bridge> <Jupstar ✪> ok delete & recompile it is
+15:08 < bridge> <robyt3> Did you delete the java files from the build folder?
+15:08 < bridge> <robyt3> If you used a different package name before you'd still have the old files there
+15:08 < bridge> <Jupstar ✪> ah interesting
+15:08 < bridge> <Jupstar ✪> epyc worked
+15:11 < bridge> <Jupstar ✪> Ok the vk backend actually gets the same orientation here too.
+15:11 < bridge> <Jupstar ✪> 
+15:11 < bridge> <Jupstar ✪> Really weird that it works here
+15:11 < bridge> <Jupstar ✪> are touch controls a release mode thing?
+15:11 < bridge> <Jupstar ✪> for me there were not on by default
+15:12 < bridge> <robyt3> They should be enabled by default if you compiling for Android
+15:12 < bridge> <robyt3> They should be enabled by default if you are compiling for Android
+15:12 < bridge> <Jupstar ✪> Mh weird
+15:12 < bridge> <Jupstar ✪> it deleted the old app, so this isnt some old config
+15:12 < bridge> <Jupstar ✪> i also got the welcome screen
+15:13 < bridge> <Jupstar ✪> i reinstall
+15:13 < bridge> <robyt3> Weird. Do you have other Android specific functions? E.g. when you minimize the app it should save the config
+15:13 < bridge> <Jupstar ✪> still not there lol
+15:13 < bridge> <Jupstar ✪> but i had a clean config
+15:13 < bridge> <Jupstar ✪> so it must be on or not?
+15:14 < bridge> <robyt3> Can you check in the console?
+15:14 < bridge> <robyt3> If the config failed to load you'd also see no touch controls, but you should see the extra line of buttons in the ingame menu (and a warning)
+15:15 < bridge> <Jupstar ✪> yeah but there are not there either
+15:16 < bridge> <robyt3> To confirm, did you actually check our the PR? It's not merged yet
+15:16 < bridge> <robyt3> To confirm, did you actually check out the PR? It's not merged yet
+15:16 < bridge> <Jupstar ✪> oh lol true xD
+15:16 < bridge> <Jupstar ✪> i probably switched the branches in the meantime
+15:19 < bridge> <Jupstar ✪> Ok ok I found all variables in my puzzle
+15:19 < bridge> <Jupstar ✪> We actually ignore `VK_SUBOPTIMAL_KHR` in `vkQueuePresentKHR` and only handle it in `vkAcquireNextImageKHR`
+15:19 < bridge> <Jupstar ✪> Funny that android reports that in one function but not the other
+15:21 < bridge> <Jupstar ✪> Well only wasted 6 hours of my life to obtain this information
+15:21 < bridge> <Jupstar ✪> so all fine
+16:11 < bridge> <Jupstar ✪> epyc mobile moment
+16:11 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1295026031471886336/Screencast_20241013_160910.webm?ex=670d267a&is=670bd4fa&hm=7bac13e233e743903accdbf5dd09acb3169f40d1e95bc552977d134f8ee7ecf0&
+16:11 < bridge> <Jupstar ✪> the fps are really good
+16:11 < bridge> <Jupstar ✪> should try ctf1 on cpp version
+16:15 < bridge> <Jupstar ✪> comparable.
+16:15 < bridge> <Jupstar ✪> 
+16:15 < bridge> <Jupstar ✪> wtf is this green border tho?
+16:15 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1295027011151986708/image.png?ex=670d2763&is=670bd5e3&hm=6c9002b4036f8a93892606a63a5acc4a8fd5920164ad05f756ee12518556a9d3&
+16:16 < bridge> <robyt3> Maybe it's shown that screen recorder is active?
+16:16 < bridge> <robyt3> Also there's a black border one the left side outside of the green one
+16:16 < bridge> <Jupstar ✪> I dunno, possible
+16:16 < bridge> <Jupstar ✪> that is bcs of my camera
+16:16 < bridge> <Jupstar ✪> i use scrcpy
+16:17 < bridge> <Jupstar ✪> Maybe it is, bcs ddnet is tagged as game in the manifest
+16:17 < bridge> <Jupstar ✪> and this is some weird gamer overlay lmao
+17:29 < bridge> <cyberfrighter> is it just me or is /top5team broken
+17:29 < bridge> <cyberfrighter> /top5 works fine
+17:40 < bridge> <meloƞ> ye its brfoken
+17:41 < bridge> <learath2> Given how slow even `top5` is I'm guessing we've finally gone past the point where `top5team` queries can end in a reasonable amount of time
+17:43 < bridge> <learath2> Oh nvm, it's actually a broken query
+17:43 < bridge> <learath2> I wonder how that happened
+17:45 < bridge> <learath2> @kebscs https://github.com/ddnet/ddnet/commit/279b14cc44f4a60914d016fb904c797cb83a4d51 I have a feeling this is it
+17:46 < bridge> <learath2> Yes, that is it, you made the `LIMIT` a `?` but didn't add an argument to bind to it
+17:48 < bridge> <learath2> and it was broken in every iteration, of force push you made, I don't get how this even worked in your local testing
+17:49 < bridge> <learath2> actually nvm, it does look bound, hm maybe something chiller did
+17:55 < bridge> <meloƞ> "no idea but it's prolly chiler's fault" is a vibe :xd:
+18:05 < bridge> <learath2> ```sql
+18:06 < bridge> <learath2> SELECT name, time, ranking, teamsize
+18:06 < bridge> <learath2> FROM (
+18:06 < bridge> <learath2> SELECT teamsize, ranking, id, server
+18:06 < bridge> <learath2> FROM (
+18:06 < bridge> <learath2> SELECT Rank() over w AS ranking, count(*) AS teamsize, id, server
+18:06 < bridge> <learath2> FROM (
+18:06 < bridge> <learath2> SELECT     *
+18:06 < bridge> <learath2> FROM       record_teamrace AS tr
+18:06 < bridge> <learath2> INNER JOIN record_race     AS rr
+18:06 < bridge> <learath2> ON         tr.map = rr.map
+18:06 < bridge> <learath2> AND        tr.name = rr.name
+18:06 < bridge> <learath2> AND        tr.time = rr.time
+18:06 < bridge> <learath2> AND        tr.timestamp = rr.timestamp )
+18:06 < bridge> <learath2> WHERE    map = 'Multeasymap'
+18:06 < bridge> <learath2> GROUP BY id window w AS (ORDER BY min(time)) ) AS l1
+18:06 < bridge> <learath2> WHERE    server LIKE '%'
+18:06 < bridge> <learath2> ORDER BY ranking ASC
+18:06 < bridge> <learath2> LIMIT    0, 5) AS l2
+18:06 < bridge> <learath2> 
+18:06 < bridge> <learath2> INNER JOIN record_teamrace AS r
+18:06 < bridge> <learath2> ON         l2.id = r.id
+18:06 < bridge> <learath2> ORDER BY   ranking ASC, r.id, name ASC
+18:06 < bridge> <learath2> ```
+18:06 < bridge> <learath2> ```sql
+18:06 < bridge> <learath2> SELECT name, time, ranking, teamsize
+18:06 < bridge> <learath2> FROM (
+18:06 < bridge> <learath2>     SELECT teamsize, ranking, id, server
+18:06 < bridge> <learath2>     FROM (
+18:06 < bridge> <learath2>         SELECT Rank() over w AS ranking, count(*) AS teamsize, id, server
+18:06 < bridge> <learath2>         FROM (
+18:06 < bridge> <learath2>             SELECT     *
+18:06 < bridge> <learath2>             FROM       record_teamrace AS tr
+18:06 < bridge> <learath2>             INNER JOIN record_race     AS rr
+18:07 < bridge> <learath2>             ON         tr.map = rr.map
+18:07 < bridge> <learath2>             AND        tr.name = rr.name
+18:07 < bridge> <learath2>             AND        tr.time = rr.time
+18:07 < bridge> <learath2>             AND        tr.timestamp = rr.timestamp )
+18:07 < bridge> <learath2>             WHERE    map = 'Multeasymap'
+18:07 < bridge> <learath2>             GROUP BY id window w AS (ORDER BY min(time)) ) AS l1
+18:07 < bridge> <learath2>     WHERE    server LIKE '%'
+18:07 < bridge> <learath2>     ORDER BY ranking ASC
+18:07 < bridge> <learath2>     LIMIT    0, 5) AS l2
+18:07 < bridge> <kebscs> It 100% worked when i tested it
+18:07 < bridge> <learath2> This is what the query looks like, I extracted it with gdb and filled in the ? by hand, it doesn't run
+18:07 < bridge> <kebscs> Dont think it broke when resolving merge condlict
+18:07 < bridge> <kebscs> And it passed unit test
+18:08 < bridge> <Jupstar ✪> Mb the db server is simply outdated and doesnt understand some syntax
+18:10 < bridge> <learath2> ```sql
+18:10 < bridge> <learath2> SELECT Rank() over w AS ranking, count(*) AS teamsize, id, server
+18:10 < bridge> <learath2> FROM (
+18:10 < bridge> <learath2>   SELECT     *
+18:10 < bridge> <learath2>   FROM       record_teamrace AS tr
+18:10 < bridge> <learath2>   INNER JOIN record_race     AS rr
+18:10 < bridge> <learath2>   ON         tr.map = rr.map
+18:10 < bridge> <learath2>   AND        tr.name = rr.name
+18:10 < bridge> <learath2>   AND        tr.time = rr.time
+18:10 < bridge> <learath2>   AND        tr.timestamp = rr.timestamp
+18:11 < bridge> <learath2> )
+18:11 < bridge> <learath2> WHERE map = 'Multeasymap'
+18:11 < bridge> <learath2> GROUP BY id window w AS (ORDER BY min(time))
+18:11 < bridge> <learath2> ```
+18:11 < bridge> <learath2> This subquery is already wrong somehow
+18:11 < bridge> <Jupstar ✪> well map already sound ambiguous
+18:11 < bridge> <Jupstar ✪> tbh i dont how it should work at all
+18:11 < bridge> <Jupstar ✪> lmao
+18:11 < bridge> <learath2> I already tried `tr.map` just in case
+18:12 < bridge> <Jupstar ✪> but select *
+18:12 < bridge> <Jupstar ✪> is that allowed for inner joins?
+18:13 < bridge> <learath2> it must be fine because @kebscs says it runs fine locally
+18:14 < bridge> <Jupstar ✪> Well I can only say that the FROM () IMO needs a name
+18:14 < bridge> <Jupstar ✪> 
+18:14 < bridge> <Jupstar ✪> like `as b`
+18:14 < bridge> <Jupstar ✪> 
+18:14 < bridge> <Jupstar ✪> and then  b.map = '...'
+18:14 < bridge> <Jupstar ✪> That is what i'd intuitively do
+18:14 < bridge> <Jupstar ✪> But tbh the SQL syntax always allows 30000 variants to work as well
+18:14 < bridge> <Jupstar ✪> So I can't say what the real err is xD
+18:16 < bridge> <learath2> yes, giving everything names fixed it
+18:16 < bridge> <learath2> ```sql
+18:16 < bridge> <learath2> SELECT Rank() over w AS ranking, count(*) AS teamsize, id, server
+18:16 < bridge> <learath2> FROM (
+18:16 < bridge> <learath2> SELECT tr.map as map, tr.time as time, tr.id as id, rr.server as server
+18:16 < bridge> <learath2> FROM record_teamrace AS tr
+18:16 < bridge> <learath2> INNER JOIN record_race     AS rr
+18:16 < bridge> <learath2> ON tr.map = rr.map
+18:16 < bridge> <learath2> AND tr.name = rr.name
+18:16 < bridge> <learath2> AND tr.time = rr.time
+18:16 < bridge> <learath2> AND tr.timestamp = rr.timestamp
+18:16 < bridge> <learath2> ) AS kek
+18:17 < bridge> <learath2> WHERE kek.map = 'Multeasymap'
+18:17 < bridge> <learath2> GROUP BY id window w AS (ORDER BY min(time))
+18:17 < bridge> <learath2> ```
+18:18 < bridge> <learath2> This query looks insanely expensive btw
+18:19 < bridge> <kebscs> no other way to do it when teamrace doesnt hold server
+18:19 < bridge> <kebscs> i took this query from website source
+18:20 < bridge> <learath2> Yeah, probably no other way to do it except adding server to teamrace, anyway, the db is a mess. The thing is this doesn't work and needs to be fixed
+18:21 < bridge> <learath2> With names it works, including the more limited select on line 3. So I guess you can just commit that
+18:21 < bridge> <kebscs> im guessing differnece between mysql and sqlite
+18:21 < bridge> <jxsl13> AS kek
+18:21 < bridge> <Jupstar ✪> Is also easier to follow, even if more verbose 😄
+18:22 < bridge> <kebscs> i tested sqlite only locally
+18:22 < bridge> <learath2> ```
+18:22 < bridge> <learath2> MariaDB [teeworlds]> SELECT VERSION();
+18:22 < bridge> <learath2> +-------------------------------+
+18:22 < bridge> <learath2> | VERSION()                     |
+18:22 < bridge> <learath2> +-------------------------------+
+18:22 < bridge> <learath2> | 10.11.6-MariaDB-0+deb12u1-log |
+18:22 < bridge> <learath2> +-------------------------------+
+18:22 < bridge> <learath2> 1 row in set (0.000 sec)
+18:22 < bridge> <learath2> ```
+18:22 < bridge> <learath2> or if you want to mess around with debugging it
+18:22 < bridge> <learath2> Probably, sqlite is extremely loose
+18:23 < bridge> <jxsl13> generally don't use select * in production code ._.
+18:25 < bridge> <kebscs> didnt know theres a diff when there isnt many columns
+18:25 < bridge> <kebscs> i dont work with dbs that much
+18:26 < bridge> <jxsl13> is fine, happens, not the end of the world.
+18:26 < bridge> <kebscs> good to know tho
+18:26 < bridge> <Jupstar ✪> insert or update is scarier 😬
+18:26 < bridge> <learath2> it's not an extremely important command either, so doesn't even need an emergency restart
+18:26 < bridge> <jxsl13> no backups
+18:26 < bridge> <jxsl13> no mercy
+18:27 < bridge> <learath2> delete and update are the scariest, insert is still not the end of the world 😄
+18:27 < bridge> <Jupstar ✪> true xd
+18:27 < bridge> <Jupstar ✪> during a lifetime everyone had that one delete from without where
+18:27 < bridge> <Jupstar ✪> is that still a thing
+18:27 < bridge> <learath2> yep
+18:27 < bridge> <Jupstar ✪> or is that not allowed anymore
+18:27 < bridge> <Jupstar ✪> ok
+18:28 < bridge> <Jupstar ✪> actually insane xD
+20:20 < bridge> <milkeeycat> what's the endpoint to get player's info?
+20:47 < bridge> <syrinok> Can we allow nameplates to go smaller? The lowest size looks like it should be the default :justatest:
+20:47 < bridge> <syrinok> Really weird how massive they are
+20:47 < bridge> <kollpotato> why not
+20:48 < bridge> <kollpotato> if u want it so bad u can just fork it
+20:48 < bridge> <syrinok> I mean for the ddnet client, not just editing my own client
+20:48 < bridge> <kollpotato> alr
+20:51 < bridge> <kollpotato> ig this is all the code that is used for the nameplate size
+20:51 < bridge> <kollpotato> https://cdn.discordapp.com/attachments/293493549758939136/1295096591866400778/image.png?ex=670d6831&is=670c16b1&hm=e94f291dd71c4558883e3c64dbd8c6d7ac976bdec93beabd2de91d26413ee509&
+20:52 < bridge> <kollpotato> so if its 0 font size is 18
+21:37 < bridge> <milkeeycat> @learath2 I kinda did little steps towards macros and here's so far what I've done. It's a macro written in C for my language called by Rust xD
+21:37 < bridge> <milkeeycat> ```rust
+21:37 < bridge> <milkeeycat> fn printf(format: *i8, _: *i8) -> void;
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat> fn main() -> u8 {
+21:37 < bridge> <milkeeycat>     let lol: *i8 = gimme_points!();
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat>     printf("Player's points: %s", lol);
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat>     return 0;
+21:37 < bridge> <milkeeycat> }
+21:37 < bridge> <milkeeycat> ```
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat> Shared object file
+21:37 < bridge> <milkeeycat> ```c
+21:37 < bridge> <milkeeycat> Data Points(Data data, size_t _) {
+21:37 < bridge> <milkeeycat>     char buf[256];
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat>     FILE *file = fopen("~/personal/c_playground/file", "r");
+21:37 < bridge> <milkeeycat>     fread(buf, sizeof(buf), 1, file);
+21:37 < bridge> <milkeeycat>     int n = strlen((const char *)buf);
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat>     char *str = (char *)malloc(n);
+21:37 < bridge> <milkeeycat>     memcpy(str, buf, n);
+21:37 < bridge> <milkeeycat>     // Overwrite '\n'
+21:37 < bridge> <milkeeycat>     str[n - 1] = '\0';
+21:37 < bridge> <milkeeycat> 
+21:37 < bridge> <milkeeycat>     return str;
+21:38 < bridge> <milkeeycat> }
+21:38 < bridge> <milkeeycat> 
+21:38 < bridge> <milkeeycat> Macros macros = {
+21:38 < bridge> <milkeeycat> i wanted to fetch player's points but cloudflare redirects to https :pepeW:
+21:39 < bridge> <milkeeycat> i wanted to fetch player's points from api but cloudflare redirects to https :pepeW:
+21:39 < bridge> <learath2> Macros in different language is interesting 😄
+21:40 < bridge> <milkeeycat> i think i can compile it in my language actually xd
+21:40 < bridge> <milkeeycat> but i started prototyping in C so here we go
+21:42 < bridge> <learath2> ```c
+21:42 < bridge> <learath2> int n = fread(buf, sizeof buf, 1, file);
+21:42 < bridge> <learath2> buf[n - 1] = '\0';
+21:42 < bridge> <learath2> 
+21:42 < bridge> <learath2> char *str = malloc(n * sizeof *str);
+21:42 < bridge> <learath2> memcpy(str, buf, n);
+21:42 < bridge> <learath2> 
+21:42 < bridge> <learath2> return str;
+21:42 < bridge> <learath2> ```
+21:42 < bridge> <learath2> Don't cast malloc, don't strlen for no reason
+21:43 < bridge> <milkeeycat> I'm sorry :feelsbadman:
+21:44 < bridge> <meloƞ> memcpy(str, buf, n);
+21:44 < bridge> <meloƞ>     // Overwrite '\n'
+21:44 < bridge> <meloƞ>     str[n - 1] = '\0';
+21:44 < bridge> <meloƞ> 
+21:44 < bridge> <meloƞ> that's one way to handle null termination
+21:44 < bridge> <meloƞ> ```
+21:45 < bridge> <meloƞ> memcpy(str, buf, n);
+21:45 < bridge> <meloƞ>     // Overwrite '\n'
+21:45 < bridge> <meloƞ>     str[n - 1] = '\0';
+21:45 < bridge> <meloƞ> ```
+21:45 < bridge> <meloƞ> that's one way to handle null termination
+23:00 < bridge> <louis> big agree
+23:16 < bridge> <chairn> who made the catch mod (not zcatch) ?
+23:18 < bridge> <Jupstar ✪> $wiki catch
+23:18 < bridge> <Jupstar ✪> Mh no wiki :c
+23:19 < bridge> <chairn> malwarebytes flagged 3 files in a zip i had of the mod
+23:20 < bridge> <Jupstar ✪> xD
+23:20 < bridge> <Jupstar ✪> Is it this?
+23:20 < bridge> <Jupstar ✪> https://www.teeworlds.com/forum/viewtopic.php?id=4810
+23:20 < bridge> <chairn> one of them is making a connection to 77.224.14.* which is located in spain
+23:21 < bridge> <chairn> looks like yes
+23:21 < bridge> <chairn> you "catch" tees and the goal is to catch all tees
+23:21 < bridge> <chairn> it's like zcatch but solo
+23:21 < bridge> <chairn> i think there was a team mode as well
+23:22 < bridge> <Jupstar ✪> "I dont copy anything from other mods exspecialy not catching16, only help from Redix."
+23:22 < bridge> <Jupstar ✪> 
+23:22 < bridge> <Jupstar ✪> mh
+23:22 < bridge> <Jupstar ✪> I still have a catch16 src code somewhere
+23:25 < bridge> <chairn> more like this one actually
+23:25 < bridge> <chairn> https://github.com/AssassinTee/catch64
+23:25 < bridge> <Jupstar ✪> ah neat 😄

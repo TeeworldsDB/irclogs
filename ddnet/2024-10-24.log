@@ -1,0 +1,351 @@
+00:01 < bridge> <heinrich5991> similar to how rust putting a lock around `std::env::set_var` isn't enough
+00:01 < bridge> <heinrich5991> because rust tries to interoperate with the world and the world has decided that everyone can access the environment variables without taking a lock
+00:01 < bridge> <heinrich5991> because rust tries to interoperate with the world and the world has decided that everyone can read the environment variables without taking a lock
+00:01 < bridge> <learath2> uclibc doesn't seem to hold it long enough, musl doesn't seem to have a lock at all
+00:03 < bridge> <learath2> freebsd does it properly 😄
+00:03 < bridge> <heinrich5991> musl and freebsd recently added the lock
+00:03 < bridge> <heinrich5991> https://github.com/rust-lang/rust/issues/126600
+00:03 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1298768838275633293/image.png?ex=671ac43d&is=671972bd&hm=2a550a7e49702dda18196e4c24740afdb68a2a264a1b5fffbb6765b72176c770&
+00:03 < bridge> <learath2> yep
+00:03 < bridge> <learath2> very recent
+00:03 < bridge> <heinrich5991> as a result of the rust thing ^^
+00:04 < bridge> <heinrich5991> see the links in the first post of that issue
+00:04 < bridge> <heinrich5991> note that it was caused by an issue reported by deen 😄
+00:05 < bridge> <learath2> > Rust should either mark std::process::exit as unsafe
+00:05 < bridge> <learath2> This is probably the route that I would have gone through
+00:05 < bridge> <ryozuki> lol
+00:06 < bridge> <heinrich5991> that just sounds insane to me ^^
+00:06 < bridge> <learath2> I have a question, how will rust programs running on an old system be correct now?
+00:06 < bridge> <heinrich5991> why would process exiting ever be UB
+00:06 < bridge> <learath2> People don't run bleeding edge libcs
+00:06 < bridge> <ryozuki> how would u exit soundly in a thread safe manner?
+00:06 < bridge> <heinrich5991> they added a lock
+00:07 < bridge> <learath2> On the rust side, through ffi it would be UB e.g.
+00:07 < bridge> <ryozuki> with a  non thread safe libc exit
+00:07 < bridge> <ryozuki> can u do a syscall directly? xd
+00:07 < bridge> <heinrich5991> yes. it's unfixable in general withotu fixing libcs
+00:07 < bridge> <heinrich5991> but that's being done, so everythign will work out fine
+00:07 < bridge> <heinrich5991> (and they also want ot take it to the C standard)
+00:08 < bridge> <heinrich5991> (it's already accepted in POSIX, I think)
+00:08 < bridge> <learath2> Because it is, idk some things are just not perfectly thought out. I would have marked exit unsafe because it just is unsafe, you can talk about whether that's sane or not but it doesn't change the fact that it can and does cause UB
+00:08 < bridge> <ryozuki> who are the old beards that manage posix?
+00:09 < bridge> <heinrich5991> or you try to fix the root cause, that the C standard seemingly accidentally made `exit` thread-unsafe
+00:09 < bridge> <inv41idu53rn4m3> the probability of me using a library that calls exit:
+00:09 < bridge> <learath2> It won't be fixed on older systems though, no? There the "safety" of `std::process::exit` will just be hiding the fact that it is indeed very much UB when called at the same time through ffi e.g.
+00:10 < bridge> <heinrich5991> older systems contain bugs, that always happens. when things are on a timeline to be fixed, I'm happy
+00:10 < bridge> <learath2> You can't force people to download a new libc, but marking it unsafe will 100% reflect the truth for every system on earth
+00:11 < bridge> <heinrich5991> you can't force people to not run buggy kernels, but rust can still say that `File::open` will not cause UB
+00:11 < bridge> <learath2> Honestly props to the rust people that they even managed to get so many desperate parties to agree to fix it to begin with
+00:11 < bridge> <heinrich5991> I think it was easier because it was relatively obvious that this is a bad idea
+00:12 < bridge> <heinrich5991> to make calling `exit` from multiple threads UB, over a probably accidental wording issue
+00:12 < bridge> <inv41idu53rn4m3> Every instruction is UB
+00:12 < bridge> <inv41idu53rn4m3> We can't trust CPU manufacturers!
+00:12 < bridge> <inv41idu53rn4m3> The CIA is putting chemicals in our transistors!
+00:12 < bridge> <heinrich5991> that stemmed from a fact that the C standard wanted to make calling `exit` from an `atexit` handler UB
+00:12 < bridge> <heinrich5991> e.g. `exit` is not in the otherwise exhaustive list of thread-unsafe functions
+00:13 < bridge> <heinrich5991> in the C standard. so there's already some discrepancy
+00:13 < bridge> <jxsl13> bugs = protein
+00:13 < bridge> <learath2> But this is different, the kernel does promise that `open(2)` will behave a certain way, rust relies on that promise which is "correct". The C standard and POSIX never made the promise that `exit(3)` is thread-safe, marking it "safe" is in"correct"
+00:13 < bridge> <heinrich5991> but we know that impls and POSIX will correct, and likely the C standard, too
+00:14 < bridge> <learath2> But you can't retroactively correct it. Things that are published are set in stone
+00:14 < bridge> <heinrich5991> and e.g. glibc is also thread-safe if you register fewer than 31 `atexit` handlers
+00:14 < bridge> <heinrich5991> there are also buggy kernels out there
+00:14 < bridge> <heinrich5991> we can just call them buggy and move on
+00:14 < bridge> <learath2> It's not a "bug" to make something not thread-safe if you made no such promises
+00:14 < bridge> <heinrich5991> even if they could cause otherwise correct rust code to have UB
+00:15 < bridge> <heinrich5991> welllll. why is `exit` not in the list of thread-unsafe functions?
+00:15 < bridge> <inv41idu53rn4m3> You will own nothing and you will be happy!
+00:15 < bridge> <heinrich5991> and everyone seems to agree that `exit` not being threadsafe is a mistake
+00:16 < bridge> <jxsl13> klaus Schwab quotes, eh?
+00:16 < bridge> <jxsl13> Klaus Schwab quotes, eh?
+00:16 < bridge> <inv41idu53rn4m3> I just know the quote, not the guy 😔
+00:16 < bridge> <jxsl13> should lookup the guy
+00:17 < bridge> <inv41idu53rn4m3> maybe I'll start describing as protein-rich from now on
+00:17 < bridge> <inv41idu53rn4m3> maybe I'll start describing software as protein-rich from now on
+00:17 < bridge> <jxsl13> "my protein are the bugs in my code"
+00:18 < bridge> <learath2> Where is this list? As far as I know C99 explicitly states that more than one call to `exit` is immediately UB, threads shouldn't even come into the equation
+00:18 < bridge> <learath2> C99 doesn't even have the concept of a thread
+00:19 < bridge> <learath2> I'm guessing it's somewhere in POSIX
+00:20 < bridge> <jxsl13> pthread
+00:20 < bridge> <jxsl13> p <--
+00:20 < bridge> <learath2> Everyone can agree on whatever they want, there is a ground truth here peoples opinions aren't all that relevant to this discussion
+00:20 < bridge> <jxsl13> Posix
+00:21 < bridge> <heinrich5991> ah yeah, POSIX: https://pubs.opengroup.org/onlinepubs/9699919799/functions/V2_chap02.html#tag_15_09_01
+00:21 < bridge> <inv41idu53rn4m3> haha he said pee
+00:21 < bridge> <heinrich5991> if you were to do that, you'd have no threads before C11. seems not very useful
+00:21 < bridge> <learath2> (even if dennis ritchie himself came back from the dead to say that it was a mistake, it was still published and implemented, opinions are irrelevant)
+00:23 < bridge> <learath2> There is no concept of a memory model or threads, so everything you do is at your own risk aka unsafe. POSIX makes you some guarantees which you can rely on instead in this case
+00:24 < bridge> <learath2> > All functions defined by this volume of POSIX.1-2017 shall be thread-safe, except that the following functions1 need not be thread-safe.
+00:24 < bridge> <learath2> Though this is fairly conclusive, so I guess there is some sense to say that the standard itself is buggy
+00:24 < bridge> <learath2> > All functions defined by this volume of POSIX.1-2017 shall be thread-safe, except that the following functions1 need not be thread-safe.
+00:24 < bridge> <learath2> Though this is fairly conclusive, so I guess there is some sense to say that the standard itself is buggy since it contradicts itself
+00:35 < bridge> <heinrich5991> small review of the lichess protocol: https://www.davidreis.me/2024/what-happens-when-you-make-a-move-in-lichess
+00:35 < bridge> <heinrich5991> I found it interesting that they use short JSON keys and compressed representations
+00:36 < bridge> <learath2> That reminds me, Thibault is such an interesting person, lichess is probably my favorite open source product out there
+00:36 < bridge> <learath2> It truly embodies everything I like about the open source sphere
+00:44 < bridge> <heinrich5991> I also really like it
+01:04 < bridge> <totar> He has a nice talk about their entire platform https://www.youtube.com/watch?v=LZgyVadkgmI
+01:05 < bridge> <totar> they also published their server costs and system architecture which is cool to look at
+01:05 < bridge> <totar> they also publish their server costs and system architecture which is cool to look at
+01:06 < bridge> <totar> https://www.youtube.com/watch?v=crKNBSpO2_I
+01:25 < bridge> <learath2> I also love how they deployed, proof that you don't need weird cloud solutions to serve billions of requests
+05:13 < bridge> <pathos3005> Anyone know how I can contact Unique admins?
+05:32 < bridge> <pathos3005> Hey @heinrich5991 , Broken led me to you that you might have the `f33` map. If you have it, can you send it to me please? 🙂
+07:13 < bridge> <jxsl13> ChillerDragon, could you not make the repo public...
+07:14 < bridge> <jxsl13> oh. it is not public. wondered why I had access out of the box
+07:14 < bridge> <jxsl13> lol
+08:07 < bridge> <ryozuki> hello world
+08:09 < bridge> <milkeeycat> @heinrich5991 yo, can you pls explain why this code works:
+08:09 < bridge> <milkeeycat> ```rust
+08:09 < bridge> <milkeeycat> struct Foo<'a> {
+08:10 < bridge> <milkeeycat>     u: &'a usize,
+08:10 < bridge> <milkeeycat> }
+08:10 < bridge> <milkeeycat> 
+08:10 < bridge> <milkeeycat> impl<'a> Foo<'a> {
+08:10 < bridge> <milkeeycat>     fn new() -> Self {
+08:10 < bridge> <milkeeycat>         Self { u: &10 }
+08:10 < bridge> <milkeeycat>     }
+08:10 < bridge> <milkeeycat> 
+08:10 < bridge> <milkeeycat>     fn test(&'a self) {}
+08:10 < bridge> <milkeeycat> }
+08:10 < bridge> <milkeeycat> 
+08:10 < bridge> <milkeeycat> fn main() {
+08:10 < bridge> <milkeeycat>     let foo = Foo::new();
+08:10 < bridge> <milkeeycat>     foo.test();
+08:10 < bridge> <milkeeycat>     drop(foo);
+08:10 < bridge> <milkeeycat> }
+08:10 < bridge> <milkeeycat> ```
+08:10 < bridge> <milkeeycat> But if method `test` is changed to `fn test(&'a mut self)` it doesn't work, it says it can't move out `foo` because it's borrowed, isn't it also borrowed without `mut`? :\
+08:24 < bridge> <milkeeycat> https://doc.rust-lang.org/nomicon/subtyping.html I think it's related xd
+08:48 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1298900837619466302/cpp-loop-ub.png?ex=671b3f2c&is=6719edac&hm=88f15b9343bf48806095db710a44dd7bd856d95948fd88c86801bfc6f9e8143a&
+09:05 < bridge> <ryozuki> time to learn about elf relocatable files
+09:05 < bridge> <ryozuki> im writing my own compiler backend
+10:25 < bridge> <ryozuki> ok i know how now
+10:27 < bridge> <0xdeen> "I know Kung Fu"
+10:27 < bridge> <ryozuki> wdym xD
+10:27 < bridge> <ryozuki> ```rust
+10:27 < bridge> <ryozuki> pub fn build_object() {
+10:27 < bridge> <ryozuki>     let mut builder = build:🧝:Builder::new(object::Endianness::Little, true);
+10:27 < bridge> <ryozuki>     builder.header.e_type = elf::ET_REL;
+10:27 < bridge> <ryozuki>     builder.header.e_machine = elf::EM_X86_64;
+10:27 < bridge> <ryozuki>     builder.header.e_phoff = 0x40;
+10:27 < bridge> <ryozuki> 
+10:27 < bridge> <ryozuki>     let section = builder.sections.add();
+10:28 < bridge> <ryozuki>     section.name = b".shstrtab"[..].into();
+10:28 < bridge> <ryozuki>     section.sh_type = elf::SHT_STRTAB;
+10:28 < bridge> <ryozuki>     section.data = build:🧝:SectionData::SectionString;
+10:28 < bridge> <ryozuki> 
+10:28 < bridge> <ryozuki>     let section = builder.sections.add();
+10:28 < bridge> <ryozuki>     section.name = b".strtab"[..].into();
+10:28 < bridge> <ryozuki>     section.sh_type = elf::SHT_STRTAB;
+10:28 < bridge> <ryozuki>     section.data = build:🧝:SectionData::String;
+10:28 < bridge> <ryozuki> 
+10:28 < bridge> <ryozuki>     let section = builder.sections.add();
+10:28 < bridge> <ryozuki>     section.name = b".text"[..].into();
+10:28 < bridge> <ryozuki>     section.sh_type = elf::SHT_PROGBITS;
+10:28 < bridge> <ryozuki>     section.sh_flags = (elf::SHF_ALLOC | elf::SHF_EXECINSTR) as u64;
+10:28 < bridge> <ryozuki>     section.sh_addralign = 16;
+10:28 < bridge> <ryozuki>     // program data goes here.
+10:28 < bridge> <ryozuki>     let my_func_data: Vec<u8> = vec![
+10:28 < bridge> <ryozuki>         0xf3, 0x0f, 0x1e, 0xfa, // endbr64
+10:28 < bridge> <ryozuki>         0x55, // push   %rbp
+10:28 < bridge> <ryozuki>         0x48, 0x89, 0xe5, // mov    %rsp,%rbp
+10:28 < bridge> <ryozuki>         0xc7, 0x45, 0xfc, 0x00, 0x00, 0x00, 0x00, //  movl   $0x0,-0x4(%rbp)
+10:28 < bridge> <ryozuki>         0xb8, 0x02, 0x00, 0x00, 0x00, // mov    $0x2,%eax
+10:28 < bridge> <ryozuki>         0x5d, // pop    %rbp
+10:28 < bridge> <ryozuki>         0xc3, // ret
+10:28 < bridge> <ryozuki> this is how
+10:28 < bridge> <ryozuki> this crate is neat
+10:28 < bridge> <ryozuki> i think they use it in rustc
+10:28 < bridge> <ryozuki> this is how to make a relocatable object file
+10:31 < bridge> <0xdeen> Matrix reference: https://www.youtube.com/watch?v=0YhJxJZOWBw
+10:31 < bridge> <ryozuki> oh xD
+11:01 < bridge> <heinrich5991> my map archive is at https://heinrich5991.de/teeworlds/maps/maps/
+11:02 < bridge> <heinrich5991> I can see a single `f33` map there, search for `f33_`
+11:03 < bridge> <heinrich5991> the problem is that the mutable reference makes the inner type invariant wrt. the lifetime. your link is indeed the explanation
+11:04 < bridge> <heinrich5991> in general, you shouldn't tie the inner lifetime to the lifetime of the `self` reference
+11:04 < bridge> <heinrich5991> that would avoid some of your troubles
+11:06 < bridge> <milkeeycat> I understand that you should reevaluate your life decisions which led you to using same lifetime for `self`, I tried to read about this invariant stuff and I don't get what changes when type is invariant, covariant or contravariant
+11:08 < bridge> <heinrich5991> generally, if you have a function that takes a `&'a i32` reference, the rust compiler also allows you to pass a reference that lives longer
+11:09 < bridge> <heinrich5991> e.g. a `&'static i32`
+11:09 < bridge> <heinrich5991> does that make sense?
+11:10 < bridge> <milkeeycat> ye
+11:13 < bridge> <heinrich5991> but if you have a function that takes `&'static mut &'a i32`, rust mustn't allow you to pass a `&'static mut &'static i32`. why?
+11:17 < bridge> <milkeeycat> I would allow that
+11:18 < bridge> <heinrich5991> then the function can put in another `&'a i32`, one that actually only lives for `'a` into that outer `&'static mut`
+11:18 < bridge> <heinrich5991> once the function returns, the caller thinks it has a `&'static mut &'static i32`, but the inner reference actually only lives for `'a`
+11:20 < bridge> <doickzashmoukanaiazaza> where chlindr dragon(#
+11:20 < ws-client1> <ChillerDragon> im here
+11:21 < bridge> <heinrich5991> got an alert for "dragon"? ^^
+11:21 < ws-client1> <ChillerDragon> no i just read here a lot^^
+11:23 < ws-client1> <ChillerDragon> @jxsl13 i invited you. Your gitlab name was not hard to guess.
+11:28 < bridge> <heinrich5991> @milkeeycat does that make sense?
+11:45 < bridge> <jxsl13> 🚀
+11:56 < bridge> <milkeeycat> nope, but thanks for trying to explain xd. I'll keep reading this and maybe later it will make sense
+12:18 < bridge> <Jupstar ✪> @milkeeycat maybe you simply overthink it.
+12:18 < bridge> <Jupstar ✪> 
+12:18 < bridge> <Jupstar ✪> Do you understand the implicit lifetime your foo object gets?
+12:18 < bridge> <Jupstar ✪> 
+12:18 < bridge> <Jupstar ✪> If you do &'a mut self, then rust wants your self argument to have exactly 'a lifetime nothing else - So in your case it must assume self is static bcs that is kinda what invariant is.
+12:18 < bridge> <Jupstar ✪> 
+12:18 < bridge> <Jupstar ✪> Just take that and don't think any further
+12:20 < bridge> <Jupstar ✪> @milkeeycat What are you even doing every day that you find the edgiest edge cases in Rust all the time 😬
+12:21 < bridge> <Jupstar ✪> You want references of local variables in function results
+12:21 < bridge> <Jupstar ✪> Now this xD
+12:21 < bridge> <milkeeycat> I just found a comment in other person's project 😬
+12:26 < bridge> <Jupstar ✪> @milkeeycat maybe you simply overthink it.
+12:26 < bridge> <Jupstar ✪> 
+12:26 < bridge> <Jupstar ✪> Do you understand the implicit lifetime your foo object gets?
+12:26 < bridge> <Jupstar ✪> 
+12:26 < bridge> <Jupstar ✪> If you do &'a mut self, then rust wants your self argument to have exactly 'a lifetime nothing else - So in your case it must assume self is static (or whatever &32 gets) bcs that is kinda what invariant is.
+12:26 < bridge> <Jupstar ✪> 
+12:26 < bridge> <Jupstar ✪> Just take that and don't think any further
+13:49 < bridge> <smurfita228_98208> hi
+13:50 < bridge> <oxyzo.> can we move developer channel so newbies dont type here
+14:05 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1298980607321182290/Screenshot_20241024-1401452.png?ex=671b8976&is=671a37f6&hm=69d8eea04723dc25c46f9b449917e36f754eac883ff3994d99a6800ef0e1fd33&
+14:05 < bridge> <teero777> This is so cursed
+14:05 < bridge> <teero777> bieban
+14:07 < bridge> <milkeeycat> cool website xd
+14:07 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1298981226195058789/image.png?ex=671b8a0a&is=671a388a&hm=443066a8eb237352069b033419742f8f96e25620afdc8d917e35a8544e63b565&
+14:18 < bridge> <ryozuki> @0xdeen or @heinrich5991 can u move the category development back to its position?
+14:19 < bridge> <teero777> Why so?
+14:19 < bridge> <ryozuki> its not pleasing
+14:19 < bridge> <ryozuki> it has always been on top
+14:19 < bridge> <ryozuki> :fuckyousnail:
+14:20 < bridge> <ryozuki> @learath2 the order is being destroyed!
+14:21 < bridge> <ryozuki> nice we back
+14:21 < bridge> <ryozuki> :brownbear:
+14:22 < bridge> <milkeeycat> how to create `&'static mut T` variable? 😬
+14:24 < bridge> <heinrich5991> `let x: &'static mut i32 = Box::leak(Box::new(0));`
+14:29 < bridge> <milkeeycat> Is this example correct?
+14:29 < bridge> <milkeeycat> ```rust
+14:30 < bridge> <milkeeycat> fn foo<'a>(_: &'static mut &'a i32) {}
+14:30 < bridge> <milkeeycat> 
+14:30 < bridge> <milkeeycat> fn main() {
+14:30 < bridge> <milkeeycat>     let x: &'static mut i32 = Box::leak(Box::new(0));
+14:30 < bridge> <milkeeycat>     let y: &'static mut &'static i32 = Box::leak(Box::new(x));
+14:30 < bridge> <milkeeycat> 
+14:30 < bridge> <milkeeycat>     foo(y);
+14:30 < bridge> <milkeeycat> }
+14:30 < bridge> <milkeeycat> ```
+14:30 < bridge> <heinrich5991> in this case, `'a = 'static`, so it works
+14:32 < bridge> <heinrich5991> ```rs
+14:32 < bridge> <heinrich5991> fn foo<'a>(_: &'static mut &'a i32, _: &'a i32) {}
+14:32 < bridge> <heinrich5991> 
+14:32 < bridge> <heinrich5991> fn main() {
+14:32 < bridge> <heinrich5991>     let a = 0;
+14:32 < bridge> <heinrich5991> 
+14:32 < bridge> <heinrich5991>     let x: &'static mut i32 = Box::leak(Box::new(0));
+14:32 < bridge> <heinrich5991>     let y: &'static mut &'static i32 = Box::leak(Box::new(x));
+14:32 < bridge> <heinrich5991> 
+14:32 < bridge> <heinrich5991>     foo(y, &a);
+14:32 < bridge> <heinrich5991> }
+14:32 < bridge> <heinrich5991> ```
+14:32 < bridge> <heinrich5991> this way, `'a` cannot be `'static`
+14:34 < bridge> <milkeeycat> Ok, it makes sense
+14:35 < bridge> <milkeeycat> But it's not the same type or error that was happening before, is it?
+14:43 < bridge> <heinrich5991> I think it's the same error
+14:44 < bridge> <heinrich5991> you had a function that takes `&'a mut Foo<'a>`
+14:44 < bridge> <heinrich5991> ah, not exactly the same
+14:46 < bridge> <heinrich5991> if you define `foo` as `fn foo<'a>(_: &'a mut &'a i32)`, then you'll get the same, I think
+14:50 < bridge> <milkeeycat> it's the same if I try to drop if after call to function
+14:50 < bridge> <milkeeycat> it's the same if I try to drop if after calling the function
+18:46 < bridge> <fokkonaut> Classic ddnet moment
+18:46 < bridge> <ryozuki> :gigachad:
+18:50 < bridge> <3x1st_> frfr
+20:08 < bridge> <louis> will https://github.com/ddnet/ddnet/pull/8959 be merged any time soon?
+20:38 < bridge> <ryozuki> ```c
+20:38 < bridge> <ryozuki> #include "pretty.h"
+20:38 < bridge> <ryozuki> 
+20:38 < bridge> <ryozuki> int main (int argc, string argv[])
+20:38 < bridge> <ryozuki> {
+20:38 < bridge> <ryozuki>     if (argc above 1)
+20:38 < bridge> <ryozuki>         with (f, fclose, fopen(argv[1], "r"))
+20:38 < bridge> <ryozuki>             fortimes (line, 10)
+20:38 < bridge> <ryozuki>                 with (buf, free, vector(200, char, 0))
+20:38 < bridge> <ryozuki>                     when (fgets(buf, 200, f))
+20:38 < bridge> <ryozuki>                         then print(buf)
+20:38 < bridge> <ryozuki>                         otherwise 0;
+20:38 < bridge> <ryozuki>     else
+20:39 < bridge> <ryozuki>         println("Please provide an input file");
+20:39 < bridge> <ryozuki>     return EXIT_SUCCESS;
+20:39 < bridge> <ryozuki> }
+20:39 < bridge> <ryozuki> ```
+20:39 < bridge> <ryozuki> https://github.com/aartaka/pretty.c
+20:42 < bridge> <ryozuki> https://www.tuhs.org/cgi-bin/utree.pl?file=V7/usr/src/cmd/sh/expand.c
+20:47 < bridge> <kebscs> noooo
+20:53 < bridge> <milkeeycat> @heinrich5991 how correct is that? 
+20:53 < bridge> <milkeeycat> ```rust
+20:53 < bridge> <milkeeycat> fn foo_mut<'a>(_: &'a mut &'a String) {
+20:53 < bridge> <milkeeycat>     // This function signature means take an exclusive reference for the entire rest of it's validity
+20:53 < bridge> <milkeeycat> }
+20:53 < bridge> <milkeeycat> fn foo<'a>(_: &'a &'a String) {}
+20:53 < bridge> <milkeeycat> 
+20:53 < bridge> <milkeeycat> fn a() {}
+20:53 < bridge> <milkeeycat> 
+20:53 < bridge> <milkeeycat> fn b() {
+20:53 < bridge> <milkeeycat>     let x = String::new();
+20:53 < bridge> <milkeeycat>     let y: &String = &x;
+20:53 < bridge> <milkeeycat> 
+20:53 < bridge> <milkeeycat>     foo(&y);
+20:53 < bridge> <milkeeycat>     foo(&y); // It's passes something like &'smol &'big and &T is covariant so it can downgrade(?) 'big to 'smol, and with that you can call it as many times as you want
+20:53 < bridge> <milkeeycat> 
+20:53 < bridge> <milkeeycat>     drop(x);
+20:53 < bridge> <milkeeycat> 
+20:53 < bridge> <milkeeycat>     let i = String::new();
+20:53 < bridge> <milkeeycat>     let mut j: &String = &i;
+20:53 < bridge> <milkeeycat> 
+20:53 < bridge> <milkeeycat>     foo_mut(&mut i);
+20:53 < bridge> <milkeeycat>     // Reference is eaten and still in use, so it's not possible to use `y`
+20:53 < bridge> <milkeeycat>     // Something about &mut T being invariant  over T but covariant over 'a
+20:54 < bridge> <milkeeycat> 
+20:54 < bridge> <milkeeycat>     drop(y);
+20:54 < bridge> <milkeeycat> }
+20:54 < bridge> <milkeeycat> ```
+20:54 < bridge> <milkeeycat> @heinrich5991 how correct is that? 
+20:54 < bridge> <milkeeycat> ```rust
+20:54 < bridge> <milkeeycat> fn foo_mut<'a>(_: &'a mut &'a String) {
+20:54 < bridge> <milkeeycat>     // This function signature means take an exclusive reference for the entire rest of it's validity
+20:54 < bridge> <milkeeycat> }
+20:54 < bridge> <milkeeycat> fn foo<'a>(_: &'a &'a String) {}
+20:54 < bridge> <milkeeycat> 
+20:54 < bridge> <milkeeycat> fn main() {
+20:54 < bridge> <milkeeycat>     let x = String::new();
+20:54 < bridge> <milkeeycat>     let y: &String = &x;
+20:54 < bridge> <milkeeycat> 
+20:54 < bridge> <milkeeycat>     foo(&y);
+20:54 < bridge> <milkeeycat>     foo(&y); // It's passes something like &'smol &'big and &T is covariant so it can downgrade(?) 'big to 'smol, and with that you can call it as many times as you want
+20:54 < bridge> <milkeeycat> 
+20:54 < bridge> <milkeeycat>     drop(x);
+21:51 < bridge> <milkeeycat> @heinrich5991 is that correct anyhow? 
+21:51 < bridge> <milkeeycat> ```rust
+21:51 < bridge> <milkeeycat> fn foo_mut<'a>(_: &'a mut &'a String) {
+21:51 < bridge> <milkeeycat>     // This function signature means take an exclusive reference for the entire rest of it's validity
+21:51 < bridge> <milkeeycat> }
+21:51 < bridge> <milkeeycat> fn foo<'a>(_: &'a &'a String) {}
+21:51 < bridge> <milkeeycat> 
+21:51 < bridge> <milkeeycat> fn main() {
+21:51 < bridge> <milkeeycat>     let x = String::new();
+21:51 < bridge> <milkeeycat>     let y: &String = &x;
+21:51 < bridge> <milkeeycat> 
+21:51 < bridge> <milkeeycat>     foo(&y);
+21:51 < bridge> <milkeeycat>     foo(&y); // It's passes something like &'smol &'big and &T is covariant so it can downgrade(?) 'big to 'smol, and with that you can call it as many times as you want
+21:51 < bridge> <milkeeycat> 
+21:51 < bridge> <milkeeycat>     drop(x);
+21:51 < bridge> <milkeeycat> 
+21:51 < bridge> <milkeeycat>     let i = String::new();
+21:51 < bridge> <milkeeycat>     let mut j: &String = &i;
+21:51 < bridge> <milkeeycat> 
+21:51 < bridge> <milkeeycat>     foo_mut(&mut i);
+21:51 < bridge> <milkeeycat>     // Reference is eaten and still in use, so it's not possible to use `y`
+21:51 < bridge> <milkeeycat>     // Something about &mut T being invariant  over T but covariant over 'a
+21:51 < bridge> <milkeeycat> 
+21:51 < bridge> <milkeeycat>     drop(y);
+21:51 < bridge> <milkeeycat> }
+21:51 < bridge> <milkeeycat> ```
+22:10 < bridge> <jxsl13> today this channel is pretty quiet
+22:19 < bridge> <meloƞ> Sry
+22:34 < bridge> <ryozuki> tomorrow is friday
+23:01 < bridge> <pathos3005> Thaaanks 🙂 👍
+23:37 < bridge> <pathos3005> Did you make the gCTF league system?
+23:39 < bridge> <pathos3005> Did you code the gCTF league system?

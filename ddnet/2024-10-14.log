@@ -1,0 +1,423 @@
+00:27 < bridge> <learath2> For todays useless word, I picked `numinous`: `supernatural`/`mysterious` or `holy`/`spiritual`
+00:31 < bridge> <Alexander> can someone maybe check why this page doesn't work? https://ddnet.org/maps/Linear/
+00:31 < bridge> <Alexander> also https://ddnet.org/maps/?json=Linear
+00:31 < bridge> <Alexander> it throws a cloudflare 504 timeout error
+00:32 < bridge> <Alexander> actually the json loaded now
+00:33 < bridge> <Alexander> seems to be fixed
+00:38 < bridge> <learath2> This is about time when we regenerate all pages, it may be overloading the server causing the timeouts
+00:38 < bridge> <learath2> might need to mess around with the niceness
+00:39 < bridge> <Alexander> interesting, why would it overload the server?
+00:39 < bridge> <learath2> It's a veery expensive process nowadays with the amount of finishes some maps have
+00:39 < bridge> <Alexander> ah, okay
+00:40 < bridge> <learath2> Hm, the page isn't loading but the server seems rather calm, I wonder what is going on here
+00:41 < bridge> <learath2> I mean it is a bit loaded but it's not that bad
+00:41 < bridge> <learath2> 8 threads, about 5.0 load average shouldn't be this much of an issue
+00:53 < bridge> <learath2> I guess it is an issue, idk don't see anything but the regeneration processes running
+00:55 < bridge> <learath2> @0xdeen I guess these are getting fairly expensive and slow too
+00:56 < bridge> <blazulite> I wonder if it's possible to host a trashmap instance in Vercel
+00:59 < bridge> <learath2> Also we should probably set the cache policies for these pages so these can be loaded from cache for an entire day, not like we generate them more often
+01:19 < bridge> <totar> Why would you use vercel for that?
+01:19 < bridge> <totar> Just curious
+01:24 < bridge> <blazulite> just to test lol
+08:34 < bridge> <milkeeycat> @learath2 I need a C pro advice. What's a better way to pass tokens. Here're my 2 ideas:
+08:34 < bridge> <milkeeycat> ```c
+08:34 < bridge> <milkeeycat> typedef enum: uint8_t {
+08:34 < bridge> <milkeeycat>     LITERAL,
+08:34 < bridge> <milkeeycat> } TokenType;
+08:34 < bridge> <milkeeycat> 
+08:34 < bridge> <milkeeycat> // Idea 1. Pass array of Token* 
+08:34 < bridge> <milkeeycat> typedef struct {
+08:34 < bridge> <milkeeycat>     TokenType kind;
+08:34 < bridge> <milkeeycat> } Token;
+08:34 < bridge> <milkeeycat> 
+08:34 < bridge> <milkeeycat> typedef struct {
+08:34 < bridge> <milkeeycat>     Token token;
+08:34 < bridge> <milkeeycat>     size_t value;
+08:34 < bridge> <milkeeycat> } TokenLiteral;
+08:34 < bridge> <milkeeycat> 
+08:34 < bridge> <milkeeycat> // And then pass an array of pointers so you can do something like dis
+08:34 < bridge> <milkeeycat> Token *token = ...;
+08:34 < bridge> <milkeeycat> switch(token->kind) {
+08:34 < bridge> <milkeeycat>     case LITERAL: {
+08:34 < bridge> <milkeeycat>         TokenLiteral *literal = (TokenLiteral *)token;
+08:34 < bridge> <milkeeycat>     }
+08:34 < bridge> <milkeeycat> }
+08:34 < bridge> <milkeeycat> 
+08:34 < bridge> <milkeeycat> // Idea 2. Big struct xd
+08:34 < bridge> <milkeeycat> typedef struct {
+08:34 < bridge> <milkeeycat>     TokenType kind;
+08:34 < bridge> <milkeeycat>     union {
+08:34 < bridge> <milkeeycat>         size_t value;
+08:34 < bridge> <milkeeycat>     } content;
+08:34 < bridge> <milkeeycat> } Token;
+09:03 < bridge> <milkeeycat> Hm, seems if I use 2nd version it will match rust enum layout, that's nice
+10:15 < bridge> <learath2> I like 2 better
+10:54 < bridge> <milkeeycat> I yoinked first one from craftinginterpreters book :santatrollet:
+10:57 < bridge> <ryozuki> are u using this for ffi?
+10:57 < bridge> <ryozuki> rust enums arent ffi safe
+10:57 < bridge> <ryozuki> only very specific ones
+10:57 < bridge> <ryozuki> like Option<*mut ()>
+10:57 < bridge> <ryozuki> like Option<*mut T>
+11:09 < bridge> <milkeeycat> https://rust-lang.github.io/unsafe-code-guidelines/layout/enums.html i was checking this
+11:10 < bridge> <hyra_sava> КТО В ДДНЕТ
+11:10 < bridge> <ryozuki> yeah but what are u trying to do
+11:11 < bridge> <milkeeycat> I want to pass a vec of enums in c function and back
+11:15 < bridge> <ryozuki> the enums need to be repr C
+11:15 < bridge> <ryozuki> what kind of enums
+11:15 < bridge> <milkeeycat> Yup
+11:15 < bridge> <ryozuki> for the vec you need to use a as_ptr and pass the len
+11:16 < bridge> <ryozuki> but why u want to call a c method
+11:16 < bridge> <milkeeycat> For now it's in C, but later I can compile my language
+11:17 < bridge> <milkeeycat> It's a "procedural macro"
+11:17 < bridge> <milkeeycat> brain dead edition
+11:18 < bridge> <Ewan> [steamsuffering](https://cdn.discordapp.com/emojis/1220539593871589466.webp?size=48&quality=lossless&name=steamsuffering)
+11:18 < bridge> <milkeeycat> Is a slice `&[T]` just a pointer and len? :thonk:
+11:32 < bridge> <ryozuki> yeah
+11:33 < bridge> <ryozuki> but if u want to get the ptr to use it on C u need to do as_mut_ptr or as_ptr
+11:41 < bridge> <learath2> Common Initial Sequence rule is also hot, so you can pick either and be very cool
+11:45 < bridge> <milkeeycat> Im wondering if it's possible to have a pointer to a fat pointer xd
+12:06 < bridge> <0xdeen> Huh? The /maps/ pages are instantaneous. The ddnetdb server is under high load
+12:07 < bridge> <0xdeen> You are probably thinking of /ranks/ which is only generated once an hour
+12:08 < bridge> <learath2> hm, it was extremely slow last night to the point that the connection between cloudflare and our server timed out
+12:08 < bridge> <learath2> I checked the ddnet.org server and it was under a fair bit of load generating stuff, so I assumed it was that
+12:09 < bridge> <0xdeen> It still times out
+12:10 < bridge> <0xdeen> Nope, it's the ddnetdb server that is slow
+12:11 < bridge> <0xdeen> I guess it's time to just generate a few of the maps, doing this in the database with triggers and manual MVs would be too painful
+12:11 < bridge> <0xdeen> So the idea would be that pages like Linear, Multeasymap, Tutorial are static (once per hour), everything else instant
+12:14 < bridge> <learath2> @0xdeen aah, I forgot we don't generate the map pages
+12:14 < bridge> <learath2> I wonder if just setting a cache policy might help for those, then we wouldn't need to do any work
+12:15 < bridge> <0xdeen> Yes, that would be even better, let me check
+12:15 < bridge> <learath2> cloudflare can serve it from the edge directly for like an hour
+12:15 < bridge> <0xdeen> But if it times out, cloudflare will never cache it 😄
+12:15 < bridge> <learath2> but it just needs to go through once, right? It does load sometimes 😄
+12:16 < bridge> <0xdeen> It happens to be right at the limit right now, in a few weeks it will always be too slow
+12:16 < bridge> <learath2> Then I guess we'll need to generate some
+12:55 < bridge> <roma226k9> what are you doing
+12:56 < bridge> <roma226k9> yes
+13:05 < bridge> <learath2> The absolute state of mysql lol
+13:05 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1295341774037843978/lol.png?ex=670e4c89&is=670cfb09&hm=c738e0945c8ebaee1d83e268be25530166272dc492a3436c5de6fba5ca9c3567&
+13:06 < bridge> <learath2> postgres when?
+13:06 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1295341954095124490/lol.png?ex=670e4cb4&is=670cfb34&hm=a5c2c13907d7e837868570a43c45b415902402514d118496bfdba4c4ddb5a2a5&
+13:09 < bridge> <Jupstar ✪> Wow is ddnet so intense already?
+13:09 < bridge> <learath2> Linear and Multeasymap
+13:10 < bridge> <Jupstar ✪> Isn't the database server separated from the game servers?
+13:10 < bridge> <learath2> ```
+13:10 < bridge> <learath2> MariaDB [teeworlds]> SELECT COUNT(*) FROM record_race WHERE Map="Multeasymap";
+13:10 < bridge> <learath2> +----------+
+13:10 < bridge> <learath2> | COUNT(*) |
+13:10 < bridge> <learath2> +----------+
+13:10 < bridge> <learath2> |  1382275 |
+13:10 < bridge> <learath2> +----------+
+13:10 < bridge> <learath2> ```
+13:10 < bridge> <learath2> Yeah
+13:11 < bridge> <learath2> We should have used MongoDB for it's webscale
+13:11 < bridge> <Jupstar ✪> 😬
+13:11 < bridge> <Jupstar ✪> Well one real problem of our db is simply that we store ranks and top ranks in the same table
+13:12 < bridge> <Jupstar ✪> Even tho deen made it pretty fast, it's still lot of grouping the db has to do
+13:12 < bridge> <learath2> Yes, it worked fine when the count of rows was sane, but now it's getting very very expensive
+13:12 < bridge> <learath2> We probably need to start caching the top5
+13:13 < bridge> <Jupstar ✪> Or store all top ranks in a second table and do top5 command etc. on that instead.
+13:13 < bridge> <Jupstar ✪> 
+13:13 < bridge> <Jupstar ✪> Even tho I admit, keeping the db in sync is also annoying.
+13:15 < bridge> <learath2> It would help but only gets rid of one group, right? just less work per player
+13:15 < bridge> <Jupstar ✪> I guess the race history is simply not interesting in 99% of time.
+13:15 < bridge> <Jupstar ✪> 
+13:15 < bridge> <Jupstar ✪> How often do ppl do `/times <name>` probably rarely
+13:15 < bridge> <Jupstar ✪> Toprank is what matterss
+13:15 < bridge> <Jupstar ✪> Toprank is what matters
+13:16 < bridge> <Jupstar ✪> If there would be only 1 rank per player, then MIN/MAX can use an index and are almost instant
+13:16 < bridge> <Jupstar ✪> Since no group by player name
+13:21 < bridge> <learath2> Actually wouldn't be too too hard to have a trigger keep an up to date top ranks table
+13:22 < bridge> <Jupstar ✪> Yeah probably not xd
+13:23 < bridge> <learath2> It would be rather expensive storage-wise I'd guess
+13:24 < bridge> <Jupstar ✪> Currently the whole db is in RAM, but in worst case it would double storage, so maybe fine? xd
+13:30 < bridge> <learath2> I might create the table manually for multeasymap and see how much it helps query performance
+13:31 < bridge> <Jupstar ✪> Sure, tell me the results, I am interested
+13:39 < bridge> <Jupstar ✪> Is someone in GitHub Team or Enterprise and tried GPU acceleration in GH actions?
+13:39 < bridge> <Jupstar ✪> https://docs.github.com/en/enterprise-cloud@latest/actions/using-github-hosted-runners/using-larger-runners/about-larger-runners
+13:39 < bridge> <Jupstar ✪> I wonder how well vulkan support would be 😬
+13:46 < bridge> <jxsl13> Jumpstar + 🌋 = 🫀
+13:47 < bridge> <jxsl13> are there statistics for read vs write per day/hour/second?
+13:48 < bridge> <jxsl13> for the db?
+13:50 < bridge> <meloƞ> this still makes me chuckle
+13:50 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1295352987648266270/image.png?ex=670e56fa&is=670d057a&hm=a5cf7796ccaeaaee4facb180e0a6cecd2465f5da2700f6341cf1bde20892863c&
+13:50 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1295352987912245339/image.png?ex=670e56fa&is=670d057a&hm=eda8bb088dd3e7001c55d1f0a59172125aa4036da922daad5d4694799ac551c5&
+13:50 < bridge> <meloƞ> ~75mb.. good times,
+13:50 < bridge> <meloƞ> i wonder if i can just query that
+13:53 < bridge> <jxsl13> 75mb is already wild
+13:53 < bridge> <jxsl13> sqlite.zip
+14:20 < bridge> <0xdeen> /maps/ is cached in redis now
+14:20 < bridge> <0xdeen> (and finally in Python3 :D)
+14:21 < bridge> <Jupstar ✪> :lol:
+14:21 < bridge> <Jupstar ✪> Scam xD
+14:21 < bridge> <learath2> `20555169` unique `Map, Name` combinations, of the `41571298` total rows
+14:22 < bridge> <Jupstar ✪> Interesting already, but the fact that it doesn't need to iterate over the lines could still make an insane difference
+14:22 < bridge> <Jupstar ✪> Wouldn't underestimate it, so still interested in qry speed
+14:23 < bridge> <learath2> I was more commenting on the expected amount of extra storage/ram use that would come from having an extra table for that
+14:23 < bridge> <Jupstar ✪> Ah yeah
+14:23 < bridge> <Jupstar ✪> Rip 💀
+14:24 < bridge> <learath2> Maybe a table just containing primary keys of top ranks would work, I don't remember the primary key tho 😄
+14:26 < bridge> <heinrich5991> rust has a feature like this, but it's not well-supported. you can have
+14:26 < bridge> <heinrich5991> ```rs
+14:26 < bridge> <heinrich5991> struct Foo {
+14:26 < bridge> <heinrich5991>     data: i32,
+14:26 < bridge> <heinrich5991>     array: [i32],
+14:26 < bridge> <heinrich5991> }
+14:26 < bridge> <heinrich5991> ```
+14:26 < bridge> <heinrich5991> for the example @milkeeycat gave, you'd use `&[Macro]` instead, though
+14:27 < bridge> <heinrich5991> this is illegal under rust's rules
+14:27 < bridge> <milkeeycat> works for me :p
+14:28 < bridge> <learath2> ah, DSTs
+14:29 < bridge> <learath2> > Although such a type is largely useless without a way to construct it. Currently the only properly supported way to create a custom DST is by making your type generic and performing an unsizing coercion:
+14:29 < bridge> <learath2> Yeah it does seem a little on the underbaked side in terms of language support
+14:29 < bridge> <milkeeycat> `libloading` create didn't work when i used `[Type]` in a struct
+14:30 < bridge> <learath2> What rule does it break?
+14:31 < bridge> <heinrich5991> you're deriving an pointer outside the struct from a pointer to the struct
+14:37 < bridge> <heinrich5991> you can also construct it using some `unsafe` stuff, but yea, not really supported
+14:37 < bridge> <heinrich5991> @learath2 have you worked on the finish server yet?
+14:38 < bridge> <learath2> Yes, I'm making the errors pretty. First time I'm using Axum
+14:44 < bridge> <ryozuki> a*
+14:50 < bridge> <heinrich5991> can we see some code already? 🙂
+14:53 < bridge> <learath2> It's very barebones but sure, I can push it in a couple hours
+14:56 < bridge> <heinrich5991> cool 🙂 I'm interested in how an axum server looks like
+16:07 < bridge> <milkeeycat> what's your favorite config file format? xd
+16:08 < bridge> <avolicious> RON
+16:10 < bridge> <meloƞ> toml
+16:23 < bridge> <learath2> Just env variables
+16:24 < bridge> <learath2> If it has to have complex types like arrays and stuff, toml
+16:25 < bridge> <ryozuki> toml
+16:25 < bridge> <ryozuki> rust gang
+16:25 < bridge> <jxsl13> .env files is love
+16:25 < bridge> <learath2> env files are just very easy very quick, don't have to think too much
+16:25 < bridge> <learath2> no parsing, no thinking of config location
+16:28 < bridge> <jxsl13> cli flags
+16:28 < bridge> <jxsl13> perfection
+16:29 < bridge> <learath2> That's also not a bad alternative ngl, if you have few options
+16:29 < bridge> <learath2> but parsing them can get annoying and you need all these large libraries filled to the brim with bloat
+16:29 < bridge> <jxsl13> for my clis/services I mostly combine dotenv, env, cli flags
+16:30 < bridge> <jxsl13> the libs are indeed somewhat "bigger" of a dependency
+16:36 < bridge> <learath2> Some of the very small projects I did the cli flag parsing library is bigger than my project
+16:38 < bridge> <ryozuki> llvm converts realloc calls into mallocs
+16:38 < bridge> <ryozuki> or so i seen in some cases
+16:39 < bridge> <ryozuki> `  %18 = tail call dereferenceable_or_null(24) ptr @realloc(ptr nonnull %malloc, i64 24)`
+16:39 < bridge> <ryozuki> llvm can track the bytes deferenceable for a given ptr
+16:39 < bridge> <ryozuki> thats dope
+16:53 < bridge> <heinrich5991> no parsing? you have to know what syntax is supported and unambiguous between parsers
+16:54 < bridge> <learath2> For env variables?
+16:54 < bridge> <heinrich5991> for .env files
+16:55 < bridge> <heinrich5991> there are various libraries for various programming languages that read .env files to set environment variables
+16:55 < bridge> <jxsl13> if you start using linebreaks, you should not use a .env file
+16:55 < bridge> <learath2> I have yet to encounter any quirk with env files ngl. Pretty much everyone seems to implement them in atleast a similar enough manner that I never noticed any difference
+16:56 < bridge> <learath2> And yes, just all single line strings or get an actual config format
+16:56 < bridge> <heinrich5991> (strictly speaking and not what I meant, env variables also need parsing, but that's done by glibc usually, so it's consistent)
+16:56 < bridge> <heinrich5991> what about quote support? quotes adjacent to each other?
+16:57 < bridge> <heinrich5991> ABC="DEF"
+16:57 < bridge> <heinrich5991> duplicate keys?
+16:57 < bridge> <learath2> Again, not something that happens often enough in a simple enough config that I'm using env file
+16:57 < bridge> <heinrich5991> ```
+16:57 < bridge> <heinrich5991> VAR1="ABC"
+16:57 < bridge> <heinrich5991> ﻿VAR2=ABC
+16:57 < bridge> <heinrich5991> VAR3=ABC"
+16:58 < bridge> <heinrich5991> VAR4='ABC'
+16:58 < bridge> <heinrich5991> VAR5="ABC""ABC"
+16:58 < bridge> <heinrich5991> VAR6="ABC"ABC
+16:58 < bridge> <heinrich5991> ```
+16:58 < bridge> <jxsl13> I mean, you can do stupid stuff
+16:58 < bridge> <heinrich5991> yes, and I'd like my tools to agree on rules on stupid stuff
+16:58 < bridge> <heinrich5991> so that they perform consistently
+16:58 < bridge> <heinrich5991> and not one library erroring out and the other accepting it as-is
+16:58 < bridge> <jxsl13> I don't really care, because I don't do stupid stuff
+16:58 < bridge> <heinrich5991> because I made a mistake in the text editor
+16:59 < bridge> <learath2> But in exchange you need to bring in a massive dependency that'll make your compile times and binary size worse
+17:00 < bridge> <jxsl13> it's a point, but it has such a miniscule impact even if the parsing were to be incomsistent.
+17:00 < bridge> <heinrich5991> except for `VAR3` and `VAR6`, I'd really like consistent behavior, they seem like things that could actually happen
+17:00 < bridge> <learath2> Most of the time my env vars are just API keys and I have like 5-6 of them. Is that really worth bringing in a full toml or json parser in?
+17:00 < bridge> <jxsl13> it's a point, but it has such a miniscule impact even if the parsing were to be inconsistent.
+17:01 < bridge> <learath2> Fwiw I actually don't even know what happens with quotes with the dotenv library in rust which is the one I use most. That's how rare this is
+17:01 < bridge> <learath2> Given it never came up I'm guessing it adopts posix rules
+17:19 < bridge> <robyt3> @0xdeen Did something change with nightly building? There are now two sets of debug symbols for each day on https://ddnet.org/downloads/symbols/ since around 2024-09-29. Seems like the arm64 build is never duplicated also
+17:19 < bridge> <teero777> txt
+17:24 < bridge> <learath2> actually can you remind me tomorrow? had something come up, will probably be late home today
+17:24 < bridge> <heinrich5991> I'll ask again if I remember 🙂
+17:37 < bridge> <0xdeen> I'm struggling with dyndns since I have cgnat
+17:37 < bridge> <0xdeen> so my builds are more manual than usual
+17:37 < bridge> <0xdeen> for arm64 steam is not built because steam doesn't support it
+17:38 < bridge> <0xdeen> So it's not just the symbol missing, there was also no release for that day/arch
+17:39 < bridge> <robyt3> 👍
+17:39 < bridge> <robyt3> You can probably delete some old nightly symbols if you need space 😄
+17:39 < bridge> <0xdeen> So far so good: `/dev/md1        468G  374G   71G  85% /`
+18:16 < bridge> <totar> Which part of generating the web pages is slow? 1 million finishes is a lot but should it really timeout?
+18:25 < bridge> <learath2> Ranking, it requires a group by player, then select everyones best ranks, then rank over that
+18:25 < bridge> <learath2> Teamranks are even worse iirc, but I don't completely remember
+18:26 < bridge> <totar> What if we had a generated table of deduplicated finished with an index over finish time to avoid the sorting?
+18:26 < bridge> <totar> What if we had a generated table of deduplicated finishes with an index over finish time to avoid the sorting?
+18:26 < bridge> <totar> Ah team ranks also
+18:31 < bridge> <milkeeycat> Fun fact, when you pass `&[T]` to `extern "C"`  function it puts pointer in one register and length in another one
+18:34 < bridge> <learath2> It takes 13 seconds for Multeasymap which deen actually may have deduped (so we actually probably lost data for this map, not that multeasymap finishes are useful), and so long for Linear that I still didn't get the result back
+18:36 < bridge> <learath2> ```sql
+18:36 < bridge> <learath2> SELECT l.name, mintime, l.timestamp, playcount, mintimestamp, Substring(l.server, 1, 3)
+18:36 < bridge> <learath2> FROM   (SELECT *
+18:36 < bridge> <learath2>         FROM   record_race
+18:36 < bridge> <learath2>         WHERE  map = 'Multeasymap') AS l
+18:36 < bridge> <learath2>        JOIN (SELECT name,
+18:36 < bridge> <learath2>                     Min(time)      AS minTime,
+18:36 < bridge> <learath2>                     Count(*)       AS playCount,
+18:36 < bridge> <learath2>                     Min(timestamp) AS minTimestamp
+18:36 < bridge> <learath2>              FROM   record_race
+18:36 < bridge> <learath2>              WHERE  map = 'Multeasymap'
+18:36 < bridge> <learath2>              GROUP  BY name
+18:36 < bridge> <learath2>              ORDER  BY mintime ASC
+18:36 < bridge> <learath2>              LIMIT  20) AS r
+18:36 < bridge> <learath2>          ON l.time = r.mintime
+18:36 < bridge> <learath2>             AND l.name = r.name
+18:36 < bridge> <learath2> GROUP  BY name
+18:36 < bridge> <learath2> ORDER  BY mintime,
+18:36 < bridge> <learath2>           l.name; 
+18:36 < bridge> <learath2> ```
+18:36 < bridge> <learath2> Here is the query though
+18:36 < bridge> <neben> https://cdn.discordapp.com/attachments/991211122634014750/1295374353776513077/nice_lag.mp4?ex=670e6ae0&is=670d1960&hm=f3da20a5c067f384a77dbff6a723b36e90576da8616e86b86ab3927b21bc6ee3&
+18:36 < bridge> <neben> https://cdn.discordapp.com/attachments/991211122634014750/1295374353776513077/nice_lag.mp4?ex=670e6ae0&is=670d1960&hm=f3da20a5c067f384a77dbff6a723b36e90576da8616e86b86ab3927b21bc6ee3&
+18:36 < bridge> <neben> ??
+18:37 < bridge> <learath2> ```
+18:37 < bridge> <learath2> MariaDB [teeworlds]> select l.Name, minTime, l.Timestamp, playCount, minTimestamp, SUBSTRING(l.Server, 1, 3) from (select * from record_race where Map = 'Linear') as l JOIN (select Name, min(Time) as minTime, count(*) as playCount, min(Timestamp) as minTimestamp from record_race where Map = 'Linear' group by Name order by minTime ASC limit 20) as r on l.Time = r.minTime and l.Name = r.Name GROUP BY Name ORDER BY minTime, l.Name;
+18:37 < bridge> <learath2> +---------------+---------+---------------------+-----------+---------------------+---------------------------+
+18:37 < bridge> <learath2> | Name          | minTime | Timestamp           | playCount | minTimestamp        | SUBSTRING(l.Server, 1, 3) |
+18:37 < bridge> <learath2> +---------------+---------+---------------------+-----------+---------------------+---------------------------+
+18:37 < bridge> <learath2> | president     |   37.44 | 2024-09-29 03:00:16 |      2117 | 2024-09-29 01:45:02 | GER                       |
+18:37 < bridge> <learath2> | Nephritis     |   38.44 | 2024-09-08 20:04:48 |      2064 | 2024-01-17 13:32:48 | RUS                       |
+18:37 < bridge> <learath2> | 63 turtles    |   39.04 | 2024-08-31 00:24:28 |       212 | 2023-06-10 23:44:55 | RUS                       |
+18:37 < bridge> <learath2> | EH OS GURI    |   39.24 | 2023-01-08 21:11:16 |      1965 | 2023-01-04 00:01:21 | BRA                       |
+18:37 < bridge> <learath2> | boss          |   40.04 | 2024-09-14 19:59:14 |        76 | 2024-06-22 13:53:57 | GER                       |
+18:37 < bridge> <learath2> | shadowchet    |   40.28 | 2023-08-07 11:12:29 |       631 | 2022-06-09 03:00:52 | IRN                       |
+18:37 < bridge> <learath2> | -SIKE         |   40.34 | 2023-08-07 11:05:57 |       124 | 2022-04-14 10:48:29 | IRN                       |
+18:37 < bridge> <learath2> | Fera          |   40.42 | 2021-01-16 18:43:59 |        80 | 2020-10-23 16:53:17 | BRA                       |
+18:37 < bridge> <learath2> | pv            |   40.42 | 2021-01-16 19:01:03 |      1405 | 2020-10-20 22:50:25 | BRA                       |
+18:37 < bridge> <learath2> | Ɗepғořce      |   40.46 | 2024-09-16 21:02:57 |       104 | 2024-03-23 17:01:46 | RUS                       |
+18:37 < bridge> <learath2> | Đespiᴛe       |   40.62 | 2024-09-09 23:44:06 |        25 | 2024-08-13 12:01:30 | GER                       |
+18:37 < bridge> <learath2> | Loonex        |   40.74 | 2021-01-13 04:20:13 |        63 | 2020-10-17 23:49:59 | BRA                       |
+18:38 < bridge> <learath2> | Bemowi        |   40.76 | 2024-09-24 04:26:08 |        88 | 2024-06-03 22:20:14 | USA                       |
+18:38 < bridge> <learath2> | coradax       |   40.94 | 2020-10-18 11:32:23 |        71 | 2020-10-10 16:00:18 | GER                       |
+18:38 < bridge> <learath2> | PapotaV       |      41 | 2024-10-06 02:57:35 |       574 | 2021-03-16 04:55:27 | USA                       |
+18:38 < bridge> <learath2> | Weryxs        |   41.42 | 2024-09-14 00:37:13 |       335 | 2024-06-27 23:58:55 | GER                       |
+18:38 < bridge> <learath2> | misstrip noob |   41.48 | 2024-07-11 00:38:55 |         5 | 2021-10-05 12:24:07 | USA                       |
+18:38 < bridge> <learath2> | Cougar~       |    41.6 | 2021-01-08 17:13:37 |         4 | 2020-10-18 16:47:55 | BRA                       |
+18:38 < bridge> <learath2> | FAIRUS        |   41.66 | 2024-09-13 23:03:39 |       130 | 2021-09-05 10:35:33 | RUS                       |
+18:38 < bridge> <learath2> | godly         |    41.7 | 2024-06-08 13:58:35 |      1101 | 2023-10-08 16:31:31 | GER                       |
+18:38 < bridge> <learath2> +---------------+---------+---------------------+-----------+---------------------+---------------------------+
+18:38 < bridge> <learath2> 20 rows in set (5 min 3.551 sec)
+18:38 < bridge> <learath2> ```
+18:38 < bridge> <learath2> 5 minutes 3 seconds for Linear
+19:15 < bridge> <ryozuki> ```c
+19:15 < bridge> <ryozuki>  #include <stdio.h>
+19:15 < bridge> <ryozuki>  
+19:15 < bridge> <ryozuki>  int main(void) {
+19:15 < bridge> <ryozuki>      void *x = &x;
+19:15 < bridge> <ryozuki>      // We need an explicit cast for &x here, since printf is a
+19:15 < bridge> <ryozuki>      // varargs function.
+19:15 < bridge> <ryozuki>      printf("x = %p, &x = %p\n", x, (void*)&x);
+19:15 < bridge> <ryozuki>  }
+19:15 < bridge> <ryozuki> ```
+19:15 < bridge> <ryozuki> And with GCC 14.2.0, this does indeed work, with zero warnings with the flags -std=c23 -Wall -Wextra -pedantic!
+19:15 < bridge> <ryozuki> https://microblog.ahti.space/nortti/self-referential-initialization-c/
+19:16 < bridge> <ryozuki> keks
+19:25 < bridge> <Jupstar ✪> Yes, wazzup?
+19:53 < bridge> <learath2> Wow, I actually did not know this one either
+19:56 < bridge> <totar> "You can implicitly cast between void* and any other pointer type" 
+19:56 < bridge> <totar> Lmao
+19:57 < bridge> <totar> That's so horrible
+20:03 < bridge> <jxsl13> is there a non-sqlite dump of the database?
+20:03 < bridge> <jxsl13> ._:
+20:03 < bridge> <jxsl13> ._.
+20:03 < bridge> <totar> What's wrong with sqlite?
+20:03 < bridge> <jxsl13> nothing, just wondering
+20:03 < bridge> <totar> What type of dump would you want
+20:04 < bridge> <jxsl13> .sql \:D
+20:05 < bridge> <jxsl13> probably 10gb text
+20:05 < bridge> <jxsl13> :kek:
+20:05 < bridge> <Jupstar ✪> yes
+20:06 < bridge> <Jupstar ✪> But the website is down for me
+20:06 < bridge> <Jupstar ✪> but somewhere under statistics
+20:06 < bridge> <jxsl13> somewhat
+20:06 < bridge> <jxsl13> oops
+20:06 < bridge> <jxsl13> lol
+20:06 < bridge> <jxsl13> https://cdn.discordapp.com/attachments/293493549758939136/1295447709498605630/Bildschirmfoto_2024-10-14_um_20.06.27.png?ex=670eaf32&is=670d5db2&hm=372b1b3c139a6914eafec1a605f30b08182716a4f94a15ae6e48403b207602b0&
+20:06 < bridge> <jxsl13> csv
+20:06 < bridge> <jxsl13> me gusta
+20:07 < bridge> <jxsl13> ~1.5gb
+20:07 < bridge> <totar> oh lol
+20:07 < bridge> <jxsl13> https://ddnet.org/stats/
+20:07 < bridge> <totar> 1.5gb is small for a game as big as ddnet tho
+20:08 < bridge> <totar> I guess the terabytes of data is in teehistorian lol
+20:09 < bridge> <jxsl13> https://cdn.discordapp.com/attachments/293493549758939136/1295448499906678784/Bildschirmfoto_2024-10-14_um_20.09.35.png?ex=670eafee&is=670d5e6e&hm=935c864e3efeae2dc4c8c58c7d0a84197c01340ae4386a779c80e46cdafc4353&
+20:09 < bridge> <jxsl13> wild
+20:12 < bridge> <learath2> Wrong opinion, dni
+20:13 < bridge> <totar> ?
+20:14 < bridge> <learath2> Yes many terabytes of teehistorian
+20:15 < bridge> <learath2> Implicit casts are what make C the beautiful language it is ❤️
+20:17 < bridge> <ryozuki> :justatest:
+20:19 < bridge> <milkeeycat> implicit casts or this, choose your side :justatest:
+20:19 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1295450820707614903/image.png?ex=670eb217&is=670d6097&hm=6fcacb64a1343fe9407daede856d8a6254408252cefa250bbe359933dc6c56c6&
+20:19 < bridge> <totar> you could at least enforce some sort of wildcard cast to make it clear that it's happening
+20:19 < bridge> <milkeeycat> implicit casts or this, choose your side :justatest:(ignore last cast)
+20:19 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1295450820707614903/image.png?ex=670eb217&is=670d6097&hm=6fcacb64a1343fe9407daede856d8a6254408252cefa250bbe359933dc6c56c6&
+20:20 < bridge> <learath2> `sendto(fs, buffer, final_size, 0, &this->sock_addr, 16)` ❤️
+20:20 < bridge> <milkeeycat> that's a better example xd
+20:20 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1295451230260428820/image.png?ex=670eb279&is=670d60f9&hm=d099959d4d131351fed0e6d70b8c99dd2cc591c562b93c91b28d4cf989cc9050&
+20:25 < bridge> <totar> are the indexes on the production ddnet server public knowledge?
+20:25 < bridge> <learath2> It should be public somewhere
+20:26 < bridge> <learath2> If not it's no secret someone can put it up
+20:26 < bridge> <totar> I don't think they are genearated by the server
+20:26 < bridge> <totar> when it creates tables
+20:30 < bridge> <totar> chatgpt o1 mini happily generated dozens of ideas for speeding up the query xd
+20:31 < bridge> <milkeeycat> how many of those actually work? 😬
+20:32 < bridge> <totar> I expect they probably work but idk if they are actually faster
+20:33 < bridge> <totar> but it has all the ideas you could probably come up with on your own
+20:35 < bridge> <totar> it really wants to make a covering index and use a window function. it seems to always pick this strategy
+20:43 < bridge> <spur04> hm, some weird error popped up that blocked my game, tf?
+20:44 < bridge> <spur04> wait i msg one of you experienced devs
+20:44 < bridge> <totar> you can put it in #bugs if you want many people to look at it
+20:44 < bridge> <spur04> not sure if its safe to share the file? not experience myself to know
+21:56 < bridge> <robyt3> Weirdly, this only happens when using ASAN
+21:56 < bridge> <robyt3> https://cdn.discordapp.com/attachments/293493549758939136/1295475328709431419/image.png?ex=670ec8eb&is=670d776b&hm=f2c6c6e8322ba857d0bad63145894df74b5f0908b9272fa49e8721aec192a7ce&
+21:57 < bridge> <totar> I suspect clamp() wrong order
+21:58 < bridge> <jxsl13> progress bar overflow
+21:58 < bridge> <robyt3> It doesn't clamp the progress amount AFAICT, it seems like more progress is being reported than expected
+22:06 < bridge> <Jupstar ✪> Yeah I seen that too, but dunno if asan
+22:06 < bridge> <Jupstar ✪> Maybe just slow start
+22:07 < bridge> <robyt3> Maybe only when rendering is very slow (e.g., due to ASAN)
+22:07 < bridge> <Jupstar ✪> Yeah maybe I started with lavapipe
+22:50 < bridge> <jxsl13> why is importing those sql dumps into a mariadb such a pain in the ass
+22:50 < bridge> <scrumplex> While packaging taterclient for NixOS, we noticed that Nixpkgs' macOS builds of ddnet fail to start with the following error:
+22:50 < bridge> <scrumplex> 
+22:50 < bridge> <scrumplex> ```
+22:50 < bridge> <scrumplex> dyld[28513]: Library not loaded: /nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib
+22:50 < bridge> <scrumplex>   Referenced from: <8FFD8DC0-2313-3485-9855-CB77FB0F038F> /nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/bin/DDNet
+22:50 < bridge> <scrumplex>   Reason: tried: '/nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib' (no such file), '/nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib' (no such file), '/usr/local/lib/libsteam_api.dylib' (no such file), '/usr/lib/libsteam_api.dylib' (no such file, not in dyld 
+22:51 < bridge> <scrumplex> ```
+22:51 < bridge> <scrumplex> 
+22:51 < bridge> <scrumplex> I couldn't find anything in the codebase that would link against `libsteam_api.dylib` on macOS
+22:51 < bridge> <scrumplex> While packaging taterclient for NixOS, we noticed that Nixpkgs' macOS builds of ddnet (both for upstream and forks) fail to start with the following error:
+22:51 < bridge> <scrumplex> 
+22:51 < bridge> <scrumplex> ```
+22:51 < bridge> <scrumplex> dyld[28513]: Library not loaded: /nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib
+22:51 < bridge> <scrumplex>   Referenced from: <8FFD8DC0-2313-3485-9855-CB77FB0F038F> /nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/bin/DDNet
+22:51 < bridge> <scrumplex>   Reason: tried: '/nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib' (no such file), '/nix/store/9qcrq72n5qvfx1skajjnw4067bsv2d5c-ddnet-18.4/lib/libsteam_api.dylib' (no such file), '/usr/local/lib/libsteam_api.dylib' (no such file), '/usr/lib/libsteam_api.dylib' (no such file, not in dyld 
+22:51 < bridge> <scrumplex> ```
+22:51 < bridge> <scrumplex> 
+22:51 < bridge> <scrumplex> I couldn't find anything in the codebase that would link against `libsteam_api.dylib` on macOS
+22:52 < bridge> <scrumplex> Or is this the stub steam_api?
+22:56 < bridge> <jxsl13> steam library seems to be coming from an external source.
+22:56 < bridge> <Jupstar ✪> yes
+22:57 < bridge> <Jupstar ✪> except you have STEAM cmake flag on, which i doubt xd
+23:03 < bridge> <milkeeycat> Is there a way to stop github workflow except of clicking cancel workflow button? It's stuck for 30 mins already and nothing happens
+23:04 < bridge> <Jupstar ✪> no
+23:04 < bridge> <milkeeycat> cool
+23:04 < bridge> <Jupstar ✪> Maybe you can delete it with enough permission
+23:04 < bridge> <oxyzo.> its tired give it some rest
+23:05 < bridge> <milkeeycat> i ran it first time in 3 months -.-
+23:05 < bridge> <milkeeycat> i can only cancel it, there's no delete button :lol:
+23:08 < bridge> <scrumplex> the issue in our case seems to be that we are building the client WITHOUT the DMG option, so the library gets installed to `<prefix>/lib/ddnet/` while the binary only looks in `<prefix>/lib`
+23:08 < bridge> <scrumplex> the issue in our case seems to be that we are building the client WITHOUT the DMG option, so the library gets installed to `<prefix>/lib/ddnet/` while the binary only looks in `<prefix>/lib/`
+23:08 < bridge> <scrumplex> I will just manually patch the binary's rpath to look in `<prefix>/lib/ddnet` but I might try to fix it in CMake directly
+23:09 < bridge> <Jupstar ✪> You can also try to static link the stub
+23:10 < bridge> <Jupstar ✪> Seems like on Linux we do that
