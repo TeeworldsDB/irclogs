@@ -1,0 +1,91 @@
+00:55 < bridge> <sollybunny> ```c
+00:55 < bridge> <sollybunny> // handle key presses
+00:55 < bridge> <sollybunny>     Input()->ConsumeEvents([&](const IInput::CEvent &Event) {
+00:55 < bridge> <sollybunny>         for(auto &pComponent : m_vpInput)
+00:55 < bridge> <sollybunny>         {
+00:55 < bridge> <sollybunny>             // Events with flag `FLAG_RELEASE` must always be forwarded to all components so keys being
+00:55 < bridge> <sollybunny>             // released can be handled in all components also after some components have been disabled.
+00:55 < bridge> <sollybunny>             if(pComponent->OnInput(Event) && (Event.m_Flags & ~IInput::FLAG_RELEASE) != 0)
+00:55 < bridge> <sollybunny>                 break;
+00:55 < bridge> <sollybunny>         }
+00:55 < bridge> <sollybunny>     });
+00:55 < bridge> <sollybunny> ```
+00:55 < bridge> <sollybunny> apparently pComponenet is null?
+00:55 < bridge> <sollybunny> ```c
+00:55 < bridge> <sollybunny> 0 0x5918ce7c1ed8 in CBinds::CBindsSpecial::OnInput(IInput::CEvent const&) /home/solly/Games/ddnet/src/game/client/components/binds.cpp:24:20
+00:55 < bridge> <sollybunny>     #1 0x5918cf03f115 in CGameClient::OnUpdate()::$_0::operator()(IInput::CEvent const&) const /home/solly/Games/ddnet/src/game/client/gameclient.cpp:456:19
+00:55 < bridge> <sollybunny> ```
+00:55 < bridge> <sollybunny> ```
+00:56 < bridge> <sollybunny> ==179819==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000 (pc 0x5918ce7c1ed8 bp 0x7ffd2cbbe5d0 sp 0x7ffd2cbbe4d0 T0)
+00:56 < bridge> <sollybunny> ==179819==The signal is caused by a READ memory access.
+00:56 < bridge> <sollybunny> ```
+00:57 < bridge> <sollybunny> ah yes
+00:57 < bridge> <sollybunny> i deleted some code that i didnt mean 2
+01:01 < bridge> <sollybunny> ```c
+01:01 < bridge> <sollybunny> MASK2GOT: 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> PROCESING: 0 0 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> MASK2GOT: 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> PROCESING: 0 0 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> MASK2GOT: 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> PROCESING: 0 0 0
+01:01 < bridge> <sollybunny> MASK: 0
+01:01 < bridge> <sollybunny> ```
+01:01 < bridge> <sollybunny> debugging b like
+01:14 < bridge> <sollybunny> would it be an idea to change it so it does?
+01:15 < bridge> <sollybunny> ```c
+01:15 < bridge> <sollybunny> static char* useafterfree = (char *)malloc(1);
+01:15 < bridge> <sollybunny>     free(useafterfree);
+01:15 < bridge> <sollybunny>     *useafterfree = 0;
+01:15 < bridge> <sollybunny> ```
+01:15 < bridge> <sollybunny> idk what the best way to do it is x-x
+01:24 < bridge> <sollybunny> abort() just sends sigill or sigbreak to itself
+01:24 < bridge> <sollybunny> for post mortem debug
+01:25 < bridge> <sollybunny> idk if asan still allows post mortem debug in the same way
+01:25 < bridge> <sollybunny> if it catches something
+01:34 < bridge> <sollybunny> https://youtu.be/WaM8_Bllaf0
+01:59 < bridge> <peter0x44> It does, the default options really hinder it though
+02:02 < bridge> <peter0x44> ```
+02:02 < bridge> <peter0x44> export ASAN_OPTIONS=abort_on_error=1:halt_on_error=1
+02:02 < bridge> <peter0x44> export UBSAN_OPTIONS=abort_on_error=1:halt_on_error=1
+02:02 < bridge> <peter0x44> ```
+02:02 < bridge> <peter0x44> This gives you the sensible behavior rather than existing in a rather useless way
+02:02 < bridge> <peter0x44> This gives you the sensible behavior rather than exiting in a rather useless way
+02:05 < bridge> <peter0x44> There is also -fsanitize-trap which works without any runtime libs at all
+02:26 < bridge> <sollybunny> y r u here
+02:43 < ws-client> <ChillerDragon> @peter0x44 do you play ddnet?
+03:33 < bridge> <woidless> ChillerDragon and how do you feel about the fact that I, according to Kisao, "fake" your mod. Like, I have a type of "SlowNet" on the server that corresponds to the theme of the server. And Kisao says that I should use the most diffolt type
+03:48 < bridge> <sollybunny> ^ wtf does this mean?
+03:56 < bridge> <woidless> It's just that the owner of TeeSports thinks that I'm kind of hiding the fact that I use DDnetPP. Like I have a SlowNet type on my server , and he thinks that I'm just using another type of server , hiding the fact that I use DDNetPP
+03:57 < bridge> <sollybunny> ^ this doesnt make it any clearer ng;
+03:57 < bridge> <sollybunny> ^ this doesnt make it any clearer ngl
+03:58 < bridge> <sollybunny> owner of TeeSports = Kisao
+03:58 < bridge> <sollybunny> you set the type to SlowNet, but the mod is just a ddrace with tunings on server settings
+03:58 < bridge> <sollybunny> kisao thinks youre hiding that youre using ddnetpp?
+03:59 < bridge> <sollybunny> cant u do slownet with just default ddnet server
+04:05 < ws-client> <ChillerDragon> @woidless I created and published ddnet++ for it to be used. I appreciate credits a lot but I do not require them. Also setting the gametype is a ddnet++ feature that was also added to be used.
+04:07 < ws-client> <ChillerDragon> But yes I agree with Kisao to some degree that it is a bit weird. Historically gametypes convey the meaning of which gamemode and usually also which code base is running on the server. So changing the gametype without changing anything else has a bit of a master server click bait vibe to it because it looks like it is a brand new modification when in reality it is not.
+04:09 < ws-client> <ChillerDragon> It is a bit sketchy to me but I am also just conservative. Because one could also argue that the gametype is about informing the users about their gameplay experience and then SlowNet is quite descriptive even if there is no custom code. Anyways I added that feature for you and from my side feel free to set whatever gametype.
+04:11 < ws-client> <ChillerDragon> It is not like you went into the code and removed my name from the credits. Which by the way is something Kisao did. He modified DDNet++ and removed me from /credits and /info and the ddnet++ welcome version message.
+04:13 < ws-client> <ChillerDragon> I never complained about that because he also extended ddnet++ and added some russian translations and a few more commands so it now became his modification. That is what ddnet++ is for as a starting point for your mod so that people do not have to reinvent the wheel all the time. Still it makes me a bit sad to be wiped entirely from the credits since clout is the only payment i receive for this work.
+04:24 < bridge> <woidless> Great, I hope at least now Kisao will leave me alone about the type of server.
+04:25 < bridge> <woidless> ChillerDragon, how do you feel about the fact that I can tell you every day I ask you to do something
+04:34 < bridge> <zhn> we all knew it chiller, rip
+04:35 < bridge> <zhn> and since when kisao is owner of teesports xd
+04:40 < bridge> <woidless> And who is he?
+05:06 < ws-client> <ChillerDragon> @woidless dont worry ask away i will tell you when i dont want to do something
+05:19 < bridge> <woidless> Thanks
+05:49 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1307568170344644669/Image_236172927976469.jpg?ex=673ac741&is=673975c1&hm=179e7dedf01ca97df064d471330f005466c38442a9721b808c0d8cf07c1cb9cf&
+06:24 < Voxel_> Ohhh this is getting annoying now
+06:25 < Voxel_> Sprites are so dependant in DDNet that trying to remove even a little of them breaks everything
+06:25 < Voxel_> Like, what do you mean `weapon = WeaponSpec(container, "hammer")` completely relies on the original sprite?
+07:36 < bridge> <louis> how else would you define the weaponspec?
+07:37 < bridge> <louis> you could probably create a fallback texture in case the original sprite isn't found
+07:38 < bridge> <louis> seems annoying to work w the python generated code in general though
