@@ -1,0 +1,576 @@
+00:07 < bridge> <louis> is the website down?
+00:07 < bridge> <learath2> fine for me
+00:08 < bridge> <louis> i got cloudflare alwaysonline for a minute for some reason :thonk:
+00:23 < Voxel> apperantly having the new textures loading in doesn't work anymore
+00:23 < Voxel> " Exception thrown: read access violation. this->**m_pClient** was nullptr. "
+00:23 < Voxel> located at component.cpp
+00:23 < Voxel> class IGraphics *CComponent::Graphics() const { return m_pClient->Graphics(); }
+00:24 < Voxel> oh nvm i just did it wrong
+00:25 < Voxel> theres still errors
+00:31 < Voxel> https://imgur.com/dJpxhOo
+00:31 < Voxel> is this how you're supposed to do it
+01:30 < bridge> <louis> what're you trying to do
+01:31 < bridge> <louis> i assume you're trying to create some new textures.cpp file?
+01:43 < bridge> <Ewan> Voxel: you might opt to instead make a separate array of constant strings containing filenames at the indices of their enum values
+01:44 < bridge> <Ewan> so you can iterate instead on ranges within that enum and do m_aEmoticonTextures[i] = Graphics()->LoadTexture(m_aEmoticonFilePaths[i], IStorage::TYPE_ALL);
+01:45 < bridge> <Ewan> this could be a 2d char array or a std array of constexpr std string_views
+01:46 < bridge> <Ewan> that looks fine though, just lots of boilerplate
+01:48 < bridge> <Ewan> Vocel: regarding your exception thrown, i believe i ran into this same thing when making the multithreaded assets thing, you need to wait to use client object request stuff like Graphics() and the like until after the module is initialized, not constructed. move it to onInit or whatever they call it, you should be able to find it in CComponent
+01:48 < bridge> <Ewan> i cant spell
+01:48 < bridge> <Ewan> oh sell
+01:55 < Voxel> Good idea, I'll try that.
+02:13 < Voxel> Maybe there's a way where I could efficiently do something like this. Where, I can make an enil containing all the segments, and then create other enums using the same sort of info?
+02:15 < Voxel> Like, every enum except for the emoticons are in its own enum (for example: m_GuiTextures), which incidates IDs for every image that's in the array m_aGuiTextures
+02:15 < Voxel> If I were to store in filepaths too, it'd just be sort of redundant, don't you think?
+02:25 < bridge> <Ewan> any more redundant than this?
+02:30 < bridge> <Ewan> you can do like this (not having tested it)
+02:30 < bridge> <Ewan> // or extern
+02:30 < bridge> <Ewan> constexpr const static std::array<std::string_view, EMOTICON_SIZE> s_aEmoticonTexturePaths = { // template params might be switched
+02:30 < bridge> <Ewan> EMOTICON_OOP = “images/emoticons/oop.png”,
+02:30 < bridge> <Ewan> …
+02:30 < bridge> <Ewan> }
+02:30 < bridge> <Ewan> and then just iterate on it with the enum constants
+02:31 < bridge> <Ewan> this is no more redundant than what’s in your screenshot, because i believe those all have to be distinct function calls in binary now due to the way they’re defined sequentially, and all of the index information & known filenames are still stored in the same place (the constant “data” section of the executable”)
+02:31 < bridge> <Ewan> im typing a little sloppy on phone but hopefuly you get the gist of why this is better
+02:57 < Voxel> I guess so.
+04:19 < bridge> <pathos3005> ChillerDragon Thank fuck thanks for the demo pistol bullet fix 😘😘😘😘😘
+04:33 < bridge> <Ewan> you can do like this (not having tested it)
+04:33 < bridge> <Ewan> // or extern
+04:33 < bridge> <Ewan> constexpr const static std::array<std::string_view, EMOTICON_SIZE> s_aEmoticonTexturePaths = { // template params might be switched
+04:33 < bridge> <Ewan> [EMOTICON_OOP] = “images/emoticons/oop.png”,
+04:33 < bridge> <Ewan> …
+04:33 < bridge> <Ewan> }
+05:24 < Voxel> This goes inside the .cpp file or the .h file?
+05:24 < Voxel> Ewan
+05:24 < Voxel> (idk how to ping in irc)
+05:33 < Voxel> alright thats it
+05:35 < bridge> <_voxeldoesart> im in the discord
+05:35 < bridge> <_voxeldoesart> and i am ONLY here for development purposes
+05:35 < bridge> <_voxeldoesart> @mpft Something like this?
+05:35 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1307927183641022534/image.png?ex=673c159c&is=673ac41c&hm=33e1210a1e87b38d50c98015e6674dfe5f17564f760bac96acc617dc44a61b1c&
+05:35 < bridge> <_voxeldoesart> Currently set in the .cpp file
+05:38 < bridge> <_voxeldoesart> Recently found out that you can't get enum names in c++, so that's a bummer.
+05:38 < bridge> <_voxeldoesart> Really feeling hopeless about this project, but if I can somehow make it work, that'd be huge for adding and sharing around.
+05:39 < bridge> <byfox> That's pretty much how I tried it.)
+05:41 < bridge> <_voxeldoesart> I'm trying to remove texture atlases from DDNet.
+05:41 < bridge> <_voxeldoesart> My goal is to make it easier to add in content without awkwardly having to shove new things into the texture atlases, and having to completely rework already existing atlases for the most updated version.
+05:41 < bridge> <_voxeldoesart> The cons are that it'll be more expensive on the io side of things, and the code is going to be extremely messy because of its dependence on the sprites I removed.
+05:41 < bridge> <_voxeldoesart> But I think the endgoals and potentials would be much greater, and it would give the ability for custom servers to send over custom weapons and particles easier, since there's no big texture atlas.
+05:42 < bridge> <_voxeldoesart> I know for a fact Jupstar already has a better way of doing this, but I think this would be fun, since it gives me hope on making things for this game again!
+05:43 < bridge> <louis> yeah, good feature to take on
+05:43 < bridge> <louis> i was moreso asking what you weretrying to do in that specific screenshot
+05:44 < bridge> <_voxeldoesart> Just trying to make it actually work, honestly.
+05:44 < bridge> <louis> i'd imagine if we want sending of textures over network, then how we store textures might need to be a lil more fleshed then how it is right now (i have no knowledge of the code though)
+05:45 < bridge> <_voxeldoesart> I guess right now I'm trying to rearrange the heirarchy of sprites and making it actually, render.
+05:46 < bridge> <_voxeldoesart> The next step is to write a program that takes what atlases we have now, and then spits out the respective folders, so that we don't have to have ppl complaining about their gameskins.
+05:46 < bridge> <_voxeldoesart> The step after that is figuring out if we need a ZIP file for easier sharing.
+05:47 < bridge> <_voxeldoesart> My take is that we do something like this:
+05:47 < bridge> <_voxeldoesart> ```default.weapons.twtp
+05:47 < bridge> <_voxeldoesart> default.particles.twtp
+05:47 < bridge> <_voxeldoesart> Voxels Fun Particles.particles.twtp```
+05:47 < bridge> <_voxeldoesart> Where .twtp is just Teeworlds Texture Pack
+05:47 < bridge> <_voxeldoesart> My take is that we do something like this:
+05:47 < bridge> <_voxeldoesart> ```
+05:47 < bridge> <_voxeldoesart> default.weapons.twtp
+05:47 < bridge> <_voxeldoesart> default.particles.twtp
+05:47 < bridge> <_voxeldoesart> Voxels Fun Particles.particles.twtp```
+05:47 < bridge> <_voxeldoesart> Where .twtp is just Teeworlds Texture Pack
+05:48 < bridge> <_voxeldoesart> and the middle is what type of pack it is
+05:48 < bridge> <Ewan> Yes but you probably shouldn't need s_aEmoticonTexturePaths before every single [], and you should be able to replace the string view ctor with the ""sv string literal
+05:48 < bridge> <Ewan> also double check ddnet naming conventions
+05:48 < bridge> <Ewan> s might not be right
+05:48 < bridge> <_voxeldoesart> i just followed what you wrote down tbh
+05:48 < bridge> <Ewan> yea
+05:48 < bridge> <Ewan> it's from memory
+05:48 < bridge> <_voxeldoesart> :justatest:
+05:49 < bridge> <inv41idu53rn4m3> Why not just have one generic type of pack that can override whatever specific parts it pleases? Or is this only for converting existing textures to the new format?
+05:49 < bridge> <louis> hm id ont think non-standard file extensions is the move
+05:49 < bridge> <louis> hm i dont think non-standard file extensions is the move
+05:49 < bridge> <inv41idu53rn4m3> and yeah if it's a .zip just call it a .zip
+05:49 < bridge> <_voxeldoesart> idk i think just having it be .ZIP feels a bit off
+05:50 < bridge> <Ewan> i still dont know why it should really be a zip if we can use a tar instead
+05:51 < bridge> <Ewan> uncompressed zip is somewhat nonstandard
+05:51 < bridge> <Ewan> windows wont be able to make them
+05:51 < bridge> <inv41idu53rn4m3> You could include an extra file in the zip for metadata, for stuff like info about the author and maybe info about textures for content that doesn't exist in the base game, if that ever becomes a thing
+05:51 < bridge> <_voxeldoesart> maybe
+05:51 < bridge> <louis> can't people just extract the zip and have it as a directory anyways
+05:51 < bridge> <Ewan> unless you discard all the software representations after loading into vram then you need to store the entire thing twice
+05:51 < bridge> <louis> zip files must be kinda clonky to handle in code
+05:52 < bridge> <_voxeldoesart> this whole thing is extremely hard, because it's basically rewriting how the entire game treats its graphics outside of actually rendering them
+05:52 < bridge> <louis> if you have a single custom texture (lets say a laser) i feel like the client should get all of the information needed just thru the png
+05:52 < bridge> <Ewan> i know voxel i wrote a pr that overhauled all of the skins loading logic
+05:52 < bridge> <Ewan> it's delicate stuff
+05:52 < bridge> <Ewan> but still a question that needs to be asked
+05:52 < bridge> <Ewan> why zip
+05:53 < bridge> <inv41idu53rn4m3> time to rewrite all of asset handling and implement full on resource packs that include textures, sounds, hell maybe UI layouts and animations too :D
+05:54 < bridge> <inv41idu53rn4m3> surely not a huge pain in the ass :)
+05:54 < bridge> <inv41idu53rn4m3> omw to rewrite half the game
+05:54 < bridge> <_voxeldoesart> because its what everyone else keeps saying
+05:54 < bridge> <_voxeldoesart> #6753
+05:54 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/6753
+05:55 < bridge> <inv41idu53rn4m3> probably because zips are easy for everyone to manage
+05:55 < bridge> <_voxeldoesart> i guess it did say to use .tar here but oh well
+05:56 < bridge> <inv41idu53rn4m3> then again, everyone should be expected capable of installing and using an archive manager application no matter how non-technical they are
+05:57 < bridge> <inv41idu53rn4m3> so no real significant downside to a tarball, and they'd be significantly more based :p
+05:57 < bridge> <louis> eeeh
+05:57 < bridge> <louis> the average player shouldn't have to worry about much
+05:57 < bridge> <louis> skin pack creators, sure
+05:57 < bridge> <Ewan> these assets stand to gain very little from zip compression because png is already a very high compression ratio format
+05:58 < bridge> <inv41idu53rn4m3> yeah I was thinking about artists
+05:58 < bridge> <Ewan> they dont need compression and tar aligns more with the in memory representation aspect
+05:58 < bridge> <_voxeldoesart> okayyy this doesn't seem right
+05:58 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1307932876435881994/image.png?ex=673c1ae9&is=673ac969&hm=f4151bdb934bb6c5b80a980b1279a7545d24bc026a48e0edc7ca2b08a55599da&
+05:58 < bridge> <Ewan> load the thing and copy out easily identifiable chunks
+05:58 < bridge> <Ewan> instead of deflating the entire thing and then copying
+05:58 < bridge> <Ewan> does it error?
+05:58 < bridge> <Ewan> that might be a fairly new feature
+05:59 < bridge> <_voxeldoesart> lets see what vs code has to say about this
+05:59 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1307933071764619317/image.png?ex=673c1b18&is=673ac998&hm=2d810981a6011a565945fdbcc94b8954270af14eb304d41de88ed69acc3a5c03&
+05:59 < bridge> <Ewan> do u not have LSP
+05:59 < bridge> <_voxeldoesart> idk what that is
+06:00 < bridge> <_voxeldoesart> language server protocol?
+06:00 < bridge> <Ewan> ye
+06:00 < bridge> <Ewan> are u on windows
+06:00 < bridge> <_voxeldoesart> windows 10 yea
+06:00 < bridge> <Ewan> open the vscode workspace for ddnet
+06:00 < bridge> <Ewan> and install the extensions
+06:00 < bridge> <Ewan> your life will be so easy
+06:00 < bridge> <Ewan> it's in the repo somewhere extra
+06:01 < bridge> <_voxeldoesart> wait why did i say vscode LOL
+06:01 < bridge> <_voxeldoesart> what i showed you was just vs
+06:01 < bridge> <Ewan> okay so what does intellisense say
+06:01 < bridge> <Ewan> you might have to include string view if you havent already
+06:01 < bridge> <Ewan> std array might be out of the picture which is perfectly fine u just cant iterate on it the same way
+06:01 < bridge> <Ewan> because it's not a primitive array initializer or something
+06:02 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1307933897387933696/image.png?ex=673c1bdd&is=673aca5d&hm=51faac14952b1e4c77e5981a3c729082de9e3ccd05fc1adf773cca9de9378d6a&
+06:03 < bridge> <Ewan> did you incluide string view
+06:04 < bridge> <Ewan> ddnet is on c++17 right..?
+06:04 < bridge> <Ewan> or newer
+06:04 < bridge> <_voxeldoesart> lemme look
+06:04 < bridge> <Ewan> it may have to look more like 
+06:04 < bridge> <Ewan> ```cpp
+06:04 < bridge> <Ewan> constexpr static const std::string_view s_aEmoticonTexturePaths[NUM_EMOTICONS] = {
+06:04 < bridge> <Ewan>   [EMOTICON_OOP] = "skjandasijkn"sv,
+06:04 < bridge> <Ewan>   ...
+06:04 < bridge> <Ewan> }
+06:04 < bridge> <Ewan> ```
+06:06 < bridge> <_voxeldoesart> right lemme try that
+06:06 < bridge> <headshotnoby> voxuis
+06:06 < bridge> <_voxeldoesart> headbot
+06:06 < bridge> <_voxeldoesart> internet is down so i gotta type here using mobile
+06:06 < bridge> <_voxeldoesart> nvm LOL
+06:09 < bridge> <Solly> as in remove them entirely, or construct them on init
+06:09 < bridge> <Solly> because i dont think either is that good of an idea
+06:10 < bridge> <_voxeldoesart> Just splitting all the main gameskins into separate images
+06:10 < bridge> <Solly> gameskins?
+06:11 < bridge> <_voxeldoesart> game.png
+06:11 < bridge> <_voxeldoesart> particles.png
+06:11 < bridge> <_voxeldoesart> 
+06:11 < bridge> <_voxeldoesart> *extras.png* :pepeW:
+06:11 < bridge> <Solly> atlases are used for performance reasons aswell as cuz less files to worry abt
+06:12 < bridge> <Solly> you would (or should) stitch them back together on init
+06:12 < bridge> <Solly> like mc does
+06:12 < bridge> <Solly> which is why it takes so god damn long to load
+06:12 < bridge> <Solly> 90% my ass x-x
+06:12 < bridge> <_voxeldoesart> oh i didn't know that mc stitched them together
+06:12 < bridge> <Solly> have u never seen those graphical bugs where you can see the atlas
+06:13 < bridge> <_voxeldoesart> in minecraft? no
+06:13 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1307936621383122964/iu.png?ex=673c1e66&is=673acce6&hm=7991a73437a471881d62ed37798af1d45d501e9665f8188bf05705513396ae17&
+06:13 < bridge> <_voxeldoesart> LOL
+06:13 < bridge> <Solly> its a very easy bug to make
+06:13 < bridge> <Solly> you just have a logical error in your tex coords then boom
+06:13 < bridge> <Solly> you can see the atlas
+06:14 < bridge> <_voxeldoesart> honestly i should let someone who actually knows what they're doing be behind the wheel
+06:14 < bridge> <_voxeldoesart> like i think it'd be cool to actually be able to add more things easier, but at the same time it really does feel like there's 1000 better ways for what i'm trying to achieve
+06:14 < bridge> <Solly> the problem with trying to make things more "expandable" is your kinda doing the thing you do at the end at the start
+06:14 < bridge> <Solly> there are ideas and proposals for making the entities side of teeworlds (that is tile config and all that) more customizable
+06:15 < bridge> <Solly> that is too allow 1. more tiles 2. easily added tiles 3. tuning on tiles (see the ice pr)
+06:15 < bridge> <Solly> and i assume particles would be goign down the same route
+06:16 < bridge> <Solly> as has been discussed at length, "modding support" that is refactoring ddnet to make it to add things is not a main priority
+06:16 < bridge> <Solly> and issues / prs relating to modded support wont be accepted
+06:16 < bridge> <Solly> which is a huge shame
+06:17 < bridge> <_voxeldoesart> well then they're going to have to remove the big, fat "feature accepted" tag on the zip handling request
+06:17 < bridge> <Solly> thats not modding support
+06:17 < bridge> <_voxeldoesart> then what is it
+06:17 < bridge> <_voxeldoesart> what do you need zip files for in ddnet
+06:18 < bridge> <Solly> modding support is to make adding things easier, that is tiles, custom behaviour, custom gamemodes, and anything else
+06:18 < bridge> <Solly> thats just to make downloading maps faster
+06:18 < bridge> <Solly> which is a good feature as ddnet map downloads are normally capped at 500kib/s
+06:18 < bridge> <Solly> or less
+06:18 < bridge> <_voxeldoesart> that's not what the feature said
+06:18 < bridge> <_voxeldoesart> but oh well
+06:19 < bridge> <Solly> gimme link
+06:19 < bridge> <_voxeldoesart> this
+06:19 < bridge> <louis> not true
+06:20 < bridge> <louis> ddnet maintainers seem to not support prs that support modding just for the sake of supporting modding, but a lot of prs that are related to modding support get merged
+06:20 < bridge> <Solly> sorry im high on kaffine talking at me about their lost dreams x-x
+06:20 < bridge> <Solly> i thought u meant zip map downloads
+06:21 < bridge> <_voxeldoesart> no i was talking about gameskins
+06:21 < bridge> <_voxeldoesart> like the feature said
+06:21 < bridge> <_voxeldoesart> it's been accepted for a while, its just nobody except juppey is doing jackshit about it
+06:21 < bridge> <Solly> ah fair
+06:22 < bridge> <_voxeldoesart> its like all the good features ( *coughcough*tunelock*cough* ) is just sitting out to dry
+06:23 < bridge> <Solly> i think that because of <msg im replying to> no one can be bothered since its not really needed for ddnet
+06:23 < bridge> <louis> tune lock is quite a heavy feature so i don't blame them too much. but it's true that maintenance is not active enough to keep up with all the PRs and issues
+06:24 < bridge> <Solly> i wish u luck @_voxeldoesart :D
+06:25 < bridge> <_voxeldoesart> i dont think im going to continue this
+06:25 < bridge> <_voxeldoesart> again someone else with  more knowledge should do it
+06:25 < bridge> <_voxeldoesart> like juppey
+06:25 < bridge> <_voxeldoesart> they already have a better heirarchy
+06:26 < bridge> <_voxeldoesart> i
+06:26 < bridge> <_voxeldoesart> i will stay in this development chat to hand out spitball ideas and whatnot, because i still think ddnet needs someone in the creativity department
+06:26 < bridge> <Solly> lmao
+07:36 < bridge> <fill06948> салам
+07:37 < bridge> <fill06948> :heartw:
+07:37 < ws-client> <ChillerDragon> @pathos3005 :) tbh you uploading videos with the bug is what motivated me to do it
+08:10 < bridge> <louis> https://github.com/ddnet/ddnet/issues/9229
+08:10 < bridge> <louis> anyone have an idea of what causes this?
+08:10 < bridge> <fill06948> чаго
+08:10 < bridge> <louis> seems to not work whether cl_predict 0 is on or not
+08:11 < bridge> <fill06948> тут есть русские
+08:11 < bridge> <milkeeycat> to go #off-topic to write in russian
+08:11 < bridge> <milkeeycat> go to #off-topic to write in russian
+08:19 < ws-client> <ChillerDragon> @louis I assume somewhere in the clients laser render code there is a check for the laser owner. Maybe some prediction stuff or ddnet extension. I did not look at the code but i assume something like ``if(!laser.owner) return;``
+08:20 < bridge> <louis> ChillerDragon: i was taking a look and it seemed much deeper than that :pepeW:
+08:20 < bridge> <louis> unless its just too late here and i missed smth obvious
+08:20 < bridge> <swarfey> Have you tried using mariadb 11.3? Because your screenshots indicate you are using some different connector
+08:20 < bridge> <swarfey> Otherwise Look at what exactly your building Arguments were. It is expecting a File path instead of a directory path
+08:21 < bridge> <swarfey> Have you tried using mariadb 11.3? Because your screenshots indicate you are using some different connector
+08:21 < bridge> <swarfey> Otherwise Look at what exactly your building Arguments were. Your errors Show it is expecting a File path instead of the lib64 directory path you gave it
+09:00 < bridge> <robyt3> The components are not initialized yet in the constructor, you need to load textures in `OnInit`
+09:43 < bridge> <woidless> Can I compile my ddnet client where on a local server I can reduce the server tick speed?
+09:46 < bridge> <avolicious> You can, but you would need to distribute this client to all players & it will break some stuff
+09:53 < bridge> <woidless> no, I'm talking about using it on a local server.
+09:54 < bridge> <Assa> (╯°□°)╯︵ ┻━┻
+09:55 < bridge> <Assa> don't worry I just read some comments
+09:56 < bridge> <Assa> don't worry I just read some comments (not here)
+10:10 < bridge> <avolicious> I dont get the question then, sorry
+10:10 < bridge> <avolicious> Maybe Chiller knows :pepeH:
+10:14 < bridge> <woidless> Ok
+10:50 < ws-client> <ChillerDragon> @woidless yea probably idk im not into TAS ask teero and the boys who like to mess with that kind of stuff
+10:59 < bridge> <totar> Team based rendering
+11:09 < bridge> <Assa> - the moment you shoot the laser entitiy is spawned with the ownerID, which is your player ID
+11:09 < bridge> <Assa> - Every Snap the laser checks if the owner has a player character
+11:09 < bridge> <Assa> - if the owner has no player character, it's not rendered
+11:10 < bridge> <Assa> - the moment you shoot the laser entitiy is spawned with the ownerID, which is your player ID
+11:10 < bridge> <Assa> - Every Snap the laser checks if the owner has a player character
+11:10 < bridge> <Assa> - if the owner has no player character, it's not rendered
+11:10 < bridge> <Assa> - after a teamchange there might be teammask shenanigans
+11:12 < bridge> <Assa> After a git blame the code for this is 14 years old with the description "I think i fixed the crash" lol
+11:13 < bridge> <Assa> This is honestly spaghetti there 🍝
+11:18 < bridge> <fokkonaut> chillerdragon: did you make evelyn rq ddpp?
+11:41 < bridge> <woidless> What?
+12:38 < bridge> <learath2> PSA: Do not share your private TAS clients. Do not use them on anything but local servers. They are bots and you will get banned for it
+13:35 < bridge> <patiga> @privatekero also lets move over here, as
+13:35 < bridge> <patiga> *as #questions is for ddnet client stuff ^^
+14:34 < bridge> <privatekero> could be windows specific errors not sure. I didnt saved the master branch errors :/
+14:34 < bridge> <privatekero> 
+14:34 < bridge> <privatekero> Just wanted to try the preview map locally. But after step 5 not sure how to go forward.
+14:34 < bridge> <privatekero> 
+14:34 < bridge> <privatekero> i have localhost:8000/?map=default
+14:34 < bridge> <privatekero> 
+14:34 < bridge> <privatekero> but doesnt do anything for me. Console throws a error which send in question channel.
+14:34 < bridge> <privatekero> I assume i have wrong folder structure? In which directory should start the server ( does that even matter?)
+14:34 < bridge> <zhn> :(
+14:34 < bridge> <privatekero> could be windows specific errors not sure. I didnt saved the master branch errors :/
+14:34 < bridge> <privatekero> 
+14:34 < bridge> <privatekero> Just wanted to try the preview map locally. But after step 5 not sure how to go forward.
+14:35 < bridge> <privatekero> 
+14:35 < bridge> <privatekero> i have localhost:8000/?map=default
+14:35 < bridge> <privatekero> 
+14:35 < bridge> <privatekero> but doesnt do anything for me. Console throws a error which I send in question channel.
+14:35 < bridge> <privatekero> I assume i have wrong folder structure? In which directory should start the server ( does that even matter?)
+14:37 < bridge> <patiga> @privatekero you need to start the server in the map-inspect-web directory
+14:37 < bridge> <patiga> all directories that you should create according to the readme should also be inside of the map-inspect-web directory
+16:11 < bridge> <louis> hm
+16:11 < bridge> <louis> so if the laser is not snapped on serverside it still exists?
+16:11 < bridge> <louis> does snap just prepare everything to be sent to client
+16:14 < bridge> <louis> no fun
+16:55 < bridge> <Assa> yes, snap just sends updates over the network (for example sprite position), but tick() is doing the calculations
+16:57 < bridge> <Assa> if you set sv_destroy_laser_on_death this bug won't happen, because then the tick() also resets the laser
+17:01 < bridge> <louis> ah okay makes sense
+17:02 < bridge> <louis> annoying bug
+17:03 < bridge> <louis> why does snap re check what's already in the ticks 😹
+17:04 < bridge> <Assa> snap and tick can be out of sync
+17:05 < bridge> <louis> on the server side?
+17:05 < bridge> <learath2> A snapshot is quite literally a "snapshot" of the current gameworld to be sent to a client, something being snapped means it's in the current state being sent to the client
+17:06 < bridge> <learath2> Snaps don't have to accurately represent the gameworld at all times, many mods (including ddnet) use this to do some trickery. Like the teams implementation, all tees exist in the same gameworld but for you only the ones within your team are snapped
+17:08 < bridge> <learath2> Fokkonauts 128p mod snaps players as other entities if there are more than 64 in the view
+17:09 < bridge> <louis> i guess in this case it'd just be spaghetti code -- since it doesnt make sense to check `if(!pOwnerChar) return;` inside the claser::snap if it's already checked in tick
+17:10 < bridge> <Assa> and "hacks" different client IDs, but yes
+17:11 < bridge> <learath2> https://github.com/ddnet/ddnet/commit/0a0e1df557da4f2b8d7a149dbbf16cfa2ff124df removing that would scare me a little on account of it being added by this commit
+17:11 < bridge> <Assa> 14 years ago, the rest of the code grew there
+17:12 < bridge> <Assa> also this should be the wrong place of the crash
+17:12 < bridge> <learath2> Surely nothing will go wrong 🙃
+17:12 < bridge> <Assa> don't worry, there is a character check right behind this xD
+17:14 < bridge> <Assa> that commit looks so different to the actual code today
+17:14 < bridge> <learath2> Actually that code does look absurd, how did these changes even make it past review and into the code
+17:14 < bridge> <learath2> Do stuff with `pOwnerChar` discard it, do it again
+17:15 < bridge> <robyt3> From reading it, it does seem like dead code. There are lots of `m_Owner >= 0` checks which should always be true because `//m_Owner = -1;` was commented out and the owner is never set to -1 when the `CLaser` object is constructed
+17:16 < bridge> <learath2> Yeah, removing the 5 lines makes sense
+17:16 < bridge> <louis> i guess from a generic point of view, is there anything incorrect about just sending info from the previous tick thru the snap (along with removing any unnecessary information etc.)
+17:16 < bridge> <louis> how would a snap and tick desync
+17:16 < bridge> <Assa> on client side? network issues
+17:16 < bridge> <woidless> Someone knows how to compile their ddnet client, where the server tick speed will be changed on the LOCAL server
+17:17 < bridge> <louis> yes but doesn't the server still send the correct information from the corresponding tick
+17:18 < bridge> <learath2> I do not quite understand what you mean, you tick, then you snap the current tick. Why would you re-use the previous tick?
+17:19 < bridge> <learath2> It's not unintentionally de-sync'ing. Calling it de-sync is a bit of a misnomer there. The snap is very intentionally not accurately representing the current state of the gameworld
+17:19 < bridge> <louis> i guess i'm asking: was that 'i think i fixed the crash' because of spaghetti code or because snaps inherently need be re-checked
+17:20 < bridge> <learath2> Oh, this is from the olden days where we just guessed at stuff. That commit doesn't look like it fixes any crash
+17:20 < bridge> <louis> as in can something ever happen between the tick and the snap-from-tick that would make the server error if attributes aren't re-checked
+17:20 < bridge> <louis> okay
+17:22 < bridge> <learath2> During `OnSnap()` (and therefore during the `Snap()`s called by that) the state of the entities has already settled, nothing will change until the snapping is done
+17:23 < bridge> <learath2> So technically, if the laser did have an alive owner during the tick it'll still have an alive owner during snap. However, that's not information we store, thus the owners condition needs to be checked again
+17:24 < bridge> <learath2> You'd need to add a new bool to laser, something like, `m_OwnerAlive`, but that helps nothing, it maybe avoids one pointer dereference on a condition that probably gets branch predicted insanely well since most owners of projectiles are usually alive
+17:24 < bridge> <louis> yeah
+17:25 < bridge> <louis> well if the laser still exists it must either have an alive owner or there must be sv_destroy_lasers_on_death 0 i think
+17:28 < bridge> <learath2> Is that something worth bothering to risk missing an edge case though? It should result in no difference in performance, nor is the logic clearer
+17:29 < bridge> <learath2> e.g. what happens on the exact tick that the owner died? I don't know for sure if we already looped through the entities and removed their projectiles yet
+18:29 < bridge> <teero777> Please don't be broken 🙏
+18:43 < bridge> <Solly> https://github.com/SollyBunny/ddnet/tree/custom_tickrate
+18:43 < bridge> <Solly> change sv_tick_rate_multiplier
+18:43 < bridge> <Solly> its very buggy when u change it
+18:44 < bridge> <Solly> very wip x-x
+18:54 < bridge> <learath2> LGTM
+18:54 < bridge> <learath2> albeit terrifying :d
+18:54 < bridge> <learath2> albeit terrifying 😄
+18:57 < bridge> <Solly> i was talking abt this earlier before i got banished for saying voldermort
+18:57 < bridge> <Solly> but would tassing tools be accepted?
+18:58 < bridge> <woidless> Solly
+18:58 < bridge> <Solly> that is slowdown, frame step forwards and backwards (probably adding a command to set player state), and prediction showing
+18:58 < bridge> <Solly> hello
+18:58 < bridge> <Solly> Evelyn
+18:59 < bridge> <woidless> How to install this
+18:59 < bridge> <Solly> you gotta compile it youreslf
+18:59 < bridge> <woidless> Clone and then make?
+18:59 < bridge> <Solly> yah
+19:00 < bridge> <woidless> And it will appear on my online server?
+19:00 < bridge> <Solly> ```
+19:00 < bridge> <Solly> git clone -b custom_tickrate --depth 1 https://github.com/sollybunny/ddnet
+19:00 < bridge> <Solly> cd ddnet
+19:00 < bridge> <Solly> mkdir -p build
+19:00 < bridge> <Solly> cd build
+19:00 < bridge> <Solly> cmake ..
+19:00 < bridge> <Solly> make -j24
+19:00 < bridge> <Solly> ```
+19:00 < bridge> <Solly> the client has to support the lower tickrate or its really buggy
+19:00 < bridge> <Solly> so should only be used on ur own server
+19:00 < bridge> <Solly> ```
+19:00 < bridge> <Solly> git clone -b custom_tickrate --depth 1 https://github.com/sollybunny/ddnet
+19:00 < bridge> <Solly> cd ddnet
+19:00 < bridge> <Solly> mkdir -p build
+19:00 < bridge> <Solly> cd build
+19:00 < bridge> <Solly> cmake ..
+19:00 < bridge> <Solly> make
+19:00 < bridge> <Solly> ./DDNet-Server
+19:00 < bridge> <Solly> ```
+19:01 < bridge> <woidless> local?
+19:01 < bridge> <Solly> yeah
+19:01 < bridge> <woidless> and if I run the server on my hosting, with this modification?
+19:01 < bridge> <Solly> it will work fine, but prediction will make every non supporting client really buggy
+19:01 < bridge> <Solly> the client also has to be around when the tick rate is changed otherwise it wont get it
+19:01 < bridge> <learath2> What do you mean "accepted"? They are not allowed on any official server. Releasing one whether source or binary will get you the bot author treatment
+19:02 < bridge> <Solly> tassing tools would have to be supported by the server, similar to how /tc doesnt work unless the server lets you
+19:02 < bridge> <Solly> and could similarly be allowed only in /practice
+19:03 < bridge> <learath2> Nothing stopping you from creating the tas on your local server then replaying it on an official server
+19:03 < bridge> <woidless> And how can I compile it on windows in order to run it normally?
+19:03 < bridge> <Solly> o thats true
+19:03 < bridge> <Solly> darned stupid people who use cool tools for malicious intent
+19:03 < bridge> <meloƞ> you were warned twice :greenthing:
+19:03 < bridge> <Solly> im not sure how to compile for windows, read the README
+19:03 < bridge> <woidless> Okay
+19:03 < bridge> <Solly> once, both times were a mistake
+19:04 < bridge> <Solly> once, both times i did utter it were a mistake
+19:04 < bridge> <Solly> once, first time was intentional when i said it, second time was out of shock
+19:04 < bridge> <learath2> I mean isn't this a TAS tool you are just making public right here?
+19:04 < bridge> <Solly> once, first time was intentional when i said it, second time was out of shock (that the client had ads)
+19:04 < bridge> <Solly> i mean its not that much of a tas tool
+19:04 < bridge> <meloƞ> publicly available tas tools before gta 6 - damn it.
+19:04 < bridge> <Solly> and can be done by just changing TICK_RATE
+19:05 < bridge> <Solly> voldermort has proper tas tools
+19:05 < bridge> <learath2> Every day I'm feeling more and more like heinrich was right with saying we should just ban all mention and discussions of TAS
+19:05 < bridge> <Solly> yeah if people are this buggy with the mention of it im better of not
+19:05 < bridge> <Solly> xd
+19:05 < bridge> <meloƞ> please dont mention how to do this kind of stuff - in fact, any kind of help within obvious bot client development isn't really tolerated on this discord.
+19:06 < bridge> <Solly> and can be done by ~~censored~~
+19:06 < bridge> <meloƞ> its not a rule stated anywhere, but just dont try to do it - you dont really want the `i'm a person involved in bot client development` stamp
+19:06 < bridge> <learath2> censored by the oppressive ddrace network administration, damn
+19:06 < bridge> <Solly> ikr ):
+19:06 < bridge> <learath2> the stamp gets you the prestigious {
+19:06 < bridge> <learath2> the stamp gets you the prestigious "none of us will ever answer your questions ever again reward"
+19:07 < bridge> <Solly> damn but when you see obviously not real runs a human could never pull off
+19:07 < bridge> <Solly> its so cool and i want to see more of them
+19:07 < bridge> <meloƞ> youtube has a ton
+19:07 < bridge> <Solly> yeah but i want **more**
+19:07 < bridge> <learath2> me too, that's why I told heinrich I didn't really want to ban the mention/videos of TAS runs
+19:07 < bridge> <Solly> also replaying a demo on a sever wouldnt work?
+19:07 < bridge> <Solly> cuz lag
+19:07 < bridge> <learath2> I'm not telling you how but you definitely can make it work
+19:08 < bridge> <Solly> yeah i realised
+19:08 < bridge> <Solly> but im not gonna
+19:08 < bridge> <Solly> complete
+19:08 < bridge> <Solly> ;---;
+19:08 < bridge> <Solly> it
+19:08 < bridge> <Solly> x-x
+19:08 < bridge> <learath2> As evidenced by the dozens of replaybotters we are dealing with right now
+19:08 < bridge> <Solly> really?
+19:08 < bridge> <Solly> damn
+19:08 < bridge> <Solly> cmon people cant we just
+19:08 < bridge> <Solly> not hack
+19:09 < bridge> <meloƞ> people hacked `pong` man...
+19:09 < bridge> <Solly> x-x
+19:10 < bridge> <learath2> Also TAS doesn't immediately imply tick-perfect runs, the tools can be used to create just regular looking runs too with basically /r enabled
+19:10 < bridge> <Solly> yeah
+19:11 < bridge> <Solly> is there not some way to fug up replayed runs
+19:11 < bridge> <learath2> So yeah, I'm in a weird position where I think TAS runs are very cool and fun to watch but I also see how the tools becoming public would just destroy the leaderboards beyond fixing
+19:11 < bridge> <Solly> by having something on ddnet servers which is slightly different
+19:11 < bridge> <Solly> which is not noticable to normal players
+19:12 < bridge> <Solly> because a single wrong input = cascading effect
+19:12 < bridge> <woidless> Excuse me, but when will the rules for communities be ready?
+19:12 < bridge> <Solly> like randomly add some y velocity down every so often but only a smidge x-x
+19:13 < bridge> <learath2> Any ruleset will probably include "Your community needs to exist for X days" where X is larger than 90, so probably not all that important when we put it out
+19:14 < bridge> <woidless> Anyway, I'm curious, I want to see
+19:14 < bridge> <learath2> The players are very very sensitive to this kind of stuff and for any tiny physics change you can imagine there is some weird map that uses it. So it's really hard to get something like this in
+19:14 < bridge> <Solly> yeah ):
+19:16 < bridge> <learath2> - All communities must obey masterserver rules at all times
+19:16 < bridge> <learath2> - Communities must on average have X players in the last Y days
+19:16 < bridge> <learath2> - Communities must have existed for longer than X days
+19:16 < bridge> <learath2> - Communities must be moderated
+19:16 < bridge> <learath2> 
+19:16 < bridge> <learath2> These are some rules that I think we all agree on, there are a couple more and the masterserver rules are also being discussed right now, so it'll happen at the same time probably
+19:16 < bridge> <learath2> - All communities must obey masterserver rules at all times
+19:16 < bridge> <learath2> - Communities must on average have X players in the last Y days
+19:16 < bridge> <learath2> - Communities must have existed for longer than Z days
+19:16 < bridge> <learath2> - Communities must be moderated
+19:16 < bridge> <learath2> 
+19:16 < bridge> <learath2> These are some rules that I think we all agree on, there are a couple more and the masterserver rules are also being discussed right now, so it'll happen at the same time probably
+19:16 < bridge> <Solly> the master server has rules?
+19:17 < bridge> <learath2> https://teeworlds.com/?page=docs&wiki=rules/server_rules this is the ruleset we inherit + we also remove servers from hosters that are abusive (ddosers, etc...) + we remove hosters hosting illegal/nsfw content
+19:18 < bridge> <learath2> The latter 2 rules aren't really documented, we just apply common sense for our additions until now, but we want to codify it so morons like that one person advertising a bot client openly and expecting not to get banned don't show up and rules lawyer for hours
+19:18 < bridge> <learath2> The latter 2 rules aren't really documented, we just applied common sense for our additions until now, but we want to codify it so morons like that one person advertising a bot client openly and expecting not to get banned don't show up and rules lawyer for hours
+19:18 < bridge> <Solly> sigh
+19:18 < bridge> <Solly> people
+19:19 < bridge> <Solly> i was realy excited to make tassing for ddnet ):
+19:19 < bridge> <woidless> @learath2 What about the fact that cheat is allowed on block servers in TeeSports?
+19:19 < bridge> <learath2> You can make your own client and put your runs up on youtube, we don't mind that
+19:19 < bridge> <Solly> the thought didnt even cross my mind to use it maliciously
+19:20 < bridge> <Solly> im not skilled enough to do tas runs
+19:20 < bridge> <Solly> im sure uve seen the shenanagans tas's pull
+19:20 < bridge> <learath2> Not something we decided on yet
+19:20 < bridge> <Solly> im sure uve seen the [shenanagans tas's pull](<https://youtu.be/a64IHJ63WYk>)
+19:21 < bridge> <louis> accounts^{tm}
+19:21 < bridge> <Solly> oh yeah accounts would help so much
+19:21 < bridge> <Solly> xd
+19:21 < bridge> <louis> it wouldn't help people cheating, but you could have some level of verification
+19:21 < bridge> <learath2> Accounts would make it easier to clean up after the fact, but detecting such runs is the time consuming process
+19:21 < bridge> <learath2> but yes, if random new account has top of the leaderboard it's immediately sus 😄
+19:21 < bridge> <louis> do staff still manually have to search thru all the runs
+19:22 < bridge> <Solly> and how the heck do u detect cheating in demos?
+19:22 < bridge> <learath2> currently, yes, we have to watch every sus run
+19:22 < bridge> <learath2> looking at it reaaaaaally carefully 😄
+19:22 < bridge> <louis> we need the csgo overwatch system 😹
+19:23 < bridge> <Solly> but if someone is, as u said, splicing so they basically have /r, if they just make a client scroll back the demo recording perfectly theres no way its detectbale
+19:23 < bridge> <Solly> because its not illegal to stop moving
+19:23 < bridge> <learath2> No comment
+19:23 < bridge> <Solly> new leaderboard rule: must always be moving or youre hacking
+19:23 < bridge> <louis> that wouldn't hlep
+19:23 < bridge> <Solly> yeah but it would be afunny rule
+19:24 < bridge> <Solly> YOU CAN HAMMER THRU 2 BLOCKS OF FREEZE??
+19:24 < bridge> <Solly> wow these plp are insane
+19:24 < bridge> <Solly> [wow these plp are insane](<https://youtu.be/TKlSIi7-a-o>)
+19:26 < bridge> <meloƞ> >  like that one person advertising a bot client openly and expecting not to get banned don't show up and rules lawyer for hours
+19:26 < bridge> <meloƞ> 
+19:26 < bridge> <meloƞ> ah.. good times :kekw:
+19:27 < bridge> <learath2> Thankfully the people that have been TASing so far have been mostly responsible with their tools
+19:27 < bridge> <meloƞ> this has been done in real runs btw
+19:27 < bridge> <Solly> wow
+19:27 < bridge> <learath2> "but the rules don't explicitly say that you can't advertise a bot client openly, wtf"
+19:27 < bridge> <meloƞ> :kekw: funny af
+19:27 < bridge> <louis> changes with me
+19:28 < bridge> <totar> Most of the TAS runs on officials servers are probably from paid cheats who are very aware that it's cheating
+19:28 < bridge> <Solly> guh so many people making videos on the 40x speedup of linux, but its really just a memory optimization which has not that much of an effect on day to day
+19:33 < bridge> <totar> More importantly this caused prediction desyncs so even if you adjust them by 0.01 units, if they have high ping they might experience a correction of many tiles which makes it unplayable
+19:34 < bridge> <totar> More importantly this causes prediction desyncs so even if you adjust them by 0.01 units, if they have high ping they might experience a correction of many tiles which makes it unplayable
+19:37 < bridge> <totar> I guess if we add some sort of "I'm going to adjust you by 0.01 units in 2 seconds" message to the client this strategy would work actually against replay clients
+19:39 < bridge> <louis> it's probably too sensitive for high-level players unfortunately
+19:39 < bridge> <totar> I think it's more about certain maps being too sensitive
+19:39 < bridge> <louis> hmm
+19:40 < bridge> <totar> It's impossible to know when you'll do something that makes the map break
+19:40 < bridge> <louis> yeah true
+19:40 < bridge> <louis> i'd also bet you could measure a difference with double nades / hard gores / edgehooks
+19:40 < bridge> <louis> like if the tee getting edge-hooked moves 0.01 units right before the hook comes out 💀
+19:41 < bridge> <totar> You can be more subtle than adjusting position, for a small difference in acceleration or velocity would be better
+19:41 < bridge> <totar> You can be more subtle than adjusting position, a small difference in acceleration or velocity would be better
+19:42 < bridge> <totar> Those don't get quantized I think
+19:43 < bridge> <louis> yeah
+19:53 < bridge> <teero777> You can hammer through 187 blocks at max speed xd
+19:56 < bridge> <meloƞ> how does one find this out? or did you just math
+20:01 < bridge> <totar> I don't think it's true?
+20:15 < bridge> <teero777> Max vel is 6000
+20:16 < bridge> <teero777> and you freeze 1 tick late
+20:16 < bridge> <teero777> So you can hammer through 187 blocks
+20:16 < bridge> <teero777> So you can hammer through 187 blocks of freeze
+20:17 < bridge> <_voxeldoesart> yea i moved it there
+20:17 < bridge> <_voxeldoesart> if i were to continue id have to figure out why everything is a white square
+20:19 < bridge> <robyt3> Did you confirm (e.g. with `dbg_msg`) that your `OnInit` function is getting called?
+20:20 < bridge> <_voxeldoesart> yea, i remember having a log saying the emotes were loaded in
+20:20 < bridge> <_voxeldoesart> hold on let me retry to build it and see how i can work from there
+20:21 < bridge> <_voxeldoesart> clearly the string array is causing troubles right now
+20:30 < bridge> <Solly> what if they had 2000 ping
+20:30 < bridge> <Solly> ????
+20:30 < bridge> <totar> 2000 ping is the limit
+20:30 < bridge> <totar> but you could use 10 seconds
+20:35 < bridge> <_voxeldoesart> okay the oninit() isn
+20:35 < bridge> <_voxeldoesart> okay the oninit() isn't even running
+20:37 < bridge> <robyt3> You need to add your component to the list in `gameclient.cpp`: `m_vpAll.insert(m_vpAll.end(), {&m_Skins,` ... Probably as the first element so the texture are loaded last (components are initialized in reverse order).
+20:41 < bridge> <_voxeldoesart> i can't believe that was literally all i needed to do
+20:41 < bridge> <_voxeldoesart> :justatest:
+20:43 < bridge> <_voxeldoesart> i set the hook textures to something different for debugging purposes
+20:43 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1308155758717702178/textures_work.mp4?ex=673cea7d&is=673b98fd&hm=0cce4dc08983e61f7316b8e56b5748fef3b9719979a46e2c547b337381feb4d5&
+20:44 < bridge> <_voxeldoesart> the next step is to find out why the particles are pure white
+20:45 < bridge> <oxyzo.> i didnt like yellow so i repainted them
+21:11 < bridge> <soulyvevo> bro what kinda hook 😭
+21:11 < bridge> <teero777> It looks great
+21:11 < bridge> <teero777> noby kind
+21:45 < bridge> <bencie.> LGTM
+21:54 < bridge> <meloƞ> Push! Lgtm
+22:00 < bridge> <_voxeldoesart> yea yea hold on lemme fix a few other bugs
+22:11 < bridge> <_voxeldoesart> https://github.com/VoxelDoesCode/ddnet/tree/asset_rework
+22:12 < bridge> <_voxeldoesart> I didn't completely remove content.py dependancy yet, but I think I made enough progress where I can send this
+22:12 < bridge> <_voxeldoesart> You guys can look over it before I move onto the next step
+22:13 < bridge> <_voxeldoesart> not sending this as a PR *just yet* because it feels too aimless to even consider to be a draft
+22:16 < bridge> <pioooooo> :owo: https://github.com/ddnet/ddnet/compare/master...VoxelDoesCode:ddnet:asset_rework#diff-1e7de1ae2d059d21e1dd75d5812d5a34b0222cef273b7c3a2af62eb747f9d20aL1441
+22:18 < bridge> <_voxeldoesart> whats this
+22:20 < bridge> <robyt3> Looks like you moved a font entry in CMakeLists, the CI should also tell you that
+22:22 < bridge> <_voxeldoesart> ohhh
+22:23 < bridge> <_voxeldoesart> for some reason, sorting alphabettically in VSCode has different rules than CMake sorting
+22:24 < bridge> <Solly> clang thing also incorrectly formats stuff, its probably not reading the formatting thing, but the only difference between what i pressume to be default and ddnet is that default restricts char/lines to 80
+22:24 < bridge> <Solly> vscode clang extention also incorrectly formats stuff, its probably not reading the formatting thing, but the only difference between what i pressume to be default and ddnet is that default restricts char/lines to 80
+22:26 < bridge> <_voxeldoesart> fixed!
+22:41 < bridge> <robyt3> I assume the next step would to figure out how to make assets adjustable again? Some things I noticed from reading it:
+22:41 < bridge> <robyt3> - Replace the `enum`s in `textures.h` with `enum class` then replace all `GameClient()->m_Textures.EParticleTextures::PARTICLE_AIR_JUMP` etc. with `CTextures::EParticle::AIR_JUMP`. You shouldn't need the member variable to access the enum definition. You can also shorten the enum and enum item names so it's easier to read and write.
+22:41 < bridge> <robyt3> - Eventually all the `CTextures` member variables should be private and only getters should be used to access them.
+22:41 < bridge> <robyt3> - We don't use exceptions anywhere, so trying to catch any is pointless. If you want to check for errors, look over all textures handles and check if any are invalid.
+22:41 < bridge> <robyt3> - No need to check if texture handles are valid before calling `UnloadTexture`.
+22:42 < bridge> <robyt3> I assume the next step would to figure out how to make assets adjustable again? Some things I noticed from reading it:
+22:42 < bridge> <robyt3> - Replace the `enum`s in `textures.h` with `enum class` then replace all `GameClient()->m_Textures.EParticleTextures::PARTICLE_AIR_JUMP` etc. with `CTextures::EParticle::AIR_JUMP`. You shouldn't need the member variable to access the enum definition. That way you can also shorten the enum and enum item names so it's easier to read and write.
+22:42 < bridge> <robyt3> - Eventually all the `CTextures` member variables should be private and only getters should be used to access them.
+22:42 < bridge> <robyt3> - We don't use exceptions anywhere, so trying to catch any is pointless. If you want to check for errors, loop over all textures handles and check if any are invalid.
+22:42 < bridge> <robyt3> - No need to check if texture handles are valid before calling `UnloadTexture`.
+23:52 < bridge> <Solly> i reset my config for testing
+23:52 < bridge> <Solly> and
+23:52 < bridge> <Solly> communities disaperaed?
+23:53 < bridge> <Solly> ```cpp
+23:53 < bridge> <Solly> if((g_Config.m_UiPage == PAGE_INTERNET || g_Config.m_UiPage == PAGE_FAVORITES) && !ServerBrowser()->Communities().empty())
+23:53 < bridge> <Solly>     {
+23:53 < bridge> <Solly>         CUIRect CommunityFilter;
+23:53 < bridge> <Solly>         ToolBox.HSplitTop(19.0f + 4.0f * 17.0f + CScrollRegion::HEIGHT_MAGIC_FIX, &CommunityFilter, &ToolBox);
+23:53 < bridge> <Solly>         ToolBox.HSplitTop(8.0f, nullptr, &ToolBox);
+23:53 < bridge> <Solly>         RenderServerbrowserCommunitiesFilter(CommunityFilter);
+23:53 < bridge> <Solly>     }
+23:53 < bridge> <Solly> ```
+23:53 < bridge> <Solly> so why aint it rendering x-x
+23:58 < bridge> <robyt3> You are on the DDNet tab by default
+23:59 < bridge> <Solly> oh
+23:59 < bridge> <Solly> x-x
+23:59 < bridge> <Solly> silly me
