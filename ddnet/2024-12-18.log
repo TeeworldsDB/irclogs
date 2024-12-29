@@ -1,0 +1,581 @@
+00:09 < bridge> <kebscs> master server isnt in the client, cxx bridge is useless until network protocel get implemented which i suspect not in the near future
+00:16 < bridge> <whitekitty> Hey where can I find the code with the message: **'player' joined team ?**
+00:20 < bridge> <kebscs> <https://github.com/ddnet/ddnet/blob/3d1c090b61ec8a17fa388c3ccf78ac8cfa6ae7e6/src/game/server/gamecontroller.cpp#L745>
+00:40 < bridge> <whitekitty> Is there another function like this somewhere because I removed it for testing and the same message appears?
+00:42 < bridge> <jxsl13> ctrl + shift + f
+00:42 < bridge> <jxsl13> in vs code
+00:42 < bridge> <whitekitty> i try but didnt found it
+00:42 < bridge> <jxsl13> search for join
+00:42 < bridge> <jxsl13> case sensitive
+00:43 < bridge> <jxsl13> recompile the code, restart server
+03:50 < bridge> <louis> is it intended that pressing run server wont open up a console window with the password?
+03:50 < bridge> <louis> steam gnome fedora
+04:49 < bridge> <chillerdragon> I guess the goal is passwordless automatic authentication on servers launched from the client
+06:16 < ws-client> <ChillerDragon> @woidless before we do any 128 player debugging could you update your server? I pushed an update to the feature_128 branch
+06:17 < ws-client> <ChillerDragon> @0xdeen btw while at it i also sent you the solved conflicts for the 128 pr in case you want to save 5 minutes https://github.com/def-/ddnet/pull/3
+06:18 < ws-client> <ChillerDragon> somehow gh forced me to create a merge commit to be able to pr a force pushed branch ._.
+06:19 < ws-client> <ChillerDragon> but you can also ``git reset --hard HEAD^`` to pop off the merge commit and then force push that your self that should be a clean rebase
+06:29 < bridge> <totar> better antiping smoothing algorithm I'm working on, the first 20 seconds is the old version for comparison.
+06:29 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1318812272981704794/2024-12-17_23-24-40.mp4?ex=6763af24&is=67625da4&hm=ba8427e1d35645433814a47f98d13df066443999b30be71d796728b1a9a1889f&
+06:34 < bridge> <tsfreddie> ChillerDragon: i remember you stating ddnet or 0.6 clamps NetIntRange instead of dropping like in 0.7, do you remember how sure were you when you found that out?
+06:35 < bridge> <_voxeldoesart> YES
+06:35 < bridge> <_voxeldoesart> please we need a better antiping algo
+06:40 < bridge> <tsfreddie> oh, i remember doing something similar when i was working on that ddnet clone for a chinese company. i found it extremely helpful to interp or smooth separate axises instead of a single vector on 2d characters given that jump is often quite violent. not sure if it is worth doing on ddnet given how often the character is in the air, but might be worth a try. we also did stuff on 3d characters where we smooth xz and y separately in our VR game, sim
+06:41 < bridge> <totar> that's basically what I'm doing but I decompose the prediction vector into based on a certainty vector so it's not biased by any axis
+06:41 < bridge> <totar> that's basically what I'm doing but I decompose the prediction vector based on a certainty vector so it's not biased by any axis
+06:42 < bridge> <totar> it generalizes to infinite dimensions in theory
+06:42 < bridge> <tsfreddie> jump and gravity usually just work on y only which where that system comes from since it behave differently than x.
+06:43 < bridge> <tsfreddie> might only work how i was doing it tho, just sharing.
+06:44 < bridge> <totar> I actually haven't added the "smoothing" part yet, this is just designed to give a more accurate position a higher % of the time. It still has instantaneous movements so I'll need to add another layer to smooth those.
+06:44 < bridge> <totar> the smoothing reduces accuracy for smoothness
+06:46 < bridge> <totar> I was thinking about doing a special case for jumping but there's too many types of actions that behave the same way as jumping so I don't feel it's worth it.
+06:49 < bridge> <totar> wait you said it's a ddnet clone but you have 3d charecters?
+06:49 < bridge> <tsfreddie> that's a different game
+06:50 < bridge> <tsfreddie> i worked on like 3 different projects that has similar gameplays in 3 years
+06:50 < bridge> <totar> so how did your 2d smoothing algorithm work?
+06:50 < bridge> <tsfreddie> :pepeW:
+06:53 < bridge> <tsfreddie> gather some input changes and state changes from past few ticks and get a "entropy" value, it's just how often it changes, and slowly decrease the delay as the movement gets more predictable. and that looks too floaty and we just run it twice on x and y separately and it looks better
+06:56 < bridge> <tsfreddie> gather some input changes and state changes from past few ticks and get a "entropy" value, it's just how often it changes, and slowly decrease the delay as the movement gets more predictable (as in decreasing that magic entropy value). and that looks too floaty and we just run it twice on x and y separately and it looks better
+06:57 < bridge> <totar> yeah that's very similar to what I did
+06:57 < bridge> <totar> https://github.com/sjrc6/TaterClient-ddnet/blob/6382bfc13e2f9ebb5b9652cd4f67fa4e9193b945/src/game/client/gameclient.cpp#L2507-L2697
+06:58 < bridge> <tsfreddie> i'm just saying doing whatever that we were doing and just run it twice 1-d might look better
+06:59 < bridge> <totar> idk what you mean by twice 1-d
+06:59 < bridge> <totar> this is once 2d
+07:01 < bridge> <tsfreddie> if you are detecting changes in vel, detect changes in velx and vely separately and do the posx and posy prediction separately using the two changes info you gathered instead of treating the velocity as a 2d vector.
+07:02 < bridge> <tsfreddie> like whatever you are doing, break it in to x and y and do it separately, maintain two states, and if you are doing inputs, map direction to x's changes and jump to y's changes and hooks to both.
+07:02 < bridge> <totar> I used angle between prediction vectors to detect changes insead of velocity because it doesn't need any tuning
+07:02 < bridge> <totar> I used angle between prediction vectors to detect changes instead of velocity because it doesn't need any tuning
+07:04 < bridge> <tsfreddie> that is quite different from how i imagined it, but you could just run the angle as a 2d vector and detect changes in x and y separately. but again, just sharing. do whatever you feel like is best.
+07:06 < bridge> <tsfreddie> like replace the dot with just distance delta of x and y or something, but value is definitely different.
+07:06 < bridge> <totar> but if you have 2 axis then you can't measure instability along a 45 degree
+07:07 < bridge> <tsfreddie> > not sure if it is worth doing on ddnet given how often the character is in the air, but might be worth a try.
+07:07 < bridge> <tsfreddie> i don't have any more info to share
+07:07 < bridge> <tsfreddie> i'm just saying i observed that
+07:07 < bridge> <tsfreddie> i don't have mathamatical proof
+07:08 < bridge> <totar> like in this case the 1d*2 system will see this as instability in all axis and won't find the stable axis
+07:08 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1318822082850848819/image.png?ex=6763b847&is=676266c7&hm=c660dbf910a727c7a7f355d42cd6e4dd5040b8b4c5fffc176eb18a58520602fd&
+07:09 < bridge> <totar> we can safely put the tee at the end of the red line, but if you do 1D twice it will have to place it at the server position
+07:09 < bridge> <tsfreddie> our entropy is more input driven, again, do whatever you believe is the best
+07:09 < bridge> <totar> hmm
+07:09 < bridge> <tsfreddie> i really don't have any proof
+07:09 < bridge> <totar> well
+07:09 < bridge> <totar> neither do I
+07:09 < bridge> <totar> Idk what you mean by proof
+07:10 < bridge> <tsfreddie> like i can't proof the thing i did is mathematically closer to ground truth
+07:10 < bridge> <tsfreddie> than the way you are doing
+07:10 < bridge> <totar> that's not really important
+07:10 < bridge> <tsfreddie> i basically means ignores me if you don't believe that could work
+07:10 < bridge> <tsfreddie> :kek:
+07:11 < bridge> <totar> well idk
+07:11 < bridge> <tsfreddie> i could try to implement one after i'm done with this fucking fever
+07:12 < bridge> <tsfreddie> although tbh i probably won't lol
+07:12 < bridge> <totar> are you talking about a system that smooths movements between prediction positions or finding a more accurate prediction position?
+07:13 < bridge> <tsfreddie> oh the first. wait, does our prediction doesn't do gravity?
+07:13 < bridge> <tsfreddie> oh the first. wait, does our prediction not do gravity?
+07:13 < bridge> <totar> ?
+07:14 < bridge> <totar> the prediction is just the physics code, nothing about the prediction code itself knows what gravity is
+07:14 < bridge> <tsfreddie> ok let me rephrase, we are only doing smoothing and interp separately, because we assume without any influence and states are not changing the prediction is the truth because we can't fake reality.
+07:15 < bridge> <totar> you answered my question with a completely different question
+07:15 < bridge> <totar> oh
+07:15 < bridge> <totar> you said the first nvm
+07:15 < bridge> <tsfreddie> we are only doing smoothing and interp on separate axise
+07:15 < bridge> <tsfreddie> we are only doing smoothing and interp on separate axis
+07:15 < bridge> <totar> wdym smoothing and interp, aren't those the same thing?
+07:16 < bridge> <tsfreddie> smoothing or interp
+07:16 < bridge> <tsfreddie> jeez
+07:16 < bridge> <tsfreddie> english
+07:16 < bridge> <totar> I still don't understand lol
+07:16 < bridge> <tsfreddie> it's the same thing
+07:16 < bridge> <tsfreddie> yes
+07:16 < bridge> <totar> ok
+07:16 < bridge> <tsfreddie> we just call it both
+07:16 < bridge> <tsfreddie> :pepeW:
+07:16 < bridge> <totar> I thought you meant you have a seperate system for smoothing and interp
+07:17 < bridge> <totar> I thought you meant you seperate systems for smoothing and interp
+07:17 < bridge> <totar> I thought you meant you have separate systems for smoothing and interp
+07:17 < bridge> <tsfreddie> i am talking about a system that smooths movements between prediction where we only do (smoothing/interp) on separate axis, because we assume without any influence and states are not changing the prediction is the truth because we can't fake reality.
+07:18 < bridge> <tsfreddie> i am talking about a system that smooths movements between prediction where we only do (smoothing/interp) on separate axis, because we assume without any influence and states are not changing the prediction is the truth because we can't fake reality in our game
+07:18 < bridge> <totar> I'm faking reality then
+07:18 < bridge> <tsfreddie> understood, i go back and address my change requests then
+07:18 < bridge> <tsfreddie> <a:InsaneCat:1135575687172980866>
+07:18 < bridge> <totar> the positions I display are not guaranteed to physically possible
+07:19 < bridge> <totar> it can be in the wall
+07:19 < bridge> <totar> but that's rare
+07:21 < bridge> <tsfreddie> ~~also our game is the infamous "trust the client" way, where we just send the hook target and a position and verify in server that it indeed not too crazy and just allow it to work even though it is a bit out of the range~~
+07:22 < bridge> <totar> interesting
+07:22 < bridge> <tsfreddie> so we kinda focus more on looking right than actively trying to make hooking align with server physics, just a choice that we made
+07:22 < bridge> <tsfreddie> also cheaper on developer
+07:22 < bridge> <totar> what happens if tees do hammer fly
+07:22 < bridge> <tsfreddie> since i only had 3 months to make the whole game from zero base code
+07:23 < bridge> <totar> wouldn't that be weird with client authoritative positions
+07:23 < bridge> <tsfreddie> what hammer fly, we don't have that, we sell items that plays and animation of that and just move you up
+07:23 < bridge> <tsfreddie> it's a freaking mobile game
+07:23 < bridge> <totar> ok... xd
+07:23 < bridge> <tsfreddie> and i have 0 care for it
+07:24 < bridge> <totar> Idk how prediction can work in that scheme so I'm gonna stop talking about this
+07:24 < bridge> <tsfreddie> i can tell you how it can work
+07:24 < bridge> <tsfreddie> we don't care
+07:24 < bridge> <tsfreddie> our boss love jank
+07:24 < bridge> <tsfreddie> he thinks jank has streamer values
+07:25 < bridge> <tsfreddie> he make sure we don't fix random clipping and flying out of screen because physX decided to do so
+07:25 < bridge> <tsfreddie> ~~i still did anyway cuz there is no way level testers can work like that~~
+07:26 < bridge> <totar> physX???
+07:26 < bridge> <tsfreddie> unity
+07:26 < bridge> <tsfreddie> which is just physX
+07:26 < bridge> <totar> for spheres? :cat_tired:
+07:26 < bridge> <totar> for circles? :cat_tired:
+07:26 < bridge> <tsfreddie> oh, might be box2d then
+07:26 < bridge> <tsfreddie> wait let me think
+07:26 < bridge> <tsfreddie> did we actually use a sphere instead of circles
+07:27 < bridge> <tsfreddie> right 2d, whatever unity is using for 2d then
+07:27 < bridge> <totar> unity doesn't use physx by default afaik
+07:27 < bridge> <tsfreddie> might just be me working on 3d for the past two years so i just have physX PTSDed into my brain
+07:28 < bridge> <tsfreddie> maybe but i still remember they updated PhysX version in the middle of a LTS version and screwed us with new bugs
+07:28 < bridge> <totar> oh I guess unity does use PhysX for 3d
+07:30 < bridge> <tsfreddie> we had the thing where raycast will stop working entirely randomly and player just fall through the ground from beta to ***2 month after release*** until one day we updated our player collision model
+07:30 < bridge> <tsfreddie> we
+07:31 < bridge> <tsfreddie> we've known the bug before a month before release but they keep telling me to stop debugging it and just add more features so we can release it on time
+07:31 < bridge> <tsfreddie> and we did release it on time, with the bug fully unresolved, with 75% of the matchmaking cancelled because the bug
+07:32 < bridge> <tsfreddie> i should stop ranting or my fever might kill me
+07:32 < bridge> <tsfreddie> lol
+09:32 < ws-client> <ChillerDragon> @tsfreddie i was pretty sure about ddnet clamping and teeworlds dropping because I did check the code. But not 100% sure because I did not run and test the code.
+09:32 < bridge> <tsfreddie> that's exactly what i needed, thanks
+09:32 < ws-client> <ChillerDragon> https://github.com/ddnet/ddnet/blob/fc4482306006471d7bf84f055c081a59f8b66c5d/datasrc/compile.py#L155-L160
+09:33 < ws-client> <ChillerDragon> setting ``m_pObjFailedOn`` causes a fatal error and drops but the ClampInt only sets ``m_pObjCorrectedOn``
+09:34 < ws-client> <ChillerDragon> here u can see teeworlds setting the error https://github.com/teeworlds/teeworlds/blob/c56fa9e6a20cfc9d7d16502e18c7d7633acdf492/datasrc/compile.py#L185-L190
+09:35 < ws-client> <ChillerDragon> here the bottom of ddnets generated code of the function SecureUnpackObj https://zillyhuhn.com/cs/.1734510900.png
+09:36 < ws-client> <ChillerDragon> ``pUnpacker->Error()`` is only packer related stuff so wrongly packed varints or strings not looking at values being in the range only if ``m_pObjFailedOn`` is set the message is dropped
+09:38 < ws-client> <ChillerDragon> s/message/object/
+10:31 < bridge> <Jupstar ✪> so what do you want to tell me with that?
+10:31 < bridge> <Jupstar ✪> if you have any issue, just state the issue. rn you just try to build something up.
+10:34 < ws-client> <ChillerDragon> @robyt3 crazy you contributed more commits to ddnet in 3 years than i did to ddnet and ddnet++ in 8 years
+10:35 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1734514412.png
+10:37 < bridge> <Jupstar ✪> chiller are you a loc guy or commits guy?
+10:37 < bridge> <Jupstar ✪> or difficulty of problem guy xd
+10:37 < ws-client> <ChillerDragon> github removed loc
+10:37 < ws-client> <ChillerDragon> so only think that counts is commits now
+10:37 < bridge> <Jupstar ✪> they didnt remove it, it's gone bcs we have over 10000 commits
+10:38 < ws-client> <ChillerDragon> difficulty is hard to grind rank by
+10:38 < bridge> <Jupstar ✪> i guess they algo is simply too shitty xD
+10:38 < ws-client> <ChillerDragon> git gets slow with big numbers
+10:38 < bridge> <Jupstar ✪> you can host a local gitea instance
+10:38 < bridge> <Jupstar ✪> and have the latest data
+10:38 < ws-client> <ChillerDragon> i managed to 500 gitlab with the right commits making use of git under the hood getting really slow
+10:41 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1318875873944010752/image.png?ex=6763ea5f&is=676298df&hm=e25c754ff39db8d34eec18963facbbd6dd8d720caa306ccdec0adcd8d77264ff&
+10:41 < bridge> <Jupstar ✪> this is what i get
+10:42 < ws-client> <ChillerDragon> the algo is some crazy ass C code which i understood nothing about at least for gitlab idk what github does but i assume they also just launch git commands 
+10:42 < bridge> <Jupstar ✪> i guess it's missing the email mapping stuff
+10:42 < bridge> <Jupstar ✪> but generally it looks ok.
+10:42 < bridge> <Jupstar ✪> 
+10:42 < bridge> <Jupstar ✪> deen is in twice xD
+10:42 < ws-client> <ChillerDragon> average dummy player
+10:43 < bridge> <Jupstar ✪> oy is tom adams or what?
+10:43 < bridge> <Jupstar ✪> xD
+10:43 < ws-client> <ChillerDragon> leak
+10:43 < ws-client> <ChillerDragon> but yes he is
+10:44 < ws-client> <ChillerDragon> 7/10 germans in the top 10
+10:45 < ws-client> <ChillerDragon> ddnet development is still sponsored by giga liga live
+10:46 < bridge> <Jupstar ✪> i found teeworlds on chip.de "best free to play games"
+10:46 < bridge> <Jupstar ✪> somewhere top 17 or smth was teeworlds xD
+10:46 < ws-client> <ChillerDragon> well i through gamestar
+10:46 < ws-client> <ChillerDragon> actually not sure if any ddnet contributor other than hi leute fround it through giga
+10:47 < ws-client> <ChillerDragon> but chip and gamestar are also german gaming media interesting
+10:47 < ws-client> <ChillerDragon> im now curious about how everyone found out about the game
+10:48 < bridge> <milkeeycat> one of my friends told me about the game
+10:48 < bridge> <Jupstar ✪> i am interested how learath with 6 years already found the game
+10:50 < ws-client> <ChillerDragon> @Jupstar ✪ has to be tiktok
+12:00 < bridge> <Dreamless> Steam release
+12:19 < bridge> <0xdeen> Saw the Gentoo ebuild being added in 2008 I think
+12:30 < bridge> <inv41idu53rn4m3> Very recent for me but I had it recommended by a friend who saw the game on Steam
+12:38 < bridge> <Jupstar ✪> everytime i do ui work i just notice how much work robyte put into ddnet xd
+12:38 < bridge> <Jupstar ✪> 
+12:38 < bridge> <Jupstar ✪> it's just never ending work
+12:39 < bridge> <tsfreddie> :justatest: googled game you can play in ubuntu in 2009
+12:40 < bridge> <Jupstar ✪> 😂 and that was like the only result
+12:40 < bridge> <tsfreddie> ye
+12:41 < bridge> <tsfreddie> when it was 0.5 and i don't know how to translate it with bitmap fonts so i didn't actually play it, i just downloaded it and opened up a local sever and hooked around a bit and then closed it.
+12:41 < bridge> <tsfreddie> :justatest:
+12:42 < bridge> <inv41idu53rn4m3> I played Teeworlds for a few minutes a few years ago but it didn't run very well on my potato
+12:42 < bridge> <tsfreddie> <a:HUH:1178720004980605089> and yes, i did use linux when i was like 13 or 14
+12:43 < bridge> <kingmeysam> i want bind deep triple fly
+12:43 < bridge> <tsfreddie> not anymore
+12:43 < bridge> <inv41idu53rn4m3> And I couldn't use my Wacom tablet to aim so I got mad
+12:43 < bridge> <inv41idu53rn4m3> Same
+12:44 < bridge> <inv41idu53rn4m3> But I was a bit older than that when I first discovered TW
+12:44 < bridge> <tsfreddie> it's probably around the same time when i transitioned into using colemak layout and weird chinese input methods
+12:44 < bridge> <tsfreddie> couldn't do any of that after college cuz i was just tired of doing random tinkering with my setup and how i type lol
+12:45 < bridge> <inv41idu53rn4m3> I still can't use my Wacom tablet to aim but idk if that would be a good idea
+13:06 < bridge> <cyberfrighter> well i used linux when i was 4
+13:19 < bridge> <teero777> I saw it at a lan party xd
+13:24 < bridge> <learath2> I installed ubuntu and teeworlds was the only game that was in the package manager and worked
+13:58 < bridge> <Solly> :D
+14:20 < bridge> <meloƞ> Omg same!, my first PC was a Linux one and the game store only had teeworlds and this Mario tux penguin fake
+14:20 < bridge> <meloƞ> And teeworlds was the only multiplayer game that would function properly on Linux at that time
+14:21 < bridge> <tsfreddie> > Mario tux penguin fake
+14:21 < bridge> <tsfreddie> sounds fun
+14:21 < bridge> <meloƞ> It was!
+14:21 < bridge> <meloƞ> SuperTux was the name
+14:21 < bridge> <tsfreddie> googling
+14:22 < bridge> <patiga> tuxkart is also a banger
+14:22 < bridge> <tsfreddie> ok why does it have tees
+14:22 < bridge> <meloƞ> :monkaStop:
+14:22 < bridge> <tsfreddie> (
+14:22 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1318931493011193977/image.png?ex=67641e2c&is=6762ccac&hm=507f2e68fd8c8070d7fadf4cd18a57cade89fc34d47fb59a4c6317e10f869eee&
+14:23 < bridge> <_voxeldoesart> LOL
+14:23 < bridge> <meloƞ> Gumballs
+14:23 < bridge> <tsfreddie> idk why but the game looks actually linux-ish
+14:24 < bridge> <tsfreddie> ~~like terrible art by lots of metrics but looks very programmer coded~~
+14:26 < bridge> <tsfreddie> and this looks very dangerous
+14:26 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1318932349932797962/image.png?ex=67641ef8&is=6762cd78&hm=24ab71fad2e548794359f5ec6d206a2ae3cdef70171011f20bbe8d01212a9f4f&
+14:26 < bridge> <tsfreddie> :justatest:
+14:27 < bridge> <patiga> all your favorite oss mascots are in there :D
+14:27 < bridge> <learath2> Oh there was also OpenArena
+14:28 < bridge> <tsfreddie> and that's just a quake clone (as well as teeworlds i guess)
+14:28 < bridge> <learath2> As a big Quake III Arena enjoyer I loved OpenArena
+14:28 < bridge> <tsfreddie> og GAMERS
+14:29 < bridge> <patiga> the story mode also hase really whacky/fun cutscenes
+14:29 < bridge> <_voxeldoesart> whos that white one
+14:29 < bridge> <patiga> krita
+14:30 < bridge> <_voxeldoesart> ohhh
+14:30 < bridge> <tsfreddie> i couldn't even tell if you don't tell me
+14:30 < bridge> <tsfreddie> :justatest:
+14:30 < bridge> <patiga> i dunno the red one
+14:30 < bridge> <patiga> behind krita
+14:31 < bridge> <patiga> also dunno some of the others
+14:31 < bridge> <_voxeldoesart> dude this lineup is so funny
+14:31 < bridge> <_voxeldoesart> linux cinematic universe
+14:31 < bridge> <patiga> but some new maps actually have impreasive graphics
+14:31 < bridge> <Jupstar ✪> where is the tee?
+14:31 < bridge> <tsfreddie> some one pr tees in it, aren't we open source linux game too
+14:31 < bridge> <patiga> e.g. that one aquarium map
+14:32 < bridge> <patiga> maybe we could get a tee merged :D
+14:33 < bridge> <tsfreddie> i hoped it was not blender, and after googling that blender character, thankfully not
+14:33 < bridge> <patiga> huh what even is blenders mascot
+14:33 < bridge> <tsfreddie> i don't think they have one but they have animation shorts
+14:33 < bridge> <Jupstar ✪> biggest problem of super tux kart is.
+14:33 < bridge> <Jupstar ✪> It has super bad default controls on keyboard
+14:33 < bridge> <Jupstar ✪> it has super annoying music
+14:33 < bridge> <Jupstar ✪> it is simply not as fun as real mario kart, like not even the old games xD
+14:34 < bridge> <patiga> doesnt have one I suppose
+14:34 < bridge> <patiga> haven't played in a while, and I never really played mario kart ^^
+14:36 < bridge> <tsfreddie> i wanted to like dr.robotnik's ring racers, but it was so hard to get the control, maybe it's just too hardcore for me. seems like a common problem of kart racers
+14:36 < bridge> <learath2> Apparently the red girl is the mascot of the Pepper&Carrot project an open source webcomic
+14:37 < bridge> <tsfreddie> they butchered our girl
+14:37 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1318935218631213158/image.png?ex=676421a4&is=6762d024&hm=1666c2ebed4ae6afb87f150a5cc6b547fdccf37480c93303bd6bf499aae5761e&
+14:37 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1318935218974883860/image.png?ex=676421a4&is=6762d024&hm=8d740f22329e3e80b6c8adcf21cb0df6b806b44567248349ac3ff66cf987b05d&
+14:38 < bridge> <learath2> Left to right, Kiki (Krita), Pepper (Pepper&Carrot), Gnu, Tux, Sara (OpenGameArt), Adiumy (Adium), Hexley (Darwin)
+14:39 < bridge> <meloƞ> I should get a drawing tablet again
+14:39 < bridge> <meloƞ> I had a lot of fun but I just didn't get better so I race quitted
+14:39 < bridge> <meloƞ> I had a lot of fun but I just didn't get better so I ragequitted
+14:39 < bridge> <tsfreddie> i did have one and i didn't learn anything when i had it
+14:39 < bridge> <tsfreddie> :justatest:
+14:39 < bridge> <learath2> The red/pink in the eyes is making her look like a druggie
+14:39 < bridge> <tsfreddie> stop hobby creeping
+14:39 < bridge> <meloƞ> :justatest:
+14:40 < bridge> <Jupstar ✪> @gerdoe what do you say, isn't she one for you?
+14:41 < bridge> <learath2> Quit your job, draw fulltime until you get better
+14:59 < bridge> <cyberfrighter> :justatest:
+15:05 < bridge> <Assa> What is your opinion about a new tuning allowing for wind in ddnet?
+15:05 < bridge> <Assa> so a tuning, which constantly pushes you right or left
+15:07 < bridge> <Assa> basically the same as gravity, but in x direction
+15:07 < bridge> <Jupstar ✪> so basically speedups
+15:08 < bridge> <Assa> yes but without bugs and you don't need to paint it over everything
+15:09 < bridge> <Jupstar ✪> IMO it would be only cool if it has some proper logic and not a tune zone.
+15:09 < bridge> <Jupstar ✪> 
+15:09 < bridge> <Jupstar ✪> e.g. wind every 10 seconds or similar.
+15:09 < bridge> <Jupstar ✪> 
+15:10 < bridge> <Jupstar ✪> I dunno if you know these super mario games where there is wind
+15:10 < bridge> <Assa> I know exactly what you mean
+15:10 < bridge> <Assa> like "swooshing" from left to right
+15:10 < bridge> <Jupstar ✪> yeah 😄
+15:12 < bridge> <Assa> hmm is there any other physics related stuff linked to envelops?
+15:12 < bridge> <Jupstar ✪> afaik sadly no
+15:14 < bridge> <Assa> tune_envelope <command> <envelope_id>
+15:14 < bridge> <Assa> tune_zone_envelope <zone> <command> <envlope_id>
+15:14 < bridge> <Assa> 
+15:14 < bridge> <Assa> commands: gravity, wind, ...
+15:14 < bridge> <Assa> hmm could be a cool idea
+15:15 < bridge> <Assa> and the timing in envelops can already be synced
+15:16 < bridge> <Assa> I already hear the voices, "what about backwards compatability, what about prediction ... "
+15:17 < bridge> <learath2> backwards compatibility you can probably get away with, but I doubt you can ship a feature predictionless in 2024
+15:18 < bridge> <Jupstar ✪> xd
+15:18 < bridge> <Jupstar ✪> i already hear the voices: "dd-pg would solve these issues"
+15:18 < bridge> <Assa> dd-pg? does pg stand for patiga?
+15:19 < bridge> <Jupstar ✪> yes
+15:19 < bridge> <Jupstar ✪> ddnet-@patiga
+15:19 < bridge> <Jupstar ✪> well it's just a random bad name, but the pg stands for playground
+15:19 < bridge> <Jupstar ✪> bcs the idea first was to play around with breaking random stuff
+15:19 < bridge> <Assa> I already believe in our great lord and savior @patiga
+15:19 < bridge> <Jupstar ✪> until it become a full rewrite
+15:20 < bridge> <Assa> I wrote to heinrich already, all features I am missing are breaking something existing
+15:23 < bridge> <Jupstar ✪> yeah sadly we also lack tests etc. my monthly _please contribute to twgame to change it_ is done with that too.
+15:23 < bridge> <Jupstar ✪> tests for the ddnet mod makes sense to allow easier additions for other physics.
+15:23 < bridge> <Jupstar ✪> 
+15:23 < bridge> <Jupstar ✪> the question is whether ddnet should hosts some kind of alternate physics seasons.
+15:23 < bridge> <Jupstar ✪> keep the whole ddnet as is,
+15:23 < bridge> <Jupstar ✪> and but allow different physics in a separate game mode with other maps etc.
+15:23 < bridge> <Jupstar ✪> 
+15:23 < bridge> <Jupstar ✪> or if it should be simply completely new servers unrelated to ddnet
+15:25 < bridge> <learath2> Is there ever a reason to "break" old physics while adding new stuff?
+15:26 < bridge> <learath2> Most of the things we really want to break are just badly coded legacy stuff that should realistically be fixed once
+15:26 < bridge> <Assa> ^this
+15:26 < bridge> <Assa> also, these things would mostly break with teeworlds, not ddnet necessarily
+15:27 < bridge> <Jupstar ✪> do you have any example?
+15:27 < bridge> <Jupstar ✪> then we wouldn't need to talk so theoretically
+15:27 < bridge> <Assa> I have an example for both cases:
+15:27 < bridge> <learath2> The skipping behaviours I would unify, the stoppers I'd also remove all the edgecases from, you shouldn't be able to get into a stopper ever
+15:27 < bridge> <Assa> The Post-Tick-Tile-Hit calculations, which I already made a workaround PR. This is 20 years old legacy code which is just "wrong"
+15:27 < bridge> <tsfreddie> <a:HUH:1178720004980605089> imagine pulling a cs2
+15:30 < bridge> <Assa> The materials layer, in the end, break on two-material interactions. Standing with one leg on ice and with another on sand can have some interesting physics, but this breaks prediction of older clients, even if emulated with tunings
+15:31 < bridge> <Assa> A lot of stuff, that is calculated in a tick, should be actually put into a subtick, you can skip tune zones by being too fast, because your tick ends on the ground or after the tune zone
+15:31 < bridge> <Jupstar ✪> yes is defs cool if done properly
+15:32 < bridge> <Jupstar ✪> i mean we should not forget that the ddnet 2.0 hype was pretty real
+15:33 < bridge> <Jupstar ✪> it's always a question of how much you break physics.
+15:33 < bridge> <Jupstar ✪> 
+15:33 < bridge> <Jupstar ✪> e.g. what learath said, that stoppers will behave different (better) would maybe break current maps, but would defs not break the game
+15:34 < bridge> <Jupstar ✪> the core physics + the freeze physics of ddnet are basically unchangeable
+15:34 < bridge> <Jupstar ✪> 
+15:34 < bridge> <Jupstar ✪> that already includes most interesting gameplay
+15:34 < bridge> <Jupstar ✪> 
+15:34 < bridge> <Jupstar ✪> xd
+15:34 < bridge> <meloƞ> I would if I could
+15:34 < bridge> <meloƞ> Had to clean CNC for 8 hours, and It might take another 8 tomorrow
+15:34 < bridge> <meloƞ> :monkaStop:
+15:35 < bridge> <Assa> yet another thing I'd change: edgejumps are also tick dependend, but not subtick, this should be a well though of mechanik, currently it's a "side-effect" or bug
+15:35 < bridge> <meloƞ> Discussions about changing behaviour of these things usually get closed down pretty quickly :cat_woah:
+15:35 < bridge> <Assa> yet other things i can think of: slopes, rounded corners, other shapes of hitbox
+15:36 < bridge> <Assa> ^this would break everything
+15:37 < bridge> <Assa> also Patiga implemented water at some point, with harpoons and floating projectiles, bending lasers and stuff
+15:37 < bridge> <Jupstar ✪> oh that was patiga?
+15:37 < bridge> <Jupstar ✪> didnt know
+15:38 < bridge> <Assa> no, looked it up, it was Stiopa
+15:38 < bridge> <Jupstar ✪> i wish rendering wouldn't be so unsafe
+15:39 < bridge> <Jupstar ✪> else i'd also allow the server to host rendering modules
+15:39 < bridge> <Assa> That's at least an interesting read: <https://github.com/teeworlds/teeworlds/pull/2950>
+15:42 < bridge> <woidless> And what's the point of a pointer if the link can immediately take the address as a variable, and I can change the value of the variable directly through the link
+15:43 < bridge> <tsfreddie> i also found out we have dyncam settings when dyncam was off which is kinda weird
+15:44 < bridge> <Jupstar ✪> and i even use them xD
+15:44 < bridge> <Jupstar ✪> it's the legacy variables
+15:44 < bridge> <tsfreddie> they also have different bounds and different naming scheme
+15:44 < bridge> <tsfreddie> :justatest:
+15:45 < bridge> <milkeeycat> he's probably talking about reference
+15:45 < bridge> <tsfreddie> for the same settings for dyncam when dyncam is off oof
+15:46 < bridge> <Jupstar ✪> tja
+15:46 < bridge> <Assa> you often don't want to copy an object, as this can be very expensive and maybe want to have multiple pointers to the same object, also proper deletion, also take a look at smart pointers
+15:46 < bridge> <Jupstar ✪> 屑
+15:47 < bridge> <tsfreddie> ~~i wouldn't mind if we just start to collect things to adjust before new features and just start working on 2.0 in a branch or something at some point :greenthing: ~~
+15:47 < bridge> <tsfreddie> now that im unemployed
+15:47 < bridge> <Assa> you often don't want to copy an object, as this can be very expensive and maybe want to have multiple pointers to the same object, also proper deletion, also take a look at smart pointers, dynamic_cast, reinterprete_cast, ...
+15:48 < bridge> <tsfreddie> i also just learned that reinterprete_cast is mostly ub :justatest:
+15:50 < bridge> <learath2> Don't you teach? Order the students to clean the machine
+15:51 < bridge> <Assa> me who worked with `void*` ... :justatest:
+15:51 < bridge> <tsfreddie> which is kinda weird but i do wonder if it is just a non protable thing or is it truly a that compiler might just decides to stop giving you the representation
+15:51 < bridge> <learath2> Webgpu but for ddnet
+15:51 < bridge> <learath2> Yeah it's almost always ub
+15:52 < bridge> <tsfreddie> like i can accept it is ub because different machine behave differently. not nessaserily a compiler thing that might just do random conversions
+15:52 < bridge> <milkeeycat> he's probably talking about references
+15:53 < bridge> <inv41idu53rn4m3> I think it's just a machine thing
+15:53 < bridge> <tsfreddie> which is also why i kinda feel like the youtube videos that just tells you never c style cast because it is ub is misleading a bit
+15:53 < bridge> <tsfreddie> ive seen one last night that just says it is ub but not giving any more explanations
+15:54 < bridge> <Assa> but is it defined in the compiler standard? If all compilers you are working with define this, it may be ub by the language, but not in practice
+15:55 < bridge> <patiga> I'm officially CEO of dd-pg now 😎
+15:56 < bridge> <learath2> I don't think any compilers try to tame reinterpret cast
+15:56 < bridge> <tsfreddie> i think it is defined by c++ as ub with a few exception (which are basically just recasting them back or to a similar representation, which screams portablility)
+15:56 < bridge> <learath2> We have bit_cast that has better semantics for most things
+15:57 < bridge> <Assa> I have so bad experiences with bit_cast, with little/big endian
+15:58 < bridge> <tsfreddie> mass layoff time
+15:58 < bridge> <tsfreddie> its the hot trend
+15:58 < bridge> <tsfreddie> every CEO and their mothers are doing it
+15:58 < bridge> <meloƞ> I need to mostly clean with the machine running
+15:58 < bridge> <meloƞ> 
+15:58 < bridge> <meloƞ> Can't have a student be crushed by a spindle
+15:59 < bridge> <learath2> I don't see the issue. The next stusent can clean up the crushed one
+15:59 < bridge> <learath2> I don't see the issue. The next student can clean up the crushed one
+15:59 < bridge> <tsfreddie> what's a spindle
+16:00 < bridge> <tsfreddie> also why does it sound like it has happened before
+16:01 < bridge> <meloƞ> Lmao
+16:01 < bridge> <meloƞ> Not at my firm but yes it happened
+16:03 < bridge> <tsfreddie> i think almost every cautionary step is build upon experience
+16:03 < bridge> <Assa> Murphys Law is strong with this one
+16:06 < bridge> <tsfreddie> guangzhou metro has this, and ive heard they switch to a screen that loops the warning because it is too long to fit on a sticker now
+16:06 < bridge> <tsfreddie> https://cdn.discordapp.com/attachments/293493549758939136/1318957593892487259/2fe85694096d440fa1cf9090d8b2ed9b.jpg?ex=6764367b&is=6762e4fb&hm=5c7f360cfd21cf9066e93de566de840f6dccc90ab6b850328edd5bc80304d85a&
+16:08 < bridge> <learath2> Spindle is the rotatey piece
+16:08 < bridge> <tsfreddie> let me guess, a spinning handle
+16:10 < bridge> <learath2> Mh, you don't hold it though. It holds either your tool (in a cnc machine, or a mill or a drill) or it holds your work piece (in a lathe)
+16:10 < bridge> <learath2> https://tenor.com/view/accident-workplace-workplace-accident-gif-13655676427118804708
+16:11 < bridge> <learath2> Here is what happens if you let students do it
+16:11 < bridge> <Assa> this is unrealistic, not gorey enough 💀
+16:14 < bridge> <learath2> Actually technically spindle is what you attach the chuck to which does the holding, but whatever
+16:29 < bridge> <meloƞ> I had a student wear gloves at a lathe
+16:29 < bridge> <meloƞ> First time I screamed at someone
+16:33 < bridge> <meloƞ> First time I screamed at someone - like properly
+16:33 < bridge> <meloƞ> 
+16:33 < bridge> <meloƞ> if a glove gets caught in a lathe, you're lucky if you only loose your hand
+16:38 < bridge> <learath2> Yeah no gloves with rotary tools
+16:41 < bridge> <learath2> It's very counterintuitive
+17:19 < bridge> <ryozuki> screamed in german right?
+17:19 < bridge> <ryozuki> :justatest:
+17:19 < bridge> <ryozuki> im sorry i can only imagine it one way kek
+17:19 < bridge> <ryozuki> :justatest: im down bad
+17:20 < bridge> <_voxeldoesart> german scream + balkan sitting + still water
+17:20 < bridge> <ryozuki> today i woke up at 5 am
+17:20 < bridge> <meloƞ> ```
+17:20 < bridge> <meloƞ> SAG MAL WILLSTE DIR EIGENSTÄNDIG DIE HAND ABHACKEN DU IDIOT?, SEIT ZWEI JAHREN HASTE NE DRECKS SICHERHEITSUNTERWEISUNG, UNTERSCHREIBST DEN ZETTEL DA UND MACHST DEN SCHEIß TROTZDEM
+17:20 < bridge> <meloƞ> GEH NACH HAUSE WENN DU DICH NICHT KONZENTRIEREN KANNST, DER SCHEIß BRINGT DICH UM
+17:20 < bridge> <meloƞ> ```
+17:20 < bridge> <meloƞ> have fun translating
+17:20 < bridge> <ryozuki> got a 14h flight in  like 9h
+17:20 < bridge> <ryozuki> and my body said, wake up now, u gotta be nervous for no reason
+17:21 < bridge> <ryozuki> wen discord builtin chatgpt translator
+17:21 < bridge> <_voxeldoesart> $deepl
+17:21 < bridge> <ryozuki> ok joking but a builtin translator would be nice
+17:21 < bridge> <DDNet> Hi! Most of us communicate in English. If you’re having trouble with English, use <https://www.deepl.com/en/translator> to help you out.
+17:21 < bridge> <lacetik555> перекиньте пж дднет
+17:22 < bridge> <meloƞ> i would if i could.. i would if i could...
+17:22 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1318976655456342176/image.png?ex=6764483c&is=6762f6bc&hm=df28a620307afba4cdfbcc18afa9f9cb8a04f4ffb204428f663795a43ecaa213&
+17:32 < bridge> <Assa> and then there is my work, where I am not even allowed to manually switch defect hardware, while doing the same at home. Beware of using a ladder, it might kill you
+17:34 < bridge> <meloƞ> screams like DIN VDE 0105-100 to me
+17:34 < bridge> <Jupstar ✪> melon is such a german guy
+17:35 < bridge> <Jupstar ✪> DIN-ignore
+17:35 < bridge> <meloƞ> :nouis:
+17:35 < bridge> <zhn> is this huion's tablets mascot?
+17:35 < bridge> <Assa> go visit r/dingore, it's amazing
+17:35 < bridge> <zhn> deengore
+17:36 < bridge> <Jupstar ✪> deen in gores
+17:36 < bridge> <zhn> deenin in gores
+17:37 < bridge> <teero777> impossible
+17:37 < bridge> <teero777> i have seen deen ingame twice
+17:37 < bridge> <teero777> and both times it was someone on a novice server pretending to be him
+17:38 < bridge> <Jupstar ✪> teero took that personal
+17:38 < bridge> <meloƞ> i've seen him play in 2016, he played a dummy map and failed miserabely
+17:38 < bridge> <meloƞ> 💥
+17:39 < bridge> <learath2> 14h flights are good to sleep on atleast
+17:39 < bridge> <Assa> don't forget your noise cancelling headphones
+17:41 < bridge> <learath2> Greatest investment I ever made
+17:41 < bridge> <learath2> My Sonys make flying 100% more enjoyable
+17:44 < bridge> <milkeeycat> > Each field of an object is classified recursively so that always two fields 18 are con-
+17:44 < bridge> <milkeeycat> > sidered. The resulting class is calculated according to the classes of the fields in the
+17:44 < bridge> <milkeeycat> > eightbyte:
+17:44 < bridge> <milkeeycat> > (a) If both classes are equal, this is the resulting class.
+17:44 < bridge> <milkeeycat> > (b) If one of the classes is NO_CLASS, the resulting class is the other class.
+17:44 < bridge> <milkeeycat> > (c) If one of the classes is MEMORY, the result is the MEMORY class.
+17:44 < bridge> <milkeeycat> > (d) If one of the classes is INTEGER, the result is the INTEGER.
+17:44 < bridge> <milkeeycat> > (e) If one of the classes is X87, X87UP, COMPLEX_X87 class, MEMORY is used as class.
+17:44 < bridge> <milkeeycat> > (f) Otherwise class SSE is used.
+17:44 < bridge> <milkeeycat> https://raw.githubusercontent.com/wiki/hjl-tools/x86-psABI/x86-64-psABI-1.0.pdf page 21
+17:44 < bridge> <milkeeycat> 
+17:44 < bridge> <milkeeycat> @learath2 can one eightbyte have three different classes?
+17:48 < bridge> <learath2> Not really. You go two by two, you coalesce into one class
+17:49 < bridge> <milkeeycat> I mean three fields of different classes which fit into one eightbyte
+17:54 < bridge> <learath2> You go recursively. Initially the eightbyte has no class, then you analyze the first fields class, after you determine that, you use the rules you wrote above to reduce to one class. Then repeat
+17:55 < bridge> <milkeeycat> Ah ok
+17:56 < bridge> <milkeeycat> I read
+17:56 < bridge> <milkeeycat> > The resulting class is calculated according to the classes of the fields in the eightbyte
+17:56 < bridge> <milkeeycat> and was confused :\
+18:04 < bridge> <woidless> https://cdn.discordapp.com/attachments/293493549758939136/1318987319172403310/IMG_20241218_220415_713.jpg?ex=6764522a&is=676300aa&hm=7ba5dd8261725d096807709042005c9b27566be5d4166e795000d8bc9275fb13&
+18:04 < bridge> <woidless> Who knows what to do
+18:07 < bridge> <inv41idu53rn4m3> fix your `ssh_config` file
+18:07 < bridge> <inv41idu53rn4m3> Obviously depends on how you broke it in the first place
+18:08 < bridge> <woidless> Well, how do I open it in Mobaxterm
+18:15 < bridge> <meloƞ> `sudoedit /etc/ssh_config` will open the default editor on your remote, which most likely will be nano or vim
+18:34 < bridge> <inv41idu53rn4m3> ssh_config, not sshd_config, so this is for the client configuration
+18:34 < bridge> <inv41idu53rn4m3> unless the names are different based on distribution idk
+18:36 < bridge> <meloƞ> i took the filepath off the screenshot sent ^^
+18:37 < bridge> <tsfreddie> kitra
+18:37 < bridge> <inv41idu53rn4m3> yes, I'm saying that the configuration problem is local, not on the remote
+18:38 < bridge> <tsfreddie> 🎂
+19:05 < ws-client> <ChillerDragon> freddie birthday reveal?
+19:06 < bridge> <Jupstar ✪> happy birthday
+19:06 < bridge> <Jupstar ✪> i'd not celebrate getting older, but everyone as they like
+19:09 < ws-client> <ChillerDragon> @Jupstar ✪ how deep are you in german youtube?
+19:09 < bridge> <Jupstar ✪> german not so much, at least not recent years
+19:09 < bridge> <Jupstar ✪> but just ask your question
+19:09 < bridge> <Jupstar ✪> or whatever u want tos ay
+19:09 < bridge> <Jupstar ✪> or whatever u want to say
+19:10 < ws-client> <ChillerDragon> omg impatient lemme do epic buildup
+19:10 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1734545403.png
+19:10 < ws-client> <ChillerDragon> you know him?
+19:10 < bridge> <Jupstar ✪> yeah
+19:10 < bridge> <Jupstar ✪> xD
+19:10 < bridge> <Jupstar ✪> but not wuzzup
+19:10 < bridge> <Jupstar ✪> only that guy
+19:10 < ws-client> <ChillerDragon> i met him irl
+19:10 < ws-client> <ChillerDragon> but not the point
+19:11 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1734545451.png
+19:11 < ws-client> <ChillerDragon> him?
+19:11 < ws-client> <ChillerDragon> ok tbh that one is a bit random but i actually watched that like decades ago https://zillyhuhn.com/cs/.1734545485.png
+19:12 < bridge> <Jupstar ✪> yes
+19:12 < bridge> <Jupstar ✪> i know both xD
+19:12 < ws-client> <ChillerDragon> pro
+19:12 < ws-client> <ChillerDragon> but did you know all 3 are teeworlds gamers?
+19:12 < ws-client> <ChillerDragon> https://www.youtube.com/watch?v=DZTWRf_KpKo
+19:12 < bridge> <Jupstar ✪> yeah wow, 11 years ago
+19:13 < bridge> <Jupstar ✪> that is also basically when i knew them
+19:14 < bridge> <Jupstar ✪> how did u find that video btw
+19:14 < bridge> <Jupstar ✪> it has pretty few views
+19:15 < bridge> <Jupstar ✪> was it before they were fame? XD
+19:16 < bridge> <Jupstar ✪> so where did you meet mrtrashpack
+19:16 < bridge> <Jupstar ✪> in your holidays?
+19:16 < bridge> <Jupstar ✪> is he chillin on the same beach
+19:16 < ws-client> <ChillerDragon> he was in munich
+19:16 < bridge> <ryozuki> :poggers2:
+19:16 < ws-client> <ChillerDragon> back when he was relevant
+19:16 < bridge> <ryozuki> idk who they are but pog
+19:17 < ws-client> <ChillerDragon> @Jupstar ✪ its 2am for me rn i am so confused
+19:17 < ws-client> <ChillerDragon> i have no idea how i found that video
+19:17 < ws-client> <ChillerDragon> so i checked my browsing history..
+19:17 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1734545773.png
+19:17 < bridge> <Jupstar ✪> considering teeworlds had so many famous players it's impressive that it was never as fame as ddnet is today
+19:18 < ws-client> <ChillerDragon> i was atching some amv and then searched for "applewarpictures teeworlds" thats how you find it <:greenthing:623706333677617203>
+19:18 < ws-client> <ChillerDragon> wtf just happend?
+19:19 < bridge> <Jupstar ✪> ?
+19:19 < ws-client> <ChillerDragon> what made me search that?
+19:20 < ws-client> <ChillerDragon> @Jupstar ✪ yea teeworlds actually had a lot of exposure but its mostly shallow and casual
+19:20 < ws-client> <ChillerDragon> the game really shines when you go tryhard and that stuff was never really shown to the public
+19:21 < bridge> <ryozuki> @jupeyy_keks look at this https://github.com/MicrosoftDocs/WSL/pull/2021#issuecomment-2546627586
+19:21 < bridge> <ryozuki> > Thanks for the contribution here and appreciate your attention to detail. We have decided to keep as-is.. part of that decision is that more and more folks are using AI chat to access guidance and tables don't always translate well in that context.
+19:22 < bridge> <ryozuki> image (yes heinrich a image)
+19:22 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1319006933159641139/image.png?ex=6764646e&is=676312ee&hm=82e4e696494108a07358c90c0eff479243f88fefc9f8c0fa98a8b11b9ae830b2&
+19:23 < ws-client> <ChillerDragon> LLMs are the new internte search
+19:23 < ws-client> <ChillerDragon> so LLM friendly is the new SEO
+19:24 < ws-client> <ChillerDragon> @ryozuki windows user confirmed browsing WSL repo
+19:24 < bridge> <ryozuki> xd
+19:24 < bridge> <Jupstar ✪> ??!?
+19:24 < bridge> <Jupstar ✪> i don't understand
+19:24 < bridge> <Ewan> 1:531 is crazy
+19:24 < bridge> <ryozuki> i dont use winshit
+19:24 < bridge> <Ewan> i’ve never seen such a ratio pn github
+19:24 < bridge> <Ewan> i’ve never seen such a ratio on github
+19:25 < bridge> <ryozuki> my company SSO denies windows btw
+19:25 < bridge> <ryozuki> xd
+19:25 < bridge> <Ewan> Based
+19:25 < bridge> <ryozuki> indeed
+19:26 < bridge> <ryozuki> https://wiki.alopex.li/SurveyOfSystemLanguages2024
+19:26 < bridge> <Jupstar ✪> chatgpt is better in tables than me 😂
+19:26 < bridge> <Ewan> i have never heard of jai before
+19:27 < bridge> <Ewan> Jonathan blow is a legend tho
+19:27 < bridge> <Ewan> C++: nah
+19:28 < bridge> <ryozuki> https://readyset.io/blog/bounds-checks
+19:29 < bridge> <Jupstar ✪> i swear the new nvidia driver webpage is also the worst shit ever
+19:29 < bridge> <Jupstar ✪> https://www.nvidia.com/en-us/drivers/
+19:29 < bridge> <Jupstar ✪> select a driver for gtx 1060
+19:29 < bridge> <Jupstar ✪> and don't go mad
+19:30 < ws-client> <ChillerDragon> nvidia lost me at the cookie popup
+19:30 < bridge> <ryozuki> > Jai stands out from the pack by kinda being significant before it was cool, mainly because it is the pet project of game dev Jonathan Blow. Apparently he made Braid and The Witness, made a shitload of money in 2016 at the peak of the indie game renaissance, and proceeded to spend the next eight years dicking around with programming language development. I could try to criticize that, but it would only be out of jealousy ’cause he’s basically 
+19:30 < bridge> <ryozuki> so true
+19:30 < bridge> <ryozuki> thats my dream
+19:30 < bridge> <ryozuki> get rich to do more programming in stuff that doesnt matter
+19:30 < bridge> <Jupstar ✪> i swear, how can a driver lookup not be done in under 1 second
+19:31 < bridge> <Jupstar ✪> silicon valley
+19:31 < bridge> <Jupstar ✪> only AIs developing there at this point
+20:01 < bridge> <aegisub> so I should start using more tables huh
+20:23 < bridge> <ryozuki> Temporal safety: 10/10 – This is the real good shit, here. This is what the borrow checker gets you. You know what, forget about preventing use-after-free or any of that basic shit; none of the other languages in this list even come remotely close to Rust’s ability to save you from fucking up multithreading. In safe Rust, you simply can’t access multithreaded data without some sort of mutex or other synchronization; it’s a compile-time erro
+20:23 < bridge> <ryozuki> https://ciechanow.ski/moon/
+20:28 < bridge> <Solly> Lmao it's like such a small change
+20:46 < bridge> <jxsl13> when humans become second rate citizens
+20:47 < bridge> <Jupstar ✪> i am team AI
+20:48 < bridge> <Jupstar ✪> but not the ones we have today xd
+20:50 < bridge> <Jupstar ✪> first thing i'll ask an AGI is, which programming language invented by humans is the best
+20:51 < bridge> <ryozuki> why ask wen answer is rust
+20:52 < bridge> <Jupstar ✪> deep in our hearts, we know.. true 😏
+21:26 < bridge> <zhn> ah krita
