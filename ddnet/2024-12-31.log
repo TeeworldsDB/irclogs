@@ -1,0 +1,784 @@
+08:07 < bridge> <chillerdragon> @kollpotato: is your code already published?
+09:25 < bridge> <louis> why does the zoom level change when spectating someone?
+09:41 < bridge> <_voxeldoesart> are They zooming in and out?
+09:45 < bridge> <louis> does spectating someone clone their zoom?
+09:47 < bridge> <milkeeycat> I just spectated my dummy and it didn't zoom in, so probably ye
+10:37 < bridge> <cellegenrih> wait a minute, I didn't know Quads are used with fragment shaders
+10:41 < bridge> <inv41idu53rn4m3> You gotta shade your fragments!
+10:42 < bridge> <inv41idu53rn4m3> Ohhh, embedding shaders in maps seems like a gloriously bad idea
+10:50 < bridge> <louis> the new spectate zoom stuff is buggy, if i spectate myself i suddenly switch to a different zoom when i unspectate which makes no sense
+10:55 < bridge> <cellegenrih> I never considered, that maybe this is why quads are more costly to use than tiles
+10:56 < bridge> <cellegenrih> aren't there any better ways to transform a texture's 4 end points or rather use polygon shapes to visualize a texture without relying on the GPU to do it? xd
+10:58 < bridge> <totar> All drawing is done on the gpu
+10:59 < bridge> <totar> You can't draw textures without some kind of fragment shader
+11:00 < bridge> <cellegenrih> i didn't think someone would say the most obvious shit ever
+11:01 < bridge> <cellegenrih> what I wanted to point out originally, is that this fragment shader used for all of the Quads are determining the entirety of the transform, which should be done on the CPU anyway, letting the GPU process that shit as well
+11:02 < bridge> <cellegenrih> meaning, the more quads you flood into the GPU, the worse performance you get: exponentially. meaning the performance decrease will be multiplicative.
+11:02 < bridge> <cellegenrih> or rather, once the GPU hits a limit on how much it can handle at once, it can drop the game below 60 fps or straight up slow down everything else, only to be able to draw those quads
+11:04 < bridge> <cellegenrih> I thought the end points of a Quad is calculated on the CPU, so that information can be cached and THEN fed into the GPU's memory when it needs it the most
+11:05 < bridge> <syrinok> I agree, if you manually zoom out while watching someone, it should keep the zoom level between, it's a bit awkward / clunky having 2 different zoom states @tsfreddie
+11:06 < bridge> <totar> which shader are you talking about
+11:06 < bridge> <syrinok> And ya, it's a cool new feature, you get to see exactly what people are looking at, as long as they have the latest-ish version
+11:06 < bridge> <cellegenrih> fragment shader, which is used by every quad
+11:06 < bridge> <totar> which one
+11:07 < bridge> <totar> link it
+11:07 < bridge> <cellegenrih> I literally wrote "quad" inside the repo and found both the fragment shader and vertex shader code, which builds up to the Quads we use in the program.
+11:07 < bridge> <cellegenrih> I don't think I need you a guide on how to find it, do I?
+11:08 < bridge> <totar> there is no transformation happening in the "quad" shader
+11:08 < bridge> <totar> https://github.com/ddnet/ddnet/blob/master/data/shader/quad.frag
+11:08 < bridge> <cellegenrih> but since someone is not that familiar with it's own ripo, it's inside data/shaders
+11:08 < bridge> <cellegenrih> you're welcome
+11:09 < bridge> <totar> doing a texture fetch at all which is required to draw the texture is likely ~100x more expensive than moving the quad points
+11:09 < bridge> <totar> but it does not do that
+11:09 < bridge> <cellegenrih> even if it does it every single frame?
+11:10 < bridge> <totar> but it does not do that anyway
+11:10 < bridge> <cellegenrih> even if it has like hundreds of them at the same time?
+11:10 < bridge> <totar> they all need texture fetches as well
+11:10 < bridge> <totar> also where are you talking about
+11:10 < bridge> <cellegenrih> only when it requires it, not whenever a new frame is up
+11:10 < bridge> <totar> there is no transformation happening in the fragment shader
+11:11 < bridge> <cellegenrih> I just don't understand how this approach is faster, while it's exponentially slower with larger uses
+11:11 < bridge> <totar> the vertex shader is only run once per perfect which makes it about 10,000x cheaper than the fragment shader
+11:11 < bridge> <totar> the vertex shader is only run once per vertex which makes it about 10,000x cheaper than the fragment shader
+11:12 < bridge> <cellegenrih> and I'm talking about the fragment shader, getting transform positions to align colors based on that value, which I think it's not cached
+11:13 < bridge> <cellegenrih> regardless of this uninteresting fact, Quads are just way worse at maintaining it's performance or even exceeding a simple tile's or entity's performance in a visual test
+11:14 < bridge> <totar> that's because tiles use a special render mode, you cannot use that for quads
+11:14 < bridge> <cellegenrih> I don't wanna implement a faulty Quad system into my own map editor when I see that it performs worse, than it should be
+11:14 < bridge> <eidderFsT> zoom now sync to server which also makes it harder to decide what zoom is being sent, what zoom is being used, what zoom is being sent to client for other people. they can all be different values. For example, if you spectable, and zoom out. what other people spectating you sees? If someone give me a exhaustive list of zoom behaviour across {LOCAL_ZOOM, SERVER_ZOOM, SERVER_ZOOM_SENT_TO_OTHERS} * {FREE_VIEW, SPECTATING_OTHERS, PLAYING, SPECTATING_
+11:15 < bridge> <eidderFsT> for now if you just manually zoom out while spectating to the same level when you are playing. it will stay like that
+11:15 < bridge> <syrinok> I'm not nerd enough for that, I can only give you feedback :happy:
+11:15 < bridge> <totar> I don't care about the zoom level of the tee I'm spectating it should just be the client's zoom
+11:15 < bridge> <cellegenrih> Also, as long as at least 500 quads using HD textures can achieve a limit of 1/60th of a second performance, I'm more than happy to use any approach that is below this requirement
+11:15 < bridge> <teero777> @totar gm I slept like ass
+11:16 < bridge> <totar> gm
+11:16 < bridge> <eidderFsT> the auto spec cam is to make sure the cursor don't just fly out and matches dyncam. we can remove that and just allow cursors to be out of screen for zoomed players
+11:16 < bridge> <eidderFsT> you can turn it off just by zooming
+11:16 < bridge> <syrinok> I personally disagree, it's good information, you can tell if someone is doing something wrong easier based on the things they can see
+11:17 < bridge> <teero777> @totar did you fix your blend mode?
+11:17 < bridge> <totar> no I gave up
+11:17 < bridge> <cellegenrih> In my own map editor, the only way I can achieve this is if I don't transform each individual end point of a mesh, but rather use a 2d rectangle shape to define a Quad and then manipulating the UV only, which in my case can be achieved without making a fragment shader
+11:17 < bridge> <totar> the blend mode is not the hard part
+11:17 < bridge> <louis> ᶜˡᶦᵉⁿᵗ ˢᵉᵗᵗᶦⁿᵍ ᵗᵒᵍᵍˡᵉˀ
+11:17 < bridge> <louis> i'd prefer not to see people's terrible default zooms
+11:17 < bridge> <syrinok> I just don't like how you have to manage 2 different zoom levels in the process, rather than just having an auto feature when you reset
+11:17 < bridge> <eidderFsT> I can make spec zoom use client zoom automatically if auto cam is not available
+11:17 < bridge> <totar> I don't want the zoom level changes unless I press the zoom binds
+11:18 < bridge> <totar> it should just never change imo
+11:18 < bridge> <eidderFsT> which is mostly the cases since it is not released
+11:18 < bridge> <totar> it should just never change automatically imo
+11:18 < bridge> <eidderFsT> actually, i'm in the middle of something else, if someone can make that change it would be great
+11:19 < bridge> <eidderFsT> i think you need to remove auto spec cam. or make it a manual turn on. but we don't have cursors and idk what bind to use. client settings maybe but then it would be more confusing to turn it off and on.
+11:20 < bridge> <eidderFsT> i think to solve this, we should just remove auto spec cam
+11:20 < bridge> <eidderFsT> for now
+11:20 < bridge> <totar> why did the zoom need to change at all
+11:21 < bridge> <eidderFsT> it's the auto spec cam thing which is turned on and off by zooming or reset zoom. it tries to match what other players sees
+11:21 < bridge> <eidderFsT> free view uses client zoom still
+11:21 < bridge> <eidderFsT> if it doesn't then it is a bug
+11:22 < bridge> <eidderFsT> although currently there is no auto spec cam so it default to a internal spec zoom variable which is indeed adjusted separately
+11:22 < bridge> <eidderFsT> i can also just remove spec zoom and if you turn off auto spec cam you change the player zoom too.
+11:22 < bridge> <syrinok> It uses default default zoom level if they're using a version below 18090 I think, which is definitely hard to look at
+11:23 < bridge> <eidderFsT> true
+11:23 < bridge> <eidderFsT> remove the spec zoom value then
+11:23 < bridge> <eidderFsT> and just changes client zoom when auto spec cam is turned off, but it'd be harder to tell if player want it on tho
+11:23 < bridge> <syrinok> Would it harm the auto feature by doing this
+11:25 < bridge> <eidderFsT> i can also just make client zoom matches auto spec cam zoom when exiting spectate, it's like copying other people's zoom settings, and we keep the auto spec cam state too. as long as you turn off auto by zooming out and never press reset zoom when spectating other players it'll match the old behaviour
+11:25 < bridge> <eidderFsT> but still, removing auto spec cam might be either
+11:25 < bridge> <eidderFsT> but still, removing auto spec cam might be easier
+11:27 < bridge> <eidderFsT> OR, we can also just make spec cursor default to off, and auto spec cam would just stop make sense, so we don't use it. if people like having two separate zoom, they can turn spec cursor on.
+11:27 < bridge> <eidderFsT> spec cursor is yet to have a menu settings
+11:28 < bridge> <eidderFsT> i mean the original goals is to not change your playing zoom when you spectating, so you always go back to what you have when you resume
+11:28 < bridge> <syrinok> I think it benefits new players to have auto work by default, since it allows them to see how good players see the game (changing their default zoom level, the ability to zoom in and out)
+11:28 < bridge> <eidderFsT> and auto spec cam will change it so i made it separate
+11:28 < bridge> <syrinok> I think it's a good feature
+11:28 < bridge> <eidderFsT> still, sounds like removing auto spec cam is easier
+11:29 < bridge> <syrinok> Easier, but I don't think it'd be better for the health of the game
+11:29 < bridge> <eidderFsT> how about just use client zoom if you self spectate
+11:29 < bridge> <eidderFsT> if you don't like other people's default zoom then you manually change it
+11:30 < bridge> <eidderFsT> it will stay anyway. auto spec cam never turn back on if you specifically do it by resetting or right click
+11:31 < bridge> <eidderFsT> again, it is quite intensional to make sure you go back to your own zoom when you resume. and you can always change the spec zoom and it will stay like that
+11:31 < bridge> <eidderFsT> it doesn't sound hard to adjust for me but i do know that i don't play enough ddnet tho
+11:32 < bridge> <eidderFsT> @louis.place do you have default zoom set or just zoom out every time you start playing
+11:33 < bridge> <eidderFsT> i need to double check the code, maybe i forgot to make spec zoom default to settings
+11:35 < bridge> <syrinok> I have my default zoom set to 9, when I spectate players that don't have 18090 it zooms in once to default 10
+11:35 < bridge> <eidderFsT> sounds like a bug then
+11:35 < bridge> <eidderFsT> i am still in the middle of something tho, i'll try take a look after
+11:38 < bridge> <eidderFsT> but are we sure if i just make it spec zoom default to default zoom it will be good?
+11:38 < bridge> <eidderFsT> or do i need to match current client zoom
+11:43 < bridge> <syrinok> I think the only gripe anyone could have with it, besides it existing in general, would be having to manually adjust their zooms between not spectating someone and spectating someone with auto off.
+11:43 < bridge> <syrinok> 
+11:43 < bridge> <syrinok> It should remember your zoom levels between spectating nobody, and someone, and only swap to auto if you reset zoom while spectating someone. IMO
+11:44 < bridge> <eidderFsT> but someone might still dislike that auto spec is on at all
+11:45 < bridge> <syrinok> Yes, but that's just how things go, you can't please everyone, and I personally think a majority of the playerbase would enjoy the feature
+11:45 < bridge> <eidderFsT> i personally new player doesn't care if there are two zoom levels default to default zoom
+11:45 < bridge> <syrinok> You could please everyone by having an option for it, but that's a @heinrich5991 type thing
+11:45 < bridge> <eidderFsT> i personally think new player doesn't care if there are two zoom levels default to default zoom
+11:46 < bridge> <syrinok> also deen, I suppose, convince them to add an option for it :X
+11:46 < bridge> <eidderFsT> is it really, henrich specifically banned tiny config
+11:46 < bridge> <syrinok> also deen, I suppose, convince them to allow you to add an option for it :X
+11:50 < bridge> <syrinok> I think the people that wouldn't like it are in the minority, and they'd get over it / used to it with it working how I suggested above.
+11:51 < bridge> <syrinok> I also think most of the people that would hate it are already not updating their clients for various other reasons
+12:01 < bridge> <eidderFsT> https://cdn.discordapp.com/attachments/293493549758939136/1323607067038191717/video_20241231_190130.mp4?ex=677520a4&is=6773cf24&hm=6bf0b938c0180851db621d5dbb8a3261c5f0423909737bb093aecefbc7523dd7&
+12:01 < bridge> <eidderFsT> my screen keep doing this lmao
+12:07 < bridge> <eidderFsT> btw do you mean we turn on auto if player reset zoom at all or only in spec
+12:08 < bridge> <syrinok> @tsfreddie 
+12:08 < bridge> <syrinok> This is how I'd imagine it should work: 
+12:08 < bridge> <syrinok> 
+12:08 < bridge> <syrinok> I'm zooming out, then decide to spectate a person, it keeps my current zoom, doesn't apply auto. I reset my zoom, it swaps to whatever they're using if it can detect their zoom level, if it's null, it resets to your client's default zoom level.
+12:08 < bridge> <syrinok> 
+12:08 < bridge> <syrinok> I'm assuming it can detect whether it's not possible to display zoom via that cl_camerainfo thing?
+12:08 < bridge> <syrinok> 
+12:08 < bridge> <syrinok> It would basically work as it did prior to the update, with the added ability to see what the person is viewing, which I think has a lot of potential to be important information, getting rid of it or making it not happen on its own via default zoom seems counter-productive for the game, I think most people will benefit from having it.
+12:08 < bridge> <syrinok> 
+12:08 < bridge> <syrinok> But also as someone simply watching people play, I think it's a much more interesting experience seeing exactly what they're planning to do based on their zoom
+12:08 < bridge> <eidderFsT> so that's why you've been typing for like 10 mins
+12:08 < bridge> <syrinok> Lol ya
+12:09 < bridge> <eidderFsT> turing auto spec off is easy, but when do we turn it back on.
+12:10 < bridge> <eidderFsT> i think you should only be able to turn it back on if you are spectating
+12:10 < bridge> <syrinok> When you press your zoom reset button
+12:10 < bridge> <syrinok> So when it detects your zoom value went to your client's default
+12:11 < bridge> <eidderFsT> ye, that might feels really weird where you feel like auto spec cam automatically turns back on
+12:12 < bridge> <eidderFsT> how about we just make auto spec cam default to off, unless you specifically right click during spec?
+12:12 < bridge> <eidderFsT> although new players might never know how to turn it on.
+12:13 < bridge> <eidderFsT> ye it is weird lol
+12:13 < bridge> <eidderFsT> let's just do it how you said it. and if anyone asked i just tag you 👀
+12:13 < bridge> <syrinok> Sounds good
+12:14 < bridge> <syrinok> I genuinely think this is the best way to approach it
+12:14 < bridge> <syrinok> After about a week of using it
+12:15 < bridge> <syrinok> Obviously having options would be cool, but alas
+12:15 < bridge> <eidderFsT> you spec someone, spec cam setting to default, you don't like it, so you zoom out. then you resume, then you reset zoom somehow, and spec again, the spec cam is on again. <- this is what i mean btw
+12:16 < bridge> <syrinok> I think the current way it works has a lot more functional issues than my suggestion, and people would get used to it far quicker and hopefully not feel the need to complain. It's really just annoying having to manage 2 different zoom levels, the auto feature itself hasn't bothered me, it's been cool
+12:18 < bridge> <eidderFsT> ok how about this. you can only turn auto spec cam on and off if auto spec cam is available. and if it is the first time you are in auto, and you press either + / - or reset zoom, it just turns off and override your client zoom.
+12:18 < bridge> <syrinok> I think right click to turn auto on might be a solid idea, but then ya, some players would actually never figure out this feature exists
+12:19 < bridge> <eidderFsT> so basically if you zoom at all in spec you will never get auto spec again, and then you can turn it back on by specifically reset zoom while you are already at default or right click
+12:19 < bridge> <eidderFsT> and anything not auto spec is just client zoom
+12:20 < bridge> <eidderFsT> btw, i need to show you something, one sec
+12:22 < bridge> <Jupstar ✪> i have a deja vu
+12:22 < bridge> <Jupstar ✪> it speaks chinese to you?
+12:22 < bridge> <eidderFsT> i honestly quite like this when i was testing it
+12:22 < bridge> <eidderFsT> https://cdn.discordapp.com/attachments/293493549758939136/1323612269728239737/2024-12-31_19-21-10.mp4?ex=6775257c&is=6773d3fc&hm=b3ee3b30db710550c08036448e4c1d1e48e05300383b00e105104c0f1e9acf21&
+12:23 < bridge> <eidderFsT> lol
+12:24 < bridge> <eidderFsT> in case you are serious, it shows the right half on the left and left half on the right
+12:27 < bridge> <Jupstar ✪> so motd exist in ddnet
+12:27 < bridge> <Jupstar ✪> @teero777 troll, you said u never seen it beofre
+12:28 < bridge> <eidderFsT> :justatest:
+12:28 < bridge> <eidderFsT> what did i do
+12:29 < bridge> <Jupstar ✪> is that the zooming out then go to other spec effect?
+12:29 < bridge> <syrinok> This could be a fine solution, but I think you're just catering a bit too much towards the people that dislike the feature.
+12:29 < bridge> <syrinok> 
+12:29 < bridge> <syrinok> I think my suggestions would be enough to make these people happy.
+12:29 < bridge> <syrinok> 
+12:29 < bridge> <syrinok> I think being able to see exactly what the other tee is seeing is completely natural.
+12:29 < bridge> <syrinok> 
+12:29 < bridge> <syrinok> The only gripe would be the client is trying to make decisions for you (automatically zooming in when you click spectate on a tee, when you're currently trying to see a zoomed out version)
+12:31 < bridge> <ryozuki> happy last day of year
+12:31 < bridge> <syrinok> Same to you
+12:31 < bridge> <eidderFsT> no, it's just that i introduced two zoom values people really hate right now
+12:32 < bridge> <ryozuki> i wont work till next year
+12:32 < bridge> <ryozuki> i wont code till next year
+12:32 < bridge> <ryozuki> i wont play ddnet till next year
+12:32 < bridge> <ryozuki> i wont use rust till next year
+12:32 < bridge> <ryozuki> i wont eat ramen till next year
+12:32 < bridge> <syrinok> I'll be honest, I've gotten mostly used to it, but it does have me putting in more inputs than I usually do
+12:34 < bridge> <syrinok> This could be a fine solution, but I think you're just catering a bit too much towards the people that dislike the feature.
+12:34 < bridge> <syrinok> 
+12:34 < bridge> <syrinok> I think my suggestions would be enough to make these people happy.
+12:34 < bridge> <syrinok> 
+12:34 < bridge> <syrinok> I think being able to see exactly what the other tee is seeing is completely natural.
+12:34 < bridge> <syrinok> 
+12:34 < bridge> <syrinok> The only gripe would be the client is trying to make decisions for you (automatically zooming in when you click spectate on a tee, when you're currently trying to see a zoomed out perspective)
+12:34 < bridge> <eidderFsT> ~~i think ddnet is a old player only game anywa~~
+12:34 < bridge> <eidderFsT> ~~i think ddnet is a old player only game anyway~~
+12:36 < bridge> <syrinok> Who else besides me and louis voiced problems with the feature anyways? :greenthing:
+12:36 < bridge> <syrinok> You can ignore that louis kid, he doesn't even play anyways : tf :
+12:37 < bridge> <syrinok> proof
+12:37 < bridge> <syrinok> https://cdn.discordapp.com/attachments/293493549758939136/1323615907712340058/image.png?ex=677528df&is=6773d75f&hm=4456e90ab990b47c5c7965acb0361f1b73adc1bc138238bdaed7c1665da51091&
+12:38 < bridge> <syrinok> :troll:
+12:38 < bridge> <eidderFsT> hmm self spec actually worked like i expected it to
+12:40 < bridge> <eidderFsT> can i merge self spec values to be one, but still separate other's
+12:41 < bridge> <eidderFsT> trivial change and solves specifically that one louis comment. (not the i don't want to see other's shitty default 10 one, but the self spec one)
+12:48 < bridge> <eidderFsT> thoughts?
+12:48 < bridge> <eidderFsT> ah, bad time to tag, dad got home i need to have dinner.
+12:48 < bridge> <eidderFsT> <a:InsaneCat:1135575687172980866>  later
+12:57 < bridge> <syrinok> Not quite sure what you mean
+12:58 < bridge> <eidderFsT> so like if you self spec it uses client zoom always. but if you spec other players it is still the current master behaviour
+12:58 < bridge> <eidderFsT> i only need to change one line for this
+13:15 < bridge> <syrinok> Still not following 100% I think, do you mean quite literally spectating your own tee? Going from spectating someone else to spectating your own tee having the same zoom value?
+13:15 < bridge> <eidderFsT> going from freeview or playing to spectateing your own tee
+13:15 < bridge> <eidderFsT> which is what the original louis comment talked about i think
+13:16 < bridge> <eidderFsT> to make sure going from freeview or playing to spectateing your own tee having the same zoom value
+13:17 < bridge> <eidderFsT> https://discord.com/channels/252358080522747904/293493549758939136/1323589104612413513
+13:17 < bridge> <eidderFsT> to make sure going from / into freeview or playing to / from spectateing your own tee having the same zoom value
+13:18 < bridge> <syrinok> The problem that I have with it would still remain, ya?
+13:18 < bridge> <eidderFsT> do you have a problem with it
+13:18 < bridge> <eidderFsT> :justatest:
+13:18 < bridge> <eidderFsT> i thought we are just addressing louis's issue
+13:18 < bridge> <syrinok> Ya, the 2 zoom thing is annoying xD
+13:19 < bridge> <eidderFsT> ok then
+13:19 < bridge> <eidderFsT> ~~ill remove auto spec cam~~
+13:19 < bridge> <eidderFsT> not really
+13:19 < bridge> <syrinok> I think most people would feel like they're fighting the 2 different zooms until they get used to it, but you still have to manage it
+13:19 < bridge> <eidderFsT> i'll do a impl and tag you soon. you'll see
+13:20 < bridge> <eidderFsT> i still think if you play with one zoom it doesn't really matter if you successfully managed your spec zoom or not
+13:21 < bridge> <eidderFsT> you'll always go back to your original zoom when you unspec anyway
+13:21 < bridge> <syrinok> The problem to the solution seems obvious, you simply have one zoom level and a direct POV when you reset zoom, the client shouldn't try to decide that you WANT to use auto when you're already zooming, you're zooming for a reason
+13:21 < bridge> <eidderFsT> which is exactly what you've been using for playing
+13:21 < bridge> <eidderFsT> it doesnt
+13:21 < bridge> <syrinok> It does
+13:21 < bridge> <syrinok> Until you manage the zoom level
+13:21 < bridge> <eidderFsT> if you turn of auto spec it never changes your zoom level for spec
+13:22 < bridge> <eidderFsT> sure there are two but it is what you used when spec
+13:22 < bridge> <zhn> its kinda easy to get used to though
+13:23 < bridge> <eidderFsT> i also thought you were trying to let me reenable auto spec zoom based on currently zoom level btw. which i really dislike
+13:23 < bridge> <zhn> did in a day of playing
+13:23 < bridge> <syrinok> There's a command for it, or do you mean make it greyed out by zooming out?
+13:23 < bridge> <eidderFsT> ye it greyed out when you zoom out and never turn it self back on.
+13:23 < bridge> <syrinok> If I make it greyed out by zooming out, then adjust my zoom then go spec again, it's not trying to copy my zoom level at all, I have to change it for both
+13:24 < bridge> <eidderFsT> that is true
+13:24 < bridge> <eidderFsT> but you are not playing when you are in freeview
+13:24 < bridge> <syrinok> when spectating players *
+13:24 < bridge> <eidderFsT> you still go back to your playing zoom
+13:24 < bridge> <syrinok> I don't think you understand how often people zoom out and look at people
+13:25 < bridge> <syrinok> and having to adjust both actively isn't good for gameplay
+13:25 < bridge> <eidderFsT> but you are not playing when you  are spectating players
+13:25 < bridge> <eidderFsT> sure
+13:25 < bridge> <eidderFsT> i'm down to remove the two levels
+13:25 < bridge> <syrinok> If I'm zooming out and looking between players, I 100% want it to be consistent between freeview and locked on to a player
+13:26 < bridge> <syrinok> I'll reset my zoom happily when I want to see their exact POV
+13:26 < bridge> <syrinok> I basically already do that
+13:26 < bridge> <syrinok> It would feel the most intuitive this way
+13:26 < bridge> <syrinok> And I think for most people
+13:26 < bridge> <eidderFsT> i can do that
+13:26 < bridge> <eidderFsT> but i still dont want to reenable auto spec cam unless you are spectating player btw
+13:28 < bridge> <syrinok> It already works this way, no?
+13:28 < bridge> <eidderFsT> no
+13:28 < bridge> <eidderFsT> auto spec cam never reenable itself
+13:28 < bridge> <syrinok> I mean when resetting zoom
+13:28 < bridge> <eidderFsT> ye but only when you are spectating players
+13:29 < bridge> <eidderFsT> not when you resst zoom when playing
+13:29 < bridge> <syrinok> But you're saying it'd work exactly how it does, if I was to spectate a player and reset zoom, it'd go to auto
+13:29 < bridge> <syrinok> I never suggested changing that behavior
+13:29 < bridge> <eidderFsT> i think you sugguested reset zoom then spec player it would reenable auto
+13:30 < bridge> <syrinok> Hm, I guess intuitively it should work that way, since you're at default zoom?
+13:30 < bridge> <syrinok> Can it not detect that you're at default zoom and just use auto?
+13:30 < bridge> <syrinok> At all times if you're at default zoom, I think it should just use auto
+13:31 < bridge> <syrinok> Would be the cleanest approach
+13:31 < bridge> <eidderFsT> it can but i dont want to
+13:31 < bridge> <syrinok> Why?
+13:32 < bridge> <eidderFsT> if you spec someone turn off auto but zoom out, resume and reset zoom, next time you spec someone it feels like auto turned itself back on
+13:32 < bridge> <eidderFsT> if you spec someone turn off auto by zooming out, resume and reset zoom, next time you spec someone it feels like auto turned itself back on
+13:32 < bridge> <kebscs> +1
+13:33 < bridge> <kebscs> I play on non default zoom and it just keeps jumping
+13:33 < bridge> <eidderFsT> thats unrelated to auto spec cam, we already decided to remove the twolevels
+13:33 < bridge> <syrinok> Wouldn't a sane person that understands how to zoom figure out that resetting their zoom level is tied to this feature, especially with the bottom right icon turning red? I think you're worrying too much here. It's something someone should be able to figure out and then understand from there on out
+13:34 < bridge> <eidderFsT> thats unrelated to reenabling auto spec cam, we already decided to remove the two levels
+13:34 < bridge> <kebscs> What's the auto spec cam
+13:34 < bridge> <eidderFsT> the icon doesnt show when you are playing
+13:34 < bridge> <kebscs> Thought the auto in a corner means auto zoom
+13:34 < bridge> <eidderFsT> it shows you what camera setting players are using
+13:34 < bridge> <syrinok> But surely they'll zoom out once and then see it change when spectating someone, then learn?
+13:35 < bridge> <eidderFsT> that might be 30 minutes apart and have no connective context
+13:35 < bridge> <syrinok> I can very easily see it out of the corner of my eye, and I'm legally blind
+13:35 < bridge> <kebscs> So a zoom?
+13:36 < bridge> <eidderFsT> im down to remove the two spec levels but you should only be able to turn auto back on when the icon is shown
+13:36 < bridge> <eidderFsT> the icon does not show when you are playing
+13:36 < bridge> <syrinok> I think a person not able to figure this out would have bigger problems.
+13:36 < bridge> <syrinok> 
+13:36 < bridge> <syrinok> Sacrificing quality of use for this very unlikely case seems odd
+13:37 < bridge> <eidderFsT> so you resetting zoom while playing does not tell you auto is on
+13:38 < bridge> <eidderFsT> i dont want people hitting reset zoom while playing and wonder why auto turned itself on when they spec someone  30 minutes later
+13:39 < bridge> <syrinok> I think you're too worried, but whatever
+13:40 < bridge> <eidderFsT> @gerdoe do you like the two separate level lol
+13:40 < bridge> <syrinok> I don't see how anyone could like the 2 spec level :justatest:  it's just added inputs to deal with
+13:41 < bridge> <eidderFsT> i liked it specifically for that video, but i can see how most people won't like it
+13:41 < bridge> <syrinok> I think you just really like the idea of right click toggling the feature on
+13:41 < bridge> <eidderFsT> that is already the cas
+13:42 < bridge> <eidderFsT> that is already the case
+13:42 < bridge> <syrinok> Is it? You mean spectating a player?
+13:42 < bridge> <eidderFsT> when you spectating a player right click turn auto spec cam on
+13:42 < bridge> <syrinok> Oh, ya, never knew. so you were right new players would never figute that out haha
+13:42 < bridge> <eidderFsT> btw idk why auto spec icon shows for current players
+13:43 < bridge> <eidderFsT> it really shouldn't
+13:43 < bridge> <syrinok> Freddie pls
+13:44 < bridge> <eidderFsT> https://cdn.discordapp.com/attachments/293493549758939136/1323632762820755526/image.png?ex=67753892&is=6773e712&hm=f6256ff722fea807ae9363abe641b85dbea70f38b023866feedac6a49bae9dd3&
+13:44 < bridge> <eidderFsT> fml
+13:44 < bridge> <eidderFsT> https://cdn.discordapp.com/attachments/293493549758939136/1323632814897369141/image.png?ex=6775389e&is=6773e71e&hm=5008219b3f55dcd4478d89e546409aa027859ae6a91d063c9d2ed30a93f1e734&
+13:44 < bridge> <eidderFsT> i'm dumb
+13:44 < bridge> <syrinok> Idk what any of that means :greenthing:
+13:44 < bridge> <eidderFsT> i forgot to respect server info about whether a client is sending camera info at all
+13:45 < bridge> <zhn> ye its really neat
+13:46 < bridge> <eidderFsT> i think i'll fix the actual bug, and louis's self spec issue
+13:46 < bridge> <zhn> i also love to jump from freeview to players pov
+13:46 < bridge> <eidderFsT> maybe that's what is been bothering Skeith
+13:46 < bridge> <syrinok> god fucking dammit
+13:46 < bridge> <syrinok> Nope, not at all, fuck 2 zooms
+13:46 < bridge> <eidderFsT> cuz if player doesn't send camera info it really should default to your default zoom
+13:47 < bridge> <zhn> what would you make instead lol
+13:47 < bridge> <eidderFsT> i mean currently, not ideally
+13:47 < bridge> <syrinok> zhn is a vanilla player isn't he? He hates everything we stand for, don't listen to him!
+13:47 < bridge> <syrinok> HELP
+13:47 < bridge> <zhn> you can't keep only players' zoom or user's zoom
+13:48 < bridge> <syrinok> I want it to work like it did previously, but only activate auto to adjust the zoom when spectating another player when I press reset / have default zoom when I swap to them
+13:48 < bridge> <zhn> you can just ask freddie to add new command but big H would refuse instantly
+13:48 < bridge> <eidderFsT> just try the next artifact and let me know if you still hate it with passion.
+13:49 < bridge> <syrinok> Which I believe is the best approach, rather than having to manually change the zoom level again, when I was ALREADY zoomed out, I don't want the client to force me to zoom in when I'm trying to zoom out
+13:49 < bridge> <learath2> What are we discussing here? I'm good at finding compromises to controversial stuff
+13:49 < bridge> <syrinok> Seems so obvious to me
+13:49 < bridge> <zhn> 2 level zoom
+13:49 < bridge> <syrinok> @learath2 u use the new nightly yet?
+13:49 < bridge> <learath2> Why 2 level when 1 level would do?
+13:49 < bridge> <syrinok> It already works this way, ya
+13:49 < bridge> <syrinok> well, did
+13:49 < bridge> <learath2> Not yet. I'm away for christmas
+13:50 < bridge> <zhn> to let you see another player's pov
+13:50 < bridge> <learath2> Whats the second level for?
+13:50 < bridge> <zhn> like zoom, dyncam, cursor
+13:50 < bridge> <learath2> Ah when you spec someone you get their zoom?
+13:50 < bridge> <zhn> yep, everything
+13:50 < bridge> <learath2> @syrinok why bad?
+13:51 < bridge> <zhn> :kek:
+13:51 < bridge> <learath2> @gerdoe @tsfreddie why good?
+13:51 < bridge> <syrinok> Basically, when I zoom out and then select a player it'll turn on auto camera, which copies their exact zoom level. which is cool and all. But I'm saying it SHOULDN'T happen when I'm already zooming out and trying to see shit, so basically it overrides what I'm trying to do and zooms my camera tf in, then I have to zoom back out, but if I stop spectating that tee, it has a completely different zoom level, and I have to manually change that
+13:51 < bridge> <zhn> i always wondered how people play and now i can just by spectating them
+13:52 < bridge> <zhn> makes stuff complicated a bit when spectating vanilla but its even better to have different zoom levels there
+13:52 < bridge> <syrinok> IM GETTING PISSED!!! THAT'S IT!!! FIST FIGHT ME FREDDIE
+13:52 < bridge> <zhn> like you can jump in freeview with bigger zoom and then hoo on player with default 10
+13:52 < bridge> <syrinok> LETS GO DUDE
+13:52 < bridge> <zhn> to see their play
+13:52 < bridge> <syrinok> (He'd kick my ass)
+13:52 < bridge> <eidderFsT> i don't care about two zooms. it was there because it makes sense to implement to toggle a new spectating feature. where you can see other players camera setting.
+13:52 < bridge> <meloƞ> Why are mods screaming again
+13:52 < bridge> <zhn> aren't you both same height
+13:52 < bridge> <syrinok> I think he's taller than me lol
+13:53 < bridge> <syrinok> Ah, I have weight on him, I'd crush him actually
+13:53 < bridge> <meloƞ> Freddie is Asian, you have no chance!a
+13:53 < bridge> <eidderFsT> it shouldn't for current players because they aren't actually sending camera info. it was a bug
+13:53 < bridge> <zhn> freddie is hot, you have no chance :troll:
+13:53 < bridge> <eidderFsT> not erally
+13:53 < bridge> <syrinok> gg
+13:53 < bridge> <eidderFsT> i have heart problems and can't move very much
+13:54 < bridge> <eidderFsT> you'll stop my heart attack before i can do anything.
+13:54 < bridge> <eidderFsT> you'll stop my heart before i can do anything.
+13:54 < bridge> <syrinok> Alright, if your fix doesn't fix my problems with it, we fight irl
+13:54 < bridge> <zhn> you can heart attack him
+13:54 < bridge> <syrinok> It's going down, like it or not
+13:54 < bridge> <syrinok> I'LL FIND YOU (this is not a real threat, I'm a pussy)
+13:54 < bridge> <eidderFsT> if you spec people regularly with your default zoom settings (not some random zoom you decided on the spot) i think it solves it for you
+13:55 < bridge> <syrinok> I don't
+13:55 < bridge> <syrinok> I love zooming tf out
+13:55 < bridge> <eidderFsT> then you can fight me and kill me
+13:55 < bridge> <eidderFsT> then i can stop worry about this
+13:55 < bridge> <syrinok> gg
+13:55 < bridge> <eidderFsT> otherwise it is a one time adjustment really.
+13:55 < bridge> <syrinok> Please take my suggestion, so we can mostly all be happy (I think, well, at least I will be and that's cool)
+13:56 < bridge> <eidderFsT> maybe later
+13:56 < bridge> <eidderFsT> louis said a problem and i should fix his first which is what i did
+13:56 < bridge> <eidderFsT> louis said a problem first and i should fix his first which is what i did
+13:57 < bridge> <syrinok> [pepesad~1](https://cdn.discordapp.com/emojis/1300529252344791152.gif?size=48&animated=true&name=pepesad%7E1)
+13:57 < bridge> <eidderFsT> i love the idea lerato trying to join the convo and failed
+13:57 < bridge> <syrinok> That guy made Linear, he deserves nothing
+13:58 < bridge> <syrinok> :troll:
+13:58 < bridge> <eidderFsT> https://cdn.discordapp.com/attachments/293493549758939136/1323636415824662568/image.png?ex=67753bf9&is=6773ea79&hm=373fa58e56f7896b68c8f2a56c04668759d721eba003cbaef1ffd61a7923351b&
+13:58 < bridge> <eidderFsT> this line shouldn't hunt me really
+13:58 < bridge> <eidderFsT> but it did
+13:58 < bridge> <eidderFsT> do we host server using master
+13:58 < bridge> <zhn> xd
+13:59 < bridge> <eidderFsT> but i guess that did saved me causing more panic after release tho
+13:59 < bridge> <syrinok> Learath best boy
+13:59 < bridge> <eidderFsT> i think i didn't find this line cuz the old server don't have this problem so i assumed it was fine
+13:59 < bridge> <eidderFsT> oof
+14:01 < bridge> <eidderFsT> btw i think new player would find two levels of zoom handy imho which is why i decided to go that route. but it is indeed very bugged based on that one line tho
+14:01 < bridge> <eidderFsT> but i also wouldn't mind removing that
+14:01 < bridge> <eidderFsT> again
+14:01 < bridge> <eidderFsT> i want to reassure you
+14:02 < bridge> <eidderFsT> i will remove it once i get actual feedback on the fixed version
+14:02 < bridge> <syrinok> I think otherwise, I think it's extremely tedious, and feels wrong
+14:02 < bridge> <eidderFsT> <a:amogus:876956004674338848>
+14:02 < bridge> <eidderFsT> that's what you think
+14:02 < bridge> <eidderFsT> and i respect that
+14:02 < bridge> <eidderFsT> and willing to change what i think
+14:03 < bridge> <eidderFsT> after more feedback
+14:03 < bridge> <syrinok> @learath2 HELP
+14:03 < bridge> <syrinok> Install the nightly version and yell at this man, he loves you
+14:03 < bridge> <eidderFsT> does lerato play ddnet
+14:03 < bridge> <syrinok> Sometimes!
+14:04 < bridge> <eidderFsT> i actually don't know if anyone plays here, cuz i can't really see. even if i am still playing myself i couldn't tell in chn servers probably
+14:04 < bridge> <syrinok> I have the 2nd most time spent on this game overall in finishes!
+14:05 < bridge> <eidderFsT> is that why you dispite louis cuz you are both USA and you want to be the one USA player?
+14:05 < bridge> <eidderFsT> ~~is that why you dispite louis cuz you are both USA and you want to be the one USA player?~~
+14:05 < bridge> <syrinok> Yes
+14:05 < bridge> <eidderFsT> that's very USA of you
+14:06 < bridge> <syrinok> Fun trivia: Before louis was known, he used to join me and actively try to troll me
+14:06 < bridge> <syrinok> before he was even named louis
+14:07 < bridge> <syrinok> That was before I was a moderator as well though!
+14:07 < bridge> <eidderFsT> i am actually very tired btw
+14:07 < bridge> <eidderFsT> i'll definitly check how to fix your problem
+14:07 < bridge> <eidderFsT> but really
+14:07 < bridge> <eidderFsT> not right now
+14:07 < bridge> <syrinok> Go to sleep~
+14:07 < bridge> <eidderFsT> i rushed our website and i'm exhausted from all the regulation stuff
+14:08 < bridge> <eidderFsT> just trying to make ddnet's info available within QQ again
+14:08 < bridge> <eidderFsT> :justatest:
+14:08 < bridge> <eidderFsT> https://teeworlds.cn/ddnet/players
+14:08 < bridge> <eidderFsT> https://teeworlds.cn/ddnet/maps
+14:08 < bridge> <eidderFsT> check these out
+14:08 < bridge> <eidderFsT> chinese warning tho
+14:10 < bridge> <syrinok> neato
+14:12 < bridge> <syrinok> (The map page feels better to use than the main site, since I don't have to scroll as much tbh)
+14:12 < bridge> <eidderFsT> :justatest:
+14:12 < bridge> <eidderFsT> that one is missing a lot of filter tho
+14:12 < bridge> <eidderFsT> i need to add filters for types and difficulties and stuff. but i'm working on other things rn
+14:13 < bridge> <Jupstar ✪> can someone here zip me his assets folder?
+14:13 < bridge> <Jupstar ✪> 
+14:13 < bridge> <Jupstar ✪> maybe with at least 10 images and no 4k assets xd
+14:14 < bridge> <Jupstar ✪> can someone here zip me his assets folder?
+14:14 < bridge> <Jupstar ✪> 
+14:14 < bridge> <Jupstar ✪> maybe with at least 10 images per category and no 4k assets xd
+14:14 < bridge> <eidderFsT> i would but mine is empty
+14:16 < bridge> <zhn> same here
+14:20 < bridge> <ryozuki> https://bsky.app/profile/bennyjamins.bsky.social/post/3lejyz5reiz23
+14:21 < bridge> <eidderFsT> what makes erlang hot patchable
+14:23 < bridge> <ryozuki> the vm
+14:23 < bridge> <ryozuki> called BEAM
+14:23 < bridge> <ryozuki> erlang (beam) is rly good for distributed systems
+14:23 < bridge> <ryozuki> its also good at spawning jobs using other languages
+14:23 < bridge> <ryozuki> it has rly good interop with rust, nodejs and probs C
+14:23 < bridge> <ryozuki> https://github.com/rusterlium/rustler
+14:23 < bridge> <ryozuki> since ite a Vm u can use other langs
+14:24 < bridge> <ryozuki> like elixir or glesn
+14:24 < bridge> <ryozuki> gleam
+14:24 < bridge> <ryozuki> that compile to Beam byte code
+14:24 < bridge> <eidderFsT> does that mean gleam can also do tha
+14:24 < bridge> <ryozuki> yep
+14:24 < bridge> <ryozuki> whatsapp uses erlang
+14:24 < bridge> <eidderFsT> gotta learn gleam then
+14:24 < bridge> <ryozuki> gleam is more rust like and modern
+14:24 < bridge> <ryozuki> im learning it too
+14:25 < bridge> <eidderFsT> i already wrote my first rust code
+14:25 < bridge> <kollpotato> ChillerDragon: i have published the code now, the main connection logic is in crates/server/src/plugins/connection.rs
+14:25 < bridge> <eidderFsT> i think i'm ready (not really)
+14:26 < bridge> <eidderFsT> also i didn't really write rust code. i didn't really know what i've been writing. i just write normally until it screams at me then i fix it somehow.
+14:35 < bridge> <teero777> no? i said it also exists in ddnet
+14:36 < bridge> <Jupstar ✪> @teero777 pls give assets dir
+14:36 < bridge> <teero777> why
+14:36 < bridge> <Jupstar ✪> i need some nice assets
+14:36 < bridge> <eidderFsT> he need to test something but we don't use assets so juppy never go their test data
+14:36 < bridge> <eidderFsT> <a:amogus:876956004674338848>
+14:36 < bridge> <Jupstar ✪> for you know what xd
+14:37 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1323646216000634962/archive.zip?ex=6775451a&is=6773f39a&hm=ab8bb769c8caf6b204519ba9b7afb150719e7251844214b72d2e01ff11403738&
+14:38 < bridge> <_voxeldoesart> sorry for not making more
+14:39 < bridge> <Jupstar ✪> ty
+14:40 < bridge> <zhn> tja
+17:09 < bridge> <Jupstar ✪> It happened
+17:10 < bridge> <Jupstar ✪> I hope i didnt forget anything 😬
+17:10 < bridge> <_voxeldoesart> YESSSS
+17:10 < bridge> <Jupstar ✪> https://github.com/ddnet/ddnet-rs
+17:11 < bridge> <ryozuki> pog
+17:11 < bridge> <louis> its under the ddnet github name now?
+17:12 < bridge> <Jupstar ✪> yes it's now officially public
+17:12 < bridge> <Jupstar ✪> which also means it now accepts prs etc.
+17:12 < bridge> <ryozuki> add ci for artifacts
+17:12 < bridge> <_voxeldoesart> @jupeyy_keks can i send my two skin things here now?
+17:13 < bridge> <louis> ok, let me know when it has moving blocks and new weapons and ill map in its editor 😁
+17:13 < bridge> <Jupstar ✪> yes
+17:13 < bridge> <Jupstar ✪> Go ahead and create a pr 😄
+17:13 < bridge> <Jupstar ✪> 
+17:13 < bridge> <Jupstar ✪> i sadly ran out of time
+17:13 < bridge> <Jupstar ✪> i have to go in few minutes
+17:13 < bridge> <Jupstar ✪> and i had to release it before new year
+17:13 < bridge> <ryozuki> well i could
+17:13 < bridge> <ryozuki> are all deps listed? xc
+17:13 < bridge> <ryozuki> xd
+17:14 < bridge> <Jupstar ✪> u don't really need any deps xd
+17:14 < bridge> <Jupstar ✪> just a c compiler and rust compiler
+17:14 < bridge> <Jupstar ✪> and u need to use rustup
+17:14 < bridge> <ryozuki> epyc rust moment
+17:14 < bridge> <Jupstar ✪> i wonder if ffmpeg works with MSVC, bcs with mingw cross compile it does not 😄
+17:15 < bridge> <Jupstar ✪> yeah, defs epyc, i wish c would be gone too
+17:15 < bridge> <ryozuki> msvc is worse compiler
+17:15 < bridge> <ryozuki> nowadays u can use llvm in windows
+17:15 < bridge> <Jupstar ✪> https://github.com/ddnet/ddnet-rs
+17:15 < bridge> <Jupstar ✪> oh
+17:15 < bridge> <ryozuki> also msvc is not c++ standard compliant
+17:15 < bridge> <Jupstar ✪> https://github.com/ddnet/ddnet-rs?tab=readme-ov-file#building
+17:15 < bridge> <Jupstar ✪> that's how easy it should be 😄
+17:16 < bridge> <ryozuki> @jupeyy_keks do u have wasm support
+17:16 < bridge> <ryozuki> for ddnet itself
+17:16 < bridge> <ryozuki> ddnet in browser wen
+17:16 < bridge> <Jupstar ✪> lel, yeah we need WGPU backend for that
+17:16 < bridge> <Jupstar ✪> rn it's vk  only
+17:17 < bridge> <ryozuki> vk master race
+17:17 < bridge> <ryozuki> epyc
+17:17 < bridge> <ryozuki> im the first forker
+17:18 < bridge> <Jupstar ✪> even before me 😬
+17:18 < bridge> <ryozuki> #[profile.release]
+17:18 < bridge> <ryozuki> #lto = true
+17:18 < bridge> <ryozuki> #opt-level = 3
+17:18 < bridge> <ryozuki> #codegen-units = 1
+17:18 < bridge> <ryozuki> #debug = true
+17:18 < bridge> <ryozuki> #strip = true
+17:18 < bridge> <ryozuki> #panic = "abort"
+17:19 < bridge> <ryozuki> why comment
+17:19 < bridge> <cyberfrighter> what is rs
+17:19 < bridge> <ryozuki> rust
+17:19 < bridge> <Jupstar ✪> lto too slow
+17:19 < bridge> <Jupstar ✪> panics can happen in async code
+17:19 < bridge> <cyberfrighter> ddnet 🇷🇸
+17:19 < bridge> <Jupstar ✪> didnt want to go all out yet
+17:19 < bridge> <Jupstar ✪> for 10fps
+17:19 < bridge> <cyberfrighter> finally a good ddnet version
+17:23 < bridge> <Jupstar ✪> b4 creating new issues, there is a high chance yours is already here:
+17:23 < bridge> <Jupstar ✪> <https://github.com/ddnet/ddnet-rs/issues/1>
+17:23 < bridge> <Jupstar ✪> 
+17:23 < bridge> <Jupstar ✪> so please take 1 sec to search it
+17:25 < bridge> <_voxeldoesart> ## itsabot_rust
+17:25 < bridge> <_voxeldoesart> - a version of `itsabot`, with custom sounds!
+17:25 < bridge> <_voxeldoesart> - credit to eNJi for the skin!
+17:25 < bridge> <_voxeldoesart> 
+17:25 < bridge> <_voxeldoesart> ## scifi-basic
+17:25 < bridge> <_voxeldoesart> 
+17:25 < bridge> <_voxeldoesart> - Show off your futuristic weapons! Custom looks and sounds!
+17:25 < bridge> <_voxeldoesart> - Credit to @broso56 for the weapon skins
+17:25 < bridge> <_voxeldoesart> - Credit to Tristis for the audio!
+17:25 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688481964429343/itsabot_rust.7z?ex=67756c77&is=67741af7&hm=ac845802059c829a5539a0b84a442c26b0e1f706f09744279d5c035f0e22d8dd&
+17:25 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688482320941117/sci-fi_basic.7z?ex=67756c77&is=67741af7&hm=da913df32c855f33c8737d666309663be415d2dc484457ef4fde558e92720b2c&
+17:25 < bridge> <_voxeldoesart> ## itsabot_rust
+17:25 < bridge> <_voxeldoesart> - a version of `itsabot`, with custom sounds!
+17:25 < bridge> <_voxeldoesart> - credit to eNJi for the skin!
+17:25 < bridge> <_voxeldoesart> 
+17:25 < bridge> <_voxeldoesart> ## scifi-basic
+17:25 < bridge> <_voxeldoesart> 
+17:25 < bridge> <_voxeldoesart> - Show off your futuristic weapons! Custom looks and sounds!
+17:25 < bridge> <_voxeldoesart> - Credit to @broso56 for the weapon skins
+17:25 < bridge> <_voxeldoesart> - Credit to Tristis for the audio!
+17:26 < bridge> <_voxeldoesart> 
+17:26 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/1278298263841407009/1321969818751991961/fun_times_indeed_2_small.mp4?ex=67751a95&is=6773c915&hm=a99f56da44bd5271a31f3773d2c8f5c6ac622d1eda7ba26f7f1ec30f2663a4c7&
+17:26 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688481964429343/itsabot_rust.7z?ex=67756c77&is=67741af7&hm=ac845802059c829a5539a0b84a442c26b0e1f706f09744279d5c035f0e22d8dd&
+17:26 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688482320941117/sci-fi_basic.7z?ex=67756c77&is=67741af7&hm=da913df32c855f33c8737d666309663be415d2dc484457ef4fde558e92720b2c&
+17:26 < bridge> <_voxeldoesart> ## itsabot_rust
+17:26 < bridge> <_voxeldoesart> - a version of `itsabot`, with custom sounds!
+17:26 < bridge> <_voxeldoesart> - credit to eNJi for the skin!
+17:26 < bridge> <_voxeldoesart> 
+17:26 < bridge> <_voxeldoesart> ## scifi-basic
+17:26 < bridge> <_voxeldoesart> 
+17:26 < bridge> <_voxeldoesart> - Show off your futuristic weapons! Custom looks and sounds!
+17:26 < bridge> <_voxeldoesart> - Credit to @broso56 for the weapon skins
+17:26 < bridge> <_voxeldoesart> - Credit to Tristis for the audio!
+17:26 < bridge> <_voxeldoesart> 
+17:26 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/1278298263841407009/1321969818751991961/fun_times_indeed_2_small.mp4?ex=67751a95&is=6773c915&hm=a99f56da44bd5271a31f3773d2c8f5c6ac622d1eda7ba26f7f1ec30f2663a4c7&
+17:26 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688481964429343/itsabot_rust.7z?ex=67756c77&is=67741af7&hm=ac845802059c829a5539a0b84a442c26b0e1f706f09744279d5c035f0e22d8dd&
+17:26 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688482320941117/sci-fi_basic.7z?ex=67756c77&is=67741af7&hm=da913df32c855f33c8737d666309663be415d2dc484457ef4fde558e92720b2c&
+17:32 < bridge> <chillerdragon> @jupeyy_keks: ddnet-rs in 2024?
+17:34 < bridge> <chillerdragon> @kollpotato: send link?
+17:34 < bridge> <chillerdragon> Two ddnet rust releases in one day?
+17:34 < bridge> <_voxeldoesart> tbh im almost tempted to add in itsabot to the ddnet-rs-data github
+17:34 < bridge> <_voxeldoesart> id have to make footsteps better sounding though
+17:36 < bridge> <kollpotato> ChillerDragon: ah yeah forgot about the link https://github.com/KollPotato/rust-ddnet.git
+17:36 < bridge> <_voxeldoesart> ## itsabot_rust
+17:36 < bridge> <_voxeldoesart> - a version of `itsabot`, with custom sounds!
+17:36 < bridge> <_voxeldoesart> - credit to eNJi for the skin!
+17:36 < bridge> <_voxeldoesart> 
+17:36 < bridge> <_voxeldoesart> ## scifi-basic
+17:36 < bridge> <_voxeldoesart> 
+17:36 < bridge> <_voxeldoesart> - Show off your futuristic weapons! Custom looks and sounds!
+17:36 < bridge> <_voxeldoesart> - Credit to @broso56 for the weapon skins
+17:36 < bridge> <_voxeldoesart> - Credit to Tristis for the audio!
+17:36 < bridge> <_voxeldoesart> 
+17:36 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/1278298263841407009/1321969818751991961/fun_times_indeed_2_small.mp4?ex=67751a95&is=6773c915&hm=a99f56da44bd5271a31f3773d2c8f5c6ac622d1eda7ba26f7f1ec30f2663a4c7&
+17:36 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688481964429343/itsabot_rust.7z?ex=67756c77&is=67741af7&hm=ac845802059c829a5539a0b84a442c26b0e1f706f09744279d5c035f0e22d8dd&
+17:36 < bridge> <_voxeldoesart> https://cdn.discordapp.com/attachments/293493549758939136/1323688482320941117/sci-fi_basic.7z?ex=67756c77&is=67741af7&hm=da913df32c855f33c8737d666309663be415d2dc484457ef4fde558e92720b2c&
+17:40 < bridge> <_voxeldoesart> "how do you say yes in spanish?"
+17:40 < bridge> <_voxeldoesart> my spanish friend:
+17:40 < bridge> <ryozuki> ```
+17:40 < bridge> <ryozuki>   --- stderr
+17:40 < bridge> <ryozuki>   thread 'main' panicked at /home/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/wayland-sys-0.31.5/build.rs:10:47:
+17:40 < bridge> <ryozuki>   called `Result::unwrap()` on an `Err` value: 
+17:40 < bridge> <ryozuki>   pkg-config exited with status code 1
+17:40 < bridge> <ryozuki>   > PKG_CONFIG_ALLOW_SYSTEM_LIBS=1 PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 pkg-config --libs --cflags wayland-client
+17:40 < bridge> <ryozuki> 
+17:40 < bridge> <ryozuki>   The system library `wayland-client` required by crate `wayland-sys` was not found.
+17:40 < bridge> <ryozuki>   The file `wayland-client.pc` needs to be installed and the PKG_CONFIG_PATH environment variable must contain its parent directory.
+17:40 < bridge> <ryozuki>   The PKG_CONFIG_PATH environment variable is not set.
+17:40 < bridge> <ryozuki> 
+17:40 < bridge> <ryozuki>   HINT: if you have installed the library, try setting PKG_CONFIG_PATH to the directory containing `wayland-client.pc`.
+17:40 < bridge> <ryozuki> 
+17:40 < bridge> <ryozuki>   note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+17:40 < bridge> <ryozuki> warning: build failed, waiting for other jobs to finish...
+17:40 < bridge> <ryozuki> ```
+17:40 < bridge> <ryozuki> @jupeyy_keks liar xd
+17:41 < ws-client> <ChillerDragon> @ryozuki i thought no rust this year?
+17:41 < bridge> <ryozuki> technically im writing yaml
+17:41 < ws-client> <ChillerDragon> @Jupstar ✪ how to build? ``error: could not compile `microphone` (lib) due to 2 previous errors``
+17:41 < bridge> <ryozuki> is the library name libwayland-client  on ubunchu?
+17:44 < bridge> <ryozuki> autogen.sh: line 14: autoreconf: command not found
+17:44 < bridge> <ryozuki> on macos
+17:44 < bridge> <ryozuki> thread 'main' panicked at /Users/runner/.cargo/registry/src/index.crates.io-6f17d22bba15001f/audiopus_sys-0.1.8/build.rs:102:9:
+17:44 < bridge> <ryozuki>   Failed to autogen Opus.
+17:45 < bridge> <Jupstar ✪> I'd prefer data dir only has default assets, for custom assets we can simply use the assets server. I can upload yours there tomorrow ofc
+17:45 < bridge> <ryozuki> oh its missing opus on macos
+17:45 < bridge> <Jupstar ✪> macos is completely untested, and also only semi supported due to limitations on winit
+17:45 < bridge> <_voxeldoesart> right
+17:45 < bridge> <_voxeldoesart> i do want to edit them firet
+17:45 < bridge> <_voxeldoesart> i do want to edit them first
+17:46 < bridge> <Jupstar ✪> That's not a helpful error log chiller
+17:46 < ws-client> <ChillerDragon> ikr
+17:46 < ws-client> <ChillerDragon> just tell me which rust toolchain or version to use
+17:46 < ws-client> <ChillerDragon> on arch
+17:46 < bridge> <Jupstar ✪> rustup latest stable
+17:46 < ws-client> <ChillerDragon> ty
+17:52 < ws-client> <ChillerDragon> https://paste.zillyhuhn.com/Mp
+17:52 < ws-client> <ChillerDragon> cargo 1.83.0 (5ffbef321 2024-10-29)
+17:54 < bridge> <ryozuki> did u run cargo build
+17:54 < bridge> <ryozuki> or smth else?
+17:54 < ws-client> <ChillerDragon> i followed the readme
+17:54 < ws-client> <ChillerDragon> ``cargo run --release --features bundled_data_dir,ffmpeg,microphone,enable_steam``
+17:54 < ws-client> <ChillerDragon> it enabled microphone
+17:55 < bridge> <ryozuki> true
+17:55 < bridge> <ryozuki> i think there are 2 versions of ndarray in use
+17:56 < ws-client> <ChillerDragon> ``cargo build`` and ``cargo run`` work but the readme doesn even when microphone is kicked
+18:00 < ws-client> <ChillerDragon> woah even after one year tw break its super uncanny how different but same ddnet-rs feels
+18:01 < bridge> <eidderFsT> do we have a way to check the frequently used skin by a name
+18:01 < bridge> <eidderFsT> like just for fun
+18:03 < ws-client> <ChillerDragon> watching demos in game woah!
+18:03 < bridge> <Jupstar ✪> Oh yeah didn't test that in a longer while
+18:03 < bridge> <Jupstar ✪> Just remove mic for now
+18:04 < bridge> <Jupstar ✪> Somewhere in this channel Souly posted stats
+18:04 < bridge> <eidderFsT> like for each player, not general stats?
+18:05 < bridge> <Jupstar ✪> Even that was possible with furos ddstats.tw
+18:05 < bridge> <Jupstar ✪> I dunno if someone created an alternative already
+18:05 < bridge> <eidderFsT> ah
+18:05 < bridge> <eidderFsT> im assuming it was collecting skin data from master list?
+18:06 < bridge> <Jupstar ✪> Yes
+18:06 < ws-client> <ChillerDragon> is there no greensward skin?
+18:06 < bridge> <eidderFsT> i could do that but i probably wont have enough data for the thing i want to do for now
+18:07 < ws-client> <ChillerDragon> ah there is
+18:07 < ws-client> <ChillerDragon> the sort is just case sensitive hmm
+18:08 < bridge> <eidderFsT> oh ryo's also have that i think
+18:09 < bridge> <eidderFsT> oh for only connected player. bummer
+18:09 < ws-client> <ChillerDragon> 250 fps on ctf1 <:justatest:572499997178986510>
+18:20 < bridge> <Jupstar ✪> Fps are 4x screen hz by default
+18:20 < bridge> <Jupstar ✪> I didn't want unclamped again
+18:21 < bridge> <eidderFsT> ~~bro running 62.5hz screen~~
+18:21 < bridge> <Jupstar ✪> 😬
+18:22 < bridge> <Jupstar ✪> According to melon this version is even faster than cpp
+18:22 < bridge> <Jupstar ✪> But probably only CPU wise
+18:44 < bridge> <ryozuki> https://blog.llvm.org/posts/2024-12-03-minimalistic-ruby-compiler/
+18:47 < bridge> <ryozuki> MLIR power
+18:47 < bridge> <meloƞ> Yes, dd-pg had better performance with design than c++ version without design
+18:47 < bridge> <meloƞ> C++ ~17K, dd-pg actually peaked at ~21K IIRC
+18:48 < bridge> <meloƞ> C++ ~17K fps, dd-pg actually peaked at ~21K fps IIRC
+18:49 < bridge> <ryozuki> check out https://assets.ddstats.org/
+18:49 < bridge> <ryozuki> for assets
+18:57 < bridge> <Jupstar ✪> Thanks, but ddrs needs an index with the file hash to download anything. There is a assets server bin that can generate this index automatically.
+18:57 < bridge> <Jupstar ✪> 
+18:57 < bridge> <Jupstar ✪> Thanks to the index the settings shows all assets in ui
+18:58 < bridge> <ryozuki> what bin?
+18:59 < bridge> <Jupstar ✪> I think it's called assets-server
+18:59 < bridge> <Jupstar ✪> -p assets-server
+18:59 < bridge> <aegisub> you can compile ffmpeg with msvc but not really with the standard build system
+18:59 < bridge> <aegisub> there are various wraps for vcpkg, meson, vs, etc
+19:00 < bridge> <Jupstar ✪> I c
+19:00 < bridge> <ryozuki> ```
+19:00 < bridge> <ryozuki> error[E0599]: no method named `hi_borrow` found for struct `Arc<HiUnsafeMutex<AudioVideoEncoderImplImpl>>` in the current scope
+19:00 < bridge> <ryozuki>   --> lib/av-encoder/src/encoder.rs:66:1
+19:00 < bridge> <ryozuki>    |
+19:00 < bridge> <ryozuki> 66 | #[hiarc_safer_arc_mutex]
+19:00 < bridge> <ryozuki>    | ^^^^^^^^^^^^^^^^^^^^^^^^
+19:01 < bridge> <ryozuki>    |
+19:01 < bridge> <ryozuki>    = note: this error originates in the attribute macro `hiarc_safer_arc_mutex` (in Nightly builds, run with -Z macro-backtrace for more info)
+19:01 < bridge> <ryozuki> help: there is a method `borrow` with a similar name
+19:01 < bridge> <ryozuki>    |
+19:01 < bridge> <ryozuki> 66 | borrow
+19:01 < bridge> <ryozuki>    |
+19:01 < bridge> <ryozuki> 
+19:01 < bridge> <ryozuki> error[E0599]: no method named `hi_borrow` found for struct `Arc<HiUnsafeMutex<AudioVideoEncoderImplImpl>>` in the current scope
+19:01 < bridge> <ryozuki>    --> lib/av-encoder/src/encoder.rs:244:1
+19:01 < bridge> <ryozuki>     |
+19:01 < bridge> <ryozuki> 244 | #[hiarc_safer_arc_mutex]
+19:01 < bridge> <ryozuki>     | ^^^^^^^^^^^^^^^^^^^^^^^^
+19:01 < bridge> <ryozuki>     |
+19:01 < bridge> <ryozuki>     = note: this error originates in the attribute macro `hiarc_safer_arc_mutex` (in Nightly builds, run with -Z macro-backtrace for more info)
+19:01 < bridge> <ryozuki> help: there is a method `borrow` with a similar name
+19:01 < bridge> <ryozuki>     |
+19:01 < bridge> <ryozuki> 244 | borrow
+19:01 < bridge> <ryozuki>     |
+19:01 < bridge> <ryozuki> 
+19:01 < bridge> <ryozuki> error[E0599]: no method named `hi_borrow` found for struct `Arc<HiUnsafeMutex<AudioVideoEncoderImplImpl>>` in the current scope
+19:01 < bridge> <ryozuki>    --> lib/av-encoder/src/encoder.rs:272:1
+19:01 < bridge> <ryozuki>     |
+19:01 < bridge> <ryozuki> 272 | #[hiarc_safer_arc_mutex]
+19:01 < bridge> <ryozuki>     | ^^^^^^^^^^^^^^^^^^^^^^^^
+19:01 < bridge> <ryozuki>     |
+19:01 < bridge> <ryozuki> for cargo b  --features bundled_data_dir,ffmpeg,enable_steam
+19:01 < bridge> <aegisub> I can vouch for the meson one (under gstreamer), I haven't used the others
+19:01 < bridge> <Jupstar ✪> Damn. Yeah I redactored lot of stuff last days
+19:01 < bridge> <Jupstar ✪> Make bug report 😉
+19:02 < bridge> <Jupstar ✪> Or fix 😛
+19:03 < bridge> <ryozuki> well maybe next year @jupeyy_keks 😜
+19:06 < bridge> <ryozuki> @jupeyy_keks is the format even compatible
+19:06 < bridge> <ryozuki> the assets i sent are for ddnet 0.6
+19:07 < bridge> <ryozuki> u split the assets right
+19:11 < ws-client> <ChillerDragon> omg did i just expose my crappy ass screen hz with this -.- jupstar
+19:12 < bridge> <ryozuki> XD
+19:14 < bridge> <Jupstar ✪> It happens automatically in ddrs
+19:14 < bridge> <Jupstar ✪> So yes, skins can be used as is
+19:14 < bridge> <Jupstar ✪> Xdd
+19:37 < bridge> <cyberfrighter> how do u run de ddnet rs
+19:38 < bridge> <cyberfrighter> ah you have to compile
+19:38 < bridge> <cyberfrighter> ok it sux
+19:38 < bridge> <cyberfrighter> confirmed
+19:38 < bridge> <kollpotato> great feedback
+19:45 < bridge> <Jupstar ✪> I'll provide binaries in the next days
+19:45 < bridge> <murpi> What do people typically do when handling I/O tasks in Python while executing executables from cli? My issue is that windows requires executables to have a .exe extension when run from cli, whereas *nix systems don't. 
+19:45 < bridge> <murpi> 
+19:45 < bridge> <murpi> I currently use os.name to check which system is in use and simply append .exe if it's 'nt' (Windows) to whatever I/O task is needed, but I feel like that's not really the norm. xd
+19:47 < bridge> <ryozuki> you mean calling an executable from python?
+19:48 < bridge> <murpi> Yes
+19:49 < bridge> <ryozuki> i guess u need to detect the os yeah
+19:49 < bridge> <ryozuki> and append the .exe
+19:49 < bridge> <ryozuki> or check https://docs.python.org/3/library/os.html
+19:50 < bridge> <ryozuki> https://docs.python.org/3/library/os.html#os.uname
+19:51 < bridge> <murpi> That's pretty much what I'm doing now, but it's ugly as hell:
+19:51 < bridge> <murpi> ```py
+19:51 < bridge> <murpi> def check_os() -> Tuple[str, str]:
+19:51 < bridge> <murpi>     if os.name == "posix":  # Unix-like system
+19:51 < bridge> <murpi>         shell = "/bin/bash"
+19:51 < bridge> <murpi>         ext = ""
+19:51 < bridge> <murpi>     elif os.name == 'nt':  # Windows
+19:51 < bridge> <murpi>         shell = "powershell.exe"
+19:51 < bridge> <murpi>         ext = ".exe"
+19:51 < bridge> <murpi>     else:
+19:51 < bridge> <murpi>         raise OSError("Unsupported operating system")
+19:51 < bridge> <murpi>     return shell, ext```
+19:51 < bridge> <ryozuki> https://docs.python.org/3/library/subprocess.html
+19:52 < bridge> <ryozuki> u using this?
+19:52 < bridge> <murpi> Yes
+19:53 < bridge> <ryozuki> you sure windows needs .exe?
+19:53 < bridge> <ryozuki> when spawning/executing
+19:53 < bridge> <ryozuki> i know in console u dont need to type .exe
+19:53 < bridge> <ryozuki> anyway u need to know the OS because winshit accepts arguments in a different way, specially powershell
+19:54 < bridge> <Ewan> pythonn
+19:54 < bridge> <murpi> Not necessarily .exe but it definitely needs some kind of extension
+20:18 < bridge> <broso56> I was wondering why I was pinged in dev lol, neat
+20:23 < bridge> <teero777> what if i don't use bash :justatest:
+20:29 < bridge> <murpi> Your computer combusts and you'll be ejected from your seat
+20:30 < bridge> <teero777> noooo
+20:49 < bridge> <teero777> i guess you will never see an improved run_guy_25 run. sadge
+20:49 < bridge> <Ewan> i would use bash for all of this str8 up
+20:49 < bridge> <Ewan> but thats bcs i assume msys2
+20:58 < bridge> <pioooooo> @jupeyy_keks if you decide to split eyes into left & right why not just put both together?
+20:58 < bridge> <pioooooo> oh is that for some more nouis..
+20:58 < bridge> <pioooooo> :nouis:
+21:02 < bridge> <Jupstar ✪> The idea is simply to not put anything together. And since ddrs supports server provided assets I thought about splitting as much as logically possible
+21:05 < bridge> <woidless> 0xc00000005 error when starting DDNet Server
+21:06 < bridge> <woidless> What to do?
+21:08 < bridge> <pioooooo> that's great im already to see my :nouis:
+21:11 < bridge> <Jupstar ✪> Use 64bit ddnet
+21:46 < bridge> <aegisub> I don't need any extension onMyMachine™️
+21:46 < bridge> <aegisub> it might depend on your PATHEXT environment variable
+21:47 < bridge> <aegisub> you can also try `shutil.which("<yourcmd>")`
+23:29 < terrablanca> Hello
+23:31 < terrablanca> Hello, i like the idea of seeing the zoom of others but would it be possible to: When the autocam is ON (default), always see other's zoom. When the autocam is OFF (using the right click or any zoom action), always change our personal zoom level rather than a separate zoom. So that there is no difference in Zoom between playing, free view, or locked view, but the difference is whether you have autocam mode ON or OFF.
+23:32 < terrablanca> So if we spec a player with autocam ON and we unspec/freeview, we'll come back to our original zoom, but not if we had autocam OFF.
+23:32 < terrablanca> Also, to turn the autocam ON again, don't use the zoom reset key but rather the right-click (or unspec/respec), because you may want to use the key to return to normal zoom without necessarily seeing the other player's view.
+23:42 < bridge> <zhn> any news about #8432
+23:42 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/8432
