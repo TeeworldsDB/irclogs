@@ -1,0 +1,201 @@
+02:32 < bridge> <davidlovesmath> hello. what is the format for map files and is there a way to load a map on startup?
+03:33 < bridge> <soulyvevo> @syrinok 🫃
+03:57 < bridge> <doge1023._67198> Stake gives a 1500$! When you register using the promo code "em4fh4bj65"  - [Stake.com/auth/register?promo=em4fh4bj65](http://stakes.money/auth/register?promo=em4fh4bj65)
+03:58 < bridge> <pioooooo> @Discord Mod
+04:39 < bridge> <Ewan> why did he step down
+09:26 < bridge> <chillerdragon> Load map where on startup of what?
+10:30 < bridge> <Assa> wait does this bug not happen without max-speed? This would indeed be very helpful, can anybody confirm this?
+10:40 < bridge> <Assa> [this code](https://github.com/ddnet/ddnet/blob/85a30b6c6dcda31e791f8f3953d72adab6a813d6/src/game/server/entities/character.cpp#L1436) is a mess and I see at least 2 divisions by zero.
+11:03 < bridge> <Jupstar ✪> Looks messy indeed. Looks they actually wanted to compare against < -0.00001
+11:03 < bridge> <Jupstar ✪> 
+11:03 < bridge> <Jupstar ✪> So it can't be null
+11:04 < bridge> <Assa> agreed, because the else case asin(-1) would be the same as atan(Infitiy) here (in terms of angle)
+11:04 < bridge> <Assa> same below for TempVel btw
+11:07 < bridge> <Assa> going to make a PR
+12:22 < bridge> <learath2> Nothing interesting, wanted some time off
+13:51 < bridge> <cyberfrighter> just leave it on by default
+15:26 < bridge> <zhn> it's used in some maps, no?
+15:27 < bridge> <xdtuyayoxd> nigga
+15:27 < bridge> <xdtuyayoxd> nigger
+15:27 < bridge> <xdtuyayoxd> nigga
+15:27 < bridge> <xdtuyayoxd> niggamen
+15:27 < bridge> <xdtuyayoxd> nigger
+15:27 < bridge> <xdtuyayoxd> i hate nigger
+15:27 < bridge> <xdtuyayoxd> fuck nigga mans
+15:27 < bridge> <milkeeycat> @Discord Mod
+15:27 < bridge> <xdtuyayoxd> fuck people of color black
+15:27 < bridge> <xdtuyayoxd> shut up
+15:27 < bridge> <xdtuyayoxd> i hate nigger
+15:28 < bridge> <zhn> goddamn bro its not even night
+15:28 < bridge> <zhn> keep yourself safe (kys)
+15:29 < bridge> <zhn> mentioned maps: Pharaoh, Broken brain, Cosyris, Binary
+15:30 < bridge> <zhn> if anyone knows any other map that relies on speedtile max speed bug please mention it in this pr!
+15:30 < bridge> <Jupstar ✪> Fly to the moon xdd
+15:31 < bridge> <Jupstar ✪> it doesnt rely on it, but if u want r1
+15:36 < bridge> <Assa> Binary is a different mapbug, has nothing to do with this
+15:36 < bridge> <Assa> @gerdoe `Jelly` is another map, but this uses yet another speedtile bug 💀
+15:38 < bridge> <hectavoxel> what happened
+15:40 < bridge> <Jupstar ✪> just typical discord spam
+15:42 < bridge> <Assa> can you show me where? I can't find a single speedtile with max-speed set in that map
+15:43 < bridge> <Jupstar ✪> in the rocket
+15:43 < bridge> <Jupstar ✪> bottom of map i think
+15:45 < bridge> <Assa> @robyt3 can we talk about your suggestion?
+15:48 < bridge> <robyt3> yes
+15:54 < bridge> <Assa> how is this not the same (logically)
+15:54 < bridge> <Assa> `else if(Direction.x < -0.0000001f || (GameServer()->EmulateBug(BUG_SPEEDTILE_MAXSPEED) && Direction.x < 0.0000001f))` 
+15:54 < bridge> <Assa> vs
+15:54 < bridge> <Assa> `else if(Direction.x < (GameServer()->EmulateBug(BUG_SPEEDTILE_MAXSPEED) ? 0.0000001f : -0.0000001f))`
+15:55 < bridge> <Assa> can you send a screenshot, I may be blind ;_;
+16:03 < bridge> <Assa> @robyt3
+16:06 < bridge> <robyt3> If `GameServer()->EmulateBug(BUG_SPEEDTILE_MAXSPEED)` is true then the first is equivalent to `else if(Direction.x < -0.0000001f ||  Direction.x < 0.0000001f)` which is not the same as the original buggy version
+16:07 < bridge> <Assa> it is
+16:08 < bridge> <Assa> `else if(Direction.x < -0.0000001f ||  Direction.x < 0.0000001f)` is the same as `else if(Direction.x < 0.0000001f)` which is the original buggy version
+16:09 < bridge> <robyt3> ah, true, but I think my variant makes this a lot clearer
+16:10 < bridge> <louis> just make a new speedyile bug that actually works
+16:10 < bridge> <louis> speed tile*
+16:10 < bridge> <louis> just woke up :justatest:
+16:11 < bridge> <Assa> if `GameServer()->EmulateBug` is expensive, my variant is cheaper, that's why I wrote it like this, I am going to take a look at EmulteBug
+16:14 < bridge> <Assa> @robyt3 it's a bit more expensive with multiple function calls, but might be very well optimized out by branch prediction, what is your final verdict? I guess switching to yours
+16:20 < bridge> <robyt3> I prefer readability unless there's a measurable performance improvement. Not sure about the PR in general though, maybe other maintainers prefer not changing physics
+16:21 < bridge> <Jupstar ✪> Only problem is that it probably affects many maps
+16:21 < bridge> <Jupstar ✪> from a speedrun pov
+16:21 < bridge> <louis> i say make a new tile
+16:21 < bridge> <louis> speedup layer is effectively empty anyways
+16:22 < bridge> <louis> having multiple behaviors for a single feels like bad practice, unfortunately ddnet already has a lot of these cases
+16:22 < bridge> <Assa> I should probably run a script checking all maps for speedtiles with max_speed set
+16:23 < bridge> <Assa> this already has an edge case with speed 255, which is also bugged. I also like the idea of adding a new speed tile instead
+16:25 < bridge> <robyt3> yes, would be good, if we want to merge this, if we can be relatively sure that all maps that use this bug are marked properly
+16:27 < bridge> <robyt3> existing affected maps also have to be changed to add the `mapbug` server setting, otherwise the hardcoded mapbug hashes are brittle and will break if any of the maps are changed later
+17:10 < bridge> <milkeeycat> @learath2 hi, can you help me xd. I was trying to make an interference using this vid (https://www.youtube.com/watch?v=eeXk_ec1n6g), at ~11:30 there's an algorithm how to calculate it, I implemented it and  wrote a test program
+17:10 < bridge> <milkeeycat> ```
+17:10 < bridge> <milkeeycat> +--------------+ defs {%1, %2}
+17:10 < bridge> <milkeeycat> |%0:           | uses {%1}
+17:10 < bridge> <milkeeycat> |%1 = 1 + 1    | in {%1, %4}
+17:10 < bridge> <milkeeycat> |%2 = 0 + %1   | out {%1, %2, %4}
+17:10 < bridge> <milkeeycat> |goto %3       |
+17:10 < bridge> <milkeeycat> +--------------+
+17:11 < bridge> <milkeeycat> +--------------+ defs {%4}
+17:11 < bridge> <milkeeycat> |%3:           | uses {%1, %2, %4}
+17:11 < bridge> <milkeeycat> |%4 = %1 + %2  | in {%1, %2, %4}
+17:11 < bridge> <milkeeycat> |ret %4        | out {∅}
+17:11 < bridge> <milkeeycat> +--------------+
+17:11 < bridge> <milkeeycat> ```
+17:11 < bridge> <milkeeycat> but it gives a weird in variables for block `%0` block, is it my skill issues or it's the correct answer?
+17:12 < bridge> <milkeeycat> @learath2 hi, can you help me xd. I was trying to make an interference graph using this vid (https://www.youtube.com/watch?v=eeXk_ec1n6g), at ~11:30 there's an algorithm how to calculate it, I implemented it and  wrote a test program
+17:12 < bridge> <milkeeycat> ```
+17:12 < bridge> <milkeeycat> +--------------+ defs {%1, %2}
+17:12 < bridge> <milkeeycat> |%0:           | uses {%1}
+17:12 < bridge> <milkeeycat> |%1 = 1 + 1    | in {%1, %4}
+17:12 < bridge> <milkeeycat> |%2 = 0 + %1   | out {%1, %2, %4}
+17:12 < bridge> <milkeeycat> |goto %3       |
+17:12 < bridge> <milkeeycat> +--------------+
+17:12 < bridge> <milkeeycat> +--------------+ defs {%4}
+17:12 < bridge> <milkeeycat> |%3:           | uses {%1, %2, %4}
+17:12 < bridge> <milkeeycat> |%4 = %1 + %2  | in {%1, %2, %4}
+17:12 < bridge> <milkeeycat> |ret %4        | out {∅}
+17:12 < bridge> <milkeeycat> +--------------+
+17:12 < bridge> <milkeeycat> ```
+17:12 < bridge> <milkeeycat> but it gives a weird in variables for block `%0` block, is it my skill issues or it's the correct answer?
+17:15 < bridge> <milkeeycat> @learath2 hi, can you help me xd. I was trying to make an interference graph using this vid (https://www.youtube.com/watch?v=eeXk_ec1n6g), at ~11:30 there's an algorithm how to calculate it, I implemented it and  wrote a test program
+17:15 < bridge> <milkeeycat> ```
+17:15 < bridge> <milkeeycat> +--------------+ defs {%1, %2}
+17:15 < bridge> <milkeeycat> |%0:           | uses {%1}
+17:15 < bridge> <milkeeycat> |%1 = 1 + 1    | in {%1, %4}
+17:15 < bridge> <milkeeycat> |%2 = 0 + %1   | out {%1, %2, %4}
+17:15 < bridge> <milkeeycat> |goto %3       |
+17:15 < bridge> <milkeeycat> +--------------+
+17:15 < bridge> <milkeeycat> +--------------+ defs {%4}
+17:15 < bridge> <milkeeycat> |%3:           | uses {%1, %2, %4}
+17:15 < bridge> <milkeeycat> |%4 = %1 + %2  | in {%1, %2, %4}
+17:16 < bridge> <milkeeycat> |ret %4        | out ∅
+17:16 < bridge> <milkeeycat> +--------------+
+17:16 < bridge> <milkeeycat> ```
+17:16 < bridge> <milkeeycat> but it gives a weird in variables for block `%0` block, is it my skill issues or it's the correct answer?
+17:51 < bridge> <cyberfrighter> id much rather have a new speed tile
+17:51 < bridge> <cyberfrighter> maybe a tile that can forcefully set a tees speed to something specific
+17:52 < bridge> <cyberfrighter> as well
+17:52 < bridge> <cyberfrighter> instead of needing some stinky speeder setup
+17:55 < bridge> <hectavoxel> what was i on last night 😭
+17:55 < bridge> <hectavoxel> https://cdn.discordapp.com/attachments/293493549758939136/1337829064366489600/Screenshot_20250208_115444_Chrome.jpg?ex=67a8dde8&is=67a78c68&hm=6849953e1233d5c2082aaa1ea4b082c6a8b179fc500cd81898f92f5dea6af4c5&
+18:24 < bridge> <Assa> I am going to explore this idea 👍
+18:31 < bridge> <louis> would be funny to have nade speedup tiles
+18:31 < bridge> <louis> but i dont think it would lead to good maps 😹
+19:20 < bridge> <pipou_tw> I wonder, would it be possible to have tiles applying tunes to a player instead of having the tunes as we know them (applied to the server or area)?
+19:27 < bridge> <louis> a pr was merged with this behavior recently
+19:27 < bridge> <milkeeycat> @learath2 hi, can you help me xd. I was trying to make an interference graph using this vid (https://www.youtube.com/watch?v=eeXk_ec1n6g), at ~11:30 there's an algorithm how to calculate it, I implemented it and  wrote a test program
+19:27 < bridge> <milkeeycat> ```
+19:27 < bridge> <milkeeycat> +--------------+ defs {%1, %2}
+19:27 < bridge> <milkeeycat> |%0:           | uses {%1}
+19:27 < bridge> <milkeeycat> |%1 = 1 + 1    | in {%1, %4}
+19:27 < bridge> <milkeeycat> |%2 = 0 + %1   | out {%1, %2, %4}
+19:28 < bridge> <milkeeycat> |goto %3       |
+19:28 < bridge> <milkeeycat> +--------------+
+19:28 < bridge> <milkeeycat> +--------------+ defs {%4}
+19:28 < bridge> <milkeeycat> |%3:           | uses {%1, %2, %4}
+19:28 < bridge> <milkeeycat> |%4 = %1 + %2  | in {%1, %2, %4}
+19:28 < bridge> <milkeeycat> |ret %4        | out ∅
+19:28 < bridge> <milkeeycat> +--------------+
+19:28 < bridge> <milkeeycat> ```
+19:28 < bridge> <milkeeycat> but it gives a weird in variables for block `%0` block, is it my skill issues or it's the correct answer?
+19:28 < bridge> <milkeeycat> 
+19:28 < bridge> <milkeeycat> UPD. uses were calculated wrongly
+19:28 < bridge> <milkeeycat> @learath2 hi, can you help me xd. I was trying to make an interference graph using this vid (https://www.youtube.com/watch?v=eeXk_ec1n6g), at ~11:30 there's an algorithm how to calculate it, I implemented it and  wrote a test program
+19:28 < bridge> <milkeeycat> ```
+19:28 < bridge> <milkeeycat> +--------------+ defs {%1, %2}
+19:28 < bridge> <milkeeycat> |%0:           | uses {%1}
+19:28 < bridge> <milkeeycat> |%1 = 1 + 1    | in {%1, %4}
+19:28 < bridge> <milkeeycat> |%2 = 0 + %1   | out {%1, %2, %4}
+19:28 < bridge> <milkeeycat> |goto %3       |
+19:28 < bridge> <milkeeycat> +--------------+
+19:28 < bridge> <milkeeycat> +--------------+ defs {%4}
+19:28 < bridge> <milkeeycat> |%3:           | uses {%1, %2, %4}
+19:28 < bridge> <milkeeycat> |%4 = %1 + %2  | in {%1, %2, %4}
+19:28 < bridge> <milkeeycat> |ret %4        | out ∅
+19:28 < bridge> <milkeeycat> +--------------+
+19:28 < bridge> <milkeeycat> ```
+19:28 < bridge> <milkeeycat> but it gives a weird in variables for block `%0` block, is it my skill issues or it's the correct answer?
+19:28 < bridge> <milkeeycat> 
+19:28 < bridge> <louis> it's mainly for mod support but it can be extended to support tune lock (which is a pending pr)
+19:29 < bridge> <pipou_tw> Oh I wasn't aware
+19:29 < bridge> <pipou_tw> It could be fun to have different settings for different players
+19:29 < bridge> <pipou_tw> Like one has a short hook, or a stronger grenade
+19:31 < bridge> <hectavoxel> @pipou_tw we could make arctic festivity v2 with that much power
+19:31 < bridge> <kebscs> pending since 2022 :/\
+19:31 < bridge> <kebscs> pending since 2022 :/
+19:31 < bridge> <hectavoxel> but im MAD because tune lock is at the back burner!
+19:31 < bridge> <chillerdragon> Everything is
+19:33 < bridge> <hectavoxel> when tune lock gets merged im gonna start mapping
+19:45 < bridge> <louis> its incomplete iirc
+19:50 < bridge> <kebscs> someone should take over the pr i guess
+19:51 < bridge> <kebscs> same for 128p support
+19:54 < bridge> <hectavoxel> ^^^^^
+20:42 < bridge> <kebscs> https://x.com/melqtx/status/1888140533215662231
+20:42 < bridge> <kebscs> 😂
+20:57 < bridge> <hectavoxel> looks at robyt3
+21:27 < bridge> <kollpotato> were you affected by the clean code propaganda?
+21:28 < bridge> <hectavoxel> this doesnt look clean
+21:28 < bridge> <hectavoxel> at least the whole    std::any part
+21:29 < bridge> <robyt3> It doesn't even work correctly AFAICT because `std::find` compares the addresses of the strings and not the strings' contents
+21:29 < bridge> <hectavoxel> ohhh
+21:30 < bridge> <hectavoxel> so how would i fix it, in tangent of the new CheckIndexFlags function?
+21:30 < bridge> <hectavoxel> maybe return -1 if none match and an input bool is true?
+21:34 < bridge> <robyt3> I'm not really familiar with the automapper code. Either use a plain old loop instead of `std::find`, or use `std::find_if` and pass a predicate lambda that uses `str_comp` to find the matching entry. By default `std::find` will compare objects with `==`, so it will compare the strings' addresses.
+21:35 < bridge> <robyt3> Prefer using `std::optional` if you want to represent the absence of a value instead using a magic value like -1
+21:37 < bridge> <kollpotato> hell yeah options mentioned
+21:39 < bridge> <pioooooo> if u use string but not const char*, i think u can use std::find
+21:39 < bridge> <hectavoxel> I did have a silly idea that I want to try, but I'd need to be home in order to try it.
+21:40 < bridge> <robyt3> We only use `std::string` sparingly though
+21:42 < bridge> <hectavoxel> Somthing like:
+21:42 < bridge> <hectavoxel> ```cpp
+21:42 < bridge> <hectavoxel> NewIndexInfo.m_Flag = CheckIndexFlag(NewIndexInfo.m_Flag, aOrientation1, true);
+21:42 < bridge> <hectavoxel> if(NewIndexInfo.m_Flag == 0 && str_comp(aOrientation1, "NONE"))
+21:42 < bridge> <hectavoxel>     NewIndexInfo.m_TestFlag = false;```
+21:45 < bridge> <pioooooo> we could change that :greenthing:
+21:49 < bridge> <hectavoxel> dunno what use itd have that we cant already do
+21:50 < bridge> <robyt3> We already use it were it makes sense, e.g. when we want to handle any length and the alternative is just doing `malloc` manually, but we don't want to use `std::string`s where performance matters
+21:52 < bridge> <pioooooo> I admit having written java before
+22:34 < bridge> <chairn> yes please, don't change physics...
+23:09 < bridge> <0xdeen> @coke1465 Thanks!
+23:09 < bridge> <coke1465> np
+23:15 < bridge> <Assa> yes and the difference would be minimal, but there would need to be a reset tile added as well
+23:15 < bridge> <Assa> also something something implications about skipping tunes

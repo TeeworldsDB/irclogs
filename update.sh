@@ -42,8 +42,8 @@ download_full() {
 
 download_partial_newest() {
 	# this only includes ddnet not the teeworlds/ subdirectory
-	# this only redownloads logs from 2024 and later
-	local from_year=2024
+	# this only redownloads logs from 2025 and later
+	local from_year=2025
 	local max_year_last_digit
 	max_year_last_digit="$((from_year - 1))"
 	max_year_last_digit="${max_year_last_digit:3}"
