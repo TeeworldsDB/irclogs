@@ -1,0 +1,155 @@
+00:00 < bridge> <fokkonaut> chillerdragon: ur chiller client on 19.0 seems to not work with 128 tees
+00:12 < bridge> <Assa> please be gentle with the stones thrown at me!
+00:12 < bridge> <fokkonaut> same for cactus 19000 i think
+00:13 < bridge> <Assa> is there any reason I should trust the cactus client?
+00:24 < bridge> <fokkonaut> and tater i think
+00:24 < bridge> <fokkonaut> they all mess up versioning :(
+00:42 < ws-client> <ChillerDragon> @fokkonaut how do i reproduce?
+00:43 < ws-client> <ChillerDragon> @Assa cactus is closed source there are open source clients with similar features so no need to trust it
+00:43 < bridge> <Assa> there are some great children books about it
+00:49 < bridge> <hectavoxel> closed source ddnet clients are not valid clients in my eyes
+00:51 < bridge> <Assa> clang-tidy is on drugs reproduced: https://github.com/ddnet/ddnet/actions/runs/13620242565/job/38068614829?pr=9795
+00:58 < ws-client> <ChillerDragon> u need the magic comment i sent u
+01:07 < ws-client> <ChillerDragon> tater no panic merging into ddnet should fix all issues, at least it did for me
+06:50 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1345996832475713557/image.png?ex=67c694bc&is=67c5433c&hm=4406fcc5878b35986dba694b7f959f255f596659df7d7cf1b0673ff9c440ee4d&
+08:08 < bridge> <meloƞ> White mode.. you.. monster
+08:18 < bridge> <oxyzo.> Kill him
+09:37 < bridge> <matodor> dark theme got boring a few years ago
+10:24 < bridge> <d1nnnn> Does the API have limits?
+10:29 < bridge> <cellegenrih> what do I even answer to this
+10:29 < bridge> <cellegenrih> Does any API have limits? Probably the answer would be "yes"
+10:31 < bridge> <d1nnnn> You're right, I meant what are limits of the API?
+11:07 < bridge> <Assa> @jupeyy_keks I hope you didn't confuse the `TileIndex` Parameter of the `RenderTileLayerSpeedup` function and took an actual look at it. I am not rendering each tile individually, I am putting individual tiles of type `TileIndex` into the buffer
+11:08 < bridge> <Assa> Maybe the name `TileIndex` is to unprecise
+11:11 < bridge> <Jupstar ✪> I am not confusing anything
+11:11 < bridge> <Jupstar ✪> You create one draw call for every tile that matches
+11:15 < bridge> <Assa> Thats why I am asking. What does every tile individually mean, I took that literally: tile by tile, of the map
+11:18 < bridge> <Jupstar ✪> tile by tile of all currently visible tiles.. so if u have a speedup layer of 1000x1000 and zoom out
+11:18 < bridge> <Jupstar ✪> it's rip
+11:18 < bridge> <Assa> Yes, this are currently 3 render calls instead of 1
+11:19 < bridge> <Jupstar ✪> this is currently 1 million render calls instead of 1000
+11:20 < bridge> <Assa> ? no
+11:20 < bridge> <Assa> what, explain how you get a 1000
+11:21 < bridge> <Assa> `Graphics()->RenderTileLayer(Visuals.m_BufferContainerIndex, Color, s_vpIndexOffsets.data(), s_vDrawCounts.data(), DrawCount);`
+11:21 < bridge> <Assa> In the normal implementation this gets called once, in the new one this gets called 3 times
+11:21 < bridge> <Jupstar ✪> Create a new separate tile buffer for your new tile, similar to how overlays work
+11:21 < bridge> <Jupstar ✪> but the s_vDrawCounts
+11:21 < bridge> <Jupstar ✪> the size of it is how many draw calls you have
+11:22 < bridge> <Jupstar ✪> and you go over y and x
+11:22 < bridge> <Jupstar ✪> while the other impl only goes over y
+11:23 < bridge> <Jupstar ✪> @essigautomat I strongly recommend to load ddnet into renderdoc
+11:23 < bridge> <Jupstar ✪> And just see yourself, then you understand
+11:23 < bridge> <Jupstar ✪> easier than text
+11:24 < bridge> <Assa> I guess I may have missunerstood the graphics render function
+11:34 < bridge> <Assa> I see now, I add a draw call for ever x individually to the buffer. I could optimize it by counting conecutive tiles, but I'll look into a new seperate tile buffer
+11:36 < bridge> <Assa> Thank you @jupeyy_keks ✅
+12:31 < bridge> <kebscs> I guess this could send the already overriden zone
+12:31 < bridge> <kebscs> I'll test it
+12:36 < bridge> <Assa> I didn't touch the shaders, why does this happen 😦
+12:36 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1346083916754456606/screenshot_2025-03-03_12-32-19.png?ex=67c6e5d6&is=67c59456&hm=70116d1a6a256d2e0ec3d87df8bd7f07c76f2ff550abbf7e47f7d63981c3eba3&
+12:44 < bridge> <Jupstar ✪> Look F1 console, maybe that tells more
+12:44 < bridge> <Jupstar ✪> But kinda sounds like missing shader files tbh
+12:44 < bridge> <Jupstar ✪> You gotta use the data dir from the build dir
+12:47 < bridge> <Assa> I am currently having a windows moment, brb
+12:52 < bridge> <Assa> and suddenly my rust dependencies aren't building anymore?
+12:52 < bridge> <Assa> `
+12:52 < bridge> <Assa> [build]   uuid_manager.cpp
+12:52 < bridge> <Assa> [build]   video.cpp
+12:52 < bridge> <Assa> [build] CUSTOMBUILD : error : linking with `link.exe` failed: exit code: 1120 [C:\Users\User\Desktop\workspace\ddnet\build\rust_engine_shared_target.vcxproj]
+12:52 < bridge> <Assa> `
+12:55 < bridge> <Assa> solved by switching build target back and fourth, visual studio code moment
+13:38 < bridge> <Assa> ```
+13:38 < bridge> <Assa> [build] C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.CppCommon.targets(254,5): warning MSB8065: Der benutzerdefinierte Build f├╝r das Element "C:\Users\User\Desktop\workspace\ddnet\build\CMakeFiles\a1b41605f79cae13fcdb76246cd6b6f8\ddnet_engine_shared.lib.rule" war erfolgreich, aber die angegebene Ausgabe "c:\users\user\desktop\workspace\ddnet\build\release\ddnet_engine_shared.lib" wurde nicht erstellt
+13:38 < bridge> <Assa> ```
+13:38 < bridge> <Assa> 
+13:38 < bridge> <Assa> Build was successful, but wasn't created?!
+13:38 < bridge> <Assa> game is running, i am not asking questions
+13:39 < bridge> <Assa> game is running, i am not asking questions, and Vulkan is now working too ...
+14:05 < bridge> <Assa> is the fps counter broken? When I look at the graph with cntrl + shift + g, it shows ~ 2000 fps, the top right counter shows ~1000 fps, when the graph is opened in the ingame counter shows 500 fps, and when I tab out of the game, the ingame counter shows 120 and the graph shows 144 fps
+14:11 < bridge> <Jupstar ✪> the graph uses a maximum and minimum to display a graph
+14:18 < bridge> <alix211527> @everyone steam gift 50$ - [steamcommunity.com/gift-card/pay/50](https://u.to/-zkTIg )
+14:19 < bridge> <Assa> @Discord Mod
+15:40 < bridge> <kiler94> What to do infinite loading of resources
+15:40 < bridge> <kiler94> https://cdn.discordapp.com/attachments/293493549758939136/1346130087652626513/IMG_20250303_154519.jpg?ex=67c710d6&is=67c5bf56&hm=fdd4de1320fd82e730904afda28608f5938aec090dce6b46657a89ca03f0563e&
+15:48 < bridge> <Assa> after 1 hour of debugging, I finally found that editor image bug .... 
+15:48 < bridge> <Assa> `SelectSprite(IMAGE_SPEEDUP_SLIDE);`  -> `SelectSprite(SPRITE_SPEEDUP_SLIDE);` just me being stupid and blind and generated files ...
+15:49 < bridge> <kiler94> What to do infinite loading of resources
+15:49 < bridge> <kiler94> https://cdn.discordapp.com/attachments/293493549758939136/1346132430578516028/IMG_20250303_154519.jpg?ex=67c71305&is=67c5c185&hm=596f0aa89ae5478807663ff1c46c0c1891597729384a126ae4ac8439611ea681&
+16:39 < bridge> <oxyzo.> why do you keep sending this everywhere
+16:50 < bridge> <Jupstar ✪> kid thinks he is the main character
+16:51 < bridge> <kollpotato> he probably does not think at all
+17:31 < bridge> <hectavoxel> 😭
+18:08 < bridge> <Assa> Be happy, PR is ready 🙂
+18:09 < bridge> <hectavoxel> :deen_star:
+18:09 < bridge> <ryozuki> :deen_star:
+18:26 < bridge> <Assa> @ryozuki do you have an idea what to do about [this](https://github.com/ddnet/ddnet/actions/runs/13633665853/job/38107024618?pr=9795) ? I know chillerdragon suggested a clang-tidy turn-off line, but I don't know if this is a joke or why this is only triggering there
+18:42 < bridge> <ryozuki> i think its because u edited that file or smth
+18:53 < bridge> <Ewan> https://github.com/ddnet/ddnet/actions/runs/13633665853/job/38107024618?pr=9795#step:5:416
+19:02 < bridge> <Ewan> erro: potential memory leak
+19:03 < bridge> <Ewan> under certain conditions that clang-tidy evaluated and described
+19:03 < bridge> <Ewan> delete when u heap alloc
+19:05 < bridge> <robyt3> It's a false positive, probably because we use our own memory pool, so'll need to add an exclusion: `for(int i = -ShotSpread; i <= ShotSpread; ++i) // NOLINT(clang-analyzer-unix.Malloc)`
+19:09 < bridge> <Assa> Now added it 🤷‍♂️
+19:28 < bridge> <Assa> Seems to have worked
+21:02 < bridge> <milkeeycat> @ryozuki I almost added structs
+21:02 < bridge> <milkeeycat> ```rust
+21:02 < bridge> <milkeeycat> Program {
+21:02 < bridge> <milkeeycat>         globals: vec![],
+21:02 < bridge> <milkeeycat>         functions: vec![Function {
+21:02 < bridge> <milkeeycat>             registers: vec![Register {
+21:02 < bridge> <milkeeycat>                 name: "1".into(),
+21:02 < bridge> <milkeeycat>                 ty: Ty::Struct(vec![Ty::I8, Ty::Struct(vec![Ty::I8, Ty::I32])]),
+21:02 < bridge> <milkeeycat>             }],
+21:02 < bridge> <milkeeycat>             name: "main".into(),
+21:02 < bridge> <milkeeycat>             blocks: vec![BasicBlock {
+21:02 < bridge> <milkeeycat>                 name: "0".into(),
+21:02 < bridge> <milkeeycat>                 instructions: vec![Instruction::Copy {
+21:02 < bridge> <milkeeycat>                     operand: Operand::Const(ValueTree::Branch(vec![
+21:02 < bridge> <milkeeycat>                         ValueTree::Leaf(Const::I8(1)),
+21:02 < bridge> <milkeeycat>                         ValueTree::Branch(vec![
+21:02 < bridge> <milkeeycat>                             ValueTree::Leaf(Const::I8(2)),
+21:02 < bridge> <milkeeycat>                             ValueTree::Leaf(Const::I32(3)),
+21:02 < bridge> <milkeeycat>                         ]),
+21:02 < bridge> <milkeeycat>                     ])),
+21:02 < bridge> <milkeeycat>                     out: 0,
+21:02 < bridge> <milkeeycat>                 }],
+21:02 < bridge> <milkeeycat>                 terminator: Terminator::Return(None),
+21:02 < bridge> <milkeeycat>             }],
+21:02 < bridge> <milkeeycat>             params: vec![],
+21:02 < bridge> <milkeeycat>             ret_ty: None,
+21:02 < bridge> <milkeeycat>         }],
+21:02 < bridge> <milkeeycat>     }
+21:02 < bridge> <milkeeycat> ```
+21:02 < bridge> <milkeeycat> spits out
+21:03 < bridge> <milkeeycat> ```x86asm
+21:06 < bridge> <kebscs> @tsfreddie this is your commit, do you remember why you added the fail safe? <https://github.com/ddnet/ddnet/commit/500ba7609f065d0df7e313c6acce023b6b0315f7#diff-d76009083687ba43c59dc7bb2c7357457c999c2eb9d913967d598e913c6fd01fR69>
+21:06 < bridge> <kebscs> pr says "Some server code has to be updated accordingly." but the "fail safe" is in shared code and i think its compeletyl useless in server
+21:06 < bridge> <ryozuki> pog
+21:10 < ws-client> <ChillerDragon> @Assa it was not a joke and it is common that this gets unlocked seemingly randomly when you change other code.
+21:12 < ws-client> <ChillerDragon> @d1nnnn which api
+21:13 < bridge> <Assa> yes thank you, I am just wondering that nobody else was running over this in other PRs
+21:14 < bridge> <Assa> I am currently working on colored speedtiles and run into the issue, that I am skillchecked in setting up vulkan rendering buffers xD writing a shader was not an issue
+22:30 < bridge> <kebscs> how can i scan all maps' server settings?
+22:30 < bridge> <robyt3> `config_retrieve`
+22:31 < bridge> <robyt3> (and a script to run it on all maps)
+22:34 < bridge> <kebscs> how do i make a script that checks the server settings?
+22:34 < bridge> <kebscs> or is there an existing one
+22:37 < bridge> <Assa> use twmap or twmap-py, it has all the bindings you need
+22:37 < bridge> <Assa> Can you program in python? I have a small bad notebook
+22:37 < bridge> <kebscs> yea
+22:38 < bridge> <kebscs> i just need to check if any map contains `tune_zone 0` setting because it doesnt work
+22:39 < bridge> <Assa> I tried to use it in my map, but it doesn't work so I needed to patch it out
+22:39 < bridge> <kebscs> yes, but it started working with <https://github.com/ddnet/ddnet/pull/9798> so idk if i should prevent it or is it fine
+22:40 < bridge> <robyt3> It's just a small python/shell wrapper to list all maps files in the ddnet-maps folder and execute `config_retrieve` for each
+22:40 < bridge> <robyt3> That would write the settings to `.cfg` files next to the maps
+22:41 < bridge> <Assa> twmap can do this directly, but yes this would also work
+22:41 < bridge> <robyt3> Then you could simply search the cfg files in folder recursively with a text editor
+22:41 < bridge> <kebscs> ok i can do that
+22:41 < bridge> <kebscs> ty
+22:44 < furo> @kebscs I checked, and no maps contain `tune_zone 0`
+22:45 < bridge> <Assa> please also check for tune_zone_enter and tune_zone_leave
+22:45 < bridge> <Assa> but I guess you won't have any results
+22:46 < furo> Hm, actually. Behemoth contains `tune_zone_enter 0 "Map for 4+ tees, max 8 tees if in a team!"` and Simple World 3 has `tune_zone_leave 0 "Leaving beloved standards behind"`
+22:47 < bridge> <Assa> maybe the other two commands actually work as expected
+22:48 < bridge> <kebscs> Thanks,  so I guess I can fix it with that pr
+22:48 < bridge> <kebscs> Just need to update prediction if it breaks it

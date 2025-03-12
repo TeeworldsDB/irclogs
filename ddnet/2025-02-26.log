@@ -1,0 +1,394 @@
+06:21 < bridge> <zerolacqua> when u save a map in editor, all unused tiles in tele/speedup/switch/tune layer are replaced by 0.
+06:21 < bridge> <zerolacqua> is it expected behavior?
+06:22 < bridge> <zerolacqua> when u save a map in editor, all unused tiles in tele/speedup/switch/tune layer are replaced by 0 after reload it.
+07:24 < bridge> <patiga> If you got time on your hands, you could try to find maps that can crash the library twmap https://gitlab.com/Patiga/twmap. It's in Rust and in general tries to catch all errors and not crash :happy:
+07:29 < bridge> <patiga> If you got time on your hands, you could alo try to find maps that can crash the library twmap https://gitlab.com/Patiga/twmap. It's in Rust and in general tries to catch all errors and not crash :happy:
+07:44 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1344198414392627262/image.png?ex=67c009d3&is=67beb853&hm=d8aa3f74ea6d929c4d72b271ae01d41eb1fba73f4ce7237622dff103f4c0e155&
+08:00 < bridge> <Ewan> lmfao
+09:43 < bridge> <Assa> I have seen some blog about fuzzing in teeworlds map, this could maybe be applied here
+10:05 < bridge> <Assa> Does anyone know, how I can get tuning in prediction/character? This is client sided and works a bit differently
+10:06 < bridge> <Assa> probably something like `GetTuning(GetOverridenTuneZone)->m_MyNewVar`
+10:07 < bridge> <Assa> ah this works with CTuningParams directly, I see
+11:33 < bridge> <teero777> Yo the new update doesn't just increase max_clients to 128 right,
+11:33 < bridge> <teero777> Yo the new update doesn't just increase max_clients to 128 right?
+11:35 < bridge> <teero777> That would be so bad
+11:35 < bridge> <Assa> My guess is, that it uses sixup logic for older clients
+11:35 < bridge> <Assa> My guess is, that it uses sixup logic for older clients, ofc just a guess
+11:36 < bridge> <Assa> imagine being on a client which only allows 16 players when there are 128 xD what can go wrong
+11:42 < bridge> <Jupstar ✪> What would you expect instead?
+11:45 < bridge> <Assa> @jupeyy_keks 😎 3 lines of code
+11:45 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1344259072287047701/new_speedtile_test_2025-02-26_11-44-14.mp4?ex=67c04251&is=67bef0d1&hm=c80987aeb8de4d063e09503ef0c70542f4c66e40bc198326d3e515ae0a6cbe07&
+11:45 < bridge> <Jupstar ✪> neat
+11:46 < bridge> <Assa> PR coming soon, need to adjust the default value, set it accidently to 128 instead of 118 xD
+11:55 < bridge> <Assa> also @patiga and @kebscs
+12:04 < bridge> <meloƞ> So much speed tuning in the past few days :poggers2:
+12:04 < bridge> <Assa> Last thing left on my speedtile list is maybe clamping the slowdown of max_speed Force, so that max_speed isn't such an instant blocker
+12:05 < bridge> <Assa> this would be changing `TempVel += Direction * (TempMaxSpeed - CurrentDirectionalSpeed);` to `TempVel += Direction * max(-Force, (TempMaxSpeed - CurrentDirectionalSpeed));`
+12:05 < bridge> <Assa> This is just up for discussion 🤷‍♂️
+12:06 < bridge> <Assa> this would also change the behavior again of max_speed set for different forces
+12:10 < bridge> <meloƞ> So it just caps and doesn't interfere with anything? +1
+12:10 < bridge> <Assa> a booster with max speed can currently instantly slow you down to max_speed
+12:10 < bridge> <meloƞ> So it just caps and doesn't interfere with any existing behaviour? +1 (instead of, well, going over a specific value slowing you down)
+12:10 < bridge> <meloƞ> 
+12:10 < bridge> <meloƞ> A map utilizes this, but with bluetele and grenade IIRC
+12:11 < bridge> <Assa> the other proposed way can only slow you down up to `Force`
+12:11 < bridge> <meloƞ> Ah I see
+12:11 < bridge> <Assa> meaning you _can_ still be faster then max speed
+12:11 < bridge> <Assa> but still experience a slow down
+12:14 < bridge> <Assa> this can also prevent the reflecting up part patiga was so worried about. But you can still do it with hughe Force values
+12:14 < bridge> <Assa> this can also (partially) prevent the reflecting up part patiga was so worried about. But you can still do it with hughe Force values
+12:15 < bridge> <meloƞ> a good default value makes more sense than keeping it unclamped anyway - wonder why we didn't do that before
+12:15 < bridge> <meloƞ> 
+12:15 < bridge> <meloƞ> But maybe we just didn't bother because some maps utilized this so it was considered ⭐a feature ⭐
+12:16 < bridge> <Assa> I think now I can explain why you fly up like for a 5 year old:
+12:16 < bridge> <Assa> @patiga when you hit a speedtile with max speed set and you are way too fast, the speedtile instead pushes you in the opposite direction in order to slow you down. The opposite direction of bottom right is top left. Right and left speed gets cancelled, but you will be pushed up
+12:17 < bridge> <Assa> Nobody was italian enough to touch the old code
+12:24 < bridge> <teero777> Not making the game 2x more CPU heavy? This will prob reduce my fps by a lot.
+12:24 < bridge> <teero777> even with only 2 players on the server everything still loops over the 128size array
+12:31 < bridge> <teero777> @jupeyy_keks how is ddpg coming along
+12:31 < bridge> <Jupstar ✪> Agreed, but would you instead expect to use Vec or smth?
+12:32 < bridge> <Jupstar ✪> Dunno, ddrace didn't advance ig :/
+12:32 < bridge> <teero777> yes definitely. There are some problems with strong/weak no?
+12:32 < bridge> <teero777> weakhook and bounce is a bug feature anyway
+12:32 < bridge> <Jupstar ✪> if you don't keep the order, then yes.
+12:32 < bridge> <Jupstar ✪> 
+12:32 < bridge> <Jupstar ✪> If you keep the order then mostly removing and inserting is slower ig
+12:35 < bridge> <01000111g> can someone explain me how "weak bug" works, based on the code. I really struggle to make sense out of it
+12:52 < ChillerDragon> ok nice the bridge works again
+12:53 < ChillerDragon> is it unsafe to ``mem_zero`` a multi dimensional array?
+12:53 < ChillerDragon> removing this line fixed a crash in my client hm ... ``mem_zero(m_aaDbgMsgs, sizeof(m_aaDbgMsgs));
+12:53 < ws-client> <ChillerDragon> ``mem_zero(m_aaDbgMsgs, sizeof(m_aaDbgMsgs));``
+12:54 < ChillerDragon> annoying submit message on paste
+12:54 < ChillerDragon> fakin weechat 
+12:56 < ChillerDragon> as far as i know multi dimensional arrays are also contiguos in memory so zeroing out the full size should not corrupt anything??
+12:56 < bridge> <milkeeycat> it shouldn't™
+12:57 < bridge> <milkeeycat> chillerdragon: can you send a link to the repo if it's not private?
+12:59 < ChillerDragon> yea the recent merge into ddnet broke chillerbot-ux but the crash that is more complicated to debug is only in its fork that shall not be named to not violate rule 7
+13:05 < ws-client> <ChillerDragon> replacing the mem zero with ``	for(auto &aDbgMsg : m_aaDbgMsgs) aDbgMsg[0] = '\0';`` fixed the crash but it is still full of asan warnings of pointers with invalid type so probably the issue is elsewhere
+13:05 < ws-client> <ChillerDragon> sad that asan does not help me find the origin ._.
+13:08 < ws-client> <ChillerDragon> oof this is frustrating @milkeeycat are you interested in debugging it? :D if you leak your gitlab name i can invite you to the repo. Its only closed source so skids dont abuse its features for illegal purposes but you could build a more harmful client your self in 10 minutes.
+13:09 < bridge> <milkeeycat> i don't have a gitlab account xd
+13:09 < ws-client> <ChillerDragon> wot
+13:09 < ws-client> <ChillerDragon> blaze it netherlands alternative for microsoft crap?
+13:09 < ws-client> <ChillerDragon> just click "sign in with github" :D 
+13:12 < bridge> <milkeeycat> uninstalling graphics lib removed `keepassxc` -.-
+13:12 < ws-client> <ChillerDragon> which distro u on again?
+13:13 < bridge> <milkeeycat> debian
+13:13 < ws-client> <ChillerDragon> didnt you recently rage quit gentoo?
+13:13 < bridge> <milkeeycat> it was a year ago xd
+13:13 < ws-client> <ChillerDragon> as i said
+13:13 < ws-client> <ChillerDragon> recently
+13:13 < bridge> <milkeeycat> yup
+13:18 < bridge> <milkeeycat> chillerdragon: https://gitlab.com/MilkeeyCat
+13:32 < ws-client> <ChillerDragon> @milkeeycat please do not leak the hidden secret projects in there not even their highly confidental code names https://gitlab.com/chillerbot/chillerbot-zx
+13:32 < ws-client> <ChillerDragon> build the client with asan and connect to a server you will see some odd warnings
+13:32 < ws-client> <ChillerDragon> thanks for checking it out <:heartw:395753947396046850>
+13:34 < ws-client> <ChillerDragon> oh shiet u need also access to the private submodules sec
+13:36 < bridge> <Assa> one question: If I add a value to config_variables.h, do I have to do it at the bottom?
+13:37 < ws-client> <ChillerDragon> for ddnet or your client?
+13:37 < ws-client> <ChillerDragon> your project*
+13:37 < bridge> <Assa> for ddnet
+13:37 < ws-client> <ChillerDragon> no
+13:37 < ws-client> <ChillerDragon> you can put it whereever it fits best
+13:44 < bridge> <Assa> why can you turn on/off the tune overlay with ClTextEntities?!
+13:46 < bridge> <Assa> no I don't understand something
+13:48 < bridge> <Assa> I have never seen a number over a tune tile, oh now I understand, the tune overlay is only rendered in editor, makes sense
+13:49 < bridge> <Assa> oh god, why do we have a single setting for editor and ingame for this ...
+13:52 < bridge> <milkeeycat> chillerdragon: I tried using ddnet's docs https://github.com/ddnet/ddnet?tab=readme-ov-file#using-addresssanitizer--undefinedbehavioursanitizer-or-valgrinds-memcheck and I don't see warnings but when I leave the game it segfaults xd
+13:55 < ws-client> <ChillerDragon> @milkeeycat have you successfuly used asan before?
+13:55 < ws-client> <ChillerDragon> ddnet docs work smooth for me on debian
+13:57 < ws-client> <ChillerDragon> hah finally a good lead!
+13:58 < ws-client> <ChillerDragon> reverting https://github.com/ddnet/ddnet/pull/9712 fixes it
+13:58 < ws-client> <ChillerDragon> so somewhere there is a MAX_CLIENTS 128 issue
+13:58 < ws-client> <ChillerDragon> ... somewhere
+14:02 < bridge> <milkeeycat> chillerdragon: what server did you connect to?
+14:02 < ws-client> <ChillerDragon> local host random ddnet-insta ictf server
+14:03 < bridge> <Assa> is there any way to know if something gets rendered ingame or by the editor?
+14:03 < ws-client> <ChillerDragon> im 95% sure i fixed it btw @milkeeycat 
+14:03 < bridge> <milkeeycat> now I want to understand why it doesn't print anything -.-
+14:04 < ws-client> <ChillerDragon> yes you should!
+14:04 < ws-client> <ChillerDragon> asan is op
+14:07 < ws-client> <ChillerDragon> yup its fixed. Thanks a lot for you moral support @milkeeycat i really needed it. Your efforts to fix closed source bot clients will never be forgotten.
+14:08 < bridge> <milkeeycat> what command do you use for asan?
+14:08 < ws-client> <ChillerDragon> ``asan``
+14:08 < bridge> <milkeeycat> :thonk:
+14:09 < ws-client> <ChillerDragon> https://github.com/ChillerDragon/crools/blob/951e161d5c889c5f5b662e86ca470566e5ec4270/asan
+14:09 < ws-client> <ChillerDragon> basically ddnet readme
+14:09 < ws-client> <ChillerDragon> ``CC=clang CXX=clang++ CXXFLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer' CFLAGS='-fsanitize=address,undefined -fsanitize-recover=address,undefined -fno-omit-frame-pointer'  cmake .. -DCMAKE_BUILD_TYPE=Debug``
+14:09 < bridge> <milkeeycat> but it still segfaults for me
+14:09 < bridge> <milkeeycat> btw it still segfaults for me
+14:09 < ws-client> <ChillerDragon> https://paste.zillyhuhn.com/iP
+14:09 < ws-client> <ChillerDragon> did you update submodules?
+14:09 < bridge> <milkeeycat> yep
+14:09 < ws-client> <ChillerDragon> not good
+14:10 < ws-client> <ChillerDragon> segfault on quit?
+14:10 < bridge> <milkeeycat> ye
+14:11 < bridge> <milkeeycat> and when i turn of debug mode
+14:11 < bridge> <milkeeycat> and when i turn on debug mode
+14:11 < ws-client> <ChillerDragon> crazy how much effort it is to maintain basically 0 features
+14:12 < ws-client> <ChillerDragon> i wanted to do some server side stuff and am stuck launching my client xd
+14:12 < ws-client> <ChillerDragon> time to switch to ddnet-rs
+14:14 < ws-client> <ChillerDragon> i can not reproduce the segfault wot
+14:14 < ws-client> <ChillerDragon> how is your setup so different?
+14:14 < bridge> <milkeeycat> :feelsbadman:
+14:14 < ws-client> <ChillerDragon> works on my machine
+14:14 < ws-client> <ChillerDragon> wont fix
+14:23 < bridge> <milkeeycat> chillerdragon: all I got from asan is `AddressSanitizer:DEADLYSIGNAL` xd
+14:24 < bridge> <meloƞ> FOR REAAAAAAL
+14:24 < bridge> <meloƞ> RUSTLANG 🗣️ 🗣️ 🗣️ 🗣️ 🗣️ 🗣️ 🗣️ 🗣️
+14:24 < bridge> <milkeeycat> and after I removed `build` dir and recompiled, it doesn't segfault when I close the game
+14:25 < bridge> <meloƞ> NERDY ASS PROGRAMMING LANGUAGE :deen_star:
+14:25 < bridge> <milkeeycat> but it does still segfault when I try to turn on debug mode
+14:33 < bridge> <hectavoxel> do you even code
+14:35 < bridge> <ryozuki> :deen_star:
+14:40 < bridge> <TsPiggy> no he just buys a bunch of iron and spill melon juice on them so they become **rusty**
+14:40 < bridge> <hectavoxel> chiller you should finish the ddnet gamemode port for juppey, so that i can be able to add a gamemode with more weapons
+14:42 < bridge> <teero777> are they cool features?
+14:42 < bridge> <teero777> ChillerDragon
+15:25 < bridge> <Assa> I am afraid to open my next PRs 😦
+15:28 < bridge> <Assa> me too
+15:43 < bridge> <ryozuki> xd
+15:44 < bridge> <ryozuki> oh wow @hectavoxel u got me blocked again? or i guess i was never unblocked
+15:44 < bridge> <ryozuki> im reminded of it when i try to react the emoji xd
+15:54 < bridge> <meloƞ> your fault for speaking off the nerdy ass programming language!
+15:59 < bridge> <ryozuki> linux al-gaib
+16:06 < bridge> <Assa> does anyone know if -0.0f < 0.0f ? xD
+16:06 < bridge> <ChillerDragon> Aaaa then look for a file called SAN.pid in your current directory
+16:07 < bridge> <meloƞ> in terms of comparison, they're equal
+16:08 < bridge> <ChillerDragon> Nope it’s some boring movement automation and a block stats tracker I built for Multeasymap
+16:08 < bridge> <meloƞ> m..m...movement.. auto...automation?
+16:08 < bridge> <milkeeycat> chillerdragon: the whole time I was looking in console, i thought warnings would be printed in stdout, but they were in SAN.pid file xd. Everything works now and doesn't segfault 😄
+16:09 < bridge> <meloƞ> !ban Bridge 0
+16:10 < bridge> <chillerdragon> They are in stderr by default but it you follow the ddnet readme it uses a logfile
+16:10 < bridge> <chillerdragon> So the segfault was some classic build cache error?
+16:11 < bridge> <ryozuki> ```
+16:11 < bridge> <ryozuki> Welcome to Node.js v22.13.1.
+16:11 < bridge> <ryozuki> Type ".help" for more information.
+16:11 < bridge> <ryozuki> > -0.0 === 0.0
+16:11 < bridge> <ryozuki> true
+16:11 < bridge> <ryozuki> 
+16:11 < bridge> <ryozuki> Python 3.13.2 (main, Feb 23 2025, 08:12:01) [GCC 14.2.1 20241221] on linux
+16:11 < bridge> <ryozuki> Type "help", "copyright", "credits" or "license" for more information.
+16:11 < bridge> <ryozuki> >>> -0.0 == 0.0
+16:11 < bridge> <ryozuki> True
+16:11 < bridge> <ryozuki> ```
+16:11 < bridge> <ryozuki> oh wait
+16:11 < bridge> <ryozuki> u mean <
+16:11 < bridge> <ryozuki> > -0.0 < 0.0
+16:11 < bridge> <ryozuki> > False
+16:11 < bridge> <chillerdragon> Yes that’s why the client is closed source. But I as responsible person only use it on servers where I got permissions from the admins. Or on ddnet when no moderator is looking.
+16:11 < bridge> <Assa> Thank you
+16:11 < bridge> <meloƞ> AhGG
+16:12 < bridge> <ryozuki> false in nodejs too
+16:12 < bridge> <chillerdragon> I use it on ddnet to not get afk kicked because players drag me into the next part
+16:12 < bridge> <milkeeycat> i thought i updated the submodule, but all I did was `git pull origin branch` so it only updated submodule link and didn't download new code xd
+16:12 < bridge> <chillerdragon> But super rarely actually
+16:13 < bridge> <chillerdragon> I mostly use it on block servers
+16:16 < bridge> <hectavoxel> at this point its more of an adblock
+16:22 < bridge> <ryozuki> :justatest:
+16:24 < bridge> <louis> > According to the standard, negative zero exists but it is equal to positive zero. For almost all purposes, the two behave the same way and many consider the existence of a negative to be an implementation detail. There are, however, some functions that behave quite differently, namely division and atan2
+16:38 < bridge> <totar> sign(-0.0f) is useful sometimes
+16:39 < bridge> <totar> If you have a process that approaches 0.0 you can keep the sign even after it becomes 0
+16:45 < bridge> <meloƞ> cc: @hectavoxel, tho not sure if thats because of your changes :saddybear:
+16:50 < bridge> <hectavoxel> wtf
+16:50 < bridge> <hectavoxel> im mobile
+16:56 < bridge> <meloƞ> was this supposed to be #bot-cmds  ?
+16:56 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1344337244659650632/image.png?ex=67c08b1f&is=67bf399f&hm=34997c1698bd1f5ed967b467c84d0b2748c910cea4755dc6d93e0da59d7e8e3d&
+16:56 < bridge> <meloƞ> "no access"
+17:00 < bridge> <Assa> I may have found yet another bug in the old speedtiles which may also affect the new ones ... man
+17:00 < bridge> <Assa> (╯°□°)╯︵ ┻━┻
+17:01 < bridge> <Assa> gravity fucks with the calculations a tiny bit
+17:01 < bridge> <Assa> gravity may fuck with the calculations a tiny bit, if you're grounded
+17:04 < bridge> <hectavoxel> least buggy ddnet feature
+17:15 < bridge> <chairn> -0.0f == +0.0f
+17:18 < bridge> <patiga> not surw why you ping me ^^
+17:20 < bridge> <Assa> you asked yesterday to explain it like a 5 years old? 😮
+17:21 < bridge> <patiga> no, I explained that yesterday ^^
+17:21 < bridge> <patiga> I mean I predicted that behaviour by reading the code :p
+17:22 < bridge> <patiga> here
+17:22 < bridge> <Assa> apparently this only clicked with me after I slept
+17:23 < bridge> <patiga> yea the argument yesterday was a mess ^^
+17:24 < bridge> <learath2> Let me give source on that incase anyone is curious: IEEE-754 5.11, `...Comparisons shall ignore the sign of zero...`
+17:31 < bridge> <ryozuki> https://x.com/DOGE/status/1894552374338834604?t=UtWwH6OwM0V77qcEUV9nSg&s=19
+17:31 < bridge> <ryozuki> vscode licenses
+17:31 < bridge> <ryozuki> :kek:
+17:41 < bridge> <pluskz> @essigautomat  It seems i can go through the new speedtiles if max speed is 1 and i hook something at the other side
+17:42 < bridge> <louis> wtf is a vscode license
+17:42 < bridge> <Assa> do you need to be very fast for this? If you're fast enough, you can skip any speedtile in general
+17:44 < bridge> <pluskz> No
+17:44 < bridge> <louis> its cause of the hook
+17:44 < bridge> <Assa> cannot reproduce
+17:44 < bridge> <Assa> plese send setup 😄
+17:45 < bridge> <pluskz> I cant now xd, but i just make a slide, with hookables below
+17:45 < bridge> <pluskz> I hooked them while at the slide and moved left and right
+17:45 < bridge> <pluskz> And i go through it
+17:47 < bridge> <Assa> be reminded, that max_speed 1 is not zero speed, even if you stop in the vertical case (due to quantization)
+17:48 < bridge> <kebscs> Can you małe minimum speed 0?
+17:48 < bridge> <Assa> and Now iam able to skip through them too, but veeeeeery slowly
+17:48 < bridge> <kebscs> Can you małe minimum max speed 0?
+17:48 < bridge> <kebscs> Can you make minimum max speed 0?
+17:48 < bridge> <Assa> No, i am currently working on slides as tiles, which are force 0 max_speed 0 tiles
+17:49 < bridge> <kebscs> Ah so this is how you implement it
+17:49 < bridge> <Assa> doing this with speedtiles is somewhat shady
+17:51 < bridge> <Assa> here is a testbuild if you're intrested <https://github.com/AssassinTee/ddnet/pull/6>
+17:51 < bridge> <Assa> 
+17:51 < bridge> <Assa> Speedlayer Index 31, but it still uses the arrow sprite. I didn't want to post it yet as I am waiting for a new graphic which makes it purpose clearer
+17:51 < bridge> <kebscs> I think this is what 2d games do for slopes
+17:51 < bridge> <kebscs> Additional upwards speed
+17:52 < bridge> <kebscs> And slow down left/right direction speed
+17:52 < bridge> <Assa> don't call them slopes, call them slides, as I already see other people throwing stones at me :justatest:
+17:54 < bridge> <Assa> also the slides I implemented are still skippable, it just takes very very long and is probably due to floating point precision and quantization
+17:55 < bridge> <pluskz> Why not make 0 be 0 in this tile? xd
+17:56 < bridge> <Assa> because the old tiles didn't support it either, I am just following the standard. And max_speed 0 is equal to NO max_speed
+17:57 < bridge> <pluskz> Hmm
+17:57 < bridge> <kebscs> Add more code
+17:57 < bridge> <kebscs> Smth like angled stopper
+17:57 < bridge> <Assa> yes already on it!
+17:57 < bridge> <Assa> I send the link
+17:57 < bridge> <Assa> here is a clip:
+17:58 < bridge> <Assa> these are not speedups, but slides
+17:58 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1344353019885785128/slides_test1_2025-02-26_15-20-30.mp4?ex=67c099d0&is=67bf4850&hm=cc4d7a55d29ec5244de4b94d454b75f8552536ea5df00a0f631dad7dd510a276&
+18:08 < bridge> <pluskz> Ok so... i guess ill need to use those slides for what i want then
+18:15 < bridge> <pluskz> Ok so... i guess ill need to wait for those slides for what i want then
+18:18 < bridge> <Assa> @jupeyy_keks I have a hard question:
+18:18 < bridge> <Assa> Is tile buffering only enabled in editor and the opposite case only ingame for every client and build?
+18:18 < bridge> <Assa> It's like this for me
+18:25 < bridge> <Assa> Ah this is completly backend dependend 💀
+18:49 < bridge> <Jupstar ✪> editor has no buffering
+18:49 < bridge> <Jupstar ✪> ingame it depends on what the backend supports
+18:54 < bridge> <hectavoxel> OPTIONS???
+18:54 < bridge> <hectavoxel> @/heinrick
+18:54 < bridge> <hectavoxel> @/heinrich
+18:55 < bridge> <Assa> 🙂
+18:55 < bridge> <Assa> off for today, enjoy the peace when I am not spamming
+19:22 < bridge> <bodia22810007> Im gey😀😀😀😀😀😀😅😅😅😅
+19:27 < bridge> <hectavoxel> me too
+19:48 < bridge> <kebscs> Do you have to place that many tiles for it to work?
+20:10 < bridge> <kollpotato> congratulations
+20:10 < bridge> <kollpotato> 🚀
+21:00 < bridge> <bodia22810007> Thanks oll
+21:00 < bridge> <bodia22810007> Im lesbian
+21:00 < bridge> <bodia22810007> 🦧
+21:07 < bridge> <hectavoxel> i mightve destroyed the editor im sorry
+21:07 < bridge> <hectavoxel> this is why im an artist and not a programmer :cammostripes:
+21:10 < bridge> <fokkonaut> Don't worry, it's all fixable
+21:11 < bridge> <fokkonaut> Next time you'll remember this crash xd
+21:11 < bridge> <fokkonaut> Robyte probably working on a fix already :p
+21:13 < bridge> <hectavoxel> probably
+21:14 < bridge> <hectavoxel> next time ill stick to ui design and concept art, and have someone else do the hard part :troll:
+21:14 < bridge> <fokkonaut> Just keep trying :) Understand the error and move on :D
+21:14 < bridge> <fokkonaut> stuff like that happens everytime
+21:15 < bridge> <fokkonaut> to everyone
+21:15 < bridge> <hectavoxel> i mean yeah but there are now two direct errors caused by my update
+21:16 < bridge> <fokkonaut> And that's still not an issue. You could also argue, ddnet admins could have checked / tested the stuff before the release / merge.
+21:16 < bridge> <fokkonaut> It's not a problem. It'll get fixed, a new patch update releases, and that's it
+21:17 < bridge> <Jupstar ✪> some langs also don't have seg faults
+21:17 < bridge> <Jupstar ✪> 😬
+21:17 < bridge> <Jupstar ✪> @hectavoxel i love u pls dont hate me
+21:17 < bridge> <fokkonaut> I might be a little hardened when it comes to that, because I personally created so many crashbugs and stuff. It will get fixed and then I move on xd
+21:17 < bridge> <fokkonaut> Missing nullptr check etc
+21:18 < bridge> <hectavoxel> i am too fucking stupid to learn anything else
+21:18 < bridge> <hectavoxel> when ddnet-rs has the ddnet gamemode complete i will at least try to make a new gamemode
+21:19 < bridge> <fokkonaut> For preventing crashbugs while coding, just try to imagine what stuff would be possible, and while testing try every technical possibility to interact with something.
+21:19 < bridge> <robyt3> That's not related to the automapper reference though, it was introduced by undo/redo
+21:19 < bridge> <hectavoxel> oh :nouis:
+21:19 < bridge> <fokkonaut> See, problem solved
+21:20 < bridge> <fokkonaut> Everybody creates bugs xd
+21:22 < bridge> <Jupstar ✪> :deen_star:
+21:22 < bridge> <hectavoxel> i mean that sincerely. i wanna add a load of useless weapons for the fun of it
+21:23 < bridge> <hectavoxel> we only have like 6, and its been that way forever
+21:34 < bridge> <learath2> Hey I broke everyones color settings in a patch and deployed a broken autoupdater twice forcing people to re-download the game
+21:34 < bridge> <fokkonaut> *still mad about that*
+21:34 < bridge> <meloƞ> ^ same
+21:36 < bridge> <fokkonaut> @learath2 what's even worse is you didn't hold your promise to make a replacement for old stars.
+21:36 < bridge> <learath2> I got very busy with real life things. Someone else made it tho, so all is well that ends well
+21:37 < bridge> <meloƞ> the new stars used for invincible?
+21:37 < bridge> <meloƞ> or freeze stars as in freeze bar
+21:37 < bridge> <fokkonaut> No
+21:37 < bridge> <fokkonaut> the freeze stars that we currently have is what he meant
+21:37 < bridge> <fokkonaut> ...
+21:37 < bridge> <meloƞ> :Aware:
+21:37 < bridge> <fokkonaut> its not a 1:1 replacement
+21:37 < bridge> <fokkonaut> looks cool too tho
+21:38 < bridge> <learath2> It's like 99.9% there, it's even timed properly
+21:38 < bridge> <learath2> The only thing that it doesn't properly account for is ping, old stars were affected by ping
+21:38 < bridge> <TsPiggy> Almost every PR I submitted there are other peoples PRs to fix my stuff
+21:38 < bridge> <learath2> The only thing that it doesn't properly account for is ping, old stars were affected by ping more accurately
+21:38 < bridge> <fokkonaut> Pls pls pls ping me when u add new netmsg/obj stuff
+21:38 < bridge> <fokkonaut> network/mod related stuff
+21:39 < bridge> <fokkonaut> i had to quickly patch in the spectator info counter + auto spec cam yesterday
+21:39 < bridge> <TsPiggy> I didn't make spectator info and auto spec cam is not even that useful
+21:39 < bridge> <fokkonaut> true but for completeness
+21:40 < bridge> <TsPiggy> Add input flag then
+21:40 < bridge> <fokkonaut> i dont like people missing out on features they might like
+21:40 < bridge> <TsPiggy> It is in the pipeline
+21:40 < bridge> <fokkonaut> ye ye its added
+21:41 < bridge> <TsPiggy> There is also one that haven't been merged
+21:41 < bridge> <TsPiggy> But that was only for AB currently so you probably don't really need it
+21:45 < bridge> <fokkonaut> AB?
+21:47 < bridge> <meloƞ> antibot
+21:51 < bridge> <protocolhttps> i want to render an rectext, where round is 0 at left down and left up, but right side stay round. which corner to use(IGraphics::CORNER_)?
+21:51 < bridge> <protocolhttps> i want to render an RectExt, where round is 0 at left down and left up, but right side stay round. which corner to use(IGraphics::CORNER_)?
+21:52 < bridge> <kebscs> TL = top left TR = top right, BL = bottom left
+21:52 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1344411832294834216/image.png?ex=67c0d096&is=67bf7f16&hm=938afb45c6a07d01aa8bf3471ac73a5b78c80be70e162ff1d4f55353061d4adb&
+21:52 < bridge> <kebscs> TL = top left TR = top right, BL = bottom left etc
+21:52 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1344411832294834216/image.png?ex=67c0d096&is=67bf7f16&hm=938afb45c6a07d01aa8bf3471ac73a5b78c80be70e162ff1d4f55353061d4adb&
+21:53 < bridge> <protocolhttps> oh thanks
+21:55 < bridge> <louis> funny fix lmao
+21:58 < bridge> <robyt3> yeah, this popup code is messy with all the global variables
+22:04 < bridge> <kebscs> @robyt3 for the ui elements change, do i add everywhere == 1, or what would be best way to do it
+22:05 < bridge> <kebscs> some buttons handle both left, right click but most dont
+22:09 < bridge> <robyt3> I don't immediately see any alternatives than adding `== 1` everywhere :pepeW:
+22:10 < bridge> <kebscs> imgui has flags for buttons, where they specifiy to which button it should react to
+22:10 < bridge> <kebscs> imgui has flags for buttons, where they specifiy to which mouse button it should react to
+22:11 < bridge> <kebscs> also the ddnet buttons still react even when == 1, they do the color change
+22:12 < bridge> <meloƞ> i guess something similar would be nice indeed
+22:12 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1344416838335070419/image.png?ex=67c0d540&is=67bf83c0&hm=b36bdb988a1bee07186cc51181469a5ddcd50efa69995520e6785f40145985d4&
+22:12 < bridge> <robyt3> Of course, how would you hover with only the left button?
+22:13 < bridge> <robyt3> Or the active state when they are pressed down?
+22:13 < bridge> <kebscs> i mean not just hover, even when its == 1 right clicking will change button color but wont do anything
+22:13 < bridge> <robyt3> I see, then it would have to be integrated into `DoButtonLogic`
+22:13 < bridge> <robyt3> like the imgui flags
+22:23 < bridge> <protocolhttps> how can i remove stroke from render text?
+22:24 < bridge> <fokkonaut> https://cdn.discordapp.com/attachments/293493549758939136/1344419885119442994/image.png?ex=67c0d816&is=67bf8696&hm=2595f3aec14b5563086df268728b6eccf53128e3c611e35c5e982e4325b79049&
+22:25 < bridge> <fokkonaut> dont think announcing connecting players is fine
+22:28 < furo> Also spamming botted rank 1s on DDNet to advertise their servers. Truly an amazing server network.
+22:28 < bridge> <Assa> no, just for testing
+22:28 < bridge> <hectavoxel> :justatest:
+22:29 < bridge> <fokkonaut> gg for supporting this
+22:33 < bridge> <murpi> I'll just remove them now
+22:33 < bridge> <murpi> heinrich wanted to talk to them, but i guess he forgot or something, idk
+22:33 < bridge> <ryozuki> TIL u can make a CStr literal in rust using c"bla"
+22:34 < bridge> <ryozuki> ```
+22:34 < bridge> <ryozuki> running 1 test
+22:34 < bridge> <ryozuki> ; ModuleID = 'example'
+22:34 < bridge> <ryozuki> source_filename = "example"
+22:34 < bridge> <ryozuki> 
+22:34 < bridge> <ryozuki> define i32 @main(i32 %0) {
+22:34 < bridge> <ryozuki>   %2 = add i32 %0, 4
+22:34 < bridge> <ryozuki>   ret i32 %2
+22:34 < bridge> <ryozuki> }
+22:34 < bridge> <ryozuki> test test::test_function ... ok
+22:34 < bridge> <ryozuki> ```
+22:34 < bridge> <ryozuki> pog my ir builder works
+22:34 < bridge> <robyt3> What do you mean with "remove stroke"?
+22:38 < bridge> <protocolhttps> stroke on letters
+22:38 < bridge> <protocolhttps> https://cdn.discordapp.com/attachments/293493549758939136/1344423481567088761/image.png?ex=67c0db70&is=67bf89f0&hm=9f07dfd1978b3f542cc646d5b625e0623f9e7b3dbcbeeadcf02ebd833e784ad2&
+22:39 < bridge> <protocolhttps> or is in font?
+22:39 < bridge> <chairn> you mean outline ?
+22:39 < bridge> <protocolhttps> yeah
+22:39 < bridge> <oxyzo.> change the entire font file:jaouis:
+22:39 < bridge> <oxyzo.> but im not sure
+22:40 < bridge> <oxyzo.> maybe theres some fonts without the outline that you can find
+22:40 < bridge> <hectavoxel> outline, stroke, same thing
+22:41 < bridge> <robyt3> Not really intended, maybe set the font color alpha to 0 and outline alpha to 1
+22:42 < bridge> <hectavoxel> LOL?
+22:42 < bridge> <protocolhttps> TextRender()->Text(...) doesnt have this setting 😦
+22:42 < bridge> <hectavoxel> oh thats for the discord
+22:43 < bridge> <robyt3> Use `TextRender()->TextColor`
+22:43 < bridge> <robyt3> (before you render the text)
+22:44 < bridge> <protocolhttps> i know, but he also doesnt have something about outline in args
+22:44 < bridge> <protocolhttps> https://cdn.discordapp.com/attachments/293493549758939136/1344424982599696609/image.png?ex=67c0dcd6&is=67bf8b56&hm=05c0edd409851e0565e7049781cb9d559b21e5e3afd1d6b4dd85bdbc0eeb84f1&
+22:45 < bridge> <robyt3> Read `textrender.h`
+22:45 < bridge> <protocolhttps> ok
+22:46 < bridge> <protocolhttps> i found, thank you

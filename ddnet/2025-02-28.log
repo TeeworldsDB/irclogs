@@ -1,0 +1,305 @@
+02:26 < bridge> <davidlovesmath> the game doesnt think so
+02:26 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1344843040128241714/image.png?ex=67c2622e&is=67c110ae&hm=27ca628d126b9cd0bf5a25e78df8bbd8df1b10cbcb7e6a7f6bfe8d0c95247647&
+02:32 < bridge> <davidlovesmath> does this count as a crash?
+02:47 < bridge> <art0007i> I made a fork of ddnet with some features I like n stuff, but for some reason the build workflow is failing. anyone know why it's happening?
+02:47 < bridge> <art0007i> https://github.com/art0007i/ddnet/actions/runs/13579490208/job/37962767436
+02:47 < bridge> <art0007i> 
+02:47 < bridge> <art0007i> it says something about  `-Wno-error-dev` but I have no idea where to put that or if it's a good thing to do
+03:04 < bridge> <hectavoxel> https://cdn.discordapp.com/attachments/293493549758939136/1344852575274536961/image.png?ex=67c26b10&is=67c11990&hm=6ddd7dfc3bbe2f8580ed0b3b368489b57ab7563accdb88b39df10685a453e7c9&
+03:04 < bridge> <hectavoxel> this is odd
+03:12 < bridge> <art0007i> i did that to force the workload to re run dont worry
+06:56 < bridge> <davidlovesmath> that would be on the make command and i beleave it means that you frogot to add some files to the build script
+07:17 < bridge> <davidlovesmath> is there a way to turn off lagback?
+07:38 < bridge> <patiga> errors are cases where the program caught the bad behavior to not crash, panics are Rust's version of crashing. Thanks for exploring :D
+07:39 < bridge> <davidlovesmath> so no.
+07:39 < bridge> <davidlovesmath> btw how can i stll parse the file
+07:39 < bridge> <davidlovesmath> as i need to see some stuff about the file to edit it
+07:40 < bridge> <davidlovesmath> is there a way i could change it to a resonable defult texture?
+07:40 < bridge> <davidlovesmath> @patiga
+07:41 < bridge> <davidlovesmath> or do i just need to look at the datafile without the ddnet parts
+07:41 < bridge> <patiga> I don't understand the 'reasonable default texture'
+07:42 < bridge> <davidlovesmath> so like some kind of valid data so it can parse
+07:42 < bridge> <patiga> yea the datafile is the first step of the parsing, so you could actually test those two processes separately
+07:42 < bridge> <davidlovesmath> as i need to read the tilemap layers
+07:42 < bridge> <davidlovesmath> for this bug
+07:42 < bridge> <patiga> ah
+07:42 < bridge> <davidlovesmath> so i can find what the fuzzing did to trigger this bug
+07:43 < bridge> <patiga> you need some compressed data, with zlib
+07:43 < bridge> <patiga> if the zlib compression fails, the program will abort with an error
+07:43 < bridge> <davidlovesmath> hmm is there a way to tell what the byte offset is that it failed at?
+07:43 < bridge> <patiga> the zlib data additionally needs to be of the size width * height * 4 (in the case of the game layer), at least that *should* be checked later
+07:44 < bridge> <davidlovesmath> yea the main thing is i need to read the width and height of it and the size of it
+07:45 < bridge> <davidlovesmath> got any idea on how i can find that from just the datafile? as the datafile parses fine
+07:45 < bridge> <patiga> the datafile is well documented here https://github.com/heinrich5991/libtw2/blob/6391e05d22aa42b34d191bda377c254c922c81a7/doc/datafile.md
+07:45 < bridge> <patiga> the map file here https://github.com/heinrich5991/libtw2/blob/6391e05d22aa42b34d191bda377c254c922c81a7/doc/map.md
+07:46 < bridge> <davidlovesmath> yea that much i know but the map file docs dont tell what they look like in the data file realy
+07:46 < bridge> <patiga> the second and third i32 of the image item determine the width and height https://github.com/heinrich5991/libtw2/blob/6391e05d22aa42b34d191bda377c254c922c81a7/doc/map.md#images
+07:47 < bridge> <davidlovesmath> oh no i need to read the layers widths and heights
+07:47 < bridge> <patiga> oop layers
+07:47 < bridge> <patiga> here its the fifth and sixth i32 of the item
+07:49 < bridge> <davidlovesmath> wait so they are items not data items?
+07:49 < bridge> <patiga> the meta information of the layers are items
+07:49 < bridge> <patiga> and the tile data is a data item
+07:49 < bridge> <patiga> (and in the item it also says which data item to use)
+07:50 < bridge> <davidlovesmath> ok but how can i know what item is the layers
+07:50 < bridge> <davidlovesmath> is that what the item-id is for?
+07:50 < bridge> <davidlovesmath> i mean type-id
+07:50 < bridge> <davidlovesmath> and yes i beleave it is
+07:51 < bridge> <patiga> yes, every item has a unique id
+07:51 < bridge> <patiga> https://ide.kaitai.io/
+07:51 < bridge> <patiga> https://github.com/heinrich5991/libtw2/blob/6391e05d22aa42b34d191bda377c254c922c81a7/doc/map_v4.ksy
+07:51 < bridge> <patiga> helps with getting a hex view into how the data is structured
+07:52 < bridge> <davidlovesmath> never seen a .ksy file before
+07:52 < bridge> <davidlovesmath> how do i use it?
+07:52 < bridge> <patiga> you can import it in that website
+07:53 < bridge> <patiga> and then also upload maps and view them using the .ksy file
+07:53 < bridge> <patiga> (I gtg sadly)
+07:53 < bridge> <davidlovesmath> ok thanks
+07:53 < bridge> <davidlovesmath> thanks for the help!
+07:54 < bridge> <patiga> there is also https://github.com/heinrich5991/libtw2/blob/6391e05d22aa42b34d191bda377c254c922c81a7/doc/datafile_v4.ksy
+07:54 < bridge> <patiga>  for just the datafile
+07:54 < bridge> <patiga> yw! thanks for trying this!
+07:55 < bridge> <davidlovesmath> it just errors Parse error (EOFError): requested 4 bytes, but only 0 bytes available
+07:55 < bridge> <davidlovesmath> Call stack: KaitaiStream.EOFError@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:765:17
+07:55 < bridge> <davidlovesmath> KaitaiStream.prototype.ensureBytesLeft@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:852:11
+07:55 < bridge> <davidlovesmath> KaitaiStream.prototype.mapUint8Array@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:867:8
+07:55 < bridge> <davidlovesmath> KaitaiStream.prototype.readBytes@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:540:15
+07:55 < bridge> <davidlovesmath> TwMapV4</TwMapV4.I32x3String</I32x3String.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:1102:38
+07:55 < bridge> <davidlovesmath> TwMapV4</TwMapV4.GroupItem</GroupItem.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:458:17
+07:55 < bridge> <davidlovesmath> TwMapV4</TwMapV4.Item</Item.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:1244:22
+07:55 < bridge> <davidlovesmath> TwMapV4</TwMapV4.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:181:16
+07:55 < bridge> <davidlovesmath> reparse@https://ide.kaitai.io/js/v1/kaitaiWorker.js:96:17
+07:55 < bridge> <davidlovesmath> myself.onmessage@https://ide.kaitai.io/js/v1/kaitaiWorker.js:117:47
+07:55 < bridge> <davidlovesmath> it just errors `Parse error (EOFError): requested 4 bytes, but only 0 bytes available
+07:55 < bridge> <davidlovesmath> Call stack: KaitaiStream.EOFError@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:765:17
+07:55 < bridge> <davidlovesmath> KaitaiStream.prototype.ensureBytesLeft@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:852:11
+07:55 < bridge> <davidlovesmath> KaitaiStream.prototype.mapUint8Array@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:867:8
+07:55 < bridge> <davidlovesmath> KaitaiStream.prototype.readBytes@https://ide.kaitai.io/lib/_npm/kaitai-struct/KaitaiStream.js:540:15
+07:55 < bridge> <davidlovesmath> TwMapV4</TwMapV4.I32x3String</I32x3String.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:1102:38
+07:55 < bridge> <davidlovesmath> TwMapV4</TwMapV4.GroupItem</GroupItem.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:458:17
+07:56 < bridge> <davidlovesmath> TwMapV4</TwMapV4.Item</Item.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:1244:22
+07:56 < bridge> <davidlovesmath> TwMapV4</TwMapV4.prototype._read@https://ide.kaitai.io/js/v1/kaitaiWorker.js line 89 > eval:181:16
+07:56 < bridge> <davidlovesmath> reparse@https://ide.kaitai.io/js/v1/kaitaiWorker.js:96:17
+07:56 < bridge> <davidlovesmath> myself.onmessage@https://ide.kaitai.io/js/v1/kaitaiWorker.js:117:47`
+07:56 < bridge> <davidlovesmath> @patiga
+07:56 < bridge> <patiga> when you import the .ksy file? 👀
+07:56 < bridge> <davidlovesmath> i copy pasted it
+07:56 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1344926141063893012/image.png?ex=67c2af93&is=67c15e13&hm=ffc73cbc30f27d5639b670dcbd87d2aee26d0a402383fa49652adbe54b791d05&
+07:56 < bridge> <davidlovesmath> and before i imported the map file
+07:57 < bridge> <patiga> can you try to upload the .ksy file as a sanity check 😅
+07:57 < bridge> <davidlovesmath> yep still errors
+07:58 < bridge> <davidlovesmath> then agien the game does crash do to a segfault from a oob read so..... mabey the game just doesnt like me
+07:58 < bridge> <davidlovesmath> the datafile one works though so ill just use that for now
+07:59 < bridge> <patiga> yea sorry then, really gtg
+07:59 < bridge> <patiga> ah nice :)
+07:59 < bridge> <davidlovesmath> its fine
+08:08 < bridge> <milkeeycat> > CMake Error (dev) at CMakeLists.txt:374 (message):
+08:08 < bridge> <milkeeycat> >   DATA does not contain every file from directory data
+08:08 < bridge> <milkeeycat> > Call Stack (most recent call first):
+08:08 < bridge> <milkeeycat> >   CMakeLists.txt:1854 (set_glob)
+08:11 < bridge> <davidlovesmath> yep i was right yay
+08:11 < bridge> <davidlovesmath> also what do you need for dev role
+08:11 < bridge> <davidlovesmath> just get a pull requst acsepted?
+08:12 < bridge> <milkeeycat> it's assigned to users with accepted pull requests on ddnet main repo
+08:12 < bridge> <davidlovesmath> ok so yes
+08:12 < bridge> <davidlovesmath> ok good to know
+08:12 < bridge> <milkeeycat> roles are described in #welcome
+08:15 < bridge> <davidlovesmath> btw can anyone add a server to the main server list or is there a aproval prosses
+08:21 < bridge> <milkeeycat> update `CMakeLists.txt` like so
+08:21 < bridge> <milkeeycat> ```diff
+08:22 < bridge> <milkeeycat> diff --git a/CMakeLists.txt b/CMakeLists.txt
+08:22 < bridge> <milkeeycat> index df10282a4..4c7725b6d 100644
+08:22 < bridge> <milkeeycat> --- a/CMakeLists.txt
+08:22 < bridge> <milkeeycat> +++ b/CMakeLists.txt
+08:22 < bridge> <milkeeycat> @@ -1392,6 +1392,10 @@ set(EXPECTED_DATA
+08:22 < bridge> <milkeeycat>    countryflags/index.txt
+08:22 < bridge> <milkeeycat>    deadtee.png
+08:22 < bridge> <milkeeycat>    debug_font.png
+08:22 < bridge> <milkeeycat> +  editor/arrow_array_gen/gen_part1.py
+08:22 < bridge> <milkeeycat> +  editor/arrow_array_gen/gen_part2.py
+08:22 < bridge> <milkeeycat> +  editor/arrow_array_gen/input.png
+08:22 < bridge> <milkeeycat> +  editor/arrow_array_gen/readme.md
+08:22 < bridge> <milkeeycat>    editor/audio_source.png
+08:22 < bridge> <milkeeycat>    editor/automap/basic_freeze.rules
+08:22 < bridge> <milkeeycat>    editor/automap/ddmax_freeze.rules
+08:22 < bridge> <milkeeycat> @@ -1851,7 +1855,7 @@ set(EXPECTED_DATA
+08:22 < bridge> <milkeeycat>    wordlist.txt
+08:22 < bridge> <milkeeycat>  )
+08:22 < bridge> <milkeeycat> 
+08:22 < bridge> <milkeeycat> -set_glob(DATA GLOB_RECURSE "cfg;frag;json;map;otf;png;rules;ttc;ttf;txt;vert;wv" data ${EXPECTED_DATA})
+08:22 < bridge> <milkeeycat> +set_glob(DATA GLOB_RECURSE "cfg;frag;json;map;otf;png;rules;ttc;ttf;txt;vert;wv;py;md" data ${EXPECTED_DATA})
+08:22 < bridge> <milkeeycat> 
+08:22 < bridge> <milkeeycat>  ########################################################################
+08:22 < bridge> <milkeeycat>  # COPY DATA AND SHARED LIBS
+08:22 < bridge> <milkeeycat> ```
+08:33 < bridge> <zerolacqua> these are my PRs. can i get dev role? @learath2 
+08:33 < bridge> <zerolacqua> https://github.com/ddnet/ddnet/pulls?q=is%3Apr+author%3AZerolAcqua
+12:58 < bridge> <Solly> `std::initializer_list<const char *> vLabels` what varibale name should i use for this?
+13:13 < bridge> <alw5> someone merge? :owo: 
+13:13 < bridge> <alw5> https://github.com/ddnet/ddnet/pull/9628/commits
+13:13 < bridge> <alw5> someone merge? :owo: 
+13:13 < bridge> <alw5> https://github.com/ddnet/ddnet/pull/9628/
+13:13 < bridge> <alw5> someone merge? :owo: 
+13:13 < bridge> <alw5> https://github.com/ddnet/ddnet/pull/9628/
+13:14 < bridge> <alw5> i wanna delete this repo and make all features in different branches
+13:14 < bridge> <alw5> shoulda done that before :c
+13:21 < bridge> <meloƞ> strLabel ?
+13:21 < bridge> <meloƞ> or labelList or smth
+13:22 < bridge> <meloƞ> strptrLabelList1
+13:22 < bridge> <meloƞ> strptrLabelList!
+13:28 < bridge> <Solly> i mean the variable things
+13:28 < bridge> <Solly> like p for pointer
+13:28 < bridge> <Solly> a for array
+13:28 < bridge> <Solly> s_ for static
+13:29 < bridge> <meloƞ> we use hungarian notation
+13:29 < bridge> <meloƞ> ```
+13:29 < bridge> <meloƞ> DDNet inherited the hungarian notation like prefixes from Teeworlds
+13:29 < bridge> <meloƞ> 
+13:29 < bridge> <meloƞ> m_
+13:29 < bridge> <meloƞ> 
+13:29 < bridge> <meloƞ> Class member
+13:29 < bridge> <meloƞ> 
+13:29 < bridge> <meloƞ> g_
+13:29 < bridge> <meloƞ> 
+13:29 < bridge> <meloƞ> Global variable
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> s_
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> Static variable
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> p
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> Pointer
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> a
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> Fixed array
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> Combine them appropriately. Class Prefixes
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> C
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> Class, CMyClass, This goes for structures as well.
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> I
+13:30 < bridge> <meloƞ> 
+13:30 < bridge> <meloƞ> tho we dont follow it strictly
+13:30 < bridge> <meloƞ> https://github.com/ddnet/ddnet/blob/master/CONTRIBUTING.md
+13:31 < bridge> <learath2> We do follow it pretty strictly. As in your PR won't be accepted if we notice there is a mistake. We just don't have automated tooling to catch it
+13:31 < bridge> <meloƞ> but then contributing.md is wrong :o
+13:31 < bridge> <meloƞ> The ddnet code base does NOT follow the whole hungarian notation strictly. Do NOT use c for constants or b for booleans or i for integers.
+13:31 < bridge> <meloƞ> or is this part about `the whole`
+13:32 < bridge> <learath2> Ah, that's written weirdly. It's trying to say that we don't use Hungarian notation strictly as you'd find it on wikipedia
+13:32 < bridge> <learath2> We don't use it to mark bools ints constants etc
+13:33 < bridge> <meloƞ> ah okay - so when we use it, we enforce it strictly, but we dont use the `entirety` of it
+13:33 < bridge> <alw5> guys i pressed fetch info in the demos and my game stopped responding is that normal
+13:33 < bridge> <alw5> guys i pressed fetch info in the demos menu and my game stopped responding is that normal
+13:33 < bridge> <meloƞ> ah okay - so in parts where we use it, we enforce it strictly, but we dont use the `entirety` of it
+13:33 < bridge> <learath2> Yeah, we strictly enforce our notation which is a subset of hungarian notation
+13:33 < bridge> <meloƞ> got it chief
+14:06 < bridge> <Solly> i thought v was also a thing
+14:23 < bridge> <ryozuki> vector
+14:23 < bridge> <ryozuki> https://wiki.ddnet.org/wiki/Development#Code_conventions
+14:24 < bridge> <ryozuki> ```
+14:24 < bridge> <ryozuki> Variable naming
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki>     The names of variables contain 3 parts: qualifier, prefix and name.
+14:24 < bridge> <ryozuki>     Variable names should start with uppercase unless they are 1 char long without any prefix or qualifier, for example: i, x, y.
+14:24 < bridge> <ryozuki>     Variables can have more than 1 qualifier (or zero) and more than 1 prefix (or zero).
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki> These are laid out like this: [qualifiers]_[prefixes][Name]
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki> Qualifiers
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki>     m for member variables: m_MyVariable.
+14:24 < bridge> <ryozuki>     s for static variables: s_MyStaticVariable, ms_MyStaticMemberVariable.
+14:24 < bridge> <ryozuki>     g for global variables with external linkage: gs_MyGlobalStaticVar.
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki> Prefixes
+14:24 < bridge> <ryozuki> 
+14:24 < bridge> <ryozuki>     p for pointers: pMyPointer, m_pCharacter, ppMyPointerToPointer.
+14:24 < bridge> <ryozuki>     a for arrays: aMyArray, aBuf.
+14:24 < bridge> <ryozuki>     v for std::vectors: vMyVector, vpvMyVectorOfPointersToVectors.
+14:24 < bridge> <ryozuki>     fn for functions: pfnMyCallback, m_papfnMyPointerToArrayOfCallbacks.
+14:24 < bridge> <ryozuki> ```
+15:46 < bridge> <Solly> sigh
+15:46 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1345044433455812619/image.png?ex=67c31dbe&is=67c1cc3e&hm=616987a5d919e4a00d8790e9e6fa563d37839129dbc5cfc3f36ea234c5fe362c&
+15:46 < bridge> <Solly> its been 30s
+16:18 < bridge> <Solly> in client.cpp runonjoin is inside `if(m_ServerCapabilities.m_ChatTimeoutCode)` is this intended?
+16:21 < bridge> <Solly> ```
+16:21 < bridge> <Solly>                             if(!g_Config.m_ClRunOnJoin[0] && !g_Config.m_ClDummyDefaultEyes && !g_Config.m_ClPlayerDefaultEyes)
+16:21 < bridge> <Solly>                                 str_format(aBufMsg, sizeof(aBufMsg), "/timeout %s", m_aTimeoutCodes[Conn]);
+16:21 < bridge> <Solly>                             else
+16:21 < bridge> <Solly>                                 str_format(aBufMsg, sizeof(aBufMsg), "/mc;timeout %s", m_aTimeoutCodes[Conn]);
+16:21 < bridge> <Solly> ```
+16:22 < bridge> <Solly> this is also quite brittle
+16:51 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1345060705090535505/image.png?ex=67c32ce6&is=67c1db66&hm=3118df8c87be30bb93e29fcdfd8879671310b00df0b274f130a824f1cb9f54e6&
+16:51 < bridge> <Solly> clang format is...
+16:51 < bridge> <Solly> is so dumb
+16:54 < bridge> <robyt3> That's a sign that you shouldn't use the ternary there. We haven't figured out how to tame clang-format to not mess with the spaces like this, which is the main reason we are still on clang format 10.
+16:55 < bridge> <Solly> darn
+16:55 < bridge> <Solly> i dont remember if i used fixstyle.py
+16:55 < bridge> <Solly> or clang format
+16:55 < bridge> <Solly> or clang format [most recent version]
+16:56 < bridge> <robyt3> I think clang-format-10, which is used by the script, shouldn't mess with spaces in ternaries like this
+16:56 < bridge> <Solly> i see
+16:56 < bridge> <Solly> if u cant get clang to just stop it thats probably a regression no?
+16:56 < bridge> <Solly> if u cant get clang to just stop it (dont attempt to do anything) thats probably a regression no?
+16:57 < bridge> <robyt3> Maybe something about the underlying parser changed. Maybe it depends on clang parsing internals.
+16:59 < bridge> <Solly> seems like quite an important thing
+16:59 < bridge> <robyt3> I haven't found any new option being added that would restore the legacy behavior
+17:00 < bridge> <Solly> yeah but what it spits out now is both wrong (i cant imagine what rules cause this behaviour) and an unreadable mess
+17:00 < bridge> <Solly> (as much as weird tabbing can make something an unreadable mess)
+17:03 < bridge> <robyt3> https://www.reddit.com/r/cpp/comments/1hnps39/has_anyone_figured_out_yet_how_to_get_clangformat/m4450ig/
+17:06 < bridge> <robyt3> Seems like a design decision. Time to write our own code formatter I guess :pepeW:
+17:10 < bridge> <meloƞ> ChillerDragon: Time for you to write us a 1K LoC bash script for formatting
+17:39 < bridge> <alw5> someone merge? :owo: #9628
+17:39 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/9628
+17:40 < bridge> <alw5> i really wanna delete my repo so i can make 1 feature per branc
+17:40 < bridge> <alw5> i really wanna delete my repo so i can make 1 feature per branch
+17:41 < bridge> <hectavoxel> why would we need this in-game
+18:11 < bridge> <Solly> dont do it
+18:11 < bridge> <Solly> ive tried to do that
+18:11 < bridge> <Solly> git does not like it
+18:57 < bridge> <alw5> thanks!
+19:50 < bridge> <teero777> Has discord suddenly unlocked nitro for everyone?
+19:50 < bridge> <teero777> <a:nugget:586056086214279171>
+19:50 < bridge> <teero777> why can I do this
+19:51 < bridge> <zhn> ye
+19:51 < bridge> <zhn> ok last time im sending this in #developer
+19:52 < bridge> <hectavoxel> wtf
+19:52 < bridge> <hectavoxel> hasnt updated for mobile yet
+19:53 < bridge> <teero777> I'm on mobile
+19:53 < bridge> <teero777> Android
+19:53 < bridge> <teero777> Crazy right? A rotating chicken nugget
+19:53 < bridge> <teero777> That wasn't possible before!
+19:54 < bridge> <hectavoxel> do you think this has to do with it
+19:54 < bridge> <hectavoxel> https://cdn.discordapp.com/attachments/293493549758939136/1345106836772098179/Screenshot_20250228_135346_Chrome.jpg?ex=67c357dc&is=67c2065c&hm=2229a257f2f6d877bf74507c4cbb2a310c9afd5b9e586201cbc0c4cc2e0f89d4&
+19:55 < bridge> <hectavoxel> maybe its for certain users only
+19:56 < bridge> <teero777> nooo
+19:57 < bridge> <teero777> This will lose me some contact
+19:57 < bridge> <teero777> And lots of memories
+19:57 < bridge> <teero777> This will lose me some contacts
+19:57 < bridge> <hectavoxel> discord has become a monopoly in terms of chatting apps
+19:59 < bridge> <inv41idu53rn4m3> and it's a good way into its enshittification already
+20:00 < bridge> <hectavoxel> watch, you'll only be able to upload 5MB files soon
+20:09 < bridge> <alw5> https://cdn.discordapp.com/attachments/293493549758939136/1345110767363686463/Discord_T68x0n0T9q.png?ex=67c35b85&is=67c20a05&hm=224d46330d04cc33f59ef3686f6c6b7e5a93cb7d832d00839afbc9cff7e800ad&
+20:10 < bridge> <alw5> did you read the first word only or something
+20:28 < bridge> <teero777> yes
+22:10 < bridge> <davidlovesmath> no fair why dont i get it
+23:34 < bridge> <Solly> mfw teams is just a skype wrapper
+23:36 < bridge> <hectavoxel> i wouldnt be surprised
+23:38 < bridge> <Solly> (it is)
+23:38 < bridge> <Solly> (source: trust me bro i saw it in pavucontrol while using teams)
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?
+23:50 < bridge> <exhilll> маргар... маргарита?

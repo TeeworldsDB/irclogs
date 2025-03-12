@@ -1,0 +1,814 @@
+00:04 < bridge> <pioooooo> Uh is it still needed?
+00:05 < bridge> <pioooooo> You are not able to manually run CIs?
+01:01 < bridge> <davidlovesmath> @robyt3 is there a good way to check if CNetClient::Recv() was called for the master server or a normal server? and does it even make a difrence
+03:07 < bridge> <davidlovesmath> or even better is there a way to not look for a master server at all?
+04:04 < bridge> <_noby> Iirc master server traffic in ddnet is handled via https now so the client shouldn't be receiving any of it via this function (?)
+04:05 < bridge> <davidlovesmath> hmm
+04:05 < bridge> <davidlovesmath> do you have any idea of any meathods of comunicatson from a normal server to the client outer then that funcson
+04:06 < bridge> <davidlovesmath> as its inconsitent still
+04:06 < bridge> <_noby> What is the context this looks interesting 👀
+04:06 < bridge> <davidlovesmath> fuzzing
+04:06 < bridge> <davidlovesmath> im trying to fuzz the networking system
+04:06 < bridge> <_noby> When you join .6 server from ddnet client i believe it is all handled through this engine/network* stuff
+04:06 < bridge> <davidlovesmath> with afl++
+04:07 < bridge> <_noby> :D
+04:07 < bridge> <davidlovesmath> hmm ok is there a download for a .6 server anywhere?
+04:07 < bridge> <_noby> Ddnet is 0.6, it comes with code for client+server
+04:08 < bridge> <davidlovesmath> oh ok
+04:08 < bridge> <_noby> What is the code that you are trying to find?
+04:09 < bridge> <davidlovesmath> basicly ive made it so that the recv funcson always returns the same sequnce of packets but it still doesnt work the same if i simply copy the packets from a normal server
+04:09 < bridge> <_noby> Are u accounting for the tokens?
+04:09 < bridge> <davidlovesmath> what tokens?
+04:09 < bridge> <davidlovesmath> so probaly not
+04:09 < bridge> <_noby> Wait leme get my laptop
+04:09 < bridge> <davidlovesmath> ok
+04:11 < bridge> <_noby> @davidlovesmath u probably seen this already but, tw 0.6 protocol begins with a handshake where the server tells u ur token that it calculates from ur ip and its seed and stuff to work against spoofing
+04:12 < bridge> <davidlovesmath> ohhhhhh
+04:12 < bridge> <davidlovesmath> that exsplanes a lot
+04:12 < bridge> <_noby> and every packet thats exchanged after that needs to contain that token
+04:12 < bridge> <davidlovesmath> thanks
+04:12 < bridge> <davidlovesmath> so thats what that token i keep seeing is
+04:12 < bridge> <_noby> 😄
+04:12 < bridge> <davidlovesmath> thanks so much
+04:12 < bridge> <_noby> np
+04:13 < bridge> <davidlovesmath> wait so the sever tells you your token so why doesnt the emulated packets tell the client there token
+04:15 < bridge> <_noby> https://chillerdragon.github.io/teeworlds-protocol/06.html
+04:15 < bridge> <davidlovesmath> can you tell me where this happens?
+04:15 < bridge> <davidlovesmath> also whats spoffing
+04:15 < bridge> <davidlovesmath> also whats spoofing
+04:15 < bridge> <_noby> spoofing=malicious people sending junk from fake ips to make people lag
+04:15 < bridge> <davidlovesmath> ah ok. wait fake ips? how in the world do you fake a ip
+04:16 < bridge> <davidlovesmath> also isnt that basicly just ddosing
+04:16 < bridge> <_noby> yes
+04:16 < bridge> <davidlovesmath> why cant fake clients do that too
+04:16 < bridge> <_noby> what is a fake client?
+04:16 < bridge> <davidlovesmath> the fake ips
+04:17 < bridge> <davidlovesmath> why cant they pretend to be a real client
+04:17 < bridge> <_noby> they can pretend i guess but the replies wont reach them
+04:17 < bridge> <davidlovesmath> why not?
+04:17 < bridge> <_noby> if i send u a letter in the mail and give a fake return address
+04:17 < bridge> <_noby> will i get ur reply?
+04:18 < bridge> <davidlovesmath> ah ok i see what you mean by fake ip now
+04:18 < bridge> <davidlovesmath> do you know what funcsons handles this?
+04:18 < bridge> <_noby> yeah sec
+04:18 < bridge> <davidlovesmath> thanks
+04:18 < bridge> <davidlovesmath> and also what verifys that the packet has the correct token
+04:19 < bridge> <davidlovesmath> on the clients side
+04:19 < bridge> <_noby> <https://github.com/ddnet/ddnet/blob/master/src/engine/shared/network_conn.cpp#L326> for example this is one place where it checks toekn
+04:20 < bridge> <_noby> afaik the token check is mostly happening on server side because this is usually where it needs to protect against attacks
+04:20 < bridge> <davidlovesmath> hmm well im faking a server not a client
+04:20 < bridge> <_noby> if u are just trying to do fuzzing for other purposes u could just sv_vanilla_antispoof 0 or something
+04:21 < bridge> <davidlovesmath> ah ok
+04:21 < bridge> <davidlovesmath> is there ANY token checks on the client
+04:21 < bridge> <_noby> then connect with an old client that doesnt use tokens
+04:21 < bridge> <_noby> tbh idk lol
+04:21 < bridge> <_noby> old versions of tw 0.6 didnt have any concept of tokens
+04:22 < bridge> <_noby> but that isnt useful for u probably
+04:22 < bridge> <davidlovesmath> im faking the server. downgradeing would kinda moot the point of fuzzing
+04:22 < bridge> <_noby> right
+04:22 < bridge> <_noby> can ur fuzzing tool hard code the token?
+04:22 < bridge> <davidlovesmath> no but i could
+04:23 < bridge> <_noby> it is calculated based on the server hash and the client ip
+04:23 < bridge> <davidlovesmath> by just removing all of the token checks
+04:23 < bridge> <_noby> that works too
+04:23 < bridge> <davidlovesmath> and as far as i can tell from looking at the hex data the first 2 bytes are the packet type right?
+04:24 < bridge> <_noby> depends
+04:24 < bridge> <_noby> do u have the wireshark dissector tool thing
+04:24 < bridge> <davidlovesmath> as it crashes on packet six wich starts with like 15 FFs
+04:24 < bridge> <_noby> eh?
+04:24 < bridge> <davidlovesmath> no im just dumping the packets
+04:24 < bridge> <_noby> get that it will help u
+04:25 < bridge> <_noby> https://github.com/heinrich5991/libtw2/tree/master/wireshark-dissector
+04:25 < bridge> <davidlovesmath> and by dumping i mean dumping the output from recv
+04:25 < bridge> <_noby> makes tw traffic more sensible
+04:26 < bridge> <davidlovesmath> this is the first 6 packets. after the 6th it crashes currently
+04:26 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341974178726805617/message.txt?ex=67b7f258&is=67b6a0d8&hm=53e063ff28e9cea177172dc21f2e0c8442ffe496d2dabdf32717ce0ba0c5789b&
+04:26 < bridge> <davidlovesmath> and i have no clue why
+04:26 < bridge> <_noby> what crashes
+04:26 < bridge> <davidlovesmath> the game due to unknown NETADDR type 0
+04:26 < bridge> <davidlovesmath> or sometimes -1mil something
+04:27 < bridge> <_noby> probably dumb q but, where are u printing this info from?
+04:27 < bridge> <davidlovesmath> and sometimes it doesnt crash
+04:27 < bridge> <_noby> this seems like a mix of relevant and irrelevant packets
+04:27 < bridge> <davidlovesmath> its the fake packets im sending recv
+04:28 < bridge> <davidlovesmath> and its from a bunch of packets i got sent from recv
+04:28 < bridge> <_noby> the fffff... 696578742D
+04:28 < bridge> <_noby> is a reply to server inforeq
+04:28 < bridge> <_noby> probably isnt even necessary for fuzzing connection
+04:29 < bridge> <_noby> > 10000002544B454E8FB79E2B
+04:29 < bridge> <_noby> that looks weird
+04:29 < bridge> <davidlovesmath> wait a reply? thats odd im only logging the data from Recv
+04:30 < bridge> <_noby> mm
+04:30 < bridge> <davidlovesmath> namely here
+04:30 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341975149913702420/image.png?ex=67b7f340&is=67b6a1c0&hm=c99cc97e5bf7f042d7ea0a3d0cc818fa0ebeb8b0207355e299adf3fb83ae7098&
+04:30 < bridge> <davidlovesmath> (that adds its length as 2 bytes and then the packets data to a file that im reading from now)
+04:31 < bridge> <_noby> its been a while but from what i remember,
+04:31 < bridge> <_noby> client sends this: 10 00 00 01 54 4B 45 4E FF FF FF FF
+04:31 < bridge> <_noby> 
+04:31 < bridge> <_noby> then server sends: 10 00 00 02 xx xx xx xx (aka token)
+04:31 < bridge> <_noby> 
+04:31 < bridge> <_noby> then client sends: 10 00 00 03 xx xx xx xx
+04:32 < bridge> <davidlovesmath> hmm heres my code for converting it into hex if thats broken
+04:32 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341975840002539541/image.png?ex=67b7f3e4&is=67b6a264&hm=9ee2c0755f6a08d914b4fc12e0ab69c35726dcf75f7ef9dd436b8a849fd93a09&
+04:33 < bridge> <_noby> why not just printf("%02x
+04:33 < bridge> <davidlovesmath> i didnt know that exsited
+04:33 < bridge> <davidlovesmath> can you send the full funcson
+04:34 < bridge> <davidlovesmath> im still pritty new to c++
+04:34 < bridge> <_noby> lazy code but like
+04:34 < bridge> <_noby> ```cpp
+04:34 < bridge> <_noby> for (int i = 0; i < size; i++)
+04:34 < bridge> <_noby>     printf("%02x ", (unsigned char)data[i]);
+04:34 < bridge> <_noby> printf("\n");
+04:34 < bridge> <_noby> ```
+04:35 < bridge> <_noby> its been a while but from what i remember,
+04:35 < bridge> <_noby> client sends this: 10 00 00 01 54 4B 45 4E FF FF FF FF
+04:35 < bridge> <_noby> 
+04:35 < bridge> <_noby> then server sends: 10 00 00 02 54 4B 45 4E xx xx xx xx (aka token)
+04:35 < bridge> <_noby> 
+04:35 < bridge> <_noby> then client sends: 10 00 00 03 xx xx xx xx
+04:36 < bridge> <_noby> > 10000002544B454E8FB79E2B
+04:36 < bridge> <_noby> that looks weird
+04:36 < bridge> <_noby> edit; nvm actually
+04:36 < bridge> <davidlovesmath> one sec while i rebuild
+04:37 < bridge> <_noby> i would suggest using heinrichs tool it gives u useful info like this
+04:37 < bridge> <_noby> https://cdn.discordapp.com/attachments/293493549758939136/1341976924976578591/Screen_Shot_2025-02-19_at_9.36.32_PM.png?ex=67b7f4e7&is=67b6a367&hm=e8cf6df6734fbce2af1468dc092812c2c4588c9880ea59d6b365012c05169ae5&
+04:38 < bridge> <davidlovesmath> ah wait i didnt relise that was ment sufficly for the game lol
+04:38 < bridge> <_noby> ye
+04:38 < bridge> <_noby> it is just wireshark plugin that understands this game protocol
+04:40 < bridge> <davidlovesmath> ok yep there was indded a bug in my code
+04:40 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341977640197951508/message.txt?ex=67b7f592&is=67b6a412&hm=b97f5b23e711d6cdb1718fd401fee3eac6886406e8a90afcc6538ca812e0b87b&
+04:40 < bridge> <davidlovesmath> the firs packet is still odd but the second is what you said the server sends back
+04:40 < bridge> <_noby> read my edit,i was wrong about the second one
+04:41 < bridge> <_noby> the first one here still seems odd though? am i missing something
+04:41 < bridge> <davidlovesmath> yea thats what i just said. idk why its there but aparently net_udp_recv(m_Socket, &Addr, &pData); returned that first for some reson
+04:42 < bridge> <davidlovesmath> and i have ANSL so i know its not a oob read or something
+04:42 < bridge> <_noby> u should try using some network capturing tool to dump the raw traffic to rule out the logging as a possible source of error
+04:42 < bridge> <_noby> idk whats ansl
+04:43 < bridge> <_noby> could just `tcpdump "udp and port 8303" -w test.pcap` it
+04:43 < bridge> <davidlovesmath> oh wait i mean ASAN
+04:43 < bridge> <_noby> oh
+04:43 < bridge> <_noby> yea
+04:43 < bridge> <davidlovesmath> sorry keep frogeting the acrinum
+04:43 < bridge> <_noby> lol
+04:44 < bridge> <davidlovesmath> sure one sec
+04:45 < bridge> <davidlovesmath> ok had to grant wireshark admin 15 times before it would stop bugging me lol
+04:45 < bridge> <davidlovesmath> how do i do that?
+04:45 < bridge> <_noby> wireshark is okay too
+04:45 < bridge> <davidlovesmath> oh wait is that a linux command lol
+04:45 < bridge> <_noby> wireshark is just a gui around tcpdump
+04:45 < bridge> <_noby> basically
+04:46 < bridge> <_noby> idk alot about windows
+04:46 < bridge> <davidlovesmath> fair but ill use tcpdump as i dont want to give you all my port info lol
+04:46 < bridge> <_noby> u dont have to give me any info
+04:46 < bridge> <davidlovesmath> yea but im gonna give you the .pcap file arent i?
+04:47 < bridge> <_noby> u could if u want lol
+04:47 < bridge> <davidlovesmath> also wait is this a windows or linux comand
+04:47 < bridge> <_noby> what is port info
+04:47 < bridge> <_noby> tcpdump probably works on any system if u install it
+04:48 < bridge> <davidlovesmath> wdym?
+04:48 < bridge> <_noby> u said it
+04:48 < bridge> <davidlovesmath> oh i ment all the packets being sent by all my ports
+04:48 < bridge> <_noby> ohh
+04:48 < bridge> <davidlovesmath> i only want you to see ddnet packets lol
+04:48 < bridge> <_noby> there is a way in wireshark to only export certain packets
+04:48 < bridge> <davidlovesmath> oh? how?
+04:48 < bridge> <davidlovesmath> i dont use wireshark much
+04:49 < bridge> <louis> wtf noby
+04:49 < bridge> <davidlovesmath> ?
+04:49 < bridge> <_noby> iam using osx on this laptop but here its, file->export specified packets, then u can mark packets or only chose selected
+04:50 < bridge> <_noby> then u can open the file u exported to make sure its only the ones u want
+04:50 < bridge> <_noby> wtf nouis
+04:50 < bridge> <davidlovesmath> ah ok ill probs just use tcpdump
+04:50 < bridge> <_noby> whatevers easiest
+04:50 < bridge> <davidlovesmath> yea that should be easyer
+04:50 < bridge> <_noby> was more just saying that its an easy way for U to see the traffic
+04:51 < bridge> <_noby> not about sending it
+04:51 < bridge> <davidlovesmath> ah true
+04:53 < bridge> <davidlovesmath> huh odd it didnt capture any packets
+04:53 < bridge> <_noby> did u pick the right interface
+04:53 < bridge> <davidlovesmath> wdym?
+04:53 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341981130923966516/image.png?ex=67b7f8d2&is=67b6a752&hm=dc7a11b8007827ddc9edebcc5cbfcb88f416ebec883e220d3dbd5357753c9bef&
+04:54 < bridge> <_noby> how do u see moderator chat LOL
+04:54 < bridge> <_noby> ah
+04:54 < bridge> <davidlovesmath> vencord lol
+04:54 < bridge> <_noby> run tcpdump, then do a connection to the server
+04:54 < bridge> <_noby> assuming default port 8303
+04:55 < bridge> <davidlovesmath> wait vencord is agenst the rules?
+04:55 < bridge> <_noby> idk
+04:55 < bridge> <_noby> not here lol
+04:55 < bridge> <davidlovesmath> yea i didnt think so
+04:55 < bridge> <_noby> maybe discords rules though
+04:55 < bridge> <_noby> not sure
+04:56 < bridge> <davidlovesmath> hmm
+04:56 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341981789308059742/image.png?ex=67b7f96f&is=67b6a7ef&hm=64b284ebc77460374f3b8f6f8b0cfbeedef3faa998150eab0ab09ebd0bfc4a0c&
+04:56 < bridge> <_noby> and i mean, if u are hosting server locally, it may be trying to connect through loopback
+04:56 < bridge> <davidlovesmath> im not im just joining a random server here
+04:56 < bridge> <_noby> oh
+04:57 < bridge> <_noby> was it a server that was running on port 8303?
+04:57 < bridge> <davidlovesmath> how do i check
+04:57 < bridge> <_noby> when u in browser
+04:57 < bridge> <_noby> https://cdn.discordapp.com/attachments/293493549758939136/1341982099560861716/Screen_Shot_2025-02-19_at_9.57.35_PM.png?ex=67b7f9b9&is=67b6a839&hm=00164860044ab7f4eeaf22b95e2e5173126741aa10131f2ef631c593a5aeb42e&
+04:57 < bridge> <_noby> it tells u
+04:58 < bridge> <_noby> u could just "udp" and skip the port thing if ur not sure
+04:59 < bridge> <davidlovesmath> there we go
+05:00 < bridge> <_noby> then u can open that pcap in wireshark if u wnt to inspect it
+05:00 < bridge> <davidlovesmath> here
+05:00 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341982718191210547/test.pcap?ex=67b7fa4c&is=67b6a8cc&hm=99a8d2d8b8d970ac4a36a4c3caeab1972d9f289f510c23a294e406910cf44275&
+05:00 < bridge> <_noby> or that
+05:00 < bridge> <davidlovesmath> let me check what my code captured
+05:01 < bridge> <_noby> (that was 8303 though lol)
+05:02 < bridge> <davidlovesmath> yea i just chose a server that had that port this time
+05:03 < bridge> <davidlovesmath> looks about the same to me
+05:03 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341983446469185537/message.txt?ex=67b7fafa&is=67b6a97a&hm=06870c817b67a6c6f9fb89cfcf94fb5c505fdaec711f59b1ace9cba4db5f8fdb&
+05:03 < bridge> <_noby> what does it mean fake packet receved
+05:03 < bridge> <davidlovesmath> that means im faking a packet with the given data
+05:03 < bridge> <davidlovesmath> ie im pretending like the server sent it
+05:04 < bridge> <_noby> i am probably missing something here but, shouldn't the server not be sending anything until the
+05:04 < bridge> <_noby> > 10 00 00 02 54 4b 45 4e 8f b7 9e 2b
+05:04 < bridge> <_noby> what is the thing before that
+05:05 < bridge> <davidlovesmath> acording to what you said just a little bit ago yes
+05:05 < bridge> <davidlovesmath> idk but it was a packet from net_udp_recv(m_Socket, &Addr, &pData); in recv
+05:06 < bridge> <_noby> maybe the debug print in recv should either display or check against the address its being recvd from
+05:06 < bridge> <_noby> if its just stun traffic or inforeqs or other stuff then it probably(?) isnt relevant for what u are tryin to do
+05:07 < bridge> <davidlovesmath> good idea. now to figger out how to get the ip thats sending the data
+05:08 < bridge> <_noby> iirc net_udp_recv accepts a ptr that it populates with that info
+05:08 < bridge> <_noby> and there is probably another routine in system.cpp that formats a NETADDR in a readable way but i forget which. if not theres always inet_ntoa
+05:09 < bridge> <davidlovesmath> is that the socket or the netadrr
+05:09 < bridge> <davidlovesmath> is that the socket or the netaddr
+05:09 < bridge> <_noby> netaddr
+05:11 < bridge> <_noby> ah its
+05:11 < bridge> <_noby> net_addr_str
+05:11 < bridge> <_noby> if u want to display it
+05:12 < bridge> <davidlovesmath> that should work fine
+05:12 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341985683715129435/image.png?ex=67b7fd0f&is=67b6ab8f&hm=38eff671929458a90a678bf729d7cb5d3fa21128e8b004d3c234f419de6a17e4&
+05:12 < bridge> <_noby> that should do
+05:12 < bridge> <_noby> something
+05:12 < bridge> <_noby> im not sure what honestly lol
+05:12 < bridge> <_noby> printf expects a format string as its first argument
+05:12 < bridge> <_noby> may crash
+05:12 < bridge> <louis> @murpi can sv_practice_by_default be enabled on test servers
+05:14 < bridge> <_noby> im also probably wrong but in case im not, try smt like
+05:14 < bridge> <_noby> ```cpp
+05:14 < bridge> <_noby> char buf[64];
+05:14 < bridge> <_noby> net_addr_str(&Addr, buf, sizeof(buf), true);
+05:14 < bridge> <_noby> printf("from %s\n", buf");
+05:14 < bridge> <_noby> ```
+05:14 < bridge> <_noby> im also probably wrong but in case im not, try smt like
+05:14 < bridge> <_noby> ```cpp
+05:14 < bridge> <_noby> char buf[64];
+05:14 < bridge> <_noby> net_addr_str(&Addr, buf, sizeof(buf), true);
+05:14 < bridge> <_noby> printf("from %s\n", buf);
+05:14 < bridge> <_noby> ```
+05:14 < bridge> <murpi> I'm in the middle of troubleshooting our servers 👀
+05:14 < bridge> <murpi> literally on fire rn
+05:14 < bridge> <davidlovesmath> didnt even connect to any server
+05:14 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341986389247524885/image.png?ex=67b7fdb8&is=67b6ac38&hm=234b6397f99d43c56d36e6e2f65032940f66a82434394151cf65dde5beef6563&
+05:14 < bridge> <davidlovesmath> and yes your right
+05:15 < bridge> <_noby> u crashed murpis servers
+05:15 < bridge> <_noby> gg
+05:15 < bridge> <davidlovesmath> yay
+05:15 < bridge> <_noby> loll
+05:15 < bridge> <davidlovesmath> i win murpi
+05:15 < bridge> <davidlovesmath> /jk
+05:15 < bridge> <_noby> :troll:
+05:15 < bridge> <davidlovesmath> or did i?
+05:16 < bridge> <_noby> idts
+05:16 < bridge> <_noby> not yet
+05:16 < bridge> <davidlovesmath> (i didnt)
+05:16 < bridge> <davidlovesmath> yea not yet anyways
+05:16 < bridge> <davidlovesmath> but now if i do find a way im gonna use it on there servers to report it
+05:16 < bridge> <davidlovesmath> lol
+05:16 < bridge> <davidlovesmath> /hjk
+05:17 < bridge> <_noby> that would probably be useful yeah
+05:17 < bridge> <davidlovesmath> anyways it looks like its likely from the master server
+05:17 < bridge> <davidlovesmath> is my best guss anyways
+05:17 < bridge> <_noby> i imagine there are probably lots of ways for a server to crash a client, but  probably not many the other way around
+05:17 < bridge> <davidlovesmath> as i didnt connect to any servers
+05:17 < bridge> <davidlovesmath> def a lot of ways to crash a client. already found 2 from invalid maps allown
+05:18 < bridge> <_noby> i know a few other ways lol
+05:18 < bridge> <_noby> idk any way that client can crash ddnet server though
+05:18 < bridge> <davidlovesmath> i mean if you did you would probaly report it so ofc you dont
+05:18 < bridge> <davidlovesmath> lol
+05:18 < bridge> <_noby> no i wouldnt
+05:18 < bridge> <_noby> xd
+05:19 < bridge> <davidlovesmath> and if you report it it would probs be fixed quite fast lol
+05:19 < bridge> <_noby> well if it was an actual issue i would
+05:19 < bridge> <_noby> the only ways i know are like, someone has to intentionally make a server do something wrong
+05:19 < bridge> <_noby> it could never happen accidentally
+05:20 < bridge> <davidlovesmath> i mean duh. but then someone can just crash every server
+05:20 < bridge> <davidlovesmath> free dos
+05:20 < bridge> <_noby> nono
+05:20 < bridge> <_noby> idk any way for a client to crash a server
+05:20 < bridge> <_noby> that would be worth reporting ofc
+05:20 < bridge> <davidlovesmath> yea exsactly
+05:21 < bridge> <_noby> is that what u are trying to find?
+05:21 < bridge> <davidlovesmath> no
+05:21 < bridge> <_noby> ohh
+05:22 < bridge> <davidlovesmath> im trying to find a way for a evil server to crash clients (well more ways)
+05:22 < bridge> <davidlovesmath> and posable get rce if its a oob write
+05:22 < bridge> <_noby> yeah bad maps work and
+05:22 < bridge> <davidlovesmath> my end goal is to find some kind of oob write somewhere
+05:22 < bridge> <_noby> too many items in a snap/invalid ids worked
+05:22 < bridge> <_noby> and a couple other things
+05:23 < bridge> <_noby> i never tried to investigate if it is expoitable like that but i would be curious to know lol
+05:23 < bridge> <davidlovesmath> wait theres a oob write?
+05:23 < bridge> <_noby> idk, just crash
+05:23 < bridge> <_noby> old version of ddnet i got it to overwrite the skin data
+05:23 < bridge> <_noby> so it was there. but its probably been fixed
+05:24 < bridge> <davidlovesmath> i assume you reported it?
+05:24 < bridge> <_noby> i was using such an old version that it didnt matter. afaik the current one at that time had been fixed
+05:25 < bridge> <davidlovesmath> ah ok
+05:25 < bridge> <_noby> it was ddnet v10 and they were on like v14
+05:25 < bridge> <davidlovesmath> ah wow
+05:25 < bridge> <_noby> it also overwote the config file somehow
+05:26 < bridge> <davidlovesmath> deff sounds like a oob write
+05:26 < bridge> <_noby> ye
+05:26 < bridge> <davidlovesmath> no clue how else that stuff could happen
+05:26 < bridge> <_noby> its free to overwrite all its own stuff before it crashes ig
+05:26 < bridge> <davidlovesmath> correct
+05:26 < bridge> <_noby> im not sure if any of this stuff still works on new ddnet
+05:27 < bridge> <davidlovesmath> the os only kills it with the current build settings if it trys to acsess memory it cant
+05:27 < bridge> <davidlovesmath> if it does im gonna hack everyone /jk
+05:27 < bridge> <totar> wasn't there a blog article about a working attack on teeworlds clients?
+05:27 < bridge> <murpi> noby noby noby noby noby noby noby noby noby noby noby noby
+05:28 < bridge> <_noby> u
+05:28 < bridge> <_noby> was there?
+05:29 < bridge> <totar> https://mmmds.pl/fuzzing-map-parser-part-1-teeworlds/
+05:29 < bridge> <totar> https://mmmds.pl/images/teeexploit.gif
+05:29 < bridge> <davidlovesmath> oh yea no thats not working on vanella clients
+05:30 < bridge> <totar> well it was reported obviously lol
+05:30 < bridge> <davidlovesmath> though it wouldnt have been too too hard to do so with a rop chain
+05:30 < bridge> <davidlovesmath> i mean at the time
+05:30 < bridge> <davidlovesmath> they manualy disabled alsr
+05:30 < bridge> <totar> ah
+05:30 < bridge> <totar> I guess it's harder than I thought
+05:31 < bridge> <_noby> thats interesting
+05:31 < bridge> <davidlovesmath> not by much in this case
+05:32 < bridge> <totar> fuzzing the editor might yield something, I bet that code is less tested
+05:32 < bridge> <_noby> in tw 0.7 i found a way to make it do this
+05:32 < bridge> <_noby> https://cdn.discordapp.com/attachments/407308363031117834/758374460565880922/Screen_Shot_2020-09-23_at_11.57.15_AM.png
+05:32 < bridge> <davidlovesmath> libwinpthread-1.dll and zlib1.dll have alsr disabled
+05:33 < bridge> <davidlovesmath> so for the most part alsr isnt the most effective at preventing rop in this game
+05:33 < bridge> <totar> alsr or aslr?
+05:33 < bridge> <davidlovesmath> alsr
+05:33 < bridge> <_noby> asan
+05:33 < bridge> <_noby> ?
+05:33 < bridge> <totar> what is alsr
+05:33 < bridge> <davidlovesmath> wait no it is aslr
+05:33 < bridge> <davidlovesmath> sorry
+05:33 < bridge> <_noby> ohh
+05:34 < bridge> <davidlovesmath> adrees space layout randimisason
+05:34 < bridge> <_noby> i thought
+05:34 < bridge> <davidlovesmath> the main builds dont have ASAN
+05:36 < bridge> <davidlovesmath> anyways now it parses like 200 packets before crashing due to the following packet
+05:36 < bridge> <davidlovesmath> fake packet receved
+05:36 < bridge> <davidlovesmath> data is
+05:36 < bridge> <davidlovesmath> ff ff ff ff ff ff ff ff ff ff 69 65 78 74 2d 31 00 30 2e 36 2e 34 2c 20 31 39 2e 30 00 44 44 4e 65 74 20 55 53 41 31 20 2d 20 4e 6f 76 69 63 65 00 4c 69 6e 65 61 72 00 2d 32 38 32 31 36 38 36 32 39 00 31 38 37 31 36 35 00 44 44 72 61 63 65 4e 65 74 77 6f 72 6b 00 30 00 31 33 00 36 33 00 31 33 00 36 33 00 00
+05:36 < bridge> <davidlovesmath> 2025-02-19 20:24:52 I assert: /home/david/ddnet/src/base/system.cpp(1174): unknown NETADDR type 0
+05:36 < bridge> <davidlovesmath> Illegal instruction (core dumped)
+05:36 < bridge> <totar> I think this would still be a be a worth while attack because you could trick a client into pressing the hotkeys for "open editor" and "load current map into editor" after they join a server.
+05:37 < bridge> <davidlovesmath> hmm true + it wouldnt be that hard to do
+05:37 < bridge> <_noby> that looks like an info reply
+05:37 < bridge> <davidlovesmath> will do that once im done with the network fuzzing
+05:37 < bridge> <_noby> isnt part of the main connection seq
+05:38 < bridge> <davidlovesmath> i mean that makes sence but why is it invalid?
+05:38 < bridge> <davidlovesmath> also whats a info reply do?
+05:38 < bridge> <_noby> idk tbh but maybe because its not being sent over the same connection as the other traffic?
+05:39 < bridge> <_noby> info referring to the old system where the client sends a udp packet to some server(s) and they reply with data containing stuff like server name/map/player list etc
+05:39 < bridge> <_noby> and that would be over a different port
+05:39 < bridge> <_noby> i think
+05:40 < bridge> <davidlovesmath> hmm so do you think i should just ignore them?
+05:40 < bridge> <_noby> either ignore or handle separately if u want to try fuzzing this too
+05:40 < bridge> <davidlovesmath> where are these parsed
+05:41 < bridge> <davidlovesmath> so i can ignore them
+05:41 < bridge> <totar> how the hell do you know this lmao
+05:41 < bridge> <davidlovesmath> yea lol
+05:42 < bridge> <_noby> 🎲
+05:42 < bridge> <_noby> jk
+05:42 < bridge> <_noby> 69 65 78 74 is iext
+05:42 < bridge> <_noby> see CClient::ProcessConnlessPacket  where it checks against SERVERBROWSE_INFO_EXTENDED
+05:43 < bridge> <davidlovesmath> so can i just comment that part out?
+05:43 < bridge> <davidlovesmath> https://cdn.discordapp.com/attachments/293493549758939136/1341993637810274334/image.png?ex=67b80478&is=67b6b2f8&hm=ac492b2ffe977fc8c2108b8896f06c3a0eed1bccdefb9bda9b067b40695e577a&
+05:43 < bridge> <_noby> i mean u can? but why
+05:44 < bridge> <davidlovesmath> i mean wouldnt that ignore the packet?
+05:44 < bridge> <totar> the way you did that comment will break the else if flow
+05:44 < bridge> <_noby> oh i didnt see that
+05:44 < bridge> <_noby> just saw the selection lol
+05:44 < bridge> <davidlovesmath> wdym?
+05:45 < bridge> <_noby> putting // there wil make it not compile but
+05:45 < bridge> <_noby> what are u trying to accomplish by commenting that out?
+05:45 < bridge> <davidlovesmath> ignoreing the packet
+05:45 < bridge> <davidlovesmath> https://discord.com/channels/252358080522747904/293493549758939136/1341992894550245408
+05:45 < bridge> <_noby> can u just make whatever extra code ur adding ignore any packet that starts with ff ff ..
+05:45 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1341994208285950022/image.png?ex=67b80500&is=67b6b380&hm=7f998eff8727e97ced37ee8530570e6b8be24903091696fd54a62da66a82a8f9&
+05:46 < bridge> <davidlovesmath> oh wait i should be ingoring this entire funcson that handles packets shouldnt i
+05:46 < bridge> <davidlovesmath> how many fs?
+05:46 < bridge> <_noby> probably one or two would be enough idk
+05:46 < bridge> <_noby> take a look at network.cpp how it assembles packets that arent connless
+05:46 < bridge> <davidlovesmath> also wait should i be ignoreing this entire funcson? as it looks quite simaler
+05:46 < bridge> <_noby> i dont think any of them start with ff
+05:47 < bridge> <_noby> ignoring in what sense
+05:47 < bridge> <davidlovesmath> just return imeditly
+05:47 < bridge> <_noby> ig i dont have a good enough understanding of the fuzzing tools to give a useful answer but it seems like no
+05:48 < bridge> <davidlovesmath> ok so what part of it should i ignore?
+05:49 < bridge> <davidlovesmath> https://discord.com/channels/252358080522747904/293493549758939136/1341992894550245408 you said here i should ignore these packets or handle them separately
+05:49 < bridge> <davidlovesmath> btw thank you so much for helping me!
+05:49 < bridge> <_noby> np
+05:49 < bridge> <_noby> :happy:
+05:49 < bridge> <totar> noby only appears twice a year, consider yourself lucky.
+05:50 < bridge> <_noby> and i meant, u should treat those packets as something seperate from the connection u are trying to test. wherever u are adding this logic
+05:50 < bridge> <_noby> LOL
+05:50 < bridge> <_noby> hey sometimes 3 or 4
+05:50 < bridge> <murpi> noby nuby nobody onby!
+05:51 < bridge> <_noby> urmpi
+05:51 < bridge> <davidlovesmath> is there a way to check what connectson is calling recv?
+05:51 < bridge> <_noby> yes, net_udp_recv will populate one of its args with info about where the packet came from
+05:52 < bridge> <davidlovesmath> is the a easy way to tell if thats from the main server or not?
+05:52 < bridge> <davidlovesmath> ie the gameplay part
+05:53 < bridge> <_noby> yes probably
+05:54 < bridge> <davidlovesmath> hmm for now im just gonna ignore packets that start with ff ff ff ff
+05:54 < bridge> <_noby> could look at the PeerAddress function but ya that works too
+05:54 < bridge> <_noby> or just hard code it if this is just for testing
+05:55 < bridge> <davidlovesmath> yea atm im testing my packet code to try and recreate the connectson to the server
+05:55 < bridge> <davidlovesmath> as a seed for the fuzzer
+05:55 < bridge> <davidlovesmath> so valid data that doesnt crash
+05:56 < bridge> <_noby> maybe u could just, capture the token it makes for ur ip to ur server, and dont change either, and just manually append that during testing?
+05:57 < bridge> <_noby> as long as ur addr doesnt change and ur server doesnt restart it should stay the same
+05:57 < bridge> <_noby> ddnet server doesnt care about port for token calc
+06:09 < bridge> <davidlovesmath> im gonna work on this more tomarow
+06:09 < bridge> <davidlovesmath> thanks for all the help!
+06:11 < bridge> <_noby> gl!
+08:13 < bridge> <matodor> xd, my internet connection was crashed
+08:13 < bridge> <matodor> after reconnecting with the DDNet client to the official DDNet server for some reason the 0.7 translate layer started working
+08:13 < bridge> <matodor> https://cdn.discordapp.com/attachments/293493549758939136/1342031340937281567/image.png?ex=67b82795&is=67b6d615&hm=34fb518fa765617ea315b3e9ab1ef6d0fe373adbd2726de7e8792e295c1a02fc&
+08:21 < bridge> <meloƞ> Aw man he got a random noby encounter :feelsbadman:
+08:21 < bridge> <meloƞ> I never get those!
+08:21 < bridge> <vappy19> Noboly
+08:25 < bridge> <TsPiggy> regular no clear. btw haven't seen you for a while
+08:25 < bridge> <Ewan> yea well :feelsbadman:
+08:25 < bridge> <Ewan> only so much noby to go around
+08:26 < bridge> <TsPiggy> i am curious what happens to chn a few hours ago tho
+08:26 < bridge> <TsPiggy> i just woke up and it was fixed already
+08:26 < bridge> <TsPiggy> https://cdn.discordapp.com/attachments/293493549758939136/1342034639044349992/000011bce6f41c23be23b4180a47916d.png?ex=67b82aa7&is=67b6d927&hm=eba364c9b3586b7a3e74fd17db61c56ddb2d1d3e12ddae788936cd5d0a981e69&
+08:26 < bridge> <TsPiggy> disk exploded on all of them
+08:27 < bridge> <Ewan> logging related update?
+08:27 < bridge> <Ewan> the power in my room won’t turn on and the breaker switch is unmoved
+08:28 < bridge> <Ewan> i love sketchy electrical work
+08:28 < bridge> <Ewan> alarm clock is off and the phone is low battery so I’m gonna hope it lasts until i need alarm
+08:33 < bridge> <0xdeen> I updated servers and wen to sleep, and they have been coredumping ever since 😄
+08:34 < bridge> <TsPiggy> :justatest:
+08:34 < bridge> <0xdeen> it's because we don't build the antibot in sync, happens all the time
+08:37 < bridge> <ryozuki> hi @_noby long time no see
+08:37 < bridge> <ryozuki> @learath2 xD antibot happened
+08:40 < bridge> <0xdeen> The proper fix is to always rebuild antibot when we rebuild ddnet-server
+08:46 < bridge> <ryozuki> u dont have a script or smth
+08:46 < bridge> <ryozuki> idk how it works
+08:49 < bridge> <davidlovesmath> whats antibot?
+09:24 < bridge> <heckerisprolegit4250> guys help me i have erorr it? whos can fix me?
+09:24 < bridge> <heckerisprolegit4250> https://cdn.discordapp.com/attachments/293493549758939136/1342049287982419979/image.png?ex=67b8384c&is=67b6e6cc&hm=92ad3810c20f14d1fb96e61f66ebe52c7c66255201ad3d7b39e039b02340d986&
+09:26 < bridge> <heckerisprolegit4250> guys help me i have erorr it. whos can fix me?
+09:26 < bridge> <heckerisprolegit4250> https://cdn.discordapp.com/attachments/293493549758939136/1342049287982419979/image.png?ex=67b8384c&is=67b6e6cc&hm=92ad3810c20f14d1fb96e61f66ebe52c7c66255201ad3d7b39e039b02340d986&
+09:26 < bridge> <heckerisprolegit4250> i wanna create clients own.
+09:26 < bridge> <heckerisprolegit4250> i get erorr
+10:04 < bridge> <0xdeen> me neither, I just ping Learath2 or heinrich5991 to build the antibot again 😄 We should add it to the script we have in ~/src/build.sh
+10:20 < bridge> <pro_gaming1921> we could try spam websites with the simular cheat names so it dissapear so its hard to find.
+10:21 < bridge> <ryozuki> today rust 2024 releases
+10:21 < bridge> <ryozuki> probs around morning
+10:24 < bridge> <ryozuki> https://rust-lang.github.io/rfcs/3668-async-closures.html
+10:24 < bridge> <ryozuki> this will be in
+10:24 < bridge> <ryozuki> async closures
+10:34 < bridge> <ryozuki> oh shit
+10:35 < bridge> <ryozuki> i messed up the branch
+10:35 < bridge> <ryozuki> anyway  the pr was stale
+10:50 < bridge> <zerolacqua> i just realized that the method in my commit is not in  upper camel case :frozen:
+10:52 < bridge> <oxyzo.> :nouis:
+11:36 < bridge> <Assa> custom clients don't need to be open source right?
+11:39 < bridge> <inv41idu53rn4m3> Nope!
+11:39 < bridge> <inv41idu53rn4m3> > Permission is granted to anyone to use this software for any purpose,
+11:39 < bridge> <inv41idu53rn4m3> > including commercial applications, and to alter it and redistribute it
+11:39 < bridge> <inv41idu53rn4m3> > freely, subject to the following restrictions:
+11:39 < bridge> <inv41idu53rn4m3> > 
+11:39 < bridge> <inv41idu53rn4m3> > 1. The origin of this software must not be misrepresented; you must not
+11:39 < bridge> <inv41idu53rn4m3> >   claim that you wrote the original software. If you use this software
+11:39 < bridge> <inv41idu53rn4m3> >   in a product, an acknowledgment in the product documentation would be
+11:39 < bridge> <inv41idu53rn4m3> >   appreciated but is not required.
+11:40 < bridge> <inv41idu53rn4m3> > 2. Altered source versions must be plainly marked as such, and must not be
+11:40 < bridge> <inv41idu53rn4m3> >   misrepresented as being the original software.
+11:40 < bridge> <inv41idu53rn4m3> > 3. This notice may not be removed or altered from any source distribution.
+11:40 < bridge> <inv41idu53rn4m3> Nope!
+11:40 < bridge> <inv41idu53rn4m3> 
+11:40 < bridge> <inv41idu53rn4m3> > Permission is granted to anyone to use this software for any purpose,
+11:40 < bridge> <inv41idu53rn4m3> > including commercial applications, and to alter it and redistribute it
+11:40 < bridge> <inv41idu53rn4m3> > freely, subject to the following restrictions:
+11:40 < bridge> <inv41idu53rn4m3> > 
+11:40 < bridge> <inv41idu53rn4m3> > 1. The origin of this software must not be misrepresented; you must not
+11:40 < bridge> <inv41idu53rn4m3> >   claim that you wrote the original software. If you use this software
+11:40 < bridge> <inv41idu53rn4m3> >   in a product, an acknowledgment in the product documentation would be
+11:40 < bridge> <inv41idu53rn4m3> >   appreciated but is not required.
+11:40 < bridge> <inv41idu53rn4m3> > 2. Altered source versions must be plainly marked as such, and must not be
+11:40 < bridge> <inv41idu53rn4m3> >   misrepresented as being the original software.
+11:40 < bridge> <inv41idu53rn4m3> > 3. This notice may not be removed or altered from any source distribution.
+11:40 < bridge> <Assa> oh this even allows for commercial use
+11:43 < bridge> <inv41idu53rn4m3> Even the GPL allows for commercial use lol
+11:43 < bridge> <totar> non commercial licences of an open source project are uncommon
+11:43 < bridge> <Assa> there is a lot of caveats, we have software that uses the aGPL, which HAS to be open sourced even with modifications, i am not  a lawyer
+11:44 < bridge> <totar> teeworlds is basically just MIT afaik
+11:44 < bridge> <totar> similar for ddnet
+11:44 < bridge> <totar> some of the libraries included in ddnet however are not, so if you ship with the demo renderer it needs to be open source I think
+11:44 < bridge> <Assa> it's a bit more restrictive then MIT, MIT just states: Here is code, IDGAF, no warranty
+11:45 < bridge> <totar> in what way is it more restrictive
+11:45 < bridge> <Assa> ^in this way
+11:46 < bridge> <totar> nothing in there is more restrictive than MIT unless you consider to ability to lie about making the source code
+11:46 < bridge> <Assa> which is a restriction?
+11:46 < bridge> <Jupstar ✪> we don't use AGPL code
+11:46 < bridge> <Jupstar ✪> how are you in that impression?
+11:46 < bridge> <Assa> yes I know
+11:47 < bridge> <Jupstar ✪> but enabling ffmpeg feature makes the distribution GPL
+11:47 < bridge> <totar> I think it's actually less restrictive than MIT because it doesn't say you need to include the notice if you don't distribute the source, which MIT does
+11:47 < bridge> <Jupstar ✪> so your closed source client cannot use it
+11:47 < bridge> <Assa> I read too many licenses and got confused, happens from time to time
+11:48 < bridge> <inv41idu53rn4m3> DDNet requires the strictly GPL parts of FFmpeg?
+11:48 < bridge> <Jupstar ✪> yes
+11:48 < bridge> <Jupstar ✪> x264 & mp4 are not even free formats afaik
+11:48 < bridge> <inv41idu53rn4m3> oh yeah...
+11:48 < bridge> <Jupstar ✪> it's bit of grey zone
+11:49 < bridge> <inv41idu53rn4m3> audio and video formats are just so ass
+11:49 < bridge> <inv41idu53rn4m3> with their licensing
+11:49 < bridge> <Jupstar ✪> there are royalty free formats from google
+11:49 < bridge> <Jupstar ✪> vp9 or whatever they call it
+11:49 < bridge> <Jupstar ✪> we could use that
+11:50 < bridge> <totar> I thought mp4 patents are expired? or they will this year
+11:50 < bridge> <Assa> thing is mp4 is way more accessible for the default dummy user
+11:50 < bridge> <Jupstar ✪> i'd say vp9 is fine, since it's supported by browsers
+11:50 < bridge> <Jupstar ✪> brower formats are usually fine
+11:50 < bridge> <totar> I thought this happened in 2023 tbh
+11:50 < bridge> <Jupstar ✪> webm is a subset of mkv
+11:52 < bridge> <inv41idu53rn4m3> yeah as long as their default media player plays it and it embeds nicely on Discord it's fine
+11:53 < bridge> <inv41idu53rn4m3> I assume the embedding should be similar on other platforms
+11:53 < bridge> <Assa> checked, mp4 itself is not the issue, but the h.264 codec
+11:53 < bridge> <totar> ok I guess it's complicated
+11:53 < bridge> <totar> <https://meta.wikimedia.org/wiki/Have_the_patents_for_H.264_MPEG-4_AVC_expired_yet>
+11:57 < bridge> <Assa> vp8 & webP, and now I read enough about this topic to be able to follow you and agree. We are now maybe at VP9
+11:58 < bridge> <Assa> vp8 & webP, and now I read enough about this topic to be able to follow you and agree. We are now at vp9
+11:58 < bridge> <Jupstar ✪> av1 is based
+11:58 < bridge> <Jupstar ✪> sad my gpu doesnt support it xd
+11:59 < bridge> <Assa> so it's still mp4, and the licensefeefree codec would be vp9, also supports WebM
+11:59 < bridge> <Assa> thank you, noted this down for other projects ;_;
+12:00 < bridge> <Jupstar ✪> be aware that hardware en-/decoding is most likely worse tho xd
+12:17 < bridge> <chillerdragon> Open Source it Ill add
+12:18 < bridge> <totar> do you think an open source antibot would be effective?
+12:20 < bridge> <chillerdragon> The script
+12:20 < bridge> <chillerdragon> Don’t need the antibot
+12:20 < bridge> <totar> ah
+12:22 < bridge> <totar> oh til you can click the "Replying to" blue hyper link in the bridge to see the message
+14:28 < bridge> <fr1zzzzi> 50$ gift https://steanmcommunity.gifts/s/1042910952
+14:33 < bridge> <zerolacqua> :nouis:
+14:45 < bridge> <mamyt_rahal444> 50$ gift https://steanmcommunity.gifts/s/1042910952
+16:03 < bridge> <robyt3> Do you also generate random addresses for your packets? If so, then that assertion error would probably on a bug in your testing code, because addresses should never have an unknown type. Else, if the invalid address is unpacked from packet data or the result of handling a message then it's a bug in DDNet code and should be fixed. Can you get the stack trace of the crash?
+16:04 < bridge> <robyt3> Do you also generate random addresses for your packets? If so, then that assertion error would probably be a bug in your testing code, because addresses should never have an unknown type. Else, if the invalid address is unpacked from packet data or the result of handling a message then it's a bug in DDNet code and should be fixed. Can you get the stack trace of the crash?
+16:33 < bridge> <ryozuki> ```rust
+16:33 < bridge> <ryozuki> mod test {
+16:33 < bridge> <ryozuki>     extern fn malloc(size: u64) -> *mut u8;
+16:33 < bridge> <ryozuki>     extern fn puts(ptr: *mut u8) -> i32;
+16:33 < bridge> <ryozuki> 
+16:33 < bridge> <ryozuki>     #[langitem = "String"]
+16:33 < bridge> <ryozuki>     struct String {
+16:33 < bridge> <ryozuki>         ptr: *mut u8,
+16:33 < bridge> <ryozuki>         len: u64,
+16:33 < bridge> <ryozuki>         cap: u64,
+16:33 < bridge> <ryozuki>     }
+16:33 < bridge> <ryozuki> 
+16:33 < bridge> <ryozuki>     fn main() -> u64 {
+16:33 < bridge> <ryozuki>         let x: String = "hello \nworld";
+16:33 < bridge> <ryozuki>         puts(x.ptr);
+16:33 < bridge> <ryozuki> 
+16:33 < bridge> <ryozuki>         return 0;
+16:33 < bridge> <ryozuki>     }
+16:33 < bridge> <ryozuki> }
+16:33 < bridge> <ryozuki> ```
+16:33 < bridge> <ryozuki> @milkeeycat i got strings, and so i got prints
+16:33 < bridge> <ryozuki> they all heap allocated for now tho
+16:33 < bridge> <ryozuki> xd
+16:33 < bridge> <milkeeycat> epyc
+16:41 < bridge> <ryozuki> https://tenor.com/view/developers-gif-4458491
+17:39 < bridge> <kebscs> i think the spec count should have a delay before someone is being spectated
+17:39 < bridge> <kebscs> so someone cant spam spec and the eye will pop up and hide continuously
+17:39 < bridge> <kebscs> idk whats best way to implement it tho
+18:09 < bridge> <louis> just update it every 1s?
+18:10 < bridge> <louis> like debouncing
+18:10 < bridge> <kebscs> snaps are sent instantly
+18:10 < bridge> <kebscs> im coding it rn so its client side 1s delay
+18:10 < bridge> <louis> update it clientside every 1s i mean
+18:10 < bridge> <kebscs> if count >0
+18:10 < bridge> <kebscs> yea
+18:24 < bridge> <smit1x> https://cdn.discordapp.com/attachments/293493549758939136/1342185039240368138/image.png?ex=67b8b6b9&is=67b76539&hm=41bbf48b7ab28a5a2026d306d1c25aa9ee0f035bcedeab9278d8e7b5b9f12ead&
+18:24 < bridge> <smit1x> https://cdn.discordapp.com/attachments/293493549758939136/1342185039575908362/image.png?ex=67b8b6ba&is=67b7653a&hm=207c13c746ec650f5af1831cef11c760673a4324bb05ed4cc28b77b89c503015&
+18:24 < bridge> <smit1x> https://cdn.discordapp.com/attachments/293493549758939136/1342185093367599226/image.png?ex=67b8b6c6&is=67b76546&hm=b6d79a902830f07c03ff76ed4e8f02487ec85b83cf9c72ebfcaf1ab395ce9ad5&
+18:43 < bridge> <milkeeycat> wtf :pepeW:
+18:43 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342189924899885137/image.png?ex=67b8bb46&is=67b769c6&hm=f2e6e586e450b0b1cb0576255c7bf947bec9c47948daab1d7e374fa31cd84a89&
+18:44 < bridge> <Jupstar ✪> is your wifi on again? xdd
+18:44 < bridge> <milkeeycat> no
+18:44 < bridge> <smit1x> help(
+18:44 < bridge> <meloƞ> the language of the godfs
+18:44 < bridge> <milkeeycat> i connected using ethernet from last time
+18:45 < bridge> <meloƞ> we need the "previous" error.
+18:45 < bridge> <milkeeycat> and still use it
+18:45 < bridge> <Jupstar ✪> here
+18:45 < bridge> <Jupstar ✪> program not found
+18:45 < bridge> <Jupstar ✪> installation mistake
+18:45 < bridge> <milkeeycat> but for some reason i feel like my game got more laggy since I updated firefox -.-
+18:45 < bridge> <Jupstar ✪> lmao
+18:45 < bridge> <meloƞ> read the `note:` - it tells you that you're missing something important - i assume you didnt download the msvc build tools
+18:45 < bridge> <Jupstar ✪> @milkeeycat do you run on battery rn?
+18:45 < bridge> <smit1x> and what to do
+18:45 < bridge> <Jupstar ✪> i dunno xd
+18:46 < bridge> <Jupstar ✪> ask microsoft support
+18:46 < bridge> <meloƞ> did you read the readme?
+18:46 < bridge> <meloƞ> on github?
+18:46 < bridge> <smit1x> yes
+18:46 < bridge> <smit1x> Before I reinstalled Windows everything was fine with me
+18:46 < bridge> <meloƞ> did you follow all steps that i carefully wrote down?
+18:46 < bridge> <smit1x> hmm
+18:46 < bridge> <smit1x> yes?
+18:47 < bridge> <milkeeycat> my laptop is charging rn
+18:47 < bridge> <meloƞ> did you download:
+18:47 < bridge> <meloƞ> 
+18:47 < bridge> <meloƞ> msvc build tools
+18:47 < bridge> <meloƞ> python
+18:47 < bridge> <meloƞ> rust
+18:47 < bridge> <meloƞ> cmake
+18:47 < bridge> <meloƞ> 
+18:47 < bridge> <meloƞ> did you:
+18:47 < bridge> <meloƞ> 
+18:47 < bridge> <meloƞ> set the right rust toolchain?
+18:47 < bridge> <smit1x> uh
+18:47 < bridge> <smit1x> msvc
+18:47 < bridge> <smit1x> ok im stuped
+18:47 < bridge> <milkeeycat> why it jumps to 555 fps when i have it capped to 200
+18:47 < bridge> <Jupstar ✪> that can happen, it tries to stabilize the fps
+18:48 < bridge> <meloƞ> :angy:
+18:48 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1342191038546182236/image.png?ex=67b8bc50&is=67b76ad0&hm=4462492cf24a8c4ac41d8dbce8de0736bb213cfb3c203f5bf71b35e43de7659c&
+18:48 < bridge> <Jupstar ✪> if it really jumps to 0 then it might go beyond your limit
+18:48 < bridge> <milkeeycat> btw what are these squares in debug mode?
+18:48 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342191201884962856/image.png?ex=67b8bc77&is=67b76af7&hm=04207b3923f09f9ff645292f769a4d9606b13f9c73b0ec3fda2b09c10947efdb&
+18:48 < bridge> <meloƞ> color go brrrr?
+18:49 < bridge> <inv41idu53rn4m3> If it tries to reach a given average FPS I could see it leading into an oscillation where it repeatedly overcorrects
+18:49 < bridge> <inv41idu53rn4m3> but it doesn't seem super likely?
+18:49 < bridge> <inv41idu53rn4m3> like, an issue like that should be obvious enough that it wouldn't exist anymore...
+18:49 < bridge> <Jupstar ✪> which version do you run, steam, website, selfcompiled?
+18:49 < bridge> <milkeeycat> self compiled latest commit
+18:50 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342191642442203237/image.png?ex=67b8bce0&is=67b76b60&hm=b5a7d84cc5b9e632ecfe5bf7d1c073c6f479f53a3f3afa39a8247fd12196275e&
+18:50 < bridge> <meloƞ> i saw a bigger commit from roby considering skins
+18:50 < bridge> <meloƞ> something something 0.7 maybe
+18:50 < bridge> <Jupstar ✪> ig it's just the blood color or smth
+18:50 < bridge> <Jupstar ✪> but that has nothing to do with your ping jumps
+18:51 < bridge> <meloƞ> https://github.com/ddnet/ddnet/pull/9700
+18:51 < bridge> <meloƞ> 
+18:51 < bridge> <meloƞ> maybe something from this
+18:51 < bridge> <Jupstar ✪> fps*
+18:51 < bridge> <milkeeycat> i just never opened settings in debug mode
+18:51 < bridge> <meloƞ> https://github.com/ddnet/ddnet/pull/9700
+18:51 < bridge> <meloƞ> 
+18:51 < bridge> <meloƞ> maybe something from this - i didnt read the PR tho
+18:51 < bridge> <milkeeycat> so i never saw it xd
+18:51 < bridge> <meloƞ> ah wait so its not something new? forget what i said then <a:kekw:1106634599221698571>
+18:52 < bridge> <Jupstar ✪> @milkeeycat if u find a fix other than restarting your OS, which fixes all problems and would be way too easy, let me know
+18:53 < bridge> <milkeeycat> restart doesn't help :pepeW:
+18:54 < bridge> <milkeeycat> it's been like that for a few days already
+18:54 < bridge> <Jupstar ✪> @milkeeycat `MESA_LOADER_DRIVER_OVERRIDE=zink ./DDNet "gfx_backend OpenGL; gfx_gl_major 3; gfx_gl_minor 3"`
+18:54 < bridge> <Jupstar ✪> OpenGL on Vulkan
+18:55 < bridge> <inv41idu53rn4m3> clearly what we need is opengl on d3d on vulkan
+18:56 < bridge> <Jupstar ✪> i mean i lately tried vulkan to dx12
+18:56 < bridge> <Jupstar ✪> 
+18:56 < bridge> <Jupstar ✪> i dunno if wine wouldn't automatically then do dx12 to vulkan
+18:56 < bridge> <Jupstar ✪> nice round trip
+19:00 < bridge> <kebscs> i guess average color of skin?
+19:01 < bridge> <kebscs> so when u kill partciles are of this color
+19:02 < bridge> <milkeeycat> and now I looked at console and see this, wtf is going on
+19:03 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342194808386621500/image.png?ex=67b8bfd3&is=67b76e53&hm=6f64e6ee260c14ecaaf5335cc62b929b13d3ee3fa1a024a722bbbbcb3e46fd24&
+19:03 < bridge> <kebscs> spectator count is in ddnetspectatorinfo
+19:03 < bridge> <kebscs> probably smth related
+19:09 < bridge> <kebscs> spectator count and cursor is in ddnetspectatorinfo
+19:10 < bridge> <ryozuki> https://blog.rust-lang.org/2025/02/20/Rust-1.85.0.html#async-closures
+19:13 < bridge> <milkeeycat> can anyone join ddnet://45.141.57.31:8384 and tell if you have different fps than on other servers? xd
+19:13 < bridge> <DDNet> 45.141.57.31:8384[🇪🇺] is an official **DDraceNetwork** (Type: DDrace) server.
+19:13 < bridge> <DDNet> Quick join: <https://ddnet.org/connect-to/?addr=45.141.57.31:8384/>
+19:16 < bridge> <kebscs> what was the server
+19:16 < bridge> <kebscs> and your client version
+19:16 < bridge> <milkeeycat> this server
+19:16 < bridge> <milkeeycat> and latest commit
+19:18 < bridge> <kebscs> cant reproduce
+19:19 < furo> Ah ok, now I get the message. I had to enable debug logging as well. `console_output_level 1`
+19:20 < bridge> <kebscs> oh yea
+19:20 < bridge> <kebscs> same with this command
+19:22 < bridge> <kebscs> server isnt on spec count commit
+19:22 < bridge> <kebscs> so something wrong with spectator cursor
+19:24 < bridge> <kebscs> doesnt happen on servers with commit: 1c9d584
+19:24 < bridge> <kebscs> for sure happens on 17198ea and below
+19:26 < furo> Well, `m_SpectatorCount` is bolted on to `DDNetSpectatorInfo`. But the server is sending the packet without that field, which means the parsing will fail.
+19:28 < bridge> <kebscs> makes sense
+19:28 < bridge> <learath2> @0xdeen so what happened with the antibot? What change bumped the abi without any of us noticing?
+19:29 < bridge> <kebscs> can it be handled or is it fine since spec cursor has been only on nightly
+19:29 < bridge> <kebscs> this <https://github.com/ddnet/ddnet/pull/9712/files#diff-dc411d77dbc105e90ec378d8d002db2e1f0a5a545c90f5e3599990584dd6e51cL8> ?
+19:29 < bridge> <kebscs> this? <https://github.com/ddnet/ddnet/pull/9712/files#diff-dc411d77dbc105e90ec378d8d002db2e1f0a5a545c90f5e3599990584dd6e51cL8>
+19:30 < bridge> <learath2> I guess the "client" in the pr title meant no one double checked
+19:30 < bridge> <learath2> damn
+19:34 < furo> @kebscs You can add default value to `m_SpectatorCount` by adding a fourth argument to `NetIntRange`, which will fix the problem.
+19:36 < bridge> <kebscs> ah ty, will make pr
+19:41 < bridge> <kebscs> yea that fixes it
+20:13 < bridge> <Sans> What's the policy on qol changes? I wanna make the fps counter less aggressive by averaging the fps over a few seconds
+20:20 < bridge> <kebscs> i think the fps counter looks bad anyway
+20:20 < bridge> <kebscs> and moves the killfeed
+20:24 < bridge> <Sans> I mean, I was thinking of moving to the left
+20:24 < bridge> <Sans> and making it smaller
+20:24 < bridge> <Sans> maybe I should just combine all of those into a single PR and see what others think
+20:25 < bridge> <Sans> I mean, I was thinking of moving it to the left
+20:30 < bridge> <kebscs> idk about moving it, but current counter is just annoying to have it on
+20:32 < bridge> <Sans> How would you change it then?
+20:33 < bridge> <Sans> Aside from moving it to the top left (usually where other games have it) and making it smaller idk how it could be improved
+20:33 < bridge> <Sans> and also averaging it over 5 seconds or smth to smooth it out
+20:33 < bridge> <kebscs> yea probably that
+20:50 < bridge> <learath2> Maybe consult @jupeyy_keks on whether that's a good idea. Spikes are useful to see usually, averaging over a couple seconds would obliterate that
+20:51 < bridge> <learath2> 1% lows might be interesting to see
+20:57 < bridge> <chairn> the graph could still show the instantaneous value while the UI could show averaged value to prevent unreadable output
+21:19 < bridge> <milkeeycat> I uninstalled some graphics related package and now I can't open new windows and even tty :justatest:
+21:22 < bridge> <chairn> ctrl+alt+f4 and there is your tty terminal
+21:22 < bridge> <milkeeycat> it wasn't working
+21:23 < bridge> <chairn> try with other f keys
+21:24 < bridge> <chairn> f1 and f2 are usually the window system
+21:24 < bridge> <milkeeycat> after installing a bunch of packages it works now xd
+21:24 < bridge> <chairn> f1 and f2 are usually the window manager
+21:24 < bridge> <milkeeycat> i can use any f key
+21:29 < bridge> <Jupstar ✪> everything has pros and cons, idc xdd
+21:29 < bridge> <Jupstar ✪> averaging is always late to the party
+21:31 < bridge> <kebscs> smooth fps overall, normal when in debug mode?
+21:31 < bridge> <kebscs> smooth fps overall, no smoothing when in debug mode?
+21:35 < bridge> <pioooooo> Dunno anyone else smooth fps
+21:35 < bridge> <Jupstar ✪> in debug the fps are never smooth
+21:36 < bridge> <Jupstar ✪> tbh just use the steam fps or mangohud if u want more detailed fps lmao
+21:36 < bridge> <Jupstar ✪> @sans._. do you use steam version?
+21:37 < bridge> <Sans> Nope, I use a modified version by @flockes_fussel
+21:37 < bridge> <Sans> pretty sure it's based on the website client
+21:38 < bridge> <Sans> might I ask why?
+21:39 < bridge> <ryozuki> https://github.com/sunfishcode/eyra
+21:39 < bridge> <Sans> There's a separate debug mode fps counter
+21:40 < bridge> <Sans> https://cdn.discordapp.com/attachments/293493549758939136/1342234373482610720/image.png?ex=67b8e4ac&is=67b7932c&hm=b946010943c51212c3251c3bd569f1c100d76ed53564132a797c5fe2f1be1362&
+21:40 < bridge> <Sans> very smol
+21:40 < bridge> <milkeeycat> it uninstalled xorg :pepeW: maybe deleting packages was a bad idea after all
+21:41 < bridge> <Sans> gg :why_god_why:
+22:06 < bridge> <davidlovesmath> yea one sec
+22:07 < bridge> <davidlovesmath> let me just make it crash when it happens drectly instead of indrectly with a invlaid instructson
+22:17 < bridge> <davidlovesmath> ```#0 0x55cff7946c9e in net_addr_str(NETADDR const*, char*, int, bool) /home/david/ddnet/src/base/system.cpp:1174
+22:17 < bridge> <davidlovesmath> #1 0x55cff66011c4 in CClient::ProcessServerInfo(int, NETADDR*, void const*, int) /home/david/ddnet/src/engine/client/client.cpp:1237
+22:17 < bridge> <davidlovesmath> #2 0x55cff6604d39 in CClient::ProcessConnlessPacket(CNetChunk*) /home/david/ddnet/src/engine/client/client.cpp:1206
+22:17 < bridge> <davidlovesmath> #3 0x55cff66058f0 in CClient::PumpNetwork() /home/david/ddnet/src/engine/client/client.cpp:2577
+22:17 < bridge> <davidlovesmath> #4 0x55cff6607160 in CClient::Update() /home/david/ddnet/src/engine/client/client.cpp:2661
+22:17 < bridge> <davidlovesmath> #5 0x55cff6610359 in CClient::Run() /home/david/ddnet/src/engine/client/client.cpp:3248
+22:17 < bridge> <davidlovesmath> #6 0x55cff61f5aa4 in main /home/david/ddnet/src/engine/client/client.cpp:4951
+22:17 < bridge> <davidlovesmath> #7 0x7fad0a8fc1c9 in __libc_start_call_main ../sysdeps/nptl/libc_start_call_main.h:58
+22:17 < bridge> <davidlovesmath> #8 0x7fad0a8fc28a in __libc_start_main_impl ../csu/libc-start.c:360
+22:17 < bridge> <davidlovesmath> #9 0x55cff6202ea4 in _start (/home/david/ddnet/build/DDNet+0x12aea4) (BuildId: 1043ffce204214dd61d0eb439242ead75d39e3c5)```
+22:17 < bridge> <davidlovesmath>  ignore the line of the final crash also the lines of the client.cpp will be off due to my fuzzing code
+22:17 < bridge> <davidlovesmath> @robyt3
+22:17 < bridge> <davidlovesmath> and no i dont generate random addresses for my packets
+22:20 < bridge> <robyt3> Thanks, looks like the wrong address comes from server info. You can open an issue about that.
+22:20 < bridge> <davidlovesmath> ok
+22:24 < bridge> <Jupstar ✪> well steam would offer a different fps counter
+22:24 < bridge> <davidlovesmath> done
+22:33 < bridge> <milkeeycat> @jupeyy_keks i have good news and bad news. good news is that I think my fps is fixed, bad news - for some reason map rendering is fucked up 😬
+22:33 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342247761189273690/image.png?ex=67b8f124&is=67b79fa4&hm=f6bb92dba713a29600dffd32375d2449409e92d3fbd079e6a6706aba0c62d5e9&
+22:36 < bridge> <Sans> How do I enable the prediction time display?
+22:36 < bridge> <Sans> I can't find any f1 command for it
+22:47 < bridge> <milkeeycat> @jupeyy_keks i have good news and bad news. good news is that I think my fps is fixed, bad news - for some reason map rendering is fucked up 😬
+22:47 < bridge> <milkeeycat> 
+22:47 < bridge> <milkeeycat> udp. i didn't fix anything, only broke the game
+22:47 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342247761189273690/image.png?ex=67b8f124&is=67b79fa4&hm=f6bb92dba713a29600dffd32375d2449409e92d3fbd079e6a6706aba0c62d5e9&
+22:47 < bridge> <milkeeycat> @jupeyy_keks i have good news and bad news. good news is that I think my fps is fixed, bad news - for some reason map rendering is fucked up 😬
+22:47 < bridge> <milkeeycat> 
+22:47 < bridge> <milkeeycat> upd. i didn't fix anything, only broke the game
+22:47 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1342247761189273690/image.png?ex=67b8f124&is=67b79fa4&hm=f6bb92dba713a29600dffd32375d2449409e92d3fbd079e6a6706aba0c62d5e9&
+23:04 < bridge> <Sans> this is sexy
+23:04 < bridge> <Sans> https://cdn.discordapp.com/attachments/293493549758939136/1342255477500674070/image.png?ex=67b8f853&is=67b7a6d3&hm=e8616684f7b9e847a0ad15a58335122cc0a624a18431617865e433be42c67aed&
+23:04 < bridge> <Sans> best fps counter the world has ever seen
+23:04 < bridge> <Sans> (ignore the fact that i forgot to shift the info messages upwards)
+23:22 < bridge> <Jupstar ✪> what's bad about the rendering
+23:22 < bridge> <Jupstar ✪> maybe the map is broken xD
+23:39 < bridge> <pro_gaming1921> Updating the fps? Looks clean
+23:40 < bridge> <Sans> ty :3
+23:40 < bridge> <Sans> I also want to move the prediction value next to it but I can't figure it out
+23:42 < bridge> <Sans> nevermind, i forgot some parens
+23:42 < bridge> <Sans> :nouis:
+23:50 < bridge> <Sans> https://cdn.discordapp.com/attachments/293493549758939136/1342267216359456790/image.png?ex=67b90342&is=67b7b1c2&hm=60137ec16eea8dc750471488accf49d92b57fb1247685e0f69913994237891a8&
+23:50 < bridge> <Sans> https://cdn.discordapp.com/attachments/293493549758939136/1342267216715841646/image.png?ex=67b90342&is=67b7b1c2&hm=4481c34dd709d250444984bc7ac4594f48a40e458b82372149b604da95b6b9ba&
+23:50 < bridge> <Sans> https://cdn.discordapp.com/attachments/293493549758939136/1342267217114562641/image.png?ex=67b90342&is=67b7b1c2&hm=72625d7de1a5ff5bab2823b1db2c2b942eb20912f90bc42ec235cba37621fdf5&
+23:50 < bridge> <Sans> Done
+23:51 < bridge> <Sans> I think it looks nice
+23:52 < bridge> <pro_gaming1921> It does. 12k fps is insane. What specs?
+23:53 < bridge> <kebscs> Pred = ping or what?
+23:55 < bridge> <kebscs> nvm its cl_showpred
+23:58 < bridge> <alw5> i just saw a "chatgptee"
+23:58 < bridge> <alw5> how can i connect a bot to a ddnet server
+23:58 < bridge> <alw5> i tried this "https://www.npmjs.com/package/teeworlds" but doesnt work
+23:58 < bridge> <alw5> i tried this "https://www.npmjs.com/package/teeworlds" but doesnt work on ddnet
+23:59 < bridge> <Sans> extra 0 to test something
+23:59 < bridge> <Sans> yup

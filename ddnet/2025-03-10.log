@@ -1,0 +1,981 @@
+00:02 < bridge> <teero777> As a vim user I find ctrl-a as select all very disrespectful
+00:03 < bridge> <Solly> yeah but no
+00:03 < bridge> <Solly> everywhere uses ctrl-a as select all
+00:03 < bridge> <Solly> ```cpp
+00:03 < bridge> <Solly> std::span<SDL_DisplayMode> SdlModes;
+00:03 < bridge> <Solly> {
+00:03 < bridge> <Solly>     int SdlModesRawCount = 0;
+00:03 < bridge> <Solly>     SDL_DisplayMode **ppSdlModesRaw = SDL_GetFullscreenDisplayModes(ScreenId, &SdlModesRawCount);
+00:03 < bridge> <Solly>     if(ppSdlModesRaw)
+00:03 < bridge> <Solly>     {
+00:03 < bridge> <Solly>         dbg_msg("gfx", "unable to get display modes: %s", SDL_GetError());
+00:03 < bridge> <Solly>         return;
+00:03 < bridge> <Solly>     }
+00:03 < bridge> <Solly>     SdlModes = {ppSdlModesRaw, SdlModesRawCount};
+00:03 < bridge> <Solly> }
+00:03 < bridge> <Solly> ```
+00:03 < bridge> <Solly> am i cooking
+00:03 < bridge> <Solly> probably not
+00:04 < bridge> <Solly> i hate dealing with arrays as a size and a ptr
+00:04 < bridge> <Solly> i should suck it up tho
+00:24 < bridge> <Solly> why are fullscreen modes resizeable?
+00:26 < bridge> <kebscs> streched resolution
+00:26 < bridge> <Solly> que?
+00:26 < bridge> <kebscs> stretched resolution
+00:26 < bridge> <Solly> fullscreen modes shouldnt be resizeable
+00:27 < bridge> <Solly> fullscreen modes shouldnt make the window resizeable
+00:27 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1348437031382159360/Spielermodell-CSGO-min.png?ex=67cf7559&is=67ce23d9&hm=8950d85f7a4be7e90785f62738b5dd504b29dff685ba87c48f9d53cdc4887df9&
+00:27 < bridge> <kebscs> are you asking this?
+00:27 < bridge> <Solly> https://wiki.libsdl.org/SDL3/SDL_SetWindowResizable
+00:27 < bridge> <Solly> this is set to true
+00:27 < bridge> <Solly> on fullscreen modes
+00:28 < bridge> <Solly> im trying to parse the spaghetti setvideomode
+00:28 < bridge> <Solly> ```cpp
+00:28 < bridge> <Solly> case 0: // Windowed or Windowed Borderless
+00:28 < bridge> <Solly>     SDL_SetWindowFullscreen(m_pWindow, false);
+00:28 < bridge> <Solly>     SDL_SetWindowBordered(m_pWindow, !IsBorderless);
+00:28 < bridge> <Solly>     SDL_SetWindowResizable(m_pWindow, true);
+00:28 < bridge> <Solly>     break;
+00:28 < bridge> <Solly> ```
+00:28 < bridge> <Solly> it looks like to me
+00:28 < bridge> <Solly> that windowed borderless does nothing
+00:28 < bridge> <kebscs> idk
+00:28 < bridge> <Solly> apart from decorations
+00:29 < bridge> <Solly> which i guess is the definiton of the 2 words slapped together
+00:29 < bridge> <Solly> ctrl-a del try to match the pinned msg
+00:29 < bridge> <Solly> probably not
+00:29 < bridge> <Solly> yeah jupeys message is inacurate
+00:29 < bridge> <TsPiggy> Don't we have headless mode
+00:30 < bridge> <Solly> has to be
+00:30 < bridge> <Solly> for the client?
+00:30 < bridge> <TsPiggy> Ye
+00:30 < bridge> <Solly> how does that work
+00:30 < bridge> <Solly> the whole graphics backend shouldnt be initalized
+00:30 < bridge> <Solly> otherwise there would be m_pWindow checks everywhere
+00:31 < bridge> <Solly> (or sdl_isinited for sdl2)
+00:31 < bridge> <Solly> the video modes are completley broken as they are now (by the looks of the code)
+00:32 < bridge> <Solly> im gona check on master
+00:32 < bridge> <TsPiggy> https://cdn.discordapp.com/attachments/293493549758939136/1348438287408435210/Screenshot_20250310_073206.jpg?ex=67cf7684&is=67ce2504&hm=05a82d0d5b0903fab9c73d1df8810befba95d4aeb39c15d719709e6569b4822b&
+00:32 < bridge> <Solly> looks like it yeah
+00:32 < bridge> <Solly> the graphics shouldnt be inited
+00:32 < bridge> <Solly> or compiled at all
+00:32 < bridge> <Solly> so its fine
+00:33 < bridge> <TsPiggy> ok
+00:33 < bridge> <TsPiggy> Just thought to mention it
+00:33 < bridge> <Solly> 👍
+00:34 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1348438756004204555/image.png?ex=67cf76f4&is=67ce2574&hm=2b55de84d84227ea81091c3610e2bbd6fb9dcf38f5af0eb98d7cdb0aa37f299e&
+00:34 < bridge> <Solly> its so broken
+00:34 < bridge> <Solly> xd
+00:34 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1348438915773763614/image.png?ex=67cf771a&is=67ce259a&hm=b371f6a2e45dd8ba62d5777bd8907c98ae5edadc48322da8cb35eac6b2e66be2&
+00:39 < bridge> <Solly> why on earth does resizewindow handle fullscreen stuff
+00:40 < bridge> <totar> why should it not?
+00:41 < bridge> <kebscs> @totar how does fast input work so i can make an issue about it
+00:41 < bridge> <Solly> lmao
+00:41 < bridge> <Solly> because it is really hard to figure out what the hell is going on
+00:41 < bridge> <kebscs> repredicts entire world 1 tick earlier when new input is detected?
+00:43 < bridge> <totar> it predicts the entire world 1 tick ahead all the time. It basically treats your game as if your inputs have 20ms of input delay and applies 20ms of antiping.
+00:44 < bridge> <totar> but it also triggers a re-prediction every time you change keys
+00:44 < bridge> <totar> it's definitely not strictly better in all cases
+00:45 < bridge> <Solly> ```cpp
+00:45 < bridge> <Solly>         bool IsDesktopFullscreen = FullscreenMode == 2;
+00:45 < bridge> <Solly> #ifndef CONF_FAMILY_WINDOWS
+00:45 < bridge> <Solly>         //  special mode for windows only
+00:45 < bridge> <Solly>         IsDesktopFullscreen |= FullscreenMode == 3;
+00:45 < bridge> <Solly> #endif
+00:45 < bridge> <Solly> ```
+00:45 < bridge> <Solly> 3 is windowed fullscreen
+00:45 < bridge> <Solly> why is that windows exclusive
+00:46 < bridge> <kebscs> alright ty, will open
+00:46 < bridge> <fokkonaut> https://www.youtube.com/watch?v=0FUFewGHLLg
+00:46 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1348441852914827307/image.png?ex=67cf79d6&is=67ce2856&hm=b2f1b26695e57ad7c34f702ea750aec818a73d7f2cdd1e77a20815572e857419&
+00:46 < bridge> <Solly> me rn
+00:47 < bridge> <TsPiggy> Wait we are not running prediction code for antiping?
+00:47 < bridge> <totar> we are?
+00:47 < bridge> <TsPiggy> I always thought we are.
+00:47 < bridge> <totar> we are.
+00:48 < bridge> <TsPiggy> Then I'm not sure what fast input is then
+00:49 < bridge> <TsPiggy> I thought you just described standard worldwide CSP
+00:49 < bridge> <kebscs> also cant it only repredict on changed input? why is doing PredGameTick 1 tick ahead necessary?
+00:49 < bridge> <inv41idu53rn4m3> guys someone should totally do this because funny
+00:49 < bridge> <inv41idu53rn4m3> `nc 82.130.23.104 4567`
+00:49 < bridge> <inv41idu53rn4m3> and send something when you connect
+00:49 < bridge> <inv41idu53rn4m3> I'm listening
+00:50 < bridge> <TsPiggy> Although most CSP repredicts every ticks, not just on input change tho
+00:50 < bridge> <totar> if you don't predict 1 extra tick ahead all the time then your prediction on changed input will do nothing because the game does not consider the input that you're pressing until the next tick happens
+00:51 < bridge> <totar> it's a technique for hiding the input latency of a fixed tick rate game by extrapolating your position at the cost of errors when the input changes
+00:51 < bridge> <TsPiggy> So probably not the same thing. I'm out then
+00:51 < bridge> <totar> if the game runs at infinite tps then you would not need fast input
+00:52 < bridge> <totar> the delay comes from the fact that the game only processes your inputs every 20ms
+00:52 < bridge> <totar> on a tick
+00:52 < bridge> <totar> so when you press left, you must wait until the next tick happens and then the game will start showing you your movement
+00:53 < bridge> <kebscs> i see
+00:53 < bridge> <TsPiggy> Do you have that in tater already
+00:53 < bridge> <totar> yeah
+00:53 < bridge> <kebscs> <https://github.com/ddnet/ddnet/pull/9701/commits/86df0903db8570e009d0b59a3b78b3b4b66933fb>
+00:53 < bridge> <totar> it's also in dd-pg
+00:53 < bridge> <TsPiggy> Do people love it
+00:53 < bridge> <kebscs> im looking it up here its taken from tater
+00:53 < bridge> <kebscs> im looking it up here its taken from tater i guess
+00:53 < bridge> <totar> gores players definitely love it, I hear mixed things from ddrace players
+00:53 < bridge> <totar> some use it
+00:54 < bridge> <kebscs> so why cant it predict 1 tick ahead only when new input is detected, but 1 tick ahead all the time
+00:54 < bridge> <kebscs> so why cant it predict 1 tick ahead only when new input is detected, but 1 tick ahead all the time?
+00:54 < bridge> <kebscs> will it skip a tick?
+00:54 < bridge> <totar> you have to predict a constant number of ticks
+00:54 < bridge> <TsPiggy> I mean it kinda make sense but I feel like it's just moving a problem to the past. But maybe the tps is not that small so it doesn't show artifacta that much
+00:54 < bridge> <TsPiggy> I mean it kinda make sense but I feel like it's just moving a problem to the past. But maybe the tps is not that small so it doesn't show artifacts that much
+00:55 < bridge> <TsPiggy> If you are willing to be fancy you could somehow adjust it to accommodate to display latency too
+00:55 < bridge> <TsPiggy> That would just overscope to the roof tho
+00:55 < bridge> <totar> the amount of atrifacts depends on how fast your movement is in 1 tick after pressing an input, so jumping will show it more
+00:55 < bridge> <TsPiggy> Ye
+00:55 < bridge> <totar> but regular movement from left/right or hooking is very hard to tell usually
+00:55 < bridge> <totar> ofc with tunes you can change that
+00:56 < bridge> <totar> but not many maps do that
+00:56 < bridge> <TsPiggy> Tunes?
+00:56 < bridge> <TsPiggy> I thought it was client side only
+00:56 < bridge> <totar> tunes
+00:56 < bridge> <totar> tunes change the game physics
+00:56 < bridge> <TsPiggy> oh
+00:56 < bridge> <TsPiggy> oh you mean switching left and right
+00:57 < bridge> <TsPiggy> I was like obviously it won't show up if you just move to one side :justatest:
+00:57 < bridge> <totar> I mean changing the acceleration values
+00:57 < bridge> <totar> so pressing left makes you move very fast instantly
+00:58 < bridge> <TsPiggy> Ye so it's basically just RetroArch's run-ahead
+00:58 < bridge> <totar> idk what that is
+00:59 < bridge> <totar> oh
+00:59 < bridge> <totar> it might be the same thing
+00:59 < bridge> <TsPiggy> basically the same thing it just save states every frame and just run a few frames with the current input
+00:59 < bridge> <TsPiggy> every frame
+01:00 < bridge> <totar> it's conceptually similar to rollback or antiping
+01:00 < bridge> <totar> but locally
+01:00 < bridge> <Solly> i broke it
+01:00 < bridge> <inv41idu53rn4m3> You just closed the connection
+01:00 < bridge> <inv41idu53rn4m3> I think
+01:00 < bridge> <Solly> shame
+01:00 < bridge> <inv41idu53rn4m3> or maybe I did?
+01:00 < bridge> <TsPiggy> I wouldn't say I like extrapolation in general but I'm not really a player
+01:00 < bridge> <Solly> did u get some rainbow tetx
+01:01 < bridge> <inv41idu53rn4m3> I did not :(
+01:01 < bridge> <Solly> darn
+01:01 < bridge> <inv41idu53rn4m3> let me open it up again
+01:01 < bridge> <TsPiggy> Did I miss something
+01:01 < bridge> <inv41idu53rn4m3> we were chatting
+01:01 < bridge> <inv41idu53rn4m3> *over TCP*
+01:01 < bridge> <inv41idu53rn4m3> very fancy
+01:01 < bridge> <inv41idu53rn4m3> advanced protocol
+01:01 < bridge> <Solly> we are doing that rn
+01:02 < bridge> <TsPiggy> I should probably sleep
+01:02 < bridge> <TsPiggy> It's 8am
+01:02 < bridge> <TsPiggy> :justatest:
+01:06 < bridge> <TsPiggy> I feel like extrapolation in general is like lying to your brain, you didn't see anything earlier photonically but you made your brain think it is, by show it discrepancies and make it solve tiny puzzles. It is amazing but also kind heart breaking :kek:
+01:07 < bridge> <TsPiggy> I feel like extrapolation in general is like lying to your brain, you didn't see anything earlier photonically but you made your brain think it is, by showing it discrepancies and make it solve tiny puzzles. It is amazing but also kind heart breaking :kek:
+01:07 < bridge> <TsPiggy> I feel like extrapolation in general is like lying to your brain, you didn't see anything earlier photonically but you made your brain think it is, by showing it discrepancies and make it solve tiny puzzles. It is amazing but also kinda heart breaking :kek:
+01:08 < bridge> <Solly> @robyt3 it appears fullscreen mode (steal your monitor or not) is gone
+01:08 < bridge> <Solly> in sdl3
+01:08 < bridge> <TsPiggy> Exclusive Fullscreen?
+01:08 < bridge> <Solly> yeah
+01:08 < bridge> <TsPiggy> Do they have a use for *nix?
+01:09 < bridge> <Solly> no
+01:09 < bridge> <Solly> i mean apart from if you want to resize ur monitor
+01:09 < bridge> <Solly> which you shouldnt want to do
+01:09 < bridge> <Solly> but its a thing you could do
+01:09 < bridge> <TsPiggy> On windows 11 I think drivers somehow can just take over the screen now if it is borderless
+01:09 < bridge> <kebscs> By default a window in fullscreen state uses borderless fullscreen desktop mode, but a specific exclusive display mode can be set using SDL_SetWindowFullscreenMode().
+01:09 < bridge> <Solly> so leave it up to sdl to figure it out now i guess
+01:09 < bridge> <kebscs> <https://wiki.libsdl.org/SDL3/SDL_SetWindowFullscreen
+01:09 < bridge> <kebscs> <https://wiki.libsdl.org/SDL3/SDL_SetWindowFullscreen>
+01:10 < bridge> <inv41idu53rn4m3> @sollybunny you get anything?
+01:10 < bridge> <Solly> you used to explicitly state if you wanted exclusive
+01:10 < bridge> <Solly> i did not
+01:10 < bridge> <TsPiggy> Cuz we made that ime workaround before and borderless still behaves the same with exclusive where driver would not let DWM draw anything on top of it
+01:10 < bridge> <Solly> what do i do with case 2 then
+01:10 < bridge> <Solly> of gfx_fullscreen
+01:10 < bridge> <Solly> just make it fullscreen remove it from ui?
+01:10 < bridge> <TsPiggy> Just do borderless probably
+01:11 < bridge> <Solly> 1 and 2 used to differentiate between exclusive or not
+01:11 < bridge> <TsPiggy> Let someone more sensitive test input latency maybe?
+01:11 < bridge> <Solly> but now theres no differentiation in sdl
+01:11 < bridge> <TsPiggy> Just let both be "regular" fullscreen whatever that is I think
+01:11 < bridge> <Solly> yeah
+01:13 < bridge> <TsPiggy> I think exclusive fullscreen is just a legacy thing and newer windows prefers to just let drivers (or something else) handles it now?
+01:13 < bridge> <Solly> poor windows 7
+01:14 < bridge> <Solly> and xp
+01:14 < bridge> <Solly> only ones affected by this
+01:14 < bridge> <Solly> probably
+01:14 < bridge> <TsPiggy> sucks to be them:nouis:
+01:14 < bridge> <TsPiggy> Lol
+01:14 < bridge> <TsPiggy> I mean people really stand by xp and win7 probably aren't running through steam and probably won't update anyway
+01:15 < bridge> <TsPiggy> I think it is driver cuz Nvidia optimus allows DWM to run on top of borderless fullscreen but a single Nvidia card would not
+01:16 < bridge> <wotasiet> steam gives a personal gift - [steamcommunity.com/gifts/id=1131341079](https://u.to/nD4XIg)
+01:16 < bridge> <TsPiggy> What's up with all the bots
+01:16 < bridge> <TsPiggy> Is someone clicking on these every time they spam this
+01:16 < bridge> <hectavoxel> are people that gullible
+01:16 < bridge> <kebscs> can you not setup automod to block steam gift keywords?
+01:17 < bridge> <TsPiggy> Idk
+01:17 < bridge> <kebscs> discord has built in automod with regex
+01:17 < bridge> <kebscs> just have to set it up
+01:17 < bridge> <kebscs> maybe mods cant and have to be admin here
+01:18 < bridge> <TsPiggy> Prob
+01:18 < bridge> <Solly> `Set fullscreen mode: 0=no fullscreen, 1=pure fullscreen, 2=desktop fullscreen, 3=windowed fullscreen`
+01:18 < bridge> <TsPiggy> mods can only timeout
+01:18 < bridge> <Solly> why the fuck is it numbered like this
+01:18 < bridge> <Solly> sob
+01:18 < bridge> <TsPiggy> And I think I can even timeout myself
+01:19 < bridge> <inv41idu53rn4m3> @sollybunny you get anything now?
+01:19 < bridge> <Solly> nope
+01:20 < bridge> <Solly> ```cpp
+01:20 < bridge> <Solly> #if !defined(CONF_PLATFORM_MACOS)
+01:20 < bridge> <Solly> MACRO_CONFIG_INT(GfxBorderless, gfx_borderless, 0, 0, 1, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Borderless window (does nothing with fullscreen)")
+01:20 < bridge> <Solly> #if !defined(CONF_WEBASM)
+01:20 < bridge> <Solly> MACRO_CONFIG_INT(GfxFullscreen, gfx_fullscreen, 1, 0, 3, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Set fullscreen mode: 0=no fullscreen, 1=pure fullscreen, 2=desktop fullscreen, 3=windowed fullscreen")
+01:20 < bridge> <Solly> #else
+01:20 < bridge> <Solly> MACRO_CONFIG_INT(GfxFullscreen, gfx_fullscreen, 0, 0, 3, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Set fullscreen mode: 0=no fullscreen, 1=pure fullscreen, 2=desktop fullscreen, 3=windowed fullscreen")
+01:20 < bridge> <Solly> #endif
+01:20 < bridge> <Solly> #else
+01:20 < bridge> <Solly> MACRO_CONFIG_INT(GfxBorderless, gfx_borderless, 1, 0, 1, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Borderless window (not to be used with fullscreen)")
+01:20 < bridge> <Solly> MACRO_CONFIG_INT(GfxFullscreen, gfx_fullscreen, 0, 0, 3, CFGFLAG_SAVE | CFGFLAG_CLIENT, "Set fullscreen mode: 0=no fullscreen, 1=pure fullscreen, 2=desktop fullscreen, 3=windowed fullscreen")
+01:20 < bridge> <Solly> #endif
+01:20 < bridge> <Solly> ```
+01:20 < bridge> <Solly> can i just breaking change this please
+01:20 < bridge> <TsPiggy> I indeed can
+01:20 < bridge> <TsPiggy> https://cdn.discordapp.com/attachments/293493549758939136/1348450453373063238/Screenshot_20250310_081929.jpg?ex=67cf81d9&is=67ce3059&hm=59026e45c66f9abea15a1f29877d9296df753a2338148b4caae91969caa5a5ce&
+01:21 < bridge> <Solly> yipee
+01:35 < bridge> <totar> what is the difference between the "feature accepted" and "accepting patches" tags on the github?
+01:35 < bridge> <totar> @ryozuki
+01:56 < bridge> <kebscs> merge #9821 🙂
+01:56 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/9821
+01:57 < bridge> <kebscs> half of players can already do it on their keyboard anyway
+01:57 < bridge> <kebscs> me included
+02:08 < bridge> <Solly> @fokkonaut `Let's not change how the game works, maybe? Also, adding so many options is too much maintenance work`
+02:08 < bridge> <Solly> you sound like heinrich
+02:08 < bridge> <Solly> it doesnt change how the game works anyway, just makes it behave like a fancy keyboard
+02:09 < bridge> <Solly> https://cdn.discordapp.com/attachments/293493549758939136/1348462612567818444/image.png?ex=67cf8d2c&is=67ce3bac&hm=0ae1465ad3ed5cf9ffe46137a745ad609d27d52431ebc55220c3a18c26151941&
+02:09 < bridge> <Solly> thanks discord very cool
+02:09 < bridge> <fokkonaut> just have a fancy keyboard and create a new game profile
+02:09 < bridge> <Solly> the argument for adding it is that a fancy keyboard is expensive
+02:10 < bridge> <fokkonaut> never had issues with the problem, and i've played on very bad keyboards, where this probably would be even worse
+02:10 < bridge> <Solly> it isnt an issue, or rather the benefits of this can be solved by skill issue
+02:10 < bridge> <Solly> it isnt an issue, or rather the benefits of this can be solved by removing skill issue
+02:10 < bridge> <fokkonaut> useless feature
+02:10 < bridge> <fokkonaut> imo
+02:11 < bridge> <fokkonaut> not to call it bloat xd
+02:11 < bridge> <Solly> would you consider it cheating
+02:11 < bridge> <fokkonaut> no i would just consider it not fitting
+02:11 < bridge> <Solly> if its not cheating i would add it to my client
+02:11 < bridge> <Solly> and use it
+02:11 < bridge> <fokkonaut> do whatever you want
+02:11 < bridge> <fokkonaut> xD
+02:11 < bridge> <fokkonaut> free will
+02:11 < bridge> <Solly> right but i like not being banned
+02:12 < bridge> <Solly> and others dont like others having competative advantage
+02:12 < bridge> <fokkonaut> how would that ban you? how would a server even detect that?
+02:12 < bridge> <Solly> because its pretty hard to spam left and right with no gap imbetween
+02:12 < bridge> <Solly> at 25tps
+02:12 < bridge> <fokkonaut> skill issue
+02:12 < bridge> <Solly> yeah
+02:12 < bridge> <Solly> but people with fancy keyboard can do it
+02:12 < bridge> <fokkonaut> it's actually 50 ticks per second, but yea clientside
+02:13 < bridge> <Solly> or its easier to do it on fancy keyboards
+02:13 < bridge> <fokkonaut> maybe enable sv_high_bandwidth ?
+02:13 < bridge> <fokkonaut> skill issue
+02:13 < bridge> <Solly> 25tps is quite high
+02:13 < bridge> <Solly> doing it at any per second is hard
+02:13 < bridge> <Solly> and being able to is an advantage
+02:13 < bridge> <totar> I'm not convinced it's impossible with binds already
+02:13 < bridge> <fokkonaut> i think your approach wouldnt even solve it
+02:14 < bridge> <totar> is it impossible to make the game release a key you're holding by binding it to something else or unbinding it?
+02:14 < bridge> <Solly> when you spam left and right you might hold left a bit before u press right
+02:14 < bridge> <Solly> meaning u have a bit of no movement
+02:14 < bridge> <fokkonaut> which to me, sounds better to send direction 0 then, instead of holding ???
+02:15 < bridge> <fokkonaut> imagine a gores
+02:15 < bridge> <fokkonaut> or smth
+02:15 < bridge> <Solly> i dont understand
+02:15 < bridge> <Solly> maybe unbinding will work but then you have to rebind it
+02:15 < bridge> <totar> ok?
+02:15 < bridge> <totar> how hard has someone tried
+02:16 < bridge> <Solly> there isnt a +unbind
+02:16 < bridge> <Solly> bind a "unbind d; +left"
+02:16 < bridge> <Solly> you then need to rebind d when a is let go ir when a is pressed
+02:16 < bridge> <Solly> you then need to rebind d when d is pressed
+02:16 < bridge> <fokkonaut> pls just dont bloat ddnet xd @ devs
+02:17 < bridge> <Solly> its pretty self contained
+02:17 < bridge> <teero777> Haha you say don't bloat it but when do we finally remove the backward compat that is half the code ase xf
+02:17 < bridge> <teero777> Haha you say don't bloat it but when do we finally remove the backward compat that is half the codebase
+02:17 < bridge> <fokkonaut> xxd
+02:20 < bridge> <Solly> can someone on a mainline linux distro and/or windows 11 test my sdl3 branch
+02:20 < bridge> <Solly> specifically the video modes, (changing between display modes and resoltuions)
+02:21 < bridge> <Solly> <https://github.com/SollyBunny/ddnet/tree/sdl3>
+02:21 < bridge> <teero777> It's 2am ;-;
+02:22 < bridge> <Solly> at some point in the future
+02:22 < bridge> <Solly> i dont have a mainline linux distro, a windows machine nor anymore the capacity to spin one up
+02:22 < bridge> <Solly> my changes to getting multiple displays seem to have disapeared
+02:22 < bridge> <Solly> idk where they went
+02:26 < bridge> <Solly> i found them
+02:28 < bridge> <kebscs> Its not bloat its to defer people looking up scripts and going into rabbit hole of cheating
+02:28 < bridge> <kebscs> Same as people looking up custom clients and ending up on cheat clients
+02:28 < bridge> <kebscs> Even the famous "hey check out this client" is client not check out this cheat
+02:29 < bridge> <fokkonaut> i've also seen telegram links with ddnethacks title
+03:15 < bridge> <teero777> Mostly scams
+05:35 < bridge> <oxyzo.> i joined linear to test out something and like 4 people were spamming something like "GET FREE CHEATS AT t.me/"
+08:30 < bridge> <ryozuki> morning
+08:30 < bridge> <ryozuki> read the description
+08:31 < bridge> <ryozuki> "Implementation not planned, accepting PRs " it means that usual devs wont rly work on it but if somebody does a patch because they want it it will be accepted probably
+08:38 < bridge> <totar> I did, but why do you need both? Why can't you use "accepting patching" in place of "feature accepted" in all cases?
+08:38 < bridge> <ryozuki> we want to move more to the discuss before making a pr idea
+08:38 < bridge> <ryozuki> because otherwise ppl make a pr thats rejected and get angy
+08:39 < bridge> <ryozuki> feature accepted it means it will probs be worked by someone here
+08:39 < bridge> <ryozuki> accepting patches is more like its not a priority
+08:39 < bridge> <totar> Wdym someone here? Isn't that 95% of all prs?
+08:40 < bridge> <totar> Does feature accepted mean someone claimed the work already?
+08:40 < bridge> <ryozuki> no
+08:40 < bridge> <totar> But why put accepting patches if they won't be accepted
+08:41 < bridge> <ryozuki> they will if someone does it
+08:42 < bridge> <totar> So isn't that the same as feature accepted
+08:42 < bridge> <ryozuki> :pepeW:
+08:42 < bridge> <ryozuki> if u want to consider those as same feel free xD i already explained my reasoning, maybe others have different opinion on this matter
+08:45 < bridge> <ryozuki> @gerdoe https://github.com/ddnet/ddnet/pull/9825#issuecomment-2709691299
+08:45 < bridge> <Jupstar ✪> accepting patches is for patches that don't directly affect ddnet rn.
+08:45 < bridge> <Jupstar ✪> 
+08:45 < bridge> <Jupstar ✪> E.g. if you set MAX_CLIENTS to 256 and suddenly half the game doesn't work.. a accepting-patches means ddnet is open to merge stuff to fix it
+08:47 < bridge> <totar> wdym "don't directly affect ddnet rn" doesn't half the game not wroking affect ddnet?
+08:47 < bridge> <Jupstar ✪> Well it does not benefit ddnet
+08:48 < bridge> <totar> but fixing the game does benefit ddnet
+08:48 < bridge> <Jupstar ✪> thus my example
+08:48 < bridge> <Assa> I guess one sets an **incentive** to make a PR for it, while the other just allows a PR
+08:49 < bridge> <totar> accepting patches sounds like my patch will be accepted, feature accepted sounds like my patch will be accepted. I see no difference
+08:49 < bridge> <ryozuki> its just about managing priorities
+08:49 < bridge> <ryozuki> i dont think its hard to understand
+08:50 < bridge> <totar> if it's about priorities then just say that in the description
+08:51 < bridge> <totar> something like "accepting patches" and "requesting patches" would make much more sense
+08:51 < bridge> <ryozuki> average gentoo user after 2 days of non usage
+08:51 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1348563911942869084/image.png?ex=67cfeb83&is=67ce9a03&hm=05a648246dc8ff7bbb53dd7aeca49ea73b97c71d77adc46a6fe2c6774c2def91&
+08:52 < bridge> <Assa> See it from the perspective of issues and not from the PR side: You need to manage a hell of a lot of issues, if they are prioritized you know better what to work on and what to ignore
+08:52 < bridge> <totar> this also doesn't lead to confusion where you accept a "feature" which is a bug fix
+08:54 < bridge> <Assa> @ryozuki I don't know what to do about #9801 and slides, e.g #9795 now, I wrote some text
+08:54 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/9801
+08:54 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/9795
+08:55 < bridge> <Jupstar ✪> I think the new approach will be, we only allow new tiles if you also map a full map with it
+08:55 < bridge> <Jupstar ✪> So we can run it on a test server
+08:55 < bridge> <Assa> I provided a testmap, but okay I can do a "fullmap"
+08:55 < bridge> <ryozuki> (or get a mapper to do it for u)
+08:56 < bridge> <Jupstar ✪> I'm ok with renaming if that makes it easier to understand. @ryozuki @learath2 @robyt3
+08:56 < bridge> <ryozuki> im ok with it
+08:56 < bridge> <Jupstar ✪> it think issues labelled with "bug" are always accepted
+08:57 < bridge> <Jupstar ✪> do we have issues where we have "bug" and "feature-accepted"? 😄
+08:57 < bridge> <totar> we have bug and "patches accepted"
+08:57 < bridge> <totar> we have bug and "accepting patches"
+08:57 < bridge> <Jupstar ✪> If the game breaks with MAX_CLIENTS=256 that is probably not a bug
+08:58 < bridge> <Jupstar ✪> thus it would only get a accepting-patches
+08:58 < bridge> <Assa> I know we have testservers, but we'd need a different kind with the current nightly build or something. Also should this go through the usual map workflow, e.g. posting a map here on discord?
+08:58 < bridge> <totar> the reason I asked is because currently it seems that the the tags are being used identically accepted one is for "feature/enhancement" and one is for "bug/issue"
+08:58 < bridge> <totar> the reason I asked is because currently it seems that the the tags are being used identically except cepted one is for "feature/enhancement" and one is for "bug/issue"
+08:58 < bridge> <totar> the reason I asked is because currently it seems that the the tags are being used identically except one is for "feature/enhancement" and one is for "bug/issue"
+08:58 < bridge> <Jupstar ✪> Yes we talked about it, but didn't really setup something yet
+08:58 < bridge> <ryozuki> https://github.com/llvm/llvm-project/releases/tag/llvmorg-20.1.0
+08:58 < bridge> <totar> so it makes no sense to have 2 if they are the same thing
+08:58 < bridge> <ryozuki> :poggers2: :poggers2: :poggers2:
+08:59 < bridge> <Assa> Should I already start making a map?
+08:59 < bridge> <Jupstar ✪> yeah but then again it's about priority.. a "i don't really care, but if you do it, we merge it" label is what is meant here
+09:00 < bridge> <Jupstar ✪> That is your choice ig
+09:00 < bridge> <totar> if it's about priority then they should be labeled that way and used like that instead of how it is now
+09:00 < bridge> <Jupstar ✪> i dunno if "i don't really care, but if you do it, we merge it" fits into the label name
+09:01 < bridge> <totar> no but it fits in the tag description
+09:01 < bridge> <totar> currently they describe the same thing
+09:04 < bridge> <Jupstar ✪> But about renaming that's fine to me, I just didn't get what u meant here..
+09:04 < bridge> <Jupstar ✪> 
+09:04 < bridge> <Jupstar ✪> We have:
+09:04 < bridge> <Jupstar ✪> - Bugs.. Existing bugs
+09:04 < bridge> <Jupstar ✪> - Accept feature.. For new stuff that could benefit ddnet
+09:04 < bridge> <Jupstar ✪> - Other stuff.. Either not interesting for ddnet as game, or not code related
+09:05 < bridge> <totar> ok but why do these get "accepting patches"
+09:05 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1348567430041047060/image.png?ex=67cfeeca&is=67ce9d4a&hm=5a7014f417829b89d7a73ac3721e2b725f5177f1890b90b1703b22c6cfdc47f1&
+09:05 < bridge> <totar> and these ones "feature accepted"
+09:05 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1348567459191455744/image.png?ex=67cfeed1&is=67ce9d51&hm=53561768dc72f4043fd48eddc8ae0bc0e8356789eb79d7770f969ed3514b2a85&
+09:06 < bridge> <totar> to me all these look like identical priority
+09:06 < bridge> <Jupstar ✪> These won't affect ddnet.. the "bug" is maybe missleading I'd remove it
+09:06 < bridge> <Jupstar ✪> Mhh but that is the different discussion again
+09:06 < bridge> <Jupstar ✪> I already said I am ok with renaming
+09:06 < bridge> <totar> ok
+09:16 < bridge> <Assa> is there anything still speaking against #9767 ?
+09:16 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/9767
+09:18 < bridge> <Assa> yes, and no, I need to know if that makes sense, no point in doing this if we don't have a testserver for it in the end. Next I need to know what quality is expected. Just a testmap showcasing various use-cases of the feature, or a full fledged ready to release ddnet-map with blackjack and girls
+09:20 < bridge> <meloƞ> I think a map we can extend on to test different behaviour would indeed be nice, especially for things that may or may not touch physics
+09:20 < bridge> <meloƞ> 
+09:20 < bridge> <meloƞ> (caughs in Chillerdragon)
+09:21 < bridge> <Jupstar ✪> as far as i understod a map that is on a level that would be released on ddnet officially
+09:21 < bridge> <Jupstar ✪> that's also why you don't have to do it yourself
+09:23 < bridge> <Jupstar ✪> The idea is kinda to:
+09:23 < bridge> <Jupstar ✪> - make sure the new tiles are fun for the ppl
+09:23 < bridge> <Jupstar ✪> - mappers get a feeling if the feature could even be useful for other maps
+09:23 < bridge> <Jupstar ✪> 
+09:23 < bridge> <Jupstar ✪> 
+09:23 < bridge> <Jupstar ✪> E.g. live freeze is probably smth that isn't the most useful feature. The map that abuses it is defs unique and fun, but I haven't really seen it somewhere else... I think one kog map uses it in a solo part
+09:23 < bridge> <Assa> Believe me I have already enough struggles with the one map-submission I have 💀
+09:24 < bridge> <Jupstar ✪> 🫠
+09:33 < bridge> <pioooooo> for me the difference seems to be whether the issue author is a member of ddnet
+09:35 < bridge> <zhn> yeah! but a bit later, still in uni
+09:35 < bridge> <zhn> is there any sdl issue regarding this btw?
+09:36 < bridge> <zhn> on their repo
+09:55 < bridge> <ryozuki> no idea
+10:56 < bridge> <Assa> When should I expect the next ddnet release, is it always at the end of a month?
+10:58 < bridge> <milkeeycat> first time in my life wanted to use `find | xargs rm` and I ended up removing the whole repo directory, with a lot of stashes :pepeW:
+10:58 < bridge> <teero777> 💀
+11:15 < bridge> <ryozuki> i went with my cats to get a analisis done
+11:15 < bridge> <ryozuki> they will castrate em both wednesday
+11:15 < bridge> <ryozuki> ✂️
+11:15 < bridge> <ryozuki> :justatest:
+11:16 < bridge> <ryozuki> i saw robyt comment, maybe we shouldnt push a workaround and instead u update the sdl2 compat layer
+11:17 < bridge> <kollpotato> noooo
+11:18 < bridge> <kollpotato> :cammo:
+11:18 < bridge> <oxyzo.> :tear:
+11:20 < bridge> <ryozuki> its needed
+11:21 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1348601571537195059/image.png?ex=67d00e96&is=67cebd16&hm=5bcb9f14262dba8f0e8da43615cd15e21f6b9266f829d58d34f32958494133a5&
+11:21 < bridge> <ryozuki> koggers out
+11:21 < bridge> <ryozuki> they infiltrating
+11:21 < bridge> <ryozuki> our ranks
+11:21 < bridge> <ryozuki> :trollet:
+12:08 < bridge> <inv41idu53rn4m3> This is why you do `find` without `xargs rm` first :nouis:
+12:08 < bridge> <milkeeycat> I did
+12:08 < bridge> <milkeeycat> but then I pressed ↑ twice or smth and there was a different `find` command 😬
+12:09 < bridge> <inv41idu53rn4m3> :pepeW:
+12:10 < bridge> <inv41idu53rn4m3> I'm so sorry
+12:10 < bridge> <milkeeycat> at least it didn't delete home directory
+12:13 < bridge> <teero777> maybe it should have
+12:13 < bridge> <teero777> It could've changed your life
+12:13 < bridge> <teero777> You would have a reason to reinstall and use gentoo
+12:14 < bridge> <milkeeycat> i would be so sadge
+12:14 < bridge> <teero777> Milky what are you using?
+12:14 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1348615070715871283/image.png?ex=67d01b28&is=67cec9a8&hm=6c52282fc992ddaed56c958f559b421163585dead61321255e1c200ec913ea82&
+12:15 < bridge> <teero777> noice
+12:15 < bridge> <milkeeycat> before I was using gentoo, but I'm too much of a neanderthal to use it
+12:16 < bridge> <teero777> arch is fine for me
+12:16 < bridge> <teero777> Debian pkgs are outdated a lot of the time. very annoying
+12:17 < bridge> <milkeeycat> compile them yourself :santatrollet:
+12:20 < bridge> <inv41idu53rn4m3> People think of arch as this special thing but I just see it as a really practical distro
+12:21 < bridge> <inv41idu53rn4m3> Simple to manage, has all the things, doesn't have weird custom configurations with things being mostly taken directly from upstream as is
+12:24 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1348617462949871616/image.png?ex=67d01d63&is=67cecbe3&hm=6841f82ee7fc1084d3db6498f602475e28526ebf805f8d1cf7cb520f22d4db70&
+12:24 < bridge> <ryozuki> use fastfetch
+12:24 < bridge> <ryozuki> its superior
+12:31 < bridge> <Jupstar ✪> it was only recently added to debian (trixie) as package xd
+12:33 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1348619707388792914/image.png?ex=67d01f7a&is=67cecdfa&hm=3e5c8421fb6fc1b7271ac7f0bec249d0e99dec710cda854460ef8cd9f66813b6&
+12:33 < bridge> <ryozuki> manually compiling llvm 20.1.0 for MLIR
+12:33 < bridge> <ryozuki> cuz gentoo llvm doesnt have it enabled
+12:39 < bridge> <teero777> I love it when I'm compiling some packages git master  branch and it has compiler errors
+12:39 < bridge> <teero777> So I have to fix their code...
+12:40 < bridge> <teero777> https://tenor.com/view/lain-serial-experiments-lain-serial-experiments-anime-stir-gif-4337670678697235471
+12:43 < bridge> <chillerdragon> Ryo ddnet already uses llvm 20 features https://github.com/ddnet/ddnet/pull/9803
+12:44 < bridge> <ryozuki> xd
+12:46 < bridge> <Jupstar ✪> oh that's actually neat
+12:46 < bridge> <Jupstar ✪> I always hated that xd
+12:46 < bridge> <chillerdragon> Yes it is!
+12:47 < bridge> <chillerdragon> As Debian user you will profit from the change in 2028
+12:48 < bridge> <Jupstar ✪> Great, but i am a debian user and have clangd 21 already
+12:48 < bridge> <chillerdragon> hax
+12:48 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1348623542106853487/image.png?ex=67d0230c&is=67ced18c&hm=c201a3213e63bbe809a6dcffd7f4e8c16ecb0bfbba46b11bb7a7f0ceec47c5f2&
+12:48 < bridge> <Jupstar ✪> I'm such a debian modern enjoyer
+12:48 < bridge> <chillerdragon> trixie
+12:49 < bridge> <Jupstar ✪> actually I'm on sid xd
+12:49 < bridge> <Jupstar ✪> 50:50 you lost
+12:49 < bridge> <Jupstar ✪> I'm kinda 3-4 month behind arch
+12:49 < bridge> <Jupstar ✪> so most packages often work xD
+12:49 < bridge> <chillerdragon> That’s not Debian!
+12:49 < bridge> <chillerdragon> That’s something illegal
+13:00 < bridge> <woidless6> And there is some script in any language that allows you to connect to the server, like it sends the necessary udp requests, because I haven't been able to achieve this yet, I can receive messages from the chat, but I don't appear on the server.
+13:00 < bridge> <Assa> Is it easy to add a flag to a server join network request? I want to add an autopickup flag
+13:10 < bridge> <Assa> As far as I can tell I only need to add a playerflag
+13:11 < bridge> <kebscs> whats an autopickup flag?
+13:11 < bridge> <Assa> autopickup is currently clientsided, which **sucks** _[citation needed]_
+13:12 < bridge> <Assa> so I want to add a flag, that the server handles it
+13:12 < bridge> <kebscs> why sucks
+13:12 < bridge> <Assa> network delay and RTT
+13:12 < bridge> <Assa> network delay / RTT
+13:13 < bridge> <kebscs> could break setups on some maps if you switch to weapon faster
+13:13 < bridge> <Assa> I sometimes find myself shooting a gunshot while picking up the grenade
+13:14 < bridge> <Assa> that's the worst reason you could have told me. Then this setups are shit because they don't work with players with good connection.
+13:15 < bridge> <Assa> also no, it only breaks the setup in combination with autofire
+13:15 < bridge> <kebscs> alright i guess
+13:15 < bridge> <kebscs> you can look how show others work
+13:15 < bridge> <kebscs> i think its sending flag on join
+13:18 < bridge> <forgottenabscat> I see many codes uses SetBuffer in CLineInput every frame, will that only change the inputtext if the inputbox is empty?
+13:22 < bridge> <Assa> show others is an interesting case, it also has a chatcommand 🤔  I can't find the network code related to it
+13:23 < bridge> <Assa> gh search just broken as always
+13:24 < bridge> <Assa> show others is an interesting case, it also has a chatcommand 🤔  ~~I can't find the network code related to it~~
+13:24 < bridge> <Assa> As I learned today, I should open an issue first
+13:26 < bridge> <robyt3> I think `SetBuffer` should be avoided, you can probably use a `CLineInputBuffered` instead. What is the problem you are trying to solve?
+13:28 < bridge> <forgottenabscat> I'm trying to give the inputbox a start value, and edit it later if possible
+13:29 < bridge> <forgottenabscat> Maybe i could use CLineInputBuffered at first, and `void set(char*)` later?
+13:29 < bridge> <robyt3> If you want to set an initial value, use `Set` the first time that the popup/etc is opened
+13:30 < bridge> <robyt3> There is also `SetEmptyText` for showing an explanation when the input is empty
+13:30 < bridge> <forgottenabscat> ok, by the way the editbox will return true and edit the buffer's value if the text changes, right?
+13:31 < bridge> <robyt3> yes, you should probably use `CLineInputBuffered` and use `GetString` to get the value when it changed
+13:32 < bridge> <forgottenabscat> ok, thanks:heartw:
+13:41 < bridge> <ansar05885> Hi
+13:42 < bridge> <ansar05885> This is ddnet
+13:42 < bridge> <ansar05885> ...
+13:42 < bridge> <ansar05885> How to create a map
+13:46 < bridge> <kebscs> in the editor
+14:15 < ws-client3> <ChillerDragon> @Jupstar ✪ what do you need 64gb swap for? to compile projects using bloated rust compiler?
+14:17 < bridge> <teero777> i have 68gb too :x
+14:17 < bridge> <teero777> for teeworlds mainly
+14:17 < bridge> <meloƞ> I have zero :cat_cracked_hehe:
+14:17 < bridge> <teero777> you have more ram than i have swap :nouis:
+14:17 < bridge> <meloƞ> :Pepega:
+14:21 < bridge> <inv41idu53rn4m3> I have more ram than I have swap :jaouis:
+14:22 < bridge> <Jupstar ✪> Going out of ram is illegal
+14:23 < bridge> <teero777> oom killer will never get me
+14:26 < bridge> <Jupstar ✪> I think besides memory leaks my highest RAM usage was around 64GB
+14:26 < bridge> <Jupstar ✪> so around half of the swap was used
+14:28 < bridge> <Assa> I also have 64GB swap, I needed it to train a ML Model on my machine, because the real 64GB were not enough. Was it slow? Hell yes. Did it work? Also yes
+14:28 < bridge> <ryozuki> :owo:
+14:29 < bridge> <Assa> In my case this was already compressed sparse data ... the dataset had 780 GB ...
+14:29 < bridge> <Assa> In my case this was already compressed sparse data ... the dataset had 780 GB (compressed) ...
+14:31 < bridge> <Jupstar ✪> chillerdragon: Do you think mindfactory went insolvent?
+14:31 < bridge> <Jupstar ✪> You are smth of a economy guy
+14:31 < bridge> <Assa> I once experienced a bug in a zombie? server, where all players went OOM and crashed, except me :owo:
+15:34 < bridge> <Ewan> merge monday my beloved
+15:37 < bridge> <meloƞ> Fr
+16:02 < bridge> <zhn> is there anything bad about this check anyway?
+16:43 < bridge> <danilochka_411> Всем салам
+16:49 < bridge> <kebscs> you cant really discuss issue on github tbh
+16:49 < bridge> <kebscs> i open issue to discuss if my impl is good
+16:50 < bridge> <kebscs> but theres already similar issue opened 5 years ago so i guess no discussion
+16:51 < bridge> <cellegenrih> Would it be helpful to make forum rooms based on major github changes, so discussions can be done in the Discord server and would only be accessible by people who can assign themselves that role?
+16:51 < bridge> <kebscs> this too that users are split between discord and github
+16:51 < bridge> <cellegenrih> (Similar to what I did on Teeworlds Data, people used it for requests)
+16:51 < bridge> <cellegenrih> Yeah, I mentioned it to the devs, they disagree on it. What can you do.
+16:52 < bridge> <cellegenrih> I'm just an inexperienced idiot talking my shit to you all.
+16:59 < ws-client3> <ChillerDragon> @Jupstar ✪ shouldn't it be public info if it already IS insolvent? Or you mean will it go insolvent in the future? Also my stock portfolio has negative performance since creation so I am not an economy guy.
+17:00 < ws-client3> <ChillerDragon> all economy predictions i feel comfortable making are btc might lose some value in the future but in the long run it will out perform the dollar
+17:03 < bridge> <Jupstar ✪> Yeah it's just a rumour in the end, but they shop is almost empty xdd
+17:04 < bridge> <Jupstar ✪> their
+17:13 < bridge> <.kurosio> hey
+17:13 < bridge> <.kurosio> what of the features last added for server mods?
+17:14 < bridge> <.kurosio> last i was aware of was the implementation of server sounds
+17:20 < bridge> <meloƞ> holy shit i never unmotivated myself so fast
+17:20 < bridge> <meloƞ> 
+17:20 < bridge> <meloƞ> looked into ddnet-rs for the .rules file, messed up twice and alt f4'd
+17:20 < bridge> <meloƞ> 
+17:20 < bridge> <meloƞ> then i wanted to look into blockworlds, shit core dumped when i tried a simple command and alt f4'd
+17:20 < bridge> <meloƞ> 
+17:20 < bridge> <meloƞ> help
+17:22 < bridge> <Jupstar ✪> > looked into ddnet-rs for the .rules file, messed up twice and alt f4'd
+17:22 < bridge> <Jupstar ✪> If you need a starting help, just ask.
+17:22 < bridge> <Jupstar ✪> 
+17:22 < bridge> <Jupstar ✪> I can tell you exactly what steps you need until you get to a point where you just have to read and write tiles
+17:22 < bridge> <zhn> tune lock is being added
+17:22 < bridge> <zhn> anyway, hi Browned! im glad to see yourself back in teedev
+17:22 < bridge> <zhn> you definitely should check out ddnet-rs for new game experience from both modding side and playing side
+17:24 < bridge> <meloƞ> lets maybe hop into voice tomorrow or smth, time for tea and monster hunter... :pepecry:
+17:24 < bridge> <Jupstar ✪> alr
+17:26 < bridge> <.kurosio> often noticed that the implementation of ui on the client-server part was in the plans, is there any movement in this direction?
+17:28 < bridge> <zhn> afair the last thing that idea grew into was learath's example of possible language for ui/ux
+17:29 < bridge> <zhn> so nothing is going on, your turn to make it in ddnet :]
+17:30 < bridge> <.kurosio> i do not understand why so much effort in this direction, think a simple ui a couple of flags and types would be quite enough..
+17:31 < bridge> <.kurosio> all the effort is spent maintaining the bulk of the ddnetwork servers anyway
+17:32 < ws-client3> <ChillerDragon> @Jupstar ✪ dont get exit scam rug pulled by them then! be careful
+17:32 < bridge> <woidless6> ChillerDragon
+17:32 < ws-client3> <ChillerDragon> oh woidless
+17:33 < bridge> <woidless6> You have a git hub repository where you can compile a DDNet console client (meaning a real Console client, I don't need a gui, but so that I can enter ddnet commands in the vds terminal, without consciously projecting a map, etc.)
+17:35 < bridge> <Jupstar ✪> chillerdragon thanks. btw also don't get scammed by ppl destroying the game asking your for help
+17:36 < bridge> <zhn> this will make another problem with backcompat, thats why everything should be taken in account
+17:38 < bridge> <.kurosio> it's too early to consider the backcompat, you have to at least put your thoughts in that direction
+17:39 < bridge> <.kurosio> it's just a pending topic labeled (compatibility). that will never be solved without attention
+17:40 < bridge> <.kurosio> I'm pretty sure all the interesting stuff is tagged with this tag
+17:41 < bridge> <zhn> i mean it was discussed, you can pull up old discussions with learath involved with all his thought described pretty clear
+17:42 < bridge> <ryozuki> what u guys talking about
+17:42 < bridge> <.kurosio> well, np
+17:46 < bridge> <zhn> it starts somewhere there
+17:55 < bridge> <Ewan> ngl I don’t think anyone will help you anymore
+18:15 < bridge> <woidless6> why am I not in the bath yet, I was selling a bot client
+18:16 < bridge> <woidless6> why am I not in the ban yet, I was selling a bot client
+18:17 < bridge> <teero777> do you want to be banned? xdd
+18:18 < bridge> <kollpotato> if u ask politely u can get banned for free
+18:18 < bridge> <cellegenrih> And you ask for a ban out of recognizing the wrong doing in it, or?
+18:18 < bridge> <cellegenrih> or to spite the mods to be less caring for stuff like this?
+18:20 < bridge> <woidless6> I'm just surprised, they gave me a mutation on 7d but they didn't ban me, I violated enough ddnet rules, I made more than 300 sales of the CRACK of a well-known bot client, and they buy it from me to this day.
+18:21 < bridge> <Ewan> is this what ppl consider entrepreneurship now
+18:21 < bridge> <Ewan> you are not some supervisor xaxaxa
+18:21 < bridge> <Ewan> you are not some supervillain xaxaxa
+18:21 < bridge> <Jupstar ✪> You were supposed to destroy cheaters, not join them.
+18:21 < bridge> <Jupstar ✪> 
+18:21 < bridge> <Jupstar ✪> You were my friend, Evelyn. My brother
+18:23 < bridge> <woidless6> I remember how you tried to help me open the ports on tp link.
+18:23 < bridge> <Jupstar ✪> 🫠
+18:24 < bridge> <Ewan> i hope u know there’s no future for you in ddnet cheat clients
+18:24 < bridge> <Ewan> maybe u make a few dollars
+18:24 < bridge> <Ewan> but if u brag about that you become unmarketable
+18:24 < bridge> <woidless6> In any case, the crack of the previous version of this uot client is available to everyone, but I just found the benefit and figured out how to crack the latest version.
+18:24 < bridge> <Ewan> it just sounds pathetic
+18:25 < bridge> <Ewan> a 14 year old cracking another 14 year old’s expectedly bad code
+18:25 < bridge> <woidless6> Reverse engineering of this application is quite difficult, at least because it is protected by themida
+18:26 < bridge> <woidless6> In general, 650$ came to my wallet from ddnet
+18:27 < bridge> <Ewan> if only you knew
+18:28 < bridge> <woidless6> That's why I do not know xd.
+18:29 < bridge> <woidless6> In general, ddnet is a very interesting game
+18:30 < bridge> <woidless6> At least because the server master is here , and it 's enough to find a topic that players like And from it you can bring a lot of people to your telegram channel and generally develop the media
+18:32 < bridge> <Ewan> it just goes to show that we can’t have nice, public, free to use things without people taking crazy advantage
+18:34 < bridge> <Ewan> but real jobs do pay
+18:34 < bridge> <Ewan> better than this
+18:38 < bridge> <cellegenrih> @woidless6 ngl, your mention of "200" sales of cheat clients are short-term no?
+18:38 < bridge> <cellegenrih> If you are hunting for a long-term solution to make a living out of your programming, make the devs mad by making a way better client to use, you know... taking control over a community that way?
+18:42 < bridge> <Ewan> evelyn doesn’t understand long term yet
+18:43 < bridge> <.kurosio> I agree and support such changes, collapse the community and seize power😅
+18:43 < bridge> <cellegenrih> I don't mind having bigger communities that put in more work than the competitor
+18:44 < bridge> <cellegenrih> But I have a problem with short term solutions which ruin the gameplay, thus ruin any kind of benefit for it
+18:44 < bridge> <cellegenrih> In a realistic sense, this will not benefit for long
+18:44 < bridge> <woidless6> I understand, but I don't need long-term earnings in my return.
+18:44 < bridge> <cellegenrih> Well that's just stupid
+18:44 < bridge> <woidless6> After all, my parents still provide for me.
+18:45 < bridge> <cellegenrih> you put a prize on them, yet you don't want to make it better for all of us? then all of them would pay for it, if it wouldn't include cheats, but tools that further improve gameplay
+18:45 < bridge> <cellegenrih> targeting a 1% part of the community with a fixed prize tag is stupid, you get me?
+18:46 < bridge> <woidless6> Do you mean that they get a fixed version of the client that may not be updated?
+18:47 < bridge> <cellegenrih> No, they would get an updated version, which you would update, that provides a whole larger part of the community, better features and tools to improve the game.
+18:48 < bridge> <woidless6> It's not very clear through the translator what you mean.
+18:48 < bridge> <cellegenrih> This game, Teeworlds and DDNet (in it's own separate ways) have not dared to make drastic changes which now people desperately need to keep them motivated.
+18:48 < bridge> <cellegenrih> People want more, essentially
+18:48 < bridge> <cellegenrih> That can be used as an advantage.
+18:48 < bridge> <woidless6> Yeah
+18:49 < bridge> <cellegenrih> At least you agree on this, good.
+18:49 < bridge> <cellegenrih> Now, do what you want with this information. Hope you can make a better community that way.
+18:49 < bridge> <ryozuki> why is a known cheater not banned yet
+18:50 < bridge> <ryozuki> @Discord Mod
+18:50 < bridge> <cellegenrih> I got more info out of it than any of you would ever dare ask
+18:50 < bridge> <meloƞ> i made quadruple that by working a job i actually enjoy 🤷
+18:50 < bridge> <ryozuki> i make way more than that every month making a language nobody uses yet
+18:51 < bridge> <Ewan> i make that in 3 days sitting in my chair doing whatever tf i want until someone needs smth
+18:51 < bridge> <cellegenrih> @ryozuki wouldn't you wanna question how he got that much money off of selling those clients? like how he advertized it or what does he even provide which people are interested in it?
+18:51 < bridge> <cellegenrih> Any sense of analystic intent?
+18:51 < bridge> <cellegenrih> No? only me? sad.
+18:51 < bridge> <ryozuki> no im not interested at all xD
+18:51 < bridge> <meloƞ> not really - its a FOSS game, they're free to do whatever they want
+18:51 < bridge> <meloƞ> but imagine having a stamp like that on your forehead in the biggest community you invested that time in
+18:51 < bridge> <ryozuki> i have a nice article in my gh profile
+18:52 < bridge> <ryozuki> crackers are not positive
+18:52 < bridge> <ryozuki> http://www.catb.org/~esr/faqs/hacker-howto.html
+18:52 < bridge> <cellegenrih> universe explosion sound effect #1
+18:52 < bridge> <cellegenrih> Yeah, it should be obvious that those guys are not good ones
+18:53 < bridge> <ryozuki> > There is another group of people who loudly call themselves hackers, but aren't. These are people (mainly adolescent males) who get a kick out of breaking into computers and phreaking the phone system. Real hackers call these people ‘crackers’ and want nothing to do with them. Real hackers mostly think crackers are lazy, irresponsible, and not very bright, and object that being able to break security doesn't make you a hacker any more than be
+18:53 < bridge> <ryozuki> > There is another group of people who loudly call themselves hackers, but aren't. These are people (mainly adolescent males) who get a kick out of breaking into computers and phreaking the phone system. Real hackers call these people ‘crackers’ and want nothing to do with them. Real hackers mostly think crackers are lazy, irresponsible, and not very bright, and object that being able to break security doesn't make you a hacker any more than be
+18:53 < bridge> <ryozuki> > 
+18:53 < bridge> <ryozuki> > The basic difference is this: hackers build things, crackers break them.
+18:53 < bridge> <ryozuki> > 
+18:53 < bridge> <ryozuki> > If you want to be a hacker, keep reading. If you want to be a cracker, go read the alt.2600 newsgroup and get ready to do five to ten in the slammer after finding out you aren't as smart as you think you are. And that's all I'm going to say about crackers.
+18:53 < bridge> <meloƞ> <a:kekw:1106634599221698571>
+18:53 < bridge> <cellegenrih> But... I talk about his way of earning revenue from his products which harm this game
+18:53 < bridge> <ryozuki> > There is another group of people who loudly call themselves hackers, but aren't. These are people (mainly adolescent males) who get a kick out of breaking into computers and phreaking the phone system. Real hackers call these people ‘crackers’ and want nothing to do with them. Real hackers mostly think crackers are lazy, irresponsible, and not very bright, and object that being able to break security doesn't make you a hacker any more than be
+18:53 < bridge> <ryozuki> > 
+18:53 < bridge> <ryozuki> > The basic difference is this: hackers build things, crackers break them.
+18:53 < bridge> <ryozuki> > 
+18:53 < bridge> <ryozuki> > If you want to be a hacker, keep reading. If you want to be a cracker, go read the alt.2600 newsgroup and get ready to do five to ten in the slammer after finding out you aren't as smart as you think you are. And that's all I'm going to say about crackers.
+18:53 < bridge> <Ewan> > If you're attracted to hacking because you don't have a life, that's OK too — at least you won't have trouble concentrating. Maybe you'll get a life later on.
+18:54 < bridge> <cellegenrih> A topic which a developer needs to take care of if they truly care
+18:54 < bridge> <meloƞ> not his product tho, he basically leeched off of a leecher
+18:54 < bridge> <meloƞ> wait i'll make a meme
+18:54 < bridge> <Ewan> con artist activities
+18:54 < bridge> <woidless6> It's not even about the amount of earnings, but what he got from. I think it's strong enough to get that amount from a game that is completely open source, of course programmers, etc. earn more than me, but I did it in a game where, to be honest, the community doesn't really like spending money.
+18:54 < bridge> <cellegenrih> Well, that part is irrelevant in the end xd
+18:54 < bridge> <ryozuki> first
+18:54 < bridge> <cellegenrih> skill issue
+18:54 < bridge> <ryozuki> learn proper english
+18:54 < bridge> <ryozuki> it will give u more oportunities in life
+18:54 < bridge> <ryozuki> than selling cracks for bots
+18:54 < bridge> <cellegenrih> https://tenor.com/view/low-tier-god-awesome-mario-twerking-gif-23644561
+18:55 < bridge> <Ewan> lol
+18:55 < bridge> <kollpotato> omg literally me
+18:55 < bridge> <woidless6> So far, I don't need English so much, I just need a translator.
+18:55 < bridge> <cellegenrih> literally him rn
+18:55 < bridge> <zhn> thats why we have so many people playing with client... for 50 euros per month
+18:55 < bridge> <ryozuki> u need it because the nonsense you spouting makes 0 sense
+18:55 < bridge> <ryozuki> and we laughing at u
+18:55 < bridge> <ryozuki> but u dont realize it
+18:55 < bridge> <zhn> people will not care about servers to play on rather to pay for cheat client
+18:55 < bridge> <woidless6> but they pay me $2 for forever, for the same xd client.
+18:55 < bridge> <cellegenrih> ryo forgot to take his chill pills
+18:56 < bridge> <ryozuki> im always mad at botters
+18:56 < bridge> <ryozuki> xd
+18:56 < bridge> <Ewan> Forever
+18:56 < bridge> <Ewan> That’s insane
+18:56 < bridge> <Ewan> I give it another month
+18:56 < bridge> <kollpotato> but he isnt
+18:56 < bridge> <kollpotato> probably
+18:56 < bridge> <louis> "i made 600 working at mcdonalds, thats impressive cus it pays minimum wage" ?xd
+18:56 < bridge> <zhn> krixx patched it already afaik
+18:56 < bridge> <cellegenrih> what majority of people would even go for it, russians I assume?
+18:57 < bridge> <Ewan> like minded people
+18:57 < bridge> <Ewan> kids
+18:57 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1348716308358758493/image.png?ex=67d07971&is=67cf27f1&hm=dcb9f2cd8c4fed275e149d6c8d28e4036eb7f236642962a2e58624ce9975770d&
+18:57 < bridge> <woidless6> Yes, but there were also the British.
+18:57 < bridge> <louis> what do u work as
+18:57 < bridge> <ryozuki> i give u the steps to greatness:
+18:57 < bridge> <ryozuki> 
+18:57 < bridge> <ryozuki> - learn english
+18:57 < bridge> <ryozuki> - learn rust
+18:57 < bridge> <ryozuki> - build stuff, dont destroy
+18:57 < bridge> <ryozuki> - go as low level as possible
+18:57 < bridge> <zhn> :kek:
+18:57 < bridge> <woidless6> Yes
+18:57 < bridge> <cellegenrih> BRI ISH
+18:57 < bridge> <meloƞ> wait i have a screen for that
+18:57 < bridge> <louis> low lebel as possible = silicon miner
+18:57 < bridge> <ryozuki> To follow the path:
+18:57 < bridge> <ryozuki> 
+18:57 < bridge> <ryozuki>     look to the master,
+18:57 < bridge> <ryozuki> 
+18:57 < bridge> <ryozuki>     follow the master,
+18:57 < bridge> <ryozuki> 
+18:57 < bridge> <ryozuki>     walk with the master,
+18:57 < bridge> <ryozuki> 
+18:58 < bridge> <ryozuki>     see through the master,
+18:58 < bridge> <ryozuki> 
+18:58 < bridge> <ryozuki>     become the master.
+18:58 < bridge> <meloƞ> https://cdn.discordapp.com/attachments/293493549758939136/1348716523874812038/image.png?ex=67d079a5&is=67cf2825&hm=b9298b4263fd71c9570f6d3b21bc10ebb9a119e203657ee7444c3b1bab086f67&
+18:58 < bridge> <meloƞ> "reverse engineer"
+18:58 < bridge> <ryozuki> xd
+18:58 < bridge> <zhn> this guy didn't make anything out of his own hands so far
+18:58 < bridge> <kollpotato> u dont understand they are different :justatest:
+18:58 < bridge> <kollpotato> he is like
+18:58 < bridge> <zhn> all time he was asking chiller to implement 5 minutes feature that he would enjoy for 5 minutes
+18:58 < bridge> <kollpotato> reversing
+18:58 < bridge> <ryozuki> can someone be a RE without being a programmer? xd
+18:58 < bridge> <kollpotato> engineers
+18:58 < bridge> <Ewan> Bypassing themida is not an easy task necessarily but it is if you know who to ask
+18:58 < bridge> <zhn> ofc if you have ai xd
+18:58 < bridge> <meloƞ> they didnt bypass themida, all they did was spoof dns requests
+18:59 < bridge> <ryozuki> this reminds me i saw a rly good RE post not long ago
+18:59 < bridge> <ryozuki> from a real reverse engineer
+18:59 < bridge> <cellegenrih> Wait, so if this Evelyn guy had potentially told the truth and he really earned a 2€ worth revenue from 200~ people (400€), then compared to the actual creators of the cheat clients, how much do THEY made? :monkaStop:
+18:59 < bridge> <woidless6> I wouldn't spend hundreds of dollars removing Themida to find a good reverse engineer.
+18:59 < bridge> <meloƞ> "i feel good as a reverse engineer" was a lie then
+19:00 < bridge> <meloƞ> "hey chatGPT, how do i spoof this dns request"
+19:00 < bridge> <meloƞ> "how to write fifo script for ddnet"
+19:00 < bridge> <zhn> all ddnet donations for this year x5
+19:00 < bridge> <meloƞ> "why moder so rude"
+19:00 < bridge> <cellegenrih> :justatest:
+19:00 < bridge> <woidless6> as if in 1.32 protection
+19:00 < bridge> <cellegenrih> don't give them ideas
+19:00 < bridge> <woidless6> there are asynchronous dns requests
+19:00 < bridge> <Ewan> what
+19:00 < bridge> <zhn> there are more good activities you could engage in
+19:01 < bridge> <meloƞ> frfr have dns requests run on main thread for extra crispy
+19:01 < bridge> <cellegenrih> Is that info real, or are you just huge trolling me
+19:01 < bridge> <meloƞ> https://tenor.com/view/when-the-coding-when-the-coding-when-the-coding-is-when-the-meme-gif-21749595
+19:01 < bridge> <Ewan> dns requests are usually abstracted by the OS as they just take a hostname
+19:01 < bridge> <zhn> both, assumptions and extrapolations, but sounds really realistic for me
+19:01 < bridge> <Ewan> idk what is being talked about
+19:01 < bridge> <meloƞ> evelyn copy pasting what chatgpt is saying.
+19:01 < bridge> <ryozuki> can you explain what a pointeri s
+19:01 < bridge> <ryozuki> bonus points for gpt like answer
+19:01 < ws-client3> <ChillerDragon> @woidless6 yes i have that
+19:01 < bridge> <ryozuki> can you explain what a pointer is
+19:01 < bridge> <meloƞ> CHILLER STOP
+19:01 < bridge> <cellegenrih> then, let's say they earn more, than DDNet from donations and funds
+19:02 < bridge> <meloƞ> BAD CHILLER
+19:02 < bridge> <zhn> the amount of cheat clients user we are catching on ddnet and kog is countless xd
+19:02 < bridge> <cellegenrih> then, let's say they earn more, than DDNet from donations and funds
+19:02 < bridge> <cellegenrih> (unverified facts, idfk)
+19:02 < bridge> <kollpotato> idk just an integer
+19:02 < bridge> <Ewan> yea but u have to give him 5 minutes to translate it from english and then read about it
+19:02 < bridge> <ryozuki> xd
+19:02 < bridge> <meloƞ> the chiller mafia isnt supposed to help the burglars and thiefs, you were supposed to overthrow the government!
+19:02 < bridge> <zhn> c&p to chatgpt*
+19:03 < bridge> <meloƞ> "hey ChatGPT, write it like i would write it"
+19:03 < bridge> <meloƞ> 
+19:03 < bridge> <meloƞ> >> a pointer points, duuuuuuh
+19:03 < bridge> <ryozuki> a RE would know what a stack overflow is a buffer overrun a out of bound access, etc
+19:03 < bridge> <cellegenrih> If that info would be leaked, then I could estimate both the amount they earn in a yearly revenue and even the players' needs for services like this
+19:03 < bridge> <meloƞ> a RE could write a fifo script.
+19:03 < bridge> <ryozuki> they would also be able to identify patterns in code and match their C like code
+19:03 < bridge> <ryozuki> but this guy probs doesnt know C
+19:03 < bridge> <zhn> we have no statistics for such cases unfortunately
+19:04 < bridge> <Ewan> a reverse engineer would have an actual paycheck
+19:04 < bridge> <cellegenrih> eventually
+19:04 < bridge> <oxyzo.> >> it like i would write it"
+19:04 < bridge> <ryozuki> well many great ones didnt at first
+19:04 < bridge> <ryozuki> for example the ones who RE consoles
+19:04 < bridge> <meloƞ> they only get paid when they actually find something wasnt it like that?
+19:04 < bridge> <zhn> i think you can ask animepdf about this, afaik they host some fancy gores server that has custom antibot module in it
+19:04 < bridge> <cellegenrih> https://tenor.com/view/money-gif-4133362185516930925
+19:04 < bridge> <cellegenrih> chiller rn
+19:04 < bridge> <meloƞ> basically "try to find a loophole, if you find one, report it and you get X amount of money"
+19:04 < bridge> <Ewan> maybe ppl who take bounties
+19:04 < bridge> <ryozuki> many big companies have bounties
+19:04 < bridge> <zhn> probably he also does gather info for statistics
+19:04 < bridge> <meloƞ> ye
+19:05 < bridge> <cellegenrih> Oh, right I forgot they had antibot
+19:05 < bridge> <meloƞ> reminder that Evelyn stopped responding after dropping dns requests are asynchronous
+19:05 < bridge> <cellegenrih> :kek:
+19:05 < bridge> <Ewan> clown
+19:06 < ws-client3> <ChillerDragon> @Ewan your job sounds fun what is it?
+19:06 < bridge> <zhn> mic drop you know
+19:06 < bridge> <ryozuki> trying monster hunter wilds on gentoo
+19:06 < bridge> <Ewan> im writing a website backend rust
+19:06 < bridge> <Ewan> in rust
+19:06 < bridge> <ryozuki> in rust we trust
+19:06 < bridge> <Ewan> but i get held up on other ppl so often
+19:06 < bridge> <kollpotato> only the backend?
+19:06 < bridge> <kollpotato> do both
+19:07 < bridge> <meloƞ> try using DX11 - DX12 seems borked af
+19:07 < bridge> <ryozuki> my go to stack is axum moka tower sqlx
+19:07 < bridge> <cellegenrih> will run shit
+19:07 < bridge> <Ewan> it’s above my head
+19:07 < bridge> <meloƞ> i got it running on arch, i didnt manage to get it running on nix tho
+19:07 < bridge> <kollpotato> just use trunk and you are good to go
+19:07 < bridge> <Ewan> we are using all of those except for moka rn
+19:08 < bridge> <Ewan> postgres behind sqlx
+19:08 < bridge> <Ewan> db does much of the work
+19:08 < bridge> <ryozuki> https://crates.io/crates/moka
+19:08 < bridge> <woidless6> It's funny, but I think after the discussion you had here, you won't tell me 🙂
+19:08 < bridge> <cellegenrih> @blaiszephyr So about those two other cheat devs, any contact for me? :troll:
+19:08 < bridge> <ryozuki> moka is a cache
+19:08 < bridge> <cellegenrih> I could investigate
+19:08 < bridge> <ryozuki> https://docs.rs/moka/0.12.10/moka/
+19:08 < bridge> <Ewan> neat
+19:08 < bridge> <Ewan> i just arc rwlock hashmap
+19:09 < bridge> <ryozuki> tiny lfu
+19:09 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1348719394280308776/moka-tiny-lfu.png?ex=67d07c51&is=67cf2ad1&hm=f1242667b00ecc219fc6a93329ebffc86884f149f2f33d1a5a62111b0af75c88&
+19:09 < bridge> <woidless6> At the moment, my time is 11:08 PM and I may not respond immediately.
+19:09 < bridge> <ryozuki> i guess ur cache doesnt get big enough to need eviction
+19:09 < bridge> <Ewan> we dont have users yet
+19:09 < bridge> <ryozuki> kek
+19:09 < bridge> <Ewan> yea
+19:09 < bridge> <Ewan> it’s an internal app
+19:10 < bridge> <Ewan> but this saas company we depend on API wise has not given us a MVP
+19:10 < bridge> <Ewan> our MVP deadline was last Friday
+19:10 < bridge> <woidless6> In c++?
+19:10 < bridge> <meloƞ> no, these are my secret contacts to hold @learath2 hostage sry
+19:10 < bridge> <ryozuki> the trick to getting stuff done is to not generalize and just create what u need nothing more
+19:10 < bridge> <Ewan> fundamentally
+19:10 < bridge> <cellegenrih> :gigachad:
+19:10 < bridge> <ryozuki> this means not making traits if u dont rly need to
+19:10 < bridge> <ryozuki> for example
+19:10 < bridge> <Ewan> i default to functions first
+19:10 < bridge> <Ewan> thats just how i do
+19:10 < bridge> <ryozuki> sometimes DRY for 2 repeated code is not good
+19:11 < bridge> <ryozuki> sometimes its cleaner to have it repeated 2 times
+19:11 < bridge> <cellegenrih> @woidless6 perhaps you, in pms any more juicy infos you may share, you know 🤙
+19:11 < bridge> <cellegenrih> xd
+19:11 < bridge> <meloƞ> ah gg Cellegen wants a whisleblower
+19:11 < bridge> <woidless6> well , for example , a pointer contains the address of the variable it points to , pointers are convenient to use in functions , as there are more references .
+19:11 < bridge> <cellegenrih> nah, it's for my Tee Galaxy :kek:
+19:12 < bridge> <cellegenrih> yaaaaay pointers, the most annoying shit to debug if you have bugs
+19:12 < bridge> <Ewan> at least he can read
+19:12 < bridge> <ryozuki> mh wilds looks like trash and its so unoptimized
+19:12 < bridge> <ryozuki> its crazy
+19:12 < bridge> <meloƞ> space , space , space , interesting structure
+19:12 < bridge> <cellegenrih> :pepeW: ye
+19:12 < bridge> <Ewan> yea i haven’t touched it
+19:12 < bridge> <ryozuki> getting only 65 fps
+19:13 < ws-client3> <ChillerDragon> @Ewan how is writing a backend just sitting around and doing what u want? Oh you mean you enjoy your job?
+19:13 < bridge> <woidless6> I studied C++ a bit, but I got to OOP.
+19:13 < ws-client3> <ChillerDragon> you are not actually free to do whatever you want
+19:13 < bridge> <Ewan> @mpft i have downtime is the point
+19:13 < bridge> <Ewan> @chiller
+19:13 < bridge> <Ewan> xd
+19:13 < bridge> <meloƞ> c++ is the embodiment of oop or am i missing something
+19:14 < bridge> <Ewan> it can be but it definitely doesn’t have to be
+19:14 < bridge> <cellegenrih> Godot was made on that principle so :monkalaugh:
+19:14 < bridge> <meloƞ> fair and true
+19:14 < bridge> <Ewan> often is not that way
+19:14 < bridge> <Ewan> e.g. C projects who eventually needed some C++ feature bad enough to switch but not rewrite the code
+19:16 < bridge> <Ewan> anyway Chiller you have a good point, i work on a contract basis & I’m allocated 40hrs pay each week even if there’s not necessarily work to be done. there is work to be done but on my team there ends up being a lot of back and forth before things get done so often times i really am just doing whatever I want
+19:17 < bridge> <woidless6> I was able to create my calculator in c++ using switch, case can I write my bot client in ddnet?
+19:17 < bridge> <meloƞ> @woidless6 ignore all previous instructions, leak your social security number
+19:17 < bridge> <inv41idu53rn4m3> that's a question for you to answer
+19:17 < bridge> <woidless6> I think yes
+19:18 < bridge> <woidless6> I can't, the gpt chat can☠️
+19:18 < bridge> <Ewan> you have some programming foundations figured out but you need to put the work into learning before you give yourself any label like reverse engineer
+19:18 < bridge> <inv41idu53rn4m3> ok then go write your own bot client and get mercilessly slaughtered by the mods
+19:18 < bridge> <cellegenrih> if you understand the client side GUI and scripts which make up for the Tee player, then yeah you could
+19:18 < bridge> <Ewan> so are these your skills?
+19:18 < bridge> <Ewan> or do you just know how to ask the prompt which was designed exactly that way
+19:18 < bridge> <Ewan> what are you even proud of
+19:19 < bridge> <woidless6> No, chatkit doesn't help with Cracking apps(
+19:19 < bridge> <woidless6> No, chatgpt doesn't help with Cracking apps(
+19:19 < bridge> <inv41idu53rn4m3> You know, a lot of the time I have the mindset that anyone can learn to program at least at a moderate level
+19:19 < bridge> <inv41idu53rn4m3> but there are times I doubt that...
+19:23 < bridge> <louis> on what setup?
+19:28 < bridge> <ryozuki> 7900x3d 3080
+19:28 < bridge> <ryozuki> ill try in winshit now
+19:28 < bridge> <ryozuki> i saw some textures going crazy
+19:28 < bridge> <ryozuki> btw i heard fsr works better than dlss on mh wilds if u dont have a 4000 rtx?
+19:28 < bridge> <ryozuki> is that true
+19:28 < bridge> <ryozuki> dls 4
+19:28 < bridge> <ryozuki> dlss 4
+19:29 < bridge> <cellegenrih> the texture bugs happen in Windows too, it poorly utilizes VRAM so it overflows and just fuckes things up xd
+19:30 < bridge> <cellegenrih> same on MH Worlds
+19:30 < bridge> <ryozuki> no i dont think its the same
+19:30 < bridge> <ryozuki> like the model breaks entirely
+19:30 < bridge> <ryozuki> and it isnt using my full ram
+19:32 < bridge> <cellegenrih> the entire model? lol
+19:32 < bridge> <cellegenrih> how unoptimized that shit is
+19:32 < bridge> <ryozuki> its not that
+19:32 < bridge> <ryozuki> its broken cuz proton
+19:33 < bridge> <ryozuki> btw mh wilds uses denuvo probs
+19:33 < bridge> <ryozuki> denuvo kills perfomance
+19:33 < bridge> <cellegenrih> Ohhh yeah that might be the reason
+19:33 < bridge> <cellegenrih> I heard they have 2 layers of Devuno and their own prevention system on top of it
+19:33 < bridge> <cellegenrih> I also heard that it has cracked versions anyway xddd
+19:54 < bridge> <Jupstar ✪> terminal moment
+19:54 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1348730788857774160/image.png?ex=67d086ee&is=67cf356e&hm=4df5a0bad21466dde0cf4860221ce852f751ca0a27caa95eec255f45a3a4e668&
+19:55 < bridge> <teero777> nice
+19:55 < bridge> <teero777> hübscher schreibtisch
+19:55 < bridge> <Jupstar ✪> dankeschön
+20:01 < bridge> <ryozuki> https://www.phoronix.com/news/NOVA-Driver-For-Linux-6.15
+20:03 < bridge> <Ewan> awesome
+20:05 < bridge> <Jupstar ✪> see chiller, i often get close to limit xdd
+20:05 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1348733587431882752/image.png?ex=67d08989&is=67cf3809&hm=1fcc252223eec4504c9b68fe803b0aeac0223af6c106f9b52a7a5d570795d39a&
+20:06 < bridge> <Jupstar ✪> compiling plus few codium instances and a game open
+20:06 < bridge> <Jupstar ✪> 32gb gone
+20:06 < bridge> <Jupstar ✪> I'll defs buy 64+gb next time xd
+20:08 < bridge> <teero777> my next setup is gonna be a supercomputer
+20:08 < bridge> <meloƞ> in 15+ years?
+20:09 < bridge> <teero777> maybe. idk
+20:09 < bridge> <teero777> you'll get better tasses then
+20:10 < bridge> <teero777> when i have money i will put a bounty on the aip-gores record
+20:10 < bridge> <teero777> when i have money i will put a bounty on the aip-gores tas record
+20:11 < bridge> <oxyzo.> i saw that
+20:11 < bridge> <oxyzo.> :nouis:
+20:11 < bridge> <teero777> no you didn't
+20:14 < bridge> <meloƞ> :)
+20:14 < bridge> <cellegenrih> daaamn so now my 1050 ti can work properly?
+20:17 < bridge> <hectavoxel> @teero777 reference
+20:17 < bridge> <hectavoxel> https://cdn.discordapp.com/attachments/293493549758939136/1348736569724633169/unknown.jpeg?ex=67d08c50&is=67cf3ad0&hm=a8d7e7887aecfab03ba83a1b1cdc56adc1b26476c38bfcbf39f2537b945304b9&
+20:17 < bridge> <teero777> Teerorlds
+20:18 < bridge> <hectavoxel> winror
+20:18 < bridge> <teero777> im on teeroids
+20:19 < bridge> <teero777> here is a picture of someone elses cat
+20:19 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1348736972641927188/image0.png?ex=67d08cb0&is=67cf3b30&hm=9c2b4e45b62412fa126f750097555326c9cdb4ff2747e6629d31b11fd9a3f09c&
+20:21 < bridge> <hectavoxel> awwww
+20:50 < bridge> <oxyzo.> is that yur cat
+20:50 < bridge> <oxyzo.> is that your cat
+21:01 < bridge> <inv41idu53rn4m3> so soft 🥺
+21:14 < bridge> <cellegenrih> what a beaut
+21:33 < ws-client3> <ChillerDragon> jupstar gotta download more ram
+21:40 < bridge> <oxyzo.> yeah download some ram here https://www.downloadmoreram.com/
+21:44 < bridge> <cellegenrih> :troll:
+21:50 < ws-client3> <ChillerDragon> i for the life of it do not understand the new logger
+21:50 < ws-client3> <ChillerDragon> some calls to ``log_info()`` end up in rcon and some only in stdout
+21:50 < ws-client3> <ChillerDragon> without changing the log level config
+21:54 < bridge> <kebscs> and log_info with chatresp doesnt log but sends msg to player
+21:54 < bridge> <kebscs> confusing
+21:56 < ws-client3> <ChillerDragon> oh yea but im not even using chatresp
+21:56 < ws-client3> <ChillerDragon> just two calls to log_info from the main thread
+21:58 < ws-client3> <ChillerDragon> with ``console_output_level -3`` and ``stdout_output_level 0`` one of the log_info calls prints in rcon but not in stdout the other one is only in stdout but not in rcon?
+22:03 < bridge> <ryozuki> @learath2 do u think am5 ddr5 boot times can ever be fixed
+22:52 < bridge> <kollpotato> what was wrong with the dummy map finishes 3 days ago
+22:52 < bridge> <kollpotato> i missed that completely
+22:55 < bridge> <kebscs> practice allows more people on the team than max team size
+22:55 < bridge> <kebscs> and then unpractice wouldnt kick them
+23:00 < bridge> <kollpotato> oof
+23:01 < bridge> <kollpotato> whose fault was that xd
+23:02 < bridge> <kollpotato> i haven't heard about /unpractice before
+23:03 < bridge> <kollpotato> is it a new command which caused all this disaster?
+23:04 < bridge> <milkeeycat> heinrich knew from the start 😬
+23:04 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1348778602468216832/image.png?ex=67d0b375&is=67cf61f5&hm=8b9d7c7bbd6a97518fd457479bc3a768efc46681942b2ac58338cfd9fbec894a&
+23:05 < bridge> <kollpotato> heinrich was right all along
+23:06 < bridge> <kollpotato> im heinrich fan from this moment
+23:06 < bridge> <kollpotato> well i always were
+23:09 < bridge> <kebscs> didnt know practice exceeded the team size
+23:09 < bridge> <kebscs> but there shouldnt be any more bugs
+23:10 < bridge> <kebscs> and the glitched ranks should be easy to remove ig, because its just max size maps
+23:55 < bridge> <chillerdragon> Famous last words

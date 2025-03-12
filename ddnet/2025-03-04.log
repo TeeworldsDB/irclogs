@@ -1,0 +1,706 @@
+01:22 < bridge> <TsPiggy> the change is just to make sure the behavior is logically unchanged if m_Tuning is not set by any outsider. and the "fail safe" is basically what make the code behave identical to the original code.
+01:23 < bridge> <TsPiggy> it is made so client can override the tuning so yes the change was made for client only even tho it is in the shared code
+01:24 < bridge> <TsPiggy> if sometime server start setting `m_Tuning` after this change then ye, it is completely useless. i didn't check whether server is doing that, but it probably wasn't doing that when that PR was made
+01:24 < bridge> <TsPiggy> if sometime later server start setting `m_Tuning` after this change then ye, it is completely useless. i didn't check whether server is doing that, but it probably wasn't doing that when that PR was made
+01:25 < bridge> <kebscs> Yea it works fine without it, I would like to remove tuning from world class since it's flawed
+01:25 < bridge> <TsPiggy> then do it i guess
+01:25 < bridge> <TsPiggy> and it is probably good that shared code won't rely on `g_Config.m_ClDummy` at all if you could make that happen too
+01:25 < bridge> <TsPiggy> not sure if it is related tho
+01:25 < bridge> <TsPiggy> not sure if it is related to what you are doing tho
+01:26 < bridge> <kebscs> This is exactly why I want to remove it,  and it's also confusing because it's not world tuning but current player's
+01:26 < bridge> <TsPiggy> i mean it is just left over from adding dummy to begin with
+01:26 < bridge> <kebscs> Which this "world tuning" isn't used anywhere anyway
+01:26 < bridge> <TsPiggy> someone just doubled up everything
+01:26 < bridge> <kebscs> There's one in gameclieny
+01:26 < bridge> <kebscs> Yea I guess
+01:27 < bridge> <TsPiggy> remove world tuning is probably a good idea tho. i remember it being quite useless but i didn't dare to touch it back then
+01:29 < bridge> <kebscs> It's values are copied over from gameclient and the fail safe is the only place it's used rn that's why I asked
+01:29 < bridge> <TsPiggy> just double check on server i guess
+02:44 < bridge> <patiga> @tsfreddie heyo can you help me out here? https://github.com/ddnet/ddnet/blame/aecae3f7e51c0a44e45fa94d62bccf8bbfc155f2/src/game/server/player.cpp#L535
+02:44 < bridge> <patiga> this flag appears to be 1<<2, but thats the same as the flag `PLAYERFLAG_CHATTING`(?)
+02:46 < bridge> <patiga> and those flags are checked right after each other, maybe my ide is just broke? ^^
+02:53 < bridge> <pioooooo> https://github.com/ddnet/ddnet/blob/master/datasrc%2Fnetwork.py
+02:54 < bridge> <patiga> is that an answer in some way? please elaborate
+02:55 < bridge> <pioooooo> You can check this file, the flags belong to different fields
+02:55 < bridge> <TsPiggy> ?
+02:55 < bridge> <TsPiggy> https://cdn.discordapp.com/attachments/293493549758939136/1346300020604796949/image.png?ex=67c7af19&is=67c65d99&hm=0f166d658c1a62800c0de9cd75485cbac85b177ffe074de603757adf2f96ce41&
+02:55 < bridge> <patiga> hrmpf my ide is broke I suppose :c
+02:56 < bridge> <TsPiggy> https://cdn.discordapp.com/attachments/293493549758939136/1346300150968225936/image.png?ex=67c7af39&is=67c65db9&hm=51ed70ade7be59448eb24b7cadd79c54c001e87a94a0c028e6fe07732c198cc5&
+02:56 < bridge> <TsPiggy> or the generator broke
+02:56 < bridge> <TsPiggy> this is part of the code gen
+02:56 < bridge> <TsPiggy> are you sure your code gen ran properly
+02:56 < bridge> <patiga> that wouldn't make much of a difference here
+02:56 < bridge> <patiga> ig not :/
+02:56 < bridge> <TsPiggy> can you check src/game/generated/protocol.h
+02:57 < bridge> <pioooooo> :nouis:
+02:57 < bridge> <patiga> well the ide is kinda arguing with itself, saying "well this value doesn't exist" and "btw this value is 4" at the same time xd
+02:57 < bridge> <patiga> will do
+02:58 < bridge> <TsPiggy> might just be you haven't ran the code gen since you pulled yet, since it only run on build, so it doesn't exist. ~~and your IDE is invaded by AI and hallucinated~~
+02:59 < bridge> <patiga> huh I don't have that file
+02:59 < bridge> <TsPiggy> then you haven't built yet
+02:59 < bridge> <TsPiggy> just build it once
+02:59 < bridge> <TsPiggy> i think
+03:00 < bridge> <patiga> wait I do have it, I didn't look in the build idr
+03:00 < bridge> <patiga> *dir
+03:00 < bridge> <TsPiggy> ah
+03:00 < bridge> <patiga> its not in there tho
+03:00 < bridge> <TsPiggy> 😬
+03:00 < bridge> <patiga> I'll rebuild and check again
+03:00 < bridge> <TsPiggy> have you built
+03:00 < bridge> <TsPiggy> python error?
+03:00 < bridge> <TsPiggy> maybe
+03:01 < bridge> <patiga> *building*
+03:02 < bridge> <patiga> got it 🎉
+03:02 < bridge> <TsPiggy> :justatest:
+03:02 < bridge> <TsPiggy> what happened before then
+03:02 < bridge> <patiga> weird, I thought I built the client just yesterday
+03:02 < bridge> <TsPiggy> weird
+03:03 < bridge> <TsPiggy> maybe the we all had AI in us now and we hallucinated memory
+03:04 < bridge> <patiga> maybe its also tired Patiga who's weird here :pepeW:
+03:04 < bridge> <TsPiggy> :GreemDev:
+03:05 < bridge> <zerolacqua> hey, i'm using vscode on ubuntu with cmake and the c++ extension to debug the map editor. i set some breakpoints, and when one got hit, the game froze. now i want to check the variable info in vscode, but my mouse is stuck too. anyone know how to fix this or any other ways to handle it?
+03:06 < bridge> <patiga> @tsfreddie btw how severe is that CAM commit for input handling?
+03:06 < bridge> <TsPiggy> wdym severe
+03:06 < bridge> <patiga> like, in which cases does it handle input differently to before?
+03:06 < bridge> <TsPiggy> the handling is unaffected.
+03:06 < bridge> <TsPiggy> nothing changed client side afaik
+03:06 < bridge> <patiga> but server side
+03:07 < bridge> <TsPiggy> then ye, when you unpause it might take sometime for server to start processing input
+03:07 < bridge> <patiga> like, I reimplemented your commit like 3 weeks ago (and did the flag correctly 🫨 )
+03:07 < bridge> <TsPiggy> but if it start process early the input are wrong anyway
+03:07 < bridge> <patiga> ah, so it should only affect the end of the pause, not the start of it?
+03:08 < bridge> <TsPiggy> i can't remember
+03:08 < bridge> <TsPiggy> maybe not?
+03:08 < bridge> <TsPiggy> backwards compat check is needed tho
+03:09 < bridge> <patiga> alright, thx
+03:09 < bridge> <patiga> I think I get it now
+03:09 < bridge> <TsPiggy> basically all you need to do is making sure viewpos doesn't update if the input type is cam and player input doesn't apply to character if the input type is not cam
+03:10 < bridge> <TsPiggy> and you need the version check to make sure cam and not cam state is correct and not just non-existence-defaults-to-not-cam
+03:12 < bridge> <patiga> the client stops sending usual player input as soon as it hears from the srv that the pause has started (sending inputs which will not be processed immediately by the srv). the server now applies those inputs later, not as soon as the srv says the client is unpause, but when the client replied that too
+03:12 < bridge> <TsPiggy> i didn't get it
+03:12 < bridge> <TsPiggy> i thought client always send input
+03:12 < bridge> <patiga> no, not during pause
+03:12 < bridge> <patiga> not normal input at least
+03:13 < bridge> <patiga> you cant hook for example
+03:13 < bridge> <TsPiggy> let me check
+03:13 < bridge> <TsPiggy> eitherway the change only tags what type of coordinate it is of the target
+03:14 < bridge> <patiga> in the line I referenced it also stops input from being transfered from player to tee
+03:14 < bridge> <TsPiggy> yes
+03:14 < bridge> <TsPiggy> it is possible that character ignored hook and fire input due to not expected coodinate type
+03:15 < bridge> <TsPiggy> maybe movement should be passed anyway but idk about fire and hook
+03:16 < bridge> <patiga> can I see somewhere on which server version this change started?
+03:16 < bridge> <patiga> does the server have an incrementing number like the client maybe?
+03:16 < bridge> <TsPiggy> check the whole commit
+03:17 < bridge> <TsPiggy> it is the standard version check we do
+03:17 < bridge> <TsPiggy> wait no
+03:17 < bridge> <TsPiggy> it didn't live in the same commit sorry
+03:17 < bridge> <TsPiggy> let me dig the pr
+03:18 < bridge> <TsPiggy> wait it is the same commit. why can't i find it
+03:18 < bridge> <patiga> I'm also confused rn, I swear I saw smth before
+03:18 < bridge> <TsPiggy> i am confused too
+03:19 < bridge> <patiga> but I suppose the clients that use it do this
+03:19 < bridge> <patiga> > // force send spec cam flag on first tick to let server know that it is supported
+03:19 < bridge> <TsPiggy> no
+03:19 < bridge> <TsPiggy> heinrich vetod
+03:19 < bridge> <patiga> ah
+03:19 < bridge> <TsPiggy> i shouldn't be accepted if i didn't change it but i can't find the code where i did it
+03:19 < bridge> <TsPiggy> it shouldn't be accepted if i didn't change it but i can't find the code where i did it
+03:20 < bridge> <patiga> `VERSION_DDNET_PLAYERFLAG_SPEC_CAM = 18090,`
+03:20 < bridge> <TsPiggy> oh it is a separate commit
+03:20 < bridge> <TsPiggy> i think deen merged it before i could change it
+03:20 < bridge> <patiga> but that is the client version, no?
+03:20 < bridge> <TsPiggy> yes, you check whether client has that flag
+03:20 < bridge> <TsPiggy> yes, you check whether client supports that flag
+03:21 < bridge> <patiga> but wouldn't I need to check if the server has the flag?
+03:21 < bridge> <TsPiggy> client shouldn't care what it receives
+03:21 < bridge> <TsPiggy> server send character the client does the character
+03:21 < bridge> <TsPiggy> it doesn't need to know about the coordinate type
+03:21 < bridge> <patiga> but I'm reimplementing the physics server-side
+03:22 < bridge> <TsPiggy> you check client version in server
+03:22 < bridge> <patiga> did older clients also send that flag for some reason? I see some weird replay here where that flag is set the entire run o.o
+03:22 < bridge> <TsPiggy> 3rd party client and bot
+03:23 < bridge> <TsPiggy> tater also had some non-standard scoreboard flag behavior
+03:24 < bridge> <patiga> okay, so the version check it is 👍
+03:24 < bridge> <TsPiggy> also demo might be bugged, i should heck
+03:24 < bridge> <TsPiggy> also demo might be bugged, i should check
+03:24 < bridge> <patiga> nah
+03:24 < bridge> <patiga> shouldn't be, don't worry
+03:24 < bridge> <TsPiggy> i mean even if it is bugged, check client doesn't really care about the flag
+03:24 < bridge> <TsPiggy> i mean even if it is bugged, the client doesn't really care about the flag
+03:24 < bridge> <patiga> wait but then I do need the server version, right?
+03:24 < bridge> <TsPiggy> no, you can send the flag to the server always
+03:25 < bridge> <patiga> like I'm implementing physics in twgame to reproduce teehistorian files
+03:25 < bridge> <TsPiggy> old server doesn't use that bit
+03:25 < bridge> <TsPiggy> so it'll just ignore it
+03:25 < bridge> <patiga> yes and how do I detect old server?
+03:25 < bridge> <TsPiggy> idk
+03:25 < bridge> <TsPiggy> we didn't feel the need to do that so we didn't check
+03:25 < bridge> <patiga> fair
+03:25 < bridge> <TsPiggy> old server doesn't use that bit so sending that bit on and off make no difference in physics
+03:25 < bridge> <TsPiggy> i'm pretty sure
+03:27 < bridge> <TsPiggy> btw is someone doing input fingerprinting to check for invalid race
+03:28 < bridge> <urg_> quick question whats the reason for taterclient being frowned upon? or looked at as bad
+03:29 < bridge> <patiga> not that I know of
+03:29 < bridge> <patiga> (answer to ts)
+07:43 < bridge> <kiler94> https://cdn.discordapp.com/attachments/293493549758939136/1346372446378393660/IMG_20250303_154519.jpg?ex=67c7f28d&is=67c6a10d&hm=2b463bf7fe1588be680c0ec69828af9363a7bbf61ee6a2332f9b51da43024df1&
+07:43 < bridge> <kiler94> What to do infinite loading of resources
+07:46 < bridge> <hectavoxel> why do you keep sending this everywhere
+07:46 < bridge> <hectavoxel> do you have any like-   4k tee skins in your skin files?
+07:47 < bridge> <kiler94> I don't know.
+08:19 < bridge> <Jupstar ✪> Use the vscode workspace in other/vscode (read the readme) and x11
+08:19 < bridge> <Jupstar ✪> 
+08:19 < bridge> <Jupstar ✪> Then it will unrelease mouse
+08:39 < bridge> <milkeeycat> @learath2 is `rep movs` ok for copying structs or is it better to manually move each field in a register and move it into dest?
+08:39 < bridge> <milkeeycat> @learath2 is `rep movsb` ok for copying structs or is it better to manually move each field in a register and move it into dest?
+08:40 < bridge> <zerolacqua> thanks, that's exactly what I needed.
+09:20 < bridge> <rainonwires> Hey, im hoping this is an appropriate channel to ask this; is there a nixos guide to building ddnet? i'm missing some packages & haven't found some of them lol
+10:06 < furo> @rainonwires NixOS has a package for DDNet, so you can look at its dependencies. https://github.com/NixOS/nixpkgs/blob/nixos-24.11/pkgs/games/ddnet/default.nix
+10:06 < bridge> <rainonwires> Thanks
+10:33 < bridge> <learath2> Why bother going field by field?
+10:35 < bridge> <milkeeycat> maybe it's better, idk
+10:35 < bridge> <learath2> I can't think of a reason. If you can't either I'd go with rep movsb
+10:37 < bridge> <meloƞ> Reminder that Nixos has an awesome feature called InputsFrom - which allows you to fetch dependencies, buildinputs etc from an existing package within a dev shell
+10:39 < bridge> <meloƞ> Most dependencies are listed in the readme - the rest should be fetched using pkg-config and inputsFrom
+10:40 < bridge> <rainonwires> i love nixos, but i haven't used it all for development and i haven't really branched outside of the configuration file, still trying to get my grasp on flakes lol
+10:40 < bridge> <meloƞ> ```
+10:40 < bridge> <meloƞ> outputs = {
+10:40 < bridge> <meloƞ>     nixpkgs,
+10:40 < bridge> <meloƞ>     ...} : let
+10:40 < bridge> <meloƞ>     system = "x86_64-linux";
+10:40 < bridge> <meloƞ>     pkgs = nixpkgs.legacyPackages.${system};
+10:40 < bridge> <meloƞ>   in {
+10:40 < bridge> <meloƞ>     devShells.${system}.default = pkgs.mkShell {
+10:40 < bridge> <meloƞ>     inputsFrom = [pkgs.ddnet];
+10:40 < bridge> <meloƞ>       packages = [
+10:40 < bridge> <meloƞ>       ];
+10:40 < bridge> <meloƞ> ```
+10:40 < bridge> <rainonwires> so yeah, didnt know about that, appreciate it !
+10:40 < bridge> <meloƞ> That is basically all you need ^^
+10:40 < bridge> <meloƞ> And then ofc, gcc/clang
+10:40 < bridge> <rainonwires> how does it work?
+10:41 < bridge> <meloƞ> it's a nix dev shell within a flake.nix
+10:41 < bridge> <rainonwires> a dev shell for ddnet?
+10:41 < bridge> <rainonwires> nix-env?
+10:41 < bridge> <meloƞ> Yep ^^
+10:41 < bridge> <rainonwires> like nix-env?
+10:41 < bridge> <meloƞ> No!
+10:41 < bridge> <rainonwires> xD
+10:41 < bridge> <meloƞ> Go into your ddnet folder, create a file called flake.nic
+10:41 < bridge> <meloƞ> Go into your ddnet folder, create a file called flake.nix
+10:42 < bridge> <meloƞ> Man phone hard - 1 sec I can't copy
+10:42 < bridge> <rainonwires> ahaha
+10:45 < bridge> <meloƞ> Okay, copy paste this into your flake.nix - add inputsFrom = [pkgs.ddnet] at the end
+10:45 < bridge> <meloƞ> 
+10:45 < bridge> <meloƞ> {
+10:45 < bridge> <meloƞ>   description = "A Nix-flake-based C/C++ development environment";
+10:45 < bridge> <meloƞ> 
+10:45 < bridge> <meloƞ>   inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+10:45 < bridge> <meloƞ> 
+10:45 < bridge> <meloƞ>   outputs = { self, nixpkgs }:
+10:45 < bridge> <meloƞ>     let
+10:45 < bridge> <meloƞ>       supportedSystems = [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ];
+10:45 < bridge> <meloƞ>       forEachSupportedSystem = f: nixpkgs.lib.genAttrs supportedSystems (system: f {
+10:45 < bridge> <meloƞ>         pkgs = import nixpkgs { inherit system; };
+10:45 < bridge> <meloƞ>       });
+10:45 < bridge> <meloƞ>     in
+10:45 < bridge> <meloƞ>     {
+10:45 < bridge> <meloƞ>       devShells = forEachSupportedSystem ({ pkgs }: {
+10:45 < bridge> <meloƞ>         default = pkgs.mkShell.override
+10:45 < bridge> <meloƞ>           {
+10:45 < bridge> <meloƞ>             # Override stdenv in order to change compiler:
+10:45 < bridge> <meloƞ>             # stdenv = pkgs.clangStdenv;
+10:45 < bridge> <meloƞ>           }
+10:46 < bridge> <meloƞ>           {
+10:46 < bridge> <meloƞ>             packages = with pkgs; [
+10:46 < bridge> <meloƞ>               clang-tools
+10:46 < bridge> <meloƞ>               cmake
+10:46 < bridge> <meloƞ>               codespell
+10:46 < bridge> <meloƞ>               conan
+10:46 < bridge> <meloƞ>               cppcheck
+10:46 < bridge> <meloƞ>               doxygen
+10:46 < bridge> <meloƞ>               gtest
+10:46 < bridge> <meloƞ>               lcov
+10:46 < bridge> <meloƞ> Okay, copy paste this into your flake.nix - add inputsFrom = [pkgs.ddnet] in the dev shell section
+10:46 < bridge> <meloƞ> ```
+10:46 < bridge> <meloƞ> {
+10:46 < bridge> <meloƞ>   description = "A Nix-flake-based C/C++ development environment";
+10:46 < bridge> <meloƞ> 
+10:46 < bridge> <meloƞ>   inputs.nixpkgs.url = "https://flakehub.com/f/NixOS/nixpkgs/0.1.*.tar.gz";
+10:46 < bridge> <meloƞ> 
+10:46 < bridge> <meloƞ>   outputs = { self, nixpkgs }:
+10:46 < bridge> <meloƞ>     let
+10:47 < bridge> <rainonwires> awesome
+10:47 < bridge> <rainonwires> what server is that if i may ask?
+10:47 < bridge> <meloƞ> Eh I think that comes from the unofficial nixOS discord
+10:47 < bridge> <rainonwires> okok  !
+10:48 < bridge> <meloƞ> Idk I dusted that off just now, been in my gallery for years :kekw:
+10:48 < bridge> <rainonwires> ahahaha i see xD very useful to keep stuff like that
+10:49 < bridge> <meloƞ> Alright I need to go - hope you figure it out :owo:
+10:49 < bridge> <rainonwires> bye bye
+11:59 < bridge> <rainonwires> Still messing with this on and off, im having some issues with the nix develop command working.
+12:15 < bridge> <TsPiggy> hmm
+12:15 < bridge> <TsPiggy> CHN servers other than 1 and 4 disappeared from master
+12:31 < bridge> <ryozuki> morning peeps
+13:05 < bridge> <pro_gaming1921> :)
+13:14 < bridge> <TsPiggy> norming
+13:17 < bridge> <TsPiggy> i do `nix develop path:./.dev` and put a `flake.nix` file into a `.dev` folder under the project directory. this way nix won't copy the entire project into store somewhere.
+13:17 < bridge> <01000111g> akschually
+13:18 < bridge> <TsPiggy> if you just use `nix develop ./.dev` the `.dev` directory need to be a git repository and commited with the flake.nix. i don't really like that way so `path:` is kinda needed.
+13:18 < bridge> <TsPiggy> if you just use `nix develop ./.dev` the `.dev` directory need to be a git repository and commited with the flake.nix. i don't really like that way so `path:` is kinda needed for me
+13:18 < bridge> <rainonwires> ahhh
+13:19 < bridge> <rainonwires> mine tries to find the flake in /nix/store after i use the flake in the ddnet directory i setup
+13:19 < bridge> <rainonwires> lol
+13:19 < bridge> <TsPiggy> it might make sense to put flake under a project root if you somehow want to install the thing as a package i think? i don't really know.
+13:20 < bridge> <TsPiggy> i just do the weird workaround with `.dev` folder
+13:20 < bridge> <rainonwires> i just want to build the project, would like to work on some of the issue tickets on github
+13:20 < bridge> <TsPiggy> also check out `nix-direnv` once you figure out the develop thing. which basically does it for you when you cd into a directory.
+13:20 < bridge> <rainonwires> ahh
+13:20 < bridge> <rainonwires> i cant get it to find vulkan etc
+13:20 < bridge> <TsPiggy> the same flake file will work with both nix-direnv and nix develop so you don't need to redo anything.
+13:21 < bridge> <TsPiggy> let me check my flake.nix for ddnet
+13:21 < bridge> <TsPiggy> one sec
+13:21 < bridge> <rainonwires> my flake i run with nix develop doesnt work xD
+13:21 < bridge> <rainonwires> i have to nix-collect-garbage to try again
+13:23 < bridge> <TsPiggy> https://cdn.discordapp.com/attachments/293493549758939136/1346458022645338202/dev.tar.gz?ex=67c84240&is=67c6f0c0&hm=8fe7af280def10c5c9415fd015f0bb10a2fee2e906a48a177c50777c7152497b&
+13:23 < bridge> <TsPiggy> this is what i use for my `.dev` for ddnet
+13:47 < bridge> <TsPiggy> @0xdeen @murpi @learath2
+13:47 < bridge> <TsPiggy> :justatest:
+13:52 < bridge> <murpi> Not something I'd able to fix
+13:52 < bridge> <TsPiggy> sadge
+13:53 < bridge> <meloƞ> Yes - either as a provided dev shell or when using `nix build`
+14:07 < ws-client> <ChillerDragon> I would highly appreciate to get https://github.com/ddnet/ddnet/pull/9787 and https://github.com/ddnet/ddnet/pull/9386 merged. Is there a way for me to speed up the process?
+14:11 < bridge> <TsPiggy> the github influencer is influencing again
+14:12 < bridge> <rainonwires> ahaha chiller is the reason i am trying to build ddnet
+14:22 < bridge> <learath2> Still broken?
+14:22 < bridge> <TsPiggy> yep
+14:31 < bridge> <learath2> Did you check whether they can ping the master? Might be a firewall incident
+14:31 < bridge> <TsPiggy> i don't have access to those servers
+14:31 < bridge> <TsPiggy> i don't host servers anymore
+14:32 < bridge> <TsPiggy> 😬
+14:42 < bridge> <TsPiggy> wait, my proxy basically died today too.
+14:47 < bridge> <ryozuki> ChillerDragon, ur prs touch sensitive code to physics or speedrunning so its normal its harder to get in
+14:47 < bridge> <ryozuki> im unsure about how spawners affect speedrunners and if the way u made it works nice
+14:50 < bridge> <ryozuki> ChillerDragon i reviews ur interesct pr, looks gud but i wait for others
+14:55 < bridge> <learath2> Be brave
+14:56 < bridge> <learath2> I can't seem to connect to them hm
+14:57 < bridge> <TsPiggy> ah
+14:57 < bridge> <TsPiggy> tomorrow is the congress meeting.
+14:57 < bridge> <learath2> Wait but the main server can connect to them
+14:57 < bridge> <ryozuki> @essigautomat https://github.com/ddnet/ddnet/pull/9795#pullrequestreview-2657647218
+14:57 < bridge> <learath2> Hm, let me tunnel through and see
+14:57 < bridge> <ryozuki> i like this feature
+14:57 < bridge> <TsPiggy> i think we get bad internet around these time
+14:58 < bridge> <ryozuki> well it looks ok to me but maybe heinrich wanted tot say smth
+14:58 < bridge> <ryozuki> but he seems not active
+14:58 < bridge> <learath2> I seem to have broken something in my kernel :pepeW:
+14:59 < bridge> <hectavoxel> i got this
+14:59 < bridge> <hectavoxel> *ahem*
+14:59 < bridge> <hectavoxel> i'm thinking about adding a new cl option into ddnet
+14:59 < bridge> <ryozuki> @learath2 u know if there has been a poll about slide tiles?
+14:59 < bridge> <ryozuki> i like em but i want a poll
+14:59 < bridge> <ryozuki> @murpi can u poll this feature pls https://github.com/ddnet/ddnet/pull/9795
+15:00 < bridge> <TsPiggy> is this the average gentoo experience
+15:01 < bridge> <learath2> Nope, haven't broken a kernel in years. It was just too large an update at once
+15:02 < bridge> <learath2> Nope, no poll
+15:03 < bridge> <learath2> Feels more like a stopper than a slide somewhy 😄
+15:03 < bridge> <ryozuki> @learath2 go do it
+15:03 < bridge> <learath2> Maybe it needs an animation or sth to look better
+15:03 < bridge> <hectavoxel> stopper 2.0: 360° version
+15:04 < bridge> <ryozuki> but it pushes right
+15:04 < bridge> <ryozuki> maybe some air effect
+15:04 < bridge> <ryozuki> idk
+15:08 < bridge> <learath2> Ah, it seems I forgot to rebuild my gfx driver
+15:11 < bridge> <ryozuki> merging https://github.com/ddnet/ddnet/pull/9763
+15:12 < bridge> <ryozuki> i changd the pr title
+15:13 < bridge> <ryozuki> cuz it doesnt add a t uning
+15:13 < bridge> <ryozuki> "fix new speedtiles: add speeder limit "
+15:13 < bridge> <hectavoxel> ✨
+15:26 < bridge> <Assa> nice, missed this 👍
+15:28 < bridge> <Assa> what? xD
+15:29 < bridge> <Assa> You discussed a better visual in the meantime
+15:33 < bridge> <ryozuki> cc @essigautomat @learath2 @jupeyy_keks @patiga i opened the first rfc in ddnet
+15:33 < bridge> <ryozuki> :owo:
+15:33 < bridge> <hectavoxel> ryozuki fried chicken
+15:34 < bridge> <TsPiggy> yum
+15:34 < bridge> <ryozuki> tbh i wanted to name it
+15:34 < bridge> <ryozuki> deed, or tfc
+15:34 < bridge> <ryozuki> deed = ddnet enhancement proposal
+15:34 < bridge> <ryozuki> ded?
+15:34 < bridge> <ryozuki> like python pep
+15:34 < bridge> <ryozuki> tee fc
+15:35 < bridge> <Assa> these, I think these are cleaner for this tile, maybe even borderless
+15:35 < bridge> <hectavoxel> ddnet enhanced proposal
+15:35 < bridge> <hectavoxel> DEP
+15:35 < bridge> <ryozuki> xd
+15:35 < bridge> <hectavoxel> maybe, but id have to see how clean they'd look in-game
+15:35 < bridge> <ryozuki> oh yeah idk why i added a d at end
+15:35 < bridge> <hectavoxel> ddnet enhanced epreposal n
+15:36 < bridge> <Assa> There is no timelimit on this @hectavoxel , in the end we can do asset swaps later. The current ones look a bit like car bumpers xD
+15:36 < bridge> <Assa> I'd propose a fadeout under the line showing which direction is "down"
+15:37 < bridge> <Assa> I'd propose a fadeout under the line showing which direction is "down", or a 50% transperency line directly below
+15:42 < bridge> <Assa> You can download the build-client and just asset swap. If you need any help just PM me 🙂
+15:42 < bridge> <learath2> deen: ddnet entity enhancement nomination
+15:43 < bridge> <Assa> @ryozuki any opinions about #9767 ? This is quality of life for me xD
+15:43 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/9767
+15:47 < bridge> <hectavoxel> yea fair
+15:48 < bridge> <Assa> I still like the current ones, still better than the triangles
+15:48 < bridge> <Assa> I like the current ones, still better than the triangles
+15:52 < bridge> <ryozuki> finally a meaning for deen
+15:54 < bridge> <ryozuki> ok to me, but idk some ppl around here dont like too many config options
+15:59 < bridge> <learath2> heinrich isn't around, quick sneak in some customization
+16:00 < bridge> <TsPiggy> still getting pings about missing servers :pepeW:
+16:01 < bridge> <meloƞ> @tsfreddie some chinese servers be missing yo
+16:01 < bridge> <TsPiggy> 😬
+16:01 < bridge> <Assa> please at least decouple cl_text_entities in ingame and editor :tear: as this is actually an issue
+16:02 < ws-client> <ChillerDragon> thanks @ryozuki 
+16:04 < ws-client> <ChillerDragon> @ryozuki the spawner pr is now behaving like ddnet on run maps. The more controversial change is what I only proposed and did not do yet
+16:04 < bridge> <Assa> I can also collabse all of this options to one with bit flags, but this is pretty unintuitive
+16:07 < bridge> <learath2> oh, seems the chinese servers changed ip somewhy
+16:07 < bridge> <TsPiggy> huh?
+16:08 < bridge> <TsPiggy> actually
+16:08 < bridge> <TsPiggy> make sense
+16:08 < bridge> <TsPiggy> all missing servers are tencent servers
+16:08 < bridge> <TsPiggy> i'll check whether there's a announcement about that
+16:09 < bridge> <learath2> I'll re-whitelist them all
+16:09 < bridge> <TsPiggy> i don't see any announcement about it
+16:10 < bridge> <TsPiggy> weird that it would just do that
+16:10 < bridge> <TsPiggy> i'll ask every hosters to check their console
+16:10 < bridge> <learath2> chn5 seems to be back after I whitelisted the new ip for it
+16:11 < bridge> <ryozuki> @learath2 are u a investor? do u know why some stocks allow trailing stops and others not?
+16:11 < bridge> <TsPiggy> how is status still showing the servers
+16:11 < bridge> <ryozuki> i invested in Rheinmetall and it allows that but others not
+16:11 < bridge> <TsPiggy> is it a self report type of thing instead of an ip list?
+16:11 < bridge> <ryozuki> war coming so atleast ill play the capitalist game a bit
+16:11 < bridge> <TsPiggy> noted
+16:11 < bridge> <ryozuki> https://www.euronews.com/my-europe/2025/03/04/von-der-leyen-pitches-800bn-defence-package-ahead-of-eu-leaders-summit
+16:12 < bridge> <learath2> It depends on the broker and the rules of the exchange. On DEGIRO it's allowed on Xetra and NDQ iirc
+16:12 < bridge> <TsPiggy> what's the current ip for chn5
+16:12 < bridge> <hectavoxel> >war
+16:12 < bridge> <hectavoxel> is that a mf ddnet block reference?
+16:12 < bridge> <ryozuki> i had stock on howmet aerospace (murica) and it netted me like 500 euro, but now its going down so i sold cuz murica is cooked
+16:12 < bridge> <ryozuki> and now im into eu military
+16:13 < bridge> <ryozuki> ye degiro
+16:13 < bridge> <learath2> 1.13.79.127
+16:13 < bridge> <inv41idu53rn4m3> oooh, starting with 1, fancy
+16:14 < bridge> <TsPiggy> did you also change the dns for chn5.ddnet.org
+16:14 < bridge> <learath2> idk who changed those, that's what is confusing to me 😄
+16:14 < bridge> <TsPiggy> ye
+16:14 < bridge> <learath2> @0xdeen did you?
+16:14 < bridge> <TsPiggy> what happened
+16:14 < bridge> <learath2> idk someone fixed the dns entries but not the whitelist
+16:14 < bridge> <ryozuki> arent 1. ips in china common
+16:14 < bridge> <ryozuki> its cuz china numba one
+16:15 < bridge> <TsPiggy> or did deen redo the whitelist and somehow copied the wrong IPs :justatest:
+16:15 < bridge> <TsPiggy> i don't see tencent server randomly changing ip being a thing
+16:16 < bridge> <louis> stock markget gonna crash
+16:16 < bridge> <TsPiggy> we are so back.
+16:17 < bridge> <TsPiggy> thx
+16:17 < bridge> <learath2> anyway, re-whitelisted them, they should be slowly coming back up
+16:17 < bridge> <TsPiggy> already did
+16:17 < bridge> <hectavoxel> how will this affect the trout population
+16:17 < bridge> <learath2> I'll have to ask deen what happened there because the dns couldn't possibly fix itself if the servers just "changed ip"
+16:17 < bridge> <TsPiggy> ye
+16:17 < bridge> <TsPiggy> my bet is on the copy pasting error
+16:18 < bridge> <TsPiggy> :nouis:
+16:18 < bridge> <learath2> I'm deeply invested in chinese tech companies, made like 30% profit
+16:18 < bridge> <TsPiggy> i hope i can invest in something
+16:18 < bridge> <hectavoxel> oh my god the stock market really is crashing
+16:18 < bridge> <hectavoxel> thanks trump
+16:18 < bridge> <learath2> all of which I lost on stupid nvidia stock tanking again
+16:18 < bridge> <TsPiggy> i can't buy normal stock, i can only buy chinese stock which is just ran by satan.
+16:19 < bridge> <ryozuki> yep i sold all my s&p500 and howmet
+16:19 < bridge> <learath2> if nvidia doesn't recover I'll never be able to retire
+16:19 < bridge> <ryozuki> im at 900 euro profit
+16:19 < bridge> <ryozuki> idk why the mac with us keyboard has no euro symbl
+16:19 < bridge> <learath2> btw how do you do your taxes on capital gains?
+16:20 < bridge> <ryozuki> i havent done them yet, ill do it this year
+16:20 < bridge> <ryozuki> but well its just the web
+16:20 < bridge> <ryozuki> form
+16:20 < bridge> <ryozuki> degiro has a thing to download a pdf with ur account statement and other stuff
+16:20 < ws-client> <ChillerDragon> there shouldn't be any complicated about https://github.com/ddnet/ddnet/pull/9787 @ryozuki if you say there is and it will take a few months to get merged then i might just fix it downstream 
+16:21 < ws-client> <ChillerDragon> i keept it as unintrusive as possible and provided clear videos of the tests
+16:21 < bridge> <learath2> If I was smart I'd actually liquidate all these positions, the entire market is on the downswing, but I really don't want to bother with taxes 😄
+16:21 < bridge> <learath2> I'm such a bad trader
+16:21 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1346502915707113492/image.png?ex=67c86c0f&is=67c71a8f&hm=39617b2be5c2e268051832fbad5a19a8c826369f060a1850b0c2c6a53c3c40c0&
+16:21 < bridge> <ryozuki> why do non residents get less taxes
+16:22 < bridge> <learath2> Because they benefit less from govt services is the understanding iirc
+16:22 < bridge> <totar> the weekly crypto charts are really funny "trump announces crypto reserves" 📈  "trump announces tariffs" 📉
+16:22 < bridge> <learath2> I did liquify all my crypto positions like a week or two ago, saved me a lot of loss from the tariffs announcement
+16:23 < bridge> <ryozuki> i need to get more info on this, but do u need to bother on all sells or just tax the end result if u gained more than lost?
+16:23 < bridge> <ryozuki> but what u sell now u will put it on the tax form next year
+16:23 < bridge> <learath2> total net capital gains
+16:23 < bridge> <ryozuki> yeah
+16:24 < bridge> <ryozuki> so why u not selling
+16:24 < bridge> <learath2> Well I haven't sold any position this year, so my capital gains for this year is currently 0 😄
+16:24 < bridge> <ryozuki> u wont have to bother till 2026 when u do the year 2025
+16:24 < bridge> <ryozuki> ig xd
+16:24 < bridge> <ryozuki> i wish all this was automated
+16:25 < bridge> <learath2> Yeah, I should stop being silly ngl, I'll let it settle for a day or two then sell out of everything except nvidia which I feel would recover some day
+16:26 < bridge> <learath2> well it can be "automated" you can just give your money to someone to manage for you, but they take a cut
+16:26 < bridge> <ryozuki> well if u gain a lot and dont bother spending like 25 maybe smth like https://tax-wizard.eu works
+16:26 < bridge> <learath2> and you need to have a lot of money 😄
+16:27 < bridge> <totar> why is nvidia down? just cause?
+16:27 < bridge> <learath2> I should also get into some eu military now that eu is thinking about re-arming
+16:28 < bridge> <learath2> fuck knows, it's one I just don't understand the market on, maybe chatgpt 4.5 not delivering expected improvement?
+16:29 < bridge> <TsPiggy> consumer product releases
+16:29 < bridge> <learath2> yeah the 5070 was shit too ngl
+16:29 < bridge> <TsPiggy> who cares about consumers, we need more AI servers
+16:30 < bridge> <learath2> Anyway, I'll just quadruple down and get even more nvidia stock on the cheap, just gamble away what I earned from xiaomi
+16:31 < bridge> <totar> I guess nvidia's current position hinges a lot on near term investments in AI which won't happen as much if the economy is doing bad in general. Just a guess
+16:31 < bridge> <ryozuki> also tarifs
+16:32 < bridge> <totar> yeah but the tarifs aren't targeted at them, so all else equal they shouldn't be falling more than others
+16:32 < bridge> <learath2> Sounds sensible, with ai models proving not to scale that well with more gpu power it makes even less sense
+16:33 < bridge> <ryozuki> but tarifs affect base products
+16:33 < bridge> <ryozuki> which they use right?
+16:33 < bridge> <ryozuki> idk
+16:33 < bridge> <ryozuki> like the tariff may not be directly ur product but needed to build ur product
+16:33 < bridge> <TsPiggy> any gamepad remapping tools on linux?
+16:34 < bridge> <upolla> Дарова
+16:34 < bridge> <totar> does nvidia even do any manufactoring in the US?
+16:34 < bridge> <TsPiggy> i tried steam input on a 3rd party game but the game won't recognize the steam input
+16:34 < bridge> <totar> does nvidia even do any manufacturing in the US?
+16:34 < bridge> <upolla> Как дела?
+16:34 < bridge> <ryozuki> steam
+16:34 < bridge> <ryozuki> steam input
+16:34 < bridge> <ryozuki> steam is best
+16:34 < bridge> <ryozuki> put ur game as 3rd party
+16:34 < bridge> <ryozuki> launch the steam big picture
+16:35 < bridge> <TsPiggy> ye already tried that
+16:35 < bridge> <TsPiggy> the game just won't do anything with steam input
+16:35 < bridge> <ryozuki> try again
+16:35 < bridge> <ryozuki> reboot the pc
+16:35 < bridge> <TsPiggy> sure
+16:35 < bridge> <ryozuki> :gigachad:
+16:35 < bridge> <TsPiggy> :greenthing:
+16:35 < bridge> <TsPiggy> i mean the game works without steam input, but my ab and xy are swapped
+16:35 < bridge> <ryozuki> i forgot but maybe remap ur controll to xbox or smth
+16:35 < bridge> <unkweal> Парни кто шарит как узнать через ркон через какой клиент человек играет?
+16:35 < bridge> <ryozuki> depedns on game
+16:35 < bridge> <ryozuki> ohh
+16:35 < bridge> <TsPiggy> with steam input the game just doesn't do anything when i press start
+16:36 < bridge> <ryozuki> $english
+16:36 < bridge> <DDNet> Hi! Most of us communicate in English. If you’re having trouble with English, use <https://www.deepl.com/en/translator> to help you out.
+16:36 < bridge> <unkweal> Guys who knows how to find out through rcon through which client a person plays?
+16:36 < bridge> <ryozuki> u cant
+16:36 < bridge> <unkweal> Only w mod?
+16:36 < bridge> <ryozuki> i forgot but iirc u cant and its not reliable
+16:36 < bridge> <ryozuki> anyone can fake a client name and version
+16:36 < bridge> <TsPiggy> ye we can't really tell
+16:37 < bridge> <unkweal> sad
+16:37 < bridge> <ryozuki> sp somoene used to play with version 9999
+16:37 < bridge> <TsPiggy> even dummies and player looks the same
+16:38 < bridge> <TsPiggy> holy, steam big picture ran at 3fps or something
+16:39 < bridge> <TsPiggy> i think it tried to run at 12k or something.
+16:39 < bridge> <TsPiggy> imma gamescope the mf
+16:41 < bridge> <TsPiggy> doesn't work, too laggy :justatest:
+16:41 < bridge> <TsPiggy> ok i gave up
+16:41 < bridge> <TsPiggy> steam deck time
+16:44 < bridge> <Assa> Idea: color switch laser ans button by ID and indicate which button belongs to which id
+16:44 < bridge> <Assa> opinions?
+16:45 < bridge> <Assa> I don't know how much you can color the laser entities and also this feature is not possible on older clients, but it's backwards compat.
+16:45 < bridge> <Assa> I don't know how much you can color the laser entities and also this feature is not possible on older clients, but it's backwards compat. since client only
+16:46 < bridge> <kebscs> you can color it anything you want
+16:46 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1346509079425843331/image.png?ex=67c871cd&is=67c7204d&hm=35f642c872479a2add53bcd1e4f1bcc06f0603786d2e28dd73dd83875db1f388&
+16:46 < bridge> <kebscs> but thats the problem i guess that it already was any color
+16:47 < bridge> <Assa> So I'd remove an existing feature :justatest:
+16:48 < bridge> <pioooooo> I suggest implement a flagged image or smth
+16:49 < bridge> <inv41idu53rn4m3> You've perfected a design not when there's nothing to add, but when there's nothing to remove
+16:49 < bridge> <inv41idu53rn4m3> :greenthing:
+16:49 < bridge> <pioooooo> Only show when some flags are on or off
+16:49 < bridge> <pioooooo> Only shown when some flags are on or off
+16:50 < bridge> <Assa> and we have a freezing laser which could collide in color 😦
+16:51 < bridge> <Assa> I don't think this is perfect, but changing this would cause more issues
+16:56 < bridge> <louis> can already do this in design
+16:56 < bridge> <louis> idk how u could do it in entities, idk if its necessary
+16:57 < bridge> <Assa> it's about the default [here](<https://github.com/ddnet/ddnet/pull/9767#discussion_r1979650240>), what is your opinion @louis.place ?
+16:58 < bridge> <louis> default should show numbers, should it not xd
+16:58 < bridge> <louis> entities is not really meant to be pretty, its supposed to be informative
+16:59 < bridge> <Assa> So many players are playing with entities only and it tends to spam you with all shit of information. But okay, I'll turn it on by default
+16:59 < bridge> <Assa> So many players are playing with entities only[zitation needed] and it tends to spam you with all shit of information. But okay, I'll turn it on by default
+17:00 < bridge> <Assa> @louis.place same for the speedtiles?
+17:01 < bridge> <louis> they probably play with entities only because they can see and confirm speedup tiles, tele numbers etc.
+17:02 < bridge> <ryozuki> switch numbers are useful info
+17:02 < bridge> <louis> and having pretty design is secondary-i think its enough to judt give them the option to didable
+17:02 < bridge> <ryozuki> yeah
+17:03 < bridge> <ryozuki> just dont make it default off
+17:03 < bridge> <ryozuki> u can off it urself
+17:03 < bridge> <Assa> tune layer is fully missing btw, how am I supposed to debug my tune tiles outside of the editor? /s I may add this in a followup but disabled by default
+17:07 < bridge> <Assa> wait until I tell the players that removing text overlays improves fps 😛
+17:07 < bridge> <Assa> wait until I tell the players that removing text overlays improves fps :kek:
+17:11 < bridge> <louis> why not make a vote to see if people would like to have new defaults or no
+17:12 < bridge> <louis> also wasnt tunes always disabled
+17:12 < bridge> <Assa> I think i am the only voice for turning stuff off by default so fair
+17:12 < bridge> <Assa> I think i am the only voice for turning stuff off by default so far
+17:12 < bridge> <Assa> tunes is _not implemented_
+17:13 < bridge> <Assa> maybe it was at some point but removed
+17:53 < bridge> <hectavoxel> my laser colors :frozen: :frozen: :frozen: :frozen:
+18:37 < bridge> <Assa> tested another design, this looks aweful tbh
+18:37 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1346537096860667976/screenshot_2025-03-04_18-36-58.png?ex=67c88be5&is=67c73a65&hm=667ff7b7ce4e7500d3fa74f3f7d2d6ca9099a8018bc75027233093e2a9be0dae&
+18:37 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1346537097460187228/screenshot_2025-03-04_18-37-10.png?ex=67c88be5&is=67c73a65&hm=9e1fbf50d4b1c64853c41c9decad387814280b99a3f58f04fab305c9659662e6&
+18:49 < bridge> <Assa> it's amazing what a huge difference a bounding box can make
+18:49 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1346539985649795082/screenshot_2025-03-04_18-48-28.png?ex=67c88e96&is=67c73d16&hm=0bdd2683c278aaea4316e7cdf437c23ed757373cf4e7687f8bd26285dd062dde&
+18:49 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1346539986140532817/screenshot_2025-03-04_18-48-44.png?ex=67c88e96&is=67c73d16&hm=08bd7b4c54c541caeb47a67f15248f8d1bbebe37798aca4795437227c48f1ba4&
+18:49 < bridge> <ryozuki> teeworlds existed before AABB kekw
+18:49 < bridge> <ryozuki> dont quote me
+18:50 < bridge> <ryozuki> im joking
+18:51 < bridge> <Assa> PeterPleaseExplain
+18:51 < bridge> <ryozuki> AABB = axis aligned bounding box
+18:51 < bridge> <ryozuki> An axis-aligned bounding box (AABB) is simply a rectangular parallelepiped whose faces are each perpendicular to one of the basis vectors. Such bounding boxes arise frequently in spatial subdivision problems, such as in ray tracing or collision detection.
+18:51 < bridge> <ryozuki> https://en.wikipedia.org/wiki/Minimum_bounding_box#Axis-aligned_minimum_bounding_box
+18:52 < bridge> <Assa> I am pretty sure that this was invented earlier
+18:52 < bridge> <ryozuki> xd
+18:53 < bridge> <hectavoxel> oh yea i was thinking of doing exactly that
+18:53 < bridge> <hectavoxel> this portrays what it does so much better
+18:53 < bridge> <Assa> you can probably do it 10 times faster then me, who did a python script in pillow for this ...
+18:53 < bridge> <Assa> you can probably do it 10 times faster then me, who did a python script with pillow for this ...
+18:53 < bridge> <hectavoxel> 😭
+18:54 < bridge> <hectavoxel> i make all my shit in inkscapr
+18:54 < bridge> <hectavoxel> tile cloning came in clutch for stuff like this
+19:11 < bridge> <Assa> I mean almost everything has an AABB in teeworlds. Can't think of anything which doesn't except projectils and the flag
+19:12 < bridge> <Assa> I mean almost everything has an AABB in teeworlds. Can't think of anything which doesn't except projectiles and the flag
+19:12 < bridge> <Assa> shields and hearts, probably, and players to each other 🤔 okay maybe some more
+19:27 < bridge> <hectavoxel> can we add an AABBCC in ddnet
+19:40 < bridge> <kebscs> whats m_ReckoningCore in TickDeferred?
+19:42 < bridge> <kebscs> it used fake world so tuning in it was always wrong, but when its right its broken
+19:42 < bridge> <kebscs> so i dont understand
+19:55 < bridge> <zhn> here
+19:55 < bridge> <zhn> and here
+19:56 < bridge> <zhn> and this
+20:03 < bridge> <learath2> The client and the server need to 100% do the dead reckoning in the exact same way for it to work properly
+20:05 < bridge> <learath2> If you want to mess around with it, be careful, I had to make 5 oops commits to fix the last time I messed around with it
+20:06 < bridge> <kebscs> well dont want to mess with it but idk if its right
+20:08 < bridge> <kebscs> i guess il just reset tuning for it like it was before im too tired to understand it
+20:13 < bridge> <kebscs> if i put hook_drag_speed 0 and dead reckoning matches real core it keeps teleporting back when hooking something
+20:14 < bridge> <lamininbh> Can't connect to any server
+20:14 < bridge> <lamininbh> https://cdn.discordapp.com/attachments/293493549758939136/1346561519932014664/image.png?ex=67c8a2a4&is=67c75124&hm=64cf62da5b9c65c8c0680e7a45dd8697460148701badebcca66211dc40c1ff95&
+20:15 < bridge> <lamininbh> the server has not responded yet
+20:15 < bridge> <lamininbh> https://cdn.discordapp.com/attachments/293493549758939136/1346561768381743164/image.png?ex=67c8a2df&is=67c7515f&hm=084d16bb13d0ae283f37a7380a8f4a34d6062b80c9196348ea0e73d7236944e5&
+20:16 < bridge> <kebscs> rus1 under ddos
+20:16 < bridge> <lamininbh> im un ukraine
+20:16 < bridge> <lamininbh> im in ukraine
+20:17 < bridge> <learath2> Here is how it works, the server reckons (makes a guess) as to where the character will be by simulating it in a fake world. If that reckoned core matches the real core emulated in the real gameworld the server won't send the core and the client will make the exact same simulation to derive the new core
+20:17 < bridge> <learath2> So if reckoning is done in a fake world, where the tunes are wrong, nothing really happens, the actual non-reckoned core will just be sent for every snap
+20:19 < bridge> <learath2> If you only fix one half of the wrong tune (e.g. on the server), now the server is not sending cores, the client makes the reckon, but the reckon is wrong since it uses the wrong tunes, so the client puts you in the wrong place, this goes on for a couple ticks (iirc a second or two max), then the server sends the actual core again, which snaps the client creating the teleporting effect
+20:31 < bridge> <kebscs> so the server predicts hooking wrong to always send snaps?
+20:33 < bridge> <kebscs> client knows i have dragspeed 0, but still drags me and only snaps back when received actual core
+20:33 < bridge> <kebscs> even with cl_predict 0 it still drags me
+20:38 < bridge> <ryozuki> https://www.gamedeveloper.com/programming/dead-reckoning-latency-hiding-for-networked-games
+20:38 < bridge> <ryozuki> https://en.wikipedia.org/wiki/Dead_reckoning
+20:40 < bridge> <hectavoxel> ngl dead reckoning sounds like a ubisoft game
+20:44 < bridge> <alw5> no way
+20:45 < bridge> <ryozuki> nah
+20:45 < bridge> <ryozuki> > The inventor was probably... Gutemberg on 1440. Or probably the Chinese inventor Bi Sheng around 1040.
+20:48 < bridge> <kebscs> ok ty i get it
+20:48 < bridge> <kebscs> the problem was the reckoned tick just doesnt detect that hook is pressed
+20:49 < bridge> <kebscs> i think at least, otherwise no reason why it couldnt predict it
+21:05 < bridge> <patiga> any input changes must be immediately sent by the server, as dead reckoning can only work with predict from past inputs
+21:05 < bridge> <kebscs> well then idk 😂
+21:05 < bridge> <kebscs> hook is landed and i didnt press anything
+21:07 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1346574670467694804/hook.mp4?ex=67c8aee3&is=67c75d63&hm=b90bccb3e3289124de7ace48be802309f708e34bd71e461166271df766f4bcf9&
+21:09 < bridge> <TsPiggy> Btw, a successful recon prevents data being sent so it kinda have to be teeworlds compatible (a.k.a. ALL CLIENTS compatible) so no one actually touched it I think.
+21:10 < bridge> <TsPiggy> Maybe it is broken now, but a broken recon is still better than a successful recon that only work on one client
+21:11 < bridge> <TsPiggy> Maybe someone sometime can get around making recons for every client versions.
+21:15 < bridge> <TsPiggy> Actually if somehow we could move physics to twgame rust code we could also make multiple versions of compatible recons, saving so much bandwidth in the process. (assuming twgame has one to one physics to every version existed which may or may not be true courtesy the continuous hard work of patiga)
+21:17 < bridge> <kebscs> i think that part of code is compatible with all versions
+21:17 < bridge> <kebscs> just tuning broke it
+21:19 < bridge> <TsPiggy> Ye, because no one dared to touch it while implementing new features I think. Just be sure to go back to test teeworlds if you really want to fix it? I don't really know what's the right way to touch it either
+21:21 < bridge> <kebscs> i wont be fixing it since idk why client predicts it wrong
+21:21 < bridge> <kebscs> when it has the correct tune
+21:22 < bridge> <TsPiggy> It is possible that we straight up have deviations from og teeworlds physics from some point
+21:22 < bridge> <TsPiggy> wait I think I read that wrong
+21:23 < bridge> <TsPiggy> Ehh, idk
+21:24 < bridge> <TsPiggy> I can't tell what's happening in the video tbh
+21:25 < bridge> <kebscs> i have hook strength 0, so when i hook the wall i should stay in place
+21:25 < bridge> <kebscs> but it drags me and teleports me back sometimes or when i release hook
+21:25 < bridge> <kebscs> that happens if reckoning core has correct tunes
+21:31 < bridge> <TsPiggy> I see
+21:32 < bridge> <TsPiggy> :GreemDev: no ida
+21:32 < bridge> <TsPiggy> :GreemDev: no idea
+21:33 < bridge> <kebscs> server predicts it right so it doesnt update the snap constantly
+21:33 < bridge> <kebscs> idk why client doesnt
+21:41 < bridge> <learath2> It's not intentional. Just that the mis-reckoning (notice I don't use the word prediction) does not cause an issue because the recknoned core wont match the real core, so the server will fallback to just sending it
+21:44 < bridge> <learath2> because the same reckoning on the client is also using the wrong tunes
+21:45 < bridge> <learath2> the only way that can be fixed is if the client and the server agree on a "character core version", so they both use the correct rules
+21:45 < bridge> <TsPiggy> @learath2 did you see my DM
+21:45 < bridge> <TsPiggy> :nouis:
+21:45 < bridge> <learath2> Nope, let me check
+22:35 < bridge> <Assa> I see you want to use the slide tiles xD
+22:47 < bridge> <hectavoxel> ah yes a good idea
+22:47 < bridge> <hectavoxel> proprietary translator inside of ddnet :troll:
+22:48 < bridge> <davidlovesmath> i mean it is a good idea
+22:48 < bridge> <hectavoxel> it is, but i dont know any FOSS translators, nor if ddnet can even handle it
+22:49 < bridge> <davidlovesmath> whats a FOSS translaytor?
+22:49 < bridge> <Assa> Free open source sexy
+22:50 < bridge> <teero777> *software
+22:50 < bridge> <hectavoxel> software ❌ 
+22:50 < bridge> <hectavoxel> sexy ✅ 
+22:50 < bridge> <hectavoxel> (32k likes on youtube shorts)
+22:51 < bridge> <davidlovesmath> found one already https://libretranslate.com/
+22:52 < bridge> <davidlovesmath> just from looking up free open sourse translater on google
+22:52 < bridge> <Jupstar ✪> https://portal.libretranslate.com/
+22:52 < bridge> <Jupstar ✪> not so free
+22:52 < bridge> <davidlovesmath> oh it said it was
+22:52 < bridge> <Assa> technically you could also download deepseek and integrate it .... but yeah that's probably all overkill
+22:52 < bridge> <davidlovesmath> true
+22:53 < bridge> <davidlovesmath> thats if you want them to run it themselfs
+22:53 < bridge> <davidlovesmath> not you running it
+22:53 < bridge> <Jupstar ✪> the only realistic thing we could do is add an API.
+22:53 < bridge> <Jupstar ✪> 
+22:53 < bridge> <Jupstar ✪> and users could load some translation modules like google translate or a AI model and have to setup it manually
+22:53 < bridge> <Assa> "just enter you openai api key into your ddnet client"
+22:53 < bridge> <davidlovesmath> good idea tbh
+22:53 < bridge> <Jupstar ✪> do you have 10x rtx 5090 for us to run it?
+22:54 < bridge> <davidlovesmath> no i have a Intel(R) UHD Graphics 630 though
+22:54 < bridge> <teero777> nice
+22:55 < bridge> <teero777> Now you can run 1/year
+22:55 < bridge> <Assa> just use it on  cpu  :kek:
+22:55 < bridge> <Jupstar ✪> even teero laughs at you
+22:55 < bridge> <davidlovesmath> (yes its integrated)
+22:55 < bridge> <teero777> UHD for ultra-high-definition?
+22:56 < bridge> <rainonwires> new to ddnet stuff, ... rcon is admin? how do admin commands work ? :)
+22:56 < bridge> <davidlovesmath> idk
+22:56 < bridge> <davidlovesmath> probs
+22:56 < bridge> <Assa> you type in the command and it executes
+22:56 < bridge> <rainonwires> real
+22:56 < bridge> <hectavoxel> this worked btw, heinrich is alive now
+22:56 < bridge> <teero777> rcon stands for remote-connection. So basically yes, it's admin rights.
+22:56 < bridge> <rainonwires> but uh,,, how does one get to that step im so sleep deprived
+22:57 < bridge> <Jupstar ✪> remote console
+22:57 < bridge> <teero777> No wya
+22:57 < bridge> <teero777> I have been lied to
+22:57 < bridge> <teero777> My entire life
+22:58 < bridge> <Jupstar ✪> chatgpt, why did you do this to teero
+22:58 < bridge> <rainonwires> does the output go to the server console or the game console? xd
+22:58 < bridge> <Assa> both
+22:58 < bridge> <teero777> If you start a local server without any config changes a password will be printed to the console
+22:58 < bridge> <rainonwires> hmmm...
+22:58 < bridge> <rainonwires> right, i set the rcon password
+22:58 < bridge> <rainonwires> i can auth myself just no commands like ban, bans etc work
+22:58 < bridge> <rainonwires> or at least im too stupid to work them
+22:58 < bridge> <hectavoxel> do you need the list of commands?
+22:58 < bridge> <rainonwires> i have the list of commands
+22:58 < bridge> <hectavoxel> ok cool
+22:58 < bridge> <rainonwires> yes
+22:58 < bridge> <rainonwires> give me a moment
+22:58 < bridge> <teero777> https://ddnet.org/settingscommands
+22:59 < bridge> <Assa> I mean you could paste the list into chatgpt and ask it how commands work, but I am sure the tooltip is good enough?
+22:59 < bridge> <rainonwires> i think i may have messed up the building process somehow and maybe messed it up somehow? lol
+23:00 < bridge> <teero777> @jupeyy_keks remote console is just weird to say. fk u
+23:00 < bridge> <rainonwires> okay so rcon reload works uhhh but bans yields nothing i think i am just missing something in the open
+23:00 < bridge> <rainonwires> sorry 😅
+23:01 < bridge> <Jupstar ✪> f1 console = local console
+23:01 < bridge> <Jupstar ✪> f2 console = remote console
+23:01 < bridge> <Jupstar ✪> lmao
+23:01 < bridge> <rainonwires> oh...
+23:01 < bridge> <rainonwires> i was using f1
+23:01 < bridge> <teero777> gg xD
+23:01 < bridge> <rainonwires> i truly am blind
+23:01 < bridge> <rainonwires> gg
+23:01 < bridge> <rainonwires> i think its time for a nap ;)
+23:01 < bridge> <teero777> gn :v
+23:01 < bridge> <Jupstar ✪> wasnt even talking to you but gg 😬
+23:01 < bridge> <Jupstar ✪> gn8
+23:01 < bridge> <rainonwires> lol
+23:02 < bridge> <rainonwires> either way helped me out ^^
+23:50 < bridge> <rainonwires> 😬
+23:50 < bridge> <rainonwires> hopefully im coherent enough to have done that correctly..
