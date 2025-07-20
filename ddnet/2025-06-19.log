@@ -1,0 +1,854 @@
+02:17 < bridge> <louis> 🤓
+02:21 < bridge> <kebscs> deen doesn't even approve prs anymore 💔
+02:21 < bridge> <kebscs> unless it's roby's
+02:22 < bridge> <louis> bro has a job and a kid 🙏
+03:10 < bridge> <totar> I was thinking about this. Does the client correctly handle player ID mapping as it is currently? There's some amount of state that gets saved to each client, but if you're mixing the client IDs then the client will mix the state from other clients.
+03:12 < bridge> <totar> I guess this doesn't have any major effects right now but it's a new constraint that the client didn't have before
+03:19 < bridge> <totar> unless I'm blind and I'm missing somewhere that the ``CClientData`` for each client gets reset ID mapping is a rather terrifying prospect because the client seems to just assume that the ``CClientData m_aClients[MAX_CLIENTS];`` array is always stable.
+03:19 < bridge> <totar> unless I'm blind and I'm missing somewhere that the ``CClientData`` for each client gets reset, ID mapping is a rather terrifying prospect because the client seems to just assume that the ``CClientData m_aClients[MAX_CLIENTS];`` array is always stable.
+08:20 < bridge> <Ewan> real gamers would join me on nujabes rn
+09:39 < ws-client> <ChillerDragon> i sent a vital message from antibot and got no response from the client? Happend like 2 out of 80 times. Is that technically possible or am i stupid?
+09:39 < ws-client> <ChillerDragon> the net message sending goes through the main server and should be stored in the resend backup buffer. If the client does not ack the vital message the server should automatically resend right?
+09:40 < bridge> <Solly (bun bun)> udp is udp
+09:40 < bridge> <Solly (bun bun)> packet loss go brr
+09:40 < ws-client> <ChillerDragon> yes
+09:40 < ws-client> <ChillerDragon> but resend
+09:40 < bridge> <Solly (bun bun)> or do vitals get resend
+09:40 < ws-client> <ChillerDragon> yes
+09:40 < bridge> <Solly (bun bun)> oke
+09:40 < ws-client> <ChillerDragon> but sometimes during stronger lags i feel like even chat messages get lost somtimes
+09:41 < ws-client> <ChillerDragon> not sure if my assumptions about resend reliability were correct
+09:59 < ws-client> <ChillerDragon> i just merged 2 commits into chillerbot and get cp on join gg
+10:02 < ws-client> <ChillerDragon> i dont get it @robyt3 sos
+10:03 < ws-client> <ChillerDragon> ddnet master works fine for me but in my fork i get instant connection problems when joing a server
+10:03 < ws-client> <ChillerDragon> reverting https://github.com/ddnet/ddnet/pull/10383 fixes it
+10:03 < ws-client> <ChillerDragon> it merged without conflicts skimming the pr i dont see what i missed. Do i need to apply some changes somewhere?
+10:04 < bridge> <Solly (bun bun)> "cp"?
+10:04 < bridge> <blaiszephyr> connection problems
+10:07 < bridge> <blaiszephyr> ChillerDragon: what server did you join
+10:07 < ws-client> <ChillerDragon> my fng
+10:07 < ws-client> <ChillerDragon> lemme try other
+10:08 < ws-client> <ChillerDragon> yea i basically cant stay online on any server for longer than 1 tick
+10:08 < ws-client> <ChillerDragon> how does that make any sense?
+10:08 < ws-client> <ChillerDragon> i dont recall editing any interesting in my client that should be related to such low level networking
+10:17 < ws-client> <ChillerDragon> this is my entire diff to ddnet how can the networking break in my client? https://paste.zillyhuhn.com/xd @robyt3 
+10:23 < ws-client> <ChillerDragon> the most crazy thing i pull in is curses but even unlinking that does not help
+10:41 < bridge> <robyt3> Are you sure you merged it completely? The only files you changed that seems relevant are probably `client.h/cpp` and `system.h/cpp`. Did you change anything network related there?
+10:43 < bridge> <robyt3> Did you change `NETTYPE` constants maybe and now a value is duplicated?
+10:45 < bridge> <robyt3> Being able to connect but not stay is weird though, no idea how this low-level change cause such a high level problem.
+10:45 < ws-client> <ChillerDragon> the network traffic also looks healthy at first glance
+10:46 < ws-client> <ChillerDragon> my diff in system.h/cpp is as simple as it gets its only 2 lines for logger
+10:47 < ws-client> <ChillerDragon> wdym merged completley? ``git merge`` just ran through
+10:48 < bridge> <robyt3> I mean without conflicts and potentially losing changes during conflict resolution
+10:48 < ws-client> <ChillerDragon> no there was no conflict
+10:48 < ws-client> <ChillerDragon> because all the network stuff is untouched
+10:50 < bridge> <robyt3> hmm, you might have to add some more detailed log messages to figure out what breaks. I don't see how this PR would effect it at such a high level, as it doesn't change anything about the protocol. It only removed a branch for websockets from the network server, but websockets should be irrelevant for you.
+10:50 < ws-client> <ChillerDragon> my client.h diff is also tiny af
+10:50 < ws-client> <ChillerDragon> yea it makes no sense to me either @robyt3 
+10:50 < ws-client> <ChillerDragon> not sure what to log
+10:51 < bridge> <robyt3> Try to figure out which is the first message that is broken or the last message that works
+10:51 < bridge> <robyt3> I guess wireshark would be useful
+10:51 < ws-client> <ChillerDragon> wireshark looks good
+10:51 < ws-client> <ChillerDragon> how do you define broken in that context?
+10:51 < bridge> <robyt3> When you get connection problems
+10:52 < bridge> <robyt3> Is there no noticable change in wireshark?
+10:52 < ws-client> <ChillerDragon> at first glance it looks good
+10:52 < ws-client> <ChillerDragon> i send inputs and get snaps
+10:52 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1750323159.png
+10:53 < ws-client> <ChillerDragon> i tested ipv6 and ipv4 no diff
+10:53 < bridge> <robyt3> Have you tried ASAN/UBSAN/Valgrind already? Maybe some undefined behavior surfacing now for some reason.
+10:53 < ws-client> <ChillerDragon> nah
+10:53 < ws-client> <ChillerDragon> lemme try
+10:54 < ws-client> <ChillerDragon> i wish i could revert the pr line by line and test but its such a big refactor
+10:55 < ws-client> <ChillerDragon> i thought somehow removing the ``struct`` unlocked some wonkeyness cuz i linked curses or something like that
+10:55 < bridge> <robyt3> I tried to split non-websocket changes, but in the end it wasn't really worth it
+10:56 < ws-client> <ChillerDragon> uhm ...
+10:56 < ws-client> <ChillerDragon> asan works
+10:56 < ws-client> <ChillerDragon> as in no cp
+10:56 < ws-client> <ChillerDragon> xxxxxxxxxxxxxxD?
+10:56 < bridge> <robyt3> :justatest:
+10:56 < ws-client> <ChillerDragon> lemme delete build dir
+10:57 < ws-client> <ChillerDragon> ok nvm now other works too
+10:57 < ws-client> <ChillerDragon> i messed something up
+10:58 < bridge> <learath2> It's not very new tbh. Large servers have been mapping ids forever now
+10:58 < ws-client> <ChillerDragon> wait was this really a cmake/make error?
+10:58 < ws-client> <ChillerDragon> i had it going back and forth with reverting and resetting the commit
+10:58 < ws-client> <ChillerDragon> in a fork and a fork of a fork
+10:58 < ws-client> <ChillerDragon> ???
+10:59 < bridge> <robyt3> Maybe it was an entirely unrelated network problem that has also been fixed
+11:00 < ws-client> <ChillerDragon> okay so in my fork of the fork i reverted the revert and i can still reproduce xd
+11:00 < ws-client> <ChillerDragon> lemme try make clean
+11:01 < ws-client> <ChillerDragon> didnt help
+11:01 < ws-client> <ChillerDragon> hm maybe its release vs debug
+11:02 < ws-client> <ChillerDragon> yes it is
+11:02 < ws-client> <ChillerDragon> its not cmake cache issue
+11:02 < ws-client> <ChillerDragon> its a release only issue
+11:02 < ws-client> <ChillerDragon> ok asan with relwithdebinfo it is then
+11:04 < ws-client> <ChillerDragon> issue does not exist in relwithdebinfo either?
+11:05 < ws-client> <ChillerDragon> ?????????????????
+11:05 < bridge> <robyt3> Does relwithdebinfo use full optimizations?
+11:05 < ws-client> <ChillerDragon> idk i always thought its the ultimate hack for release only bugs
+11:05 < ws-client> <ChillerDragon> ok i have some interesting NEWS
+11:05 < ws-client> <ChillerDragon> good for 
+11:05 < ws-client> <ChillerDragon> bad for u
+11:06 < ws-client> <ChillerDragon> i can reproduce on ddnet master
+11:06 < ws-client> <ChillerDragon> the only difference was my ddnet build was debug and my chillerbot gaming build was release
+11:06 < ws-client> <ChillerDragon> so i blamed my fork
+11:08 < bridge> <robyt3> I had a weird issue that I needed to debug in the Ubuntu CI where the compiler in release mode with stack protector found an out-of-bounds memcpy that did not make sense in `sockaddr_to_netaddr`. I fixed it by using `sockaddr_storage` for the addresses, which was apparently previously overshadowed by much larger char buffer.
+11:13 < ws-client> <ChillerDragon> lets increase our CI times from 200 minues to 400 minutes to also cover release only bugs xd
+11:13 < bridge> <blaiszephyr> LOL no way its actually bound to release
+11:13 < bridge> <blaiszephyr> https://cdn.discordapp.com/attachments/293493549758939136/1385185742090797106/image.png?ex=68552640&is=6853d4c0&hm=8402c61d973921f0dc5edb190244e0b5b3cfff5759d919f97ebb168141b778d3&
+11:13 < bridge> <blaiszephyr> can reproduce kekekekekek
+11:14 < ws-client> <ChillerDragon> we burned down half the amazonas with the bloat ass CI that has full on integration end to end big ass tests and somehow a bug that makes connecting impossible slipped through?
+11:14 < ws-client> <ChillerDragon> such a waste
+11:14 < bridge> <blaiszephyr> xd
+11:14 < bridge> <totar> Yeah but that's not the same as supporting it as an official feature.  It happens to work fine right now without and visible issues because none of the features are too sensitive too it
+11:14 < bridge> <totar> Yeah but that's not the same as supporting it as an official feature.  It happens to work fine right now without any visible issues because none of the features are too sensitive too it
+11:15 < ws-client> <ChillerDragon> @blaiszephyr i used to do gaming in debug mode when my client had crashes. But now i use release mode to increase my tw skill by 20%
+11:15 < bridge> <blaiszephyr> (i always build in debug because i want to know when stuff goes boom)
+11:16 < bridge> <Jupstar ✪> Real pros play with valgrind
+11:17 < ws-client> <ChillerDragon> jupstar 2fps enjoyer confirmed
+11:21 < bridge> <robyt3> Is it really the clients that are broken? I think its the server
+11:22 < bridge> <learath2> Well it's not but if we break anything about it fokkonaut will show up and complain
+11:22 < bridge> <robyt3> It works with server in relwithdebug and client in release
+11:23 < bridge> <blaiszephyr> can reproduce with release && releasewithdebinfo
+11:23 < bridge> <blaiszephyr> cant reproduce in debug
+11:23 < bridge> <blaiszephyr> can reproduce with release && releasewithdebinfo
+11:23 < bridge> <blaiszephyr> cant reproduce in debug (client only)
+11:23 < bridge> <robyt3> Also somewhat broken for me on Windows with MSYS2 in release mode, but works in relwithdebug. When I keep connecting and disconnecting it sometimes gets stuck on the connecting screen and sometimes I get ingame and there is still an old player of me online.
+11:23 < bridge> <totar> But Chiller says it breaks on any server, how can it be the servers fault?
+11:24 < bridge> <blaiszephyr> isnt, it crashes on Teeworlds source based servers aswell
+11:24 < bridge> <blaiszephyr> (blockworlds for example)
+11:24 < bridge> <totar> yes exactly, you can't blame a server that hasn't been rebuilt in the last 5 years
+11:24 < bridge> <robyt3> It crashes even?
+11:25 < bridge> <blaiszephyr> "timeouts*"
+11:25 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1385188617512681531/image.png?ex=685528ed&is=6853d76d&hm=4baba7db616f6618c602b5ae05b67554a39d1df535cf911839cf8500defb6f04&
+11:25 < bridge> <blaiszephyr> wording paired with quick typing is hard - sorry
+11:25 < bridge> <robyt3> Seems like the client works on Windows with MSYS2 but there are weird issues with the server
+11:25 < bridge> <Solly (bun bun)> consequences are very much faced, as long as ther eis an attempt to keep visible players the same id its fine
+11:29 < bridge> <totar> I think it probably only works reasonably well because there's never a huge pile of 128 tees, if you were swapping clients close to every snapshot I think it would be visibily horrible
+11:30 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1385189895974158426/image.png?ex=68552a1e&is=6853d89e&hm=90af0d23204f0de92f2aa1470916e99f3e3f62ac0cc02784f702d6b53d145a38&
+11:30 < bridge> <Solly (bun bun)> the client supports 128 tees anyway now
+11:30 < bridge> <totar> well yeah
+11:30 < bridge> <totar> but 256?
+11:30 < bridge> <Solly (bun bun)> i think the server would die
+11:30 < bridge> <totar> it could handle it
+11:30 < bridge> <totar> if it was good enough
+11:30 < bridge> <Solly (bun bun)> O(n^2) collisions go brrr
+11:30 < bridge> <totar> those are not that hard to fix
+11:31 < bridge> <totar> if you don't need flawless accuracy on your 256 player server you can have it fixed in a few minutes
+11:31 < bridge> <Solly (bun bun)> surely grid just works
+11:31 < bridge> <Solly (bun bun)> of width hook length  / 2 or something
+11:31 < bridge> <totar> yeah it does except for those rotating laser beam things
+11:32 < bridge> <blaiszephyr> the new ones?
+11:32 < bridge> <totar> no
+11:32 < bridge> <Solly (bun bun)> you can check multiple points along the lazer
+11:32 < bridge> <blaiszephyr> :Sure:
+11:32 < bridge> <Solly (bun bun)> for potential tees
+11:33 < bridge> <Solly (bun bun)> you should check every half grid width just to be sure even though that will probably have duplicates
+11:33 < bridge> <Solly (bun bun)> (well if your lazer is near a 90 degree interval you can do every grid width)
+11:33 < bridge> <totar> I mean it's either going to be O(n(tees) * n(lasers)) or it's going to be O(n(number of tiles the laser occupies)*n(tees))
+11:33 < bridge> <Solly (bun bun)> (i doubt its much of a save)
+11:34 < bridge> <totar> but most maps don't have a huge number of those so you can just leave it on the old physics
+11:34 < bridge> <Solly (bun bun)> the collision is done by a min distance to lazer < tee width
+11:34 < bridge> <Solly (bun bun)> which is O(1) per tee no matter the length
+11:34 < bridge> <Solly (bun bun)> (i hope)
+11:34 < bridge> <totar> O(1) per tee, per laser = O(n*m)
+11:34 < bridge> <Solly (bun bun)> laser = n, tees = m?
+11:35 < bridge> <totar> sure
+11:35 < bridge> <Solly (bun bun)> the thing we are trying to reduce is m by using a grid
+11:35 < bridge> <Solly (bun bun)> you only check tees on the grid spaces along points of the lazer
+11:35 < bridge> <Assa> looks to me like a range based kd tree
+11:35 < bridge> <Solly (bun bun)> i dont think it makes much of a difference
+11:35 < bridge> <Solly (bun bun)> the current collision?
+11:36 < bridge> <totar> it's not that important, you can solve it in various ways
+11:36 < bridge> <totar> idk why I brought it up
+11:36 < bridge> <totar> it's just the most annoying part of O(n) physics
+11:36 < bridge> <Solly (bun bun)> a partitioning thing is harder and probably wont offer much benefit
+11:36 < bridge> <Solly (bun bun)> maps are quite small
+11:37 < bridge> <totar> quad tree is overkill yeah
+11:37 < bridge> <totar> just do what ddnet-rs does, direct array or hashmap if the map is really big
+11:37 < bridge> <Solly (bun bun)> yep
+11:37 < bridge> <Solly (bun bun)> oh no virtual call!!!
+11:37 < bridge> <Solly (bun bun)> grp not really
+11:38 < bridge> <Solly (bun bun)> you dont have to do it with oop xd
+11:38 < bridge> <totar> virtual call?
+11:38 < bridge> <Solly (bun bun)> if(m_usinghaashmap)...else...
+11:38 < bridge> <totar> mmm
+11:38 < bridge> <totar> I think the hashing part is the slow part
+11:38 < bridge> <Solly (bun bun)> im oop pilled
+11:38 < bridge> <Solly (bun bun)> for just 2 small ints you can probably get a pretty good fast hash
+11:38 < bridge> <totar> true ig
+11:39 < bridge> <Solly (bun bun)> not using standard containers would make a huge difference, but that difference is probably from the order of nanoseconds to less nanoseconds
+11:39 < bridge> <totar> idk I'm endlessly annoyed that the std hash containers are 10-30x slower than every other implementation for seemingly no good reason
+11:39 < bridge> <Solly (bun bun)> why... are they like that
+11:39 < bridge> <totar> I don't know
+11:39 < bridge> <Solly (bun bun)> unordered_map seems really minimal
+11:40 < bridge> <totar> they are the worst containers the stl provides
+11:40 < bridge> <Solly (bun bun)> bye bye
+11:41 < bridge> <robyt3> ChillerDragon: Do you also get large FPS drops when pressing the Disconnect button with the PR reverted? I confirmed that reverting it would fix it, but I noticed when I press the Disconnect button it hangs for a while. It doesn't hang in debug and relwithdebug modes.
+11:41 < bridge> <robyt3> https://cdn.discordapp.com/attachments/293493549758939136/1385192730434469928/image.png?ex=68552cc2&is=6853db42&hm=50590d1af0219e1345eeb8e37607fb6bff2fb1c4f60ed83a4cbb3112898ed0e4&
+11:51 < bridge> <robyt3> The delay was probably from websockets
+12:06 < ws-client> <ChillerDragon> @robyt3 im in a gores run now cant rly check :/
+12:07 < ws-client> <ChillerDragon> how do you confirm can u reproduce on windows?
+12:07 < bridge> <robyt3> It's fine, I think it was just from additionally adding websockets, which are TCP
+12:07 < bridge> <robyt3> When connecting repeatedly to a server it doesn't work or I connect but my previous player is still connected
+12:07 < bridge> <robyt3> I've reduced the problem to `1 file changed, 76 insertions(+), 65 deletions(-)`
+12:09 < ws-client> <ChillerDragon> yikes still a lot
+12:10 < bridge> <robyt3> yeah, trying to split it into the last two somewhat separate changes
+12:27 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1385204209699258449/image.png?ex=68553773&is=6853e5f3&hm=1f89ea8af1b022ea176427f8768fa6c995b5d7f4262b5970f347e4ab01a7d198&
+12:27 < bridge> <Solly (bun bun)> waiting a billion seconds for dummy to connect is not fun
+12:29 < bridge> <vahemaaa> yes
+12:29 < bridge> <Solly (bun bun)> its not connecting idk y
+12:29 < bridge> <Solly (bun bun)> i cant play with hoomans if i wanted to cuz ping
+12:29 < bridge> <Solly (bun bun)> what happened to my spectate button?
+12:29 < bridge> <totar> I ate it
+12:29 < bridge> <Solly (bun bun)> why
+12:29 < bridge> <Solly (bun bun)> i wanted that
+12:29 < bridge> <totar> Yummy
+12:29 < bridge> <Solly (bun bun)> noo
+12:30 < bridge> <Solly (bun bun)> can you eat the dummy connection not working
+12:30 < bridge> <totar> Not yummy
+12:30 < bridge> <Solly (bun bun)> ill give u spectate buttons if u do
+12:30 < bridge> <Solly (bun bun)> balanced diet
+12:31 < bridge> <totar> Is it the ger10 or whatever number with the extra ddos protection
+12:31 < bridge> <Solly (bun bun)> ger1
+12:31 < bridge> <totar> Idk
+12:31 < bridge> <Solly (bun bun)> i can connect fine
+12:32 < bridge> <Solly (bun bun)> connecting 2 clients is fine
+12:32 < bridge> <Solly (bun bun)> just no dummy
+12:32 < bridge> <Solly (bun bun)> connecting dummy on second client worked
+12:32 < bridge> <Solly (bun bun)> x-x
+12:44 < bridge> <robyt3> I need some compiler experts. How does this patch fix the complex issue of not being able to connect? (#10384)
+12:44 < bridge> <robyt3> 
+12:44 < bridge> <robyt3> ```patch
+12:44 < bridge> <robyt3> static void sockaddr_to_netaddr(const sockaddr *src, socklen_t src_len, NETADDR *dst)
+12:44 < bridge> <robyt3>  {
+12:44 < bridge> <robyt3> -       *dst = NETADDR_ZEROED;
+12:44 < bridge> <robyt3> +       mem_zero(dst, sizeof(NETADDR));
+12:44 < bridge> <robyt3>         if(src->sa_family == AF_INET && src_len >= (socklen_t)sizeof(sockaddr_in))
+12:44 < bridge> <robyt3> ```
+12:44 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/10384
+12:58 < bridge> <Jupstar ✪> I mean there is potentially a 2-byte padding in NETADDR which is not zero with the NETADDR_ZEROED
+12:58 < bridge> <Jupstar ✪> But I dunno, makes no sense to me
+12:59 < bridge> <robyt3> I checked with mem_comp and they should both be identical
+12:59 < bridge> <robyt3> Might be strict aliasing because using sockaddr is always undefined behavior apparently
+13:02 < bridge> <Jupstar ✪> Do asan&ubsan not find the issue here or what?
+13:03 < bridge> <robyt3> It doesn't happen without optimization I think
+13:03 < bridge> <robyt3> If it did, it should have caught it in the CI
+13:21 < bridge> <Trafalgar Law> https://i.imgur.com/U6CMP9y.png
+13:21 < bridge> <Trafalgar Law> I thought if I added someone as friend its shows only if name + clan is the same?
+13:21 < bridge> <Trafalgar Law> Now its shows me all who have the same name but not the same clan?
+13:21 < bridge> <Trafalgar Law> 
+13:21 < bridge> <Trafalgar Law> Is that a bug?
+13:21 < bridge> <Trafalgar Law> 
+13:21 < bridge> <Trafalgar Law> @Deleted User stop bot :troll:
+13:24 < bridge> <pioooooo> 1) Declares an unscoped enumeration type whose underlying type is not fixed (in this case, the underlying type is an implementation-defined integral type that can represent all enumerator values; this type is not larger than int unless the value of an enumerator cannot fit in an int or unsigned int. If the enumerator-list is empty, the underlying type is as if the enumeration had a single enumerator with value ​0​. If no integral type can repr
+13:24 < bridge> <pioooooo> https://en.cppreference.com/w/cpp/language/enum.html
+13:24 < bridge> <pioooooo> I think this is the issue
+13:24 < bridge> <pioooooo> I think this is the cause of the issue
+13:26 < bridge> <pioooooo> ```
+13:26 < bridge> <pioooooo> enum
+13:26 < bridge> <pioooooo> {
+13:26 < bridge> <pioooooo>     /**
+13:26 < bridge> <pioooooo>      * The maximum bytes necessary to encode one Unicode codepoint with UTF-8.
+13:26 < bridge> <pioooooo>      */
+13:26 < bridge> <pioooooo>     UTF8_BYTE_LENGTH = 4,
+13:26 < bridge> <pioooooo> 
+13:26 < bridge> <pioooooo>     IO_MAX_PATH_LENGTH = 512,
+13:26 < bridge> <pioooooo> 
+13:26 < bridge> <pioooooo>     NETADDR_MAXSTRSIZE = 1 + (8 * 4 + 7) + 1 + 1 + 5 + 1, // [XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX]:XXXXX
+13:26 < bridge> <pioooooo> 
+13:26 < bridge> <pioooooo>     NETTYPE_INVALID = 0,
+13:26 < bridge> <pioooooo>     NETTYPE_IPV4 = 1 << 0,
+13:26 < bridge> <pioooooo>     NETTYPE_IPV6 = 1 << 1,
+13:26 < bridge> <pioooooo>     NETTYPE_WEBSOCKET_IPV4 = 1 << 2,
+13:26 < bridge> <pioooooo>     NETTYPE_WEBSOCKET_IPV6 = 1 << 3,
+13:26 < bridge> <pioooooo>     NETTYPE_LINK_BROADCAST = 1 << 4,
+13:26 < bridge> <pioooooo>     /**
+13:26 < bridge> <pioooooo>      * 0.7 address. This is a flag in NETADDR to avoid introducing a parameter to every networking function
+13:26 < bridge> <pioooooo>      * to differenciate between 0.6 and 0.7 connections.
+13:26 < bridge> <pioooooo>      */
+13:26 < bridge> <pioooooo>     NETTYPE_TW7 = 1 << 5,
+13:26 < bridge> <pioooooo> 
+13:26 < bridge> <pioooooo>     NETTYPE_ALL = NETTYPE_IPV4 | NETTYPE_IPV6 | NETTYPE_WEBSOCKET_IPV4 | NETTYPE_WEBSOCKET_IPV6,
+13:26 < bridge> <pioooooo>     NETTYPE_MASK = NETTYPE_ALL | NETTYPE_LINK_BROADCAST | NETTYPE_TW7,
+13:26 < bridge> <pioooooo> };
+13:26 < bridge> <pioooooo> ```
+13:26 < bridge> <pioooooo> it seems to fit in 2 bytes
+13:27 < bridge> <pioooooo> idk
+13:28 < bridge> <robyt3> Doesn't seem related to that enum to me
+13:29 < bridge> <robyt3> Something is weird about the `NETADDR_ZEROED` though. It also works if I do `*dst = NETADDR_ZEROED2;` and initialize the variable with `mem_zero(&NETADDR_ZEROED2, sizeof(NETADDR_ZEROED2));` in `net_init`.
+13:35 < bridge> <learath2> How is NETADDR_ZEROED initialized?
+13:36 < bridge> <robyt3> https://github.com/Robyt3/ddnet/tree/Testing-Netaddr
+13:37 < bridge> <robyt3> It doesn't work if `NETADDR_ZEROED` is static const or extern const
+13:37 < bridge> <learath2> You can also attempt to observe the result. Observe the memory at dst. See what happens to it after assignment
+13:38 < bridge> <learath2> Hm, something about the way static initialization is done? It is a rather quirky thing
+13:39 < bridge> <robyt3> But also related to optimization of the const value I guess
+13:44 < bridge> <robyt3> Good idea, looks like there are garbage bytes at the end of the address sometimes
+13:45 < bridge> <robyt3> So I guess @jupeyy_keks was right and it's padding
+13:45 < bridge> <learath2> So why is what is meant to be padding changing observable behaviour? 😄
+13:46 < bridge> <robyt3> Because net address comparison considers the entire size of the NETADDR
+13:46 < bridge> <learath2> Ah
+13:46 < bridge> <robyt3> Should we change the comparison or ensure the padding is zeroed?
+13:47 < bridge> <robyt3> I wanted to replace all `mem_zero(addr, sizeof(NETADDR));` with `*addr = NETADDR_ZEROED;` separately
+13:48 < bridge> <robyt3> Guess I should have done that first, which would have been easier to pinpoint
+13:48 < bridge> <learath2> Hm, I'd fix the comparison honestly, it is IMO fundamentally flawed
+13:49 < bridge> <learath2> But it might come at a performance penalty if the padding isn't one continuous block. Is it?
+13:50 < bridge> <robyt3> Might impact performance if we reimplement the address comparison without mem_comp
+13:51 < bridge> <learath2> If the padding is one continuous block, the compiler should be smart enough to optimize it back up for us
+13:55 < bridge> <robyt3> ```diff
+13:55 < bridge> <robyt3> typedef struct NETADDR
+13:55 < bridge> <robyt3> {
+13:55 < bridge> <robyt3>     unsigned int type;
+13:55 < bridge> <robyt3>     unsigned char ip[16];
+13:55 < bridge> <robyt3>     unsigned short port;
+13:55 < bridge> <robyt3> +    unsigned char _padding[2];
+13:55 < bridge> <robyt3> 
+13:55 < bridge> <robyt3>     bool operator==(const NETADDR &other) const;
+13:55 < bridge> <robyt3>     bool operator!=(const NETADDR &other) const;
+13:55 < bridge> <robyt3>     bool operator<(const NETADDR &other) const;
+13:55 < bridge> <robyt3> } NETADDR;
+13:55 < bridge> <robyt3> ```
+13:55 < bridge> <robyt3> 
+13:55 < bridge> <robyt3> ```diff
+13:55 < bridge> <robyt3> - const NETADDR NETADDR_ZEROED = {NETTYPE_INVALID, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0};
+13:55 < bridge> <robyt3> + const NETADDR NETADDR_ZEROED = {NETTYPE_INVALID, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 0, {0, 0}};
+13:55 < bridge> <robyt3> ```
+13:55 < bridge> <robyt3> Works for me.
+14:04 < bridge> <learath2> I guess that also works, but it's not exactly completely portable
+14:05 < bridge> <robyt3> Yeah, adjusting the comparison functions is a lot cleaner
+14:05 < bridge> <learath2> Not like any of the implementations it wouldn't work on still exist, nor the rest of our code can cope with them
+14:27 < bridge> <Solly (bun bun)> if theres no padding between the elements
+14:27 < bridge> <Solly (bun bun)> ```
+14:27 < bridge> <Solly (bun bun)> a.type == b.type &&
+14:27 < bridge> <Solly (bun bun)> mem_cmp(a.ip, b.ip, sizeof(a.ip)) == 0 &&
+14:27 < bridge> <Solly (bun bun)> a.port == b.port
+14:27 < bridge> <Solly (bun bun)> ```
+14:27 < bridge> <Solly (bun bun)> should optimize down to a memcmp anyway
+14:27 < bridge> <Solly (bun bun)> or whatever a memcmp optimizes down to
+14:46 < bridge> <pluskz> i made solid stoppers :)
+14:46 < bridge> <pluskz> https://cdn.discordapp.com/attachments/293493549758939136/1385239415747641394/solid_stoppers.mp4?ex=6855583d&is=685406bd&hm=637aa45cce6d09c676547f26acf854bc8a84d2f9cfff98530d6d85d5a6102fb6&
+14:48 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1385239733512179772/image.png?ex=68555888&is=68540708&hm=214d57eea39eb3e01feaee3721dd8e0035c35c1449a4c6c8a68d654cce7f620f&
+14:48 < bridge> <Solly (bun bun)> what happened to my name
+14:49 < bridge> <Solly (bun bun)> it doesnt and i have no clue why
+14:49 < bridge> <a0887473> что делать если забанили до 12 а уже 15
+14:49 < bridge> <vahemaaa> what
+14:51 < bridge> <Solly (bun bun)> #✉-create-a-ticket
+14:51 < bridge> <a0887473> what to do if you're banned before 12 p.m. and it's already 3 p.m.
+14:54 < bridge> <learath2> Why do you get a coolname?
+14:54 < bridge> <Solly (bun bun)> it is gone
+14:54 < bridge> <Solly (bun bun)> sans didnt like the colors
+14:54 < bridge> <Solly (bun bun)> something less.. galring would be nice
+14:55 < bridge> <a0887473> what to do if you're banned before 12 p.m. and it's already 3 p.m.
+14:57 < bridge> <Solly (bun bun)> #✉-create-a-ticket
+15:03 < bridge> <milkeeycat> https://en.wikipedia.org/wiki/Coordinated_Universal_Time
+15:07 < bridge> <Solly (bun bun)> oh or that
+15:07 < bridge> <Solly (bun bun)> wow i dont get fancy name
+15:07 < bridge> <Solly (bun bun)> scam
+15:07 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1385244706472071259/image.png?ex=68555d2a&is=68540baa&hm=3533b0a18f4489c94f7e13ed5159dcf6fc91c61002903e9393003b328a465e4c&
+15:10 < bridge> <ryozuki> @jupeyy_keks i have access to a Intel Xeon E-2386G (12) @ 5.100GHz server
+15:10 < bridge> <ryozuki> is that cpu special or smth
+15:10 < bridge> <teero777> yooo wtf happened to the dev role
+15:10 < bridge> <teero777> nice colors
+15:10 < bridge> <ryozuki> yoo
+15:10 < bridge> <ryozuki> im special lol
+15:11 < bridge> <ryozuki> :owo:
+15:11 < bridge> <ryozuki> epyc
+15:11 < bridge> <teero777> i wish i had one
+15:11 < bridge> <ryozuki> i also want a epyc
+15:12 < bridge> <ryozuki> just looked, the intel cpu is from 2021
+15:12 < bridge> <ryozuki> not special
+15:12 < bridge> <ryozuki> 5ghz in 2021 is dope tho
+15:13 < bridge> <ryozuki> Intel® SSE4.1, Intel® SSE4.2, Intel® AVX2, Intel® AVX-512
+15:13 < bridge> <ryozuki> it actually has avx 512 lol
+15:14 < bridge> <teero777> using avx512 can actually make my physics lib even faster but like only 0.5% of cpus support it so it doesn't make much sens
+15:14 < bridge> <teero777> using avx512 can actually make my physics lib even faster but like only 0.5% of cpus support it so it doesn't make much sense
+15:15 < bridge> <teero777> okay nvm it seems to have gotten up a bit
+15:15 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1385246600812560464/image.png?ex=68555eee&is=68540d6e&hm=a88ac5e3f9fb75091dee558f939078c7a22df5faaa5137ef21cf866c9a73c675&
+15:16 < bridge> <ryozuki> there are ways to use simd if cpu supports via detection
+15:16 < bridge> <ryozuki> and fallbacks
+15:17 < bridge> <ryozuki> ffmpeg does it
+15:17 < bridge> <ryozuki> i have avx512 at home
+15:17 < bridge> <ryozuki> all new lines of amd do have it
+15:17 < bridge> <blaiszephyr> why is only devrole special
+15:17 < bridge> <teero777> the main reason is that my cpu doesnt support avx512 so i can't test it xD
+15:17 < bridge> <ryozuki> xd
+15:17 < bridge> <ryozuki> make it
+15:17 < bridge> <ryozuki> i test it
+15:17 < bridge> <teero777> yes im donwloading avx512 to my cpu
+15:18 < bridge> <teero777> yes im downloading avx512 to my cpu
+15:18 < bridge> <ryozuki> u can code without having the cpu xd
+15:18 < bridge> <ryozuki> download more ram
+15:18 < bridge> <teero777> well ofc i can but who knows if it works
+15:18 < bridge> <teero777> then i have to ask jupstar again
+15:18 < bridge> <anthonyyx> wtf u got cool color on ur roles
+15:18 < bridge> <ryozuki> thats where i come
+15:18 < bridge> <ryozuki> i have avx512 i just said i can test for u
+15:18 < bridge> <teero777> kk
+15:18 < bridge> <ryozuki> :feelsbadman:
+15:18 < bridge> <teero777> when i do make i'll let you test
+15:19 < bridge> <teero777> when i do make it i'll let you test
+15:19 < bridge> <ryozuki> :owo:
+15:19 < bridge> <zhn> ripbozo
+15:21 < bridge> <teero777> first i need to fix horrible physics issues that have never happened in any of my tests but happen only when im not looking
+15:22 < bridge> <teero777> when i independently test the issue it doesn't happen in the physics. So there must be something else to trigger it from the algorithm layer. And it's not memory corruption or anything that is easily detected
+15:22 < bridge> <teero777> i have no idea why
+15:23 < bridge> <teero777> but the character and projectiles just phase through walls if projectiles are fired and it isn't even consistent. and if i try the physics in my tas tool they work just fine
+15:24 < bridge> <teero777> when i independently test the issue it doesn't happen in the physics. So there must be something else to trigger it from the algorithm layer. And it's not memory corruption or anything that is easily detectable.
+15:25 < bridge> <ryozuki> heinsenbug
+15:26 < bridge> <ryozuki> heisenbug*
+15:26 < bridge> <ryozuki> quantum bugs
+15:26 < bridge> <inv41idu53rn4m3> wait wtf purple name has been upgraded
+15:26 < bridge> <Jupstar ✪> static vars initialized with `{}` should do value initialization and thus zero for all fields. Maybe it's only bcs of the manual assignment
+15:27 < bridge> <Jupstar ✪> Not special, but defs powerful for a server
+15:27 < bridge> <Jupstar ✪> If you also have the boost clock at least
+15:27 < bridge> <ryozuki> they got me this sv to benchmark stuff
+15:27 < bridge> <Jupstar ✪> Why is my name a rainbow 😮
+15:27 < bridge> <ryozuki> i installed rust on it for first time
+15:27 < bridge> <ryozuki> i guess murpi changed it today
+15:27 < bridge> <ryozuki> its pog
+15:28 < bridge> <ryozuki> testers also have it
+15:28 < bridge> <ryozuki> mods not cuz nobody likes mods
+15:28 < bridge> <ryozuki> :owo:
+15:28 < bridge> <ryozuki> (|| joking, or not :v ||)
+15:29 < bridge> <Jupstar ✪> @ryozuki watcha plan with that cpu?
+15:30 < bridge> <ryozuki> benchmarking smth at work
+15:30 < bridge> <ryozuki> not much
+15:31 < bridge> <Jupstar ✪> you can host vulkan headless services
+15:31 < bridge> <Jupstar ✪> :deen_star:
+15:31 < bridge> <ryozuki> this sv wont last long probs
+15:31 < bridge> <Jupstar ✪> It even has a iGPU
+15:31 < bridge> <ryozuki> i also have access to servers with nvidia compute gpus
+15:43 < bridge> <_qey> Where did the player base go? About a year ago it peaked at 13-14k, now all I see is half that at best.
+15:45 < bridge> <_qey> Also my automated bans for hack clients average 50-60 a day, which in turn tanks the online. Should I disable the automation for the sake of keeping servers alive?
+15:45 < bridge> <_qey> Also my automated bans for hack clients average 50-60 a day, which in turn tanks the online count. Should I disable the automation for the sake of keeping servers alive?
+15:47 < bridge> <ryozuki> i would say seasons
+15:47 < bridge> <ryozuki> i think peaked at winter
+15:47 < bridge> <ryozuki> i think summer usually has less players
+15:47 < bridge> <ryozuki> but yeah its also trend
+15:47 < bridge> <ryozuki> ppl come and ago
+15:47 < bridge> <ryozuki> and go*
+15:48 < bridge> <_qey> I get that, but 50%?
+15:50 < bridge> <_qey> I’m not allowing hackers per se, I’m just… Weakening the moderation efforts? AFAIK, it’s not allowed by the DDNet-wide rules to allow hack clients, BUT there are servers that outright allow it and not being master-banned.
+15:55 < bridge> <ryozuki> i think ur confusing stuff, u as a server owner, can allow hackers in ur own server, ddnet rules are only for ddnet official servers, what apply to all servers are master server rules, which for example dont allow faking players
+15:55 < bridge> <ryozuki> i think ur confusing stuff, u as a server owner, can allow hackers in ur own server, ddnet rules are only for ddnet official servers, what apply to all servers are master server rules, which for example dont allow faking players (eg showing 64 players but they dont exist)
+15:56 < bridge> <_qey> I may be. I may not. Let me check that.
+15:56 < bridge> <ryozuki> i think ur confusing stuff, u as a server owner, u can allow hackers in ur own server, ddnet rules are only for ddnet official servers, what apply to all servers are master server rules, which for example dont allow faking players (eg showing 64 players but they dont exist)
+15:57 < bridge> <ryozuki> this are the rules for all servers
+15:57 < bridge> <ryozuki> > After some issues with mods, this ruleset has been established for servers in the server list:
+15:57 < bridge> <ryozuki> > 
+15:57 < bridge> <ryozuki> >     A modified Teeworlds server must not use a standard gametype (dm, tdm, ctf, lms, lts)
+15:57 < bridge> <ryozuki> >     0.6.x and previous: The player count shown must resemble the amount of human players. The maximum player count must be the maximum number of human players.
+15:57 < bridge> <ryozuki> >     0.7.x and later: You can also include non-human players using a special bot flag. This allows client-side filtering.
+15:57 < bridge> <ryozuki> >     Do not host an excessive amount of servers. There is no fixed limit but try to not overdo it. (i.e. there should be people playing on them eventually)
+15:57 < bridge> <ryozuki> >     Do not host servers purely for advertising purposes (e.g. passworded & having only an advertisement as name; having sponsoring info or the likes in the server name is perfectly fine).
+15:57 < bridge> <ryozuki> this is from teeworlds
+15:57 < bridge> <blaiszephyr> we cant control your server, but we control our own and the masterserver
+15:57 < bridge> <blaiszephyr> we forbid advertisement of cheats, and took down servers that faked a high playcount or other people to prevent IP grabbers
+15:58 < bridge> <blaiszephyr> we cant control your server, but we control our own and the masterserver
+15:58 < bridge> <blaiszephyr> we forbid advertisement of cheats, and took down servers that faked a high playcount or other people to prevent IP grabbers, aswell as the HvH network (i wont go into detail what that network is)
+15:58 < bridge> <_qey> So I’m free to create a HvH server?
+15:58 < bridge> <ryozuki> @blaiszephyr what is a HvH im ootl
+15:58 < bridge> <ryozuki> xd
+15:58 < bridge> <_qey> And it won’t be master-banned?
+15:58 < bridge> <ryozuki> u opened this can
+15:58 < bridge> <blaiszephyr> https://cdn.discordapp.com/attachments/293493549758939136/1385257484209360958/image.png?ex=68556911&is=68541791&hm=81929bf5ed6174cd2397e3fe4d26bd12fbbf044e7b1998a925abb82df651b3bb&
+15:58 < bridge> <blaiszephyr> HvH will be removed on sight
+15:58 < bridge> <blaiszephyr> HvH will be removed on sight if its hosted over our masterserver
+15:58 < bridge> <ryozuki> i guess its some kind of malicious server
+15:59 < bridge> <ryozuki> i thought u were a dev not a script kiddy
+15:59 < bridge> <ryozuki> once again im  disapointed
+15:59 < bridge> <_qey> Now, see, I’m confused. Allowing is allowed, but HvH (if visible) is not?
+16:00 < bridge> <blaiszephyr> if your server is called
+16:00 < bridge> <blaiszephyr> 
+16:00 < bridge> <blaiszephyr> BEST BLOCKER SERVER EUW COME JOIN FREE COOKIES
+16:00 < bridge> <blaiszephyr> 
+16:00 < bridge> <blaiszephyr> and you dont moderate it against cheaters, why should we take it down
+16:00 < bridge> <blaiszephyr> if your server however is called "HvH TOURNAMENTS DAILY CHECK OUR WEBSITE" - we'll remove it.
+16:00 < bridge> <ryozuki> hacker vs hacker
+16:00 < bridge> <ryozuki> i see
+16:00 < bridge> <blaiszephyr> 7timeout ryozuki 9999999999
+16:01 < bridge> <_qey> Who? Why? What?
+16:01 < bridge> <ryozuki> nothing xd
+16:01 < bridge> <ryozuki> just self rumblings
+16:02 < bridge> <_qey> So… I see it as: I can ALLOW in the rules of my OWN server to use hack clients. And it WONT be master-banned?
+16:02 < bridge> <_qey> No advertisement.
+16:02 < bridge> <blaiszephyr> do whatever you want ON your server if it has no malicious intend
+16:02 < bridge> <blaiszephyr> dont advertise things in your servername
+16:02 < bridge> <blaiszephyr> 
+16:02 < bridge> <blaiszephyr> and we dont care about its existence
+16:02 < bridge> <_qey> Just that the player won’t be banned.
+16:02 < bridge> <ryozuki> more so, i would bet the website has clients for download, now i see why
+16:03 < bridge> <ryozuki> @_qey btw just letting u know if u run cheat clients ur probs having spyware and other stuff
+16:03 < bridge> <_qey> Neat.
+16:03 < bridge> <_qey> I’ve been around that stuff for the last 20 years, so, yeah, thanks anyways.
+16:04 < bridge> <ryozuki> the best ones are undetected just saying
+16:04 < bridge> <ryozuki> unless u have reverse engineered them
+16:04 < bridge> <ryozuki> to find out
+16:04 < bridge> <ryozuki> u probs wont know
+16:04 < bridge> <_qey> I’m not using hack clients, I barely even play, lol. I just come up with game modes.
+16:05 < bridge> <_qey> It all was a huge coincidence, and now some of my servers top the browser.
+16:07 < bridge> <_qey> I want to somehow monetize it, but I’m too lazy.
+16:24 < bridge> <ryozuki> @jupeyy_keks https://myhsu.xyz/llvm-sched-interval-throughput/
+16:28 < bridge> <_qey> I wonder if there are servers with ‘free cookies’ in the server name.
+16:58 < bridge> <Solly (bun bun)> a server was master banned for being hvh
+16:58 < bridge> <Solly (bun bun)> hackker v hacker
+17:02 < bridge> <chillerdragon> The oldest anarchy sever in teeworlds
+17:03 < bridge> <Solly (bun bun)> whenminetee
+17:03 < bridge> <Solly (bun bun)> mineteetetetetetetete
+17:03 < bridge> <chillerdragon> When we solve the demo issue
+17:04 < bridge> <kebscs> what demo issue
+17:04 < bridge> <chillerdragon> How to support demos
+17:04 < bridge> <chillerdragon> And skipping in Demos
+17:04 < bridge> <Solly (bun bun)> wdym?
+17:05 < bridge> <chillerdragon> You can click on any timestamp in demo menu and directly seek there
+17:05 < bridge> <chillerdragon> Because snapshots contain the entire data
+17:05 < bridge> <chillerdragon> How would that work for minetee
+17:05 < bridge> <Solly (bun bun)> ohhh
+17:06 < bridge> <Solly (bun bun)> right
+17:06 < bridge> <Solly (bun bun)> i never got the joy of playing minetee
+17:06 < bridge> <Solly (bun bun)> idk how you make blocks
+17:06 < bridge> <Solly (bun bun)> i thought you could add map data jankily
+17:06 < bridge> <chillerdragon> You don’t need to
+17:06 < bridge> <kebscs> when we support 128 players
+17:06 < bridge> <kebscs> patchwork server full and half the server stuck on spawn
+17:06 < bridge> <Solly (bun bun)> i thought you could add map data jankily, but now i was told you cant
+17:07 < bridge> <chillerdragon> If the map can change how do you get the correct map state on skip in demo
+17:07 < bridge> <Solly (bun bun)> demo correctness isnt that important
+17:07 < bridge> <chillerdragon> Well it’s a blocker for Heinrich
+17:07 < bridge> <Solly (bun bun)> *if* you can add map data mid game
+17:08 < bridge> <Solly (bun bun)> then surely its on the client to figure out the reverse
+17:08 < bridge> <chillerdragon> Wdym
+17:09 < bridge> <Solly (bun bun)> storing the map every time it changes is silly
+17:09 < bridge> <chillerdragon> Have one copy of the map for every tick is too much data yes
+17:09 < bridge> <Solly (bun bun)> so you need to be able to reverse a map data change
+17:10 < bridge> <Solly (bun bun)> it means having to sweep the demo to get all the changes to be able to reverse them
+17:10 < bridge> <Solly (bun bun)> so maybe once every blue moon the demo can make a copy of changes from the original
+17:10 < bridge> <Solly (bun bun)> if there are any
+17:11 < bridge> <chillerdragon> So if you click it has to travel the entire demo?
+17:11 < bridge> <chillerdragon> Yea I suggested that as well
+17:11 < bridge> <chillerdragon> Might slow down demo navigation
+17:11 < bridge> <chillerdragon> But could work
+17:11 < bridge> <Solly (bun bun)> well that is a dumb but working way
+17:12 < bridge> <Solly (bun bun)> but im also saying we could add special behvaiour to the demo that isnt just write what the server sends
+17:12 < bridge> <Solly (bun bun)> which colates all the changes up to that point
+17:12 < bridge> <chillerdragon> And what would it write?
+17:12 < bridge> <chillerdragon> To what point?
+17:12 < bridge> <Solly (bun bun)> so every 30s it writes the changes from 0 to that point
+17:12 < bridge> <chillerdragon> You want to write the entire map to the demo file every time it changes?
+17:13 < bridge> <chillerdragon> Mine 10 blocks on stronghold and you have a 2GB demo
+17:13 < bridge> <Solly (bun bun)> so every 30s it writes the **changes** from 0 to that point
+17:13 < bridge> <Solly (bun bun)> it feels like only part of my msg is being read 😭
+17:14 < bridge> <chillerdragon> I see
+17:14 < bridge> <Solly (bun bun)> its big still
+17:14 < bridge> <chillerdragon> But if you mine one billion blocks in 2 hours
+17:14 < bridge> <kebscs> isnt this going to be used by 2 players max
+17:14 < bridge> <chillerdragon> You have one billion changes every tick?
+17:14 < bridge> <kebscs> compared to 128!!! in 128 players support
+17:14 < bridge> <kebscs> :D
+17:14 < bridge> <chillerdragon> Mintee?
+17:14 < bridge> <chillerdragon> Minetee could be huge for mods
+17:15 < bridge> <kebscs> never heard of it
+17:15 < bridge> <chillerdragon> And for ddnet collab mapping
+17:15 < bridge> <kebscs> collab mapping servers should be handled differently imo
+17:15 < bridge> <kebscs> similar to ddnet rs
+17:15 < bridge> <chillerdragon> Being able to build your house on city server or farm materials on mmo server would be epic
+17:16 < bridge> <kebscs> you might wanna hop on terraria
+17:16 < bridge> <chillerdragon> And yes of course 128 is epic too
+17:16 < bridge> <chillerdragon> I would love to see both features
+17:17 < bridge> <Solly (bun bun)> then i expect the demo to be huge
+17:18 < bridge> <Solly (bun bun)> storing 2 billion anything takes atleast 200MiB
+17:19 < bridge> <Solly (bun bun)> having the changes stack for each 30s period is a bit annoying
+17:19 < bridge> <Solly (bun bun)> its a tradeof of speed for size
+17:19 < bridge> <Solly (bun bun)> maybe only changes can be stored and the index is generated at playback
+17:19 < bridge> <Solly (bun bun)> so you have to traverse the demo up to the point you wan tto go to the first time
+17:21 < bridge> <Jupstar ✪> How huge are the timelaps plugin "demos" for minecraft?
+17:21 < bridge> <Jupstar ✪> I assume they are simply big
+17:28 < bridge> <inv41idu53rn4m3> Even if they are naive network recordings like Teeworlds demos they shouldn't contain *that* many duplicates of the world.... unless you're unloading and reloading chunks, which is very likely
+17:29 < bridge> <chillerdragon> @jupeyy_keks: do the Minecraft Timelapse demos support instant seeking tho?
+17:29 < bridge> <Jupstar ✪> Is that an argument for smaller files? xD
+17:30 < bridge> <chillerdragon> It’s the main issue here I guess
+17:30 < bridge> <Jupstar ✪> Why
+17:30 < bridge> <chillerdragon> If seeking wasn’t a thing demos would already work
+17:30 < bridge> <inv41idu53rn4m3> Well even if your demo is hours long, as long as it's small and simple enough it'll be practically instant to seek anyways
+17:30 < bridge> <chillerdragon> It just writes all changes to the demo the same way they are sent by the server
+17:30 < bridge> <Jupstar ✪> I'd claim you can code minetee in ddnet-rs today with seeking
+17:30 < bridge> <inv41idu53rn4m3> if you can parse the entire file in the blink of an eye
+17:31 < bridge> <Jupstar ✪> Well ofc you have to parse the file expensively, but dunno
+17:31 < bridge> <Jupstar ✪> Ok I cannot tell how fast the seeking is, but yeah
+17:31 < bridge> <chillerdragon> So every seek travels the demo file?
+17:31 < bridge> <Jupstar ✪> 200MB is not that much to process for
+17:31 < bridge> <chillerdragon> I assumed that’s slow
+17:31 < bridge> <chillerdragon> If it has to parse all map change messages
+17:31 < bridge> <Jupstar ✪> Yes
+17:32 < bridge> <Jupstar ✪> But how slow is slow?
+17:32 < bridge> <Jupstar ✪> Invent a system that works threaded
+17:32 < bridge> <chillerdragon> Slow enough that it doesn’t feel instant anymore
+17:32 < bridge> <Jupstar ✪> But tell me, why do you even want demos?
+17:32 < bridge> <chillerdragon> Heinrich needs them
+17:32 < bridge> <chillerdragon> That’s his main blocker
+17:32 < bridge> <Jupstar ✪> Ok you're right, you said instant seeking
+17:32 < bridge> <Jupstar ✪> Missed that
+17:33 < bridge> <Jupstar ✪> What does heinrich have to do with that
+17:33 < bridge> <Jupstar ✪> Just code whatever you want
+17:33 < bridge> <chillerdragon> I already did
+17:33 < bridge> <chillerdragon> But he said he won’t merge without demos
+17:33 < bridge> <Jupstar ✪> I can ensure you minetee will not be merged to ddnet
+17:34 < bridge> <chillerdragon> Just because of demos tho
+17:34 < bridge> <chillerdragon> So far
+17:34 < bridge> <Jupstar ✪> No?
+17:34 < bridge> <chillerdragon> What else?
+17:34 < bridge> <Jupstar ✪> The whole rendering code would need a major refactor
+17:34 < bridge> <Jupstar ✪> Events would need to be sent reliable
+17:35 < bridge> <Jupstar ✪> Independent of snapshots
+17:35 < bridge> <chillerdragon> I had a prototype in a few line diff
+17:35 < bridge> <chillerdragon> It’s not in the snap
+17:35 < bridge> <Jupstar ✪> What you want is a new game
+17:35 < bridge> <chillerdragon> It’s a vital net message
+17:35 < bridge> <Jupstar ✪> Code it in your client first
+17:35 < bridge> <chillerdragon> I did
+17:35 < bridge> <Jupstar ✪> If it works 100%, we can see what it needs
+17:35 < bridge> <Jupstar ✪> Yeah yeah yeah
+17:36 < bridge> <chillerdragon> https://github.com/ddnet/ddnet/issues/7666
+17:36 < bridge> <chillerdragon> Here is a clip
+17:36 < bridge> <chillerdragon> Well first it needs demos according to Heinrich
+17:37 < bridge> <Jupstar ✪> Then heinrich said that to prevent the feature
+17:37 < bridge> <Jupstar ✪> Demos has nothing to do with this
+17:37 < bridge> <Jupstar ✪> Show me that your clip works across 16 clients with different graphics backends without lags
+17:37 < bridge> <Jupstar ✪> On a normal not, rtx 4090 pc
+17:38 < bridge> <chillerdragon> I accused Heinrich once already of refusing to decline PRs and making up excuses and requesting other changes. But I thought this time he was seriously concerned about demos
+17:38 < bridge> <Jupstar ✪> As you already said, instant seeking is not possible
+17:38 < bridge> <Jupstar ✪> And will never be
+17:38 < bridge> <chillerdragon> It’s not flawless for sure @jupeyy_keks just a prototype
+17:39 < bridge> <Jupstar ✪> I tell you what
+17:39 < bridge> <louis> how is ur name gradient
+17:39 < bridge> <Jupstar ✪> You need OpenGL 4.3
+17:39 < bridge> <Jupstar ✪> And nothing less
+17:39 < bridge> <Jupstar ✪> Yours is too
+17:39 < bridge> <chillerdragon> Gradient?
+17:39 < bridge> <inv41idu53rn4m3> new Discord feature apparently
+17:39 < bridge> <Jupstar ✪> chillerdragon, we have a new discord feature
+17:39 < bridge> <louis> when did they change it tf
+17:40 < bridge> <Jupstar ✪> apparently murpi had to manually change it for our roles
+17:40 < bridge> <chillerdragon> What’s the new discord feature
+17:40 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1385283194512871584/image.png?ex=68558102&is=68542f82&hm=38567e3646a1a5b1d51170ba45aaca16512ed8e9eefec32ee5e99740e4af8eb0&
+17:40 < bridge> <Jupstar ✪> We now have rainbow names
+17:41 < bridge> <chillerdragon> Poggers
+17:41 < bridge> <chillerdragon> lgbtq+64
+17:42 < bridge> <Jupstar ✪> anyway chiller
+17:43 < bridge> <Jupstar ✪> generally you could add demo support, but honestly instant is like super hard
+17:43 < bridge> <inv41idu53rn4m3> I read this as a register name and an offset
+17:43 < bridge> <Jupstar ✪> I doubt you want a 128x128 map or smth to play on
+17:43 < bridge> <Jupstar ✪> You probs want 4000x4000
+17:43 < bridge> <Jupstar ✪> Now even with key frames where the whole map is inside, uploading and preparing this shit is like updating ~8 4k images
+17:43 < bridge> <inv41idu53rn4m3> There's perceptually instant, and there's O(1), and those are not the same thing
+17:44 < bridge> <Jupstar ✪> Play 16x 4k videos at the same time
+17:44 < bridge> <inv41idu53rn4m3> We do not need to support hundred hour demos
+17:44 < bridge> <Jupstar ✪> And I am convinced
+17:44 < bridge> <Jupstar ✪> Now if you want to change the rendering stuff to be chunked or similar.. you create a new game
+17:44 < bridge> <Jupstar ✪> besides that is what you do anyway
+17:45 < bridge> <Jupstar ✪> If you really want minetee, use a own client first
+17:45 < bridge> <Jupstar ✪> code your shit, if ppl like it they will play anyway
+17:57 < bridge> <Solly (bun bun)> i dont see any performance worries about this
+17:58 < bridge> <Solly (bun bun)> *me who doesnt know how rendering tilemaps works in ddnet*
+17:59 < bridge> <Jupstar ✪> Generally there isn't, but I am 100% sure chiller didn't just redesign the whole rendering pipe for his test xDD
+18:01 < bridge> <Solly (bun bun)> the way i did performant tilemaps is with a shader, single pass it just picks from the texture, zoom level has no effect, editing is free except reupload
+18:01 < bridge> <Solly (bun bun)> doesn work on ogl1
+18:01 < bridge> <Jupstar ✪> On a map like arctic festival with ddnet-rs editor which is designed to be updated fast. applying a brush every frame reduces fps to ~12fps on my PC
+18:01 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1385288448092405922/image.png?ex=685585e7&is=68543467&hm=28a93f4559f4e804d5554651a4ace97ee7aa8f610236f67e1c0ace898edbd6b1&
+18:02 < bridge> <Jupstar ✪> And that is a single layer updated
+18:02 < bridge> <Solly (bun bun)> that looks like a big brush though
+18:02 < bridge> <Jupstar ✪> Yes
+18:02 < bridge> <Jupstar ✪> That means instant demos are dead
+18:02 < bridge> <Solly (bun bun)> why
+18:02 < bridge> <Jupstar ✪> Now for updating, 16 clients.. no problem
+18:02 < bridge> <Jupstar ✪> Uploading the whole map takes more time
+18:02 < bridge> <Solly (bun bun)> you can edit a buffer without full reupload
+18:03 < bridge> <Jupstar ✪> How can you know which tiles updated in a keyframe?
+18:03 < bridge> <Solly (bun bun)> because you store it?
+18:03 < bridge> <Jupstar ✪> Store what?
+18:03 < bridge> <Jupstar ✪> Store all possiblities that exist?
+18:03 < bridge> <Jupstar ✪> You have to assume your map looks completely random
+18:04 < bridge> <Jupstar ✪> And you skip somewhere inside the demo
+18:04 < bridge> <Jupstar ✪> Thus you need to reupload the whole map
+18:05 < bridge> <Solly (bun bun)> the way i would implement it is 
+18:05 < bridge> <Solly (bun bun)> the demo stores the all changes like any other message
+18:05 < bridge> <Solly (bun bun)> as the demo is being played a "keyframe" is generated every 30 ingame seconds, this means sweeping the demo atleast once, its not instant the first time
+18:05 < bridge> <Solly (bun bun)> storing the index is too big
+18:05 < bridge> <Solly (bun bun)> i dont really get this
+18:05 < bridge> <Solly (bun bun)> you are told by the netmsg where and what is changed
+18:05 < bridge> <Jupstar ✪> and then?
+18:05 < bridge> <Jupstar ✪> Let's assume you watch the whole demo
+18:05 < bridge> <Jupstar ✪> of chillerdragon destroying the whole map
+18:05 < bridge> <Jupstar ✪> in the end the map is destroyed
+18:05 < bridge> <Jupstar ✪> Now you skip to start
+18:06 < bridge> <Jupstar ✪> What now?
+18:06 < bridge> <Solly (bun bun)> you load the initial map
+18:06 < bridge> <Jupstar ✪> What do you update other than the whole map?
+18:06 < bridge> <Jupstar ✪> Ok now you skip to 50%
+18:06 < bridge> <Jupstar ✪> What do you upload now?
+18:06 < bridge> <Jupstar ✪> (You skip to 50% from finish)
+18:06 < bridge> <Solly (bun bun)> the whole map...
+18:06 < bridge> <Solly (bun bun)> editing large chunks of the map is going to be expensive
+18:06 < bridge> <Jupstar ✪> See
+18:06 < bridge> <Solly (bun bun)> do note you only have to update tile layers
+18:06 < bridge> <Solly (bun bun)> not mapres
+18:06 < bridge> <Jupstar ✪> Yes
+18:07 < bridge> <Jupstar ✪> But that is what I do in my screenshot
+18:07 < bridge> <Solly (bun bun)> this is worst case though, if the changes are localized you can do a single edit of that size
+18:07 < bridge> <Solly (bun bun)> or multiple chunks
+18:07 < bridge> <Jupstar ✪> Instant is impossible with our current hardware
+18:07 < bridge> <Solly (bun bun)> okay well not instant
+18:08 < bridge> <Solly (bun bun)> but i think its fast enough
+18:08 < bridge> <Jupstar ✪> You can make it fast, but probs not under ~1s per skip
+18:08 < bridge> <Jupstar ✪> For teeros PC not under 5s
+18:09 < bridge> <learath2> What are these new cool name colors?
+18:09 < bridge> <Jupstar ✪> Why do you not have one
+18:12 < bridge> <Solly (bun bun)> I uploaded 400x400 8 bit numbers per frame and it runs fine on me ThinkPad
+18:12 < bridge> <Jupstar ✪> xdd
+18:12 < bridge> <Solly (bun bun)> The physics (falling sand) is the slow thing
+18:12 < bridge> <Jupstar ✪> Sadly 2D is squared
+18:13 < bridge> <Jupstar ✪> Doubling the numbers will x4 the work
+18:13 < bridge> <Solly (bun bun)> Well updating a 400x400 area rarely gonna happen in minetee
+18:14 < bridge> <Jupstar ✪> That was never the point
+18:14 < bridge> <Solly (bun bun)> Since data is probably just top to bottom left to right then writing blocks isn't happening
+18:14 < bridge> <Jupstar ✪> I already told ya you need to upload the whole map
+18:14 < bridge> <Jupstar ✪> everytime you skip
+18:14 < bridge> <Jupstar ✪> whole map
+18:14 < bridge> <louis> oh r we talking abt live tiles
+18:14 < bridge> <Jupstar ✪> Not 400x400
+18:14 < bridge> <Jupstar ✪> whole map
+18:14 < bridge> <Solly (bun bun)> Not if not much happens
+18:14 < bridge> <Jupstar ✪> If you skip back.. always
+18:15 < bridge> <Jupstar ✪> You cannot know how the map looks like if you skip back
+18:15 < bridge> <louis> just disable demos for live maps 🤷
+18:15 < bridge> <Solly (bun bun)> You know the previous state
+18:15 < bridge> <Jupstar ✪> No
+18:15 < bridge> <Solly (bun bun)> It's in the demo
+18:15 < bridge> <Jupstar ✪> NOOO
+18:15 < bridge> <Jupstar ✪> learath
+18:15 < bridge> <Jupstar ✪> what u done
+18:15 < bridge> <Jupstar ✪> No
+18:15 < bridge> <Jupstar ✪> You always have to start from a key frame
+18:15 < bridge> <Solly (bun bun)> Oh nice colors
+18:16 < bridge> <Solly (bun bun)> You can only upload the difference, and key frames let you work that out faster
+18:16 < bridge> <louis> can't you undo the changes if each change is coded w the previous state of the block
+18:16 < bridge> <ryozuki> nooo
+18:16 < bridge> <ryozuki> moderator cant be cooler
+18:16 < bridge> <ryozuki> than dev
+18:16 < bridge> <Jupstar ✪> No xD
+18:16 < bridge> <ryozuki> *angry noises*
+18:16 < bridge> <Jupstar ✪> I don't understand why you thinkso
+18:16 < bridge> <louis> or demo can keep a history of the previous state whenever u skip ahead
+18:16 < bridge> <Jupstar ✪> You cannot magically know which parts to udate
+18:16 < bridge> <Jupstar ✪> You cannot magically know which parts to update
+18:17 < bridge> <teero777> woah everyone is animated now
+18:17 < bridge> <Jupstar ✪> learath that is sick color
+18:17 < bridge> <Solly (bun bun)> You know the previous state if you keep it
+18:17 < bridge> <Solly (bun bun)> I like this colour too
+18:17 < bridge> <Jupstar ✪> Wow.. 1 snapshot or what xd
+18:17 < bridge> <Jupstar ✪> Even then
+18:17 < bridge> <Jupstar ✪> You cannot just revert it
+18:17 < bridge> <Solly (bun bun)> You know what you previously uploaded
+18:19 < bridge> <ryozuki> @murpi can u animate wiki role
+18:19 < bridge> <louis> can u get a gradient of all your separate role colors
+18:19 < bridge> <louis> 🥺
+18:19 < bridge> <murpi> It'll be gone tomorrow
+18:20 < bridge> <murpi> I think yes
+18:20 < bridge> <Jupstar ✪> Is that an event or what
+18:20 < bridge> <murpi> No idea. It says it'll expire tomorrow. I guess we don't have enough boosts
+18:21 < bridge> <teero777> @jupeyy_keks throw away some money for the good looking roles
+18:21 < bridge> <murpi> I had the option to enable either the server tag or gradient role colors
+18:21 < bridge> <Jupstar ✪> Sadly I am not as rich as you
+18:21 < bridge> <Jupstar ✪> And you choose both
+18:21 < bridge> <Jupstar ✪> Nice
+18:22 < bridge> <murpi> Ones enabled as long we stay at level 3, the other expires tomorrow 😄
+18:23 < bridge> <melon> you got it
+18:23 < bridge> <melon> boost up!
+18:23 < bridge> <murpi> Yeah now it just says enabled for both, guess we keep both then
+18:23 < bridge> <murpi> https://cdn.discordapp.com/attachments/293493549758939136/1385293952038731956/image.png?ex=68558b07&is=68543987&hm=784744b1f593e22dfc9723e672663a2c937904d54275ee050a1385358dac8e2e&
+18:23 < bridge> <melon> holy cow i'm collecting roles like medals
+18:23 < bridge> <melon> https://cdn.discordapp.com/attachments/293493549758939136/1385293960825536563/image.png?ex=68558b09&is=68543989&hm=09c62a6aa1a3d37f4918355f6a9a1a8b16e52092467ee8e031811d6838c1abe7&
+18:24 < bridge> <louis> how do u get GER
+18:24 < bridge> <louis> make sure i never get that
+18:24 < bridge> <melon> dont worry, moderator only role, tho GER is probably the most unused one
+18:24 < bridge> <melon> dont worry, moderator only role iirc, tho GER is probably the most unused one
+18:24 < bridge> <teero777> can i get GER
+18:25 < bridge> <melon> i use @ rus and @ tur decently often for moderators to help me translate stuff
+18:25 < bridge> <melon> :kekw:
+18:26 < bridge> <Jupstar ✪> when I type `@GER` i get zhn
+18:26 < bridge> <louis> @blaiszephyr when tourney winner role tho
+18:26 < bridge> <louis> noob alert
+18:26 < bridge> <melon> i almost did win one on Stepfunns tournament
+18:26 < bridge> <melon> i blame iTom
+18:27 < bridge> <melon> we were ahead of Cendren because we practiced the map before going into a run and they failed, sadly fucked up at like 75%
+18:27 < bridge> <melon> we were ahead of Cendren because we practiced the map before going into a run and they failed, sadly fucked up at like 50%
+18:27 < bridge> <melon> and then we couldnt catch up
+18:27 < bridge> <Jupstar ✪> Yeah yeah always blame the others
+18:27 < bridge> <Jupstar ✪> All Intels fault
+18:28 < bridge> <Jupstar ✪> @robyt3 press merge on #10363 :deen_star:
+18:28 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10363
+18:57 < bridge> <ryozuki> done
+18:59 < bridge> <ryozuki> https://blog.maximeheckel.com/posts/painting-with-math-a-gentle-study-of-raymarching/
+19:25 < bridge> <kebscs> merge #10329 too :deen_star:
+19:25 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10329
+19:34 < bridge> <inv41idu53rn4m3> If you really want to learn you should read Inigo Quilez
+19:44 < bridge> <ddnet_bee> who rus and can help me with my map
+19:44 < bridge> <ryozuki> @robyt3 can u check https://github.com/ddnet/ddnet/pull/8432 :owo: i would see this before kebs one according to comments
+19:45 < bridge> <Assa> I fixed the text rendering issues!
+19:45 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1385314457487671487/screenshot_2025-06-19_19-44-45.png?ex=68559e20&is=68544ca0&hm=55792ccf92eff7efaf99a025c307363f5795debbe7e8299c4ef50f6f67d4653e&
+19:45 < bridge> <melon> cant have rendering issues if there's no rendering
+19:45 < bridge> <melon> :Pepega:
+19:45 < bridge> <ryozuki> no text rendering
+19:52 < bridge> <teero777> i fixed it
+19:52 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1385316309528481894/image.png?ex=68559fda&is=68544e5a&hm=c87a98dead5a55d38d52bdef44b31a0202db2019bd9f11075bd926dff9ecfa53&
+19:53 < bridge> <Assa> cloud ☁️
+19:54 < bridge> <Assa> anyone an idea why I can't simply reuse a text container? it seems to get deleted anyways oO
+19:55 < bridge> <Assa> oh default constructur just deletes it 😦
+19:56 < bridge> <kebscs> both of these can work independently
+20:00 < bridge> <kebscs> i think cheaters can send wrong input even now, dont need the preinput thing
+20:00 < bridge> <kebscs> saw some video few days ago a cheater spamming jump in clb
+20:27 < bridge> <Assa> it appears, that you can't reuse text containers, it shows as valid, I deactivated the TEXT_RENDER_FLAG_ONE_TIME_USE flag, but it keeps beeing empty
+20:28 < bridge> <Jupstar ✪> watcha mean with reuse?
+20:28 < bridge> <Jupstar ✪> Render the same next frame?
+20:30 < bridge> <Assa> i am currently testing a unordered map to store them and delete them later/on demand
+20:30 < bridge> <Assa> but reusing them seems to be not working
+20:30 < bridge> <Jupstar ✪> Then it's a bug in your code.
+20:30 < bridge> <Jupstar ✪> 
+20:30 < bridge> <Jupstar ✪> We use text containers in a lot of places
+20:30 < bridge> <Jupstar ✪> You say reuse again
+20:31 < bridge> <Jupstar ✪> What do you mean
+20:31 < bridge> <Jupstar ✪> Render them again?
+20:31 < bridge> <Jupstar ✪> Recreate them?
+20:31 < bridge> <Assa> TextEx is creating a text container and deleting it immediately after first usage
+20:31 < bridge> <Jupstar ✪> Yes
+20:33 < bridge> <Assa> it appears, the `TextContainer.m_StringInfo.m_vCharacterQuads` get's cleared somewhere outside my code
+20:44 < bridge> <Ewan> hmm
+20:55 < bridge> <ihatecow> ```vb
+20:55 < bridge> <ihatecow> print((function(F)local ufuSrApJ=42;local function bxor(a,b)return(a~b)&0xFF end;local function d(s,k,l)local r={} for i=1,l do r[i]=string.char(bxor(s:byte(i),(k+i-1)%256)) end return table.concat(r) end;return d("\11\21\7\95\233\242\162\247\236\236\245\167\251\230\170\233\229\234",(62+62),18) end)())```
+21:12 < bridge> <Solly (bun bun)> Totally
+21:58 < bridge> <gorp_tw> i miss golfing in python
+22:39 < bridge> <milkeeycat> @ryozuki passes count increases every day :justatest: 
+22:39 < bridge> <milkeeycat> ```rust
+22:39 < bridge> <milkeeycat>     let target = amd64::Target::new();
+22:39 < bridge> <milkeeycat>     let mut mir = tja::lowering::lower(&hir, target.abi());
+22:39 < bridge> <milkeeycat>     tja::targets::amd64::select_register_class(&mut mir, &ctx.ty_storage);
+22:39 < bridge> <milkeeycat>     tja::targets::amd64::select_instructions(&mut mir, target.abi(), &ctx.ty_storage);
+22:39 < bridge> <milkeeycat>     tja::mir::passes::two_address::two_address(&mut mir.0[0].functions[0]);
+22:39 < bridge> <milkeeycat>     tja::targets::amd64::materialize_copy(
+22:39 < bridge> <milkeeycat>         &mut mir.0[0].functions[0],
+22:39 < bridge> <milkeeycat>         target.abi(),
+22:39 < bridge> <milkeeycat>         &ctx.ty_storage,
+22:39 < bridge> <milkeeycat>     );
+22:39 < bridge> <milkeeycat>     tja::codegen::allocator::allocate(target.register_info(), false, &mut mir.0[0].functions[0]);
+22:39 < bridge> <milkeeycat>     tja::targets::amd64::lower_stack_slots(&mut mir.0[0].functions[0]);
+22:39 < bridge> <milkeeycat> ```
+22:59 < bridge> <totar> Woah fancy name color
+23:11 < bridge> <zhn> hi
+23:11 < bridge> <zhn> im @GER_
+23:11 < bridge> <zhn> fck
+23:11 < bridge> <zhn> xd
+23:12 < bridge> <zhn> im sorry guys!!! hi
+23:12 < bridge> <zhn> i wonder if it pings anyone
+23:13 < bridge> <Jupstar ✪> lel, probs bcs u mod

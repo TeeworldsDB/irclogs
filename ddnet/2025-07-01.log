@@ -1,0 +1,510 @@
+01:16 < bridge> <Assa> if I set cl_prediction_margin to 300 and do sv_destroy_bullets_on_death 0, I can shoot a nade, SK, and the nade just disappears
+01:16 < bridge> <Assa> anybody an idea how to fix this?
+01:18 < bridge> <Assa> Looks to me, like the SK is not predicted but immediate. If I play on high ping, the SK is not immediate, so simulating with cl_prediction_margin fails
+01:29 < bridge> <kebscs> sk?
+01:32 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> self kill
+01:33 < bridge> <kebscs> toxic
+01:34 < bridge> <kebscs> :owo:
+01:40 < bridge> <kebscs> but the kill is instant
+01:40 < bridge> <kebscs> it doesnt get affected by margin
+01:40 < bridge> <kebscs> so that would be correct
+01:40 < bridge> <Assa> but it should be
+01:40 < bridge> <kebscs> connect 2 clients, 1 with high margin
+01:40 < bridge> <kebscs> the movements are delayed, but kill is instant
+01:41 < bridge> <Assa> yes, for me this only shows, that I can't use cl_prediction_margin to simulate high ping
+01:41 < bridge> <kebscs> althgough if i kill it with margin it spawns me below tele
+01:41 < bridge> <kebscs> if tele is in air
+01:41 < bridge> <kebscs> so im instatnly predicting after kill
+01:45 < bridge> <Assa> There is no way to tell the prediction margin on a player from server side, right?
+01:51 < bridge> <kebscs> idk if exact margin, but check NETMSG_INPUT
+01:51 < bridge> <kebscs> if someone has margin, they send input that is ahead of tick, this is how preinput works
+01:51 < bridge> <kebscs> if someone has high margin, they send input that is ahead of tick, this is how preinput works
+02:15 < bridge> <totar> anything not contained in the input NETMSG are not synced in the input buffer on the server so they don't work with prediction margin
+02:15 < bridge> <totar> like kill
+02:15 < bridge> <totar> if you have 300ms pred margin and press kill you die in the past
+02:15 < bridge> <totar> it's pretty funny
+02:16 < bridge> <totar> you can ofc
+02:16 < bridge> <totar> the server is the one managing your prediction margin
+02:16 < bridge> <totar> not the client
+02:17 < bridge> <totar> also I don't think kill is predicted at all?
+02:18 < bridge> <totar> the client can't predict it because the spawn position is based on other tees that could be outside your clip range so it's impossible to predict
+02:18 < bridge> <totar> the client can't predict it because the spawn position is based on other tees that could be outside your clip range so it's impossible to predict correctly
+03:49 < bridge> <boichuk1337_03916> 50$ steam - [steamcommunity.com/gift/activation=yVbFMGIiHe](https://e.vg/yVbFMGIiHe) @everyone
+07:43 < bridge> <Assa> so it comes down to the teleport Destination problem
+08:03 < bridge> <ryozuki> morn
+08:54 < bridge> <totar> it's worse actually, teleport can be seeded but the respawn relies on the other tee positions which you just don't know unless the server tells you.
+09:16 < bridge> <Assa> there is a no collision option, making this reliable in a lot of cases is possible
+09:42 < ws-client> <ChillerDragon> hmm got another error scanning demo file this time on my laptop? am i the only one with broken demos?
+09:50 < bridge> <zhn> your hard drive rusts every other day ig xd
+10:14 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> Well you can just predict self kill for sv_solo_server
+10:14 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> Actually this is for unique so only solo. No other tees required
+10:15 < bridge> <totar> ok but ddnet isn't going to put unqiue specific prediction in the client
+10:16 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> true since spawn times are different hmm
+10:16 < bridge> <totar> also kill prediction just like isn't possible because there's no intended tick sent with the message
+10:16 < bridge> <totar> it could happen at any time +- a few ticks
+10:17 < bridge> <totar> you need to change the protocol somehow
+10:17 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> sv_respawn_time could be scaled for half a second respawns. That would break all other servers tho.
+10:18 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> Add kill to the snapshots:D
+10:18 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> Add kill to the snapshots :D
+10:18 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> Solving all problems with no downsides to ddnet
+10:18 < bridge> <totar> no the other way around
+10:18 < bridge> <totar> from client -> server
+10:19 < bridge> <totar> the client needs to tell the server whick tick it pressed kill so the server can time it correctly
+10:19 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> XDD
+10:19 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> Exploiting kill
+10:22 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> tbh the kill logic is horrible
+10:23 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> It happens on the CPlayer level in the code. It's not actually part of the physics
+10:23 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> just like spec
+10:40 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> I sat like 4hrs yesterday and I still couldn't figure out the thing that makes weapon switching horrible
+12:10 < bridge> <learath2> Just accept that we don't have prediction for kills? Idk doesn't sound all that valuable to me
+12:18 < bridge> <jxsl13> my b0t needs that in order to aim faster at the next player 👀
+12:30 < bridge> <qxdfoxy> whats horrible about it specifically?
+13:04 < bridge> <kollpotato> chillerdragon: i reverse engineered teewars 0.2 connless messages in rust
+13:04 < bridge> <kollpotato> https://cdn.discordapp.com/attachments/293493549758939136/1389562190456950864/image.png?ex=68651223&is=6863c0a3&hm=1a5435eef0dfff60c1420296b076b11c837589b60bc42617787d3c42320ea578&
+13:04 < bridge> <kollpotato> i think they used varints back then too
+13:04 < bridge> <kollpotato> bcus if i try to set max players to 64 it shows -1
+13:04 < bridge> <kollpotato> im gonna test with teeint implementation
+13:07 < bridge> <kollpotato> it works now :D
+13:07 < bridge> <kollpotato> https://cdn.discordapp.com/attachments/293493549758939136/1389563150248181881/image.png?ex=68651307&is=6863c187&hm=63445e5d7cae1cde0e7844695850fd9bce29ea6bb635350d668894f7883b4d1d&
+13:19 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> self kill setups are the golden standard in race.
+13:30 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> epic self kill setups
+13:30 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> https://cdn.discordapp.com/attachments/293493549758939136/1389568902840848474/222.mp4?ex=68651863&is=6863c6e3&hm=58cf9ed49d1a2fb65233d8cb7a7b6273e433ac73aa85001d05e151140f652b30&
+13:35 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> https://cdn.discordapp.com/attachments/293493549758939136/1389570076646051862/run_artistry_setup.mp4?ex=6865197b&is=6863c7fb&hm=73d4fa8f2ad8513f86534ae4008ffd55d9b738f01a4e121a819ac935915295fd&
+13:49 < bridge> <sanefeel> https://cdn.discordapp.com/attachments/1329770907883016234/1389573310836379799/attachment.gif
+13:51 < bridge> <kollpotato> you cant without a special client
+14:00 < bridge> <sanefeel> ??
+15:16 < bridge> <kebscs> anyone has ddnet steam stats
+15:16 < bridge> <kebscs> how many players on different platforms
+15:25 < bridge> <ryozuki> only deen afaik
+15:26 < bridge> <ryozuki> cc @0xdeen
+15:26 < bridge> <kebscs> wouldnt be surprised
+15:28 < bridge> <ryozuki> @kebscs i fully support updating c++ i would go to 23 too but deen build machine always been the bottleneck xd
+15:28 < bridge> <ryozuki> afaik he builds a old linux because u need to build on oldest possible due to glibc stuff
+15:29 < bridge> <ryozuki> but i also think we should just support latest debian
+15:29 < bridge> <kebscs> idk about linux building
+15:29 < bridge> <ryozuki> it has gcc 12
+15:29 < bridge> <kebscs> but dont think we should support 10 year old linux systems
+15:29 < bridge> <ryozuki> yeah me neither
+15:29 < bridge> <ryozuki> ¯\_(ツ)_/¯
+15:30 < bridge> <ryozuki> i have gcc 15
+15:30 < bridge> <ryozuki> and clang 21
+15:30 < bridge> <chairn> pls stop pushing software obsolescence...
+15:30 < bridge> <ryozuki> pls update ur software
+15:30 < bridge> <chairn> sometimes, it's not always possible
+15:31 < bridge> <ryozuki> this is a game not a cli command
+15:31 < bridge> <chairn> imo, we should support ubuntu LTS (the 10 years one)
+15:31 < bridge> <ryozuki> we already pretty permissive
+15:32 < bridge> <ryozuki> ubuntu 22.04
+15:32 < bridge> <ryozuki> has gcc 11
+15:32 < bridge> <ryozuki> should support c++20
+15:33 < bridge> <ryozuki> luckily ubuntu 20 reached eol in may
+15:34 < bridge> <ryozuki> but here ill also add we are gatekeeping a new c++ version due to 0.5% of players probs (linux)
+15:34 < bridge> <ryozuki> probs less
+15:35 < bridge> <kebscs> 0.5% on linux
+15:35 < bridge> <kebscs> how many of them on 10 year old versions
+15:35 < bridge> <ryozuki> chairn i think
+15:35 < bridge> <ryozuki> xD
+15:35 < bridge> <kebscs> :kek:
+15:35 < bridge> <ryozuki> steam global stats show like 1-1.5% are linux players
+15:35 < bridge> <ryozuki> most steam deck
+15:35 < bridge> <ryozuki> which is arch (modern)
+15:37 < bridge> <kebscs> and its not like those players wont be able to playt
+15:37 < bridge> <kebscs> and its not like those players wont be able to play
+15:37 < bridge> <kebscs> ddnet mantains backwards compatibility with old versions 👍
+15:38 < bridge> <ryozuki> heinrich also gatekeeps the rust version from me
+15:38 < bridge> <ryozuki> :pepeW:
+16:52 < bridge> <kebscs> heinrich spawns once a month to just spew hate and block prs
+16:52 < bridge> <kebscs> 👍
+17:02 < bridge> <learath2> That's just unnecessarily mean
+17:03 < bridge> <kebscs> <https://github.com/ddnet/ddnet/pull/10445#issuecomment-3024242742>
+17:03 < bridge> <kebscs> how else would you call iot
+17:03 < bridge> <kebscs> how else would you call it
+17:03 < bridge> <kebscs> passive-aggresive, instead of hate?
+17:04 < bridge> <0xdeen> Sure, one second
+17:04 < bridge> <learath2> There is nothing agressive in what he wrote there, it's just facts. Do you think constexpr has anything to do with the player experience?
+17:04 < bridge> <kebscs> yes, if you do calculations at compile time
+17:04 < bridge> <kebscs> they dont run at runtime, so theyre faster
+17:04 < bridge> <kebscs> faster runtime=more fps
+17:06 < bridge> <0xdeen> Steam is not happy to provide stats:
+17:06 < bridge> <0xdeen> > Generating new survey data rollup, please wait...
+17:06 < bridge> <0xdeen> > failed to load
+17:06 < bridge> <learath2> I mean you can benchmark it. I doubt you'll get much improvement at all.
+17:06 < bridge> <learath2> 
+17:06 < bridge> <learath2> But that's not important here. If you think he is wrong, instead of talking behind his back here, write that in a comment on github
+17:06 < bridge> <kebscs> what do i write
+17:06 < bridge> <kebscs> its obvious hes passive aggresive all the time
+17:07 < bridge> <melon> he's just strict and direct
+17:07 < bridge> <kebscs> im not writing behind hes back, i just dont want to trash up github with random comments
+17:07 < bridge> <kebscs> as he does
+17:07 < bridge> <learath2> Going to C++20 would be mostly for developer convenience IMO aswell. And dropping support for older distros for that is IMO not worth it, especially since we are already on C++17
+17:07 < bridge> <kebscs> are we supporting players or just distros
+17:07 < bridge> <kebscs> is there anyone one these old distros is my question
+17:08 < bridge> <kebscs> is there anyone on these old distros is my question
+17:08 < bridge> <0xdeen> In my experience on every Debian upgrade people came to me and complained that DDNet doesn't work on their system anymore
+17:09 < bridge> <learath2> "I disagree with you, these language features might on the surface appear to be only developer facing. However, you'll find that they also improve the performance, thus are also good for the player."
+17:09 < bridge> <learath2> 
+17:09 < bridge> <learath2> At which point he'll ask you for a benchmark. At which point I'll guess you will find little to no improvement
+17:09 < bridge> <kebscs> i did already write that
+17:10 < bridge> <kebscs> i meant the passive aggressive comments
+17:10 < bridge> <kebscs> weird imo
+17:10 < bridge> <0xdeen> There were no passive aggressive comments from heinrich5991 in that GitHub PR
+17:10 < bridge> <kebscs> also steam doesnt support glibc older than 2.31
+17:10 < bridge> <melon> his comment? doesnt sound passive aggressive at all :o
+17:10 < bridge> <kebscs> "That's an actual feature visible to users. That's interesting. :)"
+17:10 < bridge> <kebscs> what does it mean
+17:11 < bridge> <kebscs> why downplay a feature
+17:11 < bridge> <0xdeen> That you are close to convincing him? 😄
+17:11 < bridge> <filoqcus> https://tenor.com/view/pipotam-baby-hippo-hippo-wash-shower-gif-3406421565683572068
+17:11 < bridge> <learath2> What part of his comment did you find passive aggressive there? He asked you the benefits of your PR. Pointed out that the benefits you mention are not user facing
+17:11 < bridge> <0xdeen> That was the part that convinced me to set up Debian 11, because if we get Windows Toast notifications it's probably worth it
+17:12 < bridge> <kebscs> i feel differently
+17:12 < bridge> <kebscs> and thats not the first time that happened
+17:13 < bridge> <melon> heinrich can! sound rude sometimes, but thats just his way of being strict and direct with his opinions and knowledge
+17:13 < bridge> <melon> he's been a core maintainer for both teeworlds and ddnet for more than a decade now, i wouldnt take it personally at all :p
+17:14 < bridge> <0xdeen> It's easy to misinterpret people in text messages since you don't have access to the usual visual/auditory clues? Without heinrich5991 DDNet wouldn't even be on Steam, he's one of the key people for a long long time already.
+17:16 < bridge> <kebscs> also about steam, would be nice if there was something like donation dlc
+17:16 < bridge> <learath2> Also code review is by it's nature a little hostile. We all take some amount of pride in our work. Someone critiquing it just comes off as agressive by default
+17:16 < bridge> <kebscs> or drops, ive seen few free games have it
+17:17 < bridge> <learath2> Also code review is by its nature a little hostile. We all take some amount of pride in our work. Someone critiquing it just comes off as agressive by default
+17:18 < bridge> <kebscs> if ddnet cant have it bcs of the limited profile features, then the dlc would maybe solve it as its based off money earned by game
+17:18 < bridge> <kebscs> ik, but never had a such hostile reviews as heinrich's
+17:22 < bridge> <learath2> His tone is usually very neutral, (except in a few cases). Maybe it's that we are in general more conservative in what we accept?
+17:22 < bridge> <fushi_gg> your PRs are silly
+17:22 < bridge> <fushi_gg> there you go now, you have more hostile reviews
+17:22 < bridge> <learath2> See now this would be hostile 😄
+17:22 < bridge> <kebscs> 💔
+17:24 < bridge> <kebscs> @0xdeen
+17:24 < bridge> <kebscs> even if steam takes 30% or something like that, thats still good for unused csgo skins
+17:25 < bridge> <fushi_gg> if people want to donate, they will find a way to do so I am pretty sure
+17:25 < bridge> <melon> i have a few euronies in my steam wallet, kebs is not wrong that people could have some euros to spend from cs2 gambling or something
+17:25 < bridge> <learath2> Are we having an issue with funding? I think we were only a tiny bit short last year and halfway thru this year we are halfway there
+17:25 < bridge> <melon> i dare hope so! donated all my christmas money :pepe_cry:
+17:26 < bridge> <learath2> We could probably find a way to gey some donations thru steam if needed. But do we need it?
+17:26 < bridge> <learath2> We could probably find a way to get some donations thru steam if needed. But do we need it?
+17:26 < bridge> <fushi_gg> I see, didn't understand the cs part
+17:26 < bridge> <kebscs> yea, but making it easier means more people would be happy to do it
+17:26 < bridge> <kebscs> now its kinda hard unless youre really invested into it
+17:27 < bridge> <kebscs> and paypal is blocked in russia i think
+17:27 < bridge> <kebscs> and most players are russian
+17:27 < bridge> <totar> more money = better servers?
+17:27 < bridge> <melon> most players are also very young :p
+17:27 < bridge> <learath2> Russian community seems to be mostly kids who don't really have the money
+17:27 < bridge> <kebscs> maybe they do, in steam wallets
+17:27 < bridge> <kebscs> 😆
+17:27 < bridge> <melon> upgrading servers would pump up costs, which then gets annoying when donations go down again
+17:27 < bridge> <learath2> Not really unless we start getting a fuckton more money. The next step is a lot higher
+17:27 < bridge> <totar> hmm
+17:28 < bridge> <louis> Send donator badge ingame
+17:28 < bridge> <fushi_gg> time to make p2w items for ddnet 🥀
+17:28 < bridge> <louis> u will be rolling in dough
+17:28 < bridge> <melon> deen did you ever leak your servers hardware? i'm curious now xD
+17:28 < bridge> <totar> surely there's some way that money is useful to us
+17:28 < bridge> <louis> u can guess based off yearly costs
+17:29 < bridge> <melon> well some servers are much more expensive than others
+17:29 < bridge> <kebscs> more locations?
+17:29 < bridge> <totar> Idk I think location coverage is pretty good tbh
+17:29 < bridge> <totar> outside of regions that are difficult to operate for other reasons
+17:30 < bridge> <learath2> Like if we want to get more money, I guess the first step might be to start broadcasting a little reminding people that we run on donations.
+17:30 < bridge> <learath2> 
+17:30 < bridge> <learath2> Maybe a small banner ad on ddnet.org
+17:30 < bridge> <learath2> 
+17:30 < bridge> <learath2> A discord role
+17:30 < bridge> <learath2> 
+17:30 < bridge> <learath2> Accounts + selling stuff like hats or a small donator tag next to the name for a year
+17:30 < bridge> <melon> we had a few locations that were taken down not because we dont care but because ddos became such a huge issue that it was wasted money xD
+17:30 < bridge> <melon> make new donation goal of like 15K€ so we can get proper ddos protection
+17:30 < bridge> <louis> i think the most useful case would be putting bounties on features for devs to code xd
+17:31 < bridge> <louis> cant think or anything else that would be substantially better
+17:31 < bridge> <fushi_gg> ~~add annoying pop up ads ingame while you play~~
+17:31 < bridge> <melon> :kek: - you get a badge for each type of github contribution
+17:31 < bridge> <melon> client:
+17:31 < bridge> <melon> server:
+17:31 < bridge> <melon> qol:
+17:31 < bridge> <melon> visual:
+17:31 < bridge> <totar> bounties are a little tricky because you don't want to encourage bad code just to claim the bounty
+17:31 < bridge> <learath2> The properest ddos protection we can get is what we have in GER10. I think any better than that and you are looking at thousands per location per month
+17:31 < bridge> <melon> yeah davide is a godsent
+17:31 < bridge> <louis> the maintainers would just have to maintain their standards ig
+17:31 < bridge> <louis> its already hard to get bad code thru rn
+17:32 < bridge> <totar> well
+17:32 < bridge> <fushi_gg> so we would need more maintainer badges
+17:32 < bridge> <melon> didnt Ewan manage to make a 2loc diff PR that was merged that actually formatted the entire CMakeList.txt
+17:32 < bridge> <melon> 
+17:32 < bridge> <melon> he could've injected some malicious stuff in there! /s
+17:33 < bridge> <melon> didnt Ewan manage to make a 2loc diff PR that was merged that actually formatted the entire CMakeLists.txt
+17:33 < bridge> <melon> 
+17:33 < bridge> <melon> he could've injected some malicious stuff in there! /s
+17:33 < bridge> <learath2> We should add skin gacha
+17:33 < bridge> <melon> aw hell nah you tryna get freddie addicted again?!
+17:33 < bridge> <totar> the way I've seen people doing bounties on other repos work is that they post the bounty and then someone will "claim" it so they can work on it without racing. But usually the person who claims it is just the core maintainer or the other 1 or 2 contributors. Which might be fine if it allows them you spend more time working on it, but that's usually how they guarantee good code quality.
+17:34 < bridge> <learath2> People love gacha
+17:34 < bridge> <totar> the way I've seen people doing bounties on other repos is that they post the bounty and then someone will "claim" it so they can work on it without racing. But usually the person who claims it is just the core maintainer or the other 1 or 2 contributors. Which might be fine if it allows them you spend more time working on it, but that's usually how they guarantee good code quality.
+17:34 < bridge> <totar> the way I've seen people doing bounties on other repos is that they post the bounty and then someone will "claim" it so they can work on it without racing. But usually the person who claims it is just the core maintainer or the other 1 or 2 contributors. Which might be fine if it allows them to spend more time working on it, but that's usually how they guarantee good code quality.
+17:34 < bridge> <melon> if twinbop isnt 5* i wont play
+17:34 < bridge> <kebscs> no need skins
+17:34 < bridge> <kebscs> steam drops, trading cards are fine
+17:35 < bridge> <learath2> Twinbop is 4*. Pool Party Twinbop will be 5*
+17:35 < bridge> <melon> :ohyeahh:
+17:35 < bridge> <kebscs> <https://store.steampowered.com/app/3419430/Bongo_Cat/>
+17:35 < bridge> <kebscs> this is a free game with steam drops, and people use it to have a chance for a cheap skin
+17:35 < bridge> <kebscs> would be a good player retention
+17:36 < bridge> <learath2> Idk what exactly we need to do to enable trading cards. But how do they make us money?
+17:36 < bridge> <totar> market fees
+17:36 < bridge> <melon> wasnt it a % based profit depending on for how much they sell on the market
+17:36 < bridge> <melon> there was this banana game that made a ton of money from that no?
+17:36 < bridge> <learath2> I thought steam yoinked those all for themselves, huh
+17:36 < bridge> <kebscs> yea this too
+17:37 < bridge> <totar> google says steam takes 5%, and the developer can pick but the default is 10%
+17:37 < bridge> <totar> tbh I did not know it was 15%
+17:37 < bridge> <totar> that's pretty high
+17:38 < bridge> <kebscs> is it + vat
+17:38 < bridge> <totar> idk
+17:38 < bridge> <kebscs> 15% for a game market isnt that high
+17:40 < bridge> <totar> can your game have trading cards if it's free?
+17:40 < bridge> <totar> I've never seen a free game with trading cards
+17:41 < bridge> <learath2> Idk
+17:41 < bridge> <totar> you can have market items but idk about specifically trading cards
+17:41 < bridge> <totar> those let you craft badges to level up your steam profile so I would assume steam reserves those for paid games
+17:42 < bridge> <kebscs> idk about cards
+17:42 < bridge> <kebscs> but this free game has 32 pages of items <https://steamcommunity.com/market/search?appid=3419430>
+17:45 < bridge> <abricotiabricota> Ok, so imma ask here, but I don't give it a hope. I need some bots to test a 4 player map (rly sitty to always asking for ppl), ans idk how to make them, if anyone can help :/
+17:46 < bridge> <Ewan> You don’t need bots you need skill
+17:46 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> open another client?
+17:47 < bridge> <abricotiabricota> Hum, I want make a copyfly with 2 players, so when i need them to moove same time, will not work.
+17:54 < bridge> <ryozuki> he is almost robot like so its normal but his arguments are often hard to counter
+17:55 < bridge> <robyt3> Didn't deen mean to wait a year before merging? :justatest:
+17:55 < bridge> <robyt3> https://cdn.discordapp.com/attachments/293493549758939136/1389635490596126813/image.png?ex=68655667&is=686404e7&hm=ab82131dcab9f0ce54d0b1c6f011272fe9a65d3c556aeb0f8860382b53515559&
+17:55 < bridge> <melon> :OMEGALUL:
+17:55 < bridge> <ryozuki> yes
+17:55 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1389635555725148305/rbzjLcI.png?ex=68655676&is=686404f6&hm=858adf2c335b6d3c89fb0bbde84ce81a087542d9723becacc716afae2968b97c&
+17:55 < bridge> <kebscs> i think it means 2023 next year
+17:55 < bridge> <ryozuki> :owo:
+17:56 < bridge> <kebscs> i think it means c++23 next year
+17:56 < bridge> <ryozuki> the time there is a bounty u will see 100 prs with low quality code trying to get in, oh and also AI bots
+17:57 < bridge> <ryozuki> next upgrade = ++23
+17:59 < bridge> <robyt3> What do you think about the style choice in #10441?
+17:59 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10441
+17:59 < bridge> <kebscs> imo first version reads naturally
+17:59 < bridge> <ryozuki> i like urs because i dislike assignments inside ifs
+17:59 < bridge> <ryozuki> i like urs (robyt) because i dislike assignments inside ifs
+17:59 < bridge> <kebscs> 2nd i have to think what happens
+18:00 < bridge> <ryozuki> to me second is more clear
+18:00 < bridge> <kebscs> for me if->do smth->else ->smth
+18:00 < bridge> <robyt3> We already have 55 assignments in ifs so I don't have a strong opinion on this particular one
+18:01 < bridge> <robyt3> We already have approx. 55 assignments in ifs so I don't have a strong opinion on this particular one
+18:01 < bridge> <ryozuki> we need another opinion then
+18:01 < bridge> <ryozuki> @learath2
+18:02 < bridge> <kebscs> hein did inside str_startswith inside ifs <https://github.com/ddnet/ddnet/pull/9403/files>
+18:02 < bridge> <kebscs> :kek:
+18:02 < bridge> <ryozuki> @robyt3 https://github.com/ddnet/ddnet/pull/10410
+18:03 < bridge> <robyt3> Still not really sure about this comment: https://github.com/ddnet/ddnet/pull/10410#discussion_r2167152743
+18:03 < bridge> <kebscs> just silencing it is good imo
+18:04 < bridge> <ryozuki> yeah
+18:04 < bridge> <robyt3> yeah, I'd prefer assuming that the original code had purpose and silence the warning instead
+18:04 < bridge> <ryozuki> @sollybunny
+18:08 < bridge> <kebscs> ive tried new clang format too and it makes the nested conditionals look bad
+18:08 < bridge> <kebscs> and theres no option to disable formatting them
+18:09 < bridge> <robyt3> yeah, that's why we are stuck on old clang-format
+18:09 < bridge> <kebscs> or at least i havent figured it out without breaking other stuff like class member initializer
+18:10 < bridge> <robyt3> Previous discussion: https://discord.com/channels/252358080522747904/293493549758939136/1346893965009621061
+18:10 < bridge> <Solly (bun bun)> The original code just calls an abort which is what we do anyway
+18:11 < bridge> <robyt3> The original code used `assert` from `cassert` which might be handled differently by clang
+18:11 < bridge> <Solly (bun bun)> Is that not what the clang break does?
+18:12 < bridge> <Solly (bun bun)> Oh wait what
+18:12 < bridge> <Solly (bun bun)> I should probably discuss his when I can share at the code
+18:12 < bridge> <Solly (bun bun)> I am busy rn
+18:12 < bridge> <robyt3> This replaced the existing `dbg_assert` entirely
+18:12 < bridge> <robyt3> ```cpp
+18:12 < bridge> <robyt3> #ifdef __clang_analyzer__
+18:12 < bridge> <robyt3> #include <cassert>
+18:12 < bridge> <robyt3> #undef dbg_assert
+18:12 < bridge> <robyt3> #define dbg_assert(test, fmt, ...) assert(test)
+18:12 < bridge> <robyt3> #endif
+18:12 < bridge> <robyt3> ```
+18:13 < bridge> <Solly (bun bun)> Yeah
+18:13 < bridge> <Solly (bun bun)> The compiler can optimize the value for that similarly to how it can dead code our iffs
+18:14 < bridge> <Solly (bun bun)> If it treats the abort presumably at the end of either as the same then there's no difference and I want it to not have special behaviour
+18:14 < bridge> <Solly (bun bun)> That is probably noreturned
+18:16 < bridge> <learath2> I love assignments inside ifs, but it seems someone snuck it into the styleguide. So I guess that takes precedence over my personal preference
+18:17 < bridge> <ryozuki> *angry noises*
+18:17 < bridge> <Solly (bun bun)> (assignments inside Ifs?)
+18:17 < bridge> <Solly (bun bun)> (as opposed to turnaries?)
+18:17 < bridge> <learath2> It's like the if let of C++
+18:17 < bridge> <ryozuki> as opposed to normal code
+18:17 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1389641154450165942/image.png?ex=68655bad&is=68640a2d&hm=5a466932ff6f2989fb310d56be4f6b447fcfce92de84894b73571ca4533811c2&
+18:18 < bridge> <Solly (bun bun)> Both are fine
+18:18 < bridge> <ryozuki> pss just say bottom one
+18:18 < bridge> <ryozuki> :owo:
+18:18 < bridge> <learath2> You can't deny the red version is more readable with the two if branches being equal. Just more pleasing on the eye
+18:18 < bridge> <ryozuki> its faster for me to parse the meaning on bottom one
+18:18 < bridge> <Solly (bun bun)> Bottom one reduces code repeat and if the argument is long then it's definitely more readable
+18:19 < bridge> <ryozuki> seeing a highlighted nullptr makes it quick af to know
+18:19 < bridge> <learath2> Really? I didn't immediately understand that the first branch was doing fall back parsing in its body
+18:19 < bridge> <ryozuki> ?? didnt u code in go
+18:19 < bridge> <ryozuki> go code looks a lot like bottom
+18:19 < bridge> <robyt3> It's still a somewhat subjective rule in the style guide
+18:20 < bridge> <learath2> Go has assignment in if, and I use it quite a lot
+18:20 < bridge> <ryozuki> :justatest:
+18:20 < bridge> <Solly (bun bun)> Isn't the style guide to make and enforce the arbitesry choices
+18:20 < bridge> <ryozuki> all the wrong langs have it i see
+18:20 < bridge> <Solly (bun bun)> Atleast those which matter to people which this seems to be
+18:20 < bridge> <ryozuki> a style guide is by def subjective xd
+18:20 < bridge> <learath2> Rust also has it what are yoi on about. What do you think those if lets are?
+18:20 < bridge> <learath2> Rust also has it what are you on about. What do you think those if lets are?
+18:21 < bridge> <Solly (bun bun)> Well theres also some things in the style guide that aren't subjective
+18:21 < bridge> <ryozuki> rust doesnt have assignment in ifs, only pattern matching
+18:21 < bridge> <ryozuki> its different
+18:21 < bridge> <robyt3> I mean the sentence "Unless the alternative code is more complex and harder to read." makes it more subjective than a strict rule
+18:21 < bridge> <Solly (bun bun)> Or rather have reasons behind or are good practice
+18:21 < bridge> <learath2> Potato potato
+18:21 < bridge> <ryozuki> assignment would be giving it another value
+18:21 < bridge> <ryozuki> pattern match isnt that
+18:21 < bridge> <ryozuki> POG
+18:21 < bridge> <ryozuki> 2025-07-25
+18:21 < bridge> <learath2> Is it giving a new value to a label or not?
+18:21 < bridge> <ryozuki> time to add this event to the wiki
+18:22 < bridge> <learath2> Then I prefer it as written with the assignments in the ifs
+18:23 < bridge> <ryozuki> xd
+18:23 < bridge> <ryozuki> in rust it has some functional sprinkled that makes it look good
+18:24 < bridge> <ryozuki> but
+18:24 < bridge> <ryozuki> u cant mutate  an external variable
+18:24 < bridge> <ryozuki> inside the if, even with pattern match
+18:24 < bridge> <ryozuki> which is what this does
+18:25 < bridge> <ryozuki> (also rust differentiates this with if vs if let)
+18:25 < bridge> <learath2> Idk it just feels very natural to me. "If the result of this function call satisfies this, proceed to do something with the result"
+18:25 < bridge> <ryozuki> to me it just feels like a "cool code" trick
+18:25 < bridge> <ryozuki> but readable code is better
+18:25 < bridge> <ryozuki> ¯\_(ツ)_/¯
+18:25 < bridge> <learath2> What do you have against coolness? 🙃
+18:26 < bridge> <ryozuki> well why dont we format ddnet source code like the c obfuscation challenge
+18:26 < bridge> <ryozuki> its cool
+18:26 < bridge> <kebscs> yippie
+18:27 < bridge> <ryozuki> ```c
+18:27 < bridge> <ryozuki> #define/**/Q(x,y)char*/*                               */q=y#x","#y")",*p,s[x;}
+18:27 < bridge> <ryozuki>   /*IOCCC'20*/#include/*                               */<stdio.h>/*-Qlock-*/
+18:27 < bridge> <ryozuki>     int(y),x,i,k,r;Q(9/*              12               */<<9];float(o)[03];
+18:27 < bridge> <ryozuki>       void(P)(){*o=r<0/*         11         1          */?r:-r;o[1]=39.5;
+18:27 < bridge> <ryozuki>        o[2]=22.5;for(k/*      10               2       */=0;++k<39;*o*=i
+18:27 < bridge> <ryozuki>         /6875.5/(k%2?k/*                               */:-k))y=o[1+k%2
+18:27 < bridge> <ryozuki>          ]+=*o;k=o[2];/*     9         o-------> 3     */p=s+y+k/2*80;
+18:27 < bridge> <ryozuki>           }int(main)()/*              /                */{for(p=s;+i<
+18:27 < bridge> <ryozuki>           1839;*q>32?k/*       8     L         4       */=i++/80-11,y
+18:27 < bridge> <ryozuki>            =(750>r*r+k/*          7         5          */*k*4)*4+y/2
+18:27 < bridge> <ryozuki>            ,*p++=r<41?/*               6               */y?"0X+0X+!"
+18:27 < bridge> <ryozuki>            [y-1]-1:+*q/*                               */++:10:*q++)
+18:27 < bridge> <ryozuki>            r=i%80-38;;/*                               */;for(x=13,r
+18:27 < bridge> <ryozuki>            =20;i=3600*/*     \       /    -------+     */--x,i;*p++=
+18:27 < bridge> <ryozuki>           "OISEA2dC8e"/*      \     /     ------ |     */[x%10],*p+=x
+18:27 < bridge> <ryozuki>           /10*41)P();r/*       \   /      ------ |     */=10;;sscanf(
+18:27 < bridge> <ryozuki>          __TIME__,"%d"/*        \ /       ------ |     */":%d:%d",&k,&
+18:27 < bridge> <ryozuki>         x,&i);for(i+=(/*         X        ------ |     */k*60+x)*60;18+
+18:27 < bridge> <ryozuki>        r;*p=k%2?*p%2?+/*      __/ \__         |  |     */59:44:*p>39?59:
+18:27 < bridge> <ryozuki>       39,i=!r--?i%3600/*     /  \ /  \        |  |     */*12:i)P();puts(s
+18:27 < bridge> <ryozuki>     ),"#define/**/Q(x"/*     \__/ \__/        +--+     */",y)char*q=y#x\","
+18:27 < bridge> <ryozuki>   "\"#y\")\",*p,s[x;}"/*                               */"/*IOCCC'20*/#inclu"
+18:27 < bridge> <ryozuki> "de<stdio.h>/*-Qlock-"/*                               */"*/int(y),x,i,k,r;Q(")
+18:27 < bridge> <ryozuki> ```
+18:27 < bridge> <ryozuki> cool code
+18:27 < bridge> <ryozuki> anyway if majority wants it let it be
+18:27 < bridge> <ryozuki> xd
+18:28 < bridge> <ryozuki> i guess heinrich uses it too
+18:32 < bridge> <learath2> Idk how best to explain it but the 3 equal branches are easiet to reason about for me. It's just "if it startswith A, do A, if it starts with B, do B, else just use the entire string"
+18:32 < bridge> <learath2> Idk how best to explain it but the 3 equal branches are easier to reason about for me. It's just "if it startswith A, do A, if it starts with B, do B, else just use the entire string"
+18:33 < bridge> <learath2> But I can see it being very subjective
+18:36 < bridge> <kebscs> same for me
+18:37 < bridge> <louis> agreed
+18:49 < bridge> <totar> I think my main issue with assignments in `if` is not that it's unclear what it does, but that it's easy to confuse = for == or vice versa if you're skimming quickly which sometimes leads to confusion
+18:49 < bridge> <totar> it's easier to just assume that if it's contained in the `if` that it's not assignment and then you can read it quicker
+18:50 < bridge> <totar> although in general I like compressing code into less lines so I don't hate it
+18:50 < bridge> <learath2> Yes, this is where it gets dangerous
+18:52 < bridge> <kebscs> Now that c++20 is merged time to constexpr everything :deen_star:
+18:52 < bridge> <totar> :justatest:
+18:53 < bridge> <aegisub> real
+19:13 < bridge> <melon> i agree, let the compiler suffer
+19:14 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> thank god im never upgrading my client. my cpu can't handle the compile times
+20:44 < bridge> <Ewan> Everything is exactly the same
+21:22 < bridge> <pioooooo> `if(a=b;a)`
+21:22 < bridge> <pioooooo> `if(a=b;a)` :nouis:
+21:23 < bridge> <Solly (bun bun)> if((a=b))?
+21:23 < bridge> <Solly (bun bun)> C(pp) doesn't have expression blocks except in extensions where it's normally ({})
+21:30 < bridge> <pioooooo> well i guess it's just that nobody use it
+21:30 < bridge> <pioooooo> https://en.cppreference.com/w/cpp/language/if.html
+21:33 < bridge> <kebscs> what part
+21:34 < bridge> <pioooooo> optional init statement
+21:36 < bridge> <kebscs> if(int a = x+2; a>2)
+21:36 < bridge> <kebscs> like this, the initalization of a?
+21:36 < bridge> <pioooooo> yeah kinda
+21:36 < bridge> <kebscs> its useful, if you want the a to only be in scope of the if
+21:38 < bridge> <pioooooo> Yes, but obviously not many even know this syntax
+21:39 < ws-client> <ChillerDragon> @kollpotato nice teewars server
+21:40 < ws-client> <ChillerDragon> @Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero today at 10:17 CET you mentioned ``sv_respawn_time`` i did not find that config. Where is that from?
+21:40 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> uhh
+21:42 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> i meant `sv_kill_delay`
+21:42 < ws-client> <ChillerDragon> a
+21:42 < ws-client> <ChillerDragon> ty
+21:42 < ws-client> <ChillerDragon> doesnt actually affect spawn delay or prediction does it?
+21:42 < ws-client> <ChillerDragon> It just drops the kill request
+21:42 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> exactly
+21:42 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> just serverside
+21:43 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> i wish it was a float tho
+21:43 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> doing whole seconds makes no sense
+21:43 < ws-client> <ChillerDragon> why float
+21:43 < ws-client> <ChillerDragon> floats suck
+21:44 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> int in milliseconds then
+21:44 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> or ticks
+21:44 < ws-client> <ChillerDragon> yes thats good
+21:44 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> but not seconds
+21:44 < ws-client> <ChillerDragon> i did ms in ddnet-insta for my respawn delays
+21:44 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> 0 makes everything horrible. 1 is too much for some respawn setups and generally annoying.
+21:45 < ws-client> <ChillerDragon> that is also why i was so curius i thought i reimplemented something that is already in ddnet
+21:45 < bridge> <Teeeeeeeeeeeeeeeeeeeeeeeeeeeeero> 0.5 is what unique uses
+22:04 < ws-client> <ChillerDragon> heinrich is gonna make me crashout every interaction with him makes my pulse raise lately
+22:12 < bridge> <jxsl13> time for bangkok
+22:12 < bridge> <jxsl13> vacation
+22:13 < bridge> <Ewan> float parsing teeworlds configs is dumb
+22:13 < bridge> <Ewan> nobody made a macro and i guess we’re all content writing string settings whenever the need arises
+22:14 < ws-client> <ChillerDragon> @jxsl13 i am in italy rn xd doesnt help
+22:15 < ws-client> <ChillerDragon> @Ewan i think faulty made one but floats bad
+22:15 < bridge> <jxsl13> hm
+22:15 < ws-client> <ChillerDragon> https://github.com/ddnet/ddnet/pull/9288
+22:15 < bridge> <Ewan> sometimes u need a config setting for floats
+22:16 < bridge> <Ewan> it’s not always logical to use an int instead
+22:16 < ws-client> <ChillerDragon> nah bro
+22:16 < ws-client> <ChillerDragon> float always bad
+22:16 < bridge> <Ewan> like the ui scale setting
+22:16 < bridge> <Ewan> or the hi dpi thing. which doesn’t work anymore. and i dont think that was ever a float
+22:16 < bridge> <Ewan> idk what im thinking of
+22:17 < bridge> <jxsl13> request a different reviewer 👀
+22:17 < bridge> <jxsl13> demand
+22:17 < ws-client> <ChillerDragon> thats not really how it works
+22:18 < ws-client> <ChillerDragon> once heinrich vetoes something other maintainers agree
+22:19 < bridge> <jxsl13> yeet him off his position! coup d'état
+22:19 < ws-client> <ChillerDragon> he helped me get 0.7 client support merged and was the only person supportive of it while everyone hated it and i am quite thankful
+22:20 < bridge> <jxsl13> duality of man
+22:20 < bridge> <jxsl13> 👀
+22:20 < ws-client> <ChillerDragon> but since then he seemed to disagree with me on literally everything every pr and issue is a fight and huge pain in my ass
+22:20 < ws-client> <ChillerDragon> contributing to ddnet became so frustrating
+22:20 < ws-client> <ChillerDragon> him not being in the live chat anymore does not help it i guess
+22:20 < bridge> <jxsl13> if you cannot flee it, enjoy it
+22:21 < bridge> <jxsl13> :kek:
+22:21 < ws-client> <ChillerDragon> enjoy what xd
+22:21 < bridge> <jxsl13> the butt pain
+22:21 < ws-client> <ChillerDragon> HUH
+22:23 < bridge> <jxsl13> *insert eye of the tiger music*
+22:25 < bridge> <jxsl13> you should probably enjoy your vacation and take time off to calm the mind.
+22:25 < ws-client> <ChillerDragon> ye fr
+22:26 < ws-client> <ChillerDragon> but isnt vacation about solving the ddnet issues one cba to fix while at home?
+22:27 < bridge> <jxsl13> do you have someone around rn?
+22:28 < bridge> <jxsl13> ask them to punch you.
+22:44 < ws-client> <ChillerDragon> xd
+22:50 < bridge> <melon> Punched him.
+23:39 < bridge> <filoqcus> How to change protocol.h?🥲
+23:41 < bridge> <kebscs> just change it, whats wrong?
+23:42 < bridge> <filoqcus> Where exactly do I change it? It's generated at build time. :justatest:
+23:42 < bridge> <robyt3> Generated protocol files are created by the scripts in `datasrc`
+23:42 < bridge> <filoqcus> Thank!
+23:42 < bridge> <kebscs> ah
+23:43 < bridge> <kebscs> theres another protocol.h that isnt generated
+23:43 < bridge> <kebscs> :kek:
+23:47 < bridge> <inv41idu53rn4m3> That's not a very broad cast, is it?
+23:49 < bridge> <kebscs> narrowcast

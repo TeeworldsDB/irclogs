@@ -1,0 +1,454 @@
+00:47 < bridge_> <El BobLex> hi guys, hope this is the right channel to ask in so here goes. 
+00:47 < bridge_> <El BobLex> Can anyone tell me why my gametype for my mod shows as "unknow" in the server browser? i believe i have correctly registered it and it is correct in my autoexec. i know it's loading as i can see it's my mod when i join the server but something else must be done to get it to display properly in the server browser?
+00:47 < bridge_> <DDNet> Hellou :3
+00:50 < bridge_> <chillerdragon> @_smech_: what do you mean by „unknown“? If you have a non ddnet based mod there are master register issues right now
+00:50 < bridge_> <chillerdragon> But it shouldn’t show as „unknown“ in that case it should just not show up at all
+00:51 < bridge_> <chillerdragon> @teero777: what is a builtin assume
+00:56 < bridge_> <El BobLex> im building from ddnet source
+00:56 < bridge_> <El BobLex> if that helps
+01:02 < bridge_> <El BobLex> https://cdn.discordapp.com/attachments/293493549758939136/1360027193736171690/screenshot_2025-04-11_00-00-16.png?ex=67f99f87&is=67f84e07&hm=d63f665646361f07e84bf2833f8d46fad9233a18530efc21718e63ceed7973f9&
+01:02 < bridge_> <kebscs> did you change it in source?
+01:03 < bridge_> <El BobLex> yes
+01:06 < bridge_> <El BobLex> i added it to this part in gamecontext.cpp
+01:06 < bridge_> <El BobLex> ```
+01:06 < bridge_> <El BobLex> if(!str_comp(Config()->m_SvGametype, "mod"))
+01:07 < bridge_> <El BobLex>     m_pController = new CGameControllerMod(this);
+01:07 < bridge_> <El BobLex> else
+01:07 < bridge_> <El BobLex>     m_pController = new CGameControllerDDRace(this);
+01:07 < bridge_> <El BobLex> ```
+01:08 < bridge_> <kebscs> what about ```#define GAME_TYPE_NAME "Mod"
+01:08 < bridge_> <kebscs> #define TEST_TYPE_NAME "TestMod"```
+01:09 < bridge_> <El BobLex> ooooh i've not done that. where is that located?
+01:09 < bridge_> <kebscs> <https://github.com/search?q=repo%3Addnet%2Fddnet+testddr&type=code>
+01:10 < bridge_> <kebscs> also could someone help me, im so stuck 
+01:10 < bridge_> <kebscs> ```std::string separator = "";
+01:10 < bridge_> <kebscs> for (size_t i = 0; i < size; i++)
+01:10 < bridge_> <kebscs> {
+01:10 < bridge_> <kebscs>         printf("%s%s", separator.c_str(), name.c_str());
+01:10 < bridge_> <kebscs>         separator = ", ";
+01:10 < bridge_> <kebscs>     }```
+01:10 < bridge_> <kebscs> why does this print only the last element on linux and works fine on windows
+01:10 < bridge_> <kebscs> so on linux its just `,name10` instead of `name1, name2, name3`etc
+01:11 < bridge_> <learath2> You are not using i anywhere in your loop, you are not doing anything to name
+01:12 < bridge_> <kebscs> also could someone help me, im so stuck 
+01:12 < bridge_> <kebscs> ```std::string separator = "";
+01:12 < bridge_> <kebscs> for (size_t i = 0; i < size; i++)
+01:12 < bridge_> <kebscs> {
+01:12 < bridge_> <kebscs> std::string name = loadedNames[i % loadedNames.size()];
+01:12 < bridge_> <kebscs>         printf("%s%s", separator.c_str(), name.c_str());
+01:12 < bridge_> <kebscs>         separator = ", ";
+01:12 < bridge_> <kebscs>     }```
+01:12 < bridge_> <kebscs> my bad i removed too much code
+01:12 < bridge_> <kebscs> fixed now
+01:13 < bridge_> <kebscs> i can print when i add \n at the end but i want it on 1 line
+01:16 < bridge_> <learath2> Just use ubsan, you removed far too much for this to be debuggable remotely just by looking
+01:17 < bridge_> <learath2> and/or gdb
+01:17 < bridge_> <kebscs> i literally have no idea it works fine on windows
+01:17 < bridge_> <kebscs> least bizarre linux bug
+01:18 < bridge_> <learath2> Smells like some sort of UB
+01:18 < bridge_> <learath2> (if something so simple were broken on linux a lot more people would have noticed by now)
+01:20 < bridge_> <kebscs> also have this which is similar
+01:21 < bridge_> <kebscs> ```void Entity::Action()
+01:21 < bridge_> <kebscs> {
+01:21 < bridge_> <kebscs>     std::string name = GetName();
+01:21 < bridge_> <kebscs>     printf("%s\n", name.c_str()); // works
+01:21 < bridge_> <kebscs>     using namespace std::chrono_literals;
+01:21 < bridge_> <kebscs>     std::this_thread::sleep_for(500ms);
+01:21 < bridge_> <kebscs>     printf("%s is ready.\n", name.c_str()); // doesnt work
+01:21 < bridge_> <kebscs> }```
+01:21 < bridge_> <kebscs> if i add anymore text to the first printf itll also wont work
+01:21 < bridge_> <kebscs> i mean an invisible string so its just " is ready"
+01:22 < bridge_> <kebscs> windows ofc works fine
+01:23 < bridge_> <kebscs> ???
+01:23 < bridge_> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1360032390545805492/image.png?ex=67f9a45e&is=67f852de&hm=3f96a0a9b78367f9fc9ea41cbdd6ea27eb506239b173426ee278ce6b37e2b22b&
+01:25 < bridge_> <learath2> Just fire up gdb and check what is going on
+01:27 < bridge_> <learath2> I'd wager `GetName` is returning something wrong somehow
+01:28 < bridge_> <kebscs> its just returning class member string
+01:28 < bridge_> <kebscs> idk, ill check gdb
+01:28 < bridge_> <learath2> Or maybe there is something wrong with your printf, is it `std::printf`?
+01:29 < bridge_> <learath2> or just compile with ubsan and asan, those can spot issues much more easily than messing around in gdb if you are not familiar with gdb
+01:29 < bridge_> <kebscs> its normal printf, i also have logging func with std::vfprintf and same thing
+01:32 < bridge_> <kebscs> i added them to cmake, compile what next
+01:32 < bridge_> <kebscs> nothing shows up
+01:34 < bridge_> <learath2> What exactly did you add? `-fsanitize=undefined`?
+01:34 < bridge_> <kebscs> ```add_compile_options(
+01:34 < bridge_> <kebscs>     -fsanitize=address,undefined
+01:34 < bridge_> <kebscs>     -fno-sanitize-recover=all
+01:34 < bridge_> <kebscs>     -g
+01:34 < bridge_> <kebscs> )
+01:34 < bridge_> <kebscs> add_link_options(-fsanitize=address,undefined)```
+01:35 < bridge_> <learath2> Well if nothing shows up then you are doomed to investigate by hand
+01:40 < bridge_> <kebscs> :(
+01:40 < bridge_> <learath2> The first thing to look at is simple enough, break at the line where you do `GetName`, `next` once, check the contents of name with `print name`
+01:42 < bridge_> <learath2> If that looks fine, you just zip everything up and send it to me and I take a look because I'm curious 😄
+01:42 < bridge_> <kebscs> this part is compiled into static lib if that helps
+01:46 < bridge_> <Ewan> are you null terminating the std string for some reason
+01:47 < bridge_> <kebscs> no
+01:48 < bridge_> <Ewan> i mean, what’s in GetName()
+01:49 < bridge_> <kebscs> `return name`
+01:49 < bridge_> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1360039019660181545/image.png?ex=67f9aa8a&is=67f8590a&hm=a7694e083804e20bfb85da68b95893cc4dd9492354138b196d5507d9c86fefdb&
+01:49 < bridge_> <kebscs> i think its bcs windows uses /r/n for end lines and it read the /r into the names
+01:49 < bridge_> <kebscs> XD
+01:50 < bridge_> <learath2> The `\r` lol
+01:50 < bridge_> <Ewan> yeah
+01:50 < bridge_> <learath2> windowsed
+01:50 < bridge_> <Ewan> wtf
+01:50 < bridge_> <kebscs> 💀
+01:50 < bridge_> <Ewan> use std endl
+01:50 < bridge_> <kebscs> nahh
+01:50 < bridge_> <learath2> I'm curious why it behaves so badly though
+01:50 < bridge_> <Ewan> what compiler kebs
+01:51 < bridge_> <learath2> OH it works as a literal carriage return 😄
+01:51 < bridge_> <learath2> I never thought about that
+01:52 < bridge_> <learath2> it prints `Frances` goes all the way back to the start because of the `\r`, then it prints the `aSD\n` over the `Fran` leaving `aSDces`
+01:52 < bridge_> <Ewan> yeah
+01:52 < bridge_> <kebscs> gcc
+01:53 < bridge_> <kebscs> well yea getline failed me
+01:53 < bridge_> <learath2> it prints `Frances` goes all the way back to the start because of the `\r`, then it prints the ` aSD\n` over the `Fran` leaving `aSDces`
+01:53 < bridge_> <Ewan> yea
+01:53 < bridge_> <kebscs> ty for help i was so stuck on this
+01:53 < bridge_> <Ewan> yea
+01:53 < bridge_> <Ewan> windows funny
+01:54 < bridge_> <kebscs> no its linux funny
+01:57 < bridge_> <kebscs> windows would never betray me like that
+02:09 < bridge_> <gabbcs> @learath2 can you help me?
+07:20 < bridge_> <teero777> https://stackoverflow.com/questions/63493968/reproducing-clangs-builtin-assume-for-gcc
+07:20 < bridge_> <teero777> Chillerdragon:
+07:20 < bridge_> <teero777> Gm
+08:39 < bridge_> <melon> Gm
+08:39 < bridge_> <melon> @sollybunny TiL typedef and using doesnt seem to be identical after all, a quick google makes it seem like you cant use template typedef
+08:40 < bridge_> <melon> @sollybunny TiL typedef and using dont seem to be identical after all, a quick google makes it seem like you cant use template typedef
+10:13 < bridge_> <Solly (bun bun)> thats not much of a difference
+10:13 < bridge_> <Solly (bun bun)> see uhmm the comment i left
+10:13 < bridge_> <Solly (bun bun)> got some other minor things to try convince heiny
+10:13 < bridge_> <Solly (bun bun)> fuck
+10:13 < bridge_> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1360165910652129290/image.png?ex=67fa20b7&is=67f8cf37&hm=5a443bc12c118f68a892cffee6a44a9a81549ec3170b9b5b761cea0cd9d2132a&
+10:13 < bridge_> <Solly (bun bun)> https://github.com/ddnet/ddnet/pull/10027#discussion_r2038779930
+10:14 < bridge_> <Solly (bun bun)> i really hate typedef due to the last reason
+10:14 < bridge_> <Solly (bun bun)> becuse dyslexia xd
+10:14 < bridge_> <Solly (bun bun)> most people its not really an issue
+10:14 < bridge_> <Solly (bun bun)> @robyt3 back me up!
+10:15 < bridge_> <melon> :Aware:  - its whatever, as mentioned i only find it slightly more readable but its not at all a neccessary change
+10:15 < bridge_> <Solly (bun bun)> its much more readable for me
+10:15 < bridge_> <Solly (bun bun)> when writing them or reading them, it takes much less time to grok it
+10:15 < bridge_> <Solly (bun bun)> ugh fucking elon musk ruined the word grok
+10:16 < bridge_> <Solly (bun bun)> ~~ugh fucking elon musk ruined the word grok~~ (being a hater)
+10:16 < bridge_> <Solly (bun bun)> it doesnt change alot of code and doesnt effect downstream code so i dont see it as a big change
+10:20 < bridge_> <Solly (bun bun)> "ruined" makes me think of stewie griffin saying "ruined" like "rhleu-iend"
+11:03 < bridge_> <Assa> I found out where the FPS loss came from, after getting used to MS profiling:
+11:03 < bridge_> <Assa> Apparently in the huge block of if continue things, I missed one, which caused entities to get rendered even if they are fully transparent
+11:04 < bridge_> <Assa> I'll show the results of my "optimizing-the-shit-out-of-rendering" branch soon
+11:04 < bridge_> <Assa> Oh and good morning everyone 🌞
+11:15 < bridge_> <Assa> **Standing still for 3000 frametimes** selected frames for comparison:
+11:15 < bridge_> <Assa> 
+11:15 < bridge_> <Assa> Num. of Frametimes old2:                     3000
+11:15 < bridge_> <Assa> Average old2:                         404.48533333333336 µs
+11:15 < bridge_> <Assa> Average FPS old2:                     2472.2775279861817
+11:15 < bridge_> <Assa> Max old2:                             584 µs
+11:15 < bridge_> <Assa> Min old2:                             274 µs
+11:15 < bridge_> <Assa> Total Time old2:                         1.213456 s
+11:15 < bridge_> <Assa> Num. of Frametimes new frametimes:3000
+11:15 < bridge_> <Assa> Average new frametimes:             398.623 µs
+11:15 < bridge_> <Assa> Average FPS new frametimes:         2508.635979358943
+11:15 < bridge_> <Assa> Max new frametimes:                 495 µs
+11:15 < bridge_> <Assa> Min new frametimes:                 305 µs
+11:15 < bridge_> <Assa> Total Time new frametimes:             1.195869 s
+11:15 < bridge_> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1360181328812965948/RenderComparison2.png?ex=67fa2f13&is=67f8dd93&hm=cb91ae3680e38bc3cb5e82114df0c52fdfbf570efc323cc5111a30d35000cc92&
+11:15 < bridge_> <Assa> orange is the new rendering, so it's a bit faster
+11:17 < bridge_> <Assa> **ALL DATA for fair comparison** over almost 10 seconds:
+11:17 < bridge_> <Assa> 
+11:17 < bridge_> <Assa> ```
+11:17 < bridge_> <Assa> Num. of Frametimes old2:         23880
+11:17 < bridge_> <Assa> Average old2:                  418.3531825795645 µs
+11:17 < bridge_> <Assa> Average FPS old2:              2390.3248299295897
+11:17 < bridge_> <Assa> Max old2:                 1798 µs
+11:17 < bridge_> <Assa> Min old2:                 166 µs
+11:17 < bridge_> <Assa> Total Time old2:             9.990274 s
+11:17 < bridge_> <Assa> Num. of Frametimes new frametimes:       26554
+11:17 < bridge_> <Assa> Average new frametimes:             376.17074640355503 µs
+11:17 < bridge_> <Assa> Average FPS new frametimes:         2658.3672695462674
+11:17 < bridge_> <Assa> Max new frametimes:             1738 µs
+11:18 < bridge_> <Assa> Min new frametimes:             226 µs
+11:18 < bridge_> <Assa> Total Time new frametimes:             9.988838 s
+11:18 < bridge_> <Assa> ```
+11:18 < bridge_> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1360182016452071584/RenderComparison3.png?ex=67fa2fb7&is=67f8de37&hm=170760601634a526331a2538988cdc5823df88863538bee621c2a44f0e628db1&
+11:19 < bridge_> <Assa> **Standing still for 3000 frametimes** selected frames for comparison:
+11:19 < bridge_> <Assa> 
+11:19 < bridge_> <Assa> ```
+11:19 < bridge_> <Assa> Num. of Frametimes old2:               3000
+11:19 < bridge_> <Assa> Average old2:                          404.48533333333336 µs
+11:19 < bridge_> <Assa> Average FPS old2:                      2472.2775279861817
+11:19 < bridge_> <Assa> Max old2:                              584 µs
+11:19 < bridge_> <Assa> Min old2:                              274 µs
+11:19 < bridge_> <Assa> Total Time old2:                       1.213456 s
+11:19 < bridge_> <Assa> Num. of Frametimes new frametimes:     3000
+11:19 < bridge_> <Assa> Average new frametimes:                398.623 µs
+11:19 < bridge_> <Assa> Average FPS new frametimes:            2508.635979358943
+11:19 < bridge_> <Assa> Max new frametimes:                    495 µs
+11:19 < bridge_> <Assa> Min new frametimes:                    305 µs
+11:19 < bridge_> <Assa> Total Time new frametimes:             1.195869 s
+11:19 < bridge_> <Assa> ```
+11:19 < bridge_> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1360181328812965948/RenderComparison2.png?ex=67fa2f13&is=67f8dd93&hm=cb91ae3680e38bc3cb5e82114df0c52fdfbf570efc323cc5111a30d35000cc92&
+11:19 < bridge_> <Assa> **ALL DATA for fair comparison** over almost 10 seconds:
+11:19 < bridge_> <Assa> 
+11:19 < bridge_> <Assa> ```
+11:19 < bridge_> <Assa> Num. of Frametimes old2:            23880
+11:19 < bridge_> <Assa> Average old2:                       418.3531825795645 µs
+11:19 < bridge_> <Assa> Average FPS old2:                   2390.3248299295897
+11:19 < bridge_> <Assa> Max old2:                           1798 µs
+11:19 < bridge_> <Assa> Min old2:                           166 µs
+11:19 < bridge_> <Assa> Total Time old2:                    9.990274 s
+11:19 < bridge_> <Assa> Num. of Frametimes new frametimes:  26554
+11:19 < bridge_> <Assa> Average new frametimes:             376.17074640355503 µs
+11:19 < bridge_> <Assa> Average FPS new frametimes:         2658.3672695462674
+11:19 < bridge_> <Assa> Max new frametimes:                 1738 µs
+11:20 < bridge_> <Assa> Min new frametimes:                 226 µs
+11:20 < bridge_> <Assa> Total Time new frametimes:          9.988838 s
+11:20 < bridge_> <Assa> ```
+11:20 < bridge_> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1360182016452071584/RenderComparison3.png?ex=67fa2fb7&is=67f8de37&hm=170760601634a526331a2538988cdc5823df88863538bee621c2a44f0e628db1&
+11:20 < bridge_> <Assa> As you can see, I collected ~1500 frames more in 10 seconds
+11:20 < bridge_> <Jupstar ✪> What is your benchmark setup to make it reproducable on other computers
+11:22 < bridge_> <Assa> Essentially, I grab the same demo for everything, stop it and set it to 0, type `demo_play; benchmark_quit 10 filename` in f1
+11:22 < bridge_> <Jupstar ✪> Yes, can you send the demo 😄
+11:22 < bridge_> <Assa> If you have a better idea to collect this data go ahead
+11:23 < bridge_> <Assa> I need to press escape once, in order to close the f1 terminal
+11:23 < bridge_> <Jupstar ✪> And the script for the graph output
+11:23 < bridge_> <chillerdragon> @teero777: that’s cool! I can only imagine the debugging nightmare if you get it wrong
+11:23 < bridge_> <Assa> Is an ugly jupyter notebook
+11:23 < bridge_> <Jupstar ✪> I can also send you my frametime output
+11:24 < bridge_> <Assa> Is an ~~ugly~~ (I wrote worse, it's fine Ig)  jupyter notebook
+11:24 < bridge_> <Assa> this is pushed nowhere so far, this is so far an experimental branch 😄
+11:25 < bridge_> <Jupstar ✪> The benchmark? or the ddnet code
+11:25 < bridge_> <Assa> The ddnet code
+11:25 < bridge_> <Jupstar ✪> Just push it xd
+11:25 < bridge_> <Assa> I can push it to my fork, but I won't PR it, it'll require a cleanup xD
+11:26 < bridge_> <Jupstar ✪> Sounds good
+11:26 < bridge_> <Assa> also don't even bother with Opengl 1.4 on this branch yet
+11:26 < bridge_> <Jupstar ✪> I wont
+11:27 < bridge_> <Assa> @jupeyy_keks  https://github.com/AssassinTee/ddnet/tree/feature/maplayer-optimize
+11:28 < bridge_> <Assa> following optimizations were done:
+11:28 < bridge_> <Assa> - precompute layercounts
+11:28 < bridge_> <Assa> - early exit path optimization for most common layers (e.g layertype -1)
+11:28 < bridge_> <Assa> - precompute gamegroup, because we don't need to iterate through everything anymore
+11:28 < bridge_> <Assa> following optimizations were done:
+11:28 < bridge_> <Assa> - precompute layercounts
+11:28 < bridge_> <Assa> - early exit path optimization for most common layers (e.g layertype -1)
+11:28 < bridge_> <Assa> - precompute gamegroup, because we don't need to iterate through everything anymore
+11:28 < bridge_> <Assa> - some **const** because I can
+11:29 < bridge_> <Jupstar ✪> Can you share your demo, so I have same setup as you
+11:29 < bridge_> <Assa> :_;
+11:30 < bridge_> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1360185100188385441/KingsLeap_2025-04-09_21-59-23.demo?ex=67fa3296&is=67f8e116&hm=c0089dc1ce21677c95ac585e1ce0179b1f9e236f147b010c1bfb6e498ad49574&
+11:30 < bridge_> <Jupstar ✪> ty :deen_star:
+11:36 < bridge_> <Assa> Python script for frames:
+11:36 < bridge_> <Assa> ```
+11:36 < bridge_> <Assa> import numpy as np
+11:36 < bridge_> <Assa> import matplotlib.pyplot as plt
+11:36 < bridge_> <Assa> 
+11:36 < bridge_> <Assa> def read_frametimes(filename):
+11:36 < bridge_> <Assa>   times = []
+11:36 < bridge_> <Assa>   with open(filename) as file:
+11:36 < bridge_> <Assa>     for line in file:
+11:36 < bridge_> <Assa>         line.rstrip()
+11:36 < bridge_> <Assa>         chunks = line.split(" ")
+11:37 < bridge_> <Assa>         if(len(chunks) != 3 or chunks[0] != "Frametime" or chunks[2] != "us\n"):
+11:37 < bridge_> <Assa>           print(chunks)
+11:37 < bridge_> <Assa>           raise ValueError(line)
+11:37 < bridge_> <Assa>         times.append(int(chunks[1]))
+11:37 < bridge_> <Assa>   print(filename, len(times))
+11:37 < bridge_> <Assa>   return np.array(times)
+11:37 < bridge_> <Assa> 
+11:37 < bridge_> <Assa> def print_stats(frametimes, name):
+11:37 < bridge_> <Assa>   print(f"Num. of Frametimes {name}:\t{len(frametimes)}")
+11:37 < bridge_> <Assa>   print(f"Average {name}:\t\t\t {np.average(frametimes)} µs")
+11:37 < bridge_> <Assa>   print(f"Average FPS {name}:\t\t {10**6 / np.average(frametimes)}")
+11:37 < bridge_> <Assa>   print(f"Max {name}:\t\t\t\t {np.max(frametimes)} µs")
+11:37 < bridge_> <Assa>   print(f"Min {name}:\t\t\t\t {np.min(frametimes)} µs")
+11:37 < bridge_> <Assa>   print(f"Total Time {name}:\t\t\t {np.sum(frametimes) / (10**6)} s")
+11:37 < bridge_> <Assa>   plt.plot(frametimes)
+11:37 < bridge_> <Assa> 
+11:37 < bridge_> <Assa> new_data = read_frametimes("maplayers_new")
+11:37 < bridge_> <Assa> old_data = read_frametimes("maplayers_old")
+11:37 < bridge_> <Assa> 
+11:37 < bridge_> <Assa> for frametimes, name in [(old_data, "old"), (new_data, "new")]:
+11:37 < bridge_> <Assa> stript it down to the essentials, I should cleanup the alignment of print_stats but couldn't be bothered
+11:40 < bridge_> <Jupstar ✪> Ok had  to do smth else rly quick, here is my result:
+11:40 < bridge_> <Jupstar ✪> ```
+11:40 < bridge_> <Jupstar ✪> maplayers_new 81970
+11:40 < bridge_> <Jupstar ✪> maplayers_old 79161
+11:40 < bridge_> <Jupstar ✪> Num. of Frametimes old: 79161
+11:40 < bridge_> <Jupstar ✪> Average old:                     125.83321332474324 µs
+11:40 < bridge_> <Jupstar ✪> Average FPS old:                 7947.027446714379
+11:41 < bridge_> <Jupstar ✪> Max old:                                 2658 µs
+11:41 < bridge_> <Jupstar ✪> Min old:                                 55 µs
+11:41 < bridge_> <Jupstar ✪> Total Time old:                  9.961083 s
+11:41 < bridge_> <Jupstar ✪> Num. of Frametimes new: 81970
+11:41 < bridge_> <Jupstar ✪> Average new:                     121.50484323533 µs
+11:41 < bridge_> <Jupstar ✪> Average FPS new:                 8230.124605512266
+11:41 < bridge_> <Jupstar ✪> Max new:                                 3148 µs
+11:41 < bridge_> <Jupstar ✪> Min new:                                 42 µs
+11:41 < bridge_> <Jupstar ✪> Total Time new:                  9.959752 s
+11:41 < bridge_> <Jupstar ✪> ```
+11:41 < bridge_> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1360187838951461026/image.png?ex=67fa3523&is=67f8e3a3&hm=4fd2d13af6ff783542b91427035196c179e7495f45e86bc911ed17db79667b3a&
+11:47 < bridge_> <Assa> you also got more frames, but not to a huge degree
+11:48 < bridge_> <Assa> 8240 fps lol wtf?
+11:49 < bridge_> <Jupstar ✪> I made the window small to make the CPU bottleneck more obvious
+11:49 < bridge_> <Assa> is that a success, 300 more fps to 8000? XD
+11:49 < bridge_> <Jupstar ✪> Now imagine the 9950x3D was literally double as fast T_T
+11:50 < bridge_> <Jupstar ✪> To be more scientific one would probs need to run a few times so it's not just that the game ran on slower cores. But yes, there is most likely some advatage
+11:50 < bridge_> <Jupstar ✪> If it's reproduced on 2 computers then there is a good chance at least 😄
+11:52 < bridge_> <Assa> I guess time to bring it into production asap
+11:52 < bridge_> <Assa> Also, I spend yesterday and today combined like 5 hours debugging why it was slower before ;__; hope it's worth it (prob. not)
+12:06 < bridge_> <Assa> oh no, clang tidy doesn't like implicit fallthroughs D:
+12:21 < bridge_> <Solly (bun bun)> just do [[fallthrough]] is cpp11 compatible
+12:21 < bridge_> <Solly (bun bun)> that guys 1984 pc running windows vista communist edition thanks you
+12:22 < bridge_> <Solly (bun bun)> everyone else appreciates the 10fps extra
+12:22 < bridge_> <Solly (bun bun)> ❤️
+12:22 < bridge_> <Assa> @jupeyy_keks In this mock I just filled a vector with ints for the TotalTileLayerCount (and another one for Overlay Count), but as far as I remember you wanted an overlay object or something like that?
+12:23 < bridge_> <Solly (bun bun)> uhh
+12:23 < bridge_> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1360198470920704070/image.png?ex=67fa3f0a&is=67f8ed8a&hm=ec0d1f70e12e03890d3f43d926a2a6cca887be22237df251b0b398ebdc0fca38&
+12:23 < bridge_> <Assa> I'll still need to check what Opengl 1.4 does to him, but it should be quite more efficient because it just doesn't overlay count
+12:23 < bridge_> <Jupstar ✪> I think it would be nice to have, but if you prefer otherwise you can do what you prefer
+12:24 < bridge_> <Assa> I just don't want to fill the ram with a lot of zeros / I don't know how to do the data struture for this properly
+12:25 < bridge_> <Assa> In most cases we only have 1 tileset or 1 quadlayer count, in just a few exceptions we have overlays and maybe want to add the texture ID
+12:29 < bridge_> <Assa> I just noticed how to get rid of the second vector, rubber duck debugging
+12:29 < bridge_> <Assa> so it's just a vector of ints in the end
+12:29 < bridge_> <Solly (bun bun)> I put duck emojis at the end of my comments cuz its like automated explaining to the duck, cuz the ducks right there and for everyone right next to the explanation at all times
+12:34 < bridge_> <Assa> 🦆
+12:38 < bridge_> <Jupstar ✪> A std::vector
+12:40 < bridge_> <Assa> yes
+13:15 < bridge_> <robyt3> yeah, you'll want to do multiple runs and ignore the results of the first few runs where some warmup might take place like loading the accessed files into RAM
+13:28 < furo> @0xdeen Hey, there seems to be a problem with the `ddnet.sqlite.zip` export. It's sometimes missing the `race` and `mapinfo` table.
+13:35 < bridge_> <Assa> I'll do it, first the last refactoring needs to go through ^.^ but I'll be on vacation next week, so it'll take some time
+16:10 < bridge_> <learath2> Why are 0.7 clients sending startinfo more than once, what is this aaaaaaa
+16:14 < bridge_> <murpi> Drop 0.7 support
+16:18 < bridge_> <A Moderator> based
+16:19 < bridge_> <soulyvevo> chillerdragon: omg how do you get so many people on your fng server
+16:22 < bridge_> <ryozuki> https://jpfennell.com/posts/enum-type-size/
+16:22 < bridge_> <ryozuki> @learath2 @jupeyy_keks did u know the rust compiler can use a char invalid utf8 value as a optimization to use that as a tag inside a enum
+16:24 < bridge_> <Jupstar ✪> no, didn't know
+16:25 < bridge_> <korabdl> how to turn off this feature permanently
+16:25 < bridge_> <korabdl> https://cdn.discordapp.com/attachments/293493549758939136/1360259459796045996/Ddnet_Screenshot_2025.04.11_-_16.22.20.90.png?ex=67fa77d7&is=67f92657&hm=5d0a406a9787b4efffc90c50c3238844ae20f1852309a8d4797f435fb3008c48&
+16:25 < bridge_> <korabdl> help
+16:25 < bridge_> <zhn> read left bottom text
+16:26 < bridge_> <Solly (bun bun)> (ctrl-shift-d)
+16:26 < bridge_> <korabdl> forever.
+16:26 < ws-client> <ChillerDragon> @soulyvevo idk my solofng is booming with russian botters since while. It will probably go empty once i enable antibot autokick
+16:26 < bridge_> <korabdl> i know
+16:27 < ws-client> <ChillerDragon> @soulyvevo u want rcon?
+16:27 < bridge_> <korabdl> there is no such team
+16:27 < bridge_> <korabdl> нуы
+16:27 < bridge_> <korabdl> yesa
+16:27 < bridge_> <korabdl> yes
+16:27 < bridge_> <always> are you souly
+16:27 < bridge_> <Solly (bun bun)> i would like rcon
+16:27 < bridge_> <Solly (bun bun)> im souly
+16:27 < ws-client> <ChillerDragon> ok
+16:27 < ws-client> <ChillerDragon> find me in game
+16:28 < bridge_> <always> hi souly
+16:28 < bridge_> <korabdl> there is no such team?
+16:28 < bridge_> <always> what did you try @korabdl
+16:28 < bridge_> <korabdl> da
+16:28 < bridge_> <Assa> remove D button from keyboard :nouis:
+16:28 < bridge_> <soulyvevo> i banned like 4
+16:29 < bridge_> <korabdl> XD
+16:29 < bridge_> <soulyvevo> i already have xd
+16:29 < ws-client> <ChillerDragon> i totally knew that was a test
+16:29 < ws-client> <ChillerDragon> solly didnt pass it
+16:29 < bridge_> <Solly (bun bun)> i cant find you D:
+16:29 < ws-client> <ChillerDragon> axaxaxax
+16:29 < bridge_> <Solly (bun bun)> brb
+16:29 < bridge_> <Solly (bun bun)> theres an afk you D:
+16:29 < bridge_> <Jupstar ✪> i searched for ws-client online, nobody found
+16:30 < bridge_> <korabdl> as far as I understand there is no such command yet.
+16:31 < bridge_> <Assa> and there probably won't be, I am just wondering how you are butter-fingering this, to much emote spam?
+16:33 < bridge_> <always> russian chillerbot
+16:35 < bridge_> <always> how can i get my dummies client id? 
+16:35 < bridge_> <always> i tried const int DummyClientId = m_pClient->m_aLocalIds[1];
+16:35 < bridge_> <always> but if i swap to the dummy it doesnt get my main tees client id
+16:39 < bridge_> <kebscs> m_aLocalIds[0] = main id m_aLocalIds[1] = dummy id
+16:40 < bridge_> <always> and how would i know which is active?
+16:40 < bridge_> <kebscs> m_aLocalIds[g_Config.m_ClDummy]
+16:40 < bridge_> <always> thanks
+16:41 < bridge_> <always> that actually makes alot of sense
+16:41 < bridge_> <always> common sense isnt common for me
+16:43 < bridge_> <Solly (bun bun)> SODDAAAA
+16:43 < bridge_> <always> now i just gotta make this look nice
+16:46 < bridge_> <Assa> is there any reason deattiles don't kill you on test servers?
+16:48 < bridge_> <kebscs> is practice by default enabled?
+16:52 < bridge_> <louis> yeah practice before default is on
+16:54 < bridge_> <louis> yeah practice by default is on
+16:54 < bridge_> <steinchen99> https://db.ddstats.org/ddnet-95bce50?sql=SELECT+DENSE_RANK%28%29+OVER+%28ORDER+BY+t.time+ASC%29+AS+Rank%2C+t.Name%2C+MIN%28t.Time%29+as+Time%2C+cp1%2C+cp2%2C+cp3%2C+cp4%2C+cp5%2C+cp6%2C+cp7%2C+cp8%2C+cp9%2C+cp10++FROM+teamrace+AS+t+JOIN+race+AS+r+ON+r.name+%3D+t.name+AND+r.time+%3D+t.time+AND+r.timestamp+%3D+t.timestamp+WHERE+t.map+%3D+%27Multeasymap%27+AND+cp1+%3E+0+GROUP+BY+t.Name+ORDER+BY+t.time+ASC+LIMIT+20%3B 
+16:54 < bridge_> <steinchen99> hey why does this not work?
+16:54 < bridge_> <steinchen99> it's supposed to show teamrank's on a map + sort out maps where cp1 has not been passed thru (just to sort out no cp runs)
+16:56 < bridge_> <learath2> `1780 Drop { cid: 6, reason: "Timeout" }` a person who has never joined the server dropping
+16:56 < bridge_> <kebscs> the website bugged and theres no race table
+16:56 < bridge_> <learath2> So many small issues in teehistorian that I neve realized
+16:56 < bridge_> <steinchen99> Wot.. it used to previously work
+16:57 < bridge_> <steinchen99> What is it then instead of race?
+16:57 < bridge_> <Assa> yes seems so
+16:58 < bridge_> <kebscs> theres none
+16:58 < bridge_> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1360267807362646036/image.png?ex=67fa7f9d&is=67f92e1d&hm=6f02cb209bd0c0d8e22235d77995b76db39f3be1382796e70b731a24edda7739&
+16:59 < bridge_> <steinchen99> Wtf, they updated it?
+16:59 < bridge_> <steinchen99> TIMESTAMP??
+17:01 < bridge_> <steinchen99> thanks though!
+17:15 < bridge_> <always> need opinions
+17:15 < bridge_> <always> https://cdn.discordapp.com/attachments/293493549758939136/1360272120407392356/DDNet_xDA0g4iYOc.png?ex=67fa83a2&is=67f93222&hm=6c95aecc3cc49be09950f0ea666b67ee8339edb9c9f884946b72f768752df056&
+17:15 < bridge_> <always> https://cdn.discordapp.com/attachments/293493549758939136/1360272120780820540/DDNet_LmVEygS2C6.png?ex=67fa83a2&is=67f93222&hm=149f4ca1b02d8ec6ef4a59776cf3bd1eebd08e8ec9b98a26490c988782c9b192&
+17:15 < bridge_> <always> ignore the Y
+17:16 < bridge_> <always> might need to make the box bigger
+17:16 < bridge_> <soulyvevo> chillerdragon: :troll:
+17:16 < bridge_> <soulyvevo> https://cdn.discordapp.com/attachments/293493549758939136/1360272337278074880/screenshot_2025-04-11_17-15-28.png?ex=67fa83d5&is=67f93255&hm=603b0871a3db9be4def5d5bc4ceee5f670e3e5860383dd6a05f683189564a614&
+17:44 < ws-client> <ChillerDragon> @soulyvevo it will update the server but pls dont do it -.-
+17:44 < bridge_> <learath2> Over the span of just a couple days, I've noticed that you just can't really make any assumptions about teehistorian files, even if it seems completely sane
+17:45 < bridge_> <learath2> People will login twice in a row, people will leave without joining, auth before joining
+18:14 < bridge_> <Jupstar ✪> @robyt3 what exactly does this break?
+18:14 < bridge_> <Jupstar ✪> 
+18:14 < bridge_> <Jupstar ✪> some audio stuff?
+18:15 < bridge_> <robyt3> I think it breaks almost every interaction because `$dynCall` includes mouse callbacks I guess
+18:15 < bridge_> <Jupstar ✪> And with make the client works again?
+18:16 < bridge_> <robyt3> If you rip out HTTP and make the graphics non-threaded somehow :justatest:
+18:16 < bridge_> <Jupstar ✪> 😮
+18:16 < bridge_> <robyt3> But I didn't attempt that yet
+18:16 < bridge_> <robyt3> But it looks like it should work if we could solve the pthread usage
+18:17 < bridge_> <totar> what made emstripten stop working in the first place?
+18:17 < bridge_> <totar> that sounds like big changes to make
+18:18 < bridge_> <robyt3> I assume the way the graphics interact with SDL somehow changed
+18:18 < bridge_> <Jupstar ✪> emscripten itself probably xd
+18:18 < bridge_> <robyt3> I tried with the same SDL version as the working build
+18:19 < bridge_> <robyt3> Haven't tried with the same DDNet version though
+18:19 < bridge_> <Jupstar ✪> did you compile on windows or wsl?
+18:19 < bridge_> <robyt3> I guess I could do that, but then I'd have to figure out if it even builds without other fixes
+18:19 < bridge_> <robyt3> In Ubuntu VM
+18:19 < bridge_> <robyt3> I'm switching to BoringSSL for Android btw, because OpenSSL doesn't have any activity on https://github.com/openssl/openssl/pull/24002 and without we would have to keep embedding the CA file which would eventually expire
+18:20 < bridge_> <robyt3> Also I need to get some food now
+18:20 < bridge_> <Jupstar ✪> Bon Apetit
+18:33 < bridge_> <Assa> Robyt beat me to it D:
+18:33 < bridge_> <kebscs> same
+18:33 < bridge_> <Assa> okay I have to leave in 15 minutes and still need to pack hm
+18:35 < bridge_> <robyt3> Strange how GitHub even allowed the PR with no changes to master but also no conflicts. Other PRs get closed if they have no changes to master.
+19:24 < bridge_> <A Moderator> chillerdragon: when stop ddos so i can keep on grinding
+22:19 < bridge_> <always> hopefully doesnt instally get rejected because it has dummy in the titler
+22:19 < bridge_> <always> hopefully doesnt instally get rejected because it has dummy in the title
+22:20 < bridge_> <Ewan> seems fine
+22:21 < bridge_> <Ewan> i know someone’s gonna say it’s extra clutter
+22:21 < bridge_> <Ewan> like having 5 different weird UI rects all over the place isn’t already :greenthing:
+22:21 < bridge_> <always> like ctrl+shift+d isnt cluttered aswell
+22:22 < bridge_> <Ewan> yeah
+22:22 < bridge_> <always> + if you dont want it dont use it
+22:22 < bridge_> <Ewan> has anyone heard from Heinrich about ddnet stuff lately?
+22:42 < bridge_> <kebscs> havent looked much at code
+22:42 < bridge_> <kebscs> but would be better if its 1 config to just show dummy values aswell
+22:43 < bridge_> <kebscs> rather than one for each value
+22:43 < bridge_> <always> i like the customisibility
+22:43 < bridge_> <always> what if you dont wanna show the dummy angle
+22:43 < bridge_> <always> its kinda useless
+22:44 < bridge_> <always> or your dont care about speed
+22:44 < bridge_> <always> i personally would use only pos probably
+22:44 < bridge_> <always> pos and speed
+22:44 < bridge_> <always> we need opinions from dummy players
+22:48 < bridge_> <kebscs> itll get rejected bcs too many config options then
+22:48 < bridge_> <kebscs> heinrich etc
+22:49 < bridge_> <always> cant have customisibility in 2025 smh
+22:51 < bridge_> <vahemaaa> yooo kebs how are you
+23:19 < bridge_> <kebscs> hi
+23:19 < bridge_> <kebscs> im good, whats up?

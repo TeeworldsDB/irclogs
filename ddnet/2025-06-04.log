@@ -1,0 +1,613 @@
+07:22 < bridge> <meloƞ> That just sounds like the average llvm experience xD
+07:22 < bridge> <meloƞ> Utilizing it for your lang?
+07:22 < bridge> <meloƞ> Or learning it just for the sake of it
+07:33 < bridge> <Ewan> just building it
+07:33 < bridge> <milkeeycat> @blaiszephyr
+08:59 < bridge> <meloƞ> :brownbear:
+09:13 < bridge> <louis> i remember trying to build llvm for risc v shit took way too long
+09:16 < bridge> <Assa> @robyt3 should I fix #10307 first or should I keep working on the pipeline instead, since it fixes it?
+09:16 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/10307
+10:03 < bridge> <kebscs> Pipeline
+10:55 < bridge> <ryozuki> morning
+11:02 < bridge> <vahemaaa> morning ruyozuki
+13:37 < bridge> <pioooooo> :what:
+13:37 < bridge> <pioooooo> https://cdn.discordapp.com/attachments/293493549758939136/1379786082761314414/f0e2e081c7483056.png?ex=6841816d&is=68402fed&hm=36a033ade584b4aef80defca28e7ebe34f8f159df0fbdbc62522430828a83f1b&
+13:40 < bridge> <robyt3> Probably because the path contains a backslash instead
+13:41 < bridge> <robyt3> I think the check also doesn't work if you open the file from externally
+13:42 < bridge> <robyt3> Only works if you open the map with the file dialog in the editor directly
+13:43 < bridge> <pioooooo> yeah i just checked the code
+13:43 < bridge> <pioooooo> maybe should instead call some storage api to check it
+13:52 < bridge> <robyt3> Did you open the map file by double clicking it in the file explorer?
+15:53 < bridge> <Solly (bun bun)> I FINALLY GOT IT TO HAPPEN ON A BUILD WITH DEBUG INFO
+15:53 < bridge> <Solly (bun bun)> ```
+15:53 < bridge> <Solly (bun bun)> void CUuidManager::RegisterName(int Id, const char *pName)
+15:53 < bridge> <Solly (bun bun)> {
+15:53 < bridge> <Solly (bun bun)>     dbg_assert(GetIndex(Id) == (int)m_vNames.size(), "names must be registered with increasing ID (got=%d want=%d)", GetIndex(Id), (int)m_vNames.size());
+15:53 < bridge> <Solly (bun bun)>     CName Name;
+15:53 < bridge> <Solly (bun bun)>     Name.m_pName = pName;
+15:53 < bridge> <Solly (bun bun)>     Name.m_Uuid = CalculateUuid(pName);
+15:53 < bridge> <Solly (bun bun)>     dbg_assert(LookupUuid(Name.m_Uuid) == -1, "duplicate uuid");
+15:53 < bridge> <Solly (bun bun)> ```
+15:53 < bridge> <Solly (bun bun)> duplicate
+15:53 < bridge> <Solly (bun bun)> duplicate uuid for some reason
+15:54 < bridge> <Solly (bun bun)> ```cpp
+15:54 < bridge> <Solly (bun bun)> #0  dbg_assert_imp (filename=filename@entry=0x5555559aed78 "/home/solly/Code/ddnet/src/engine/shared/uuid_manager.cpp", line=line@entry=125, fmt=fmt@entry=0x5555559c6a2c "otal")
+15:54 < bridge> <Solly (bun bun)>     at /home/solly/Code/ddnet/src/base/system.cpp:153
+15:54 < bridge> <Solly (bun bun)> #1  0x000055555560cf26 in CUuidManager::RegisterName (this=this@entry=0x555555b062c0 <g_UuidManager>, Id=Id@entry=65546, pName=pName@entry=0x5555559c6362 "invalid")
+15:54 < bridge> <Solly (bun bun)>     at /home/solly/Code/ddnet/src/engine/shared/uuid_manager.cpp:125
+15:54 < bridge> <Solly (bun bun)> #2  0x00005555556052cd in RegisterUuids (pManager=pManager@entry=0x555555b062c0 <g_UuidManager>) at /home/solly/Code/ddnet/src/engine/shared/protocol_ex_msgs.h:33
+15:55 < bridge> <Solly (bun bun)> #3  0x00005555555aa759 in CreateGlobalUuidManager () at /home/solly/Code/ddnet/src/engine/shared/global_uuid_manager.cpp:10
+15:55 < bridge> <Solly (bun bun)> #4  __static_initialization_and_destruction_0 () at /home/solly/Code/ddnet/src/engine/shared/global_uuid_manager.cpp:16
+15:55 < bridge> <Solly (bun bun)> #5  _GLOBAL__sub_I_g_UuidManager () at /home/solly/Code/ddnet/src/engine/shared/global_uuid_manager.cpp:16
+15:55 < bridge> <Solly (bun bun)> #6  0x00007ffff38377e4 in call_init (argc=1, argv=0x7fffffffe098, env=<optimized out>) at ../csu/libc-start.c:145
+15:55 < bridge> <Solly (bun bun)> #7  __libc_start_main_impl (main=0x5555555aa880 <main(int, char const**)>, argc=1, argv=0x7fffffffe098, init=<optimized out>, fini=<optimized out>, rtld_fini=<optimized out>, stack_end=0x7fffffffe088)
+15:55 < bridge> <Solly (bun bun)>     at ../csu/libc-start.c:347
+15:55 < bridge> <Solly (bun bun)> #8  0x00005555555bd535 in _start ()
+15:55 < bridge> <Solly (bun bun)> ```
+15:56 < bridge> <Solly (bun bun)> no clue how this is being caused
+15:57 < bridge> <Solly (bun bun)> ` Name = {m_Uuid = {m_aData = {<optimized out> <repeats 16 times>}}, m_pName = 0x5555559c6362 "invalid"}`
+15:57 < bridge> <Solly (bun bun)> so 2 invalids caused a duplicate?
+16:02 < bridge> <pioooooo> I dragged and dropped it to a open client
+16:14 < bridge> <Solly (bun bun)> how on earth did it get "invalid"???
+16:15 < bridge> <Solly (bun bun)> anyone good at debugging?
+16:21 < bridge> <learath2> I'd say I'm pretty decent. What are we debugging?
+16:22 < bridge> <Solly (bun bun)> debug assert after exit by ctrl-z then kill -9
+16:22 < bridge> <Solly (bun bun)> sometimes
+16:22 < bridge> <Solly (bun bun)> i cant really go from the top since idk how the error is happening but ill try
+16:23 < bridge> <Solly (bun bun)> should i dm you
+16:23 < bridge> <Solly (bun bun)> or spam in #developer some more
+16:23 < bridge> <learath2> Spam more
+16:23 < bridge> <Solly (bun bun)> okay
+16:23 < bridge> <Solly (bun bun)> `    dbg_assert(LookupUuid(Name.m_Uuid) == UUID_INVALID, "duplicate uuid %s", Name.m_pName);` is failing
+16:23 < bridge> <Solly (bun bun)> in `void CUuidManager::RegisterName(int Id, const char *pName)`
+16:24 < bridge> <Solly (bun bun)> for some reason pName is "invalid" here (i cant find any disasembly or where this "invalid" comes from)
+16:24 < bridge> <Solly (bun bun)> but for it to be a duplicate it would have to already be registered
+16:25 < bridge> <Solly (bun bun)> ```
+16:25 < bridge> <Solly (bun bun)> int CUuidManager::LookupUuid(CUuid Uuid) const
+16:25 < bridge> <Solly (bun bun)> {
+16:25 < bridge> <Solly (bun bun)>     CNameIndexed Needle;
+16:25 < bridge> <Solly (bun bun)>     Needle.m_Uuid = Uuid;
+16:25 < bridge> <Solly (bun bun)>     Needle.m_Id = 0;
+16:25 < bridge> <Solly (bun bun)>     auto Range = std::equal_range(m_vNamesSorted.begin(), m_vNamesSorted.end(), Needle);
+16:25 < bridge> <Solly (bun bun)>     if(std::distance(Range.first, Range.second) == 1)
+16:25 < bridge> <Solly (bun bun)>     {
+16:25 < bridge> <Solly (bun bun)>         return GetId(Range.first->m_Id);
+16:25 < bridge> <Solly (bun bun)>     }
+16:25 < bridge> <Solly (bun bun)>     return UUID_UNKNOWN;
+16:25 < bridge> <Solly (bun bun)> }
+16:25 < bridge> <Solly (bun bun)> ```
+16:25 < bridge> <Solly (bun bun)> im not sure how this determines duplicates
+16:25 < bridge> <Solly (bun bun)> but its searching `m_vNamesSorted`
+16:25 < bridge> <Solly (bun bun)> which i can print
+16:25 < bridge> <Solly (bun bun)> ```
+16:25 < bridge> <Solly (bun bun)> $29 = std::vector of length 10, capacity 16 = {{m_Uuid = {m_aData = "\bL&\250\r\3426\032\247\333\026\234\024\262F\236"}, m_Id = 9}, {m_Uuid = {m_aData = "\"bd\210r\3075#\226\230\032\034\221\343#J"},
+16:25 < bridge> <Solly (bun bun)>     m_Id = 5}, {m_Uuid = {m_aData = "#\321m\276x\255:\203\213\265o\223\222)\377", <incomplete sequence \341>}, m_Id = 1}, {m_Uuid = {m_aData = "1\243\320\333R\3156\005\205\f-\275\r\363|\246"}, m_Id = 7}, {
+16:25 < bridge> <Solly (bun bun)>     m_Uuid = {m_aData = "3\352\226\340z\206;\003\227K\316\343\341o\245\241"}, m_Id = 3}, {m_Uuid = {m_aData = "q\225\206\351\024\245;{\257(N\365\240\252\002\\"}, m_Id = 6}, {m_Uuid = {
+16:25 < bridge> <Solly (bun bun)>       m_aData = "\277\367\313\334\303&>퀡J+\a\224p\003"}, m_Id = 4}, {m_Uuid = {m_aData = "\305L\f]6\3333\353\254/\374\375%", <incomplete sequence \304>}, m_Id = 8}, {m_Uuid = {
+16:25 < bridge> <Solly (bun bun)>       m_aData = "\3141\034\337\314T4ӑ\005b\264\005[\215H"}, m_Id = 2}, {m_Uuid = {m_aData = "ӫc\3138\237?\237\267/\332 SK\000\266"}, m_Id = 0}}
+16:25 < bridge> <Solly (bun bun)> ```
+16:25 < bridge> <Solly (bun bun)> sadly it doesnt store the names
+16:26 < bridge> <Solly (bun bun)> ```
+16:26 < bridge> <Solly (bun bun)> print CalculateUuid("invalid")
+16:26 < bridge> <Solly (bun bun)> $30 = {m_aData = "\bL&\250\r\3426\032\247\333\026\234\024\262F\236"}
+16:26 < bridge> <Solly (bun bun)> ```
+16:26 < bridge> <Solly (bun bun)> but if there were a duplicate it would be this
+16:26 < bridge> <Solly (bun bun)> id = 9
+16:26 < bridge> <Solly (bun bun)> ```
+16:26 < bridge> <Solly (bun bun)> 
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_WHATIS, "what-is@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_ITIS, "it-is@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_IDONTKNOW, "i-dont-know@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> 
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_RCONTYPE, "rcon-type@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_MAP_DETAILS, "map-details@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_CAPABILITIES, "capabilities@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_IAMTATER, "iamtater@sjrc6.github.io")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_TATER_CHECKSUM_REQUEST, "checksum-request@sjrc6.github.io")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_TATER_CHECKSUM_RESPONSE, "checksum-response@sjrc6.github.io")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_CLIENTVER, "clientver@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_PINGEX, "ping@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> UUID(NETMSG_PONGEX, "pong@ddnet.tw")
+16:26 < bridge> <Solly (bun bun)> ```
+16:27 < bridge> <Solly (bun bun)> (pname should be each one of these)
+16:27 < bridge> <Solly (bun bun)> the id starts from 0 and goes up
+16:27 < bridge> <Solly (bun bun)> so "9" is `UUID(NETMSG_TATER_CHECKSUM_RESPONSE, "checksum-response@sjrc6.github.io")`
+16:27 < bridge> <Solly (bun bun)> ```cpp
+16:27 < bridge> <Solly (bun bun)> (gdb) print CalculateUuid("checksum-response@sjrc6.github.io")
+16:27 < bridge> <Solly (bun bun)> $31 = {m_aData = "\305L\f]6\3333\353\254/\374\375%", <incomplete sequence \304>}
+16:27 < bridge> <Solly (bun bun)> ```
+16:27 < bridge> <Solly (bun bun)> which is this... im not sure what incomplete sequence means
+16:27 < bridge> <Solly (bun bun)> but it might be something something memory corruption
+16:27 < bridge> <Solly (bun bun)> and thats where i am at
+16:27 < ws-client> <ChillerDragon> @avolicious any plans for fixing the crashes? GER3 #14 45.141.57.45:8313 just crashed ._.
+16:28 < bridge> <Solly (bun bun)> incomplete sequence means its not clean utf-8, i dont expect an md5 hash to, so this is fine
+16:29 < bridge> <Solly (bun bun)> when 9 was called, similar to now (it fails on "pong@ddnet.tw") it must have been "invalid" somehow
+16:29 < bridge> <Solly (bun bun)> when 9 was called, similar to now (it fails on "pong@ddnet.tw") it must have been magiced into "invalid" somehow
+16:30 < bridge> <Solly (bun bun)> sorry ping@ddnet.tw
+16:30 < bridge> <Solly (bun bun)> is where it crashed
+16:31 < bridge> <Solly (bun bun)> brrp no i cant count
+16:31 < bridge> <Solly (bun bun)> its `UUID(NETMSG_CLIENTVER, "clientver@ddnet.tw")`
+16:32 < bridge> <Solly (bun bun)> (pro tip never try to autocomplete in gdb)
+16:32 < bridge> <Solly (bun bun)> (its frozen...)
+16:32 < bridge> <Solly (bun bun)> oh im an idiot
+16:33 < bridge> <Solly (bun bun)> this doesnt collide aswell
+16:33 < bridge> <Solly (bun bun)> when i do print &"invalid" it gives me the same address
+16:33 < bridge> <Solly (bun bun)> so somewhere it is defined
+16:33 < bridge> <Solly (bun bun)> but its not a symbol
+16:34 < bridge> <Solly (bun bun)> oh but theres multiple "invalids"
+16:35 < bridge> <Solly (bun bun)> ```
+16:35 < bridge> <Solly (bun bun)> (gdb) print &"invalid"
+16:35 < bridge> <Solly (bun bun)> $39 = (char (*)[8]) 0x555555dac120
+16:35 < bridge> <Solly (bun bun)> ``` and ```
+16:35 < bridge> <Solly (bun bun)> m_pName = 0x5555559c6362 "invalid"}
+16:35 < bridge> <Solly (bun bun)> ```
+16:36 < bridge> <Solly (bun bun)> i can dissasemble le function and so ive got the address for every one
+16:36 < bridge> <Solly (bun bun)> thanks mr gdb for commenting what the value in memory is
+16:37 < bridge> <Solly (bun bun)> idk why that isnt inlined
+16:37 < bridge> <Solly (bun bun)> load the value directly into the register
+16:38 < bridge> <Solly (bun bun)> so the address which is being passed in is correct with the one the bt shows for the argument
+16:38 < bridge> <Solly (bun bun)> ```asm
+16:38 < bridge> <Solly (bun bun)>    0x00005555556052bc <+204>:    mov    $0x1000a,%esi
+16:38 < bridge> <Solly (bun bun)>    0x00005555556052c1 <+209>:    lea    0x3c109a(%rip),%rdx        # 0x5555559c6362
+16:38 < bridge> <Solly (bun bun)>    0x00005555556052c8 <+216>:    call   0x55555560cb10 <_ZN12CUuidManager12RegisterNameEiPKc>
+16:38 < bridge> <Solly (bun bun)> => 0x00005555556052cd <+221>:    mov    %rbx,%rdi
+16:38 < bridge> <Solly (bun bun)> ```
+16:38 < bridge> <Solly (bun bun)> but when i look at the source code
+16:39 < bridge> <Solly (bun bun)> ah i wish i could see source and dissasembly at same time
+16:43 < bridge> <Solly (bun bun)> i can,,, but i cant scroll very easily
+16:47 < bridge> <Solly (bun bun)> ```
+16:47 < bridge> <Solly (bun bun)> 0x5555559c62c3 -----------
+16:47 < bridge> <Solly (bun bun)> 0x5555559c62d4 hot data size invalid
+16:47 < bridge> <Solly (bun bun)> 0x5555559c62e3 nvalid
+16:47 < bridge> <Solly (bun bun)> 0x5555559c62f8 items
+16:47 < bridge> <Solly (bun bun)> 0x5555559c630b large
+16:47 < bridge> <Solly (bun bun)> 0x5555559c6320 nge
+16:47 < bridge> <Solly (bun bun)> 0x5555559c6336 item types
+16:47 < bridge> <Solly (bun bun)> 0x5555559ae128 checksum-request@sjrc6.github.io
+16:47 < bridge> <Solly (bun bun)> 0x5555559ae150 checksum-response@sjrc6.github.io
+16:48 < bridge> <Solly (bun bun)> 0x5555559c634f invalid
+16:48 < bridge> <Solly (bun bun)> 0x5555559c6362 invalid
+16:48 < bridge> <Solly (bun bun)> ```
+16:48 < bridge> <Solly (bun bun)> here is what each passed in arg is
+16:48 < bridge> <Solly (bun bun)> what the absolute fuck
+16:50 < bridge> <Solly (bun bun)> ```
+16:50 < bridge> <Solly (bun bun)> 0x5555559c62c3 ----------- != what-is@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c62d4 hot data size invalid != it-is@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c62e3 nvalid != i-dont-know@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c62f8 items != rcon-type@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c630b large != map-details@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c6320 nge != capabilities@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c6336 item types != iamtater@sjrc6.github.io
+16:50 < bridge> <Solly (bun bun)> 0x5555559ae128 checksum-request@sjrc6.github.io == checksum-request@sjrc6.github.io
+16:50 < bridge> <Solly (bun bun)> 0x5555559ae150 checksum-response@sjrc6.github.io == checksum-response@sjrc6.github.io
+16:50 < bridge> <Solly (bun bun)> 0x5555559c634f invalid != clientver@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> 0x5555559c6362 invalid != ping@ddnet.tw
+16:50 < bridge> <Solly (bun bun)> ```
+16:50 < bridge> <Solly (bun bun)> they line up???
+16:50 < bridge> <Solly (bun bun)> what did checksum request and response do to deserve not being butchered
+17:02 < bridge> <Solly (bun bun)> IT HAPPENS IN ASAN
+17:37 < bridge> <Jupstar ✪> can you give tldr?
+17:37 < bridge> <Jupstar ✪> 
+17:37 < bridge> <Jupstar ✪> if it crashes in an assert you should have assert logs in your configdir/dumps folder
+17:37 < bridge> <Solly (bun bun)> ~~IT HAPPENS IN ASAN~~
+17:37 < bridge> <Solly (bun bun)> i know what the assertion is
+17:37 < bridge> <Solly (bun bun)> theres no tldr, its something memory corruption
+17:38 < bridge> <Jupstar ✪> ah k, then why is asan cancelled out xd
+17:39 < bridge> <Solly (bun bun)> because my attempt at code to debug it failed, and caused the issue
+17:39 < bridge> <Solly (bun bun)> it doesnt happen in asan
+17:39 < bridge> <Solly (bun bun)> not that ive made it
+17:39 < bridge> <Jupstar ✪> so the assert is not part of a memory corruption?
+17:39 < bridge> <Jupstar ✪> 
+17:39 < bridge> <Jupstar ✪> how do you assume a memory corruption otherwise?
+17:40 < bridge> <Solly (bun bun)> the assert is correct as far as i can tell
+17:40 < bridge> <Solly (bun bun)> me reading the dissasembly versus what it should be
+17:40 < bridge> <Solly (bun bun)> the last 2 cause the "duplicate assert"
+17:41 < bridge> <Solly (bun bun)> whats suprising is that theyre all ascii
+17:42 < bridge> <Solly (bun bun)> i can give u the binary and the core dump
+17:42 < bridge> <Jupstar ✪> does it happen reproducably?
+17:42 < bridge> <Solly (bun bun)> nope
+17:43 < bridge> <Solly (bun bun)> it happens sometimes when i exit uncleanly (normally by ctrl-c spam.. it not exiting, me ctrl-z and kill -9 %1)
+17:46 < bridge> <Jupstar ✪> mh
+17:47 < bridge> <Jupstar ✪> i'd suspect independent code at the moment tbh, makes no sense to me
+17:47 < bridge> <Jupstar ✪> `CreateGlobalUuidManager` creates an instance in a local variable.. i don't see how this should ever lead to duplicated entries
+17:47 < bridge> <Jupstar ✪> (reproducable)
+17:57 < bridge> <Solly (bun bun)> you reproduced it?
+17:57 < bridge> <Solly (bun bun)> but i get no errors under asan
+18:05 < bridge> <Jupstar ✪> i dont even know which code you working on, tater master?
+18:06 < bridge> <Solly (bun bun)> yeah
+18:10 < bridge> <Jupstar ✪> Then I cannot reproduce it, TSan & ASan both clean on latest tater master
+18:10 < bridge> <Solly (bun bun)> i know
+18:10 < bridge> <Jupstar ✪> Do you press ctrl+c in terminal?
+18:10 < bridge> <Solly (bun bun)> yeah
+18:10 < bridge> <Jupstar ✪> Where you connected to a game?
+18:10 < bridge> <Jupstar ✪> server
+18:10 < bridge> <Solly (bun bun)> doesnt matter
+18:10 < bridge> <Solly (bun bun)> ive had it in and out
+18:12 < bridge> <Jupstar ✪> did you try valgrind?
+18:12 < bridge> <Jupstar ✪> to find unintialized values
+18:12 < bridge> <Solly (bun bun)> not yet
+18:15 < bridge> <avolicious> No
+18:21 < bridge> <Jupstar ✪> The only thing I found was this
+18:21 < bridge> <Jupstar ✪> ```
+18:21 < bridge> <Jupstar ✪> Syscall param socketcall.sendto(msg) points to uninitialised byte(s)
+18:21 < bridge> <Jupstar ✪> ==274962==    at 0x85579EE: __syscall_cancel_arch (syscall_cancel.S:56)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x854C667: __internal_syscall_cancel (cancellation.c:49)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x854C6AC: __syscall_cancel (cancellation.c:75)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x85CF263: sendto (sendto.c:27)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x302B5A: net_udp_send(NETSOCKET_INTERNAL*, NETADDR const*, void const*, int) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x2E2838: CNetBase::SendPacket(NETSOCKET_INTERNAL*, NETADDR*, CNetPacketConstruct*, int, bool, bool) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x2E3C6B: CNetTokenCache::SendPacketConnless(CNetChunk*) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x2E4758: CNetClient::Send(CNetChunk*) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x3BF3F4: CServerBrowser::Refresh(int, bool) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x444805: CMenus::RefreshBrowserTab(bool) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x44688A: CMenus::RenderMenubar(CUIRect, IClient::EClientState) (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==    by 0x446FCB: CMenus::Render() (in TaterClient-ddnet/build/DDNet)
+18:21 < bridge> <Jupstar ✪> ==274962==  Address 0x1ffeffbbbc is on thread 1's stack
+18:21 < bridge> <Jupstar ✪> ==274962==  in frame #5, created by CNetBase::SendPacket(NETSOCKET_INTERNAL*, NETADDR*, CNetPacketConstruct*, int, bool, bool) (???:)
+18:21 < bridge> <Jupstar ✪> ==274962==  Uninitialised value was created by a stack allocation
+18:21 < bridge> <Jupstar ✪> ==274962==    at 0x2E3B01: CNetTokenCache::SendPacketConnless(CNetChunk*) (in TaterClient-ddnet/build/DDNet)
+18:22 < bridge> <Jupstar ✪> ```
+18:22 < bridge> <Jupstar ✪> 
+18:22 < bridge> <Jupstar ✪> And that sounds more like a ddnet bug
+18:22 < bridge> <Jupstar ✪> If it's not false positive, but it only showed this for connless packets
+18:22 < bridge> <Solly (bun bun)> that is after the uuid crash
+18:23 < bridge> <Jupstar ✪> reproduce it with asan on 😉
+18:43 < bridge> <chillerdragon> @avolicious: didn’t you say the root cause was OOM without memory leak? Doesn’t that mean you just started too many game servers on one node? Can’t you turn some of them off and it’s fixed?
+18:44 < bridge> <avolicious> No, other system resources takes more memory than usual, so it kills the servers in the first place
+18:45 < bridge> <chillerdragon> Do you have a memory limit on the pods? Can’t you increase that?
+18:46 < bridge> <avolicious> We cant increase
+18:47 < bridge> <chillerdragon> But doesn’t the same logic apply?
+18:47 < bridge> <chillerdragon> Your servers are packed too full
+18:48 < bridge> <avolicious> Might be
+18:48 < bridge> <avolicious> It works out for 95% of the time, downscaling is currently not planned
+18:50 < bridge> <chillerdragon> I mean decrease
+18:50 < bridge> <chillerdragon> Decrease the load by turning off things that take up ram
+18:50 < bridge> <Jupstar ✪> increase swap file size
+18:51 < bridge> <chillerdragon> How much ram do you have @avolicious?
+18:52 < bridge> <chillerdragon> Those 5% are unacceptable imo
+18:52 < bridge> <chillerdragon> I lost some pretty long good runs. Was hella frustrating. And now I play in constant fear.
+18:53 < bridge> <fushi_gg> what's the whackommended amount of dedotaded wam
+18:53 < bridge> <chillerdragon> Makes kog was less attractive. How much ram do you have available and what’s running?
+18:54 < bridge> <chillerdragon> There should be a way to arrange it in a way to run some 20 year old Kirby game without crashing daily with what you have available
+18:55 < bridge> <chillerdragon> Or that ye
+18:55 < bridge> <chillerdragon> Snort
+18:55 < bridge> <chillerdragon> Smort
+18:56 < bridge> <chillerdragon> @avolicious: why did you decide against down scaling?
+18:57 < bridge> <chillerdragon> Makes kog way less attractive. How much ram do you have available and what’s running?
+18:58 < bridge> <chillerdragon> superkai64 Moment fr
+18:58 < bridge> <fushi_gg> I was already scared you wouldn't get the reference
+18:59 < bridge> <fushi_gg> having servers dying mid run sounds absolutely frustrating
+18:59 < bridge> <Jupstar ✪> oh wow the matrix bridge must be really behind
+18:59 < bridge> <Jupstar ✪> like \~5mins
+18:59 < bridge> <chillerdragon> Common matrix L
+19:01 < bridge> <chillerdragon> @fushi_gg: good meme dw
+19:16 < bridge> <robyt3> Seems fine to fix it in the pipeline if we plan to merge it soon
+19:33 < bridge> <Solly (bun bun)> when cpp20
+19:34 < bridge> <Solly (bun bun)> #6552
+19:34 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/6552
+19:35 < bridge> <Solly (bun bun)> darn
+19:35 < bridge> <Solly (bun bun)> very stale
+19:41 < bridge> <kebscs> maybe you can revive <https://github.com/ddnet/ddnet/pull/9607
+19:42 < bridge> <Solly (bun bun)> i already got 1 edg-l revival
+19:42 < bridge> <Solly (bun bun)> which i need... to revive
+19:42 < bridge> <Solly (bun bun)> its just been sitting there
+19:42 < bridge> <Solly (bun bun)> anyway i said that cuz i thought regex was cpp20 but its 11
+19:54 < bridge> <Solly (bun bun)> w-why are exceptions disabled??
+19:54 < bridge> <Solly (bun bun)> `Cannot use 'try' with exceptions disabledclang(exceptions_disabled)`
+19:55 < bridge> <robyt3> When the oldest distro that we support also supports C++20
+19:56 < bridge> <gorp_tw> unu
+19:57 < bridge> <Solly (bun bun)> ```
+19:57 < bridge> <Solly (bun bun)> # Disable exceptions as DDNet does not use them.
+19:57 < bridge> <Solly (bun bun)> add_cxx_compiler_flag_if_supported(OUR_FLAGS -fno-exceptions)
+19:57 < bridge> <Solly (bun bun)> ```
+19:57 < bridge> <Solly (bun bun)> b-but the standard library throws them
+20:03 < bridge> <Ewan> just gotta be careful
+20:03 < bridge> <Solly (bun bun)> theres not an exceptionless way to use regex?
+20:03 < bridge> <Solly (bun bun)> theres not an exceptionless way to use std::regex?
+20:03 < bridge> <Ewan> sure there is, don’t mess up and it won’t throw
+20:03 < bridge> <Solly (bun bun)> yeah but the user controls what goes into the regex
+20:03 < bridge> <Ewan> validate
+20:04 < bridge> <Ewan> btw std regex hella slow
+20:04 < bridge> <Solly (bun bun)> i have to do that with another regex library
+20:05 < bridge> <Ewan> yeah
+20:05 < bridge> <Ewan> ive had std regex code for ddnet before iirc and it was a point of contention
+20:05 < bridge> <Solly (bun bun)> the things its used for arent done every frame
+20:05 < bridge> <Ewan> if you have exceptions off and you pass it a bad expression the thing will crash
+20:06 < bridge> <Solly (bun bun)> i know
+20:06 < bridge> <Ewan> the STL exceptions go right to the top
+20:06 < bridge> <Ewan> so you gotta use constants and test it or do smth else
+20:06 < bridge> <Solly (bun bun)> different regex library i guess
+20:06 < bridge> <Solly (bun bun)> hscan looks the best in terms of performance
+20:06 < bridge> <Ewan> pcre2?
+20:07 < bridge> <louis> regex for what
+20:07 < bridge> <Solly (bun bun)> https://github.com/HFTrader/regex-performance/blob/master/results_threadripper.png
+20:07 < bridge> <Solly (bun bun)> chat filter, conditionals
+20:07 < bridge> <Solly (bun bun)> std::regex is nice because it lets you just std::regex_replace
+20:08 < bridge> <Ewan> i would not use regex for that in ddnet. what are u trying to match past words
+20:08 < bridge> <Solly (bun bun)> the user can supply a regex to filter chat
+20:08 < bridge> <Ewan> what would they filter past words
+20:08 < bridge> <Solly (bun bun)> currently it uses reimu which is wonky, slow and missing features
+20:09 < bridge> <Solly (bun bun)> whatever they want, i used it to filter spam bots
+20:09 < bridge> <Ewan> she’s fine lay off
+20:09 < bridge> <Solly (bun bun)> ?
+20:09 < bridge> <gorp_tw> xD
+20:09 < bridge> <gorp_tw> poor reimu
+20:09 < bridge> <Solly (bun bun)> https://github.com/wareya/Remimu
+20:09 < bridge> <Ewan> i’d just add a words list tbh
+20:09 < bridge> <Solly (bun bun)> i cant spell reimu is easier to spell
+20:09 < bridge> <gorp_tw> https://tenor.com/view/reimu-hakurei-reimu-hakurei-reimu-chibi-gif-10765846393329744520
+20:09 < bridge> <louis> wait wot idt most players would want to use regex over a word list
+20:09 < bridge> <Ewan> there’s already sorta behavior like that for the server side censoring
+20:09 < bridge> <Solly (bun bun)> it also doesnt have regex replace
+20:10 < bridge> <Ewan> and you can iterate over that and check super ez if it’s a bad word
+20:10 < bridge> <Ewan> more performantly than regex
+20:10 < bridge> <Solly (bun bun)> 1. its already there
+20:10 < bridge> <Solly (bun bun)> 2. i use it
+20:10 < bridge> <Ewan> less surface for crashing
+20:10 < bridge> <Solly (bun bun)> 1. its already there
+20:10 < bridge> <Solly (bun bun)> 2. i use it
+20:10 < bridge> <Solly (bun bun)> 3. i have write perms i can do what i want
+20:10 < bridge> <gorp_tw> i definitely agree w louis, people already struggle to make a file in their config directory
+20:10 < bridge> <louis> oh is it for tclient or ddnet
+20:10 < bridge> <Solly (bun bun)> tclient
+20:10 < bridge> <louis> oh go add it then
+20:10 < bridge> <Solly (bun bun)> xd
+20:10 < bridge> <Solly (bun bun)> the word list ban thing is already a feature in ddnet
+20:11 < bridge> <louis> o i wasnt aware
+20:11 < bridge> <Solly (bun bun)> sorta... i remember something./.. something local ban list
+20:11 < bridge> <Solly (bun bun)> and server ban list
+20:11 < bridge> <Ewan> that’s what im saying, use the same logic for the client to hide the words?
+20:11 < bridge> <Solly (bun bun)> but all that was in the master serv was nothing
+20:11 < bridge> <Solly (bun bun)> but that will be added to ddnet
+20:11 < bridge> <Solly (bun bun)> but im a power user and i want my regex
+20:11 < bridge> <Ewan> it’s tclient whatever
+20:11 < bridge> <Solly (bun bun)> but that will be added to ddnet or is added to ddnet or ... its feature accepted atleast
+20:11 < bridge> <gorp_tw> i just dont let words bodda me
+20:11 < bridge> <gorp_tw> tclient sounds cool
+20:12 < bridge> <gorp_tw> idk why it wouldn't be added
+20:12 < bridge> <Solly (bun bun)> spam... doesnt bother you?
+20:12 < bridge> <gorp_tw> oh that might but
+20:12 < bridge> <Ewan> breeze em out
+20:12 < bridge> <gorp_tw> doesn't happen on USA
+20:12 < bridge> <Solly (bun bun)> lucky you
+20:12 < bridge> <gorp_tw> xd
+20:12 < bridge> <Solly (bun bun)> well not lucky you
+20:12 < bridge> <Solly (bun bun)> no one plays usa
+20:12 < bridge> <Solly (bun bun)> <a:Pepe_Pray:854905383142555689>
+20:12 < bridge> <gorp_tw> not evennn we get a decent avg
+20:12 < bridge> <Ewan> Lie
+20:12 < bridge> <gorp_tw> but I wish it was double
+20:13 < bridge> <Solly (bun bun)> both prce2 and hscan are *big*
+20:14 < bridge> <Solly (bun bun)> i guess im sticking with reimu and doing the replace myself
+21:35 < bridge> <dazzling_fox_61443> what should i do
+21:35 < bridge> <dazzling_fox_61443> https://cdn.discordapp.com/attachments/293493549758939136/1379906480802627646/jV552MG.png?ex=6841f18e&is=6840a00e&hm=f3018fcd1aa0961a06e8bf7e7c3914528e0337496a42214ee84c83766f126711&
+21:35 < bridge> <dazzling_fox_61443> i has other sv_map in my config
+21:35 < bridge> <dazzling_fox_61443> i has another sv_map in my config
+21:38 < bridge> <Solly (bun bun)> dont run ddnet server as root
+21:38 < bridge> <Solly (bun bun)> it cant open it because it doesnt exist
+21:39 < bridge> <Solly (bun bun)> it would have to be in /root/.local/share/ddnet/maps/Sunny Side Up.map``
+21:39 < bridge> <Solly (bun bun)> it would have to be in `/root/.local/share/ddnet/maps/Sunny Side Up.map`
+21:39 < bridge> <Solly (bun bun)> ---
+21:39 < bridge> <Solly (bun bun)> ```cpp
+21:39 < bridge> <Solly (bun bun)> extern const char *ConditionalComposeText(const char *pStr, unsigned int Index)
+21:39 < bridge> <Solly (bun bun)> {
+21:39 < bridge> <Solly (bun bun)>     static class CData {
+21:39 < bridge> <Solly (bun bun)>     public:
+21:39 < bridge> <Solly (bun bun)>         CConditional *m_pThis = nullptr;
+21:39 < bridge> <Solly (bun bun)>         const char *m_apOut[4096] = {};
+21:39 < bridge> <Solly (bun bun)>         ~CData() {
+21:39 < bridge> <Solly (bun bun)>             for(const char *pOut : m_apOut)
+21:39 < bridge> <Solly (bun bun)>                 delete[] pOut;
+21:39 < bridge> <Solly (bun bun)>         }
+21:39 < bridge> <Solly (bun bun)>     } s_Data;
+21:39 < bridge> <Solly (bun bun)>     bool HasValue = false;
+21:39 < bridge> <Solly (bun bun)>     for(const char *p = pStr; *p != '\0'; ++p)
+21:39 < bridge> <Solly (bun bun)>         if(*p == '$')
+21:39 < bridge> <Solly (bun bun)>             HasValue = true;
+21:39 < bridge> <Solly (bun bun)>     if(!HasValue)
+21:39 < bridge> <Solly (bun bun)>         return pStr;
+21:39 < bridge> <Solly (bun bun)>     const char *&pOut = s_Data.m_apOut[Index];
+21:39 < bridge> <Solly (bun bun)>     if(pOut == nullptr)
+21:40 < bridge> <Solly (bun bun)>         pOut = new char[4096];
+21:40 < bridge> <Solly (bun bun)> 
+21:40 < bridge> <Solly (bun bun)>     return pOut;
+21:40 < bridge> <Solly (bun bun)> }
+21:40 < bridge> <Solly (bun bun)> ```
+21:40 < bridge> <Solly (bun bun)> something tells me im going down the wrong path
+21:41 < bridge> <Ewan> also no point
+21:41 < bridge> <Ewan> no exploits that i know of which would cause adverse effects... doesn't mean the possibility isn't there
+21:42 < bridge> <Ewan> run as normal user, root has no inherent benefit for performance anyway, just renice it after you start it so u don't have to have the process running as superuser to get better priority
+21:42 < bridge> <Ewan> what is this?
+21:42 < bridge> <Solly (bun bun)> you shouldnt run anything as root if you dont have to
+21:42 < bridge> <Solly (bun bun)> my attempt to do text composition without having to rewrite everything
+21:43 < bridge> <Solly (bun bun)> i need to hook into CResult and ... yeah its weird
+21:43 < bridge> <Ewan> why not implement it on the chat component
+21:43 < bridge> <filoqcus> https://tenor.com/view/pipotam-baby-hippo-hippo-wash-shower-gif-3406421565683572068
+21:43 < bridge> <Ewan> read the setting in the render function
+21:43 < bridge> <Ewan> loop through the words of the msg
+21:43 < bridge> <Solly (bun bun)> its not part of chat
+21:43 < bridge> <Ewan> wha
+21:43 < bridge> <Solly (bun bun)> i want to do
+21:43 < bridge> <Solly (bun bun)> 
+21:43 < bridge> <Solly (bun bun)> `ifeq $(server_community) ddnet echo hi`
+21:44 < bridge> <Ewan> ok so u do actually need branching
+21:44 < bridge> <Solly (bun bun)> currently that arg is specially parsed, but i want it everywhere
+21:44 < bridge> <Ewan> i uh... well... regex is actually good for that
+21:44 < bridge> <Solly (bun bun)> regex was just a quick way to write that
+21:44 < bridge> <Solly (bun bun)> which is why i wanted a fast way of doing it
+21:44 < bridge> <Solly (bun bun)> but since reimu doesnt support replacement ive done it in old cstyle way
+21:45 < bridge> <Solly (bun bun)> i have a weirdly large amount of experience manpiulating c strings
+21:45 < bridge> <Solly (bun bun)> and causing segfaults...
+21:45 < bridge> <Solly (bun bun)> the problem is that the console is very abstracted and shared between server and client
+21:45 < bridge> <Solly (bun bun)> now that i think about it the problem of "i need to allocate a string for each result" is unneeded
+21:45 < bridge> <Solly (bun bun)> as i can edit inplace (each cresult is reparsed every time)
+21:46 < bridge> <Solly (bun bun)> and if its wrongly sized i can realloc it
+21:48 < bridge> <Ewan> holding an array of char ptrs via. ptr always sketches me out
+21:48 < bridge> <Solly (bun bun)> ah nvm it might be statically alloced memory in cresult
+21:48 < bridge> <Ewan> i firmly believe there's a better way
+21:48 < bridge> <Solly (bun bun)> there is but im still deliberating what way i need
+21:48 < bridge> <Solly (bun bun)> rather than how to achieve it
+21:53 < bridge> <Solly (bun bun)> im actually helped by ddnet kinda fucking up its interface sorta thing
+21:54 < bridge> <Ewan> fwiw i have no clue why the code conventions say to use classes > struct always... they serve fundamentally different roles
+21:54 < bridge> <Ewan> if you used a struct here, you wouldn't need that public declaration
+21:55 < bridge> <Solly (bun bun)> it makes no difference
+21:55 < bridge> <Ewan> uhh it does
+21:55 < bridge> <Ewan> don't have methods in your structs if classes are available
+21:55 < bridge> <Ewan> it gives intrinsic meaning to your data type
+21:55 < bridge> <Ewan> same idea as const correctness
+21:55 < bridge> <Solly (bun bun)> wdym by const correctness
+21:56 < bridge> <Solly (bun bun)> not putting `const` on passed by values?
+21:56 < bridge> <Ewan> your data and keywords mean more than just what their contents are
+21:56 < bridge> <Solly (bun bun)> not to me really
+21:56 < bridge> <Solly (bun bun)> struct and classes are both containers of data and methods
+21:57 < bridge> <Solly (bun bun)> structs have everything public by default
+21:57 < bridge> <Solly (bun bun)> and classes everything private
+21:57 < bridge> <Solly (bun bun)> and something inheritance i cant be bothered to rememebr
+21:57 < bridge> <Solly (bun bun)> anyway ive moved away from that
+21:57 < bridge> <Solly (bun bun)> it didnt work
+21:58 < bridge> <Ewan> if i'm writing code and i stumble across SWhatever i'm gonna assume it's mainly POD and if it does have methods they're mainly for plumbing purposes (like your dtor there)
+21:58 < bridge> <Ewan> if it's CWhatever i'm gonna assume it has methods to do what i wanna accomplish with that data
+21:58 < bridge> <Ewan> if there's a class with all public members and no methods that's dumb
+21:58 < bridge> <always> @sollybunny i think u should make a pr that adds tc_regex_chat_ignore to ddnet
+21:58 < bridge> <always> for streamers
+21:58 < bridge> <Solly (bun bun)> it would probably be rejected
+21:58 < bridge> <always> worth a shot
+21:58 < bridge> <Solly (bun bun)> a word list is coming
+21:58 < bridge> <Solly (bun bun)> or is here
+21:58 < bridge> <Solly (bun bun)> i still dont know the status on that
+21:59 < bridge> <always> does it include symbols?
+21:59 < bridge> <Solly (bun bun)> i dont know how hard they are going to go
+21:59 < bridge> <always> wdym by a word list
+21:59 < bridge> <always> like serverside?
+21:59 < bridge> <Solly (bun bun)> one on the mastersrv and optional local one
+21:59 < bridge> <Solly (bun bun)> option from mastersrv and optional local one
+21:59 < bridge> <always> o
+21:59 < bridge> <Solly (bun bun)> optional from mastersrv and optional local one
+21:59 < bridge> <always> to offical client?
+21:59 < bridge> <Solly (bun bun)> ye
+22:00 < bridge> <always> ooo
+22:00 < bridge> <Solly (bun bun)> but idk how much confusables stuff theyre gonna dd to it
+22:00 < bridge> <Solly (bun bun)> i pressume the utf8_compare_confusables is going to be used
+22:00 < bridge> <Solly (bun bun)> and more and you will probably slippery slope into roblox
+22:00 < bridge> <Solly (bun bun)> `yo *** bro *** *** ******* * *** *** u *** ** ******* **** because *** **** *** bye`
+22:01 < bridge> <Solly (bun bun)> if streamers are extra scared they can use the console in another window or friends only
+22:02 < bridge> <Solly (bun bun)> if streamers are extra scared they can use the console in another monitor or friends only
+22:02 < bridge> <Ewan> hot take: stop idolizing and catering to streamers
+22:02 < bridge> <Solly (bun bun)> we.. arent?
+22:02 < bridge> <Ewan> i mean in general
+22:03 < bridge> <Ewan> oh im in #developer
+22:03 < bridge> <Ewan> carry on
+22:03 < bridge> <Solly (bun bun)> i shall havea  look
+22:03 < bridge> <Solly (bun bun)> yeah idk whats going on in general
+22:07 < bridge> <always> what
+22:07 < bridge> <always> whats the issue with streamers and non streamers not want slurs in their chat
+22:07 < bridge> <always> whats the issue with streamers and non streamers not wanting slurs in their chat
+22:08 < bridge> <always> i wanna ignore 10 0 but i love seeing it when people get mad
+22:09 < bridge> <Ewan> no issue with it
+22:09 < bridge> <Ewan> i just personally feel like they bring very little to the world
+22:09 < bridge> <Ewan> they can do it themselves if they want it
+22:14 < bridge> <dazzling_fox_61443> 2025-06-04 20:13:59 E datafile: failed to open file 'maps/Copy love Box.map' for reading
+22:14 < bridge> <dazzling_fox_61443> 2025-06-04 20:13:59 E server: failed to load map. mapname='Copy love Box'
+22:14 < bridge> <dazzling_fox_61443> 
+22:14 < bridge> <dazzling_fox_61443> I using debian12
+22:14 < bridge> <dazzling_fox_61443> map is in the folder
+22:18 < bridge> <Solly (bun bun)> do `tree /root/.local/share/ddnet/`
+22:19 < bridge> <dazzling_fox_61443> -bash: tree: command not found
+22:19 < bridge> <Solly (bun bun)> oh
+22:19 < bridge> <dazzling_fox_61443> autoexec_server.log  data  ddnet-server.sqlite  demos  dumps  editor  ghosts  maps  teehistorian
+22:19 < bridge> <dazzling_fox_61443> its ls
+22:19 < bridge> <dazzling_fox_61443> on linux
+22:19 < bridge> <Solly (bun bun)> find instead of tree
+22:20 < bridge> <Solly (bun bun)> `find /root/.local/share/ddnet/`
+22:20 < bridge> <Solly (bun bun)> tree just makes it pretty, i thought it would be installed on debian
+22:20 < bridge> <dazzling_fox_61443> ```
+22:20 < bridge> <dazzling_fox_61443> root@lait-alamandine:/ddnet/all/server1# find /root/.local/share/ddnet/
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/demos
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/demos/replays
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/demos/auto
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/demos/auto/race
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/demos/auto/server
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/autoexec_server.log
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/ghosts
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/maps
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/maps/Copy Love Box.map
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/data
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/data/maps
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/data/maps/Copy Love Box.map
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/data/maps/Sunny Side Up.map
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/teehistorian
+22:20 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/editor
+22:21 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/dumps
+22:21 < bridge> <dazzling_fox_61443> /root/.local/share/ddnet/ddnet-server.sqlite
+22:21 < bridge> <dazzling_fox_61443> root@lait-alamandine:/ddnet/all/server1#
+22:21 < bridge> <dazzling_fox_61443> ```
+22:21 < bridge> <Solly (bun bun)> move data/maps/Sunny... to just maps/Sunny
+22:21 < bridge> <kebscs> maybe it's case sensitive, you have:`Copy love Box`
+22:21 < bridge> <Solly (bun bun)> and you have lowercase in sv_map
+22:21 < bridge> <Solly (bun bun)> move data/maps/Sunny... to just maps/Sunny...
+22:21 < bridge> <dazzling_fox_61443> fuck me
+22:21 < bridge> <dazzling_fox_61443> sry
+22:25 < bridge> <Solly (bun bun)> its what we are here for
+22:25 < bridge> <Solly (bun bun)> probably
+22:27 < bridge> <dazzling_fox_61443> tysm
+22:29 < bridge> <Ewan> tree is cool but it's not installed by default basically anywhere afaik
+22:29 < bridge> <Ewan> same with wget
+22:30 < bridge> <Ewan> a few other obvious ones would surprise you
+23:14 < bridge> <thenofis> how can I get this data in json form
+23:14 < bridge> <thenofis> https://cdn.discordapp.com/attachments/293493549758939136/1379931260654325851/image.png?ex=684208a2&is=6840b722&hm=b02b9d3fefbb05c90602813260a53b1c769fbd534e0d64d5b64e69f96a0b4655&
+23:26 < bridge> <Assa> afaic you can only request player data, otherwise dunno
+23:27 < bridge> <milkeeycat> https://go.dev/blog/error-syntax
+23:39 < bridge> <gorp_tw> its web time
+23:41 < bridge> <gorp_tw> @0xdeen if I add styles for vertical spacing in a PR, can you go through all templates and remove instances of `<br>` ?
+23:46 < bridge> <gorp_tw> when upload templates
+23:46 < bridge> <gorp_tw> https://cdn.discordapp.com/attachments/293493549758939136/1379939288590057635/image.png?ex=6842101c&is=6840be9c&hm=0f20432e198fa93f9f00819ab8b00c04973dbf83e79b03c8c9083d786ce4f8a2&
+23:46 < bridge> <gorp_tw> why is this cloned to my ssh directory 💀
+23:46 < bridge> <gorp_tw> pepega
+23:47 < bridge> <Ewan> are u lynn
+23:47 < bridge> <Ewan> what the fuck
+23:47 < bridge> <gorp_tw> yes
+23:47 < bridge> <Ewan> mythical
+23:47 < bridge> <gorp_tw> i thought you knew this xD
+23:47 < bridge> <Ewan> had no idea
+23:47 < bridge> <Ewan> heard about u b4
+23:47 < bridge> <Ewan> plenty
+23:47 < bridge> <gorp_tw> xDDD
+23:47 < bridge> <Ewan> idk i see gorp i see gorp
+23:48 < bridge> <gorp_tw> ye sorry i was a bit of a monster before, now im a smaller one
+23:48 < bridge> <Ewan> :brownbear:
+23:48 < bridge> <gorp_tw> gonna fix all the spacing stuff today i guess
+23:48 < bridge> <gorp_tw> dunno what to do today..
+23:49 < bridge> <gorp_tw> also dark mode form inputs
+23:49 < bridge> <gorp_tw> im about to ```css
+23:49 < bridge> <gorp_tw> br { display: none; }```
+23:49 < bridge> <gorp_tw> this entire site
+23:49 < bridge> <gorp_tw> and see what breaks XD
+23:50 < bridge> <Solly (bun bun)> ```cpp
+23:50 < bridge> <Solly (bun bun)> mem_copy(m_aStringStorage, Other.m_aStringStorage, sizeof(m_aStringStorage));
+23:50 < bridge> <Solly (bun bun)> m_vaArgsComposed = Other.m_vaArgsComposed;
+23:50 < bridge> <Solly (bun bun)> m_pArgsStart = m_aStringStorage + (Other.m_pArgsStart - Other.m_aStringStorage);
+23:50 < bridge> <Solly (bun bun)> m_pCommand = m_aStringStorage + (Other.m_pCommand - Other.m_aStringStorage);
+23:50 < bridge> <Solly (bun bun)> for(unsigned i = 0; i < Other.m_NumArgs; ++i)
+23:50 < bridge> <Solly (bun bun)> {
+23:50 < bridge> <Solly (bun bun)>     if((uintptr_t)Other.m_apArgs[i] > (uintptr_t)Other.m_aStringStorage + sizeof(Other.m_aStringStorage) || (uintptr_t)Other.m_apArgs[i] < (uintptr_t)Other.m_aStringStorage)
+23:50 < bridge> <Solly (bun bun)>         m_apArgs[i] = (char *)m_vaArgsComposed.data() + (Other.m_apArgs[i] - (char *)Other.m_vaArgsComposed.data());
+23:50 < bridge> <Solly (bun bun)>     else
+23:50 < bridge> <Solly (bun bun)>         m_apArgs[i] = m_aStringStorage + (Other.m_apArgs[i] - Other.m_aStringStorage);
+23:50 < bridge> <Solly (bun bun)> }
+23:50 < bridge> <Solly (bun bun)> ```
+23:50 < bridge> <Solly (bun bun)> its probably safe right?
+23:50 < bridge> <gorp_tw> people also liked my "container box" fix for maps on other pages, maybe ill do that
+23:51 < bridge> <gorp_tw> also also need to add light mode equivalents but ehhhh they can suffer for now
+23:52 < bridge> <patiga> Rust/tokio help request: I'm building a peer-to-peer application and wanna try to build it with tokio. However, after messing around for a while, I figured out that I have no idea how to properly model the code.
+23:52 < bridge> <patiga> For each peer, I have a TCP connection and a sender/receiver for the shared broadcast-channel.
+23:52 < bridge> <patiga> Upon deserializing something from the TCP connection, I either want to write something back into the TCP connection, or send something to the broadcast channel.
+23:52 < bridge> <patiga> Upon getting something from the internal broadcast channel, I want to write something into the TCP connection.
+23:52 < bridge> <patiga> I don't have prior experience with tokio. Do I just wrap the TCP connection into an Arc<Mutex>, then spawn two tasks?
+23:55 < bridge> <patiga> -> or can I do that in a single task somehow? I don't have a feel for how to do stuff with tokio
+23:56 < bridge> <patiga> heh, might need to be a `Arc<Mutex<Arc<TcpStream>>>` to allow the reader to read independant of the writers
+23:58 < bridge> <kebscs> isnt 19.3 in like a week
+23:58 < bridge> <kebscs> or no features
+23:58 < bridge> <kebscs> or not enough features
+23:59 < bridge> <gorp_tw> also, i dislike this in the main sheet `body:not(#phpbb)`
+23:59 < bridge> <gorp_tw> is there a way we can move phpbb styles out of the main css file, such that these rules do not need a :not selector?

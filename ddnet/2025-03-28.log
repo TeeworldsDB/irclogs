@@ -1,0 +1,282 @@
+00:13 < ws-client> <ChillerDragon> @ljpb remove this line https://github.com/fokkonaut/F-DDrace/blob/31683c8c1431414e1f5af35ce8ca2969e3c1a136/src/game/server/gamecontroller.cpp#L689
+00:22 < bridge> <.rafaelff> From CMake 4.0 Release Notes [1]:
+00:22 < bridge> <.rafaelff> > Compatibility with versions of CMake older than 3.5 has been removed. Calls to cmake_minimum_required() or cmake_policy() that set the policy version to an older value now issue an error. Note that calls to those commands can still support older versions of CMake by using their VERSION arguments' <min>...<max> syntax. This requires only the <min> version of CMake, but when running a newer version, sets policies up to the <max> version.
+00:22 < bridge> <.rafaelff> 
+00:22 < bridge> <.rafaelff> I haven't tested but does it means "cmake/Download_GTest_CMakeLists.txt.in" will fail?
+00:22 < bridge> <.rafaelff> > cmake_minimum_required(VERSION 2.8.12...3.19.1)
+00:22 < bridge> <.rafaelff> 
+00:22 < bridge> <.rafaelff> [1] https://cmake.org/cmake/help/latest/release/4.0.html#deprecated-and-removed-features
+00:22 < bridge> <.rafaelff> From CMake 4.0 Release Notes [1]:
+00:22 < bridge> <.rafaelff> > Compatibility with versions of CMake older than 3.5 has been removed. Calls to cmake_minimum_required() or cmake_policy() that set the policy version to an older value now issue an error. Note that calls to those commands can still support older versions of CMake by using their VERSION arguments' <min>...<max> syntax. This requires only the <min> version of CMake, but when running a newer version, sets policies up to the <max> version.
+00:22 < bridge> <.rafaelff> 
+00:22 < bridge> <.rafaelff> I haven't tested but does it mean "cmake/Download_GTest_CMakeLists.txt.in" will fail?
+00:22 < bridge> <.rafaelff> > cmake_minimum_required(VERSION 2.8.12...3.19.1)
+00:22 < bridge> <.rafaelff> 
+00:22 < bridge> <.rafaelff> [1] https://cmake.org/cmake/help/latest/release/4.0.html#deprecated-and-removed-features
+08:19 < bridge> <milkeeycat> @ryozuki look at dis, looks pretty good imo: 
+08:19 < bridge> <milkeeycat> ```rust
+08:19 < bridge> <milkeeycat>     let mut ctx = Context::new();
+08:19 < bridge> <milkeeycat>     let struct_ty = ctx.ty_storage.add_ty(Ty::Struct(vec![
+08:20 < bridge> <milkeeycat>         ctx.ty_storage.i8_ty,
+08:20 < bridge> <milkeeycat>         ctx.ty_storage.i16_ty,
+08:20 < bridge> <milkeeycat>         ctx.ty_storage.i32_ty,
+08:20 < bridge> <milkeeycat>     ]));
+08:20 < bridge> <milkeeycat>     let struct_ty = ctx.ty_storage.add_ty(Ty::Struct(vec![
+08:20 < bridge> <milkeeycat>         ctx.ty_storage.i8_ty,
+08:20 < bridge> <milkeeycat>         ctx.ty_storage.i16_ty,
+08:20 < bridge> <milkeeycat>         ctx.ty_storage.i32_ty,
+08:20 < bridge> <milkeeycat>         struct_ty,
+08:20 < bridge> <milkeeycat>     ]));
+08:20 < bridge> <milkeeycat>     let void_ty = ctx.ty_storage.void_ty;
+08:20 < bridge> <milkeeycat> 
+08:20 < bridge> <milkeeycat>     let module_idx = ctx.create_module();
+08:20 < bridge> <milkeeycat>     let mut module = ctx.get_module(module_idx);
+08:20 < bridge> <milkeeycat> 
+08:20 < bridge> <milkeeycat>     let fn_idx = module.create_fn("main".into(), vec![], void_ty);
+08:20 < bridge> <milkeeycat>     let mut func = module.get_fn(fn_idx);
+08:20 < bridge> <milkeeycat> 
+08:20 < bridge> <milkeeycat>     let block_idx = func.create_block("0".into(), Terminator::Return(None));
+08:20 < bridge> <milkeeycat>     let mut block = func.get_block(block_idx);
+08:20 < bridge> <milkeeycat> 
+08:20 < bridge> <milkeeycat>     let local = block.create_alloca(struct_ty);
+08:20 < bridge> <milkeeycat> ```
+08:20 < bridge> <ryozuki> nice
+08:20 < bridge> <ryozuki> it looks like mine xd
+08:20 < bridge> <milkeeycat> BUT
+08:21 < bridge> <milkeeycat> i don't need to pass `TypeStorage` when calling `instr_load` and others
+08:23 < bridge> <milkeeycat> because in my code `get_*` methods return not the things itself but a `Wrapper<&mut T>` where `Wrapper` is:
+08:23 < bridge> <milkeeycat> ```rust
+08:23 < bridge> <milkeeycat> pub struct Wrapper<'ctx, T> {
+08:23 < bridge> <milkeeycat>     pub ty_storage: &'ctx mut ty::Storage,
+08:23 < bridge> <milkeeycat>     inner: T,
+08:23 < bridge> <milkeeycat> }
+08:23 < bridge> <milkeeycat> ```
+08:24 < bridge> <milkeeycat> and i implement `Deref` trait for it which returns inner
+08:37 < bridge> <milkeeycat> @ryozuki in the end I didn't use that crate, here's my type storage xd
+08:37 < bridge> <milkeeycat> ```rust
+08:37 < bridge> <milkeeycat> pub type TyIdx = usize;
+08:37 < bridge> <milkeeycat> pub struct Storage {
+08:37 < bridge> <milkeeycat>     pub void_ty: TyIdx,
+08:37 < bridge> <milkeeycat>     pub i8_ty: TyIdx,
+08:37 < bridge> <milkeeycat>     pub i16_ty: TyIdx,
+08:37 < bridge> <milkeeycat>     pub i32_ty: TyIdx,
+08:37 < bridge> <milkeeycat>     pub i64_ty: TyIdx,
+08:37 < bridge> <milkeeycat>     pub ptr_ty: TyIdx,
+08:37 < bridge> <milkeeycat>     types: Vec<Ty>,
+08:37 < bridge> <milkeeycat> }
+08:37 < bridge> <milkeeycat> ```
+08:37 < bridge> <ryozuki> thats fine xd
+08:38 < bridge> <ryozuki> oh nice
+08:39 < bridge> <ryozuki> maybe i yoink that idea
+08:39 < bridge> <milkeeycat> :owo:
+08:39 < bridge> <ryozuki> did u test how it works out with multiple functions and for loops?
+08:39 < bridge> <ryozuki> it helps to make a smol language to see if the pattern works i guess xd
+08:39 < bridge> <milkeeycat> im testing by doing
+08:40 < bridge> <milkeeycat> i thought it's a cool solution, i did it, ill see if it's bad in the future :justatest:
+08:40 < bridge> <ryozuki> xD
+08:41 < bridge> <milkeeycat> ay, at least it's not `Rc<RefCell<T>>`
+08:54 < bridge> <Assa> hmm, my summoning didn't work, _drinks mana potion and sacrifices goat_, @hectavoxel do you have better ideas for the pulley? 😛 I am not so fond of the current design
+08:56 < bridge> <davidlovesmath> c++ 11
+10:35 < bridge> <Assa> These look so much better :owo: 
+10:35 < bridge> <Assa> @louis.place do you like them? Also thanks @cellegenrih
+10:35 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1355113076461932574/screenshot_2025-03-28_10-34-22.png?ex=67e7bee6&is=67e66d66&hm=29d1691ee76c43bab7c3c5dc21b5f58a370554a14eba6544b83a86d52414112b&
+11:37 < bridge> <Assa> I removed the middle now when it does not grab you, which is also great :3
+11:37 < bridge> <Assa> I removed the middle now when it does not grab you, which is better for existing maps :3
+13:05 < bridge> <inv41idu53rn4m3> make the lines thicken when you move towards them and make them get narrower when you move away from them, to make them look all springy and rubbery
+13:31 < bridge> <Assa> I thought about the exact same 😄 I'll try
+13:32 < bridge> <louis> i like that design
+13:33 < bridge> <louis> and i guess rotation speed could work as a differentiator but the difference between each strength should be pretty large for ppl to tell without a side by side
+13:33 < bridge> <Assa> yeah I need to send a new video, I adjusted that and it's now VERY clear
+13:49 < bridge> <Assa> @inv41idu53rn4m3 looks fantastic ❤️
+13:49 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1355161877436563516/screenshot_2025-03-28_13-48-55.png?ex=67e7ec59&is=67e69ad9&hm=c0c370fc99269e9ec4b86e001b29e5e64850b595d06902daf3b08b7c0a8425b7&
+13:49 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1355161877986152599/screenshot_2025-03-28_13-49-00.png?ex=67e7ec59&is=67e69ad9&hm=b558438b0e659b1e70addf197ad17f38e92c7b684704f29a0156f0b0d7f676da&
+13:56 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1355163572308545699/grabber_test_2025-03-28_13-54-28.mp4?ex=67e7eded&is=67e69c6d&hm=d281958c07e1d5576e6526870829e9fcb64d7974728739af154a511e5eda2166&
+14:16 < bridge> <cellegenrih> looks good :owo:
+14:42 < bridge> <chairn> maybe change the size depending on strength ?
+14:47 < bridge> <chairn> I mean, not the line thickness, but the fixed laser position (like bigger star or bigger spinning thingie you added)
+14:59 < bridge> <kebscs> agree, you cant tell which laser it is on screenshot
+14:59 < bridge> <kebscs> and guessing how fast is spins is defiently slower than knowing it based on some graphic design
+15:30 < bridge> <Assa> While I was thinking about that, and also think this idea would also be cool, and also would like to implement it, we have maps where the grabber is "hidden" in the wall and not supposed to stick out. So I am limited to the size of 1 tile 😦
+15:30 < bridge> <Solly (bun bun)> but udp filtered is the scenario no one has, when they get this error... its wrong
+15:30 < bridge> <kebscs> tag him in the pr, he doesnt read discord
+15:31 < bridge> <Solly (bun bun)> ```
+15:31 < bridge> <Solly (bun bun)> Yes, that's because it hasn't received a response from the STUN and then assumes that UDP is filtered. If it got a response from STUN it would say No answer from server yet. instead.
+15:31 < bridge> <Solly (bun bun)> ```
+15:31 < bridge> <Solly (bun bun)> ```
+15:31 < bridge> <Solly (bun bun)> Anyway, I think this PR seems to be based on wrong assumptions, I'll close it. If you want it reopened, just say so, someone can reopen it then.
+15:31 < bridge> <Solly (bun bun)> ```
+15:31 < bridge> <Solly (bun bun)> make up your mind (tbf 2 dif people said these)
+15:31 < bridge> <kebscs> "Thanks, that appears to be the problem. I replaced the IP addresses with a working STUN server. The issue should be fixed now."
+15:31 < bridge> <kebscs> whats fixed exactly
+15:31 < bridge> <Solly (bun bun)> que?
+15:31 < bridge> <kebscs> .
+15:31 < bridge> <kebscs> does this make "udp filtered" not show on ddos?
+15:32 < bridge> <kebscs> if not then its not fixed
+15:32 < bridge> <Solly (bun bun)> i dont want to change any behvaiour, i want to make the error message better for what it covers now
+15:32 < bridge> <kebscs> yes but im quoting heinrich comment
+15:32 < bridge> <kebscs> from that pr
+15:33 < bridge> <Solly (bun bun)> oh right
+15:33 < bridge> <Solly (bun bun)> theres still different things that can cause that error
+15:34 < bridge> <inv41idu53rn4m3> Yeah "appears to be filtered" is a bit of a strong statement when it's clearly not the truth in the majority of cases
+15:35 < bridge> <inv41idu53rn4m3> just say that the servers in question aren't reachable
+15:35 < bridge> <kebscs> yea that was the point of the pr
+15:36 < bridge> <kebscs> idk why its closed
+15:36 < bridge> <milkeeycat> @ryozuki btw fix code formatting when a new project is created 😬
+15:36 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1355188816671019209/image.png?ex=67e80570&is=67e6b3f0&hm=ae5224f9546005ac47870f8b4fc770da87422f36c53e7b8a2e9bdb7ff152fb2a&
+15:37 < bridge> <ryozuki> xd
+15:38 < bridge> <Solly (bun bun)> i would prefer a list of reasons, one of which is udp filtered
+15:38 < bridge> <Solly (bun bun)> one of the reasons in my commit is no longer valid
+15:39 < bridge> <Solly (bun bun)> and there are more eg no ipv6
+15:39 < bridge> <Solly (bun bun)> and that does deserve a different error msg
+16:00 < bridge> <chairn> obviously, it would always be one tile max, but the current sprite is like 20% of a tile i think
+16:03 < bridge> <ryozuki> hi
+16:03 < bridge> <ryozuki> ddnet 19.1 tag was made 5 mins ago
+16:03 < bridge> <ryozuki> i already updated gentoo guru
+16:03 < bridge> <ryozuki> https://gitweb.gentoo.org/repo/proj/guru.git/commit/?h=dev
+16:03 < bridge> <ryozuki> fastest in the web
+16:03 < bridge> <ryozuki> :owo:
+16:03 < bridge> <Jupstar ✪> That was indeed fast
+16:03 < bridge> <ryozuki> @blaiszephyr beat me next time
+16:03 < bridge> <Jupstar ✪> Now make it so that gentoo automatically chooses best kernel config for my hardware
+16:04 < bridge> <ryozuki> xd
+16:04 < bridge> <Jupstar ✪> @ryozuki i want this:
+16:04 < bridge> <Jupstar ✪> https://www.phoronix.com/review/amd-3d-vcache-optimizer-9950x3d
+16:04 < bridge> <Jupstar ✪> xD
+16:05 < bridge> <Assa> not with the rotating orbs rn
+16:06 < bridge> <milkeeycat> @ryozuki did you finish your traits pr?
+16:19 < bridge> <meloƞ> that was really damn fast
+16:19 < bridge> <meloƞ> i didnt even merge 19.0 iirc
+16:19 < bridge> <ryozuki> no, its half done
+16:19 < bridge> <ryozuki> the syntax works and impl too
+16:19 < bridge> <ryozuki> but i dont check trait bounds are correct yet
+16:27 < bridge> <kebscs> ermm
+16:27 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1355201624632725734/image.png?ex=67e8115d&is=67e6bfdd&hm=437bff24509bec1a63801bed2ae03d9aefc4ec48d7dd59e938abb6cedb45438b&
+16:27 < bridge> <kebscs> is this ddos testing or what
+16:29 < bridge> <oxyzo.> Saw someone else spamming join/leave messages
+16:29 < bridge> <oxyzo.> Like 50 per second
+16:29 < bridge> <oxyzo.> Also linked a tg channel
+17:00 < bridge> <Jupstar ✪> 😮 is that on ddnet?
+17:03 < bridge> <s0ftix> wtf thast not me😭
+17:04 < bridge> <s0ftix> idk who is this
+17:08 < bridge> <cellegenrih> A russian fella, like you
+17:10 < bridge> <kebscs> yes
+17:10 < bridge> <kebscs> is there no rate limit for rejoins?
+17:11 < bridge> <cellegenrih> hmmm, like force delay join for each ip that is not timeouted but disconnected from any DDNet server?
+17:11 < bridge> <s0ftix> there is, but if you successfully log in to the server, it resets like
+18:11 < bridge> <ryozuki> @learath2 @jupeyy_keks rust lldb experience cna be improved https://walnut356.github.io/posts/lldbs-typesystems-an-unfinished-interface/
+18:12 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1355227981240602694/image.png?ex=67e829e9&is=67e6d869&hm=087f96b92ace4753d30d0be9b35c54cf8e5b3cec0a793f750dab75526394bd54&
+18:14 < bridge> <Ewan> omg
+18:36 < bridge> <cellegenrih> According to these recent events, this is going to be rampant and more violent
+18:37 < bridge> <cellegenrih> Is no dev or admin going to look at this and somehow deal with it?
+18:37 < bridge> <cellegenrih> One suggestion I could make is creating a flag on logins with quick succession, so mods can react to it and investigate it
+18:41 < bridge> <swarfey> if someone with access to the antibot wants to take a look at this, shoot me a dm
+18:42 < bridge> <swarfey> they are most likely using my library to flood the servers. i already wrote a lil script to block them on my & some ruski servers
+18:42 < bridge> <kebscs> happens on ddnet too
+19:56 < bridge> <Solly (bun bun)> give a man a shovel, and he will wack you in the head and steal your stuff
+20:02 < bridge> <kollpotato> the problem is javascript
+20:02 < bridge> <kollpotato> always has been
+20:39 < bridge> <milkeeycat> it's metaprogramming time
+20:39 < bridge> <milkeeycat> ```rust
+20:39 < bridge> <milkeeycat> macro_rules! int_const_impl {
+20:39 < bridge> <milkeeycat>     ($([$($ty: ident),+] => $field: ident),+) => {
+20:39 < bridge> <milkeeycat>         $(
+20:39 < bridge> <milkeeycat>             $(
+20:39 < bridge> <milkeeycat>                 paste::item! {
+20:39 < bridge> <milkeeycat>                     pub fn [< const_ $ty >](value: $ty, storage: &ty::Storage) -> Self {
+20:39 < bridge> <milkeeycat>                         Self::Const(Const::from(value), storage.[< $field _ty >])
+20:39 < bridge> <milkeeycat>                     }
+20:39 < bridge> <milkeeycat>                 }
+20:39 < bridge> <milkeeycat>             )+
+20:39 < bridge> <milkeeycat>         )+
+20:39 < bridge> <milkeeycat>     };
+20:39 < bridge> <milkeeycat> }
+20:39 < bridge> <milkeeycat> ```
+20:42 < bridge> <ryozuki> xd
+20:43 < bridge> <Jupstar ✪> i have a new pc again
+20:43 < bridge> <Jupstar ✪> https://cdn.discordapp.com/attachments/293493549758939136/1355265945299325092/image.png?ex=67e84d44&is=67e6fbc4&hm=19f14bc55d275774176436bada6df6585a6aa4b3bb792c9d49163c80e0e7a633&
+20:43 < bridge> <Jupstar ✪> :lol:
+20:43 < bridge> <Jupstar ✪> my motherboard probs died lmao
+20:43 < bridge> <Jupstar ✪> randomly
+20:44 < bridge> <ryozuki> lol
+20:48 < bridge> <Ewan> rip
+20:48 < bridge> <Ewan> Which gen did u have?
+20:48 < bridge> <Ewan> ironically probably easier to find a new motherboard in contrast to an older one
+20:49 < bridge> <Jupstar ✪> i bought one from amazon bcs they deliver tomorrow
+20:49 < bridge> <Jupstar ✪> 9950x3d
+21:39 < bridge> <learath2> @tsfreddie how on earth did you come up with that sepia trick for your tee renderer in ddrecap?
+21:39 < bridge> <TsFrediman> google color to filter
+21:40 < bridge> <learath2> How on earth did the guy who came up with that come up with that wtf
+21:41 < bridge> <TsFrediman> You know how filter applies to color
+21:42 < bridge> <TsFrediman> Run a iterative approximation where you randomly move towards the result
+21:42 < bridge> <learath2> I'm unsure whether you can do the same thing without sepia
+21:44 < bridge> <TsFrediman> I mean you could just remove the sepia filter and run it and see. I'm in bed tho
+21:46 < bridge> <learath2> Without sepia it seems you shouldn't be able to escape black and white, no matter what other filters you use
+21:47 < bridge> <TsFrediman> I see
+21:47 < bridge> <ryozuki> :owo:
+21:47 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1355282068770259107/image.png?ex=67e85c49&is=67e70ac9&hm=3386c95a394227a1c76aca2a441306289faf5bd9a2ea6bfbd06d7bb55e372fe7&
+21:47 < bridge> <TsFrediman> Then probably
+21:47 < bridge> <learath2> e.g. rotate the hue all you want, you are stuck at the points of the hexcone
+21:47 < bridge> <ryozuki> ops wrong channel
+21:47 < bridge> <TsFrediman> Didn't give it too much thought tho
+21:48 < bridge> <TsFrediman> Why are you looking into it anyway
+21:48 < bridge> <TsFrediman> I got flamed for not being able to 100% reproduce colors on ddrecap:justatest:
+21:49 < bridge> <learath2> I was also rendering tees, was curious how other people did it. Most other solutions do it exactly as we do it in teeworlds by working on the actual image, you were the only one doing filters
+21:50 < bridge> <learath2> https://stackoverflow.com/questions/42966641/how-to-transform-black-into-any-given-color-using-only-css-filters found the people who investigated this initially, but the first guy already seems to know sepia lets you escape the grey line
+21:50 < bridge> <TsFrediman> i only did it to avoid canvases
+21:51 < bridge> <learath2> I thought divs would be easy (which they were until I decided I wanted to color them too)
+21:51 < bridge> <TsFrediman> Well ye
+21:52 < bridge> <TsFrediman> :nouis:
+21:52 < bridge> <TsFrediman> I was using the renderer for twcn browser where one of the page would have too many tees and too many canvases kinda blocks the browser rendering and it stutters
+21:53 < bridge> <TsFrediman> So I just googled my way out
+21:57 < bridge> <learath2> Maybe I should just do this in svg hm
+21:59 < bridge> <learath2> There I can have a full color matrix which should be strong enough to tint my image to whatever color without running a numerical approximation through sepia and hue rotations
+21:59 < bridge> <TsFrediman> sounds pog
+22:12 < bridge> <learath2> I found an even better solution
+22:12 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1355288413586067536/image.png?ex=67e86231&is=67e710b1&hm=a0071dd7442757aeb5bc49e5fff0cd34b7087a1ced57a43068fb284cdb1cb0e5&
+22:12 < bridge> <learath2> You can apparently use external filters from any svg file
+22:16 < bridge> <meloƞ> I immediately saw a butt on that one
+22:18 < bridge> <learath2> Now just need to generate the correct colors
+22:18 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1355289917562818643/image.png?ex=67e86398&is=67e71218&hm=e90aa15ecfddfa423670c97616b583f3c46149707ffdb91ca7e9fe49313aadc3&
+22:18 < bridge> <learath2> I'll be stealing your positioning for the eyes @tsfreddie
+22:19 < bridge> <TsFrediman> need code after you've done
+22:19 < bridge> <TsFrediman> mine is eyeballed btw
+22:20 < bridge> <learath2> ```
+22:20 < bridge> <learath2>   <filter id="red">
+22:20 < bridge> <learath2>     <feColorMatrix type="saturate" values="0.10" />
+22:20 < bridge> <learath2>     <feComponentTransfer>
+22:20 < bridge> <learath2>         <feFuncR type="table" tableValues="0 1"></feFuncR>
+22:20 < bridge> <learath2>         <feFuncG type="table" tableValues="0 0"></feFuncG>
+22:20 < bridge> <learath2>         <feFuncB type="table" tableValues="0 0"></feFuncB>
+22:20 < bridge> <learath2>     </feComponentTransfer>
+22:20 < bridge> <learath2>   </filter>
+22:20 < bridge> <learath2> ```
+22:20 < bridge> <learath2> I thought I'd have to compute the entire matrix but apparently svg has more primitive filters  that you can compose with
+22:21 < bridge> <learath2> 0.1 probably needs playing with, but other than that this just maps blacks to black, whites to whatever color you want 😄
+22:21 < bridge> <TsFrediman> epic
+22:22 < bridge> <learath2> Now, why am I wasting time with this? idk
+22:22 < bridge> <TsFrediman> was wondering why you are doing this
+22:22 < bridge> <learath2> Just felt like putting the tees to display them for the lulz, this project definitely has 0 need for the tees to be displayed
+22:22 < bridge> <learath2> nor does it need to be accurate
+22:23 < bridge> <TsFrediman> what project is it anyway
+22:23 < bridge> <learath2> It's internal tooling to keep track of what mods are doing
+22:23 < bridge> <TsFrediman> ok
+22:24 < bridge> <TsFrediman> I'll appear more silent than ever. Great
+22:24 < bridge> <learath2> It'll be open source but I don't see it being useful to anyone else
+22:28 < bridge> <learath2> You know what I forgot? We don't even keep track of a players most used skin
+22:30 < bridge> <TsFrediman> Ye that happens
+22:30 < bridge> <TsFrediman> That's exactly why I'm wondering why you are doing tee renders
+22:30 < bridge> <learath2> I guess I can add that to the ddnet website too
+22:31 < bridge> <TsFrediman> any other guy I would be like oh they are just doing a tracker
+22:31 < bridge> <TsFrediman> so are we getting an official tracker now
+22:31 < bridge> <learath2> Only if I feel like it after eating my pizza
+22:32 < bridge> <TsFrediman> <a:vibe:1191801470945869927>
+22:32 < bridge> <learath2> We already parse the master server records to get the hours played graph
+22:32 < bridge> <TsFrediman> fair
+22:33 < bridge> <learath2> Actually not pizza, mcdonalds seems to have added a new burger, I'll try that
+22:33 < bridge> <TsFrediman> my tracker only does most recent cuz some CHN player changes skins too frequently that some of them says the skin was stuck.
+22:33 < bridge> <TsFrediman> I don't know if there is a good way to actually track skins
+22:34 < bridge> <learath2> Hm, maybe most recent is better now that you say it
+22:34 < bridge> <TsFrediman> I did track recent per region tho
+22:38 < bridge> <ljpb> chillerdragon i love y
+22:39 < bridge> <ljpb> chillerdragon i love you
+23:40 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1355310719347855381/GnEge_aXwAAdga7.jpg?ex=67e876f7&is=67e72577&hm=08627c66e2149c64252edccd69864c7d2a0e3851fc0cefd0a8841d99cc16c6bd&

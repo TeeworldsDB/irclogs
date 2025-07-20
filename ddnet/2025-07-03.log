@@ -1,0 +1,238 @@
+00:00 < ws-client> <ChillerDragon> https://paste.zillyhuhn.com/bQ
+00:01 < ws-client> <ChillerDragon> okay i need to sleep and then properly revist the timestamps of the logging and asan
+00:02 < ws-client> <ChillerDragon> maybe it actually crashes idk back to bed xd
+00:13 < bridge> <jxsl13> you need some serious vacational punches. 👀
+00:14 < bridge> <jxsl13> 🍈 I summon you.
+00:15 < bridge> <teero777> yacht
+00:15 < bridge> <teero777> sorry i read purchases
+00:16 < bridge> <vahemaaa> hello tieero
+00:17 < bridge> <jxsl13> Chiller's Alter
+00:17 < bridge> <jxsl13> greetings
+00:17 < bridge> <vahemaaa> 👋
+00:18 < bridge> <vahemaaa> helo jaxsil31
+00:18 < bridge> <jxsl13> greetings
+00:18 < bridge> <jxsl13> it's 13
+00:18 < bridge> <jxsl13> well
+00:19 < bridge> <jxsl13> this year closer to 31
+00:19 < bridge> <vahemaaa> time is passing
+00:19 < bridge> <jxsl13> 👴
+00:34 < bridge> <kebscs> added in this pr^, str_sanitize doesnt remove new lines, it removes invalid characters
+02:07 < bridge> <Solly (bun bun)> first one covered by my pr probably
+02:10 < bridge> <kebscs> which one
+02:11 < bridge> <Solly (bun bun)> the clang tidy one
+02:11 < bridge> <kebscs> what did it cover
+02:11 < bridge> <Solly (bun bun)> `Used reserve and resize on vectors where it made sense`
+02:11 < bridge> <Solly (bun bun)> keep it, ill deal with merge conflicts if they happen
+02:12 < bridge> <kebscs> you have only 1 reserve
+02:12 < bridge> <kebscs> and i missed that one
+02:16 < bridge> <Solly (bun bun)> xd
+02:16 < bridge> <Solly (bun bun)> its the one clang tidy got
+02:17 < bridge> <kebscs> i did find all emplace_back and push_back and clicked randomly
+08:48 < ws-client> <ChillerDragon> okay i am caffinated now @robyt3 i confirmed yesterdays fever dream. The server is still running that generated the asan file. I thought asan kills the server,  i guess that depends on the type of error and asan options.
+08:49 < ws-client> <ChillerDragon> sadly i do not think there is a way to properly timestamp when the asan error was caught i only have the server start date in the asan log file and the PID is appended by asan at the end i assume and that very PID is also actually still up and runnign
+08:53 < ws-client> <ChillerDragon> And in that runnings server logfile there is only one occurence of the logs. It is set to -1 on the huffman error which is expected. The other log is one line before the value is used as a index the one that asan caught.
+08:54 < ws-client> <ChillerDragon> Here is yesterdays same log but with more context https://paste.zillyhuhn.com/8G nothing suspicious happen. The server already ran for a while.
+08:55 < ws-client> <ChillerDragon> So now if huffman errors are really the issue I am wondering how do huffman errors even happen? The server does not lag/crash/log spam or do anything bad when huffman fails so it is not an attack vector.
+08:55 < ws-client> <ChillerDragon> No malicious actor should have interested in reaching that branch. Only tinkerers building own clients might accidentally hit it. But i doubt that happens so frequently on my server.
+08:56 < ws-client> <ChillerDragon> So the last option i see is that there is a bug in the official server client communication which was never caught because it just silently drops it. That would be interesting to fix too even if its not a crash it will cause lags for players.
+08:58 < ws-client> <ChillerDragon> And about the crash no clue. Even if i can not pinpoint the asan timestamps given that the log in front of network.cpp:40 the trouble spot got hit together with the huffman error i would say its safe to assume its related to that huffman error.
+08:59 < ws-client> <ChillerDragon> But i do not see how that -1 should be used then. Maybe I can try to reproduce by sending broken huffman.
+09:01 < bridge> <robyt3> Maybe Huffman fails because the uncompressed output is too large
+09:04 < ws-client> <ChillerDragon> ok i will log that in huffman to verify the theory
+09:04 < ws-client> <ChillerDragon> thats a fair error i guess. Still should not happen.
+09:04 < ws-client> <ChillerDragon> would be an easy fix
+09:10 < ws-client> <ChillerDragon> @robyt3 would you say it is sus that it checks ``if(DataSize)`` here and not ``if(DataSize > 0)`` ? https://github.com/ddnet/ddnet/blob/e76ba53b74d9e95fb3836a9e43a229e650c6612e/src/engine/shared/network_server.cpp#L662
+09:10 < bridge> <robyt3> Yes, I saw that before and found it more suspicious than the rest
+09:11 < bridge> <robyt3> Line 639 above also only checks for size zero
+09:11 < ws-client> <ChillerDragon> i mean unrelated to this bug and if it causes issues or not it is wrong to check a size for validity based on the zero value if -1 is also an expected error value
+09:12 < ws-client> <ChillerDragon> wait thats it isnt it @robyt3 
+09:12 < ws-client> <ChillerDragon> or no? wait xd
+09:13 < bridge> <robyt3> You could try adding debug asserts/logs to check if there's ever a negative value there
+09:14 < ws-client> <ChillerDragon> i am wondering who is guarding network.cpp:44 anyways?
+09:14 < ws-client> <ChillerDragon> ``	unsigned char *pEnd = m_Data.m_aChunkData + m_Data.m_DataSize;``
+09:14 < ws-client> <ChillerDragon> so here the issue is that DataSize migth be -1
+09:14 < ws-client> <ChillerDragon> i just wondered if it is not -1 but 0 it would just set the end to the start and do nothing
+09:15 < ws-client> <ChillerDragon> i feel like this just happend to work for the happy path but is missing an guard if checking datasize
+09:23 < bridge> <learath2> ChillerDragon: What bug are you trying to diagnose?
+09:35 < ws-client> <ChillerDragon> @learath2 https://github.com/ddnet-insta/ddnet-insta/issues/367 and the linked ddnet one seems to be the same
+09:35 < ws-client> <ChillerDragon> i just happen to get it daily
+09:36 < ws-client> <ChillerDragon> i have the feeling instead of doing ``datasize = huffman.decompress()`` which gets set to -1 on error we could simply do ``if(huffman.decompress() < 0) { datasize = 0; }`` and itll just work
+09:40 < bridge> <learath2> I have a feeling that might work but might also mask an actual bug
+09:40 < ws-client> <ChillerDragon> yea i will find out what the huffman bug is and fix it too dw
+09:41 < ws-client> <ChillerDragon> to me it seems more like a oopsie and magnus thought datasize is positive or 0 and then just forgot about the huffman error smh
+10:14 < bridge> <ryozuki> morn
+10:17 < bridge> <milkeeycat> @ryozuki after 6 months I finally added array type to my compiler backend :kek:
+10:17 < bridge> <ryozuki> niceu
+12:48 < bridge> <jxsl13> we need to update the Go implementation if necessary D:
+12:48 < bridge> <jxsl13> I'm just reading huffman bug
+13:04 < bridge> <Jupstar ✪> 📶 DDNetz
+13:05 < bridge> <Jupstar ✪> chillerdragon: I thought 0.7 is perfect
+13:19 < bridge> <patiga> chillerdragon: did https://gitlab.com/ddnet-rs/twmap-py/-/issues/7, in case you are still interested ^^
+15:25 < bridge> <bubbly_gull_75305> pls unjail me i just get jail in unstable server "bad client" but I have never downloaded any client in my life
+15:34 < bridge> <ryozuki> :owo:
+16:29 < bridge> <Solly (bun bun)> :owo:
+18:07 < ws-client> <ChillerDragon> @patiga got the mail
+18:08 < ws-client> <ChillerDragon> @jxsl13 might be out of space then its just a matter of increasing buffer size. The bloated garbage collected go implementation might not even be affected xd
+18:08 < ws-client> <ChillerDragon> @bubbly_gull_75305 where did you download the game from?
+18:08 < bridge> <jxsl13> ok
+18:08 < ws-client> <ChillerDragon> @0xfaulty ^ Unstable jailer
+18:10 < ws-client> <ChillerDragon> @Jupstar ✪ 0.7 shaming is a bannable offense
+18:10 < ws-client> <ChillerDragon> also watafak is DDNetz
+18:11 < bridge> <jxsl13> mobile carrier provider
+18:12 < bridge> <Jupstar ✪> Let's open it, and give free mobile internet for teeworlds
+18:12 < bridge> <Jupstar ✪> chillerdragon: But you have to admit, 0.7 is too bad too, we need smth better
+18:13 < bridge> <Jupstar ✪> Next generation
+18:13 < bridge> <Jupstar ✪> Next level games
+18:35 < ws-client> <ChillerDragon> @robyt3 this got hit a shitload of times for me https://github.com/ddnet-insta/ddnet-insta/blob/d5f351d773521130025b65160902aeef7b1b5ce6/src/engine/shared/huffman.cpp#L277
+18:38 < bridge> <kebscs> :owo:
+18:53 < bridge> <robyt3> ChillerDragon: Looks like the output buffer is not large enough for some message. Did you also get the `-3` as one of the unpacker sizes or was it still `-1` for some reason?
+18:58 < bridge> <robyt3> `std::counting_semaphore` appears to be available since GCC 11 but deen's build machine is on GCC 10.2 only :feelsbadman:
+18:59 < ws-client> <ChillerDragon> yup @robyt3 ``runtime error: index -3 out of bounds for type 'unsigned char[1394]'``
+18:59 < ws-client> <ChillerDragon> but thats good right?
+19:00 < ws-client> <ChillerDragon> at least i was hoping for output buffer size
+19:00 < ws-client> <ChillerDragon> free fix
+19:00 < ws-client> <ChillerDragon> unless its actually infinite loop huffman decompression bomb bug
+19:00 < ws-client> <ChillerDragon> then its not free fix
+19:00 < bridge> <robyt3> Is it? The network buffers sizes are hard to understand
+19:01 < ws-client> <ChillerDragon> if buf too smol make buf size bigger .. duh
+19:01 < bridge> <robyt3> But there's also some bug in the control flow that it even tries to use this value after the compression failed
+19:01 < bridge> <robyt3> But there's also some bug in the control flow that it even tries to use this value after the decoding failed
+19:01 < ws-client> <ChillerDragon> yes that control flow bug is what causes the asan issue
+19:01 < ws-client> <ChillerDragon> that one breaks my brain
+19:02 < ws-client> <ChillerDragon> but the huffman bug should be fixable in 1s
+19:02 < bridge> <robyt3> Possible, but it could have more side effects because you are passing more data to other functions as well
+19:02 < ws-client> <ChillerDragon> ah tru
+19:03 < ws-client> <ChillerDragon> you know what the magic 6 means? https://github.com/ddnet/ddnet/blob/8ad588f0739c03e4912c3b76311da24ed096b459/src/engine/shared/network.h#L64
+19:04 < ws-client> <ChillerDragon> we could also try to get the clients to split earlier
+19:04 < ws-client> <ChillerDragon> i wonder why clients would send that much data anyways
+19:05 < bridge> <robyt3> In my WIP branch I ended up with `NET_MAX_PAYLOAD = NET_MAX_PACKETSIZE - NET_MAX_CHUNKHEADERSIZE - NET_PACKETHEADERSIZE - sizeof(SECURITY_TOKEN)`
+19:05 < ws-client> <ChillerDragon> xd
+19:05 < ws-client> <ChillerDragon> why NET_MAX_CHUNKHEADERSIZE tho
+19:06 < ws-client> <ChillerDragon> the chunk header is part of the payload
+19:06 < ws-client> <ChillerDragon> there might be NumChunks chunk headers in it anyways
+19:07 < bridge> <robyt3> yeah, I don't really understand it, so I haven't finished it
+19:08 < ws-client> <ChillerDragon> @robyt3 just ask AI 
+19:08 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/.1751562506.png
+19:08 < ws-client> <ChillerDragon> xd
+19:09 < ws-client> <ChillerDragon> to be fair it has gotten better. duckduckgo LLM assist finally knows about my docs poggers
+19:09 < bridge> <robyt3> Does this relate to connless packets? `CNetBase::SendPacketConnless` also uses `6`, which should be `sizeof(NET_HEADER_EXTENDED) + sizeof(aExtra)`
+19:12 < ws-client> <ChillerDragon> wdym it uses 6?
+19:12 < ws-client> <ChillerDragon> idk much about connless tbh
+19:12 < bridge> <robyt3> I mean it uses the same number as an offset
+19:13 < bridge> <learath2> Probably space for the packet and chunk header
+19:13 < bridge> <learath2> A max size payload can be as large as the max packet size - 1 packet header - 1 chunk header
+19:14 < bridge> <robyt3> I think you also need space for at least one token
+19:15 < bridge> <robyt3> Because of #9126
+19:15 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/9126
+19:18 < bridge> <learath2> If that's true, then the -6 sounds wrong
+19:18 < bridge> <robyt3> yeah, I would do https://discord.com/channels/252358080522747904/293493549758939136/1390377925215256658
+19:19 < bridge> <robyt3> Also, some buffers are sized `NET_MAX_PAYLOAD` but they should be `NET_MAX_CHUNKHEADERSIZE` because they contain not only payload
+20:18 < ws-client> <ChillerDragon> @learath2 why one chunk header? there are multiple chunks in one packet
+20:18 < ws-client> <ChillerDragon> the chunk headers are part of the payload imo
+20:19 < ws-client> <ChillerDragon> everything after packet header is considered payload including chunk headers they still need space in the buffer
+20:24 < bridge> <learath2> If your payload is maxpayloadsize, it can't fit in with any other chunk
+20:24 < bridge> <learath2> So it'll be put into a packet of it's own, where there'll be one packet header one chunk header and the max sized payload
+20:49 < ws-client> <ChillerDragon> @robyt3
+20:49 < ws-client> https://twnet.zillyhuhn.com/?v=6&d=c3+00+00+00+01+08+78+e7+98+46+bb+f3+79+84+00+00+44+9e+b2+e2+1b+4d+8b+cc+2f+c9+3e+ef+81+49+95+4a+5b+a6+36+4b+91+19+1b+7d+0e+e9+3f+38+ff+91+92+fd+16+ef+b7+a2+03+e5+43+c7+72+31+e3+fc+f6+8f+00+bb+2f+c3+4b+06+5a+a2+45+df+19+eb+8e+c2+84+a7+7d+1b+50+7b+73+b3+71+92+bc+8a+6a+3d+98+58+26+0c+1c+6b+fb+2d+74+29+bc+3c+a1+d6+d0+1c+79+37+29+32+91+0c+3d+3f+f2+0e+52+24+09+10+04+82+96+34+ba+ab+8d+9d+fe+d6+d0+aa
+20:49 < ws-client> +f6+9e+86+70+30+1c+de+aa+3e+50+2c+27+26+40+fa+4b+ed+f3+24+32+a9+fd+3e+b4+e4+e0+4d+5d+9d+02+59+3e+fc+68+67+fa+a7+b4+b8+a9+87+d9+22+19+53+c1+a2+e9+0b+70+d1+7e+7a+14+e9+f8+ce+79+a9+42+9b+cd+93+a2+e2+35+e4+e6+73+d9+27+5d+78+03+3d+e0+32+e9+77+3a+51+e9+1b+22+17+9d+32+be+9e+97+84+61+ab+b4+6e+1a+a9+55+7e+4b+35+eb+c3+15+24+83+23+2b+2f+c8+63+32+51+06+bd+18+d7+4b+b2+87+55+d6+b5+58+71+04+35+96+9b+01+a9+69+9c+46+d2+63+8f+bb+ab+e4+eb+db+59+
+20:49 < bridge> <kebscs> Virus
+20:49 < ws-client> <ChillerDragon> did that properly sent?
+20:49 < ws-client> <ChillerDragon> maybe i need a link shortener xd
+20:50 < bridge> <jxsl13> https://cdn.discordapp.com/attachments/293493549758939136/1390404371451347004/Screenshot_20250703-205025.png?ex=6868227a&is=6866d0fa&hm=00e99ea5e46c6c3260b92f3caf7fef5a13a82a833da26da19c9356ae27fd009b&
+20:51 < ws-client> <ChillerDragon> https://paste.zillyhuhn.com/ya
+20:51 < ws-client> <ChillerDragon> here u go
+20:51 < ws-client> <ChillerDragon> @robyt3 here u can see libtw2 dieing on it too
+20:51 < ws-client> <ChillerDragon> funnily this time it was actually my client this time who sent that packet
+20:51 < ws-client> <ChillerDragon> but i saw a few other players too earlier
+20:52 < bridge> <robyt3> Why does it happen so frequently on your servers though?
+20:52 < ws-client> <ChillerDragon> virus
+20:52 < ws-client> <ChillerDragon> maybe i added some new bug idk?
+20:52 < ws-client> <ChillerDragon> do official ddnet servers always run with asan even?
+20:53 < ws-client> <ChillerDragon> this bug is mostly silent
+20:53 < bridge> <teero777> that would slow them down like crazy
+20:53 < ws-client> <ChillerDragon> so if they do not run with asan it might not be a my server thing
+20:53 < ws-client> <ChillerDragon> maybe its just not noticed on ddnet
+20:55 < bridge> <jxsl13> regular restarts?
+20:55 < ws-client> <ChillerDragon> wdym?
+20:55 < ws-client> <ChillerDragon> me?
+20:55 < ws-client> <ChillerDragon> ye i restart often
+20:56 < bridge> <jxsl13> hm, k
+20:57 < ws-client> <ChillerDragon> it happens like every 2minutes
+21:01 < ws-client> <ChillerDragon> i think ill turn debug msgs off again it spams my logs. We got it all right @robyt3 ?
+21:09 < ws-client> <ChillerDragon> https://github.com/ddnet-insta/ddnet-insta/blob/1e81301ff5e902244b8c391204b83cccad6b39e1/src/engine/shared/network_server.cpp#L647
+21:09 < ws-client> <ChillerDragon> https://github.com/ddnet-insta/ddnet-insta/blob/1e81301ff5e902244b8c391204b83cccad6b39e1/src/engine/shared/network_server.cpp#L673
+21:09 < ws-client> <ChillerDragon> as far as i can tell they have not been hit
+21:09 < ws-client> <ChillerDragon> even if the asan was hit the zero check never run into a negative value smh
+21:10 < bridge> <robyt3> Alright, I can look into it with the raw payload data
+21:35 < ws-client> <ChillerDragon> i wonder why the client is sending such long messages in the first place
+21:38 < ws-client> <ChillerDragon> Seems like ddnet has a similar one and there is some tiny flaw somewhere but could also be that it only gets really bad because of my fork or antibot module
+21:39 < bridge> <kebscs> @robyt3 cant we use both? casting to value or cmp_ functions?
+21:40 < bridge> <kebscs> i think the cmp_ evaluates at compile time to the same thing, just that its safe if one value is bigger than max of other type
+21:40 < ws-client> <ChillerDragon> oh yea true with the raw payload you can patch the client to have ez reproduce right? @robyt3 
+21:41 < ws-client> <ChillerDragon> then the branch can be tested in pure ddnet too. Maybe just the trigger is caused by my stuff.
+21:41 < bridge> <robyt3> Seems mostly like a style choice, as I don't think we'd be using such large indices anyway. I'd rather have it consistent than written in multiple different ways.
+21:42 < ws-client> <ChillerDragon> there is something so scary about leaking these dumps i dont know what they contain
+21:42 < ws-client> <ChillerDragon> i feel like i just leaked something
+21:42 < ws-client> <ChillerDragon> in the end it contains the rcon password that i also use for paypal or something
+22:26 < bridge> <robyt3> WireShark dissector can't look further than this when importing the packet data:
+22:26 < bridge> <robyt3> ```
+22:26 < bridge> <robyt3> Teeworlds Protocol packet
+22:26 < bridge> <robyt3>     Flags: compressed, resend requested (1100 ....)
+22:26 < bridge> <robyt3>         1... .... = Compressed
+22:26 < bridge> <robyt3>         .1.. .... = Resend requested
+22:26 < bridge> <robyt3>         ..0. .... = Connection-oriented
+22:26 < bridge> <robyt3>         ...0 .... = Not a control message
+22:26 < bridge> <robyt3>     Acknowledged sequence number: 768 (.... ..11 0000 0000)
+22:26 < bridge> <robyt3>     Number of chunks: 0
+22:26 < bridge> <robyt3>     Compressed payload (1197 bytes)
+22:26 < bridge> <robyt3> ```
+22:35 < ws-client> <ChillerDragon> because the huffman compression failed
+22:35 < ws-client> <ChillerDragon> the web link i sent you uses the same huffman decompression as the dissector
+22:39 < ws-client> <ChillerDragon> you can make more sense of the payload by looking at the partially uncompressed data. You need a custom huffman decompressor tho that just delimits on error not throws on error.
+22:40 < ws-client> <ChillerDragon> @robyt3 why a client message gets so big is a bit curious yes. But that is not really the problem we are trying to fix. Or are you searching for a 3rd problem here? xd
+22:41 < ws-client> <ChillerDragon> no matter what the client sends the server should not choke. We don't need to care what the client sends just that it doesnt break the server. You dont need to understand the payload to replay it.
+22:43 < ws-client> <ChillerDragon> WAIT WHAT xd
+22:44 < ws-client> <ChillerDragon> @robyt3 number of chunks: 0
+22:44 < ws-client> <ChillerDragon> how did i not see that??? xd
+22:44 < ws-client> <ChillerDragon> is the client potentially sending full on garbage??
+22:44 < ws-client> <ChillerDragon> why is number of chunks: 0 and there is a big ass payload??????
+22:44 < ws-client> <ChillerDragon> wtf
+22:44 < ws-client> <ChillerDragon> or is that the dissector trolling?
+22:44 < ws-client> <ChillerDragon> wait that cant be right
+22:45 < bridge> <robyt3> Yeah, but there might be another bug that causes this large message to begin with.
+22:45 < bridge> <robyt3> Might be because it can't decode the huffman data
+22:45 < ws-client> <ChillerDragon> a non control message with number of chunks 0 and a payload
+22:45 < ws-client> <ChillerDragon> is a bug
+22:46 < ws-client> <ChillerDragon> all control messages have num chunks of 0 but the control flag is not set. Also compression and control cant be both set at the same time.
+22:47 < ws-client> <ChillerDragon> there are non control messages with 0 chunks if one requests a resend without sending something but then there is no payload
+22:47 < ws-client> <ChillerDragon> i mean i built the packet header manually but i am pretty sure i made no mistakes
+22:48 < ws-client> <ChillerDragon> https://github.com/ddnet-insta/ddnet-insta/blob/1e81301ff5e902244b8c391204b83cccad6b39e1/src/engine/shared/network.cpp#L331
+22:48 < ws-client> <ChillerDragon> you can read num chunks with the bare eye its just the 3rd byte in every packet
+22:48 < ws-client> <ChillerDragon> no rocket science
+22:48 < ws-client> <ChillerDragon> thats some weird shit
+22:49 < ws-client> <ChillerDragon> now you got me. Lets hunt for bug number 3 xd 
+22:49 < ws-client> <ChillerDragon> gotta debug print on the client side if it actually tries to send a packet with 0 chunks and compressed payload
+22:53 < bridge> <robyt3> I thought about this before, but can you pack 256 chunks in a packet? Then the number wraps back to 0
+22:53 < ws-client> <ChillerDragon> lmao
+22:53 < ws-client> <ChillerDragon> but again the question ... why would that happen
+22:54 < bridge> <robyt3> I think I might have an idea why, but I don't want to go into the details here because @heinrich5991 reported it only internally in the admin channel
+22:55 < bridge> <robyt3> Should probably fix the potential issues on the server side first
+22:55 < ws-client> <ChillerDragon> i was also afraight of some of my ab causing this xd
+22:55 < ws-client> <ChillerDragon> oh you are talking about a server crasher
+22:55 < ws-client> <ChillerDragon> nvm then
+22:55 < ws-client> <ChillerDragon> developer channel is juicy lately
+22:56 < ws-client> <ChillerDragon> i mean sure non vital chunk header is 2 bytes so 256 * 2 is 512 which is less than the max packet size of 1400
+22:57 < ws-client> <ChillerDragon> but thats just so far from anything realistic
+22:57 < bridge> <robyt3> `unsigned char *pEnd = m_Data.m_aChunkData + m_Data.m_DataSize;` does this even cause any issue without ASAN? Wouldn't the end pointer just be before the chunk data beginning if data size is negative, so the checks correctly detect that nothing is available? I guess this function should just exit out early though if `m_Data.m_DataSize < 0`.
+22:58 < bridge> <robyt3> `<= 0`
+22:58 < ws-client> <ChillerDragon> first of all the most messages are vital so the header is 3 bytes. Then it also needs a message id. And most messages also have a payload. So the minimum size is more like 5 and 256 * 5 is 1280 which already gets awfully close to the max payload
+22:59 < ws-client> <ChillerDragon> if u super handgolf a custom client maybe but only maybe you can somehow fit more than 256 chunks into a payload. I would be surprised but it could work. If maybe all of them are like the ready message without payload. But a legit client should never do it.
+23:01 < ws-client> <ChillerDragon> @robyt3 i thought about that -1 problem a bit without looking at the code earlier i dont think it causes issues with legit clients. Maybe some malicious attacker could craft something. But pEnd is not really read so the oob only messes up the size check.
+23:02 < ws-client> <ChillerDragon> idk if the size is even needed that much because all chunks have a known set of fields that are parsed and the amount of chunks is known too
+23:02 < ws-client> <ChillerDragon> you dont really need to look at the size
+23:02 < ws-client> <ChillerDragon> in the happy path
+23:03 < bridge> <robyt3> I don't know for sure if the pointer arithmetic is well defined with negative offsets, but it doesn't seem to cause issues without ASAN
+23:03 < ws-client> <ChillerDragon> yea it missing a DataSize <= 0 check is also something i mentioned yesterday i think. I think it was just forgotten because it happend to work. Especially the 0 case just works beatifully.
+23:04 < ws-client> <ChillerDragon> yea the surface bug might be the most boring one. And the 2 bugs we dug out underneath might be more dramatic
+23:05 < bridge> <robyt3> Some of the packet sizes and checks are still wrong though, those definitely need fixing
+23:05 < ws-client> <ChillerDragon> ye

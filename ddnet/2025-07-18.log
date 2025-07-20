@@ -1,0 +1,427 @@
+00:00 < bridge> <learath2> Basically a payload that is encrypted code
+00:01 < bridge> <kebscs> so how would the server know you have it
+00:01 < bridge> <learath2> It would have a secret key inside it which it would use to communicate with the server
+00:02 < bridge> <kebscs> hack clients would just spoof it
+00:02 < bridge> <learath2> (Yes one can extract the key, but there are ways to make it veeery veery annoying)
+00:02 < bridge> <learath2> Not unless they can extract the key they can't
+00:02 < bridge> <kebscs> 1. extracting the key from the client
+00:03 < bridge> <kebscs> 2. from packets, which would be even easier since its unencrypted ud[p
+00:03 < bridge> <kebscs> 2. from packets, which would be even easier since its unencrypted udp
+00:03 < bridge> <learath2> The packets would be fully encrypted between the blob and the server
+00:04 < bridge> <learath2> Basically the client would call into the blob, the blob would independently do stuff and send back an encrypted message
+00:05 < bridge> <avolicious> Use TPM like Intel SGX or the newer version
+00:05 < bridge> <learath2> The issue of how secure it is is not really a huge concern of mine. We can make it very annoying, we can generate the blobs daily on the fly with rotating keys.
+00:05 < bridge> <learath2> 
+00:05 < bridge> <learath2> The concern is that it would pretty much give us remote code execution on your system
+00:05 < bridge> <kebscs> but were waiting for quic to have this ecnrypted communitcation
+00:05 < bridge> <kebscs> so accounts would come first anyway
+00:08 < bridge> <learath2> I did think about this (the secure boot research I was doing inspired me). But I'm unsure if we can properly remotely attest sgx. What it reports back to us can be spoofed if I understand it correctly
+00:08 < bridge> <avolicious> No, you cant spoof it if you run it in an enclave
+00:09 < bridge> <avolicious> Intel SGX had several flaws already with hardware hacking and so on, but if you run it in the enclave you cant access anything besides your loaded code
+00:10 < bridge> <learath2> I should research that a bit more if you say it could work
+00:10 < bridge> <avolicious> You need hardware support for it tho
+00:10 < bridge> <avolicious> That might be a blocker
+00:11 < bridge> <avolicious> Old systems often dont have TPMs
+00:11 < bridge> <learath2> I'd assume most modern hardware supports it by now and amd probably has an equivalent
+00:11 < bridge> <avolicious> amd has SEGX
+00:11 < bridge> <avolicious> amd has SEV
+00:12 < bridge> <avolicious> There is a cool tool for it: https://openenclave.io/sdk/
+00:12 < bridge> <learath2> So it allows you to run a piece of code in a measured way, right? How do you attest what was run remotely later?
+00:13 < bridge> <avolicious> It allows you to load an enclave in the hardware module which is pre-signed & does some work for you. It has limited access to some crypto stuff like generating a private key and so on. You can also use DCAP (Data Center Attestation Primitives) - otherwise you need to use the Intel API = money.
+00:14 < bridge> <avolicious> For half a year I am currently researching on how to run OpenEnclave with Zero Knowledge Proof to let other people host KoG servers, but I can always be sure that they are not tampered or somehow changed
+00:14 < bridge> <learath2> Who signs the enclave?
+00:15 < bridge> <avolicious> You, with your private key
+00:15 < bridge> <learath2> So when the enclave is loaded, the cpu verifies the signature?
+00:15 < bridge> <avolicious> The TEE does
+00:15 < bridge> <avolicious> It doesnt verify your signature tho
+00:15 < bridge> <avolicious> but it signs the attest
+00:16 < bridge> <avolicious> And you have a signer in the attest, which correlates to your private key
+00:16 < bridge> <learath2> What key does it sign the attest with?
+00:16 < bridge> <avolicious> Intel on-board key
+00:16 < bridge> <avolicious> Its a signed key from intel or amd
+00:17 < bridge> <avolicious> Its on the hardware
+00:17 < bridge> <avolicious> you cant change it
+00:17 < bridge> <avolicious> Even if you do, you can verify the key if its from intel or amd 😄
+00:17 < bridge> <learath2> Okay, so that's the root of trust, that's good. So could we run the entire client in a TEE? Is there a large performance penalty?
+00:18 < bridge> <avolicious> No, you are memory limited
+00:18 < bridge> <avolicious> You treat the application as untrusted
+00:18 < bridge> <avolicious> and load the enclave into the trusted TEE
+00:19 < bridge> <learath2> Hm, so what do you do in the TEE? Can you measure external stuff? Can you get it to sign things with the intel key for you?
+00:19 < bridge> <avolicious> Yes, the enclave can be opened within the ddnet client
+00:19 < bridge> <avolicious> and it can communicate through a dedicated channel
+00:20 < bridge> <learath2> The client can just lie to it, no?
+00:20 < bridge> <avolicious> Depends on the interface
+00:20 < bridge> <learath2> I'd need it to be independently measuring the client
+00:21 < bridge> <avolicious> Send a challenge to the untrusted ddnet client app
+00:21 < bridge> <learath2> And report the measurement results in a signed and preferably encrypted way
+00:22 < bridge> <avolicious> Yeah, so the enclave creates a private key & then sends a verification request to a public server through the curl implementation in ddnet
+00:22 < bridge> <avolicious> You cant fake it
+00:22 < bridge> <learath2> How do I know the enclave created the private key?
+00:23 < bridge> <avolicious> With the attest
+00:23 < bridge> <learath2> How does the enclave know that the untrusted part hasn't been modified?
+00:25 < bridge> <avolicious> It doesnt by default
+00:26 < bridge> <avolicious> anyone can load your signed enclave to create an instance
+00:26 < bridge> <totar> The issue is what does the binary blob do? There's a lot of ways to cheat even without a self compiled client
+00:26 < bridge> <learath2> I'll just have to read more about this. A simple challange would only tell me that the enclave is untampered with and is running. But it doesn't tell me anything about the untrusted part, I'm interested in verifying that people are running the client they say they are running
+00:27 < bridge> <learath2> The binary blob measures parts of the running executable and reports back
+00:27 < bridge> <louis> i feel like replay bot / slowdown->replay cheats are theoretically impossible to detect unless you can actually differentiate the inputs
+00:28 < bridge> <learath2> One could perhaps fool it by creating a bogus stack frame to misdirect the blob into measuring the wrong thing
+00:28 < bridge> <louis> can't someone simulate the inputs in a legit client by using a "fake" input device? i'm not sure if that's a thing in other games but i wouldn't be surprised
+00:30 < bridge> <kebscs> yea, simplest way is you would just record a macro
+00:30 < bridge> <kebscs> doesnt need to be in game, you just replay the inputs
+00:32 < bridge> <learath2> The hope is always that it's just too expensive and too annoying to do for a game as unimportant as ddnet
+00:32 < bridge> <learath2> There is no perfect solution. Truly trusted execution on an untrusted platform is an impossible problem
+00:33 < bridge> <totar> Anyway I would imagine the larger issue is political, you'd have to ban any client that you don't control and doesn't have your blob
+00:33 < bridge> <avolicious> I would like it to have atleast proof that he runs ddnet 😄
+00:33 < bridge> <avolicious> I dont mind supporting other clients too
+00:34 < bridge> <learath2> I was thinking of making it optional. If you don't run it and you are acting like a bot, it's now more obvious
+00:34 < bridge> <totar> Well you know how the current proof for that is working
+00:34 < bridge> <avolicious> Yeah, but its not super reliable anymore as more and more people are finding it
+00:34 < bridge> <learath2> I was surprised the current one lasted as long as it did. It is completely open source
+00:34 < bridge> <learath2> When we implemented it I told heinrich it would take people at most a month to beat. It survived 3 years
+00:35 < bridge> <totar> Voldemort makes big money
+00:35 < bridge> <totar> Big motivation
+00:35 < bridge> <kebscs> and how long did it took ddnet to ban "bro, check out this client" phrase?
+00:35 < bridge> <kebscs> 💀
+00:35 < bridge> <louis> run a free alternative w better features and shadowban the users over time so it's inconspicuous
+00:36 < bridge> <totar> Still not banned lol because its fruitless
+00:36 < bridge> <learath2> I should start detecting that again before messing around with other things just so he makes less money
+00:36 < bridge> <totar> Only the free version does it
+00:36 < bridge> <totar> ig it still reduces advertising tho
+00:36 < bridge> <learath2> Anyway, I was just curious what everyone thinks about the possibility of a bit of very encrypted code
+00:37 < bridge> <avolicious> I dont like it, neither as a hoster nor a player
+00:37 < bridge> <totar> Idk accounts seem more productive
+00:37 < bridge> <learath2> Evsn if it's optional?
+00:37 < bridge> <avolicious> Yes. I dont want to image what happens if any server hoster can run anything
+00:37 < bridge> <avolicious> Even sandboxed
+00:37 < bridge> <learath2> Accounts are idk, they got out of my hand, I'm not very happy with how they ended up and I don't really feel like working on them
+00:38 < bridge> <avolicious> Just a small security breach somewhere
+00:38 < bridge> <learath2> Noo, that I would never allow. No way. Only ddnet makes blobs
+00:38 < bridge> <totar> I still don't think the number of current cheaters are bigger than what we can handle by hand, its only because we lack any form of "collateral" that can be taken from a player when they'd banned that mods can't keep up
+00:38 < bridge> <totar> I still don't think the number of current cheaters are bigger than what we can handle by hand, its only because we lack any form of "collateral" that can be taken from a player when they're banned that mods can't keep up
+00:39 < bridge> <avolicious> Then I would be in favor of HWID 😄
+00:39 < bridge> <learath2> Giving all hosters remote code execution is insanity
+00:39 < bridge> <avolicious> Instead of ddnet blobs
+00:39 < bridge> <totar> ddnet rs does this in a way
+00:39 < bridge> <avolicious> but sandboxed, no?
+00:39 < bridge> <learath2> It'd need to be calculated in a very secure blob
+00:39 < bridge> <totar> Yes obv
+00:40 < bridge> <learath2> In a wasm sandbox, what I'm talking about is blobs that have full access to the entire address space of the client
+00:40 < bridge> <totar> hmm
+00:40 < bridge> <learath2> It would basically be another executable just extremely obfuscated
+00:40 < bridge> <avolicious> That doesnt sound good
+00:41 < bridge> <totar> Will AV like this? I feel like it should be massive red flags if theyre paying attention
+00:41 < bridge> <totar> But maybe theyre not idk
+00:41 < bridge> <learath2> Yeah, it makes me uneasy too, that's why I wanted to ask around see how others feel. The only saving grace is that people already trust ddnet to not ship malicious binaries. If we wanted to do something evil we could just ship it in the binary
+00:42 < bridge> <avolicious> True that, but now we dont want to start with shipping evil things, dont we?
+00:42 < bridge> <learath2> Well if we did they don't need to be in an encrypted blob is my point. We technically already have remote code execution with the autoupdater and steam updates
+00:45 < bridge> <learath2> Anyway, SGX sounds fairly interesting. I might look into it see if I can use a TEE to measure stuff externally
+00:45 < bridge> <avolicious> Lets ask Riot Games with their Vanguard anti-cheat
+00:46 < bridge> <learath2> They use some very spicy secret sauce. Their kernel driver unmaps critical memory when it's not needed 😄
+00:46 < bridge> <totar> I still prefer account based collateral ideas, im gonna keep bringing it up 😄 with HWID even is ok.
+00:47 < bridge> <learath2> The process simply does not even have the critical sections mapped, when they need access the kernel driver provides access only if it still trusts the binary
+00:48 < bridge> <learath2> HWID is just a no go. How are we going to stop people from spoofing it? Unless there is hardware support for signed hwids
+00:48 < bridge> <totar> Idk your encrypted binary blob
+00:49 < bridge> <learath2> Yeah, you need something like that
+00:49 < bridge> <learath2> Yeah, you need something like that. That’s why I was floating the idea
+00:49 < bridge> <learath2> You just need a component that you can trust that has a key in it that is hard to extract
+00:49 < bridge> <totar> Yeah but I want the accounts first, then make it harder to bypass ban later
+00:50 < bridge> <learath2> I don’t want to talk about accounts now because I’m still very very unsure about how they ended up
+00:50 < bridge> <kebscs> accounts ❌ removing botted record ❌ encrypted binary blob remote code execution ✅
+00:50 < bridge> <learath2> And it’s fairly late, if we get into it it’ll take hours 😄
+00:51 < bridge> <totar> Well how accounts actually function isn't in my control I can only hope they'd be maximally useful
+00:51 < bridge> <totar> But if we're allowing unregistered players to set ranks or assist others then its kinda pointless anyway
+00:52 < bridge> <louis> top10 should be register only
+00:52 < bridge> <louis> not even gonna lie
+00:52 < bridge> <totar> Top 100
+00:52 < bridge> <louis> yeah, and any hard maps idk
+00:52 < bridge> <avolicious> Yeah, we will have something like this in the next upcoming version
+00:52 < bridge> <learath2> Imo the ladder should be split if possible
+00:53 < bridge> <totar> right so regular ranks and TAS leaderboard
+00:54 < bridge> <louis> i liked the ddnet season 2 idea w the split leaderboard pts and (maybe map pool?). idk how else you'd go abt a split ladder
+00:54 < bridge> <learath2> There are 2-3 solid proposals on detecting TAS runs but I think the people who proposed them are not working on them
+00:56 < bridge> <louis> what are they
+00:56 < bridge> <totar> Detecting duplicate ranks or detecting TAS?
+00:57 < bridge> <learath2> Idk if I’m allowed to share them. Detecting duplicate ranks
+00:57 < bridge> <filoqcus> detecting tater
+00:57 < bridge> <filoqcus> :brownbear:
+00:57 < bridge> <learath2> I gave lots of people teehistorian files to make it happen, no one got back to me with something that works :pepeW:
+00:58 < bridge> <learath2> It’s sleep time, gn everyone
+00:58 < bridge> <louis> gn
+00:58 < bridge> <filoqcus> https://tenor.com/view/pipotam-baby-hippo-hippo-wash-shower-gif-3406421565683572068
+00:58 < bridge> <louis> do most tasers duplicate their runs on official servers?
+00:58 < bridge> <louis> seems kinda dumb
+00:58 < bridge> <louis> i guess people share their replay files
+01:02 < bridge> <louis> i don't see how detecting duplicate runs is too hard of a problem
+01:02 < bridge> <louis> 
+01:02 < bridge> <louis> detecting single tas runs is interesting though
+01:46 < bridge> <cyberfrighter> you should get like 1-4 rank points if you are top 50%-1%
+01:51 < bridge> <louis> we had that but it was hard to  balance
+01:51 < bridge> <louis> we had smth like that but it was hard to  balance
+05:28 < bridge> <pioooooo> so the practice bug ranks are still not cleared
+05:28 < bridge> <pioooooo> and saves
+06:30 < bridge> <ryozuki> morning
+06:38 < bridge> <Ewan> gm
+06:38 < bridge> <Ewan> any ec2 users
+06:39 < bridge> <Ewan> can't figure it out, i have set inbound rules in a security group to allow all tcp traffic
+06:39 < bridge> <Ewan> the firewall is disabled on the vm
+06:39 < bridge> <Ewan> can connect on ssh but nothing else
+07:55 < bridge> <Ewan> i got it
+08:16 < ws-client> <ChillerDragon> @learath2 well i gave you something
+08:17 < bridge> <melon> Chiller how is your AB looking btw
+08:19 < ws-client> <ChillerDragon> good
+08:19 < ws-client> <ChillerDragon> ish
+08:19 < ws-client> <ChillerDragon> bad
+08:19 < ws-client> <ChillerDragon> depends
+08:19 < ws-client> <ChillerDragon> cant comment
+08:23 < ws-client> <ChillerDragon> @teero where is your C physics lib :c 
+08:33 < ws-client> <ChillerDragon> im scared of multi threading is there something in ddnet that makes spawning and reusing a worker thread safe? Should I just use jobs? Feels like the wrong tool. I want some worker that will constantly have to compute something for me and return me a value.
+08:33 < ws-client> <ChillerDragon> its text file database :D so i feel like the code could look similar to the sql workers but its soooooooo complicated all the mutexes and atomic lock semaphores wtafak
+08:36 < bridge> <louis> what does QuadOffset do when rendering pickups etc?
+08:39 < bridge> <pilonpl> @kebscs this is what happens when changing order with a mouse drag
+08:39 < bridge> <pilonpl> https://cdn.discordapp.com/attachments/293493549758939136/1395656173843255397/ddnet_editor.mp4?ex=687b3d99&is=6879ec19&hm=9266069262b7b3c46737990a0d6d84a1507954b823499b0db10c5d739c006f73&
+08:43 < bridge> <pilonpl> changing the order by dragging pushes other layers around the one you are changing
+08:44 < bridge> <pilonpl> but undo swaps the index you moved with the index you moved the layer to
+08:45 < bridge> <pilonpl> can you reproduce this?
+08:46 < bridge> <totar> you can just make a have a  regular thread with some mutxes, maybe someone else will suggest something better idk
+08:46 < bridge> <totar> I dont think you should use a job for that tho
+08:46 < ws-client> <ChillerDragon> REGULAR THREAD?
+08:47 < bridge> <totar> Ddnet probably does it somewhere but idk if its reusable
+08:47 < bridge> <totar> Yeah?
+08:47 < ws-client> <ChillerDragon> why do i pay for a ddnet game engine license if i have to write my own multi threading code???
+08:47 < ws-client> <ChillerDragon> sounds dangerous bro
+08:48 < bridge> <totar> Idk Im not aware that ddnet has what you want but I might be forgetting
+08:48 < bridge> <totar> I think it only had the job queue
+08:48 < ws-client> <ChillerDragon> last time i touched threads was in 2008. It crashed my code so hard it took down the entire housing market
+08:59 < bridge> <melon> :kek:
+08:59 < bridge> <melon> @teero777
+08:59 < bridge> <melon> (you fucked up pinging again chiller)
+09:06 < ws-client> <ChillerDragon> thanks
+09:06 < ws-client> <ChillerDragon> teeros gh name is 111 higher than his discord name???
+09:06 < ws-client> <ChillerDragon> thats trol af
+09:08 < ws-client> <ChillerDragon> So if i want to check my workers state if its running or done i just do ``std::atomic<int> m_State`` and can happily read and write to it from all threads? no risk what so ever?
+09:15 < bridge> <totar> If you only care about that one int being possibly accessed simultaneously then I suppose yes
+09:26 < bridge> <Assa> @louis.place you can make this a draft PR directly (from the GH UI), so that others can't merge by accident. But I think the button is a bit hidden. Let me know if you're ready, I'd love to give you a review :owo:  idea is brilliant
+09:29 < bridge> <Assa> @louis.place you can make this a draft PR directly (from the GH UI), so that others can't merge by accident. But I think the button is a bit hidden, [here](<https://docs.github.com/de/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-stage-of-a-pull-request#converting-a-pull-request-to-a-draft>). Let me know if you're ready, I'd love to give you a review :owo:  idea is brilliant
+09:41 < bridge> <avolicious> Sadge
+09:45 < bridge> <melon> @jupeyy_keks good morning!
+09:45 < bridge> <melon> 
+09:45 < bridge> <melon> If we talk code-style in ddnet-rs, my impl in ddnet-rs#128 uses magic numbers all over the code and I thought about just adding consts for them, but it gets quite.. ugly. So what is your preference here?
+09:45 < bridge> <melon> https://cdn.discordapp.com/attachments/293493549758939136/1395672828229062668/image-11.png?ex=687b4d1c&is=6879fb9c&hm=260cf64e79e3d8c17dcc44eaa6b43e8832cdd00410a7cefe9645794d34f3368a&
+09:45 < bridge> <DDNet> https://github.com/ddnet/ddnet-rs/pull/128
+09:57 < bridge> <pilonpl> Const can't hurt, right?
+09:58 < bridge> <pilonpl> Because then when you need the same value in more than one place you have to use a const anyways
+09:59 < bridge> <melon> Yeah it's more about the fact that a single tab uses over 30 consts and they're not really reusable apart from margin values between components
+09:59 < bridge> <melon> Because margin and spacing values are the only ones that should! Stay consistent between components :justatest:
+10:00 < bridge> <melon> Because margin and spacing values are the only ones that should! Stay consistent :justatest:
+10:01 < bridge> <pilonpl> But what is the issue with consts?
+10:02 < bridge> <pilonpl> Even if there are 30 of them?
+10:03 < bridge> <melon> I could use an enum struct
+10:09 < bridge> <learath2> Idk how ddnet-rs is set up, but it might be polluting the "global namespace"
+10:14 < bridge> <Jupstar ✪> I've nothing against it, but if these constants are only used in a single function simply put then into the function body
+10:15 < bridge> <Jupstar ✪> Cool didn't know the bot can do that xd
+10:15 < bridge> <ryozuki> just cleaned my pc
+10:15 < bridge> <ryozuki> so much dust
+10:15 < bridge> <ryozuki> but just in case in summer cuz heat
+10:19 < bridge> <melon> 😅
+10:19 < bridge> <melon> Got it :owo:
+10:23 < bridge> <melon> I should do that as well, did you just use compressed air?
+10:29 < bridge> <ryozuki> i have a air gun
+10:29 < bridge> <ryozuki> with non static brushes
+10:29 < bridge> <ryozuki> 25€
+10:30 < bridge> <ryozuki> with anti static electricity brushes
+10:30 < bridge> <Assa> I have an air compressor, which I can use on my car tires. Works for PC as well
+10:32 < bridge> <Assa> I have an air compressor, which I can use on my car tires. Works for PC as well, ~80€, but do recommend if you have a car or other compressed air usages
+10:48 < bridge> <pioooooo> I feel like I've seen prediction of other tees to clip through wall often these days, which wasn't the case before. Also I think when tees have high vertical speed, the client could have predict your position correctly. But instead your tee is flickering and in spec it's slowly falling down.
+11:11 < bridge> <totar> This might be an effect of how intratick works on the client, it interpolates between two ticks but for some reason it has no upper bound when the server doesn't send snapshots which makes tees continue their trajectory forever. So it could be caused by packet loss of downloading snapshots or some other client bug
+11:11 < bridge> <totar> That might be an effect of how intratick works on the client, it interpolates between two ticks but for some reason it has no upper bound when the server doesn't send snapshots which makes tees continue their trajectory forever. So it could be caused by packet loss of downloading snapshots or some other client bug
+11:12 < bridge> <totar> When youre in spec the client doesn't do any prediction btw
+11:13 < bridge> <totar> Although that does sound weird if its also happening not in spec
+11:16 < bridge> <robyt3> Opinions on the other design idea in https://github.com/ddnet/ddnet/pull/10521#issuecomment-3084553517 ?
+11:18 < bridge> <Assa> you mean footer/header vs integrated?
+11:18 < bridge> <robyt3> yes
+11:18 < bridge> <Assa> love this PR, i am in the end fine with both
+11:18 < bridge> <robyt3> also whether we should increase the height of the graphs again because the footer/header reduce it
+11:19 < bridge> <Assa> love this PR, i am in the end fine with both, even tho I prefer the header/footer one
+11:20 < bridge> <Assa> do you see much value in the exact height of the graphs? For all of them imo it's more important to see dips and heights
+11:23 < bridge> <robyt3> Not really, the relative differences are more relevant I think. If it was easier, it would have also been cool to add performance graphs for CPU or memory
+11:24 < bridge> <Assa> I wonder how you did the valramp graphs, are they always there or is there some dynamic graph selecting?
+11:24 < bridge> <robyt3> They are enabled with `dbg_tuning 2`
+11:24 < bridge> <robyt3> Used to be `dbg_tuning 1`, which only shows changed tunes now
+11:25 < bridge> <robyt3> The values for the graphs are generated based on the tuning values
+11:26 < bridge> <Assa> interesting, because the valramp graphs should only be depending on the velramp values, would be interesting to have a marker where you are currently at
+11:30 < bridge> <ryozuki> just noticed i had some kernel options related to amd gpio disabled
+11:31 < bridge> <ryozuki> i wonder what that is
+11:33 < bridge> <pioooooo> that sounds to me a prediction bug tho
+11:34 < bridge> <totar> The client just displays the server snapshots it received when youre in spec so it doesn't have any antiping jitters
+11:34 < bridge> <totar> The client just displays the server snapshots it receives when youre in spec so it doesn't have any antiping jitters
+11:34 < bridge> <totar> Its intended to work that way
+11:34 < bridge> <pioooooo> I mean it shouldn't jitter even when prediction is on
+11:35 < bridge> <pioooooo> since no input is actually changed no?
+11:35 < bridge> <pioooooo> or anything only the server knows
+11:35 < bridge> <pioooooo> or is there anything only the server knows
+12:04 < bridge> <kebscs> Idk about arrows instead of min/max but other than that it's nice
+13:22 < bridge> <Solly (bun bun)> if theres magtic numbers like that, you can either comment them where they are `// x = points_props_width * y` or put them next to their usage or at the top of the code block
+15:01 < bridge> <learath2> Okay, turns out creating a crashdump, not trivial, I'm considering just biting the bullet and bringing in crashpad
+15:03 < bridge> <learath2> However, the nix crate in Rust, excellent to use, very nicely wrapped
+15:03 < bridge> <chillerdragon> @learath2: ddnet related?
+15:03 < bridge> <chillerdragon> Keep in mind: offtopic = ban
+15:04 < bridge> <learath2> Yeah, I was looking into improving our crash reporting situation. Turns out it's quite complicated to extract a useful dump
+15:05 < bridge> <learath2> I have it unwinding the stack and recording the instruction pointer for now, but you need much more, without some memory and context it's all useless
+15:05 < bridge> <chillerdragon> Dump to file?
+15:05 < bridge> <chillerdragon> On assert?
+15:06 < bridge> <learath2> Just a coredump is an option, but coredumps are big, not great for uploading
+15:06 < bridge> <chillerdragon> Pls send crashes to ddnet.org
+15:06 < bridge> <learath2> Just a coredump is an option, but coredumps are big, not great for uploading and storing
+15:06 < bridge> <melon> Nix mentioned
+15:07 < bridge> <learath2> not that nix
+15:07 < bridge> <melon> https://tenor.com/view/nix-nixos-nix-my-beloved-linux-gif-16687923917201934033
+15:07 < bridge> <melon> https://tenor.com/view/pucnh-goku-fight-angry-one-punch-man-gif-9678179172410065416
+15:07 < bridge> <learath2> I'll keep messing around with it though, it is kinda enjoyable learning about these things, how to unwind a stack and stuff
+15:29 < bridge> <jxsl13> coredumps are pretty well conpressible
+15:30 < bridge> <jxsl13> compressible*
+15:33 < bridge> <inv41idu53rn4m3> especially as a fair amount of the data should be quite similar between different coredumps
+15:33 < bridge> <learath2> Not bad, but around 80M for each crash report still might be beyond what is acceptable
+15:33 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1395760308798226646/image.png?ex=687b9e95&is=687a4d15&hm=4d7defc65b3323ae0c8eeac9538e84a9bd71c97a58e3a1ffbd8887062faff268&
+15:38 < bridge> <robyt3> For Windows there's https://github.com/jrfonseca/drmingw which we already use for our crash dumps. It can also be used as a wrapper to launch another application I think.
+15:39 < bridge> <robyt3> Or is this only about internal crash handling of servers?
+15:39 < bridge> <inv41idu53rn4m3> also let's not kid ourselves, certain people will try to spam this
+15:43 < bridge> <ryozuki> blog post inc
+15:55 < bridge> <learath2> this random minimized coredump generator I found generates 42K cores 😛
+15:55 < bridge> <learath2> https://cdn.discordapp.com/attachments/293493549758939136/1395766050607468725/image.png?ex=687ba3ee&is=687a526e&hm=60b122b544c3d8150bedb17e16804bb8786beee1df6dbc864ae919a8d22102ed&
+15:56 < bridge> <learath2> What is included in the crash dumps we get? Are they windows minidumps?
+15:57 < bridge> <robyt3> See https://discord.com/channels/252358080522747904/745926398140612678/1395717289155891250 for example. They are not minidumps.
+15:59 < bridge> <learath2> Yeah, are these really useful? It's a poorly symbolized stacktrace
+15:59 < bridge> <robyt3> You need the symbols from https://ddnet.org/downloads/symbols/ for that particular git hash and release type
+16:03 < bridge> <learath2> Hm, I guess it's better than nothing, at least we get a trace
+16:04 < bridge> <robyt3> From the DLL name a launcher could also automatically determine if it crashed in the graphics driver and suggest changing graphics settings
+16:14 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1395770754179661914/image.png?ex=687ba84f&is=687a56cf&hm=86ebc1e52df0cdd81bce1f7564adb420a2bc1ad98dd7bb70a505cf34c3cf65ea&
+16:14 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1395770754557284522/image.png?ex=687ba850&is=687a56d0&hm=08afd3ff06866c9c154163e89334f360bead4dd8f0b87c9fb1248396e5ac8abb&
+16:14 < bridge> <ryozuki> pog optimizations
+17:07 < bridge> <PRO_Gaming1921> idk if heres the place but is something with the cheating and tas problem going to change or is it doomed?
+17:09 < bridge> <kebscs> doomed
+17:13 < bridge> <PRO_Gaming1921> :JoeSuperAngry:
+17:13 < bridge> <PRO_Gaming1921> :ahhh:
+17:14 < bridge> <PRO_Gaming1921> couldnt we add some type of anticheat or a anti tas squad that deletes tas on popular maps:thumbs_up_joe: . cheaters can do whatever and get away with it atm. just restart router or get a vpn done then you back :C
+17:16 < bridge> <PRO_Gaming1921> I understand this is a opencource. just wondering if anything can be done :D
+17:18 < bridge> <kebscs> admins do have anticheat and replays with teehistorian
+17:19 < bridge> <PRO_Gaming1921> will they do anything+
+17:19 < bridge> <kebscs> as u see
+17:20 < bridge> <PRO_Gaming1921> hope they will
+17:20 < bridge> <PRO_Gaming1921> really enjoy this game and speedrunning it
+17:21 < bridge> <chillerdragon> @axel628: Are you trashcleaners?
+17:21 < bridge> <PRO_Gaming1921> could be xD
+17:21 < bridge> <PRO_Gaming1921> I like your mult bot bdw <3
+17:21 < bridge> <chillerdragon> So mysterious
+17:22 < bridge> <PRO_Gaming1921> could you add !topspree?
+17:22 < bridge> <PRO_Gaming1921> 🙏
+17:22 < bridge> <chillerdragon> soon(tm)
+17:26 < bridge> <PRO_Gaming1921> and go more left for kill to count is annoying to get 20 times even if you muted the bot🙏
+17:28 < ws-client> <ChillerDragon> that is so true sorry for spamming will fix @PRO_Gaming1921 
+17:28 < ws-client> <ChillerDragon> spawnblocker ban btw <:banhammer:392813948858269696> @PRO_Gaming1921 
+17:28 < bridge> <PRO_Gaming1921> :ahhh:
+17:35 < bridge> <PRO_Gaming1921> it isnt spawnwblocking. whole playground should be counted as a kill
+17:35 < bridge> <PRO_Gaming1921> most of people block far < as do you :joobisaythatagain:
+17:35 < bridge> <PRO_Gaming1921> you kill people there I see
+17:37 < bridge> <chillerdragon> Nah bro entry blocking is cring af
+17:39 < bridge> <filoqcus> @axel628 BAD PIPOTAM
+17:39 < bridge> <PRO_Gaming1921> getting 20 spam is cringe af =(((
+17:39 < bridge> <filoqcus> https://tenor.com/view/pipotam-baby-hippo-hippo-wash-shower-gif-3406421565683572068
+17:39 < bridge> <PRO_Gaming1921> https://tenor.com/view/mario-super-mario-bros-depression-sad-mario-and-luigi-gif-14815881022592239601
+17:40 < bridge> <PRO_Gaming1921> https://cdn.discordapp.com/attachments/293493549758939136/1395792337774575647/image.png?ex=687bbc69&is=687a6ae9&hm=acc708214698c0d106346acfcae103c8ebccaaa0b0f964219f84ff30c6a202dd&
+17:40 < bridge> <PRO_Gaming1921> < filters nubs
+17:40 < bridge> <PRO_Gaming1921> needed
+17:40 < bridge> <PRO_Gaming1921> there all block
+17:44 < bridge> <chillerdragon> Spam Bad and I will fix yes
+17:44 < bridge> <PRO_Gaming1921> tyty!
+18:13 < bridge> <louis> have u ever taked a look at the teehistorian data
+18:13 < bridge> <louis> i wanna try some stuff when im not busy
+18:13 < bridge> <louis> have u ever took a look at the teehistorian data
+18:13 < bridge> <louis> have u ever taken a look at the teehistorian data
+18:14 < bridge> <louis> the format is lowkey cooked though xd
+18:30 < bridge> <kebscs> no 😂
+18:30 < bridge> <kebscs> but twgame has stuff for this
+18:31 < bridge> <kebscs> its in rust unfortunately
+18:36 < bridge> <louis> yeah i am not building teehistorian data scripts in rust
+18:36 < bridge> <louis> gonna have to make some python shit ig
+18:56 < bridge> <vahemaaa> i told Cammodude that we can use my easy antibot temporarily but he didnt like it
+18:56 < bridge> <PRO_Gaming1921> cammodude didnt make bot?
+18:58 < bridge> <PRO_Gaming1921> aah alr. but you working on it?
+18:59 < bridge> <vahemaaa> i done it
+18:59 < bridge> <vahemaaa> cammodude works on real antibot
+18:59 < bridge> <PRO_Gaming1921> 🫡
+19:22 < bridge> <ryozuki> https://github.com/tracel-ai/burn
+19:22 < bridge> <ryozuki> https://burn.dev/blog/sota-multiplatform-matmul/
+19:29 < bridge> <louis> swappable backends is pretty cool
+19:52 < bridge> <louis> @kebscs yeah i was unsure how to handle gun
+19:52 < bridge> <louis> technically every weapon has a unique niche
+19:52 < bridge> <louis> for example hammer goes thru walls, nade has arcs, laser can bounce
+19:52 < bridge> <louis> pistol seems a bit too easy though, maybe i just remove it?
+19:53 < bridge> <louis> as in bullets still hit targets but wont activate
+19:53 < bridge> <louis> it can still be used in telegun parts. also it'd ensure ppl don't map annoying parts where you have to shoot something off screen
+20:24 < bridge> <melon> gosh, cyrillic broke every single regex in my script just now
+20:24 < bridge> <melon> :angy:
+20:24 < bridge> <melon> spammed the shit out of ddnet.org, ggwp
+20:34 < bridge> <Jupstar ✪> Ddosser
+21:01 < bridge> <Ewan> it’s easy
+21:01 < bridge> <louis> not as easy as my precious python
+21:07 < bridge> <pilonpl> https://youtu.be/DNBKdU6XrLY?si=p5ZiWI3WVeqPFCEk
+21:07 < bridge> <pilonpl> what do you guys think about the sand pond saga?
+21:17 < bridge> <always> accounts would fix it
+21:19 < bridge> <kebscs> yea but gun is too op
+21:19 < bridge> <kebscs> cant do parts like on your example vid
+21:19 < bridge> <kebscs> or shooting straight with laser
+21:19 < bridge> <kebscs> or parts where you have to find the laser to shoot the target
+21:23 < bridge> <pilonpl> So why is it taking so long???
+21:23 < bridge> <pilonpl> Why would you even design a game with such a flaw in the first place
+21:23 < bridge> <pilonpl> Ofc accounts are needed
+21:29 < bridge> <inv41idu53rn4m3> it was designed as a fun little mod for Teeworlds, not as a game
+21:30 < bridge> <pilonpl> Even kog has accounts
+21:30 < bridge> <pilonpl> It's so simple obviously
+21:30 < bridge> <pilonpl> Just make accounts
+21:30 < bridge> <pilonpl> And be happy
+21:31 < bridge> <inv41idu53rn4m3> but simple boring accounts are boring and simple
+21:31 < bridge> <inv41idu53rn4m3> we're open source developers here
+21:31 < bridge> <inv41idu53rn4m3> no point in making a system that isn't novel and decentralized and that might get finished in a reasonable amount of time
+21:33 < bridge> <pilonpl> You could probably also cryptographically sign finishes or something
+21:33 < bridge> <pilonpl> Idk
+21:33 < bridge> <pilonpl> Or use blockchain
+21:33 < bridge> <pilonpl> I think we need Blockchain in DDNet
+21:35 < bridge> <pilonpl> Actually it's kinda funny how steam items are like NFTs
+21:35 < bridge> <pilonpl> But just without crypto stuff
+21:35 < bridge> <pilonpl> And somehow people don't mind it
+21:37 < bridge> <pilonpl> In practice crypto seems to be only useful for illegal stuff
+21:37 < bridge> <PRO_Gaming1921> ik
+21:37 < bridge> <teero777> Why
+21:37 < bridge> <PRO_Gaming1921> but it seems like it wont be a possibility
+21:38 < bridge> <pilonpl> Someone was working on an account system
+21:38 < bridge> <pilonpl> And i wonder what's the progress
+21:38 < bridge> <kebscs> <https://github.com/ddnet/ddnet/pull/6961>
+21:38 < bridge> <PRO_Gaming1921> heard it was already done but admins didnt want to implement it
+21:41 < bridge> <pilonpl> I want season 2 actually
+21:41 < bridge> <pilonpl> Or i guess it would be cool to have some events
+21:41 < bridge> <pilonpl> Idk what exactly
+21:42 < bridge> <pilonpl> Something where you don't really need skill to enjoy
+21:42 < bridge> <PRO_Gaming1921> :f3:
+21:44 < bridge> <pilonpl> Are t0 brutals still a thing btw?
+21:44 < bridge> <pilonpl> I haven't played that way in a while
+21:44 < bridge> <PRO_Gaming1921> playing right now
+21:46 < bridge> <Ewan> Best idea I’ve heard all year
+21:47 < bridge> <Ewan> The best way to play
+21:56 < bridge> <pilonpl> Where is Lumpy?
+22:49 < bridge> <id271> hey guys, need help 
+22:49 < bridge> <id271> 2025-07-18 23:49:02 I net: can't send ipv4 traffic to this socket
+22:49 < bridge> <id271> https://cdn.discordapp.com/attachments/293493549758939136/1395870201580359680/image.png?ex=687c04ee&is=687ab36e&hm=eade3d7cfddd714ea6404960937fe3cdae5ae3c52792f629a0fb21f4df6af2b4&
+22:49 < bridge> <DDNet> Hellou :3
+23:14 < bridge> <jxsl13> because your internet connection is probably ipv6 👀
+23:14 < bridge> <jxsl13> maybe
+23:14 < bridge> <jxsl13> or the other way around D:
+23:17 < bridge> <jxsl13> the server is ipv6
+23:27 < bridge> <always> hes everywher
+23:32 < bridge> <robyt3> Try to restart the game. If that doesn't work, try to restart your computer.
+23:33 < bridge> <imilchshake> Hey guys when does the bot do the funny
+23:33 < bridge> <DDNet> Hellou :3
+23:33 < bridge> <imilchshake> Nice
+23:33 < bridge> <imilchshake> Nice:3
+23:38 < bridge> <melon> bad bot!
+23:38 < bridge> <DDNet> Sowwy :c

@@ -1,0 +1,225 @@
+01:18 < bridge> <Assa> The quads HD bug is either a bug for not calling 'doRender' or this function missing the HD check for quads
+01:22 < bridge> <Assa> I am on vacation, has to wait until next week
+06:52 < ws-client> <ChillerDragon> @Assa you cant use work and vacation as excuse to not work on ddnet. If you keep slacking around like this you will not get a raise.
+07:04 < bridge> <teero777> I'm granting assa a 300% raise
+07:22 < bridge> <ryozuki> morning
+07:50 < bridge> <Ewan> gm
+10:26 < bridge> <Assa> https://discord.com/channels/252358080522747904/293493549758939136/1386768846723219506
+10:26 < bridge> <Assa> 
+10:26 < bridge> <Assa> currently I am both tbh xD
+10:33 < bridge> <milkeeycat> morning bug writers and others
+10:38 < bridge> <Ewan> gm
+11:05 < bridge> <melon> ChillerDragon: got a fix for `2025-07-05 11:04:44 I mysql: can't free last result (free_result:stmt:5025): Statement has no result set` ?
+11:05 < bridge> <melon> iirc you had a similar issue
+11:05 < bridge> <Ewan> meron
+11:38 < ws-client> <ChillerDragon> @melon nope :c
+11:39 < bridge> <melon> <a:nicmoji_angry:417333827506274304>
+11:39 < ws-client> <ChillerDragon> have you tried using postgres? 
+11:39 < bridge> <melon> not for that usecase
+11:39 < bridge> <melon> and i also dont want to migrate everything
+11:40 < bridge> <Ewan> postgres is too powerful
+11:45 < bridge> <Ewan> but isn’t ddnet just fixed to use mysql
+11:47 < bridge> <robyt3> Fixed in the sense that you'd have to implement your own `IDbConnection` if you don't want to use MySQL or sqlite
+11:52 < bridge> <Ewan> materialize backend is a funny idea… could fix db sync issues
+11:55 < bridge> <0xdeen> I had it working for /maps/, but it would require a server with huge amount of RAM
+11:55 < bridge> <0xdeen> 256-512 GB I guess
+11:55 < bridge> <0xdeen> because with 128 GB it was swapping too much
+11:56 < bridge> <Ewan> Yeah that is a lot
+11:56 < bridge> <0xdeen> And the most finicky part is that we are on MariaDB, and Materialize can only ingest from MySQL
+11:56 < bridge> <0xdeen> and MySQL had way worse performance for the queries we run from the game server
+11:59 < bridge> <Ewan> rip. idk how far the two have diverged at this point but i wonder what stops MariaDB compatibility
+12:00 < bridge> <0xdeen> MySQL has implemented a new replication protocol since they split, and it's the one Materialize supports
+12:01 < bridge> <Ewan> ah
+12:02 < bridge> <0xdeen> You'd need to support these mysql args in mariadb:
+12:02 < bridge> <0xdeen> ```
+12:02 < bridge> <0xdeen>                 "--log-bin=mysql-bin",
+12:02 < bridge> <0xdeen>                 "--gtid_mode=ON",
+12:03 < bridge> <0xdeen>                 "--enforce_gtid_consistency=ON",
+12:03 < bridge> <0xdeen>                 "--binlog-format=row",
+12:03 < bridge> <0xdeen>                 "--log-slave-updates",
+12:03 < bridge> <0xdeen>                 "--binlog-row-image=full",
+12:03 < bridge> <0xdeen> ```
+12:03 < bridge> <0xdeen> (mariadb has a gtid mode, but it's an independent implementation, so totally different)
+12:03 < bridge> <0xdeen> So you have to use Debezium and Kafka instead, which adds a bunch of extra complexity I don't want to deal with
+12:05 < bridge> <kebscs> @0xdeen could you retest <https://github.com/ddnet/ddnet/pull/10387>
+12:07 < bridge> <0xdeen> Running now
+12:09 < bridge> <0xdeen> ```
+12:09 < bridge> <0xdeen> #23 26.76 /ddnet-builder/ddnet-source/src/engine/client/notifications.cpp:13:10: fatal error: 'winrt/Windows.Data.Xml.Dom.h' file not found
+12:09 < bridge> <0xdeen> #23 26.76    13 | #include <winrt/Windows.Data.Xml.Dom.h>
+12:09 < bridge> <0xdeen> #23 26.76       |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+12:09 < bridge> <0xdeen> #23 26.76 1 error generated.
+12:09 < bridge> <0xdeen> ```
+12:09 < bridge> <0xdeen> For win-arm64
+12:10 < bridge> <Ewan> yeah kebs i told u mingw isn’t gonna have winrt headers
+12:11 < bridge> <kebscs> :tear:
+12:11 < bridge> <kebscs> ill rewrite it 3rd time to not use winrt i guess
+12:11 < bridge> <Ewan> rip
+12:12 < bridge> <robyt3> Is that even possible for toast notifications?
+12:12 < bridge> <robyt3> What if you'd build https://github.com/microsoft/cppwinrt with MinGW? :justatest:
+12:12 < bridge> <kebscs> the wintoast uses wrl and imports most stuff
+12:12 < bridge> <kebscs> would be best to check if the wintoast lib compiles
+12:13 < bridge> <kebscs> <https://github.com/mohabouje/WinToast>
+12:13 < bridge> <Ewan> Lots of MSVC isms like macros and typedefs that wouldn’t work. I also believe there are C++ runtime expectations
+12:14 < bridge> <robyt3> Seems possible to do it without including winrt headers
+12:14 < bridge> <Ewan> The terrible namespaces-separated-by-underscore C APIs would work if you had the header I think
+12:14 < bridge> <Ewan> And yes, u can load it at runtime with ole
+12:15 < bridge> <Ewan> i may be misinformed
+12:15 < bridge> <Ewan> https://packages.msys2.org/base/mingw-w64-cppwinrt try it 😕
+12:16 < bridge> <kebscs> ah yea didnt roby try with mingw and it worked
+12:16 < bridge> <robyt3> But even WinToast contains the line `#include <Windows.h>` which doesn't compile due to case sensitive filenames
+12:16 < bridge> <kebscs> but ig deen doesnt have headers]
+12:16 < bridge> <kebscs> but ig deen doesnt have headers
+12:16 < bridge> <Ewan> skeptical that’s in arch repos but the release scripts environment could use attention anyway
+12:16 < bridge> <Ewan> this win 7 thing smells like fake news to me
+12:17 < bridge> <kebscs> tbh its the first time i see Windows.h didnt compile
+12:17 < bridge> <Ewan> or a temporary setback
+12:17 < bridge> <kebscs> thought its exactly the same
+12:17 < bridge> <kebscs> so many tutorials use the uppercase version
+12:17 < bridge> <robyt3> Because most build Windows applications on Windows
+12:18 < bridge> <robyt3> The real filename is `windows.h`
+12:19 < bridge> <robyt3> (WinToast does this incorrectly for several Windows includes)
+12:20 < bridge> <zhn> lmfao
+12:20 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1391000711642349568/image.png?ex=686a4ddd&is=6868fc5d&hm=064d61786317ab6e56d9b67427061cd752bb293b30db842f260ca7efde8a5931&
+12:20 < bridge> <kebscs> nope 😂
+12:20 < bridge> <kebscs> C:\Program Files (x86)\Windows Kits\10\Include\10.0.26100.0\um
+12:20 < bridge> <robyt3> MinGW is lower case
+12:20 < bridge> <Ewan> on deen’s it’s prob windows
+12:20 < bridge> <Ewan> yea
+12:21 < bridge> <Ewan> it’s different headers
+12:21 < bridge> <Ewan> they gotta reimplement them things by hand
+12:21 < bridge> <robyt3> They only made it confusing by changing the capitalization though, or what was the reason for that?
+12:22 < bridge> <kebscs> it was always uppercase
+12:22 < bridge> <robyt3> But why did MinGW change it?
+12:22 < bridge> <robyt3> They use the correct capitalization for the winrt headers
+12:23 < bridge> <robyt3> I checked and they also come from mingw, so it should be possible to compile them with mingw if they are available
+12:23 < bridge> <Ewan> that specific header has probably been around since mingw pre mingw-w64, which is OKD
+12:23 < bridge> <Ewan> that specific header has probably been around since mingw pre mingw-w64, which is OLD
+12:23 < bridge> <Ewan> winrt way newer
+12:24 < bridge> <Ewan> we got c++20 merged in already right
+12:24 < bridge> <kebscs> yes
+12:24 < bridge> <Ewan> good
+12:24 < bridge> <Ewan> 
+12:24 < bridge> <Ewan> C++/WinRT requires C++20 for its coroutine support. (C++/WinRT officially supports C++17 but only with MSVC-specific coroutine extensions.)
+12:25 < bridge> <Ewan> i have got to stop staying up so late
+12:31 < bridge> <learath2> There probably is a way to do toast notifications without winrt. But I doubt its well supported
+12:42 < bridge> <ryozuki> why dont we use ci for builds?
+12:46 < bridge> <robyt3> macOS CI artifacts aren't even runnable AFAIK
+12:48 < bridge> <learath2> We could, but someone needs to develop a release workflow that builds all arches and os' properly and packages it all properly
+12:58 < bridge> <robyt3> ```diff
+12:58 < bridge> <robyt3> - SLabelProperties Props;
+12:58 < bridge> <robyt3> - Props.m_MaxWidth = View.w;
+12:58 < bridge> <robyt3> - Ui()->DoLabel(&View, aMessage, 10.0f, TEXTALIGN_ML, Props);
+12:58 < bridge> <robyt3> + Ui()->DoLabel(&View, aMessage, 10.0f, TEXTALIGN_ML, {.m_MaxWidth = View.w});
+12:58 < bridge> <robyt3> ```
+12:58 < bridge> <robyt3> C++20 :poggers:
+13:02 < bridge> <kebscs> 😂
+13:40 < bridge> <Assa> #10446 might be a good first issue :3 so far nobody said anything about it
+13:40 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/10446
+15:08 < bridge> <Solly (bun bun)> pr time?
+15:08 < bridge> <Solly (bun bun)> WAIT WE CAN FINALLY DO THAT
+15:08 < bridge> <Solly (bun bun)> WOOO
+15:09 < bridge> <Solly (bun bun)> when address of temporary :P
+15:09 < bridge> <Solly (bun bun)> (i think youre meant to use & or by value, but we stil have alot of pointers as args fo rno reason)
+15:10 < bridge> <robyt3> Teeworlds didn't use references basically
+15:10 < bridge> <robyt3> So everything was passed by pointer
+15:10 < bridge> <kebscs> when std::span instead of char array and size
+15:11 < bridge> <Solly (bun bun)> std::span is a bit special
+15:11 < bridge> <Solly (bun bun)> it cant do everything a char* and size_t can do
+15:11 < bridge> <kebscs> why?
+15:12 < bridge> <Solly (bun bun)> wait can u ?
+15:13 < bridge> <kebscs> it has .data and size
+15:13 < bridge> <kebscs> to work like char*/size
+15:14 < bridge> <Solly (bun bun)> having a none option is either std::nullopt or size=0 whcih is somethingw e would have to decide
+15:14 < bridge> <Solly (bun bun)> (i prefer size = 0)
+15:14 < bridge> <Solly (bun bun)> span doesnt own the memory so you still have to store it somewhere or have it deallocate
+15:14 < bridge> <Solly (bun bun)> which is just as unsafe as char*
+15:15 < bridge> <kebscs> yes it doesnt own the memory
+15:15 < bridge> <kebscs> the benefit is not passing the size all the time and its compatible with c++ algorithms
+15:16 < bridge> <Solly (bun bun)> its possible to use c++ algos with chars*
+15:16 < bridge> <Solly (bun bun)> you just have to write ur own function
+15:16 < bridge> <Solly (bun bun)> to have it the other way around you would need to rewrite everything
+15:16 < bridge> <kebscs> not really rewrite
+15:17 < bridge> <kebscs> its compatible
+15:17 < bridge> <Solly (bun bun)> you would have to add .data and .size to everthing
+15:17 < bridge> <Solly (bun bun)> could*
+15:17 < bridge> <kebscs> if you want raw pointer then yes data
+15:18 < bridge> <Solly (bun bun)> theres alot of raw string manipulation
+15:18 < bridge> <Solly (bun bun)> its just as verbose as char*/size i dont think theres much benefit
+15:19 < bridge> <Solly (bun bun)> we could have our own string class which inherits a span and manages the mem with unique ptr
+15:19 < bridge> <kebscs> imo its better than array+size
+16:07 < bridge> <learath2> It's new, young people like new
+16:24 < ws-client> <ChillerDragon> @learath2 @robyt3 /rank does not work on ddnet zCatch 176.9.114.238:8400
+16:24 < bridge> <learath2> I didn't know zCatch had ranks
+16:24 < ws-client> <ChillerDragon> ddnet admin be like
+16:25 < bridge> <learath2> Chiller have you tested #10472 ?
+16:25 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10472
+16:25 < ws-client> <ChillerDragon> @learath2 yes as you can see by the checked checkbox
+16:25 < bridge> <learath2> Am ddnet admin, not zcatch admin
+16:25 < ws-client> <ChillerDragon> its hosted by ddnet @learath2 
+16:42 < IGROK12121212> hi
+16:53 < bridge> <gigaoo> @uwucon
+18:52 < bridge> <jxsl13> ddnet admin be like: what is zCatch
+19:10 < bridge> <cyberfrighter> anyone else has weird moments where players just randomly move without them doing anything
+19:50 < ws-client> <ChillerDragon> @Jupstar ✪ send new laptop pls i just was stuck for like 20 seconds in uploading map to GPU screen
+20:21 < bridge> <pioooooo> I still don't understand what this tries to solve. We can still kill some tees in a team and finish the rest. What makes crossing the startline different?
+20:21 < bridge> <pioooooo> https://cdn.discordapp.com/attachments/293493549758939136/1391121814079410176/d4ff69832be71534.png?ex=686abea6&is=68696d26&hm=68c4c155249e192f9e90b64a3d0a607396c20bc2aa52c4f998133ad4c394f5b5&
+20:25 < bridge> <Solly (bun bun)> @chillerdragon just hit the screen hard enuf and ull be out of the screen in no time
+20:31 < bridge> <melon> The time
+20:31 < bridge> <Jupstar ✪> K, send money
+20:33 < bridge> <Jupstar ✪> It's like t0 skip but you can finish as team
+21:30 < ws-client> <ChillerDragon> omg so annoying https://paste.zillyhuhn.com/Lg
+21:31 < ws-client> <ChillerDragon> i deleted the build dir and smh bro still wants c++17 it should be an obvious fix. Second time i have this shti
+21:36 < bridge> <inv41idu53rn4m3> This allows you to do t0-style runs in a team
+21:36 < bridge> <inv41idu53rn4m3> oh whoop Jupstar already said that
+21:42 < bridge> <melon> Which is weird tho, we have team0mode now :justatest:
+21:43 < bridge> <cyberfrighter> melon
+21:43 < bridge> <Ewan> yes and string_view for strings
+21:43 < bridge> <cyberfrighter> its for t0 style runs while keeping teamrank
+21:43 < bridge> <Ewan> meron
+22:10 < ws-client> <ChillerDragon> t0 mode gives team ranks? that sounds wrong
+22:14 < bridge> <patiga> @jupeyy_keks I want to benchmark my sprite rendering a little to figure out optimizations. When I generate example sprites, what should I look out for
+22:14 < bridge> <patiga> - ofc it matters if sprites are in the viewport, and if yes how much
+22:14 < bridge> <patiga> - does it matter if all sprites are the same (I guess no(?))
+22:14 < bridge> <patiga> - does it matter how much the sprites overlap? (no depth buffer etc)
+22:41 < bridge> <pioooooo> but like is there any map where t0 mode is useful when you don't hit startline
+22:41 < bridge> <pioooooo> but like is there any map where t0 skip is useful when you don't hit startline
+23:01 < bridge> <Jupstar ✪> Only if u can skip start line
+23:04 < bridge> <Jupstar ✪> 1. Yes, but maybe the viewport check is too expensive
+23:04 < bridge> <Jupstar ✪> 2. In your rendering probably not (with multi texture)
+23:04 < bridge> <Jupstar ✪> 3. There was a cool optimization for non colliding primitives in earlier amd gpus but it got removed, probably bcs in 3d it's too rare and 2d doesn't matter
+23:05 < bridge> <Jupstar ✪> Also non standard
+23:07 < bridge> <patiga> ah, so the viewport check is an optional optimization on the gpu? so viewport check is very different to sending zero pixels to the fragment shader?
+23:08 < bridge> <Jupstar ✪> I thought u want to skip rendering some sprites
+23:08 < bridge> <Jupstar ✪> But yes early discard
+23:08 < bridge> <Jupstar ✪> Is what the gpu does
+23:08 < bridge> <patiga> no, I don't plan on doing that as I might use multiple camera angles
+23:08 < bridge> <patiga> hm I guess I can just make that an option in the benchmark
+23:10 < bridge> <Jupstar ✪> Before we talk about different things. If you want a gpu side discard, that is what the rasterizer usually does anyway
+23:12 < bridge> <patiga> in this case I want to be aware of gpu side discard, to ensure that my new benchmark actually measures the stuff that I want to measure ^^
+23:13 < bridge> <patiga> (currently not discussing optimizations, but stuff to be aware of when benchmarking)
+23:13 < bridge> <learath2> Overdraw is not free, so I'd think overlap obv matters
+23:14 < bridge> <Jupstar ✪> Early discard is a thing. Overlapping will most like cost as much as no overlap
+23:14 < bridge> <patiga> I do want it to repeatedly draw each sprite, fully. do you think there will be some synchronization slowdown if I do this specifically, compared to each sprite being on random positions on the screen?
+23:14 < bridge> <Jupstar ✪> So out of viewport might be cheaper
+23:17 < bridge> <learath2> I might have misunderstood something here I guess. Afaict partial overlaps should cost you, as you now have to do work for the same pixel more than once
+23:17 < bridge> <patiga> ah, you mean that pixels get overwritten, meaning that the original calculations for the pixels were obselete?
+23:18 < bridge> <Jupstar ✪> That is the case
+23:18 < bridge> <learath2> Yes, the gpu can't cull a partial quad
+23:18 < bridge> <patiga> I believe I understand your point, and that is what I want it to do ^^
+23:19 < bridge> <patiga> If I'd do such stuff on the cpu, I'd need to be aware of compiler optimizations, which might do crazy shit sometimes. That is why I'm cautious with the GPU stuff rn
+23:19 < bridge> <learath2> (Not like there is much that can be "optimized" you just want to avoid it if possible, but it's not always possible)
+23:20 < bridge> <Jupstar ✪> @patiga but in theory the driver can be optimized to parallelize two separate primitives without any kind of barrier because they write to different areas of the frame buffer.
+23:20 < bridge> <Jupstar ✪> 
+23:20 < bridge> <Jupstar ✪> So it might still be faster to render those sprites but does not need to be
+23:24 < bridge> <learath2> What do you mean by "generate example sprites" btw?
+23:24 < bridge> <patiga> benchmarking my sprite rendering to measure if I actually improve it on optimizations
+23:24 < bridge> <patiga> so far, I pretty much just hoped stuff gets better if I do certain stuff
+23:25 < bridge> <patiga> and I want to make sure
+23:25 < bridge> <learath2> And your sprites are just singular textured quads?
+23:25 < bridge> <patiga> yup
+23:25 < bridge> <learath2> Any instancing?
+23:25 < bridge> <patiga> no, though indexed
+23:26 < bridge> <patiga> two triangle primitives, from 4 vertices and 6 indices
+23:26 < bridge> <patiga> and many of those
+23:30 < bridge> <learath2> I'd guess just rendering lots of them, with just random positions is a fine benchmark here. I wouldn't bench the case where they are non-overlapping specifically. Culling the ones completely out of the viewport is afaict very cheap, having lots of them might have an effect but I think you'd find it insignificant. If you are not doing instanced rendering it shouldn't matter whether the sprites are the same or not. But it would be good to have a ben
+23:33 < bridge> <learath2> If you want to try culling on the cpu, I'd suggest the ancient single axis culling trick first. It's very cheap, just might still lead to performance improvement

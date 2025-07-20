@@ -1,0 +1,825 @@
+00:00 < bridge> <learath2> Idk if there is any value in that unless the n is large enough that logn is slow though
+00:01 < bridge> <learath2> This can easily become O(1) too
+00:01 < bridge> <inv41idu53rn4m3> Remember, constant factors matter too!
+00:04 < bridge> <kebscs> @essigautomat could you benchmark now?
+00:04 < bridge> <kebscs> its now with stl
+00:04 < bridge> <kebscs> i wonder if it changed anything
+00:04 < bridge> <Assa> I am drunk but yes
+00:07 < bridge> <Assa> @kebscs my compiler sends a lot of warnings D:
+00:09 < bridge> <kebscs> in my code?
+00:09 < bridge> <kebscs> i dont get any
+00:10 < bridge> <kebscs> let me compile in release
+00:10 < bridge> <Assa> `The key you just pressed is not recognized by SDL. To help get this fixed, please report this to the SDL forums/mailing list <https://discourse.libsdl.org/> X11 KeyCode 248 (240), X11 KeySym 0x0 ((null)).`
+00:10 < bridge> <Assa> might be another change on master?
+00:10 < bridge> <Assa> also something in render.h
+00:11 < bridge> <kebscs> no merged prs since then
+00:11 < bridge> <kebscs> also none
+00:13 < bridge> <Assa> ```
+00:13 < bridge> <Assa> ddnet/src/game/editor/mapitems/envelope.h:45:17: warning: type qualifiers ignored on function return type [-Wignored-qualifiers]
+00:13 < bridge> <Assa> [build]    45 |                 const int FindPointIndex(double TimeMillis) const override;
+00:13 < bridge> <Assa> ```
+00:14 < bridge> <kebscs> yea i see on github now
+00:15 < bridge> <kebscs> pushed fix
+00:18 < bridge> <Assa> I see similar results
+00:19 < bridge> <Assa> ```markdown
+00:19 < bridge> <Assa> |           |   #frames old |   FT old avg. (µs) |   FT old min (µs) |   FT old max (µs) |   #frames new |   FT new avg. (µs) |   FT new min (µs) |   FT new max (µs) |   Improvement avg. (%) |   Improvement min (%) |   Improvement max (%) |
+00:19 < bridge> <Assa> |:----------|--------------:|-------------------:|------------------:|------------------:|--------------:|-------------------:|------------------:|------------------:|-----------------------:|----------------------:|----------------------:|
+00:19 < bridge> <Assa> | dm1       |         36795 |            1630.25 |               115 |             16737 |         39313 |            1525.79 |               164 |             10601 |                6.40751 |              -42.6087 |               36.6613 |
+00:19 < bridge> <Assa> | kingsleap |         17718 |            3386.21 |              2548 |             13209 |         22381 |            2680.66 |              1972 |              9955 |               20.836   |               22.606  |               24.6347 |
+00:19 < bridge> <Assa> ```
+00:19 < bridge> <Assa> 6-7 % on dm1, 22-23% on kings leap improvement
+00:19 < bridge> <Jupstar ✪> Only question is
+00:19 < bridge> <Jupstar ✪> Why do I have still 2.5x the FPS on ddnet-rs
+00:20 < bridge> <Jupstar ✪> Most of the rendering pipeline should be equal to ddnet
+00:20 < bridge> <Assa> I can just throw bad guessed at you 🤷‍♂️
+00:21 < bridge> <Jupstar ✪> I'd maybe fire up a profiler on that map part
+00:21 < bridge> <kebscs> 1524 vs 1525 avg alright the stl its literally the same
+00:21 < bridge> <kebscs> 1524 vs 1525 avg alright the stl is literally the same
+00:22 < bridge> <kebscs> on dm1 its 2616 vs 2680 new
+00:24 < bridge> <kebscs> stl is 0.1/ 0.08 worse
+00:24 < bridge> <kebscs> stl is 0.1/ 0.08% worse
+00:39 < bridge> <learath2> I could have told you this before you spent your time on it
+00:40 < bridge> <kebscs> yea i knew this, i did it bcs of this
+00:40 < bridge> <kebscs> it isnt much cleaner though, when i had to add new funcs, but whatever
+00:41 < bridge> <Ewan> rip
+00:41 < bridge> <Ewan> it could have specific optimizations for other platforms/CPUs
+00:41 < bridge> <Ewan> i wouldn't discredit it entirely
+00:42 < bridge> <Ewan> i also dont know what the func even is i've been skimming the shit out of this
+00:43 < bridge> <Ewan> i cant see if anyone has addressed this
+00:43 < bridge> <kebscs> cpp reference says its literally binary search
+00:43 < bridge> <Ewan> ever hear about static initialization order?
+00:43 < bridge> <Ewan> good fucking luck
+00:44 < bridge> <teero777> i fixed it already
+00:44 < bridge> <Ewan> nice
+00:44 < bridge> <Ewan> what was it
+00:44 < bridge> <teero777> stack overflow
+00:45 < bridge> <teero777> i had 17mb stack array somewhere on accident
+00:45 < bridge> <Ewan> xd
+00:45 < bridge> <Ewan> that's a no no
+00:45 < bridge> <teero777> so the main function didn't have enough space xd
+01:07 < ws-client> <ChillerDragon> @kebscs yea but ur pr is only for death right?
+01:08 < ws-client> <ChillerDragon> i am a gnomie and i tab into ddnet by clicking on the window :D which also gets picked up as click in game
+01:09 < bridge> <kebscs> yes, but if my pr doesnt get merged i dont want do another pr with almost same thing
+01:09 < ws-client> <ChillerDragon> fair
+01:09 < ws-client> <ChillerDragon> yea we need to get rid of the 100 open prs
+01:16 < bridge> <Ewan> @robyt3 would you consider adding some logic to the touch controls to a). optionally have no action on tap and b). optionally not show the touch controls
+01:16 < bridge> <Ewan> use case: touch screen tablet where you only want to aim with the touch screen because it's absolute positioning
+01:17 < bridge> <Ewan> if you bind mouse buttons to smth accessible on the keyboard that could go crazy
+01:23 < bridge> <Ewan> wait this is all configurable by json already, you've really got this shit on lockdown
+01:23 < bridge> <Ewan> disregard 😅
+01:25 < bridge> <inv41idu53rn4m3> I think just reading a config file and having no menu for configuration is quite based, but mobile is the last place you'd want that
+01:26 < bridge> <inv41idu53rn4m3> seems like a pain to make a good configuration interface for mobile, though
+01:26 < bridge> <inv41idu53rn4m3> so many options to change, precise placements to make
+08:55 < bridge> <Solly (bun bun)> #
+09:24 < bridge> <milkeeycat> @jupeyy_keks I made it work
+09:24 < bridge> <milkeeycat> ```rust
+09:24 < bridge> <milkeeycat> fn find_mut<'a, T, O>(&'a mut self, f: T) -> Option<O>
+09:24 < bridge> <milkeeycat> where
+09:24 < bridge> <milkeeycat>     T: Fn(&'a mut Scope<'ir>) -> Option<O>,
+09:24 < bridge> <milkeeycat> {
+09:24 < bridge> <milkeeycat>     let index_map: HashMap<_, _> = self.stack.iter().cloned().enumerate().collect();
+09:24 < bridge> <milkeeycat>     let mut scopes: Vec<(usize, &mut Scope)> = self
+09:24 < bridge> <milkeeycat>         .scopes
+09:24 < bridge> <milkeeycat>         .iter_mut()
+09:24 < bridge> <milkeeycat>         .enumerate()
+09:24 < bridge> <milkeeycat>         .filter_map(|(idx, scope)| {
+09:24 < bridge> <milkeeycat>             if self.stack.contains(&idx) {
+09:24 < bridge> <milkeeycat>                 Some((idx, scope))
+09:24 < bridge> <milkeeycat>             } else {
+09:24 < bridge> <milkeeycat>                 None
+09:24 < bridge> <milkeeycat>             }
+09:24 < bridge> <milkeeycat>         })
+09:24 < bridge> <milkeeycat>         .collect();
+09:25 < bridge> <milkeeycat>     scopes.sort_by_key(|(idx, _)| index_map[idx]);
+09:25 < bridge> <milkeeycat> 
+09:25 < bridge> <milkeeycat>     scopes.into_iter().rev().find_map(|(_, scope)| f(scope))
+09:25 < bridge> <milkeeycat> }
+09:25 < bridge> <milkeeycat> ```
+09:25 < bridge> <milkeeycat> I'm not sure yet if `sort_by_key` part works but the idea itself works
+09:27 < bridge> <Jupstar ✪> 😮 nice
+09:27 < bridge> <Jupstar ✪> Looks like completely different logic now
+09:28 < bridge> <milkeeycat> it collects scopes with indices from `stack`
+09:32 < bridge> <milkeeycat> ```rust
+09:32 < bridge> <milkeeycat> self.scopes
+09:32 < bridge> <milkeeycat>     .iter_mut()
+09:32 < bridge> <milkeeycat>     .rev()
+09:32 < bridge> <milkeeycat>     .enumerate()
+09:32 < bridge> <milkeeycat>     .filter_map(|(idx, scope)| {
+09:32 < bridge> <milkeeycat>         if self.stack.contains(&idx) {
+09:32 < bridge> <milkeeycat>             Some(scope)
+09:32 < bridge> <milkeeycat>         } else {
+09:32 < bridge> <milkeeycat>             None
+09:32 < bridge> <milkeeycat>         }
+09:32 < bridge> <milkeeycat>     })
+09:32 < bridge> <milkeeycat>     .find_map(f)
+09:32 < bridge> <milkeeycat> ```
+09:32 < bridge> <milkeeycat> I think this is enough
+09:35 < bridge> <Jupstar ✪> Ah yeah then it's tied to lifetime of scopes
+10:23 < bridge> <learath2> If only you were using a sane language like C you wouldn't have to waste your time trying to prove to the compiler what is obvious to you
+10:23 < bridge> <milkeeycat> true
+10:25 < bridge> <milkeeycat> my language won't have all this fancy shmancy stuff, you will be allowed to shoot yourself in the foot as many times as you want
+10:26 < bridge> <Jupstar ✪> ✨  Writing the unsafest language in Rust
+10:28 < bridge> <learath2> I will use your language for everything. I love footguns
+10:28 < bridge> <milkeeycat> combined with bugs in compiler code it's going to be great :lol:
+10:29 < bridge> <milkeeycat> i should write tests :feelsbadman:
+10:29 < bridge> <learath2> Writing tests is a sign of self doubt. You should be confident in your abilities
+10:30 < bridge> <Jupstar ✪> Just don't write bugs
+10:30 < bridge> <Jupstar ✪> Simple as that
+10:30 < bridge> <milkeeycat> 3 months ago I changed a few lines in parser and today I found out it causes stack overflow xd
+10:31 < bridge> <milkeeycat> noted
+10:31 < bridge> <learath2> Finally Jupstar is coming over to the light side
+11:14 < bridge> <Solly (bun bun)> guys check out my jquery clone
+11:14 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1362717986577842357/image.png?ex=68036986&is=68021806&hm=0b98dfc7a23446c4d25b98c78d56ea956a9b21d552c4ea51da2066a15292b94b&
+11:30 < bridge> <learath2> That looks too advanced for me
+11:36 < bridge> <kollpotato> but it's wrong
+11:39 < bridge> <Solly (bun bun)> thats basically what jquery does idk what ur talking abt
+11:39 < bridge> <gorp_tw> its wrong
+11:39 < bridge> <Solly (bun bun)> (you seem to not understand that this is a /j...)
+11:40 < bridge> <gorp_tw> but its wrong
+11:40 < bridge> <Solly (bun bun)> [facepalm~4](https://cdn.discordapp.com/emojis/885545277472276481.gif?size=48&animated=true&name=facepalm%7E4)
+11:40 < bridge> <Solly (bun bun)> good for you you
+11:40 < bridge> <Solly (bun bun)> good for you
+11:40 < bridge> <gorp_tw> you can say wrong things! i will crash out!
+11:40 < bridge> <gorp_tw> you cant say wrong things! i will crash out!
+11:41 < bridge> <glaw_arda> hi
+11:41 < bridge> <glaw_arda> I need ddnet ipa file
+11:42 < bridge> <learath2> its correct. I'm the inventor of jquery, John Query, this is how I wrote it
+11:42 < bridge> <Solly (bun bun)> thank you :)
+11:42 < bridge> <learath2> We do not have an iOS build, only Android, sorry boss
+11:42 < bridge> <Solly (bun bun)> sdl ios exists...
+11:42 < bridge> <glaw_arda> ben 4 gundur bunun icin ugrasıyorum fakat bir sonuc bulamafım
+11:42 < bridge> <Solly (bun bun)> but good luck getting something this foss onto the apple store
+11:43 < bridge> <Solly (bun bun)> bun bun mentioned
+11:43 < bridge> <glaw_arda> It will work if there is a ddnet ipa file
+11:43 < bridge> <gorp_tw> bun means zig to me
+11:43 < bridge> <Solly (bun bun)> but good luck getting something this foss onto the apple store
+11:43 < bridge> <Solly (bun bun)> (also just a pain to setup, and barely anyone uses android... or plays ddnet, would be cool though redardless)
+11:43 < bridge> <learath2> Cunku yok, iphone versiyonu yapmadik, sadece android var
+11:43 < bridge> <Solly (bun bun)> zig zig
+11:44 < bridge> <glaw_arda> knk yapamazmısınız ya
+11:45 < bridge> <learath2> Belki ileride
+11:45 < bridge> <glaw_arda> beklemedeyim
+11:45 < bridge> <learath2> Didn't the EU force apple to allow 3rd party appstores? Perhaps we can get a build in there
+11:45 < bridge> <glaw_arda> yaptıgınız an bana haber edin
+11:45 < bridge> <Solly (bun bun)> i dont know how thats going
+11:47 < bridge> <learath2> https://altstore.io/
+11:47 < bridge> <Solly (bun bun)> nice
+11:47 < bridge> <learath2> > The only major difference is that your apps will only be available in the EU.
+11:47 < bridge> <Solly (bun bun)> unnice
+11:48 < bridge> <Solly (bun bun)> what a piss take
+11:48 < bridge> <melon> chillerdragon:  did you find a fix for `mysql: can't free last result (free_result:stmt:5025): Statement has no result set`
+11:48 < bridge> <melon> chillerdragon:  did you find a fix for `mysql: can't free last result (free_result:stmt:5025): Statement has no result set` yet?
+11:48 < bridge> <melon> chillerdragon:  did you find a fix for `mysql: can't free last result (free_result:stmt:5025): Statement has no result set` yet?
+11:48 < bridge> <Solly (bun bun)> hi lemon backwards
+11:48 < bridge> <melon> hi fake solly
+11:48 < bridge> <Solly (bun bun)> hi "lemon"[::-1]
+11:48 < bridge> <Solly (bun bun)> why am i fake
+11:48 < bridge> <melon> hi fake souly
+11:48 < bridge> <Solly (bun bun)> youre the fake one
+11:48 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1362726540546412605/image.png?ex=6803717d&is=68021ffd&hm=b9b62c670d8d17000c9528ad8858b846179a024f19210766dcb200c01e11a018&
+11:48 < bridge> <Solly (bun bun)> youre an app
+11:48 < bridge> <Solly (bun bun)> YAYYY
+11:48 < bridge> <melon> no u!"
+11:48 < bridge> <melon> no u!
+11:48 < bridge> <Solly (bun bun)> darn
+11:48 < bridge> <Solly (bun bun)> i dont have a counter to that
+11:49 < bridge> <Solly (bun bun)> back to crying
+11:49 < bridge> <A Moderator> 😅
+11:49 < bridge> <A Moderator> i use matrix to ping apps, just feels better to see
+11:49 < bridge> <A Moderator> https://cdn.discordapp.com/attachments/293493549758939136/1362726804309409832/image.png?ex=680371bc&is=6802203c&hm=caabbc3c72036807a586f8c0fe8853b5064b01e18c1e1f451de1a1304ac1cbbb&
+11:50 < bridge> <learath2> chillerdragon is an app = chillerdragon is a bot, confirmed
+11:54 < ws-client> <ChillerDragon> nah i am waiting for zwelf insight @melon 
+11:54 < ws-client> <ChillerDragon> i have no idea
+11:55 < bridge> <Some Moderator> Guys is this real?
+11:55 < bridge> <Some Moderator> https://cdn.discordapp.com/attachments/293493549758939136/1362728219215794277/RDT_20250418_1254241920573333602001657.jpg?ex=6803730d&is=6802218d&hm=9a18c82fa001446bd92b53811f768f5954f5af98febc9b7af01ea7147979c3fb&
+11:55 < bridge> <Some Moderator> (I have no idea what any of that code means, but it's scary and probably very efficient)
+11:56 < ws-client> <ChillerDragon> ``include <????? idk what that is>``
+11:56 < ws-client> <ChillerDragon> ``int main() { printf("hello world."); return 0; }``
+11:57 < bridge> <Some Moderator> iostream maybe? idk C
+11:57 < bridge> <Jupstar ✪> cstd eingabe ausgabe
+11:58 < ws-client> <ChillerDragon> it should be stdio.h
+11:58 < ws-client> <ChillerDragon> EIN AUSGABE lel
+11:58 < bridge> <Jupstar ✪> chiller doesn't get the joke
+11:58 < ws-client> <ChillerDragon> clearly
+11:58 < bridge> <Some Moderator> chiller are you german?
+11:58 < bridge> <learath2> I -> E
+11:58 < bridge> <learath2> O -> A
+11:58 < bridge> <learath2> hm
+11:58 < ws-client> <ChillerDragon> cstd is C standard?
+11:58 < bridge> <learath2> A is Aus , I guess
+11:58 < ws-client> <ChillerDragon> yes
+11:58 < bridge> <Some Moderator> well, food for thought cuz im not
+11:59 < bridge> <Some Moderator> im scratching my head with English C++ :heh:
+11:59 < ws-client> <ChillerDragon> but you should recognize the shape of the program :D
+11:59 < ws-client> <ChillerDragon> @Jupstar ✪ but cstdio is C++ not C
+12:00 < bridge> <Some Moderator> Funnily enough, I know hello world in java but not C/C++/C#
+12:00 < bridge> <learath2> E idk, eingang?
+12:00 < ws-client> <ChillerDragon> eingabe is what jupstar said
+12:00 < ws-client> <ChillerDragon> eingang is entrance and eingabe is input
+12:00 < bridge> <learath2> oic, I couldn't read his moon runes
+12:01 < bridge> <Some Moderator> ```java
+12:01 < bridge> <Some Moderator> public static void main(string args[]) {
+12:01 < bridge> <Some Moderator>     System.out.println("Say it 10 times fast.");
+12:01 < bridge> <Some Moderator> }
+12:01 < bridge> <Some Moderator> ```
+12:01 < bridge> <Some Moderator> _probably correct_ ^
+12:02 < bridge> <Some Moderator> not...
+12:02 < bridge> <Some Moderator> sadge
+12:02 < ws-client> <ChillerDragon> ``öffentlich statisch nichts haupt(schnur argumente[]( { system.raus.druckZeile("Sag es 10 mal schnell!"); }``
+12:02 < bridge> <gorp_tw> isn't string capitalized
+12:02 < bridge> <melon> sadge
+12:02 < bridge> <Some Moderator> Nein
+12:02 < bridge> <learath2> public static final main
+12:02 < bridge> <Some Moderator> It's `String[] args`
+12:02 < bridge> <Some Moderator> Not `string args[]`
+12:03 < bridge> <Some Moderator> because java hates me
+12:03 < bridge> <A Moderator> "you failed to compile a simple prgram, your memory will be corrupted in 5..4..3..2..1...
+12:03 < bridge> <A Moderator> "you failed to compile a simple prgram, your memory will be corrupted in 5..4..3..2..1..."
+12:03 < bridge> <A Moderator> "you failed to compile a simple program, your memory will be corrupted in 5..4..3..2..1..."
+12:03 < ws-client> <ChillerDragon> its not C++
+12:03 < bridge> <Some Moderator> scheisse...
+12:03 < bridge> <learath2> `public static final MainFuncFactoryEx createMainFuncFactory()`
+12:03 < bridge> <A Moderator> i'm sure you can corrupt memory if you try hard enough
+12:03 < bridge> <learath2> `public static final MainFuncFactoryEx createMainFuncFactoryEx()`
+12:03 < ws-client> <ChillerDragon> lol @learath2 
+12:08 < bridge> <gorp_tw> ```
+12:08 < bridge> <gorp_tw> purr std::meow;
+12:08 < bridge> <gorp_tw> 
+12:08 < bridge> <gorp_tw> cat main (nya args[^ouo^]) {
+12:08 < bridge> <gorp_tw>   meow "nyaaas:";
+12:08 < bridge> <gorp_tw>   fur nya arg in args {
+12:08 < bridge> <gorp_tw>     meow nya;
+12:08 < bridge> <gorp_tw>   }
+12:08 < bridge> <gorp_tw> }
+12:08 < bridge> <gorp_tw> oops
+12:08 < bridge> <gorp_tw> ```
+12:08 < bridge> <gorp_tw> purr std::meow;
+12:08 < bridge> <gorp_tw> 
+12:08 < bridge> <gorp_tw> cat main (nya args[^ouo^]) {
+12:08 < bridge> <gorp_tw>   meow "nyaaas:";
+12:08 < bridge> <gorp_tw>   fur nya arg in args {
+12:08 < bridge> <gorp_tw>     meow nya;
+12:08 < bridge> <gorp_tw>   }
+12:08 < bridge> <gorp_tw> }```
+12:48 < bridge> <Solly (bun bun)> you use `git push --force`
+12:48 < bridge> <Solly (bun bun)> i use `git push --force-with-lease` (i dont know what that does)
+12:48 < bridge> <Solly (bun bun)> we are not the same
+12:49 < bridge> <Solly (bun bun)> ```
+12:49 < bridge> <Solly (bun bun)> --force-with-lease is a safer option that will not overwrite any work on the remote branch if more commits were added to the remote branch (by another team-member or coworker or what have you). It ensures you do not overwrite someone elses work by force pushing.
+12:49 < bridge> <Solly (bun bun)> ``` <https://stackoverflow.com/questions/52823692/git-push-force-with-lease-vs-force>
+12:49 < bridge> <Solly (bun bun)> oh... thats good to know
+12:49 < bridge> <Solly (bun bun)> til
+13:00 < bridge> <teero777> Chillerdragon its `standard eingang ausgang` aka stdio
+13:01 < bridge> <teero777> Also this is c++ and not C
+13:01 < bridge> <teero777> Also this isn't actually real because you can't rename macros in any way
+13:02 < bridge> <teero777> Also whomever made the meme does not use c
+13:02 < bridge> <teero777> Also whoever made the meme does not use c
+13:03 < bridge> <chillerdragon> teero C gigachad
+13:04 < bridge> <teero777> they forgot the void inside the main func params, if you use pedantic warnings it will complain. No arguments are weird
+13:08 < bridge> <jxsl13> biased 👀
+13:08 < bridge> <jxsl13> aka based
+13:49 < bridge> <learath2> For bonus points tell us the difference in meaning of `(void)` and `()`
+13:49 < bridge> <Solly (bun bun)> i can do that!!!
+13:51 < bridge> <Solly (bun bun)> before c99, it was legal to not list the arguments of your function,
+13:51 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:51 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:51 < bridge> <Solly (bun bun)> now its illegal to not put the arguments
+13:51 < bridge> <Solly (bun bun)> for backwards compatibility sake you can still case your function pointer to whichever you need and then call it
+13:51 < bridge> <Solly (bun bun)> and its only *technically* ub
+13:52 < bridge> <Solly (bun bun)> before c99, it was legal to not list the arguments of your function,
+13:52 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:52 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:52 < bridge> <Solly (bun bun)> ~~now its illegal to not put the arguments~~ (only illegal in cpp)
+13:52 < bridge> <Solly (bun bun)> you can still case your function pointer to whichever you need and then call it to avoid the warning
+13:52 < bridge> <Solly (bun bun)> and its only *technically* ub
+13:52 < bridge> <Solly (bun bun)> before c99, it was legal to not list the arguments of your function,
+13:52 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:52 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:52 < bridge> <Solly (bun bun)> ~~now its illegal to not put the arguments~~ (only illegal in cpp)
+13:52 < bridge> <Solly (bun bun)> you can still case your function pointer to whichever you need and then call it to avoid the warning
+13:52 < bridge> <Solly (bun bun)> ~~and its only *technically* ub~~ (In cpp)
+13:55 < bridge> <Solly (bun bun)> its to not list the arguments of your function,
+13:55 < bridge> <Solly (bun bun)> as calling conventions do not care about the type nor quantity, you can always access the nth argument the same
+13:55 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:55 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:55 < bridge> <Solly (bun bun)> ~~now its illegal to not put the arguments~~ (only illegal in cpp)
+13:55 < bridge> <Solly (bun bun)> you can still case your function pointer to whichever you need and then call it to avoid the warning
+13:55 < bridge> <Solly (bun bun)> ~~and its only *technically* ub~~ (In cpp)
+13:55 < bridge> <Solly (bun bun)> its legal to not list the arguments of your function (and not do `...`)
+13:55 < bridge> <Solly (bun bun)> as calling conventions do not care about the type nor quantity, you can always access the nth argument the same
+13:55 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:55 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:55 < bridge> <Solly (bun bun)> ~~now its illegal to not put the arguments~~ (only illegal in cpp)
+13:55 < bridge> <Solly (bun bun)> you can still case your function pointer to whichever you need and then call it to avoid the warning
+13:55 < bridge> <Solly (bun bun)> ~~and its only *technically* ub~~ (In cpp)
+13:56 < bridge> <Solly (bun bun)> its legal to not list the arguments of your function (and not do `...`)
+13:56 < bridge> <Solly (bun bun)> as calling conventions do not care about the type nor quantity, you can always access the nth argument the same
+13:56 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:56 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:56 < bridge> <Solly (bun bun)> ~~now its illegal to not put the arguments~~ (only illegal in cpp)
+13:56 < bridge> <Solly (bun bun)> you can still cast your function pointer to whichever you need and then call it to avoid the warning
+13:56 < bridge> <Solly (bun bun)> ~~and its only *technically* ub~~ (In cpp)
+13:56 < bridge> <Solly (bun bun)> its legal to not list the arguments of your function (and not do `...`) in c
+13:56 < bridge> <Solly (bun bun)> as calling conventions do not care about the type nor quantity, you can always access the nth argument the same
+13:56 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+13:56 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+13:56 < bridge> <Solly (bun bun)> ~~now its illegal to not put the arguments~~ (only illegal in cpp)
+13:56 < bridge> <Solly (bun bun)> you can still cast your function pointer to whichever you need and then call it to avoid the warning
+13:56 < bridge> <Solly (bun bun)> ~~and its only *technically* ub~~ (In cpp)
+13:57 < bridge> <Solly (bun bun)> in gcc you get a warning if you didnt previously declare the arguments unless -Wstrict-prototypes(-Wpedantic) is enabled
+13:58 < bridge> <Solly (bun bun)> so i think the only non warning way to do that is forward decleration
+13:58 < bridge> <Solly (bun bun)> ```cpp
+13:58 < bridge> <Solly (bun bun)> void myfunc();
+13:58 < bridge> <Solly (bun bun)> 
+13:58 < bridge> <Solly (bun bun)> ...
+13:58 < bridge> <Solly (bun bun)>   myfunc(1, 2, 3)
+13:58 < bridge> <Solly (bun bun)> 
+13:58 < bridge> <Solly (bun bun)> void myfunc(int a, int b, int c) { ... }
+13:58 < bridge> <Solly (bun bun)> ```
+14:02 < bridge> <Solly (bun bun)> both () and (void) are legal in cpp
+14:03 < bridge> <Solly (bun bun)> both () and (void) are legal and mean the same thing in cpp
+14:04 < bridge> <Solly (bun bun)> its illegal (only technically ub) to call functions with "wrong" arguments
+14:04 < bridge> <Solly (bun bun)> its legal to not list the arguments of your function (and not do `...`) in c
+14:04 < bridge> <Solly (bun bun)> as calling conventions do not care about the type nor quantity, you can always access the nth argument the same
+14:04 < bridge> <Solly (bun bun)> void a() with an arg can be called as much as without a warning as void b(int)
+14:04 < bridge> <Solly (bun bun)> at that time the only way to say "there are no args" is to use (void)
+14:04 < bridge> <Solly (bun bun)> you can still cast your function pointer to whichever you need and then call it to avoid the warning
+14:04 < bridge> <Solly (bun bun)> its illegal (only technically ub) to call functions with "wrong" arguments in cpp
+14:05 < bridge> <Solly (bun bun)> (the same amount of ub as the compiler compiling a nullptr dereference to code which uses a zero day to zero your drive, that is it wont do anything weird)
+14:09 < bridge> <learath2> It's actually much more complicated, but yeah that's the gist of it
+14:09 < bridge> <chillerdragon> Pro souly
+14:10 < bridge> <learath2> There was a huge discussion about this a couple years back on ##c, it took many hours and many language pedants to figure out what is actually going on
+14:10 < bridge> <Solly (bun bun)> i think "the gist of it" is pretty good for a language with decades of emotional baggage
+14:23 < bridge> <learath2> The issue is that `void foo() {}` does not provide a function prototype because of how 6.9.1p7 is worded. It does actually define a function that takes no arguments just fine 😄
+14:25 < bridge> <Solly (bun bun)> idk what that means
+14:26 < bridge> <learath2> `void foo() {}` is not a function that can take any amount of arguments. It's a function that definitively takes no arguments
+14:26 < bridge> <learath2> `void foo();` however declares a function `foo` that can take any amount of arguments of any type
+14:28 < bridge> <Solly (bun bun)> oke
+14:34 < bridge> <Solly (bun bun)> holdon ima check that
+14:35 < bridge> <learath2> Honestly, completely pointless pedantic stuff. Just don't use `()` ever
+14:35 < bridge> <Solly (bun bun)> just use cpp :D
+14:37 < bridge> <learath2> All the way from C89 there is always a section 6.11.6 saying the empty parens is obsolete
+14:38 < bridge> <Solly (bun bun)> you can only get the first arg with inline asm
+14:39 < bridge> <learath2> The only reason C allows you to call it with any amount of arguments is that it's the sole case of a function definition that does not provide a function prototype
+14:40 < bridge> <Solly (bun bun)> if you give the implmentation ({}) then the compiler knows (unless asm) that it takes no args
+14:40 < bridge> <Solly (bun bun)> but unless its static or decides to use a different calling convention then its fine
+14:41 < bridge> <Solly (bun bun)> but unless its static (gets inlined) or decides to use a different calling convention then u can asm
+14:41 < bridge> <learath2> It knows, but until C23 it is still not an error to call it with any amount of arguments, even though it does define a function that has 0 arguments properly. Calling it with any argument at all is undefined behaviour, BUT it is technically not an error 😄
+14:42 < bridge> <Solly (bun bun)> really
+14:42 < bridge> <Solly (bun bun)> the stack is cleaned up by the caller so its fine
+14:42 < bridge> <learath2> You can try, the following snippet will compile just fine until c23
+14:42 < bridge> <learath2> ```c
+14:42 < bridge> <learath2> void foo() {}
+14:42 < bridge> <learath2> int main(void) {
+14:42 < bridge> <learath2>   foo(10);
+14:42 < bridge> <learath2> }
+14:42 < bridge> <learath2> ```
+14:42 < bridge> <Solly (bun bun)> damn
+14:43 < bridge> <learath2> It does invoke UB, but it will compile
+14:43 < bridge> <learath2> Depends on the calling convention, but I'd assume every implementation probably just calls it properly in a way you can get the args
+14:44 < bridge> <Solly (bun bun)> i am unaware of a calling convention where the caller has to do it
+14:44 < bridge> <Solly (bun bun)> i am unaware of a calling convention where the callee has to do it
+14:45 < bridge> <learath2> You do need to know the type of the argument passed though, as iirc it won't call it with the arguments on stack, it'll put them in the correct places as per their types
+14:45 < bridge> <Solly (bun bun)> well thats a given
+14:45 < bridge> <Solly (bun bun)> no reflection
+14:45 < bridge> <Solly (bun bun)> unless you wrap all your things in shiny (reflective) structs
+14:46 < bridge> <Solly (bun bun)> unless you wrap all your things in tinfoil (reflective structs)
+14:46 < bridge> <learath2> (stdcall btw)
+14:46 < bridge> <Solly (bun bun)> `The stdcall[5] calling convention is a variation on the Pascal calling convention in which the callee is responsible for cleaning up the stack`
+14:46 < bridge> <Solly (bun bun)> how could it!
+14:46 < bridge> <Solly (bun bun)> i was going thu the list myself
+14:46 < bridge> <learath2> It's also used for every winapi function to this date
+14:47 < bridge> <Solly (bun bun)> why
+14:47 < bridge> <learath2> Unless you are careful even those can end up in registers, you need fat reflective structs 😄
+14:47 < bridge> <learath2> Only god and mr bill gates knows why
+14:47 < bridge> <Solly (bun bun)> with a known calling convention you can always just slap it into a buffer then do your processing
+14:48 < bridge> <Solly (bun bun)> a reflective struct is already fat
+14:48 < bridge> <Solly (bun bun)> struct { int id; char data[] }
+14:48 < bridge> <Solly (bun bun)> min size of 5 bytes but padding makes it 8
+14:50 < bridge> <Solly (bun bun)> we have so many registers why arent we passing stuff on them
+14:50 < bridge> <learath2> Observe the case of `struct {int x, y;}` it is less than 4 eightbytes, thus it can end up passed in registers as per amd64 sysv abi
+14:50 < bridge> <Solly (bun bun)> 4 +4 = 8?
+14:50 < bridge> <learath2> Assume `sizeof(int) == 8`
+14:50 < bridge> <Solly (bun bun)> 8 + 8 = 16?
+14:51 < bridge> <learath2> That's only 2 eightbytes total, can be passed in registers
+14:51 < bridge> <Solly (bun bun)> .
+14:51 < bridge> <learath2> Anything larger than 4 eitghtbytes goes to the stack instantly
+14:51 < bridge> <Solly (bun bun)> 4 "eightbytes"
+14:51 < bridge> <Solly (bun bun)> 32 bytes?
+14:52 < bridge> <learath2> It's the language the calling convention uses, I do not remember the reason
+14:52 < bridge> <learath2> Perhaps because an eightbyte is the size of a register in amd64
+14:52 < bridge> <Solly (bun bun)> you have masses of space in registers
+14:52 < bridge> <Solly (bun bun)> why arent we using it
+14:53 < bridge> <Solly (bun bun)> well i guess anything which would benefit from fast calling would be static
+14:53 < bridge> <Solly (bun bun)> do compilers do that tho
+14:53 < bridge> <learath2> Well we are trying to use it, but not very very aggressively
+14:53 < bridge> <Solly (bun bun)> make up calling conventions for static functions
+14:56 < bridge> <learath2> Oh actually just checked it, I misremembered, it's 2 eightbytes, not 4 😄
+14:56 < bridge> <learath2> Idk why we don't use more of the registerspace more aggressively
+14:57 < bridge> <Solly (bun bun)> lmao
+14:57 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1362773945241043205/image.png?ex=68039da3&is=68024c23&hm=9504f53b28a07f38debe049a5810c4f98a21a4622ae466739ae06d9fd8f648a9&
+14:57 < bridge> <Solly (bun bun)> i told gcc to not inline it
+14:57 < bridge> <Solly (bun bun)> so it doesnt but it optimizing the function to just set it to 10 xd
+14:58 < bridge> <learath2> Try just -O0 I guess
+14:58 < bridge> <Solly (bun bun)> then it probbaly wont make up a calling convention
+14:58 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1362774280303149187/image.png?ex=68039df3&is=68024c73&hm=a7ca05ec0c1480dba8e7e1e5d38e90d6181b767f945b6f5ae26fd8835ca8d879&
+14:58 < bridge> <Solly (bun bun)> it does make up a calling convention fyi
+14:58 < bridge> <Solly (bun bun)> fastcall only allows 2 registers
+14:58 < bridge> <learath2> Hm, true, idk how we can force it to 😛
+14:59 < bridge> <learath2> I would guess it never comes up with it's own tbh
+15:00 < bridge> <learath2> Do you have a source for that claim?
+15:00 < bridge> <milkeeycat> AT&T syntax 😬
+15:00 < bridge> <learath2> Idk anyone who prefers att syntax ngl
+15:00 < bridge> <learath2> No idea why it's still the default in so many places 😄
+15:02 < bridge> <Solly (bun bun)> ```
+15:02 < bridge> <Solly (bun bun)> Microsoft fastcall
+15:02 < bridge> <Solly (bun bun)> Microsoft __fastcall convention (aka __msfastcall[citation needed]) passes the first two arguments (evaluated left to right) that fit, into ECX and EDX.[6] Remaining arguments are pushed onto the stack from right to left. When the compiler compiles for IA64 or AMD64, it ignores the __fastcall keyword (or any other calling convention keyword aside from __vectorcall) and uses the Microsoft default 64-bit calling convention instead.
+15:02 < bridge> <Solly (bun bun)> ````
+15:02 < bridge> <Solly (bun bun)> it unrolled my loop
+15:02 < bridge> <Solly (bun bun)> as i wanted it to
+15:02 < bridge> <Solly (bun bun)> but didnt stick everything into registers
+15:03 < bridge> <learath2> This doesn't really say compilers come up with their own static calling convention
+15:03 < bridge> <Solly (bun bun)> ```cpp
+15:03 < bridge> <Solly (bun bun)> #include <array>
+15:03 < bridge> <Solly (bun bun)> 
+15:03 < bridge> <Solly (bun bun)> using Data = std::array<int, 10>;
+15:03 < bridge> <Solly (bun bun)> 
+15:03 < bridge> <Solly (bun bun)> __attribute__ ((noinline)) static void func(Data data) {
+15:03 < bridge> <Solly (bun bun)>     volatile int out = 0;
+15:03 < bridge> <Solly (bun bun)>     for (int n : data) {
+15:03 < bridge> <Solly (bun bun)>         out += n;
+15:03 < bridge> <Solly (bun bun)>     }
+15:03 < bridge> <Solly (bun bun)> }
+15:03 < bridge> <Solly (bun bun)> 
+15:03 < bridge> <Solly (bun bun)> int main(void) {
+15:03 < bridge> <Solly (bun bun)>     Data data;
+15:03 < bridge> <Solly (bun bun)>     data.fill(0);
+15:03 < bridge> <Solly (bun bun)>     func(data);
+15:03 < bridge> <Solly (bun bun)>     data.fill(1);
+15:03 < bridge> <Solly (bun bun)>     func(data);
+15:03 < bridge> <Solly (bun bun)> }
+15:03 < bridge> <Solly (bun bun)> ```
+15:04 < bridge> <Solly (bun bun)> no, which means that the compiler isnt doing fastcall
+15:04 < bridge> <Solly (bun bun)> and its not using wide registers for vectorcall
+15:04 < bridge> <learath2> It might be just getting ignored I guess
+15:04 < bridge> <Solly (bun bun)> it did use general purpose 8 and 9
+15:04 < bridge> <Solly (bun bun)> for whatever reason
+15:04 < bridge> <Solly (bun bun)> instead of... ya know 1 and 2
+15:04 < bridge> <Solly (bun bun)> (or 0 and 1)
+15:04 < bridge> <learath2> The as-if rule allows all un-observable changes to optimize. Any static function is unobservable
+15:05 < bridge> <Solly (bun bun)> yes
+15:05 < bridge> <Solly (bun bun)> and the no inline prevents it from just contexpr the whole thing
+15:06 < bridge> <Solly (bun bun)> clang also unrolls but goes thru the stack.... quicker?
+15:06 < bridge> <Solly (bun bun)> 1 less instruction idk if its faster
+15:07 < bridge> <Solly (bun bun)> clang
+15:07 < bridge> <Solly (bun bun)> ```
+15:07 < bridge> <Solly (bun bun)> movl    16(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> addl    %eax, -4(%rsp)
+15:07 < bridge> <Solly (bun bun)> movl    20(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> addl    %eax, -4(%rsp)
+15:07 < bridge> <Solly (bun bun)> movl    24(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> addl    %eax, -4(%rsp)
+15:07 < bridge> <Solly (bun bun)> movl    28(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> ```
+15:07 < bridge> <Solly (bun bun)> gcc
+15:07 < bridge> <Solly (bun bun)> 
+15:07 < bridge> <Solly (bun bun)> ```
+15:07 < bridge> <Solly (bun bun)> addl    24(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> movl    %eax, -4(%rsp)
+15:07 < bridge> <Solly (bun bun)> movl    -4(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> addl    28(%rsp), %eax
+15:07 < bridge> <Solly (bun bun)> movl    %eax, -4(%rsp)
+15:08 < bridge> <Solly (bun bun)> movl    -4(%rsp), %eax
+15:08 < bridge> <Solly (bun bun)> addl    32(%rsp), %eax
+15:08 < bridge> <Solly (bun bun)> movl    %eax, -4(%rsp)
+15:08 < bridge> <Solly (bun bun)> movl    -4(%rsp), %eax
+15:08 < bridge> <Solly (bun bun)> addl    36(%rsp), %eax
+15:08 < bridge> <Solly (bun bun)> movl    %eax, -4(%rsp)
+15:08 < bridge> <Solly (bun bun)> ```
+15:08 < bridge> <Solly (bun bun)> its the same instructions so clang probably just big brained gcc
+15:08 < bridge> <Solly (bun bun)> its a shame though its only 40 bytes
+15:08 < bridge> <Solly (bun bun)> fits into 1 64 byte register ):
+15:08 < bridge> <Solly (bun bun)> i guess reading a register like that is slow
+15:10 < bridge> <Solly (bun bun)> well thats enuf of that
+16:11 < bridge> <jxsl13> I find that part about the ticket system where you don't get no notification at all, just getting either kicked out of the channel or the channel being deleted weird. how about writing a notification in the #✉-create-a-ticket that ticket has been resolved, denied, resolved with a reason text, etc :?
+16:23 < bridge> <robyt3> You should get a DM from the DDNet bot with the transcript of the ticket which should also include the conclusion.
+16:24 < bridge> <jxsl13> not happened
+16:24 < bridge> <teero777> it sends a dm
+16:24 < bridge> <jxsl13> 👀
+16:24 < bridge> <teero777> atleast for me it did
+16:24 < bridge> <robyt3> I justed tested it and it works for me
+16:24 < bridge> <robyt3> I just tested it and it works for me
+16:24 < bridge> <jxsl13> what am I doing wrong?
+16:24 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1362796004306325744/image.png?ex=6803b22e&is=680260ae&hm=c312cb880918df13b55f9c152d2f2949e78185a708b1b06e86b71f49d61257a4&
+16:24 < bridge> <teero777> did you disable dms?
+16:25 < bridge> <jxsl13> yes
+16:25 < bridge> <jxsl13> dms disabled ._.
+16:26 < bridge> <jxsl13> double edged sword
+16:26 < bridge> <jxsl13> those dms
+16:26 < bridge> <robyt3> Well, that could explain not being able to receive DMs. Can we detect that with Discord API though
+16:26 < bridge> <jxsl13> can you see the bot's logs?
+16:26 < bridge> <jxsl13> maybe it printed something about that?
+16:27 < bridge> <jxsl13> https://stackoverflow.com/questions/70660854/how-to-check-if-a-bot-can-dm-a-user
+16:28 < bridge> <Assa> Wait I thought the ticket stays forever
+16:28 < bridge> <jxsl13> 15k ticket channels
+16:28 < bridge> <jxsl13> imagine
+16:28 < bridge> <jxsl13> 😄
+16:28 < bridge> <jxsl13> pribably logged somewhere
+16:28 < bridge> <jxsl13> probably logged somewhere
+16:29 < bridge> <jxsl13> *afk*
+16:30 < bridge> <teero777> # afk
+16:30 < bridge> <Assa> I guess it's like github issues, some stay open ... until resolved
+16:31 < bridge> <robyt3> @murpi Maybe the Discord bot could check if DMs are possible and otherwise warn when creating a ticket that you won't get the transcripts if you don't allow DMs
+16:32 < bridge> <murpi> How do I warn a user who doesn't allow DMs? 😄
+16:32 < bridge> <Assa> inside the Channel, then delete after X days
+16:32 < bridge> <robyt3> Show an extra block with a message when they open the ticket
+16:34 < bridge> <murpi> I guess I can include a warning when people create a ticket
+16:52 < bridge> <ryozuki> Array indices start at 0 in C, but start at 32 in F.
+16:52 < bridge> <ryozuki> ill see myself out
+16:53 < bridge> <Jupstar ✪> in pascal arrays start with 0 and strings with 1
+16:53 < bridge> <Jupstar ✪> just for max confusion
+17:30 < bridge> <always> you can i believe
+17:30 < bridge> <always> just use a try catch
+17:37 < bridge> <qxdfoxy> why are lasers so jittery when they move? why arent they like pickups that follow the players smoothly
+17:45 < bridge> <robyt3> An in VBA you can define whether you want array indices to start at 0 or 1 in your module :santatrollet:
+17:45 < bridge> <robyt3> And in VBA you can define whether you want array indices to start at 0 or 1 in your module :santatrollet:
+17:53 < bridge> <Jupstar ✪> Better loading times with next nightly :deen_star:
+18:07 < bridge> <oxyzo.> :nouis:
+18:11 < bridge> <Jupstar ✪> gekühlterdrache: you here?
+18:18 < bridge> <A Moderator> :Aware:
+18:19 < bridge> <A Moderator> that is awesome :owo:
+18:23 < bridge> <kebscs> does it change anything other than being able to have entire db downloaded without lag and high memory use?
+18:23 < bridge> <Assa> because. We could fix this, I did this for doors already
+18:24 < bridge> <A Moderator> it prevents @ admin @ moderator guys my game crashes because of error from deen
+18:24 < bridge> <Jupstar ✪> It improves loading times and the memory usage is a huge problem
+18:24 < bridge> <qxdfoxy> i mean when they move around. not the prediction part
+18:25 < bridge> <Jupstar ✪> xd
+18:25 < bridge> <Jupstar ✪> deen sends errors
+18:25 < bridge> <A Moderator> :kek:
+18:26 < bridge> <Assa> yes and I am talking about the rendering. You mean why freezelasers stutter when rotating for example?
+18:27 < bridge> <robyt3> It also moves most skin loading for downloaded skins to background jobs, so this should reduce the FPS impact when the downloaded skins are finished
+18:28 < bridge> <qxdfoxy> like for example on F-DDRace the StaffI Indicator has a laser part going around a shield, when the character starts moving the laser jitters behind but the shield stays smooth
+18:28 < bridge> <qxdfoxy> https://cdn.discordapp.com/attachments/293493549758939136/1362827213631787139/image.png?ex=6803cf3f&is=68027dbf&hm=6bd76a90a880ad52838351a0dd9dff6810c9f1d73bf9ab07706860aca8e3e7ee&
+18:31 < bridge> <Assa> Idk what F-DDRace does there 🤷🏻‍♂️
+18:32 < bridge> <Assa> What even is a Staffl
+18:32 < bridge> <qxdfoxy> remove the l whoops
+18:32 < bridge> <A Moderator> staff indicator :(, blockworlds has that too
+18:32 < bridge> <qxdfoxy> is your guys also jittery when moving?
+18:32 < bridge> <A Moderator> .. only the laser ..
+18:32 < bridge> <qxdfoxy> why is that
+18:32 < bridge> <Assa> missing prediction probably
+18:33 < bridge> <A Moderator> blockworlds is based on teeworlds, not ddnet tho :p
+18:36 < bridge> <qxdfoxy> is there a way of fixing it serverside or is this just clientside
+18:37 < bridge> <kebscs> Record a video
+18:37 < bridge> <kebscs> Rendering is client side idk how anything would be jittery when position sent is probably the same
+18:38 < bridge> <A Moderator> just checked again, i dont think its broken prediction
+18:38 < bridge> <A Moderator> if you look at it closely it has a similar look to moving a picture on a low framerate
+18:38 < bridge> <A Moderator> https://cdn.discordapp.com/attachments/293493549758939136/1362829712220754103/jitteri.mp4?ex=6803d193&is=68028013&hm=f3f6f629a89aa22fb87bb2c13af230e7993bfbf194455ce4d4f5093fb8fe795c&
+18:39 < bridge> <qxdfoxy> thats smooth
+18:39 < bridge> <A Moderator> so its probably a f-ddrace issue :kek:
+18:41 < bridge> <qxdfoxy> https://cdn.discordapp.com/attachments/293493549758939136/1362830288308146388/Test.mp4?ex=6803d21c&is=6802809c&hm=c9a42aa5da75a424331df1cafa7369318bf00f59f0a89e8fd8ed89894079f5e1&
+18:41 < bridge> <qxdfoxy> this is what i see
+18:41 < bridge> <A Moderator> 💀
+18:41 < bridge> <qxdfoxy> yup
+18:42 < bridge> <qxdfoxy> odd though
+18:46 < bridge> <Assa> your custom particles are shit for this
+18:47 < bridge> <Assa> laser heads are randomly rotated and having 'hollow' ones doesn't help either
+18:48 < bridge> <Assa> the 'clock' also doesn't look good
+18:48 < bridge> <qxdfoxy> its F-DDRaces
+18:48 < bridge> <qxdfoxy> i didnt make any of this
+18:49 < bridge> <oxyzo.> F-DDRace is still DDRace
+18:49 < bridge> <oxyzo.> theres no f in ddrace 🤯
+18:50 < bridge> <qxdfoxy> why does the render cut to video thing crash when tabbing out
+18:50 < bridge> <qxdfoxy> https://cdn.discordapp.com/attachments/293493549758939136/1362832681431334912/Test.mp4?ex=6803d457&is=680282d7&hm=5677053918204160ae91fcec000d3edbd412e54d00069b258e581a214bf32540&
+18:50 < bridge> <qxdfoxy> anyways default particles
+18:50 < bridge> <qxdfoxy> did not make anything better
+18:50 < bridge> <oxyzo.> it records your screen
+18:51 < bridge> <Assa> it looks way better 😮
+18:52 < bridge> <qxdfoxy> compare it to this and it looks shit
+18:52 < bridge> <Assa> rest is prediction and laser postion not beeing interpolated
+18:52 < bridge> <A Moderator> teeworlds > ddnet :dTeuPeposhrug:
+18:56 < bridge> <qxdfoxy> can you do it again on bw?
+18:58 < bridge> <jxsl13> can you send an ephemeral message to the user in #✉-create-a-ticket in case the dm fails
+18:58 < bridge> <jxsl13> @murpi
+18:59 < bridge> <A Moderator> murp said he wants to add a warning to it before
+18:59 < bridge> <jxsl13> would be great to have an actual message :/
+19:01 < bridge> <fokkonaut> whats the issue?
+19:01 < bridge> <qxdfoxy> the jitteryness of the laser
+19:01 < bridge> <fokkonaut> its just a basic clock i made many years ago
+19:01 < bridge> <qxdfoxy> no thats not my issue thats Assa's issue
+19:01 < bridge> <fokkonaut> For me it looks normal, do you have antiping ON?
+19:02 < bridge> <qxdfoxy> no
+19:02 < bridge> <fokkonaut> weird. might be related to prediction bug thats happening on f-ddrace since a few ddnet client versions, dunno tho
+19:03 < bridge> <fokkonaut> I'm not that into client dev and would appreciate help too regarding that
+19:03 < bridge> <fokkonaut> I can look into staffind code later again, but i dont know/think it has a specific issue
+19:04 < bridge> <qxdfoxy> i think its in general anything with lasers
+19:04 < bridge> <qxdfoxy> they just jitter around if they move along with a player
+19:05 < bridge> <fokkonaut> And that's only happening on f-ddrace?
+19:05 < bridge> <fokkonaut> I mean, it's unpredicted, so jitter is to be expected i think
+19:05 < bridge> <qxdfoxy> i dont know if its only f-ddrace but judging by this it seems like it i guess?
+19:05 < bridge> <A Moderator> oh - keep in mind i do use antiping
+19:05 < bridge> <qxdfoxy> oh let me try with antiping
+19:06 < bridge> <fokkonaut> @essigautomat, did you create the dragger laser update?
+19:06 < bridge> <qxdfoxy> no its the same
+19:06 < bridge> <fokkonaut> what's important to show dragger correctly?
+19:06 < bridge> <fokkonaut> EntityEx?
+19:06 < bridge> <fokkonaut> Or DDNetLaser ?
+19:07 < bridge> <fokkonaut> https://github.com/fokkonaut/F-DDrace/issues/345
+19:12 < bridge> <Assa> yes
+19:13 < bridge> <Assa> wtf? Only the subtype
+19:15 < bridge> <Assa> I have no idea how ddnet client determines the subtype, but this shouldn't be 'caused' by my PR. It was just not visible because everything looked the same before
+19:16 < bridge> <fokkonaut> I see, what exactly is broken?
+19:23 < bridge> <fokkonaut> https://github.com/fokkonaut/F-DDrace/blob/f5a592b7ce09540aaa3dc3abbf49bd2e8fb66841/src/game/server/entities/character.cpp#L5285
+19:23 < bridge> <fokkonaut> maybe?
+19:25 < bridge> <fokkonaut> this is used to reduce network traffic of unused/too far away entities that rely on entityEx.
+19:25 < bridge> <fokkonaut> I think the fix would be to send extended Entity always, when type it a dragger.
+19:51 < bridge> <fokkonaut> You can do that in ::SendTeamsState()
+19:52 < bridge> <fokkonaut> check f-ddrace::teams.cpp
+19:54 < bridge> <Assa> are the '||' correct? Looks ambigouous
+19:55 < bridge> <fokkonaut> no, they're correct, why?
+19:56 < bridge> <fokkonaut> I only want to send entityEx of plot objects, if it's the door (always collidable, from outside if closed) or if its not a plot object, or if its the Plot object of the plot you are standing inside
+19:57 < bridge> <fokkonaut> (but plots dont use draggers currently, so i could add a dragger type check in front i think.
+19:57 < bridge> <fokkonaut> By that I mean even around spectator/networkclipped(defaultRange=true).
+19:57 < bridge> <fokkonaut> So that draggers just always get the entityEx and can match type to display square dragger
+19:57 < bridge> <fokkonaut> (assuming thats the issue)
+19:59 < bridge> <Assa> I don't think it's all, does the netmessage contain the lasertype?
+20:00 < bridge> <fokkonaut> I think so, otherwise the color wouldn't even show?
+20:00 < bridge> <Assa> the color is only client side?
+20:00 < bridge> <fokkonaut> I mean, checking Cyberdichters issue (ofar away or in pause) this sounds logical?
+20:00 < bridge> <fokkonaut> Yea, but server sends the type for different colors
+20:01 < bridge> <fokkonaut> from `draweditor` weapon tool for example
+20:01 < bridge> <Assa> yes
+20:02 < bridge> <fokkonaut> where is the subtype saved or do i have to Pass it from dragger snap
+20:02 < bridge> <fokkonaut> will look into it later
+20:02 < bridge> <fokkonaut> oh, can use pEntity->GetObjType == enttype_dragger
+20:07 < bridge> <fokkonaut> ----------
+20:07 < bridge> <fokkonaut> 
+20:07 < bridge> <fokkonaut> If anyone wants to translate F-DDrace, please [check these language files](https://github.com/fokkonaut/F-DDrace/tree/F-DDrace/datasrc/languages) !
+20:07 < bridge> <fokkonaut> 
+20:07 < bridge> <fokkonaut> Already done: english, german, russian, turkish, polish, french (might check for bugs?)
+20:07 < bridge> <fokkonaut> Missing: All other languages DDNet provides
+20:08 < bridge> <fokkonaut> claude.ai definitely helped filling basic strings, and can later be checked and corrected, seemed to be most efficient way
+20:25 < bridge> <xepicneon_55186> ⛩ #Free cheat ⛩ 
+20:25 < bridge> <xepicneon_55186> The best free cheat server for various games is a large catalog of private
+20:25 < bridge> <xepicneon_55186> High-quality cheats created by experienced developers
+20:25 < bridge> <xepicneon_55186> Hat will make your game more productive and comfortable. 🍀
+20:25 < bridge> <xepicneon_55186> Free private cheats for online games @here @everyone 💖
+20:25 < bridge> <xepicneon_55186> https://discord.gg/W4aaRYJ6B4
+20:52 < bridge> <ggshka1234> ⛩ #Free cheat ⛩ 
+20:52 < bridge> <ggshka1234> The best free cheat server for various games is a large catalog of private
+20:52 < bridge> <ggshka1234> High-quality cheats created by experienced developers
+20:52 < bridge> <ggshka1234> Hat will make your game more productive and comfortable. 🍀
+20:52 < bridge> <ggshka1234> Free private cheats for online games @here @everyone 💖
+20:52 < bridge> <ggshka1234> https://discord.gg/W4aaRYJ6B4
+20:53 < bridge> <milkeeycat> @Discord Mod
+22:05 < bridge> <bxutista7__25893> steam gift 50$ - [steamcommunity.com/gift/activation/id=69619205](https://u.to/fhc7Ig)
+22:05 < bridge> <uuniqu3> @blaiszephyr ^^^
+22:06 < bridge> <A Moderator> :pepeangryping:
+22:10 < bridge> <Ewan> your name is literally blue! why would that ever surprise you
+22:12 < bridge> <A Moderator> :dTeuMonkaW:  is this a Cendren styled discussion if i dare say i didn't sign up to be pinged as an individual and we have @ Discord Mod for that
+22:13 < bridge> <gorp_tw> ur name is moderator
+22:13 < bridge> <Ewan> i don't understand
+22:14 < bridge> <Ewan> it's not some flag of superiority in the chat & game lobbies you enter
+22:14 < bridge> <Ewan> nor is it an excuse to take action sometimes & not at others
+22:14 < bridge> <Ewan> ignore it, or do what you quite literally applied to do
+22:14 < bridge> <Ewan> volunteered, wrote an application for, and continued to roll along with even knowing the expectations
+22:14 < bridge> <A Moderator> https://tenor.com/view/bunny-huh-gif-5026055331259108593
+22:14 < bridge> <Ewan> the discord mod role
+22:14 < bridge> <Ewan> goes absolutely nowhere
+22:15 < bridge> <Ewan> and that was said last time you said to just ping that role
+22:15 < bridge> <Ewan> so either u ignored or didnt read
+22:15 < bridge> <A Moderator> have a great day Ewan ^^
+22:25 < bridge> <cellegenrih> Ahm, the Steam update wiped my entire map folder
+22:25 < bridge> <cellegenrih> And all my settings and configs
+22:25 < bridge> <gorp_tw> i was just going to say "this sounds exactly like a Cellegen kind of rant" and then he started typing
+22:25 < bridge> <gorp_tw> actually perfect timing
+22:25 < bridge> <cellegenrih> What patch just removes your configs?
+22:26 < bridge> <cellegenrih> I got all my stuff legit wiped with a patch
+22:27 < bridge> <gorp_tw> its happened to me before too
+22:27 < bridge> <gorp_tw> but not in a loooong time
+22:27 < bridge> <cellegenrih> Ah okay, it's not a DDNet issue, it's a Steam issue
+22:28 < bridge> <cellegenrih> Basically when I mod with Thunderstore, it uses a different Steam executable, thus different folders and configs
+22:28 < bridge> <gorp_tw> it has only happened with steam for me
+22:28 < bridge> <cellegenrih> I think when I modded R.E.P.O, that's how it happened
+22:29 < bridge> <cellegenrih> Also what's the convo above? :kek:
+22:30 < bridge> <gorp_tw> idk Ewan hit the vape too hard
+22:30 < bridge> <Ewan> no vape
+22:30 < bridge> <ryozuki> i got the weed vape
+22:30 < bridge> <Ewan> someone pinged mod for mod actions
+22:30 < bridge> <Ewan> the msg was deleted
+22:30 < bridge> <gorp_tw> my partner loves her THC vape
+22:30 < bridge> <Ewan> melon complained about having been pinged
+22:30 < bridge> <ryozuki> ill pass it to ewan
+22:30 < bridge> <Ewan> ty
+22:30 < bridge> <ryozuki> https://tenor.com/view/rip-bozo-gif-22294771
+22:30 < bridge> <Ewan> (it's empty)
+22:30 < bridge> <ryozuki> xd
+22:31 < bridge> <gorp_tw> they last so long its kinda pog
+22:31 < bridge> <Ewan> lmfao
+22:31 < bridge> <gorp_tw> well, unless you use it like 3 times a day
+22:31 < bridge> <gorp_tw> :justatest:
+22:31 < bridge> <Ewan> ig u have never been face to face with an addict
+22:31 < bridge> <cellegenrih> you guys have mod and discord mod, it's kinda clear what each does
+22:31 < bridge> <Ewan> the 1g carts would last be 2-3 days
+22:31 < bridge> <gorp_tw> not face to face, but I have met Emile
+22:32 < bridge> <Ewan> the 1g carts would last me 2-3 days
+22:32 < bridge> <Ewan> i can't be so down bad as to buy the 2g carts so i just stop for a little
+22:32 < bridge> <ryozuki> wats a cart
+22:32 < bridge> <Ewan> i actually know very little about that guy
+22:32 < bridge> <gorp_tw> cartridge
+22:32 < bridge> <cellegenrih> Did you miswrite my name?
+22:32 < bridge> <ryozuki> ah ok
+22:32 < bridge> <cellegenrih> :troll:
+22:32 < bridge> <Ewan> cartridge, or u probably have a disposable, but it's just an all in one operation
+22:32 < bridge> <ryozuki> the one i have is disposable
+22:32 < bridge> <Ewan> often u buy a battery & cartridge yea
+22:32 < bridge> <gorp_tw> cart is pretty sweet if the battery is reliable
+22:33 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/648031568756998158/1270732421930942659/6P4G4_O1GI095KVU3C9.gif
+22:33 < bridge> <ryozuki> ewan taking weed
+22:33 < bridge> <A Moderator> :Clueless:
+22:33 < bridge> <Ewan> pulsar dl 2.0 was cheap & reliable so far
+22:33 < bridge> <gorp_tw> how'
+22:33 < bridge> <gorp_tw> oops
+22:33 < bridge> <gorp_tw> how's access in CO? in WA it's everywhere
+22:33 < bridge> <gorp_tw> like every 10 streets or so in cities i swear
+22:34 < bridge> <gorp_tw> dispensaries i mean :justatest:
+22:34 < bridge> <ryozuki> oh wait
+22:34 < bridge> <ryozuki> thius is #developer
+22:34 < bridge> <ryozuki> omg
+22:34 < bridge> <ryozuki> i thought it was offtopic
+22:34 < bridge> <gorp_tw> get fuckin trolled
+22:34 < bridge> <ryozuki> we keep it real here
+22:34 < bridge> <gorp_tw> well tbh, #developer is better because it has the bridge
+22:35 < bridge> <ryozuki> are u murican?
+22:35 < bridge> <ryozuki> gdin?
+22:35 < bridge> <gorp_tw> im murican yes
+22:35 < bridge> <gorp_tw> i think i have been awfully unsubtle about who i am
+22:35 < bridge> <gorp_tw> maybe ryo needs to clear up his brain RAM a bit, too much coding
+22:35 < bridge> <ryozuki> i havent checked discord lately
+22:35 < bridge> <gorp_tw> xd
+22:35 < bridge> <gorp_tw> let me give you a hint
+22:36 < bridge> <ryozuki> i think there are few muricans, broken, gdin, maple (well canadian)
+22:36 < bridge> <ryozuki> oh
+22:36 < bridge> <ryozuki> are u noby
+22:36 < bridge> <gorp_tw> XD no
+22:36 < bridge> <ryozuki> xd
+22:36 < bridge> <ryozuki> noby has a drug dealer gf
+22:36 < bridge> <gorp_tw> i ragequit the server originally
+22:36 < bridge> <gorp_tw> :greenthing:
+22:36 < bridge> <ryozuki> hm idk
+22:36 < bridge> <ryozuki> hi leute is german
+22:36 < bridge> <gorp_tw> we talked a bit
+22:37 < bridge> <gorp_tw> wait maybe i can find this
+22:38 < bridge> <gorp_tw> :greenthing:
+22:38 < bridge> <gorp_tw> spot the linux username
+22:39 < bridge> <ryozuki> lynn
+22:39 < bridge> <ryozuki> the streamer?
+22:39 < bridge> <gorp_tw> 👋
+22:39 < bridge> <gorp_tw> yessir
+22:39 < bridge> <ryozuki> oh ye u were murican
+22:39 < bridge> <ryozuki> i guess nobody can escape ddnet
+22:39 < bridge> <gorp_tw> i am back and ready to ruin this community again
+22:39 < bridge> <gorp_tw> yep
+22:39 < bridge> <ryozuki> :owo:
+22:40 < bridge> <gorp_tw> i will eventually learn cpp but i guess i will stick to some easier goals for now xD
+22:40 < bridge> <gorp_tw> lots in the works
+22:40 < bridge> <ryozuki> xd
+22:40 < bridge> <ryozuki> learn rust
+22:40 < bridge> <gorp_tw> i mean, i did try
+22:40 < bridge> <ryozuki> we had a irl meet in germany some devs
+22:40 < bridge> <ryozuki> the future is rusty
+22:40 < bridge> <gorp_tw> its too brain
+22:40 < bridge> <gorp_tw> i wanna go to FOSDEM next time
+22:41 < bridge> <gorp_tw> i wanna hang out w hein & lear
+22:41 < bridge> <gorp_tw> lets get some beer
+22:41 < bridge> <ryozuki> i doubt with hein he doesnt drink but with learath ye
+22:41 < bridge> <ryozuki> and i do too hehe
+22:41 < bridge> <gorp_tw> XD
+22:41 < bridge> <gorp_tw> ah yeah forgot about this
+22:41 < bridge> <ryozuki> lea and me were the only ones who got some alc
+22:41 < bridge> <gorp_tw> idk why i remember him telling me that
+22:42 < bridge> <ryozuki> xD
+22:42 < bridge> <gorp_tw> murpi i cant imagine having some physical form
+22:42 < bridge> <gorp_tw> idk why exactly, hes just a sheep to me
+22:42 < bridge> <ryozuki> murpi wasnt there
+22:42 < bridge> <gorp_tw> i still have that magnet on my pc uwu
+22:43 < bridge> <gorp_tw> its been on my case for years
+22:43 < bridge> <ryozuki> i have it on my moms house
+22:43 < bridge> <ryozuki> iirc
+22:45 < bridge> <gorp_tw> i want tee plushie so bad
+22:45 < bridge> <gorp_tw> i guess i should not be lazy and try to make one with that blueprint
+22:47 < bridge> <gorp_tw> chat do i switch to dwm?
+22:48 < bridge> <ryozuki> i3
+22:48 < bridge> <ryozuki> anyway lets og to off topic
+23:19 < bridge> <jxsl13> learn Go
+23:19 < bridge> <jxsl13> 👀
+23:19 < bridge> <jxsl13> *shameless advertising*
+23:20 < bridge> <Solly (bun bun)> You sell go?
+23:22 < bridge> <gorp_tw> i like go actually
+23:22 < bridge> <gorp_tw> i read the reference
+23:22 < bridge> <gorp_tw> but never written any
+23:31 < bridge> <jxsl13> https://www.gopl.io/ that is a great introduction
+23:32 < bridge> <jxsl13> but slightly outdated, great none the less
+23:44 < bridge> <inv41idu53rn4m3> Learn Haskell and switch to xmonad (don't)
+23:48 < bridge> <gorp_tw> ew wtf
+23:53 < bridge> <inv41idu53rn4m3> Learn Emacs and switch to EXWM

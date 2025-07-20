@@ -1,0 +1,291 @@
+00:06 < bridge> <Ewan> that is an oddly named var
+00:10 < bridge> <jxsl13> squash merge exists 👀
+00:21 < bridge> <12944qwerty> it's in game/server/player.h line 177
+00:22 < bridge> <12944qwerty> it is from the clangd extension though. reloading that extension also resets the warning
+00:43 < bridge> <12944qwerty> what is a "player flag"?
+01:02 < bridge> <yrrr_> gcc -v gives me x86_64-w64-mingw32 as target in mingw64 and ucrt64 environments so i think it works with both
+01:05 < bridge> <yrrr_> using msys2 clangd should be fine, though i just use the vscode-clangd and it works, but adding -DCMAKE_EXPORT_COMPILE_COMMANDS=ON should help with finding headers and definitions
+01:08 < bridge> <Bunny (dum dum)> ```
+01:08 < bridge> <Bunny (dum dum)> (gdb) print MAP_BUGS
+01:08 < bridge> <Bunny (dum dum)> $8 = {{m_Map = {m_pName = 0x5555559c8fc7 "ammer_fire_delay", m_Size = 2022597, m_Sha256 = {data = '\000' <repeats 31 times>}}, m_BugFlags = 0}}
+01:08 < bridge> <Bunny (dum dum)> ```
+01:08 < bridge> <Bunny (dum dum)> guh i found another memory corruption issue
+01:08 < bridge> <12944qwerty> compile_commands hadn't worked for me when i used vscode-clangd
+01:08 < bridge> <Bunny (dum dum)> ```
+01:08 < bridge> <Bunny (dum dum)> (gdb) print MAP_BUGS
+01:08 < bridge> <Bunny (dum dum)> $8 = {{m_Map = {m_pName = 0x5555559c8fc7 "ammer_fire_delay", m_Size = 2022597, m_Sha256 = {data = '\000' <repeats 31 times>}}, m_BugFlags = 0}}
+01:08 < bridge> <Bunny (dum dum)> ```
+01:08 < bridge> <Bunny (dum dum)> ```cpp
+01:08 < bridge> <Bunny (dum dum)> {{"Binary", 2022597, s("65b410e197fd2298ec270e89a84b762f6739d1d18089529f8ef6cf2104d3d600")}, BugToFlag(BUG_GRENADE_DOUBLEEXPLOSION)}};
+01:08 < bridge> <Bunny (dum dum)> ```
+01:08 < bridge> <Bunny (dum dum)> guh i found another memory corruption issue
+01:08 < bridge> <Bunny (dum dum)> i just dont get it D:
+01:11 < bridge> <Bunny (dum dum)> ```
+01:11 < bridge> <Bunny (dum dum)> (gdb) print MAP_BUGS
+01:11 < bridge> <Bunny (dum dum)> $8 = {{m_Map = {m_pName = 0x5555559c8fc7 "ammer_fire_delay", m_Size = 2022597, m_Sha256 = {data = '\000' <repeats 31 times>}}, m_BugFlags = 0}}
+01:11 < bridge> <Bunny (dum dum)> ```
+01:11 < bridge> <Bunny (dum dum)> ```cpp
+01:11 < bridge> <Bunny (dum dum)> {{"Binary", 2022597, s("65b410e197fd2298ec270e89a84b762f6739d1d18089529f8ef6cf2104d3d600")}, BugToFlag(BUG_GRENADE_DOUBLEEXPLOSION)}};
+01:11 < bridge> <Bunny (dum dum)> ```
+01:11 < bridge> <Bunny (dum dum)> guh i found another memory corruption issue
+01:12 < bridge> <Bunny (dum dum)> i just dont get it D:
+01:12 < bridge> <Bunny (dum dum)> doesnt fail in libasan, which leads me to believe the compiler is making a memory destroying optimization
+01:14 < bridge> <Bunny (dum dum)> ```
+01:14 < bridge> <Bunny (dum dum)> (gdb) print MAP_BUGS
+01:14 < bridge> <Bunny (dum dum)> $8 = {{m_Map = {m_pName = 0x5555559c8fc7 "ammer_fire_delay", m_Size = 2022597, m_Sha256 = {data = '\000' <repeats 31 times>}}, m_BugFlags = 0}}
+01:14 < bridge> <Bunny (dum dum)> ```
+01:14 < bridge> <Bunny (dum dum)> ```cpp
+01:14 < bridge> <Bunny (dum dum)> {{"Binary", 2022597, s("65b410e197fd2298ec270e89a84b762f6739d1d18089529f8ef6cf2104d3d600")}, BugToFlag(BUG_GRENADE_DOUBLEEXPLOSION)}};
+01:14 < bridge> <Bunny (dum dum)> ```
+01:14 < bridge> <Bunny (dum dum)> guh i found another memory corruption issue
+01:14 < bridge> <Bunny (dum dum)> i just dont get it D:
+01:14 < bridge> <Bunny (dum dum)> doesnt fail in libasan, which leads me to believe the compiler is making a memory destroying optimization
+01:14 < bridge> <Bunny (dum dum)> i know now i can keep the bug by running it over and over again
+01:14 < bridge> <Bunny (dum dum)> hopefuly asan optimized build will help
+01:15 < bridge> <12944qwerty> anyway it's just clang-tidy that's messing up for me now, clangd is fine
+01:55 < bridge> <Bunny (dum dum)> ```
+01:55 < bridge> <Bunny (dum dum)> 0x559f2ce5b900 is located 32 bytes before global variable '.str.15' defined in '/home/solly/Code/ddnet/src/engine/client/backend/opengl/backend_opengl.cpp:157' (0x559f2ce5b920) of size 21
+01:55 < bridge> <Bunny (dum dum)> 0x559f2ce5b900 is located 10 bytes after global variable 'x-gnu/14.2.1/../../../../include/c++/14.2.1/bits/stl_vector.h' defined in 'uffer::SCommand_Update_Viewport'' (0x559f2ce5b8e0) of size 22
+01:55 < bridge> <Bunny (dum dum)> SUMMARY: hadow: global-buffer-overflow (/home/solly/mnt/icovps/Code/ddnet/build/builddebugoptimized/DDNet+0xa65325) (BuildId: a014d4f6fd6973787ff9e04da2a397225e9f090f) in strncat
+01:55 < bridge> <Bunny (dum dum)> Shadow bytes around the buggy address:
+01:55 < bridge> <Bunny (dum dum)>   0x559f2ce5b880: 00 00 00 00 00 00 00 00 07 f9 f9 f9 00 00 06 f9
+01:55 < bridge> <Bunny (dum dum)> =>0x559f2ce5b900:[f9]f9 f9 f9 00 00 05 f9 f9 f9 f9 f9 07 f9 f9 f9
+01:55 < bridge> <Bunny (dum dum)>   0x559f2ce5b980: 00 00 00 00 04 f9 f9 f9 f9 f9 f9 f9 00 00 00 00
+01:55 < bridge> <Bunny (dum dum)> ```
+01:55 < bridge> <Bunny (dum dum)> `dbg_msg("opengl", "ERROR: this call should not happen.");`
+03:59 < bridge> <kebscs> Entire commit to add 2 spacebars :poggers2:
+04:01 < bridge> <Bunny (dum dum)> you can do it too
+04:03 < bridge> <louis> don't hate on the life of the humble commit farmers
+04:03 < bridge> <louis> life is hard on the countryside
+04:33 < bridge> <Ewan> if you push immediately after you commit like most ppl then there's not a super convenient way to atomically amend the commit
+04:55 < bridge> <gorp_tw> yeppers
+04:56 < bridge> <Ewan> there is a way tho
+04:56 < bridge> <Ewan> and u can script it easily
+04:57 < bridge> <gorp_tw> i prefer more commits, it's easier to read intent
+04:57 < bridge> <gorp_tw> plus there's something funny about "oops" commits
+05:53 < bridge> <gorp_tw> i think i miss i3 sadly
+05:54 < bridge> <gorp_tw> i have very little time or motivation to sink into getting some widget to replace the tab behavior
+05:54 < bridge> <gorp_tw> with eww
+05:54 < bridge> <gorp_tw> ill use sway for now probably
+05:54 < bridge> <gorp_tw> if anyone has cool minimal dotfile stuff id love to see it
+05:55 < bridge> <gorp_tw> i hate gaps, transitions, animations, etc
+06:51 < bridge> <Ewan> eww is swag
+06:51 < bridge> <Ewan> hyprland is fine
+07:03 < bridge> <gorp_tw> i could try that too
+07:03 < bridge> <gorp_tw> idk why i just feel like its big and i dont need all of it
+08:22 < bridge> <melon> Idk 9 loc with 4 commits is just troll xD
+08:22 < bridge> <melon> 
+08:22 < bridge> <melon> Solly why not rebade and edit the PRS description at that point
+08:22 < bridge> <melon> Idk 9 loc with 4 commits is just troll xD
+08:22 < bridge> <melon> 
+08:22 < bridge> <melon> Solly why not rebase and edit the PRS description at that point
+08:45 < bridge> <milkeeycat> morning rebase enjoyers and others
+08:47 < bridge> <whxisme> how to do categories like on kog on my server?
+08:47 < bridge> <whxisme> https://cdn.discordapp.com/attachments/293493549758939136/1380800344719888535/image.png?ex=68453208&is=6843e088&hm=9d102796f2a24f7ee45662dd04e533a2f7c4f947b14805ea46a37f3e5b432758&
+08:47 < bridge> <whxisme> https://cdn.discordapp.com/attachments/293493549758939136/1380800345059622973/image.png?ex=68453208&is=6843e088&hm=dfced96e0e63fdbceee5f0024033923358fdbdb048724c333c81aa0d6a128cc4&
+09:14 < bridge> <Jupstar ✪> You can take a look here
+09:14 < bridge> <Jupstar ✪> https://github.com/ddnet/ddnet-maps
+09:14 < bridge> <Jupstar ✪> 
+09:14 < bridge> <Jupstar ✪> But i also never done that so you gotta understand by yourself
+09:16 < bridge> <whxisme> ty
+10:33 < bridge> <robyt3> I submitted it as false positive. The website was broken yesterday.
+10:50 < ws-client> <ChillerDragon> solly how much did std::clamp trol u?
+10:52 < bridge> <DDNet> 212.38.88.203:8303 is not a DDraceNetwork or Community server.
+10:52 < bridge> <_qey> @admins 212.38.88.203:8303 faking player count.
+10:52 < bridge> <_qey> Shows up as 99/400, literally 3 real players, the others are bots in specs.
+11:01 < bridge> <_qey> https://cdn.discordapp.com/attachments/293493549758939136/1380833999672311888/image0.jpg?ex=68455160&is=6843ffe0&hm=c99a8ac88beafe23f79a09d139ea22f3a644eb83ac7c3a07a9e56ecc9716d0dd&
+11:01 < bridge> <_qey> It’s amusing how it’s always the Turks doing this type of shit.
+11:10 < bridge> <_qey> @admins 212.38.88.203:8303 faking player count. One master-server ban, please.
+11:10 < bridge> <DDNet> 212.38.88.203:8303 is not a DDraceNetwork or Community server.
+11:25 < bridge> <Assa> I guess this struct has no purpose? https://github.com/search?q=repo%3Addnet%2Fddnet%20SQuadVisual&type=code
+12:24 < bridge> <kebscs> :brownbear:
+12:54 < bridge> <Assa> @kebscs how is this grenade aligned ingame without looking it up?
+12:54 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1380862452090277978/Unbenannt.PNG?ex=68456bdf&is=68441a5f&hm=d91321fdf87f50d4229d01ecfb1b9aa47939441b2734db563b5ca8e585cb101f&
+12:55 < bridge> <kebscs> Vertical, bottom is on the right
+12:56 < bridge> <Assa> yes, it's showing down. The image suggest, that it also could go left, do you want to deny that?
+12:57 < bridge> <kebscs> True I guess
+12:57 < bridge> <Assa> good 🙂
+12:57 < bridge> <kebscs> That's why there's in game entities in editor
+12:57 < bridge> <Assa> which you can toggle
+12:59 < bridge> <Assa> sorry for asking so mean 😄
+13:02 < bridge> <kebscs> Np, I see what you mean
+13:02 < bridge> <kebscs> Im not graphic designer, I didn't touch tile texture
+13:03 < bridge> <kebscs> And idk how good it'll look if it's not corner to corner
+13:04 < bridge> <Bunny (dum dum)> if its not corner to corner its much smaller
+13:05 < bridge> <Bunny (dum dum)> hmm
+13:10 < bridge> <Jupstar ✪> isn't this only interesting for the editor anyway?
+13:10 < bridge> <Jupstar ✪> the hitbox ingame didnt change anyway
+13:10 < bridge> <Jupstar ✪> in worst case add an arrow to the editor pickups xD
+13:12 < bridge> <_qey> @0xdeen @admins
+13:33 < bridge> <Assa> would be fine with that tbh
+13:39 < bridge> <zelamusinc> good?
+13:39 < bridge> <zelamusinc> https://cdn.discordapp.com/attachments/293493549758939136/1380873857250103357/image.png?ex=6845767e&is=684424fe&hm=3706a39ccae297781f1d6b268b00d571bf915439dee2085f5351aba4d08275d7&
+13:43 < bridge> <Jupstar ✪> has potential, but the obvious bugs destroy it
+13:47 < bridge> <robyt3> https://discord.com/channels/252358080522747904/1124657351442579486
+13:52 < bridge> <_qey> My efforts are limited to pinging admins twice here.
+13:53 < bridge> <_qey> I care about the community too little to create a ticket, but I tried my best.
+13:59 < bridge> <zelamusinc> which ones?
+14:02 < bridge> <zelamusinc> im not from uzbekistan btw i put it for testing
+14:02 < bridge> <zelamusinc> https://cdn.discordapp.com/attachments/293493549758939136/1380879472051486770/image.png?ex=68457bb9&is=68442a39&hm=32d900a1c4bc30cea02f1158db6d72c58b87b812bf733df150ae67231f95411b&
+14:02 < bridge> <zelamusinc> gonna add more details
+14:03 < bridge> <zelamusinc> https://cdn.discordapp.com/attachments/293493549758939136/1380879873513357404/image.png?ex=68457c19&is=68442a99&hm=d1659be8f55bc59962a8dd2440f633413131c0a833c48443e2a9d577ca0957cf&
+14:08 < bridge> <Jupstar ✪> player flags broken, player names are giantic
+14:09 < bridge> <zelamusinc> thanks,i need some feedbacks
+14:09 < bridge> <zelamusinc> didnt even notice the flags
+14:10 < bridge> <zelamusinc> thanks,i need thoze feedbacks
+14:10 < bridge> <zelamusinc> thanks,i need those feedbacks
+14:16 < bridge> <melon> @sollybunny wake up there's code to review!
+14:16 < bridge> <melon> :kekw:
+14:19 < bridge> <Bunny (dum dum)> OKAY
+14:20 < bridge> <melon> I SAID WAIT I'LL REBASE
+14:20 < bridge> <melon> 
+14:20 < bridge> <melon> anyway add me to maintainer rn or i'll sue
+14:20 < bridge> <melon> /s
+14:21 < bridge> <Bunny (dum dum)> i can squash :D
+14:21 < bridge> <melon> :o
+14:21 < bridge> <melon> d..damn
+14:21 < bridge> <Bunny (dum dum)> for some reason i couldnt fix the merge conflicts tho
+14:21 < bridge> <Bunny (dum dum)> apart from just.. taking ur code
+14:21 < bridge> <Bunny (dum dum)> but i wanted you to get the pr
+14:22 < bridge> <melon> ah i guess i dont allow maintainers to edit my code
+14:22 < bridge> <melon> ah i guess i dont allow maintainers to edit my code :Pepega:
+14:22 < bridge> <Bunny (dum dum)> theres currently a segfault in master
+14:22 < bridge> <Bunny (dum dum)> because im silly
+14:23 < bridge> <melon> bruh
+14:23 < bridge> <Bunny (dum dum)> i hopeu didnt run into it when testing
+14:23 < bridge> <Bunny (dum dum)> xd
+14:23 < bridge> <Bunny (dum dum)> not the like "magical disapearing segfault which only happens sometimes on startup when previous runs fail"
+14:23 < bridge> <Bunny (dum dum)> just like a plain i fucked up manipulating c strings
+14:23 < bridge> <Bunny (dum dum)> very fixable
+14:24 < bridge> <melon> i see XD
+14:27 < bridge> <Bunny (dum dum)> ```cpp
+14:27 < bridge> <Bunny (dum dum)> if(std::holds_alternative<ColorRGBA>(ColoredParts.m_vParts[0]))
+14:27 < bridge> <Bunny (dum dum)>     Line.m_CustomColor = std::get<ColorRGBA>(ColoredParts.m_vParts[0]);
+14:27 < bridge> <Bunny (dum dum)> ```
+14:27 < bridge> <Bunny (dum dum)> it was actually not the cstring
+14:27 < bridge> <Bunny (dum dum)> it was the i assumed that all echos would be more than 1 character long
+14:27 < bridge> <Bunny (dum dum)> it was the i assumed that all echos would be more than 0 character long
+14:57 < bridge> <melon> @sollybunny can i add potato button easeregg
+14:57 < bridge> <melon> that does nothing but render a potato in the middle of the screen
+14:57 < bridge> <Bunny (dum dum)> make it in one of the corners
+14:57 < bridge> <Bunny (dum dum)> then you can have it permanently enabled
+14:58 < bridge> <melon> got it
+14:58 < bridge> <Bunny (dum dum)> you get to decide where ... the easter egg is
+14:58 < bridge> <Bunny (dum dum)> apart from just f1 if you make it a config
+15:00 < bridge> <melon> siiick
+15:00 < bridge> <Assa> I only need approval from one maintainer or are there any rules I am unaware of?
+15:00 < bridge> <melon> some maintainers may approve but not merge when they want another maintainer to look over it aswell
+15:00 < bridge> <Assa> Man I wish I could ask questions properly ;_;
+15:00 < bridge> <melon> but yes, 1 approval is enough for it to be merged
+15:01 < bridge> <kebscs> ok merge <https://github.com/ddnet/ddnet/pull/10000>
+15:02 < bridge> <kebscs> client side change anyway
+15:04 < bridge> <Assa> I guess this one is too big, @ryozuki can you take a look at #10153 ? I already see other future stuff possibly interfering with it and I maybe want to do some followups on it, it's already so big 😦
+15:04 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10153
+15:09 < bridge> <melon> gosh @sollybunny how do you not loose your mind working with CUIRects
+15:09 < bridge> <Bunny (dum dum)> i did, when i redid tater settings
+15:09 < bridge> <Bunny (dum dum)> now i know... how to not
+15:10 < bridge> <Bunny (dum dum)> loose my mind
+15:10 < bridge> <melon> i can tell
+15:10 < bridge> <melon> tried adding a smol button in a smol corner in a smol page and i.. cant
+15:10 < bridge> <melon> XD
+15:10 < bridge> <Bunny (dum dum)> you can cut without setting
+15:11 < bridge> <Bunny (dum dum)> the output to anything
+15:12 < bridge> <Bunny (dum dum)> ```cpp
+15:12 < bridge> <Bunny (dum dum)> cuirect body = ...
+15:12 < bridge> <Bunny (dum dum)> cuirect totar
+15:12 < bridge> <Bunny (dum dum)> body.vsplittop(50.0f, nullptr, totar)
+15:12 < bridge> <Bunny (dum dum)> body.vsplitleft(50.0f, totar, nullptr);
+15:12 < bridge> <Bunny (dum dum)> ```
+15:12 < bridge> <Bunny (dum dum)> something like that
+15:12 < bridge> <Bunny (dum dum)> i forgot which way the args go around
+15:12 < bridge> <Bunny (dum dum)> i appreciate htop not requiring any dynamic memory, beacuse i use it to kill stuff when memory is maxed
+15:13 < bridge> <Bunny (dum dum)> idk how it does it
+15:13 < bridge> <Bunny (dum dum)> surely ncurses uses alot of dynamic memory
+15:13 < bridge> <Bunny (dum dum)> and loading processes means you have to resize
+15:13 < bridge> <Bunny (dum dum)> magic
+15:14 < ws-client> <ChillerDragon> @melon where stream
+15:14 < bridge> <milkeeycat> chillerdragon: where stream
+15:14 < bridge> <melon> chillerdragon: where stream
+15:14 < bridge> <Bunny (dum dum)> backfired
+15:15 < ws-client> <ChillerDragon> o shiet
+15:20 < bridge> <Assa> gave you a review
+15:47 < bridge> <patiga> @murpi Where do you maintain the testing discord bot? (I created a Python script that visualizes how much of the map size is taken up by which images/sounds and I'm thinking about adding it to the testing bot)
+15:51 < bridge> <murpi> At the moment, locally on my machine only, since I'm constantly making changes, improvements, and additions everywhere in random order 😄
+15:51 < bridge> <murpi> Give me like an hour and I'll upload the source to github
+15:52 < bridge> <Bunny (dum dum)> rename testing bot to "murpis blood sweat and tears"
+15:52 < bridge> <patiga> if it is too much work, I could also send you the relevant files
+15:52 < bridge> <murpi> fwiw the testing code is relatively unchanged, I just moved around stuff a bit to make it... more readable I guess
+16:25 < bridge> <12944qwerty> what is the different between playerflags and explayerflags
+16:37 < bridge> <kebscs> i guess explayerflag is ddnet thing
+16:37 < bridge> <kebscs> and the normal ones are from vanilla
+17:05 < bridge> <kebscs> @jsaurusrex whats the status on <https://github.com/ddnet/ddnet/pull/8372>? do you want to update it, or do you want me to revive it, fix conflicts, code style etc? I would add you as coauthor ofc
+17:08 < bridge> <jsaurusrex> if you wanna get it in go ahead, its a very simple pr, having a link to mine is fine if you're gonna open a new one
+17:08 < bridge> <jsaurusrex> at the time i was waiting for tater to change input handling with another pr, besides that its mostly feature ready already i think. Though i remember i was thinking if i should send all the inputs of every player or only those in view. It'd mean it would take a bit before there are no missing preinputs and the prediction is correct if somebody popped into view
+17:08 < bridge> <jsaurusrex> gl o/
+17:10 < bridge> <kebscs> alright ty
+17:24 < bridge> <Bunny (dum dum)> and <https://github.com/ddnet/ddnet/pull/8432>
+19:02 < bridge> <Assa> this one is scary
+19:35 < bridge> <kebscs> ^ this works so well even 300 ping playable
+19:35 < bridge> <kebscs> cl_prediction_margin 300
+19:36 < bridge> <kebscs> i mean cl_prediction_margin 300
+19:37 < bridge> <kebscs> i mean cl_prediction_margin 300, this simulates high ping
+19:54 < bridge> <Assa> what is a pre input, can you explain? is this like a buffered input?
+19:54 < bridge> <Assa> from the size 200 array I assume it's ringbuffered
+19:55 < bridge> <kebscs> if you have high ping, youre behind with whats happening on the server
+19:56 < bridge> <kebscs> so server sends you the preinput ahead of your tick, so you can properly predict
+19:56 < bridge> <Assa> what it currently doesn't? lol
+19:57 < bridge> <kebscs> read original pr, maybe it explains better
+19:57 < bridge> <Assa> but it does send you things that already happened and not predictions right?
+19:58 < bridge> <kebscs> yea, server doesnt predict
+19:58 < bridge> <Assa> ah it uses the client's prediction margin, interesting
+19:58 < bridge> <Assa> so if a player turns it off, he may look laggy for you
+20:00 < bridge> <kebscs> idk
+20:01 < bridge> <kebscs> dont have a high ping server to test every corner case
+20:01 < bridge> <kebscs> but it does work well
+20:05 < bridge> <Jupstar ✪> That is not the goal of this PR tho
+20:05 < bridge> <kebscs> no?
+20:06 < bridge> <kebscs> goal of anitping is to improve how it feels on high ping
+20:06 < bridge> <Jupstar ✪> The idea is, that a low ping player sarcrifises some of his ping so that a high ping player gets the inputs _earlier_ and that makes the ping seem lower for the high ping player
+20:06 < bridge> <Jupstar ✪> But it won't work on a china server
+20:06 < bridge> <Jupstar ✪> You cannot magically remove ping
+20:08 < bridge> <kebscs> ok
+20:09 < bridge> <melon> (Closes PR) would be wrong, rather "supersedes"
+20:09 < bridge> <kebscs> does this magic word also close the pr?
+20:11 < bridge> <Bunny (dum dum)> guyz i just lernt how to suggest on github
+20:11 < bridge> <Bunny (dum dum)> \`\`\`suggestion
+20:11 < bridge> <Bunny (dum dum)> change
+20:11 < bridge> <Bunny (dum dum)> \`\`\`
+20:11 < bridge> <Bunny (dum dum)> then u can press commit
+20:12 < bridge> <melon> i dont remember if any keyword can close a PR
+20:12 < bridge> <melon> 
+20:12 < bridge> <melon> issues have a lot of keywords, not sure about pr's
+20:12 < bridge> <Bunny (dum dum)> i thought it was the other way around
+20:12 < bridge> <kebscs> closes does close the pr thats why i put it there
+20:12 < bridge> <melon> does it? :o - cant find it in their docs
+20:13 < bridge> <kebscs> i guess
+20:13 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1380972842920706068/image.png?ex=6845d2ae&is=6844812e&hm=3adcc64aae956496e732106a9e2cc0011deace91ff6032d247b28d944673f25f&
+20:13 < bridge> <Bunny (dum dum)> https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/using-keywords-in-issues-and-pull-requests#linking-a-pull-request-to-an-issue
+20:13 < bridge> <Bunny (dum dum)> only resolve fix and close
+20:14 < bridge> <melon> they should add supersede in their tbh
+20:14 < bridge> <melon> they should add supersede in there tbh
+20:15 < bridge> <melon> and ig the docs are incomplete if the PR gets closed with these keywords
+20:15 < bridge> <melon> 
+20:15 < bridge> <melon> "automatically close the ISSUE when someone merges the Pull Request"
+20:15 < bridge> <melon> 
+20:15 < bridge> <melon> :angy: - nvm then
+21:53 < bridge> <12944qwerty> is there a way to choose the default weapon a tee has on kill
+22:43 < bridge> <gorp_tw> i think there's a setting for hammer?
+22:47 < bridge> <louis> u can enable remember weapon selection and then bind r kill; weapon 1 i believe
+22:47 < bridge> <louis> u can enable remember weapon selection and then bind r "kill; weapon 1" i believe
+22:51 < bridge> <12944qwerty> oh that's true
+22:52 < bridge> <12944qwerty> what's remember weapon selection
+23:36 < bridge> <jsaurusrex> thanks for explaining, i forgot to check if kebs properly understood what it does xD
+23:36 < bridge> <jsaurusrex> I still think it can help, whilst it doesn't do anything for 2 high ping players to improve the experience. As long as the client side prediction is accurate to the servers (no custom behavior / physics) it will feel like low ping between 2 low ping players with high prediction margins, because the communication time between the 2 is still the same if that makes sense. And for the high ping player it removes a bunch of ping. The more I remember 
+23:36 < bridge> <jsaurusrex> not sure how it would fit into the players experience though, it would have to be fully seamless for it to be enabeld i think
+23:45 < bridge> <kebscs> if both players are ~50 ping and margin 10, doesnt it predict by at least 1 tick, as original pr says?
+23:46 < bridge> <jsaurusrex> its been ages, im not sure ngl
+23:49 < bridge> <jsaurusrex> thanks for explaining, i forgot to check if kebs properly understood what it does xD
+23:49 < bridge> <jsaurusrex> I still think it can help, whilst it doesn't do anything for 2 high ping players to improve the experience. As long as the client side prediction is accurate to the servers (no custom behavior / physics) it will feel like low ping between 2 low ping players with high prediction margins, because the communication time between the 2 is still the same if that makes sense. And for the high ping player it removes a bunch of ping. The more I remember 
+23:49 < bridge> <jsaurusrex> not sure how it would fit into the players experience though, it would have to be fully seamless for it to be enabled i think
+23:49 < bridge> <jsaurusrex> edit: forgot but the high ping player would feel slightly laggier to the low ping players iirc, depending on the distribution
+23:56 < bridge> <pluskz> Is top5team broken in the last commit or is it just me?

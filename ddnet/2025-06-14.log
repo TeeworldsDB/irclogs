@@ -1,0 +1,152 @@
+00:40 < bridge> <zhn> server side code is not ready to get any good server side dummies
+00:41 < bridge> <louis> why not
+00:42 < bridge> <louis> hmm i didnt look too deep into it i guess
+00:47 < bridge> <totar> the server side code is generally not very modular at all every feature requires dodging landmines
+00:47 < bridge> <totar> the server side code is generally not very modular at all, every new feature requires dodging landmines
+00:49 < bridge> <louis> ya true
+00:49 < bridge> <louis> i saw like 10 different collision methods for various interactions lmao
+00:50 < bridge> <totar> would be really nice if we had any kind of testing framework
+00:50 < bridge> <totar> then stuff could start getting refactored
+00:51 < bridge> <louis> what would it look like
+00:51 < bridge> <totar> that's a good question, probably the most important question
+00:52 < bridge> <totar> it depends how high you want the testing to go
+00:52 < bridge> <louis> i could imagine fuzzing a bajillion map structures and entity layout and inputs and making sure they end up in the same state
+00:52 < bridge> <totar> you could go all the way to the packet level
+00:52 < bridge> <totar> have a set sequence of packets to process in 1 tick and then advance the server by 1 tick
+00:53 < bridge> <totar> check if the end result is the same
+00:54 < bridge> <totar> this could also work yeah
+00:54 < bridge> <totar> but you'd probably want some real sample data as well just to be safe
+00:54 < bridge> <totar> I doubt the fuzzer would explore a significant portion of the physics
+00:55 < bridge> <totar> also interactions with /save /practice /swap are hard to test
+00:57 < bridge> <totar> maybe if you also have random maps this isn't entirely true, since it would eventually generate setups for a lot of the physics just at the start of the map
+00:57 < bridge> <louis> ya true there are a lot of preset interactions i can think of that need some intricate setup
+00:59 < bridge> <louis> can't you detect how many code paths the setups take somehow
+00:59 < bridge> <louis> % coverage of server code
+01:00 < bridge> <totar> I suppose if teehistorian worked flawlessly then a perfect test would be to just replay all teehistorian data through the server
+01:00 < bridge> <totar> otherwise it would be nice to have a minimal library of physics interactions
+01:01 < bridge> <totar> I imagine probably but I don't know much about fuzzing. That sounds like it would be hard to setup but idk
+01:25 < bridge> <teero777> I have 7 test runs :3
+01:26 < bridge> <teero777> I still haven't gotten it to compile tater
+01:27 < bridge> <teero777> no idea what I'm doing wrong
+01:28 < bridge> <totar> idk
+01:28 < bridge> <totar> Try to isolate the issue
+01:29 < bridge> <teero777> It works if I make a dummy project and use it there
+01:29 < bridge> <teero777> there's probably some cmake line in ddnet refusing to cooperate with my stuff
+01:30 < bridge> <teero777> I will try more stuff tmrw gn.
+13:30 < bridge> <pilonpl> i found a way to reproduce the finish lag. how can i investigate which part of the code is taking a long time?
+13:31 < bridge> <pilonpl> i guess i can now create an issue on github
+13:31 < bridge> <pilonpl> and someone might figure it out
+13:36 < bridge> <fushi_gg> can we have an option to disable the new skin prediction, my brain can't handle that
+13:37 < bridge> <fushi_gg> I always end up hooking people who are close to freeze because my client mispredicted them getting frozen
+13:38 < bridge> <Jupstar ✪> Make a pr
+13:38 < bridge> <fushi_gg> can't code
+13:44 < bridge> <inv41idu53rn4m3> I feel like the best option here is having the ability to disable it for yourself and others separately, because client prediction for yourself is generally correct
+13:46 < bridge> <inv41idu53rn4m3> or maybe just tri-state: disabled, enabled, enabled only for self
+13:46 < bridge> <fushi_gg> I don't have much of a problem with it predicting the own tee getting frozen. However, I would also disable that if I could because you  react much quicker to a skin change even if it was a misprediction
+13:47 < bridge> <inv41idu53rn4m3> If you see yourself frozen idk how you're reacting at that point lol
+13:47 < bridge> <fushi_gg> yeah, you probably think it's over even tho it isn't and then you fail because of a misprediction
+13:48 < bridge> <fushi_gg> I personally haven't encountered the misprediction on my own tee but constantly on others
+13:48 < bridge> <fushi_gg> which is only natural, so I don't understand why it was implemented this way
+13:54 < bridge> <robyt3> @0xdeen Can you also regenerate https://ddnet.org/settingscommands/ with the new script?
+13:55 < bridge> <robyt3> Oh never mind, it's already part of this PR
+13:56 < bridge> <murpi> @robyt3 Has this been reported/fixed yet? https://discord.com/channels/252358080522747904/345588928482508801/1383413798718668860
+13:57 < bridge> <murpi> Same issue has been reported a couple of times now by others
+16:13 < bridge> <teero777> @totar i got it to work. i had forgotten an `extern "C"`
+16:23 < bridge> <teero777> I'm only getting about 3x performance tho for some reason
+16:24 < bridge> <teero777> I'm only getting about 4x performance tho for some reason
+16:25 < bridge> <teero777> Well at least in the benchmark module that is currently therr
+16:25 < bridge> <teero777> Well at least in the benchmark module that is currently there
+16:52 < bridge> <Solly (bun bun)> Tclient had this and it worked flawlessly
+16:52 < bridge> <Solly (bun bun)> Idk how ddnets is different
+16:56 < bridge> <Jupstar ✪> Add PR
+16:56 < bridge> <Solly (bun bun)> I eep now will later
+16:58 < bridge> <kebscs> Why does it mispredict?
+16:59 < bridge> <fushi_gg> as far as I am aware it always did but the skin change is just much more noticeable
+16:59 < bridge> <Jupstar ✪> The client cannot predict if the player changes movement
+17:00 < bridge> <teero777> just predict what the humans will do duh
+17:00 < bridge> <Jupstar ✪> so if you press A close to freeze then suddenly D, then the client might think it will hit the freeze
+17:00 < bridge> <fushi_gg> so while it is fine for predicting your own tee it struggles with others
+17:00 < bridge> <Jupstar ✪> Yes, perfect fng AI
+17:04 < bridge> <kebscs> Hmm I guess the skin prediction can be on just for local player
+17:05 < bridge> <inv41idu53rn4m3> prediction *can't* work flawlessly because another tee might hook you
+17:06 < bridge> <kebscs> I never noticed other players being frozen wrongly tho
+17:07 < bridge> <inv41idu53rn4m3> because their skin change is only delayed by your ping, which isn't much
+17:07 < bridge> <inv41idu53rn4m3> I don't see it mattering much outside gores and maybe *some* hh parts
+17:08 < bridge> <inv41idu53rn4m3> drag is too flowy for it to be super noticeable
+17:08 < bridge> <fushi_gg> just go to a server where you have higher ping to see it easily
+17:11 < bridge> <Jupstar ✪> Please make option :c
+17:11 < bridge> <Jupstar ✪> 
+17:11 < bridge> <Jupstar ✪> I really like the snappier feeling now
+17:11 < bridge> <Jupstar ✪> Even for other tees
+17:18 < bridge> <Jupstar ✪> Lel
+17:18 < bridge> <Jupstar ✪> Secrets
+17:21 < bridge> <TsFreeeeeeeeeddie> what even happened. someone have || in their name?
+17:21 < bridge> <TsFreeeeeeeeeddie> oh it's removed ones
+17:21 < bridge> <TsFreeeeeeeeeddie> but why is CHN ones exposed
+17:21 < bridge> <TsFreeeeeeeeeddie> Oh, missed end tags
+17:21 < bridge> <TsFreeeeeeeeeddie> i'm dumb lol
+17:33 < bridge> <kebscs> Then I don't mind, someone can make a pr if it bothers them
+17:36 < bridge> <fushi_gg> I can make a pr reverting your change
+17:36 < bridge> <Jupstar ✪> :lol:
+17:36 < bridge> <fushi_gg> best I can offer
+17:36 < bridge> <Jupstar ✪> Solly already said to make a pr
+17:36 < bridge> <Jupstar ✪> after sleep
+17:37 < bridge> <fushi_gg> Solly OP
+17:38 < bridge> <0xdeen> @learath2 Thanks! ^
+17:38 < bridge> <learath2> LOL, I was just kidding @tsfreddie 😄
+17:38 < bridge> <TsFreeeeeeeeeddie> <a:partyblob:852945250334277703>
+17:38 < bridge> <blaiszephyr> <a:blobDance:799350572099829811>
+18:20 < bridge> <chillerdragon> lerato donated 4 euro!!! Wowo rich
+18:26 < bridge> <Jupstar ✪> dont trust this imposter
+18:29 < bridge> <chillerdragon> fakemoney
+18:33 < bridge> <fushi_gg> that was my lunch money
+18:33 < bridge> <fushi_gg> 😭
+18:34 < bridge> <chillerdragon> 4 Euro lunch money. Inflation moment. Back in the days I got 2 mark
+18:42 < bridge> <Assa> oh i wish we could bring my quad render update into 19.3, but I move to fast right? :/ earliest fix date for me is tomorrow, since I needed to buy a new car today
+18:44 < bridge> <Jupstar ✪> Then we have smth for next release 😉
+18:44 < bridge> <Jupstar ✪> No need to rush features if they are not bug fixes
+18:44 < bridge> <Jupstar ✪> Ppl that want newest features can use nightly
+18:45 < bridge> <chillerdragon> Cring who doesn’t merge master before gaming
+18:46 < bridge> <Jupstar ✪> I merge main
+18:46 < bridge> <Jupstar ✪> You slaveryphile 🤓
+18:46 < bridge> <chillerdragon> I will not comment. To avoid another 3 week ban.
+18:46 < bridge> <Jupstar ✪> xDDDDDD
+18:46 < bridge> <Jupstar ✪> heinrich isn't home
+18:46 < bridge> <chillerdragon> Tru
+18:46 < bridge> <Assa> but moar performance D:
+18:48 < bridge> <vahemaaa> chillerbot-ux one step ahead
+18:48 < bridge> <vahemaaa> https://cdn.discordapp.com/attachments/293493549758939136/1383488269961920532/image.png?ex=684ef95b&is=684da7db&hm=e82a87a9e1a3577c92d2ef243dfa85a8ee521bb95edb92aa7a4eeba5329fa070&
+18:48 < bridge> <chillerdragon> Fr
+18:49 < bridge> <Jupstar ✪> @vahemaaa we all know you are chillerdragons discord account
+18:49 < bridge> <chillerdragon> no proof
+18:50 < bridge> <chillerdragon> Oops wrong account
+18:52 < bridge> <vahemaaa> no proof
+18:54 < bridge> <Assa> @jupeyy_keks the gQuadOffset is also unused in the vulkan shader, but this isn't code I did / edited
+18:54 < bridge> <Assa> * if PUSH is defined
+18:55 < bridge> <Assa> should I also fix this in my PR?
+18:56 < bridge> <Assa> but this might have to wait until tomorrow ⏲️
+18:58 < bridge> <Jupstar ✪> Yeah it's also useless there, if you want sure.
+18:59 < bridge> <Jupstar ✪> In the vk fragment shader for quads additionally the whole `uniform SPosBO` thing is unused
+18:59 < bridge> <Jupstar ✪> can be removed too
+19:00 < bridge> <Jupstar ✪> In the vk __fragment__ shader for quads additionally the whole `uniform SPosBO` thing is unused
+19:22 < bridge> <cellegenrih> me when:
+19:23 < bridge> <moluc> cheater
+19:23 < bridge> <moluc> :f3:
+19:24 < bridge> <cellegenrih> real
+20:10 < bridge> <Jupstar ✪> Oh I missed some vulkan drama, we are affected too:
+20:10 < bridge> <Jupstar ✪> https://github.com/Overv/VulkanTutorial/issues/407
+20:10 < bridge> <Jupstar ✪> https://github.com/KhronosGroup/Vulkan-Tools/issues/1106
+20:10 < bridge> <Jupstar ✪> Even khronos tools are affected 😬
+20:55 < bridge> <zhn> so much open refactor/cleanup prs
+20:55 < bridge> <zhn> they're about to rot fast
+21:31 < bridge> <vahemaaa> hello zhn
+21:37 < bridge> <0mernok0> Why is the debit of such a moronic menu graphics that it is incomprehensible for HSPLITTOP VSPLTRIGHT
+21:39 < bridge> <0mernok0> Why is the ddnet of such a moronic menu graphics that it is incomprehensible for HSPLITTOP VSPLTRIGHT
+21:40 < bridge> <Jupstar ✪> Wat?
+21:40 < bridge> <Jupstar ✪> Maybe try a different translator
+21:43 < bridge> <Jupstar ✪> https://github.com/KhronosGroup/Vulkan-ValidationLayers/issues/9802
+21:43 < bridge> <Jupstar ✪> 
+21:43 < bridge> <Jupstar ✪> > Assuming my understanding here is correct, it seems that the current behavior even of Dota/CS2 is invalid and should be caught by validation, but it isn't. It would be good if validation could catch this, given how tricky it is.
+21:43 < bridge> <Jupstar ✪> Source engine is affected too
+23:26 < bridge> <weice_> 50$ steam - [steamcommunity.com/gift/activation=BurvDZWwmL](https://e.vg/BurvDZWwmL) @everyone
+23:35 < bridge> <chairn> https://github.com/AasishPokhrel/shit/issues/1

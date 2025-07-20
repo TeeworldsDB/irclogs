@@ -1,0 +1,235 @@
+08:35 < bridge> <Jupstar ✪> Who even fast fires here xd
+08:36 < bridge> <Assa> gumo ^.^
+08:38 < bridge> <Assa> I am currently working on priority jobs, but I don't know how I should write the unit test for it:
+08:38 < bridge> <Assa> ```
+08:38 < bridge> <Assa> TEST_F(Jobs, PriorityOvertake)
+08:38 < bridge> <Assa> {
+08:38 < bridge> <Assa>     SEMAPHORE sphore;
+08:38 < bridge> <Assa>     sphore_init(&sphore);
+08:38 < bridge> <Assa>     int Start = 7;
+08:38 < bridge> <Assa>     auto pJob = std::make_shared<CJob>([&] { 
+08:38 < bridge> <Assa>         Start += 3;
+08:38 < bridge> <Assa>     });
+08:38 < bridge> <Assa>     auto pPriorityJob = std::make_shared<CPriorityJob>([&] {
+08:38 < bridge> <Assa>         Start *= 7;
+08:38 < bridge> <Assa>     });
+08:38 < bridge> <Assa> 
+08:38 < bridge> <Assa>     Add(pJob);
+08:38 < bridge> <Assa>     Add(pPriorityJob);
+08:38 < bridge> <Assa>     EXPECT_EQ(pJob->State(), IJob::STATE_QUEUED);
+08:38 < bridge> <Assa>     EXPECT_EQ(pPriorityJob->State(), IJob::STATE_QUEUED);
+08:38 < bridge> <Assa>     sphore_signal(&sphore);
+08:38 < bridge> <Assa>     sphore_wait(&sphore);
+08:38 < bridge> <Assa>     sphore_destroy(&sphore);
+08:38 < bridge> <Assa>     EXPECT_EQ(pJob->State(), IJob::STATE_DONE);
+08:38 < bridge> <Assa>     EXPECT_EQ(pPriorityJob->State(), IJob::STATE_DONE);
+08:38 < bridge> <Assa>     EXPECT_EQ(pJob->State(), IJob::STATE_DONE);
+08:38 < bridge> <Assa>     EXPECT_EQ(Start, 52);
+08:38 < bridge> <Assa> }
+08:38 < bridge> <Assa> ```
+08:38 < bridge> <Assa> If I just had 1 thread, I could proof that the sequence in the jobqueue is right, but I don't have access to the queue directly. This code does not work like this, I guess I don't understand semaphores?
+08:51 < bridge> <Assa> There was also a solution with
+08:51 < bridge> <Assa> ```
+08:51 < bridge> <Assa>     while(pJob->State() != IJob::STATE_DONE)
+08:51 < bridge> <Assa>     {
+08:51 < bridge> <Assa>         // yay, busy loop...
+08:51 < bridge> <Assa>         thread_yield();
+08:51 < bridge> <Assa>     }
+08:51 < bridge> <Assa> ```
+08:51 < bridge> <Assa> 
+08:51 < bridge> <Assa> Which passed the test, but! I don't know if this is luck depended on which threads finishes first or if they are actually executed in sequence
+08:54 < bridge> <Assa> thread_yield just does a sleep(0) on windows, now I am not even sure if this would be OS independend
+08:56 < bridge> <Jupstar ✪> Why do we need priority tasks ?
+08:56 < bridge> <Assa> I knew this question would come
+08:56 < bridge> <Jupstar ✪> Better invest your time into async
+08:57 < bridge> <Assa> do we have any async functionallity?
+08:57 < bridge> <Jupstar ✪> No, and we also don't have any chance to pause a running task
+08:58 < bridge> <Jupstar ✪> If u really need tasks run directly, simply push them to front
+08:59 < bridge> <Jupstar ✪> But a few running http tasks can still block the whole runtime
+09:01 < bridge> <Assa> what my priority implementation currently does is putting jobs to the top of the task queue (only behind other priority tasks). It's not like critical tasks, that should be direkt, but jobs that should not wait too long
+09:03 < bridge> <Assa> do they make everything stuck or do they stop eventually (maybe with a timeout?)
+09:13 < bridge> <Assa> I guess I can use std::async easily
+09:13 < bridge> <Jupstar ✪> They have a timeout. Airways depends on internet connection
+09:14 < bridge> <Jupstar ✪> Not really
+09:14 < bridge> <Jupstar ✪> U need async io
+09:14 < bridge> <learath2> Can it? I think the current curl_multi implementation directs all http tasks to one thread. Theh are no longer "real jobs"
+09:15 < bridge> <learath2> Sounds like you want a priority queue implemented with a heap
+09:15 < bridge> <Jupstar ✪> Why not. What the curl backend does is unrelated to how our code waits for it to finish
+09:16 < bridge> <Assa> why I see where this comes from, this would actually be overkill 😄
+09:16 < bridge> <learath2> I thought you were worried about all the workers being busy with http jobs. But in anycase we usually never hold up the main thread waiting for a job to end
+09:16 < bridge> <learath2> Especially a http one
+09:17 < bridge> <Jupstar ✪> I'm worried about exactly that
+09:17 < bridge> <Jupstar ✪> Not a main thread but priority tasks
+09:17 < bridge> <Jupstar ✪> Which is why i don't think we need logic for it
+09:17 < bridge> <learath2> The http jobs aren't real jobs. So ignore them. They don't really use real workers
+09:17 < bridge> <Jupstar ✪> It didn't solve the underlaying issue
+09:17 < bridge> <learath2> But yes other jobs could take all the workers
+09:18 < bridge> <Jupstar ✪> How so?
+09:18 < bridge> <Jupstar ✪> Do they repush themself to the job queue?
+09:18 < bridge> <Assa> I don't get what you mean, I call std::async and get a future object, and check the future object regularly
+09:19 < bridge> <learath2> They just are a completely different thing. They get routed to a single http handling thread
+09:19 < bridge> <learath2> I don't think they even conform to the IJob interface anymore
+09:19 < bridge> <Jupstar ✪> So you want to repush the task?
+09:19 < bridge> <Jupstar ✪> That would surprise me
+09:20 < bridge> <learath2> I wrote it, so it would surprise me if it were otherwise
+09:20 < bridge> <Jupstar ✪> Afaik the job runtime handles job after job until finished
+09:20 < bridge> <Jupstar ✪> Not green thread, nothing
+09:20 < bridge> <Jupstar ✪> Just in parallel
+09:21 < bridge> <Assa> only if it failed?
+09:21 < bridge> <Jupstar ✪> What interface to they use then? How does a skin job first download and then process being one job
+09:21 < bridge> <learath2> https://github.com/ddnet/ddnet/blob/master/src%2Fengine%2Fshared%2Fhttp.cpp#L798
+09:21 < bridge> <learath2> 
+09:21 < bridge> <learath2> This is what handles http requests. It has its own queue and stuff. Nothing to do with CJobs and CJobPool
+09:21 < bridge> <Assa> maybe if it failed?
+09:22 < bridge> <Jupstar ✪> No, how do you wait for async to complete without blocking the job queue
+09:22 < bridge> <Jupstar ✪> You cannot just check it from time to time. That would still block a thread in the pool
+09:22 < bridge> <Jupstar ✪> U either repush or some other thing
+09:23 < bridge> <Jupstar ✪> OK but i assume u still often use them combined with jobs?
+09:23 < bridge> <Assa> okay what happens with the job queue if I use std::async outside of it? Shouldn't it just make it's own thread?
+09:23 < bridge> <Jupstar ✪> To process whatever you downloaded async
+09:24 < bridge> <learath2> You usually start a job after you finish a request. If the task is slow. I don't think we busy wait for a http request in a job ever
+09:25 < bridge> <learath2> Btw implementing an async runtime, not very easy. I'd suggest you just don't do that. That was my plan to replace the CJobPool aswell, very painful
+09:27 < bridge> <Jupstar ✪> Oh, ok
+09:28 < bridge> <learath2> If you do really want to mess with it, folly is a great thing to get inspiration from
+09:28 < bridge> <Jupstar ✪> But it would defs make it easier to deal with tasks.. Instead of first doing http then start job, you could cleanly do it on one task.
+09:28 < bridge> <Jupstar ✪> 
+09:28 < bridge> <Jupstar ✪> But yeah dunno in cpp
+09:28 < bridge> <Jupstar ✪> Somehow it's always hard in cpp
+09:29 < bridge> <learath2> https://github.com/facebook/folly/blob/main/folly%2Ffibers%2FREADME.md
+09:30 < bridge> <learath2> I've also thought about just using folly btw. Not a horrible idea, quite a well designed library
+09:32 < bridge> <Jupstar ✪> But anyway, as for priority tasks i don't see any benefit pushing them behind other priority tasks instead of front. Most likely they already stated before you can push a second one, and so or so you probably want all your priority tasks to be finished before continuing whatever you are doing anyway
+09:33 < bridge> <Jupstar ✪> Besides that, initializing map layers in parallel should be done really careful. The review is not easy if you don't have a good design, since multi threading is always hard
+09:34 < bridge> <Assa> I don't know why a thread lock on the gpu upload should not be enough
+09:34 < bridge> <Jupstar ✪> Best would be to not have mutable references between two layers
+09:34 < bridge> <Jupstar ✪> Tasks
+09:34 < bridge> <Jupstar ✪> Because pushing a command might flush the graphics queue
+09:35 < bridge> <Jupstar ✪> You might end up calling it from a different thread
+09:35 < bridge> <Jupstar ✪> I'm really not convinced to call graphics calls from a job task
+09:36 < bridge> <Jupstar ✪> That adds like infinite complexity
+09:36 < bridge> <learath2> Is it even allowed?
+09:36 < bridge> <Jupstar ✪> You are allowed to shoot yourself
+09:36 < bridge> <Assa> to be clear, I only want to do it for initialization, not rendering itself
+09:37 < bridge> <Assa> goal is, to make the initalization less blocking, so I can introduce render layers smartly into the editor
+09:38 < bridge> <Jupstar ✪> If you want the initializing to be sync, use a scoped threadpool or smth. But still I'd not call graphics calls from them
+09:38 < bridge> <learath2> No like is it even defined behaviour? I thought both vk and gl required all calls to happen from one thread (on macos gl wanted everything on the main thread even for a while)
+09:38 < bridge> <Jupstar ✪> Prepare the buffers and upload all at once
+09:38 < bridge> <Jupstar ✪> In main thread
+09:38 < bridge> <Assa> I know, you are not really fond of it, I just want to test if it _can_ be done
+09:38 < bridge> <Jupstar ✪> You can try what you want, but please use tsan and do some edge cases like filled up cmd buffers
+09:39 < bridge> <Jupstar ✪> I don't want to review btw
+09:39 < bridge> <Jupstar ✪> That's like a self kill
+09:39 < bridge> <learath2> Do we even have tsan annotations in enough places for it to work? 😄
+09:39 < bridge> <Assa> why do I do this so complicated, I could move the whole thing just in the job queue on the editor side
+09:39 < bridge> <Jupstar ✪> We don't need. Tsan just works
+09:40 < bridge> <learath2> I distinctly remember it just not working with our lock wrappers and some other issue with smart pointers
+09:40 < bridge> <Jupstar ✪> Might need
+09:40 < bridge> <Jupstar ✪> 
+09:40 < bridge> <Jupstar ✪> TSAN_OPTIONS=ignore_noninstrumented_modules=1
+09:41 < bridge> <Jupstar ✪> Idc i used it few times on ddnet and it found many issues. But i can't speak of the whole code base.
+09:41 < bridge> <Jupstar ✪> 
+09:41 < bridge> <Jupstar ✪> At least it had no false positives, of you mean that
+09:42 < bridge> <Jupstar ✪> Idk*
+09:42 < bridge> <learath2> Cool, nice to hear it does just work
+09:42 < bridge> <learath2> I wanted to use it while doing the http thing, but it just kept screaming at me not wanting to compile
+09:43 < bridge> <Jupstar ✪> Oh weird. Used clang?
+09:43 < bridge> <Jupstar ✪> I think i tested few weeks ago on taters client
+09:44 < bridge> <learath2> I don't remember but I likely did. It's been years now
+09:44 < bridge> <0xdeen> Thanks @01000111g !
+09:45 < bridge> <learath2> If it does just work I might run the http thing thru it. I did do my best to make it race-free. But who knows, the eye is not that great at finding those
+09:58 < bridge> <ryozuki> rust ftw
+11:28 < bridge> <Assa> idk what's happening again, getting this internal comipler errors
+11:29 < bridge> <Assa> maybe I should use a compiler and not a comipler 🤔
+12:23 < bridge> <patiga> @jupeyy_keks is it possible that most of the time rendering my quads is spent in rasterization? hear me out: I switched out the fragment shader with a simple return of a color, with negligible performance improvement (below 5% in my measurements). Then I reset it and move the quads offscreen, so that they get clipped -> nearly 80% improvement
+12:23 < bridge> <patiga> 
+12:23 < bridge> <patiga> Like what? does this really mean that 5% is spent in the fragment shader, 78% in rasterization, 17% combined in vertex shader + cpu stuff?
+12:27 < bridge> <patiga> all the quads are the same, onscreen, and cover 1% of the screen
+12:35 < bridge> <patiga> is that unreasonable test data? what the hell am I doing wrong o.o
+12:54 < bridge> <kebscs> anyone could help why rust build fails on mingw <https://github.com/KebsCS/ddnet/actions/runs/16167086728/job/45631432472>
+12:55 < bridge> <kebscs> = note: Warning: corrupt .drectve at end of def file␍
+12:55 < bridge> <kebscs>           Warning: .drectve `-exclude-symbols:_ZN4core10intrinsics19copy_nonoverlapping18precondition_check17h553e1dbcd4616456E ' unrecognized␍
+13:07 < bridge> <Jupstar ✪> Sure it's possible, but I'd still say that so few quads should not result it that low performance
+13:08 < bridge> <Jupstar ✪> Like i dunno how u push your vertices. Do you batch them, do you use instances?
+13:08 < bridge> <patiga> I batch them, no instances, indexed
+13:09 < bridge> <Jupstar ✪> That should be rather fast then
+13:10 < bridge> <Jupstar ✪> For reference. Zooming out on a map 4000x1000 (e.g. arctic frost) on ddnet will also render around 8 million triangles
+13:10 < bridge> <patiga> I batch them, (no instances), indexed
+13:10 < bridge> <Jupstar ✪> Yes
+13:11 < bridge> <Jupstar ✪> Ddnet uses no instance
+13:11 < bridge> <Jupstar ✪> Indiced draw
+13:11 < bridge> <Jupstar ✪> On a buffer
+13:11 < bridge> <patiga> wanted to clarify that I do index, that no was ambigious ^^
+13:11 < bridge> <patiga> yea
+13:11 < bridge> <patiga> same :/
+13:12 < bridge> <Jupstar ✪> Ddnet is even worse, since it does multiple draw calls actually to render the same buffer
+13:12 < bridge> <Jupstar ✪> Do u only user vertex and fragment shader?
+13:12 < bridge> <Jupstar ✪> Use
+13:13 < bridge> <patiga> yep
+13:13 < bridge> <Jupstar ✪> And does render doc say in the performance test?
+13:13 < bridge> <Jupstar ✪> What*
+13:13 < bridge> <patiga> haven't checked with renderdoc yet, what kind of metrics does it provide?
+13:14 < bridge> <Jupstar ✪> How long in ms a draw call took on the gpu
+13:15 < bridge> <patiga> maybe the 1% screen coverage is too unrealistic. 10% of width and 10% of height might be too much. that could explain why the rasterization takes so much time
+13:16 < bridge> <patiga> for some reason today I get different benchmark results on the 1060 3GB I access via ssh
+13:17 < bridge> <patiga> now it says around ~35 million sprites per second
+13:17 < bridge> <kollpotato> sounds impressive, but what exactly is the sprite?
+13:17 < bridge> <kollpotato> an individual tile?
+13:17 < bridge> <patiga> 1% of the screen
+13:17 < bridge> <Jupstar ✪> That already sounds better
+13:18 < bridge> <patiga> so ~350,000 times the entire screen if added together
+13:18 < bridge> <kollpotato> oh
+13:18 < bridge> <Jupstar ✪> Do you update the render buffer every frame?
+13:19 < bridge> <patiga> yes
+13:19 < bridge> <patiga> gonna double-check tho
+13:19 < bridge> <Jupstar ✪> That still sounds most expansive
+13:19 < bridge> <Jupstar ✪> Do you update it or recreate it?
+13:20 < bridge> <patiga> difficult question: I update it, but afaik wgpu uses ring buffers
+13:20 < bridge> <Jupstar ✪> By default for all buffers?
+13:21 < bridge> <Jupstar ✪> That still sounds most expensive
+13:22 < bridge> <patiga> > On a high level, what write_buffer does is finding staging space internally, filling it, and issuing a copy_buffer_to_buffer on the queue
+13:22 < bridge> <patiga> https://github.com/gpuweb/gpuweb/discussions/1428
+13:22 < bridge> <patiga> from 2021
+13:23 < bridge> <Jupstar ✪> Anyway. To me this is still very sus. I'd still question your benchmarking. I'd look in renderdoc and nvtop if it's really the gpu bottlenecking
+13:23 < bridge> <Jupstar ✪> That is only for the staging buffer tho ig
+13:23 < bridge> <patiga> tru
+13:23 < bridge> <Jupstar ✪> The gpu buffer would still make sure the previous frame finished rendering
+13:24 < bridge> <patiga> hm yea, would probably not make sense otherwise, due to bind groups etc
+13:25 < bridge> <aegisub> yaml has 22 ways to write true or false
+13:27 < bridge> <aegisub> the other week I saw some marvel show use hackertyper output verbatim on a computer screen
+13:33 < bridge> <chillerdragon> Wdym who fast fires? I do! I instantly make two kills once I unfreeze. And there is no reload timer because I did not miss
+13:33 < bridge> <Jupstar ✪> Ah yeah
+13:34 < bridge> <chillerdragon> Epic?
+13:45 < bridge> <Jupstar ✪> I dunno
+13:46 < bridge> <Jupstar ✪> For solo fng maybe. In team it's less tactical maybe
+13:47 < bridge> <Jupstar ✪> With many tees u can probs just hold xd
+14:11 < bridge> <chillerdragon> You can’t hold. Because you have to hit. And hitting frozen tees does not count as hit. In a team you also sometimes get into 1v5 situarions
+18:19 < bridge> <Assa> @jupeyy_keks a CRenderLayer is technically not a component, but a inherits the component interface. If I'd want to move it in order to use it for the editor, what would be the best place? I guess engine/gfx/?
+18:26 < bridge> <Jupstar ✪> Yeah dunno, if map format is engine too
+18:27 < bridge> <Jupstar ✪> I'm not entirely convinced by our project structure anyway, just ask robyte xd
+18:48 < bridge> <robyt3> Maybe a new `src/game/map` folder for the map rendering and logic. Maps shouldn't really be in the engine I think. I have a WIP branch to move `IMap` from the engine to the game side because the engine should not be aware of the map items but only of the datafile format in general. The editor on the other hand should not be a special engine component but ideally only a gameclient component, which would allow using the console and F-keys for binds to
+18:48 < bridge> <robyt3> Maybe a new `src/game/map` folder for the map rendering and logic. Maps shouldn't really be in the engine I think. I have a WIP branch to move `IMap` from the engine to the game side because the engine should not be aware of the map items but only of the datafile format in general. The editor on the other hand should not be a special engine component but ideally only a gameclient component, which would allow the console and F-keys for binds to be us
+20:05 < bridge> <dogelake> 50$ steam - [steamcommunity.com/gift/activation=hQFkagmaQA](https://1url.cz/@hQFkagmaQA) @everyone
+20:13 < bridge> <ryozuki> https://plf.inf.ethz.ch/research/pldi25-tree-borrows.html
+20:13 < bridge> <ryozuki> > our evaluation on the 30 000 most widely used Rust crates shows that Tree Borrows rejects 54% fewer test cases than Stacked Borrows does. Additionally, we prove (in Rocq) that it retains most of the Stacked Borrows optimizati
+20:13 < bridge> <ryozuki> cc @learath2 @jupeyy_keks
+20:13 < bridge> <ryozuki> > our evaluation on the 30 000 most widely used Rust crates shows that Tree Borrows rejects 54% fewer test cases than Stacked Borrows does. Additionally, we prove (in Rocq) that it retains most of the Stacked Borrows optimizations and also enables important new ones, notably read-read reorderings.
+20:14 < bridge> <learath2> Well my question is always how about the performance
+20:14 < bridge> <ryozuki> https://www.ralfj.de/blog/2025/07/07/tree-borrows-paper.html
+20:14 < bridge> <ryozuki> it says in the text
+20:14 < bridge> <ryozuki> same optimizations or more than stack borrows
+20:27 < bridge> <learath2> I wouldn't think same optimizations would imply same performance]
+20:27 < bridge> <learath2> I wouldn't think same optimizations would imply same performance
+21:37 < bridge> <Jupstar ✪> Interesting, have to look into detail what that means
+22:17 < bridge> <kollpotato> you can do it like this too:
+22:17 < bridge> <kollpotato> ```zig
+22:17 < bridge> <kollpotato> const b: @Vector(4, f32) = .{ 5, 6, 7, 8 };
+22:17 < bridge> <kollpotato> ```
+22:53 < bridge> <kebscs> @pioooooo if its higher than our minimum, should we upgrade?
+22:53 < bridge> <kebscs> its np to update commit hash to latest, but i thought that will make half of supported cmake versions not work
+22:54 < bridge> <kebscs> its np to update commit hash to latest, but i thought that will make half of ddnet supported cmake versions not work
+22:56 < bridge> <pioooooo> I would just upgrade ours as well and see if it gets merged :P
+23:00 < bridge> <kebscs> :tear:
+23:00 < bridge> <kebscs> id rather keep old
+23:00 < bridge> <kebscs> if deen machine is ancient
+23:44 < bridge> <learath2> @robyt3 here?
+23:57 < bridge> <robyt3> Gonna sleep now
+23:58 < bridge> <Assa> gn8 🙂

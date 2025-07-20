@@ -1,0 +1,587 @@
+00:17 < bridge> <kebscs> some servers restarted and are on preinput pr :D
+00:30 < bridge> <kebscs> well if someone else is on prediction margin 10 it doesnt do anything
+00:30 < bridge> <kebscs> maybe needs flush from <https://github.com/ddnet/ddnet/pull/10412>
+00:33 < bridge> <kebscs> yea on lan with flush some are unpacked
+08:54 < bridge> <Assa> @kebscs we tested old vs new unique race mod, measured times in milliseconds and compared. Turns out tune zones are now applied one tick earlier?
+08:54 < bridge> <Assa> @kebscs we tested old vs new unique race mod, measured times in milliseconds and compared. Turns out tune zones are now applied one tick earlier in ddnet?
+09:19 < bridge> <Assa> bottom is faster.
+09:19 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1387331282446323743/screenshot_2025-06-25_09-18-15.png?ex=685cf471&is=685ba2f1&hm=358c0eb782fc7f80367e4c079ab528c36c1479b2734b8acdda0e4fde54b3c002&
+09:19 < bridge> <Assa> doesn't make sense
+09:21 < bridge> <Assa> tune zone shouldn't even do anything to speed or inputs
+09:25 < bridge> <Assa> @kebscs we tested old vs new unique race mod, measured times in milliseconds and compared. Turns out ~~tune zones are now applied one tick earlier in ddnet~~ I have no idea why?
+09:25 < bridge> <Assa> removing the last two tune zone blocks infront of the finish seems to fix it
+09:41 < bridge> <kebscs> Isn't it bcs it's touching the finish line?
+09:41 < bridge> <Assa> yes it is, but why should this be a problem?
+09:42 < bridge> <kebscs> Wasnt it something like that it hitbox gets bigger if it touches something
+09:42 < bridge> <lolkildal> as i know freeze have same logic
+09:42 < bridge> <kebscs> I remember someone saying it in discord
+09:42 < bridge> <chairn> yeah, it also works with freeze tile
+09:42 < bridge> <Assa> janky hack mate
+09:42 < bridge> <chairn> if you align on finish tile boundary and jump into freeze tile, it will finish
+09:43 < bridge> <chairn> afaik, it is written voluntarily like that in the code
+09:44 < bridge> <Assa> could sb. pinpoint me to the location, where this is done?
+09:45 < bridge> <Assa> backwards compat is a karen again
+09:53 < bridge> <kebscs> https://github.com/ddnet/ddnet/blob/a937a723aab7a1978399453f9c19c352c4ccfe02/src/game/server/gamemodes/DDRace.cpp#L93
+09:53 < bridge> <kebscs> Maybe the proximity thing
+09:53 < bridge> <kebscs> You can check
+09:56 < bridge> <totar> is it this one? https://github.com/ddnet/ddnet/pull/3502
+09:59 < bridge> <Assa> oh I have an idea why
+09:59 < bridge> <Assa> ~~oh I have an idea why~~
+10:02 < bridge> <zhn> afair fudgy also mentioned it in unique discord
+10:02 < bridge> <zhn> or someone else
+10:03 < bridge> <Assa> either I am able to "fix" this, or we have to reset a number of maps if we upgrade
+10:05 < bridge> <kebscs> Don't fix if old bug
+10:05 < bridge> <kebscs> But I'm curious what caused it
+10:14 < bridge> <Assa> i know what caused it, removing the proximity check "fixed" it
+10:14 < bridge> <Assa> we skip air, if the index is 0
+10:14 < bridge> <Assa> but, even if the current middle index air is 0, the proximity checks might not be
+10:14 < bridge> <Assa> but if we're not in air, but in tune, we don't skip
+10:19 < bridge> <kebscs> do you have a commit that introduced it?
+10:19 < bridge> <Assa> no, but a place where air is skipped
+10:20 < bridge> <Assa> GetMapIndices() in collision.cpp
+10:20 < bridge> <Assa> ```
+10:20 < bridge> <Assa> if(TileExists(Index) && LastIndex != Index)
+10:20 < bridge> <Assa>             {
+10:20 < bridge> <Assa>                 if(MaxIndices && vIndices.size() > MaxIndices)
+10:20 < bridge> <Assa>                     return vIndices;
+10:20 < bridge> <Assa>                 vIndices.push_back(Index);
+10:20 < bridge> <Assa>                 LastIndex = Index;
+10:20 < bridge> <Assa>             }
+10:20 < bridge> <Assa> ```
+10:20 < bridge> <Jupstar ✪> @essigautomat If you really want to fix this issue you'd need to analyse how many maps have non-solid tiles next to finish & start line
+10:20 < bridge> <Assa> because TileExists returns false
+10:20 < bridge> <Jupstar ✪> It's most likely we won't fix it
+10:21 < bridge> <Assa> I know, I am currently introducing a config variable for the mod
+10:22 < bridge> <Jupstar ✪> It's funny that we have quirks like this isn't it?
+10:22 < bridge> <Jupstar ✪> 
+10:22 < bridge> <Jupstar ✪> I always wonder what the original author thought about these parts
+10:22 < bridge> <Assa> I must say, since I debugged this
+10:22 < bridge> <Assa> this goes through like 5 different functions and 3 classes
+10:23 < bridge> <Assa> I think the author didn't have the mental capacity to do this in the head, neither do I
+10:23 < bridge> <kebscs> is there no tests for the collision classes
+10:26 < bridge> <Jupstar ✪> Maybe, hard to say. I dunno if the original author introduced it or e.g. the refactor that tater linked, but he must have thought: I want finish tiles with bigger radius (kill tiles like) and I'd assume he at least tested that once xD
+10:26 < bridge> <Jupstar ✪> 
+10:26 < bridge> <Jupstar ✪> And then he should have noticed it
+10:34 < bridge> <Assa> I posted the "fix" to the issue, so that I know in 8 years what the issue was xD
+10:36 < bridge> <Jupstar ✪> So you are saying in old ddnet versions it was not the case?
+10:37 < bridge> <Assa> > I hope this made no sense at all.
+10:37 < bridge> <Assa> 
+10:37 < bridge> <Assa> > thanks for your interest in ddrace quirks.
+10:37 < bridge> <Assa> 
+10:37 < bridge> <Assa> Jupey you good? D:
+10:38 < bridge> <Assa> yes, since the mod I am porting is based on ddnet 7 years ago, it wasn't the case back then :justatest:
+10:38 < bridge> <Jupstar ✪> Interesting, did you do the blame?
+10:38 < bridge> <Assa> on the plus side, you were just able to finish FASTER not slower
+10:38 < bridge> <Jupstar ✪> Yes and you?
+10:38 < bridge> <Assa> need more coffee in my system
+10:42 < bridge> <Assa> this looks like a candiate: https://github.com/ddnet/ddnet/commit/f7dfd8c9b9b5476e72db66de9305d65917c523d6
+10:42 < bridge> <Assa> no, this is just a refactor
+10:44 < bridge> <Jupstar ✪> The proximity stuff exists since ever and the `GetMapIndices` -> `HandleTiles` too
+10:45 < bridge> <Jupstar ✪> `TileExists` too
+10:46 < bridge> <Jupstar ✪> @essigautomat are you sure you used a version that already supports tunes?
+10:46 < bridge> <Jupstar ✪> 
+10:46 < bridge> <Jupstar ✪> Or in other words if you use a different tile than tunes, does it really not happen on old servers?
+10:47 < bridge> <Jupstar ✪> Even the tune check is since at least 11 years xD
+10:48 < bridge> <Assa> I found it in the diff, meaning the mod introduced the change
+10:48 < bridge> <Jupstar ✪> Alright
+10:48 < bridge> <Assa> meaning the mod "fixed" it
+10:49 < bridge> <Assa> so this bug has probably always been a problem since whatever years
+10:50 < bridge> <Assa> I wonder now, if this is there since the dawn of ddnet with some tiles
+10:51 < bridge> <Assa> like hitting the freeze right infront of the finish to finish faster
+10:51 < bridge> <Jupstar ✪> Yes
+10:52 < bridge> <Jupstar ✪> Still less hacky than you don't die in kill tiles, when you finished but others of your team not xD
+10:58 < bridge> <Assa> so if I perfectly track in subticks when I start and finish
+10:58 < bridge> <Assa> all mods so far are wrong, probably only Teeros TAS is correct
+10:59 < bridge> <Jupstar ✪> Subticks itself are already a workaround over more ticks
+10:59 < bridge> <Jupstar ✪> If the user on his keyboard pressed A in a subtick to prevent from finishing a tile to the right, then the subtick is wrong too
+11:00 < bridge> <Jupstar ✪> So I won't agree with correct or incorrect
+11:00 < bridge> <Assa> i know, you're only doing inputs on ticks
+11:00 < bridge> <Assa> this was actually an issue for bouncyness
+11:01 < bridge> <Assa> since you didn't always give the player the jump back, because you might only hit the ground in a subtick
+11:04 < bridge> <Assa> Caffine was right, he wrote somewhere that the we shouldn't need `GetMapIndices` and apply tile effects directly in the collision code. Also we have that other issue that shows, that this function is inherently wrong
+11:05 < bridge> <Assa> Caffine was right, he wrote somewhere that the we shouldn't need `GetMapIndices` and apply tile effects directly in the collision code. Also we have that other issue that shows, that this function is inherently wrong with a straight line between prev pos and pos
+11:05 < bridge> <Jupstar ✪> The whole physics are a quirk, but that is what makes ddrace ddrace ig
+11:05 < bridge> <Jupstar ✪> Teeworlds physics are very hacky too
+11:06 < bridge> <Jupstar ✪> If you want to fix it, fix it for your mod. I doubt ddnet accepts it
+11:06 < bridge> <Assa> #10221
+11:06 < bridge> <Assa> 
+11:06 < bridge> <Assa> I'd like to introduce editions
+11:06 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/10221
+11:07 < bridge> <Assa> yes I know, and I understand why. how far away is ddnet-rs?
+11:09 < bridge> <Jupstar ✪> Away from what? 😄
+11:09 < bridge> <Assa> isn't your goal to finish ddnet-rs and move away from the c++ version?
+11:10 < bridge> <kebscs> c++ on top
+11:10 < bridge> <Jupstar ✪> It already is finished.
+11:10 < bridge> <Jupstar ✪> 
+11:10 < bridge> <Jupstar ✪> It's missing some visual stuff (like freezebars) and has some UI bugs/inconsistencies.
+11:10 < bridge> <Jupstar ✪> 
+11:10 < bridge> <Jupstar ✪> Other than that the physics is completely unrelated to ddnet, and also it allows your to write whatever physics you want to have and share it with the client as WASM module
+11:11 < bridge> <Jupstar ✪> You could also write a completely different game as long as it uses tw visuals and should still be predicted etc in the client correctly
+11:11 < bridge> <Jupstar ✪> Or in other words, you write the prediction code
+11:11 < bridge> <Jupstar ✪> The client helps you with it tho 😉
+11:13 < bridge> <Jupstar ✪> The compatibility layer to c++ ddnet is done via a proxy, that rewrites ddnet snapshots to vanilla snapshots (of ddnet-rs) and thus is missing quite a bit of prediction there
+11:14 < bridge> <Jupstar ✪> But if you want a native ddnet-rs mods you won't face these issues
+11:14 < bridge> <Jupstar ✪> If you want ddnet physics, twgame is an unfinished project for that.
+11:14 < bridge> <Jupstar ✪> 
+11:14 < bridge> <Jupstar ✪> 
+11:14 < bridge> <Jupstar ✪> If you want _better_ physics than ddnet, you might want to write your own physics module anyway
+11:27 < bridge> <chairn> pls don't fix, it's not a bug, it's a feature
+11:29 < bridge> <chairn> afaik, it was already in the first ddnet versions, so most likely already in ddrace in 2013 or even 2012
+11:30 < bridge> <Assa> don't worry, I'd never change physics 😬:pepeW: :justatest:
+11:31 < bridge> <chairn> i can tell for sure it was present in 2015
+11:31 < bridge> <chairn> pipou showed it to me back then
+13:16 < ws-client> <ChillerDragon> @melon @milkeeycat @ryozuki any neovim enjoyer has a setup that works for editing ddnet tests?
+13:16 < ws-client> <ChillerDragon> for me clangd throws a bazillion compilation errors for example EXPECT_EQ and so on
+13:18 < ws-client> <ChillerDragon> nvm im stupid this did the trick ``rm -rf build && mkdir build && cd build && cmake .. -DDOWNLOAD_GTEST=ON -DCMAKE_BUILD_TYPE=Debug``
+13:18 < bridge> <Assa> as a windows user I just --target run_tests
+13:19 < ws-client> <ChillerDragon> sometimes i forget clangd does not work unless i compiled it first
+13:28 < bridge> <milkeeycat> good afternoon C++ 20 coroutines enthusiasts and others
+13:28 < bridge> <Jupstar ✪> You found a usecase? xd
+13:29 < bridge> <milkeeycat> After an hour of reading I still don't understand how to use it ._.
+13:34 < bridge> <Jupstar ✪> Write your own async runtime with them xd
+13:40 < bridge> <Solly (bun bun)> You need generated and compile commands
+13:41 < bridge> <Solly (bun bun)> @chillerdragon
+13:44 < bridge> <kebscs> ok i finally noticed the incorrect freeze skin
+13:44 < bridge> <kebscs> when edging 3 tile freeze
+13:45 < bridge> <melon> -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+13:51 < bridge> <Solly (bun bun)> Why isn't this a default
+13:51 < bridge> <Solly (bun bun)> Alog with reldebug
+13:51 < bridge> <Solly (bun bun)> Rel with debug info
+13:57 < bridge> <kebscs> i'll make it so the skin is only predicted for local player, because its correct
+13:57 < bridge> <kebscs> @syrinok is the skin prediction wrong also on dummy?
+14:03 < bridge> <kebscs> ig no bcs dummy controls are ignored from server
+14:05 < bridge> <Assa> how does /times work? Do you save all finishes of all time in the database?
+14:08 < bridge> <Jupstar ✪> Yes
+14:08 < bridge> <Jupstar ✪> I think for some maps duplicates were removed bcs the queries were so insanely slow
+14:09 < bridge> <Jupstar ✪> Or bcs of spam finishes xd
+14:09 < bridge> <Assa> what would I need to change if I only want to save improvements 💀
+14:09 < bridge> <chairn> Isn't there a 50 limits per pseudo ?
+14:10 < bridge> <chairn> or is it only for some auto finish map ?
+14:10 < bridge> <Jupstar ✪> smth like UPDATE OR INSERT and only if time is smaller or smth like that with unique player names
+14:11 < bridge> <Jupstar ✪> https://dev.mysql.com/doc/refman/8.4/en/insert-on-duplicate.html
+14:13 < bridge> <Assa> > bool CallSaveScore = g_Config.m_SvSaveWorseScores;
+14:14 < bridge> <Assa> I guess we don't need to
+14:23 < bridge> <chillerdragon> @sollybunny: @blaiszephyr oh yea i have compile commands as environment variable in my bashrc
+14:25 < bridge> <chillerdragon> The miss predicted freeze is quite common. But I was surprised how little it bothered me.
+14:26 < bridge> <Jupstar ✪> I notice it very often when someone is trying to edge. Otherwise I haven't seen it often
+14:28 < bridge> <Jupstar ✪> Chillerdragon: watcha working on lately anyway? I feel like solly is the new chillerdragon pr wise xd
+14:28 < bridge> <chillerdragon> I am working on my kog points
+14:29 < bridge> <Jupstar ✪> Understandable after 2 years of holidays you need some gores addiction again
+14:32 < ws-client> <ChillerDragon> @Jupstar ✪ ye fr
+14:32 < ws-client> <ChillerDragon> https://zillyhuhn.com/cs/ragefarmer.png
+14:33 < ws-client> <ChillerDragon> you can spot in this graph where i took my first tw break cuz bali ping, and where i started to rage farm points cuz kog clan kick
+14:34 < bridge> <Jupstar ✪> Sick
+14:34 < bridge> <inv41idu53rn4m3> At this rate you'll have 20 points in no time
+14:35 < bridge> <inv41idu53rn4m3> At this rate you'll have 20k points in no time
+14:35 < bridge> <inv41idu53rn4m3> whoop one missing letter xd
+14:41 < ws-client> <ChillerDragon> isnt that ``delete m_apPlayers[ClientId]`` a bit cray cray?
+14:41 < ws-client> <ChillerDragon> https://github.com/ddnet/ddnet/blob/d250b65fbefd1e017c0019be0150139a8f8389c3/src/game/server/gamecontext.cpp#L1758-L1759
+14:42 < ws-client> <ChillerDragon> yes if a new player joins we expect its client id to be unused. But why does it delete a player with the same id? Is this for debug dummies?
+14:42 < ws-client> <ChillerDragon> Or is it an edge case race condition where we just silently bug away one player? xd
+14:42 < ws-client> <ChillerDragon> shouldnt that be an assert instead?
+14:43 < bridge> <Jupstar ✪> Do we delete them anywhere else?
+14:43 < bridge> <Jupstar ✪> Else this calls the destructor
+14:44 < ws-client> <ChillerDragon> they should be deleted as soon as the id is freed so on disconnect
+14:44 < ws-client> <ChillerDragon> or reload
+14:44 < ws-client> <ChillerDragon> and map change
+14:44 < ws-client> <ChillerDragon> unless someone thoughtfully crafted this to smoothly replace debug dummies with real players this seems like an insane way to hide bugs
+14:45 < bridge> <totar> facinating history
+14:45 < bridge> <totar> 
+14:45 < bridge> <totar> <https://github.com/ddnet/ddnet/commit/4af575654bc576782aef534cc951d79ff6c8a28f>
+14:45 < bridge> <totar> <https://github.com/ddnet/ddnet/commit/07aa08703d2a8d777a468bcf2e17acaf1a3dc08a>
+14:46 < bridge> <totar> added first as a comment
+14:46 < bridge> <totar> then uncommented
+14:56 < bridge> <kebscs> "Kind of working"
+15:12 < bridge> <vahemaaa> zillywoods cool
+15:12 < bridge> <vahemaaa> https://cdn.discordapp.com/attachments/293493549758939136/1387420229348495390/screenshot_2025-06-25_16-08-59.png?ex=685d4747&is=685bf5c7&hm=972916289d2cec35a2f6a61bb5d116e3ac6b5831c53abc043fe0e3d112804a2a&
+15:12 < ws-client> <ChillerDragon> 0.7 moment
+15:13 < ws-client> <ChillerDragon> ah i assume the player deletion is for when timeout protection is used to swap them out
+15:13 < ws-client> <ChillerDragon> if that is really the case it could probably use some comment explaining that
+15:14 < ws-client> <ChillerDragon> or no? client id doesnt change on timeout restore so it shouldnt run that code
+15:14 < ws-client> <ChillerDragon> yea no idea
+15:39 < bridge> <Jupstar ✪> Sry chiller I dunno what you mean with "when id is freed". Does it call the destructor somewhere else or not xD
+15:47 < bridge> <kollpotato> i love u chiller
+16:04 < bridge> <chillerdragon> @jupeyy_keks: yes
+16:04 < bridge> <chillerdragon> @kollpotato: love you too
+16:05 < bridge> <chillerdragon> It’s deleted in OnClientDrop
+16:55 < bridge> <ryozuki> @jupeyy_keks they released a new PNG spec v3 https://www.w3.org/TR/png-3/
+16:55 < bridge> <ryozuki> https://www.programmax.net/articles/png-is-back/
+16:59 < bridge> <Jupstar ✪> Sick, didn't expect PNG to still be relevant enough to be updated for modern tech xd
+17:26 < bridge> <inv41idu53rn4m3> PNG is the standard lossless image format, at least for common use
+17:27 < bridge> <inv41idu53rn4m3> Fancier formats may be used in the production process
+17:32 < bridge> <Jupstar ✪> jpeg xl beats png with almost 40% margin in size
+17:32 < bridge> <Jupstar ✪> and apparently is also faster
+17:32 < bridge> <Jupstar ✪> and supports lossy too
+17:33 < bridge> <Jupstar ✪> heinrich wants shared a blog, lemme see
+17:33 < bridge> <Jupstar ✪> ^
+17:34 < bridge> <chillerdragon> I don’t know what a jpeg is
+17:35 < bridge> <chillerdragon> I just want a picture of a god-dang hotdog
+17:36 < bridge> <Jupstar ✪> I only know one thing. if smth uses less memory, less size on disk and is faster.
+17:36 < bridge> <Jupstar ✪> 
+17:36 < bridge> <Jupstar ✪> Then it's better
+17:36 < bridge> <Jupstar ✪> xD
+17:36 < bridge> <Jupstar ✪> Performance matters
+17:36 < bridge> <Jupstar ✪> Performance is love, performance is life
+17:37 < bridge> <Jupstar ✪> Thus use rust instead of bash from now on
+17:37 < bridge> <Jupstar ✪> CHILLER
+17:39 < bridge> <chillerdragon> Rust hard
+17:39 < bridge> <chillerdragon> Bash easy
+17:47 < bridge> <learath2> You made me think heinrich is finally back
+17:48 < bridge> <ryozuki> xd
+17:48 < bridge> <ryozuki> @learath2 u need to review lot of ur prs
+17:48 < bridge> <ryozuki> they are nice but stale
+17:48 < bridge> <ryozuki> last day i merged 10 prs
+17:48 < bridge> <learath2> I think I only have 2, right?
+17:48 < bridge> <learath2> Ah maybe 4 if we still didn't get the teehistorian stuff in either
+17:49 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1387459605239693512/image.png?ex=685d6bf3&is=685c1a73&hm=7fa6b5795fe258958febbd72ec9084ff17c3f55c3e50ce69e1f2b7f183e13f45&
+17:49 < bridge> <ryozuki> https://github.com/ddnet/ddnet/pulls/Learath2
+17:49 < bridge> <ryozuki> idk if relevant but i closed this https://github.com/ddnet/ddnet/pull/10142
+17:50 < bridge> <learath2> I should probably reopen that, but not rn. I'll set a reminder for tomorrow
+17:50 < bridge> <kebscs> @ryozuki <https://github.com/ddnet/ddnet/pull/10412>
+17:50 < bridge> <kebscs> can you merge this fix too
+17:51 < bridge> <ryozuki> added to queue, thanks for the comment docs
+17:52 < bridge> <kebscs> 🎉
+17:53 < bridge> <kebscs> ty
+17:53 < bridge> <ryozuki> @chillerdragon i commented on ur pr
+17:55 < bridge> <Jupstar ✪> deen 2.0 😬
+17:56 < bridge> <Jupstar ✪> @ryozuki when will you apply as admin?
+17:57 < bridge> <ryozuki> oops its solly
+17:57 < bridge> <ryozuki> i doubt i woudl get accepted im less mature than u
+17:57 < bridge> <Jupstar ✪> xDDD
+17:58 < bridge> <ryozuki> but technically im admin already, admin of the wiki that is 😬
+17:58 < bridge> <ryozuki> altho i think with the age ive become better
+17:58 < bridge> <ryozuki> im 25 now
+17:58 < bridge> <ryozuki> :justatest:
+17:58 < bridge> <ryozuki> but what is there to do as admin anyway
+17:59 < bridge> <ryozuki> well maybe i would remove the spammer at 6:30 in the morning
+17:59 < bridge> <ryozuki> lately i wake up at that time like a 👴
+17:59 < bridge> <Jupstar ✪> you could be technical admin
+17:59 < bridge> <louis> use mods as ur minutemen army
+17:59 < bridge> <Jupstar ✪> that coordinates adding new microservices for our client
+17:59 < bridge> <Jupstar ✪> like specialized http servers
+17:59 < bridge> <ryozuki> xd
+17:59 < bridge> <Assa> you sound like you already hit 30 😅
+17:59 < bridge> <ryozuki> xd
+18:00 < bridge> <Jupstar ✪> He goes straight into his 30s
+18:00 < bridge> <ryozuki> it 26 ill round up to 30 already
+18:00 < bridge> <ryozuki> my gf says i look older
+18:00 < bridge> <ryozuki> i guess cuz beard
+18:00 < bridge> <Jupstar ✪> Bro
+18:00 < bridge> <Jupstar ✪> You look older than me xD
+18:00 < bridge> <ryozuki> X
+18:00 < bridge> <ryozuki> :d
+18:00 < bridge> <Assa> :justatest:
+18:00 < bridge> <ryozuki> :justatest:
+18:00 < bridge> <ryozuki> well tbh
+18:00 < bridge> <ryozuki> u look rly young
+18:00 < bridge> <ryozuki> xd
+18:01 < bridge> <Jupstar ✪> I know, I am often handled <= 20
+18:01 < bridge> <ryozuki> i think ppl say i look 28-29
+18:01 < bridge> <Jupstar ✪> I'd agree tbh xD
+18:01 < bridge> <ryozuki> when i bald ill be 40
+18:02 < bridge> <Assa> I wait for the day I can finally say godbye to my hair, it takes so much time
+18:02 < bridge> <ryozuki> long hair?
+18:02 < bridge> <ryozuki> we need to do another dev meetup
+18:02 < bridge> <ryozuki> assa are u german or murican or french
+18:02 < bridge> <Assa> I said to myself, before I am balding too much, I want to have long hair once in my life
+18:02 < bridge> <ryozuki> xD
+18:02 < bridge> <Assa> german
+18:02 < bridge> <ryozuki> i know a core ddnet dev that has long hair
+18:02 < bridge> <ryozuki> but i wont leak
+18:03 < bridge> <Jupstar ✪> lmao
+18:03 < bridge> <Jupstar ✪> I know more
+18:03 < bridge> <ryozuki> xD
+18:03 < bridge> <Jupstar ✪> but i wont leak
+18:03 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/252358080522747904/1354423422511485019/73C91E52-B55E-AAE1-0AE3-EBC6D0D61723.gif
+18:03 < bridge> <Assa> it's like long hair/long beard is dev culture
+18:03 < bridge> <Assa> and doing rust with long socks
+18:03 < bridge> <louis> long hair im guessing learat2
+18:03 < bridge> <Jupstar ✪> You either go full gandalf or you stop
+18:03 < bridge> <ryozuki> surprisingly only me and learath drink alcohol too
+18:03 < bridge> <ryozuki> they are puritans
+18:04 < bridge> <Assa> I already have the backpain of sb who fought a balrock
+18:04 < bridge> <Assa> I already have the backpain of sb who fought a balrock solo
+18:04 < bridge> <Assa> don't worry, I'll drink for all of you :3
+18:05 < bridge> <ryozuki> my future vision for when im 55 is to have a white beard and have a basement full of old components
+18:05 < bridge> <ryozuki> and talk about old rust days
+18:05 < bridge> <Assa> I can already send you the old components
+18:05 < bridge> <Assa> I have some ddr1 laptop ram here
+18:05 < bridge> <ryozuki> xD
+18:05 < bridge> <ryozuki> i used to have a 512mb ram stick somewhere
+18:06 < bridge> <ryozuki> but when im 55 it will be 2055
+18:06 < bridge> <ryozuki> so old will be current tech
+18:06 < bridge> <melon> still pissed @jupeyy_keks didnt leak secret meetup spot so i could raid
+18:06 < bridge> <melon> WAS SO CLOSE TO ME EVEN
+18:06 < bridge> <Jupstar ✪> Do you know who organized it?
+18:06 < bridge> <Jupstar ✪> Is that public knowledge?
+18:07 < bridge> <melon> no its not
+18:07 < bridge> <melon> but i know who attended
+18:07 < bridge> <ryozuki> also me and patiga nearly lose the plane back cuz the train stopped suddenly at some station
+18:07 < bridge> <Jupstar ✪> Ok, but complain to him xd
+18:07 < bridge> <ryozuki> i had to pay a uber
+18:07 < bridge> <Assa> I'd come, assuming it's in europe :owo:
+18:07 < bridge> <ryozuki> it will probs be on germany or barcelona
+18:07 < bridge> <ryozuki> hopefully barcelona
+18:07 < bridge> <melon> brother thats just germany for u
+18:07 < bridge> <Jupstar ✪> If it's barcelona then please on beach
+18:07 < bridge> <Jupstar ✪> Everyone with laptop and LAN party
+18:07 < bridge> <melon> i'd join on barcelona with beach
+18:08 < bridge> <soulyvevo> @ryozuki dont you have merge perms
+18:08 < bridge> <ryozuki> well if u go to beach rn u die of heat
+18:08 < bridge> <ryozuki> its 33C
+18:08 < bridge> <ryozuki> i do
+18:08 < bridge> <melon> i'd take 40° beach right now
+18:08 < bridge> <ryozuki> technically im a "github admin"
+18:08 < bridge> <melon> instead of this humid 28°C thing we have rn
+18:08 < bridge> <soulyvevo> why are you just a dev here lol
+18:08 < bridge> <ryozuki> idk life
+18:08 < bridge> <ryozuki> i dont have ssh access currently either
+18:08 < bridge> <Assa> I was in tunesia in holidays, there it was 46C ... 33 is like, livable
+18:09 < bridge> <melon> Ryo when join us in moderator chat again
+18:09 < bridge> <ryozuki> xd
+18:09 < bridge> <ryozuki> with humidity?
+18:09 < bridge> <Assa> yes, northern next to the ocean
+18:09 < bridge> <ryozuki> @learath2 when open admin admissions
+18:09 < bridge> <Assa> can't imagine the desert part 💀
+18:09 < bridge> <ryozuki> :justatest:
+18:09 < bridge> <learath2> Who next?
+18:10 < bridge> <ryozuki> 😬
+18:10 < bridge> <ryozuki> me and jupstar
+18:10 < bridge> <Assa> do you do "work" at the dev meetings? like discuss any issues or a hackaton? :justatest:
+18:11 < bridge> <ryozuki> it was fun
+18:11 < bridge> <ryozuki> it was like a hackathon and we also played LAN
+18:11 < bridge> <learath2> How did you even? 😛
+18:11 < bridge> <ryozuki> we beat springblobe 2 and 3 iirc
+18:11 < bridge> <Jupstar ✪> Springlobe 3 xDD
+18:11 < bridge> <ryozuki> (some ppl joked to add the rank to the db but it didnt pass)
+18:11 < bridge> <Jupstar ✪> We'd have taken 1 week
+18:11 < bridge> <ryozuki> the german internet was bad so we played lan xd
+18:11 < bridge> <learath2> I worked on this https://github.com/Learath2/th-audit
+18:12 < bridge> <ryozuki> metamuffin also showed his alternative rust client iirc
+18:14 < bridge> <ryozuki> and some weird hardware
+18:14 < bridge> <Jupstar ✪> XD
+18:14 < bridge> <ryozuki> XD
+18:14 < bridge> <ryozuki> we had like 3 raspbs iirc
+18:14 < bridge> <ryozuki> raspberries
+18:14 < bridge> <learath2> Metamuffins weird usb to ethernet to ethernet to usb adapter was a thing
+18:14 < bridge> <ryozuki> tbh since im working so much on perf at work what i would do at next meeting would be some profiling
+18:14 < bridge> <ryozuki> i guess
+18:14 < bridge> <Jupstar ✪> We were the ppl with gemer laptops ryo 😉
+18:14 < bridge> <Assa> mine is currently at the local firefighters used for monitoring in the vehicle bay
+18:14 < bridge> <Jupstar ✪> The gamer group
+18:14 < bridge> <ryozuki> my gaming laptop with a 4070
+18:14 < bridge> <learath2> Patiga's demo was very cool. I wonder when he'll make it public 😛
+18:14 < bridge> <ryozuki> yeah that was the coolest ever
+18:14 < bridge> <ryozuki> @patiga 😉
+18:14 < bridge> <Jupstar ✪> Yeah @patiga when public
+18:14 < bridge> <melon> fr @patiga
+18:14 < bridge> <ryozuki> @blaiszephyr u would turn crazy
+18:14 < bridge> <ryozuki> cuz its a crazy thing
+18:14 < bridge> <melon> its rust innit
+18:14 < bridge> <ryozuki> its not lang related
+18:15 < bridge> <ryozuki> its about the game itserlf
+18:15 < bridge> <melon> ddnet 2.0
+18:15 < bridge> <melon> LETSGOO
+18:15 < bridge> <ryozuki> no thats just jupstar sideproject
+18:15 < bridge> <ryozuki> kek
+18:15 < bridge> <Assa> oh god do I also need to present something?
+18:15 < bridge> <ryozuki> its optional
+18:15 < bridge> <ryozuki> u could present ur perf opt in rendering
+18:15 < bridge> <Assa> going to post 3 boxplots in showroom when 19.4 comes out
+18:16 < bridge> <Assa> it's like 44x perf improvement
+18:16 < bridge> <Assa> and maybe make a post in mapping how to map quads with performance
+18:17 < bridge> <patiga> @jupeyy_keks @learath2 @ryozuki gimme like a month or so, I just picked it up again
+18:17 < bridge> <Assa> sounds like twmap-tools client integration? :justatest:
+18:17 < bridge> <ryozuki> pog
+18:18 < bridge> <patiga> no fishing :p
+18:18 < bridge> <patiga> its secret exactly coz I didn't want too much outside pressure  ^^
+18:18 < bridge> <Assa> i'd even have a list of things for a hackaton, but ig nobody would be interested, would you?
+18:18 < bridge> <ryozuki> @robyt3 what happens with clang-tidy 20?
+18:18 < bridge> <ryozuki> u canceled the pr
+18:18 < bridge> <ryozuki> :justatest:
+18:18 < bridge> <robyt3> I still want to comment
+18:18 < bridge> <robyt3> That's why I self-requested a review
+18:18 < bridge> <ryozuki> ohh
+18:18 < bridge> <ryozuki> didnt see sorry
+18:21 < bridge> <ryozuki> @robyt3 do u generally review all prs? should i wait for u always?
+18:21 < bridge> <Assa> except if it's graphics backend related, then **additionally** ping jupey :owo:
+18:23 < bridge> <robyt3> If I don't request changes or self-request review I usually don't have a strong opinion on the PR
+18:24 < bridge> <ryozuki> i should wait some days before merging stuff too
+18:24 < bridge> <Assa> merge fast and break things
+18:25 < bridge> <ryozuki> :justatest:
+18:25 < bridge> <milkeeycat> it's not in C 😦
+18:25 < bridge> <ryozuki> we converted him
+18:25 < bridge> <ryozuki> literally all devs in the meeting byt lea and robyt used rust for most stuff kek
+18:25 < bridge> <ryozuki> literally all devs in the meeting but lea and robyt used rust for most stuff kek
+18:26 < bridge> <ryozuki> but also most tooling around teehistorian is rusty
+18:26 < bridge> <kebscs> love when tools are rust and doone uses said toold
+18:26 < bridge> <kebscs> love when tools are rust and noone uses said toold
+18:26 < bridge> <Assa> guess I am very alone with ugly python code
+18:27 < bridge> <kebscs> didnt see practice bug cheated ranks removed bcs tool is in rust
+18:27 < bridge> <ryozuki> twmap and related is used all time in map testing
+18:27 < bridge> <kebscs> if tool was in python i would do it day 1
+18:27 < bridge> <ryozuki> the mastersrv is in rust too
+18:28 < bridge> <ryozuki> milkeey writing a bible
+18:28 < bridge> <kebscs> so if mastersrv breaks
+18:28 < bridge> <milkeeycat> @ryozuki btw I remembered you showed a vid of lc3 vm in your language, now I also want  to do that :santatrollet:
+18:28 < bridge> <kebscs> ddnet is gg
+18:28 < bridge> <ryozuki> its been runnig since years iirc
+18:28 < bridge> <ryozuki> xD
+18:28 < bridge> <ryozuki> pog
+18:28 < bridge> <ryozuki> run the 2024 game
+18:28 < bridge> <ryozuki> stacking or smth
+18:28 < bridge> <Assa> why can you achieve so much more performance with rust instead of C/C++?
+18:29 < bridge> <milkeeycat> I almost got calling convention working
+18:29 < bridge> <ryozuki> no one said that
+18:29 < bridge> <ryozuki> perf will be most of the times same
+18:29 < bridge> <ryozuki> but rust adds the benefit that removes lot of memory related bugs and also multithreaded ones
+18:29 < bridge> <ryozuki> sometimes it will be faster in C sometimes in Rust
+18:29 < bridge> <kebscs> its mostly the same
+18:30 < bridge> <ryozuki> cuz rust can use a lot more the noalias
+18:30 < bridge> <kebscs> unless you use some slow std functions
+18:30 < bridge> <Assa> so I can still improve perf by swapping some libs with my fortran code
+18:30 < bridge> <ryozuki> fortran pog
+18:30 < bridge> <ryozuki> fortran can be as fast or faster than C in some cases iirc
+18:30 < bridge> <ryozuki> math i guess
+18:31 < bridge> <patiga> I think that sounds fun :)
+18:31 < bridge> <ryozuki> yes pls bring a list
+18:33 < bridge> <melon> https://en.cppreference.com/w/cpp/container/inplace_vector.html
+18:33 < bridge> <melon> 
+18:33 < bridge> <melon> c++26 when?
+18:34 < bridge> <Assa> here some stupid ideas:
+18:34 < bridge> <Assa> - flag mode instead of start and finish: carry a flag as a team through the map with flag throwing and flag buttons and stuff
+18:34 < bridge> <Assa> - implement proper quad grouping and I have a few other insane ideas for shader code
+18:34 < bridge> <Assa> - idk water PR ig
+18:34 < bridge> <Assa> - bring out a new physics edition - since we are all engine experts and know stuff that would need change but nobody knows all
+18:34 < bridge> <Assa> 
+18:34 < bridge> <Assa> (this is just a stupid list, now roast me)
+18:34 < bridge> <patiga> wdym with that? afaik that tooling helped with multiple bugs already. its also actively used for moderation
+18:36 < bridge> <ryozuki> maybe a more feasible feature and one that I'm Corneum asked is to have real "dummies" in parts of the map
+18:36 < bridge> <inv41idu53rn4m3> If you wanna go fast try compiler intrinsics
+18:36 < bridge> <melon> https://gitlab.com/ddnet-rs/twgame/-/tree/master/teehistorian?ref_type=heads
+18:36 < bridge> <melon> 
+18:36 < bridge> <melon> this alone is gamechanger
+18:36 < bridge> <ryozuki> that u use for parts
+18:36 < bridge> <ryozuki> for example hooking a tee and swinging is way different
+18:36 < bridge> <ryozuki> and i guess he wants to use that physics
+18:36 < bridge> <ryozuki> for parts
+18:36 < bridge> <Assa> oh yeah, this also belongs on the list
+18:37 < bridge> <kebscs> why practice bug from march ranks not removed
+18:37 < bridge> <ryozuki> also dummies could be animated for tutorial maps
+18:37 < bridge> <ryozuki> showing movement
+18:37 < bridge> <ryozuki> tldr: real npcs
+18:37 < bridge> <Assa> mappable npcs
+18:40 < bridge> <patiga> I don't know. I'm not an admin and not aware of the specifics. I can tell you tho that the tooling makes such effort relatively easy: it was used for previous such cases. more importantly maybe: it makes it *possible*
+18:40 < bridge> <patiga> there is no similar tooling in any other language and it's very solid tooling. I don't think Zwelf would've attempted comparable tooling in another language
+18:40 < bridge> <kebscs> ok thats nice theres a tool
+18:40 < bridge> <patiga> I do think Rust plays a role in making such tooling *more* possible
+18:40 < bridge> <kebscs> but if it wasnt rust, the cheated ranks would have been easier to remove
+18:40 < bridge> <kebscs> or at least i would do it
+18:41 < bridge> <Assa> I mean add a new layertype, npc, have a few npc options: 
+18:41 < bridge> <Assa> - forever frozen
+18:41 < bridge> <Assa> - moving npc (with hitbox)
+18:41 < bridge> <Assa> - showing npc (tutorial),
+18:41 < bridge> <Assa> - visual npc (idk, like in a cage getting crushed by evil other npc)
+18:41 < bridge> <Assa> 
+18:41 < bridge> <Assa> Need some functionality to record inputs for the tutorial npc for example
+18:41 < bridge> <Assa> a mapped npc should be stylizable with skin options
+18:41 < bridge> <ryozuki> u can do it, nobody stops u doing tooling in C
+18:41 < bridge> <kebscs> cba rewriting
+18:41 < bridge> <kebscs> im not rust dev i dont do rewrites
+18:41 < bridge> <ryozuki> meh, no use talking
+18:42 < bridge> <Assa> I mean add a new layertype, npc, have a few npc options: 
+18:42 < bridge> <Assa> - forever frozen
+18:42 < bridge> <Assa> - moving npc (with hitbox)
+18:42 < bridge> <Assa> - showing npc (tutorial),
+18:42 < bridge> <Assa> - visual npc (idk, like in a cage getting crushed by evil other npc)
+18:42 < bridge> <Assa> - invisible moving npcs for jank
+18:42 < bridge> <Assa> 
+18:42 < bridge> <Assa> Need some functionality to record inputs for the tutorial npc for example
+18:42 < bridge> <Assa> a mapped npc should be stylizable with skin options
+18:42 < bridge> <Assa> imagine lots of invisible npcs acting in a contraption as a conveyor belt
+18:43 < bridge> <patiga> I don't think this is the case, or rather: this misses that Rust allowed the tooling to be that complex while also being quite bug-free
+18:43 < bridge> <kebscs> moving npc kinda like box would be nice
+18:43 < bridge> <ryozuki> no use convinciz he is more anti rust than learath (was)
+18:44 < bridge> <ryozuki> no use convincing he is more anti rust than learath (was)
+18:45 < bridge> <ryozuki> another idea is add a portal gun
+18:45 < bridge> <ryozuki> and it can be used with grenade shotgun etc
+18:45 < bridge> <ryozuki> xd
+18:45 < bridge> <Assa> this sounds simple tbh
+18:46 < bridge> <ryozuki> i doubt
+18:46 < bridge> <ryozuki> lot of edge cases
+18:47 < bridge> <Assa> yeah, prediction will be as expected
+18:48 < bridge> <Assa> but the core mechanics, meaning player and projectiles, should be simple
+18:49 < bridge> <Assa> edge cases like moving pickups or that freeze balls or rotating lasers idk
+18:50 < bridge> <Assa> to what degree would you whish to do that? Would you want to stick your weapon in one side and it sticks out in the other?
+18:51 < bridge> <kebscs> we have tele laser already
+18:51 < bridge> <kebscs> 👍
+18:52 < bridge> <Assa> add a "warp" shader around the portal entries :p
+18:52 < bridge> <patiga> in the past there def were mods with portal guns, I remember playing them :D
+18:53 < bridge> <patiga> they used that aperture tileset similar to dummy chamber
+18:57 < bridge> <louis> portal gun boutta add 50000 cheats
+18:57 < bridge> <louis> water pr is cool
+18:57 < bridge> <louis> the harpoon weapon from that could be sick with some modifications
+18:58 < bridge> <louis> add dashing mechanism w a powerup or smth similar
+18:59 < bridge> <louis> was i correct
+19:14 < bridge> <learath2> Only because I didn't feel like writing a teehistorian parser in C and waste time on that during the meetup
+19:16 < bridge> <learath2> Rust benefits from an std that evolves. So if you are just quickly writing something Rust will usually outperform C++
+19:18 < bridge> <learath2> Idk wym, if the tooling is written already, it doesn't matter what language it is in. Do you mean there is no tooling to detect this bug and you cant write one because the entire teehistorian ecosystem is Rust?
+19:18 < bridge> <learath2> Yep
+19:18 < bridge> <kebscs> yes
+19:18 < bridge> <kebscs> i wanted to detect the bug
+19:19 < bridge> <kebscs> i know what to do/check
+19:19 < bridge> <kebscs> but i dont understand how to bcs its rust
+19:19 < bridge> <kebscs> so i didnt bother
+19:19 < bridge> <kebscs> and all other rust praisers didnt either
+19:20 < bridge> <learath2> There might be a teehistorian parser in C or maybe some bindings for the rust one in python
+19:21 < bridge> <learath2> But again this is more a ddnet devs being very inactive issue rather than a rust issue
+19:21 < bridge> <learath2> Even if it were all in C++ I doubt there'd be people working on it right this moment
+19:22 < bridge> <milkeeycat> https://antonz.org/go-json-v2/
+19:27 < bridge> <kebscs> me 🙂
+19:28 < bridge> <learath2> Perhaps
+19:29 < bridge> <patiga> afaik, upon requests, @zwelf2 implements such bug detections
+19:31 < bridge> <kebscs> i dmd him in march with info
+19:31 < bridge> <patiga> nice, did he answer?
+19:31 < bridge> <kebscs> yes and linked the rust repo
+19:32 < bridge> <patiga> ...and?
+19:33 < bridge> <patiga> Did admins express that they need/want that bug detection? Is Zwelf aware of that? Did you answer him again?
+19:33 < bridge> <kebscs> and i told him i dont know rust
+19:33 < bridge> <kebscs> thats it
+19:34 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1387485995435298940/image.png?ex=685d8487&is=685c3307&hm=71fabf8fdc27cdf672605a97dd0acf1214a93161b7c3083591ae0aa1306f9879&
+19:34 < bridge> <kebscs> yes i dmd him all needed info
+19:34 < bridge> <kebscs> time which the bug occcured, all maps that it could be abused and example demo
+19:34 < bridge> <patiga> so did you ask him nicely if he could implement it for you?
+19:34 < bridge> <patiga> did you express that you would do it if he helps you?
+19:35 < bridge> <kebscs> nope
+19:35 < bridge> <kebscs> its counterproductive if i touch rust
+19:38 < bridge> <gorp_tw> hi im kinda afksti still but https://www.phoronix.com/review/arch-linux-kernels-2023/2 i thought it was cute that phoronix used ddnet to benchmark kernels :owo:
+19:38 < bridge> <gorp_tw> wonder if this Michael Larabel guy is also a tee
+19:53 < bridge> <Jupstar ✪> He used them during the time deen submitted the first version of it
+19:53 < bridge> <Jupstar ✪> Later he didn't use them anymore tho, so he probably found that not useful enough
+20:04 < bridge> <Ewan> if you have any simpler tools or apps made in cpp, reimplementing them in rust is a rly good way to learn it imo because it gives you a reason/opportunity you didn’t have before
+20:05 < bridge> <Ewan> the tool i had to pre-process images for ddnet servers (just so they wouldn’t error) saw basically free parallelism just by reimplementing it in rust & having that as a goal
+20:05 < bridge> <Ewan> add rayon parallel iterator and suddenly it’s several times faster
+20:12 < bridge> <zhn> voxel vibes
+20:17 < bridge> <Ewan> so true
+20:18 < bridge> <Ewan> gotta make up reasons to hinder my own personal development because a small crowd of people put a bad taste in my mouth
+20:33 < bridge> <totar> I would love to at least try to write a teehistorian parser but its difficult and boring without any actual teehistorian data
+20:34 < bridge> <learath2> I can get you some actual teehistorian data if you want to test some code. But you'll find it much easier to work with short teehistorian files you generate yourself for testing
+20:34 < bridge> <learath2> You can use the Rust parser as a reference, that's what I did for my golang parser I was testing
+20:35 < bridge> <ryozuki> tbh my only take is i feel sad for a dev that doesnt explore beyond their comfort zone
+20:36 < bridge> <ryozuki> i initially also disliked rust btw
+20:36 < bridge> <totar> Sure but its easier but I can't have any confidence that it works on all the edge cases
+20:37 < bridge> <kebscs> but i dont want learn rust
+20:37 < bridge> <kebscs> i can do anything in c++/python
+20:37 < bridge> <kebscs> just rust tools are inconvenience
+20:37 < bridge> <ryozuki> @mpft dont bother arguing, he doesnt want to learn it thats it, its valid, however its not valid to be so sour over others enjoying it and making tooling in it because they like it, because thats as valid as not wanting to use rust
+20:37 < ws-client> <ChillerDragon> @ryozuki i commented on your comment
+20:38 < bridge> <ryozuki> for me, the whole c++ ddnet code is an inconvenience, but u deal with it, thats life
+20:38 < bridge> <ryozuki> and it also makes u a better dev to know both
+20:38 < bridge> <ryozuki> ok, ill see the comment on my comment and maybe comment on the comment on the comment
+20:41 < bridge> <ryozuki> @chillerdragon ill merge it the day after to give time for review
+20:41 < bridge> <learath2> Well it'll be almost impossible to figure out what went wrong in the massive th files, but as said I can definitely get you one
+20:46 < bridge> <totar> Okay
+20:47 < ws-client> <ChillerDragon> @ryozuki 85 prs good job
+20:48 < ws-client> <ChillerDragon> @learath2 any news regarding our secret endevours?
+23:45 < bridge> <zwelf2> Not sure if I should advertise, but there are still the C/C++ bindings for teehistorian library I've written, but then decommissioned also due to no one using them: https://gitlab.com/zwelf/teehistorian/-/releases (for an old version, probably powerful enough for current teehistorian too)
+23:47 < bridge> <zwelf2> example c file: https://gitlab.com/zwelf/teehistorian/-/blob/v0.4.0/examples-c/print-extension.c?ref_type=tags
