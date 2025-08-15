@@ -1,0 +1,538 @@
+00:13 < bridge> <Solly (bun bun)> ```cpp
+00:13 < bridge> <Solly (bun bun)> #ifndef ENGINE_SHARED_LOCALIZATION_H
+00:13 < bridge> <Solly (bun bun)> #define ENGINE_SHARED_LOCALIZATION_H
+00:13 < bridge> <Solly (bun bun)> 
+00:13 < bridge> <Solly (bun bun)> /**
+00:13 < bridge> <Solly (bun bun)> * An empty function that suits as a helper to identify strings that might get localized later
+00:13 < bridge> <Solly (bun bun)> */
+00:13 < bridge> <Solly (bun bun)> static constexpr const char *Localizable(const char *pStr, const char *pContext = "")
+00:13 < bridge> <Solly (bun bun)> {
+00:13 < bridge> <Solly (bun bun)>     return pStr;
+00:13 < bridge> <Solly (bun bun)> }
+00:13 < bridge> <Solly (bun bun)> 
+00:13 < bridge> <Solly (bun bun)> #endif
+00:13 < bridge> <Solly (bun bun)> ```
+00:13 < bridge> <Solly (bun bun)> nice :D
+00:15 < bridge> <Solly (bun bun)> why is this in another file?
+00:15 < bridge> <Solly (bun bun)> also could be done with a macro `#define Localizable(x) x`
+00:15 < bridge> <Solly (bun bun)> 👀
+00:16 < bridge> <Solly (bun bun)> also could be done with a macro `#define Localizable`
+00:16 < bridge> <Solly (bun bun)> maybe i dont know if that works
+01:24 < bridge> <cherryex6> Ok so finally I found something.
+01:24 < bridge> <cherryex6> Actually the prediction issue was caused by accidentally sending a valid `m_FreezeEnd` in `CNetObj_DDNetCharacter` which is weird.
+03:41 < bridge> <cherryex6> So basically the client will continue to predict an unfreeze for any tee with no respect for the gametype UNLESS you tell the client that the character is deep frozen and can't be unfrozen by a laser or hammer.
+03:43 < bridge> <cherryex6> And this also seems to be correct maybe insta has its own player.cpp which does not include sending a `CNetObj_DDNetPlayer` and as a result the client does not render a pause button.
+03:46 < bridge> <cherryex6> I didn't really check the code for insta tbh.
+03:46 < bridge> <cherryex6> But I think the client prediction needs some changes.
+03:46 < bridge> <cherryex6> And maybe add a feature flag for pause/spec? I mean getting a net object doesn't mean the server has pause and spec commands available.
+03:57 < bridge> <cherryex6> I didn't really check the code for insta tbh.
+03:57 < bridge> <cherryex6> But I think the client prediction needs some changes.
+03:57 < bridge> <cherryex6> And maybe add something like a feature flag or maybe gameinfo fkag for pause/spec? I mean getting a net object doesn't necessarily mean the server has pause and spec commands available.
+07:56 < bridge> <Assa> gumo ^.^
+08:18 < bridge> <ryozuki> morning osdevs langdevs and ddnet devs and others
+08:20 < bridge> <milkeeycat> morning null terminated strings enjoyers and others
+08:26 < bridge> <manikoo> im others
+08:28 < bridge> <Jupstar ✪> What a lovely day it is
+08:28 < bridge> <Jupstar ✪> !roll 0 10
+08:28 < chillerbot> 10
+08:28 < bridge> <Jupstar ✪> 100% agreed
+08:28 < bridge> <milkeeycat> !roll 0 10
+08:28 < chillerbot> 3
+08:28 < bridge> <milkeeycat> :feelsbadman:
+08:29 < bridge> <Jupstar ✪> Uff
+08:45 < ws-client> **<ChillerDragon>** btw you get percentage out of the box if you just do !roll its 0-100
+08:46 < bridge> <milkeeycat> !roll 0 100
+08:46 < chillerbot> 88
+08:51 < bridge> <louis> !roll -1
+08:51 < chillerbot> fatal internal error: javascript runtime buffer inter flow
+08:51 < bridge> <louis> plz fix
+08:52 < bridge> <Assa> !roll 0 10
+08:52 < chillerbot> 10
+08:53 < bridge> <Assa> that's right, because today is band evening again 🍻
+09:03 < bridge> <Assa> ```
+09:03 < bridge> <Assa> client.wait_for_log_exact("client: connected, sending info", timeout=10)
+09:03 < bridge> <Assa> server.wait_for_log_prefix("server: player has entered the game", timeout=30)
+09:03 < bridge> <Assa> ```
+09:03 < bridge> <Assa> 
+09:03 < bridge> <Assa> I don't get how this is possible to get stuck, like the player does not enter apparently?
+09:03 < bridge> <Assa> ```
+09:03 < bridge> <Assa> client.wait_for_log_exact("client: connected, sending info", timeout=10)
+09:03 < bridge> <Assa> server.wait_for_log_prefix("server: player has entered the game", timeout=30)
+09:03 < bridge> <Assa> ```
+09:03 < bridge> <Assa> 
+09:03 < bridge> <Assa> I don't get how this is possible to get stuck, like the player does not enter apparently? ^ part of the integration test
+09:04 < bridge> <Assa> ```
+09:04 < bridge> <Assa> client.wait_for_log_exact("client: connected, sending info", timeout=10)
+09:04 < bridge> <Assa> server.wait_for_log_prefix("server: player has entered the game", timeout=30)
+09:04 < bridge> <Assa> ```
+09:04 < bridge> <Assa> 
+09:04 < bridge> <Assa> I don't get how this is possible to get stuck, like the player does not enter apparently? ^ part of the integration test, which fails at the server log
+09:10 < ws-client> **<ChillerDragon>** pyson issue
+09:10 < ws-client> **<ChillerDragon>** should rewrite in bash
+09:11 < ws-client> **<ChillerDragon>** it can get stuck if the client crashes i guess
+09:12 < bridge> <Assa> but the client is already connecting and sending info, is there another message to check if the client is connected on client side?
+09:14 < bridge> <Assa> I believe I can check this as well `client: got pong from current server`
+09:15 < bridge> <chillerdragon> How do you know it’s connecting?
+09:16 < bridge> <Assa> I can send the full test
+09:16 < bridge> <Assa> it's on map switch
+09:16 < bridge> <Assa> ```python
+09:16 < bridge> <Assa> @test
+09:16 < bridge> <Assa> def client_reconnect_mapswitch(test_env):
+09:16 < bridge> <Assa>     client = test_env.client()
+09:16 < bridge> <Assa>     server = test_env.server()
+09:16 < bridge> <Assa>     wait_for_startup([client, server])
+09:16 < bridge> <Assa>     client.command(f"connect localhost:{server.port}")
+09:17 < bridge> <Assa>     server.wait_for_log_prefix("server: player has entered the game", timeout=10)
+09:17 < bridge> <Assa> 
+09:17 < bridge> <Assa>     client.command(f"rcon_auth {server.rcon_password}")
+09:17 < bridge> <Assa>     server.wait_for_log_exact("server: ClientId=0 authed with key=default_admin (admin)")
+09:17 < bridge> <Assa>     client.command("rcon sv_map Tutorial")
+09:17 < bridge> <Assa>     client.wait_for_log_exact("client: connected, sending info", timeout=10)
+09:17 < bridge> <Assa>     client.wait_for_log_prefix("client: got pong from current server", timeout=10)
+09:17 < bridge> <Assa>     server.wait_for_log_prefix("server: player has entered the game", timeout=30)
+09:17 < bridge> <Assa> 
+09:17 < bridge> <Assa>     server.exit()
+09:17 < bridge> <Assa>     client.wait_for_log_exact("client: offline error='Server shutdown'")
+09:17 < bridge> <Assa>         ...
+09:17 < bridge> <Assa> ```
+09:17 < bridge> <Assa> currently running the test again, waiting if I can get the pong message
+09:18 < bridge> <Assa> but probably the server doesn't send a pong or the client crashes, but I can't check if the python thread running the client is still running, can I?
+09:18 < bridge> <Assa> I wonder why we don't use pytest with fixtures here :/
+09:18 < bridge> <chillerdragon> Did you add a test or add a bug?
+09:19 < bridge> <Assa> the smoke test was failing, so I added a smaller test checking for only the behavior I want
+09:19 < bridge> <Assa> the smoke test was failing, so I added a smaller test checking for only the behavior I want, e.g. map switch
+09:19 < bridge> <Assa> my problem is I can only reproduce this in pipeline
+09:20 < bridge> <chillerdragon> Yea idk much about the python stuff sorry go ping Heinrich
+09:32 < bridge> <Assa> I even get the pong message :monkaStop: it's like the client is happily connecting the the server just doesn't log
+09:34 < bridge> <Assa> can it be that I missed it? can the client enter before?
+09:37 < bridge> <Assa> > client.wait_for_log_exact("client: connected, sending info", timeout=10)
+09:37 < bridge> <Assa> This one also shouldn't work because it doesn't get that message on mapswitch
+10:24 < bridge> <Assa> I let the test print all client and server logs, it appears that something hangs after mapswitch :justatest: it doesn't crash, it just hangs. I wonder if it's actually just really really slow or does truly hang
+10:58 < bridge> <01000111g> !roll 0 10
+10:58 < chillerbot> 7
+11:13 < bridge> <jxsl13> !roll 0x01 0x0A
+11:13 < chillerbot> 0
+11:13 < bridge> <jxsl13> !roll 001 007
+11:13 < chillerbot> 3
+11:15 < bridge> <cherryex6> !roll 06 07
+11:15 < chillerbot> 7
+11:26 < bridge> <chillerdragon> !ddos 127.0.0.1
+11:26 < chillerbot> ddosing game server 127.0.0.1 ...
+11:30 < bridge> <murpi> Well that's one way to get our entire server banned.
+11:30 < bridge> <01000111g> ah i forgor about dc auto moderation
+11:38 < bridge> <ChnFreddie> :PepePopcorn:
+11:56 < bridge> <pilonpl> I wonder what happened
+11:59 < ws-client> **<ChillerDragon>** oops
+12:08 < bridge> <chillerdragon> L tos btw why are we still on discord?
+12:09 < bridge> <kebscs> you arent :nouis:
+12:10 < bridge> <kollpotato> chillor did u add ddos command
+12:10 < bridge> <chillerdragon> Yea like you requested .\_.
+12:10 < bridge> <chillerdragon> But murpii says it’s bad
+12:10 < bridge> <kollpotato> nooo :(
+12:10 < bridge> <chillerdragon> discord is a no fun zone
+12:11 < bridge> <kollpotato> mr murpi is scared for his runs
+12:33 < bridge> <inv41idu53rn4m3> Discord sucks I agree
+12:34 < bridge> <inv41idu53rn4m3> We should migrate all conversation to DDNet in-game chat
+12:34 < bridge> <melon> i think the issue is that the bot handles hexand octal vals
+12:35 < bridge> <melon> i think the issue is that the bot handles hex and octal vals
+12:35 < bridge> <melon> i think the issue is that the bot handles hex
+12:35 < bridge> <melon> i like interactive discord more anyway
+12:37 < bridge> <inv41idu53rn4m3> Emotes and wiggling your mouse are way better than reaction emoji
+12:38 < bridge> <kollpotato> the ddos command was just this
+12:38 < bridge> <kollpotato> 
+12:38 < bridge> <kollpotato> ```ts
+12:38 < bridge> <kollpotato> else if (cmd === 'ddos') {
+12:38 < bridge> <kollpotato>     if (args.length !== 1) {
+12:38 < bridge> <kollpotato>       say('usage: !ddos [server ip]')
+12:38 < bridge> <kollpotato>       return
+12:38 < bridge> <kollpotato>     }
+12:38 < bridge> <kollpotato>     if (!/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(args[0])) {
+12:38 < bridge> <kollpotato>       say('invalid ip')
+12:38 < bridge> <kollpotato>       return
+12:38 < bridge> <kollpotato>     }
+12:38 < bridge> <kollpotato> 
+12:38 < bridge> <kollpotato>     say(`ddosing game server ${args[0]} ...`)
+12:38 < bridge> <kollpotato>   }
+12:38 < bridge> <kollpotato> ```
+12:38 < bridge> <kollpotato> why murpi mad
+12:38 < bridge> <Assa> you could totally build a ddnet <-> discord dev bridge
+12:38 < bridge> <inv41idu53rn4m3> If you disagree with someone's engineering decisions you throw them into a kill tile to convince them
+12:38 < bridge> <Assa> hmm need to watch out with player count
+12:39 < bridge> <inv41idu53rn4m3> We can have a cross server chat bridge
+12:40 < bridge> <Assa> omg, you could make a city map where each room is another discord chat 😮
+12:44 < bridge> <always> !ddos 1.1.1.1
+12:44 < chillerbot> ddosing game server 1.1.1.1 ...
+12:46 < bridge> <inv41idu53rn4m3> But for chat logs we need to log in game emoting and body language, which basically means teehistorian
+12:47 < bridge> <murpi> Can you stop
+12:47 < bridge> <inv41idu53rn4m3> It probably isn't searchable by chat history, and isn't indexed either...
+12:48 < bridge> <always> that wont get the server banned
+12:48 < bridge> <melon> oh yeah eh - that may automatically flag our server as malicious
+12:48 < bridge> <melon> ChillerDragon: can you rm -rf that pls.
+12:48 < bridge> <murpi> Do you think the Discord support team is sharp enough to recognize that this is "just a joke" similarly how they treat it people for joking about their age?
+12:48 < bridge> <murpi> Do you think the Discord support team is sharp enough to recognize that this is "just a joke" similarly how they treat ipeople for joking about their age?
+12:49 < bridge> <murpi> Do you think the Discord support team is sharp enough to recognize that this is "just a joke" similarly how they treat people for joking about their age?
+12:49 < bridge> <inv41idu53rn4m3> I'm not going to say that I'm 12 because I know what tends to happen
+12:49 < bridge> <kollpotato> oh wait really
+12:49 < bridge> <melon> do you think they check that manually? :p
+12:49 < bridge> <kollpotato> no i didnt know they check it at all
+12:50 < bridge> <melon> i wish they'd check stuff even harder
+12:50 < bridge> <always> the biggest discord bot had a /hack command which would "hack u"
+12:50 < bridge> <melon> their automated system flagged my entire ISP as spam before
+12:50 < bridge> <always> i doubt that would ban but whatever
+12:50 < bridge> <inv41idu53rn4m3> (for any discord employees reading this, I'm 26)
+12:50 < bridge> <melon> my messages didnt go tghrough because of it d
+12:50 < bridge> <melon> my messages didnt go tghrough because of it xd
+12:50 < bridge> <melon> our "bot" isnt a bot tho, its an IRC bridge with custom js
+12:50 < bridge> <always> its a webhook
+12:51 < bridge> <kollpotato> one more reason to dislike discord
+12:51 < bridge> <kollpotato> so what if the server gets flagged as malicious?
+12:51 < bridge> <always> they do
+12:51 < bridge> <kollpotato> will there be a warning for members
+12:51 < bridge> <always> if a server gets falgged
+12:51 < bridge> <always> they pause invites
+12:52 < bridge> <always> for a while
+12:52 < bridge> <always> if a server gets flagged
+12:52 < bridge> <kollpotato> wtf discord sucks
+12:52 < bridge> <melon> oh you were banned?
+12:52 < bridge> <melon> just join their discord to appeal!
+12:52 < bridge> <melon> 
+12:52 < bridge> <melon> **this server has been closed for malicious activity**
+12:52 < bridge> <melon> ah gg
+12:52 < bridge> <always> yep
+12:53 < bridge> <kollpotato> how long has this been a thing
+12:53 < bridge> <melon> idk but we should respect murpi saying we shouldnt do it.
+12:54 < bridge> <melon> idk but we should respect and trust murpi saying we shouldnt do it.
+12:54 < bridge> <always> yeah sure
+12:54 < bridge> <Assa> probably until sb sued or said or wrote to the mods that he would
+12:54 < bridge> <kollpotato> would be nice if he mentioned why first
+12:54 < bridge> <Assa> probably until sb sued or wrote to the mods that he would
+12:54 < bridge> <kollpotato> or i didn't see the message
+12:55 < bridge> <Assa> good that I used my throw-away-mail for discord
+13:00 < bridge> <murpi> Ah yes, programming DDoS commands under the assumption that it’s perfectly acceptable and not criminal, surely Discord will have no difficulty distinguishing satire from intent. What could go wrong? :justatest:
+13:01 < bridge> <kebscs> reported 💔
+13:05 < bridge> <kollpotato> alright, what about stopddos command?
+13:05 < bridge> <murpi> https://tenor.com/view/doge-bonk-chew-mega-bonk-hitting-gif-26060616
+13:06 < bridge> <kollpotato> boink
+13:07 < bridge> <melon> https://tenor.com/view/yakuza-goro-majima-watermelon-videogame-based-gif-895818775843577341
+13:12 < ChillerDragon> !ping
+13:12 < chillerbot> pong
+13:12 < ChillerDragon> ddos fixed. lerato would be proud
+13:13 < bridge> <kollpotato> chillor im spamming issues with useless ideas
+13:13 < bridge> <kollpotato> pls dont ban
+13:13 < ws-client> **<ChillerDragon>** @Assa i did a ddnet to discord dev bridge already
+13:16 < bridge> <inv41idu53rn4m3> Does it translate emotes to :heartw: :tear: :sorry: :oop: :what: :happy:
+13:16 < ws-client> **<ChillerDragon>** who?
+13:18 < bridge> <inv41idu53rn4m3> The bridge needs to translate in-game emotes to emoji on the other side of the bridge, obviously
+13:18 < bridge> <inv41idu53rn4m3> :heartw: :heartw:
+13:18 < ws-client> **<ChillerDragon>** a ye
+13:18 < ws-client> **<ChillerDragon>** the bridge i built is pretty basic like 10 lines of ruby
+13:34 < bridge> <Assa> econ based probably?
+13:34 < ws-client> **<ChillerDragon>** nah it uses a lib
+13:34 < ws-client> **<ChillerDragon>** runs server written in native ruby xd
+13:34 < bridge> <Assa> I was thinking about a deeper level of integration, where you join/disconnect actual talking bots
+13:34 < ws-client> **<ChillerDragon>** oO
+13:35 < ws-client> **<ChillerDragon>** yea could be arranged
+13:35 < bridge> <Assa> yeah, but just because it's possible, it's not useless
+13:35 < bridge> <Assa> yeah, but just because it's possible, it's not useful
+13:35 < ws-client> **<ChillerDragon>** sounds like a milkeeycat project
+13:35 < bridge> <Assa> except when the ddnet-bridge bot then posts: "Assa has thrown Chillerdragon into deathtiles"
+13:36 < ws-client> **<ChillerDragon>** such use
+13:36 < ws-client> **<ChillerDragon>** much ful
+13:38 < bridge> <Assa> `Assa has moved ChillerDragon into the Go-Do-Reviews-corner`
+13:38 < ws-client> **<ChillerDragon>** pleb reviews useless
+13:39 < bridge> <Assa> ddnet-bot as permanent ig bot, marked as an announcer in the wall
+13:39 < ws-client> **<ChillerDragon>** stepbot
+14:01 < bridge> <melon> i thought Roby flipped his profile pic for a second there ._.
+14:02 < bridge> <Assa> omg I wrote my review rn as it was robyt
+14:02 < bridge> <Assa> omg I wrote my review rn assuming it was robyt
+14:02 < bridge> <Assa> I was already wondering :kek:
+14:31 < bridge> <ryozuki> @learath2 got a interrupt descriptor table done
+14:31 < bridge> <ryozuki> i can catch page faults and double faults
+14:31 < bridge> <ryozuki> || and yo mama ||
+14:31 < bridge> <ryozuki> i jest
+14:31 < bridge> <ryozuki> https://wiki.osdev.org/Interrupt_Descriptor_Table
+15:16 < bridge> <ryozuki> ```
+15:16 < bridge> <ryozuki> KERNEL PANIC: panicked at src/interrupts/idt.rs:28:5:
+15:16 < bridge> <ryozuki> EXCEPTION: DOUBLE FAULT
+15:16 < bridge> <ryozuki> InterruptStackFrame {
+15:16 < bridge> <ryozuki>     instruction_pointer: VirtAddr(
+15:16 < bridge> <ryozuki>         0x10000003be1,
+15:16 < bridge> <ryozuki>     ),
+15:16 < bridge> <ryozuki>     code_segment: SegmentSelector {
+15:16 < bridge> <ryozuki>         index: 1,
+15:16 < bridge> <ryozuki>         rpl: Ring0,
+15:16 < bridge> <ryozuki>     },
+15:16 < bridge> <ryozuki>     cpu_flags: RFlags(
+15:16 < bridge> <ryozuki>         RESUME_FLAG | 0x2,
+15:16 < bridge> <ryozuki>     ),
+15:16 < bridge> <ryozuki>     stack_pointer: VirtAddr(
+15:16 < bridge> <ryozuki>         0x18000001000,
+15:16 < bridge> <ryozuki>     ),
+15:16 < bridge> <ryozuki>     stack_segment: SegmentSelector {
+15:16 < bridge> <ryozuki>         index: 2,
+15:16 < bridge> <ryozuki>         rpl: Ring0,
+15:16 < bridge> <ryozuki>     },
+15:16 < bridge> <ryozuki> }
+15:16 < bridge> <ryozuki> 
+15:16 < bridge> <ryozuki> QEMU exited with ExitStatus(unix_wait_status(8960))
+15:16 < bridge> <ryozuki> ```
+15:16 < bridge> <ryozuki> now if my kernel stack overflows it leads to a double fault instead of triple fault pog
+15:42 < bridge> <ryozuki> i wonder how a arm kernel would be, probs much simpler
+15:42 < bridge> <ryozuki> and riscv
+16:04 < bridge> <ryozuki> random info bit:
+16:04 < bridge> <ryozuki> 
+16:04 < bridge> <ryozuki> If you stack overflow, how can the kernel handle the interrupt if just pushing the interrupt stack frame would lead to hitting the stack guard and faulting again, trygering a double fault, which in turn would trigger a triple fault?
+16:04 < bridge> <ryozuki> x86 solves this by allowing to swap to a valid stack by specifing it in the TSS (task state segment) for the given fault handler, in this case the double fault handler
+16:04 < bridge> <ryozuki> thanks for coming to my ted talk
+16:58 < bridge> <cx5x3ko9zce1d6ew> soo thats probably the only day i can solve, but 24 is quite the christmas score to archive xdd
+16:58 < bridge> <cx5x3ko9zce1d6ew> 
+16:58 < bridge> <cx5x3ko9zce1d6ew> ```R
+16:58 < bridge> <cx5x3ko9zce1d6ew> #!/usr/bin/Rscript
+16:58 < bridge> <cx5x3ko9zce1d6ew> df <- read.delim(commandArgs(trailingOnly = T)[1], header = F, sep = "\n")
+16:58 < bridge> <cx5x3ko9zce1d6ew> p1 <- 0; p2 <- 0
+16:58 < bridge> <cx5x3ko9zce1d6ew> for (i in 1:length(df$V1)) { ifelse(df$V1[i] > df$V1[i-1], p1 <- p1 + 1, NA); }
+16:58 < bridge> <cx5x3ko9zce1d6ew> for (i in 3:length(df$V1)) { ifelse(df$V1[i] > df$V1[i-3], p2 <- p2 + 1, NA); }
+16:58 < bridge> <cx5x3ko9zce1d6ew> cat("Part 01: ", p1, "\n", "Part 02: ", p2, "\n", sep = "")
+16:58 < bridge> <cx5x3ko9zce1d6ew> ```
+16:58 < bridge> <cx5x3ko9zce1d6ew> https://cdn.discordapp.com/attachments/293493549758939136/915539393358483476/meh.png?ex=688dde81&is=688c8d01&hm=de7cb5ee76026f763d3fe597a537b4eb0e7bc4aebf03e4b6c6cb3fa85384fa31&
+18:22 < ws-client> **<ChillerDragon>** seems like the bridge got bugged i just got some messages about aoc 2021
+18:32 < bridge> <chillerdragon> I was joking lmao. But I actually dont see them on matrix lol
+18:53 < bridge> <chillerdragon> @learath2: any updates on merge rights?
+19:02 < bridge> <kebscs> @learath2 if chiller gets merge rights, what can I do to get collaborator to be able to close very old issues
+19:03 < bridge> <kebscs> I sometimes go through issues to find smth to code and a lot are outdated
+19:03 < bridge> <kebscs> Since so many are open
+19:07 < bridge> <louis> oh i didnt know there was a role in between
+19:24 < bridge> <kebscs> Chiller has it currently
+19:24 < bridge> <kebscs> Can just add labels and close issues afaik
+19:24 < bridge> <kebscs> Would be useful bcs we added a rule to contribute md to only work on labeled issues
+19:41 < bridge> <Assa> where can I apply to this in between role?
+20:17 < bridge> <chillerdragon> @kebscs: commenting what you would like to do worked well for me. Some maintainer will probably perform the action for you. And eventually someone gets annoyed and gives you more power :D
+20:17 < bridge> <chillerdragon> Road to 666 issues and 69 prs
+20:19 < bridge> <kebscs> Yea already commented on few issues and Roby closed them
+20:19 < bridge> <kebscs> But it would be way more handy
+20:19 < bridge> <chillerdragon> poggers
+20:19 < bridge> <kebscs> With less work
+20:21 < bridge> <chillerdragon> The role is quite op actually. I can reopen my own prs that got closed by maintainers. And can also close prs.
+20:23 < bridge> <Jupstar ✪> 1 - I love chiller
+20:23 < bridge> <Jupstar ✪> 2 - Chiller loves me
+20:23 < bridge> <Jupstar ✪> 3 - Both love each other
+20:23 < bridge> <Jupstar ✪> !roll 1 3
+20:23 < chillerbot> 2
+20:23 < bridge> <Jupstar ✪> uff
+20:23 < bridge> <Jupstar ✪> One sided love.. I feel your pain chiller
+20:23 < bridge> <chillerdragon> Ouch
+20:23 < bridge> <chillerdragon> Must be maximum bug
+21:14 < bridge> <Assa> !roll 1 3
+21:14 < chillerbot> 2
+21:14 < bridge> <Assa> :owo:
+21:15 < bridge> <vahemaaa> how much money will i earn at my 30's?
+21:15 < chillerbot> You can see donors and how to donate here https://ddnet.org/funding/
+21:15 < bridge> <vahemaaa> !roll 100000 100001
+21:15 < chillerbot> 100000
+21:15 < bridge> <vahemaaa> nice
+21:15 < bridge> <bomab> richz
+21:17 < bridge> <bomab> are ddnet playerbase real or are they all just ai bots?
+21:17 < bridge> <bomab> !roll 0 1
+21:17 < chillerbot> 0
+21:17 < bridge> <Assa> I attack with my great axe
+21:17 < bridge> <Assa> !roll 1 20
+21:17 < chillerbot> 8
+21:17 < bridge> <bomab> everyone ai confirmed
+21:17 < bridge> <Assa> miss :feelsbadman:
+21:18 < bridge> <bomab> will i hit jackpot? (gambling?!?!?!?!?!?)
+21:18 < bridge> <bomab> !roll 111 999
+21:18 < chillerbot> 446
+21:18 < bridge> <bomab> aww
+21:18 < bridge> <Jupstar ✪> cents?
+21:20 < bridge> <manikoo> !roll 1 3
+21:20 < chillerbot> 3
+21:20 < bridge> <manikoo> omagad chiller
+21:20 < bridge> <Assa> gimme a lotto number
+21:20 < bridge> <Assa> !roll 1 49
+21:20 < chillerbot> 26
+21:20 < bridge> <Jupstar ✪> how rich am i currently (including all goods i own)
+21:21 < bridge> <Jupstar ✪> !roll 0 1000000
+21:21 < chillerbot> 131754
+21:21 < bridge> <Jupstar ✪> sick
+21:21 < bridge> <vahemaaa> i hope not
+21:21 < bridge> <vahemaaa> :justatest:
+21:21 < bridge> <bomab> how much money ddcoins i get
+21:21 < chillerbot> You can see donors and how to donate here https://ddnet.org/funding/
+21:21 < bridge> <bomab> !roll 0 2147483647
+21:21 < chillerbot> 899205065
+21:21 < bridge> <bomab> grrat
+21:22 < bridge> <bomab> great
+21:22 < bridge> <bomab> how much is a ddcoin worth in dollars?
+21:22 < bridge> <bomab> !roll 0 31000
+21:22 < chillerbot> 27013
+21:22 < bridge> <bomab> lovely
+21:23 < bridge> <bomab> one last attempt
+21:23 < bridge> <bomab> !roll 111 999
+21:23 < chillerbot> 664
+21:23 < bridge> <bomab> aww
+21:23 < bridge> <manikoo> sad only paypal
+21:44 < bridge> <Assa> chillers bank pin
+21:44 < bridge> <Assa> !roll 1 999
+21:44 < chillerbot> 667
+21:44 < bridge> <Assa> hm
+21:44 < bridge> <Assa> !roll 1 9999
+21:44 < chillerbot> 1589
+21:46 < bridge> <Assa> worked, good bot
+21:46 < bridge> <DDNet> :heartw:
+21:46 < bridge> <Jupstar ✪> Robytes number of todos on his list
+21:46 < bridge> <Jupstar ✪> !roll 0 100000
+21:46 < chillerbot> 92886
+21:46 < bridge> <Jupstar ✪> 100% true
+21:46 < bridge> <Assa> almost max value 😂
+21:47 < bridge> <Assa> my problems
+21:47 < bridge> <Assa> !roll 0 99
+21:47 < chillerbot> 83
+21:55 < bridge> <louis> how many days until i get admin
+21:55 < bridge> <louis> !roll 0 10000
+21:55 < chillerbot> 965
+22:11 < bridge> <bomab> am i stupid?
+22:11 < bridge> <bomab> !roll 0 1
+22:11 < chillerbot> 1
+22:12 < bridge> <bomab> well 😔
+22:14 < bridge> <bomab> will i stop being stupid?
+22:14 < bridge> <bomab> !roll 0 1
+22:14 < chillerbot> 0
+22:14 < bridge> <bomab> rude bot
+22:14 < bridge> <bomab> 😔
+22:14 < bridge> <bomab> are you telling truth?
+22:14 < bridge> <bomab> !roll 0 1
+22:14 < chillerbot> 0
+22:15 < bridge> <bomab> so it was a joke
+22:15 < bridge> <bomab> evil bot
+22:17 < bridge> <bomab> one last attempt (truly last attempt this time)
+22:17 < bridge> <bomab> !roll 111 999
+22:17 < chillerbot> 277
+22:17 < bridge> <bomab> aww
+22:17 < bridge> <bomab> so close
+22:36 < bridge> <manikoo> how nice is manikoo from 1 to 2407
+22:36 < bridge> <manikoo> !roll 1 2407
+22:36 < chillerbot> 2094
+22:36 < bridge> <manikoo> gud
+22:36 < bridge> <manikoo> it's will be year of my death maybe
+22:46 < bridge> <bomab> when will i die?
+22:46 < bridge> <bomab> !roll 2025 2100
+22:46 < chillerbot> 2075
+22:47 < bridge> <bomab> fair enough
+22:47 < bridge> <manikoo> how old are u
+22:47 < bridge> <bomab> how old am i?
+22:47 < bridge> <manikoo> y
+22:47 < bridge> <bomab> !roll 3 80
+22:47 < chillerbot> 13
+22:48 < bridge> <manikoo> ohohoho go
+22:48 < bridge> <manikoo> !roll 1 80
+22:48 < chillerbot> 26
+22:48 < bridge> <bomab> im barely old enough to use discord ig
+22:48 < bridge> <manikoo> hahha
+22:48 < bridge> <manikoo> maybe
+22:49 < bridge> <bomab> should i continue using discord?
+22:49 < bridge> <bomab> !roll 0 1
+22:49 < chillerbot> 1
+22:49 < bridge> <bomab> i guess i will still on be discord
+22:50 < bridge> <manikoo> should i install arch and leave internet
+22:50 < bridge> <manikoo> !roll 0 1
+22:50 < chillerbot> 0
+22:50 < bridge> <manikoo> gud boy
+22:50 < bridge> <bomab> you will have a life
+22:51 < bridge> <bomab> should i install arch and leave internet
+22:51 < bridge> <bomab> !roll 0 1
+22:51 < chillerbot> 1
+22:51 < bridge> <manikoo> MAN
+22:51 < bridge> <bomab> i guess i domt have a life and live in the basement until 2075
+22:51 < bridge> <manikoo> nooo
+22:51 < bridge> <bomab> i guess i dont have a life and live in the basement until 2075
+22:51 < bridge> <manikoo> bomab it's so sad
+22:52 < bridge> <bomab> indeed
+22:52 < bridge> <bomab> but there is nothing i can do
+22:52 < bridge> <bomab> is there?
+22:52 < bridge> <bomab> !roll 0 1
+22:52 < chillerbot> 0
+22:52 < bridge> <bomab> exactly
+22:53 < bridge> <bomab> will i get banned for occupying the so called developer channel for abusing the bot?
+22:53 < bridge> <bomab> !roll 0 1
+22:53 < chillerbot> 1
+22:53 < bridge> <bomab> i guess thats a goodbye
+22:54 < bridge> <manikoo> ill cry bomab
+22:54 < bridge> <bomab> so sad indeed
+23:05 < bridge> <kollpotato> !roll -5 -1
+23:05 < chillerbot> -5
+23:05 < bridge> <kollpotato> !dice
+23:05 < bridge> <kollpotato> chillor my issues are top priority
+23:06 < bridge> <kollpotato> i need dice
+23:25 < bridge> <Ewan> awesome
+23:25 < bridge> <vahemaaa> awesome
+23:29 < bridge> <manikoo> awesome
+23:30 < bridge> <0xdeen> Thanks @manikoo ^
+23:31 < bridge> <manikoo> ||the funny thing is i don't know who did it :twinbop: ||
+23:38 < bridge> <Solly (bun bun)> on a scale from 1 to 10 how pretty am i
+23:38 < bridge> <Solly (bun bun)> !roll 10 10
+23:38 < chillerbot> 10
+23:39 < bridge> <Solly (bun bun)> !roll 1 10
+23:39 < chillerbot> 5
+23:39 < bridge> <melon> on a scale from 1 to 10 how petty is @sollybunny
+23:39 < bridge> <Solly (bun bun)> !roll 10 10
+23:39 < chillerbot> 10
+23:39 < bridge> <melon> !roll 0 10
+23:39 < chillerbot> 1
+23:39 < bridge> <Solly (bun bun)> :)
+23:39 < bridge> <kollpotato> melon abusing mod powers
+23:39 < bridge> <melon> wow deleting my message?
+23:39 < bridge> <manikoo> how pretty is manikoo
+23:39 < bridge> <melon> a:buse
+23:39 < bridge> <kollpotato> or not
+23:39 < bridge> <manikoo> !roll 1 10
+23:39 < chillerbot> 10
+23:39 < bridge> <kollpotato> solly is mod too now
+23:39 < bridge> <Solly (bun bun)> ur deleting my msgs
+23:39 < bridge> <manikoo> gud
+23:39 < bridge> <melon> not true
+23:39 < bridge> <Solly (bun bun)> ur lying
+23:39 < bridge> <manikoo> no
+23:39 < bridge> <Solly (bun bun)> ghasp
+23:40 < bridge> <manikoo> melon gud
+23:40 < bridge> <melon> a:busing²
+23:40 < bridge> <manikoo> solly abuse mod
+23:40 < bridge> <Solly (bun bun)> help im being abused
+23:40 < bridge> <melon> @manikoo go #general
+23:40 < bridge> <Solly (bun bun)> shit
+23:40 < bridge> <Solly (bun bun)> wrong one
+23:40 < bridge> <Solly (bun bun)> @manikoo go #general
+23:40 < bridge> <Solly (bun bun)> melon says: @manikoo go #general
+23:40 < bridge> <Solly (bun bun)> 😓
+23:40 < bridge> <manikoo> im developer
+23:40 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1400956453342150726/image.png?ex=688e85de&is=688d345e&hm=a26d0407f7bcdee11876bcb1875df8cbeef4b47bb6506a5cfb99c884f5d8e51e&
+23:40 < bridge> <Solly (bun bun)> developer is poorple
+23:40 < bridge> <manikoo> secret agent
+23:40 < bridge> <manikoo> 007
+23:41 < bridge> <Solly (bun bun)> what agent is @manikoo
+23:41 < bridge> <Solly (bun bun)> !roll 000 999
+23:41 < chillerbot> 903
+23:41 < bridge> <Solly (bun bun)> yeah right
+23:41 < bridge> <manikoo> what
+23:41 < bridge> <manikoo> rate solly's mod abuse
+23:41 < bridge> <manikoo> !roll 1 1000
+23:41 < chillerbot> 483
+23:41 < bridge> <Solly (bun bun)> !roll 0 0
+23:41 < chillerbot> 0
+23:42 < bridge> <manikoo> it's begin 1
+23:42 < bridge> <Solly (bun bun)> yeah im anti mod abuse
+23:42 < bridge> <kollpotato> how many years until 0.8 comes
+23:42 < bridge> <kollpotato> !roll 0 50
+23:42 < chillerbot> 41
+23:42 < bridge> <manikoo> matricks kid
+23:42 < bridge> <manikoo> will code 0.8
+23:42 < bridge> <manikoo> with chiller
+23:42 < bridge> <Solly (bun bun)> uhh are you silly
+23:42 < bridge> <Solly (bun bun)> chiller is matricks kid
+23:43 < bridge> <manikoo> OOOH
+23:43 < bridge> <Solly (bun bun)> matricks + :twinbop: = @chillerdragon
+23:43 < bridge> <manikoo> sure
+23:43 < bridge> <manikoo> but no
+23:43 < bridge> <manikoo> im talking about chillers bro
+23:43 < bridge> <manikoo> brother
+23:43 < bridge> <Solly (bun bun)> steamers
+23:47 < bridge> <Ewan> I don't get it

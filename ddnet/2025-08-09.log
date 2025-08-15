@@ -1,0 +1,579 @@
+00:02 < bridge> <learath2> The entire accounts proposal relies on how quic does encryption. The client login certificate is the client certificate for the quic connection
+00:03 < bridge> <learath2> (or tls, basically connection layer binding of the channel to keys)
+00:31 < bridge> <Solly (bun bun)> oh shit
+00:50 < bridge> <01000111g> Does someone know, why in the ddnet datasette on db.ddstats.org, the data of the time cps is just 0 for all rows in the race table? I kinda need that info
+00:52 < bridge> <learath2> You sure it’s all 0? Maps that don’t have time cps have those 0d iirc
+00:52 < bridge> <01000111g> No, its not all, but in the webview i also see negative values and it feels weird. I just tried to fetch all rows in the race table of Stronghold and only got 0s, but maybe i did sth wrong, will have to look deeper
+00:53 < bridge> <melon> https://db.ddstats.org/ddnet-128c319?sql=select+*+from+race+where+cp1%3D21.40
+00:53 < bridge> <melon> 
+00:53 < bridge> <melon> forks for me
+00:53 < bridge> <melon> https://db.ddstats.org/ddnet-128c319?sql=select+*+from+race+where+cp1%3D21.40
+00:53 < bridge> <melon> 
+00:53 < bridge> <melon> works for me
+01:02 < bridge> <01000111g> ```
+01:02 < bridge> <01000111g> import requests
+01:02 < bridge> <01000111g> import pandas as pd
+01:02 < bridge> <01000111g> 
+01:02 < bridge> <01000111g> BASE_URL = "https://db.ddstats.org/ddnet.json"
+01:02 < bridge> <01000111g> MAP_NAME = "Stronghold"
+01:02 < bridge> <01000111g> BATCH_SIZE = 5000
+01:02 < bridge> <01000111g> offset = 0
+01:02 < bridge> <01000111g> all_rows = []
+01:02 < bridge> <01000111g> columns = None
+01:02 < bridge> <01000111g> 
+01:02 < bridge> <01000111g> 
+01:02 < bridge> <01000111g> while True:
+01:02 < bridge> <01000111g>     sql = f"""
+01:02 < bridge> <01000111g>     SELECT *
+01:02 < bridge> <01000111g>     FROM race
+01:02 < bridge> <01000111g>     WHERE Map = :map
+01:02 < bridge> <01000111g>     ORDER BY Timestamp ASC
+01:02 < bridge> <01000111g>     LIMIT {BATCH_SIZE} OFFSET {offset}
+01:02 < bridge> <01000111g>     """
+01:02 < bridge> <01000111g>     
+01:02 < bridge> <01000111g>     params = {
+01:02 < bridge> <01000111g>         "sql": sql,
+01:02 < bridge> <01000111g>         "map": MAP_NAME
+01:02 < bridge> <01000111g>     }
+01:02 < bridge> <01000111g>     
+01:02 < bridge> <01000111g>     r = requests.get(BASE_URL, params=params)
+01:03 < bridge> <01000111g>     r.raise_for_status()
+01:03 < bridge> <01000111g>     data = r.json()
+01:03 < bridge> <01000111g>     
+01:03 < bridge> <01000111g>     if columns is None:
+01:03 < bridge> <01000111g> this gives me 0s and i dont get why
+01:03 < bridge> <melon> hm idk, i sadly dont have the energy right now to debug xd
+01:05 < bridge> <always> hard code it
+01:06 < bridge> <always> stronghold doesnt have time cps
+01:06 < bridge> <always> https://ddstats.tw/map/Stronghold/timecps
+01:06 < bridge> <always> try a map with time cps
+01:06 < bridge> <01000111g> xd
+01:07 < bridge> <01000111g> how is this possible, I thought we added time cps to all maps
+01:07 < bridge> <always> nope
+01:07 < bridge> <01000111g> gg
+01:07 < bridge> <always> there was a spreadsheet
+01:07 < bridge> <always> that had the data
+01:07 < bridge> <always> iirc brutal 50% done?
+01:07 < bridge> <01000111g> somehow, there is a single run in Brazil on Sh1 with time cps????
+01:07 < bridge> <always> idk tho
+01:07 < bridge> <always> what where
+01:07 < bridge> <01000111g> https://db.ddstats.org/ddnet-128c319?sql=select+*+from+race+where+map+%3D+%22Stronghold%22
+01:07 < bridge> <01000111g> first one
+01:08 < bridge> <always> uhh
+01:08 < bridge> <always> i have no idea
+01:08 < bridge> <always> probably a bg
+01:08 < bridge> <always> probably a bug
+01:09 < bridge> <01000111g> im going to crashout soon. I need them to do data science 🙁
+01:10 < bridge> <always> none of the strongholds have time cps
+01:10 < bridge> <always> gg
+01:10 < bridge> <always> why isnt the timecp project
+01:10 < bridge> <always> based off most finishes
+01:11 < bridge> <always> what are u making
+01:18 < bridge> <totar> doesn't this make it kinda unreasonable for vanilla based servers to integrate accounts?
+01:18 < bridge> <totar> unless you're forking ddnet that sounds really hard
+01:19 < bridge> <01000111g> TAS autodetection
+01:19 < bridge> <01000111g> with semi-supervised learning probably, not rule-based
+01:25 < bridge> <Solly (bun bun)> well insta has reimplemented all vanilla gamemodes
+01:25 < bridge> <Solly (bun bun)> and more
+01:25 < bridge> <totar> true
+01:25 < bridge> <totar> do servers actually run insta
+01:26 < bridge> <Solly (bun bun)> not the fng and zcatch ones
+01:26 < bridge> <Solly (bun bun)> no one plays vanilla of any kind
+01:26 < bridge> <Solly (bun bun)> x-x
+01:26 < bridge> <Solly (bun bun)> but they could!
+01:27 < bridge> <louis> wait why do u need timecps then
+01:28 < bridge> <totar> it's not tas detection it's duplicate run detection
+01:28 < bridge> <louis> do u just want to find runs w identical timecps as tas so u have labels
+01:28 < bridge> <louis> yeah
+01:29 < bridge> <louis> i guess u can label all duplicate runs and try to classify the teehistorian data of those versus non duplicates
+01:30 < bridge> <louis> ive wanted to try but im not really confident that it'll be very accurate
+01:32 < bridge> <01000111g> yeah, but i will not define this explicitly. Maybe i hand label some rule-based like that, but maybe not. I will explore first. There are other metadata one can assess and some features one can design (like relative time spent in certain areas of map in comparison to average players etc etc, i will play around a lot. Later, if one is able to define a global model, taking into account all maps and runs it will become very interesting, as sus playe
+01:33 < bridge> <louis> 🫡
+01:33 < bridge> <01000111g> Its cheated rank detection from metadata. It will be very complicated and data heavy if one actually wants to do it just by pure gameplay via teehistorian
+01:35 < bridge> <louis> yah
+01:35 < bridge> <louis> I think teehistorian is the answer tho to somehow get a good automatic detection
+01:38 < bridge> <01000111g> yeah, but its a crazy load of data. I just try this for fun and see if i even get somewhere.
+09:13 < bridge> <chillerdragon> @01000111g: I doubt the records db has enough data for TAS detection. You might want to have a look at teehistorian instead.
+09:14 < bridge> <chillerdragon> Souly I run fng and zcatch! And the fng one also has been forked and is used by others.
+09:52 < bridge> <learath2> It is a hurdle, but I think the way the quic patchset is isolated from the rest of the code makes it easier to apply
+09:55 < bridge> <learath2> How will AI help you in this case? TAS runs should have all the same timecps, there is nothing you gain by AI-ing this, but introducing an error rate
+09:56 < bridge> <learath2> The timecps do not have enough information to do anything else with, there is nothing to learn there that then would apply to timecps of other players
+10:25 < bridge> <Assa> gumo ^.^
+10:25 < bridge> <Assa> @learath2 ^ this one is very easy to review and merge 😄
+10:41 < bridge> <ryozuki> today is elf loader day
+10:41 < bridge> <milkeeycat> today is saturday
+10:42 < bridge> <ryozuki> xd
+10:42 < bridge> <ryozuki> if i do a elf loader i can run some c or rust programs
+10:56 < bridge> <Assa> I also like elfs :justatest:
+11:05 < bridge> <01000111g> That's not true. Not all TAS runs get replayed twice or more. Still one can see they are suspicous, because they have insane time/rank in comparison to player points and other metainformation/confirmed legit ranks. Of course a trained model has a FPR and other characteristics. But one can adjust for a specific direction one wants to go. In best case a model trained on all maps, players and races gives out a Likelihood of runs being cheated. Some 
+11:07 < bridge> <learath2> I just don't believe there is enough information in there. You'll have a stupid large fpr for good players
+11:07 < bridge> <learath2> AI isn't magic. It can't learn patterns where there are no patterns
+11:09 < bridge> <learath2> (Feel free to mess around with it. It's just an educated guess that it'd be a waste of your time)
+11:09 < bridge> <01000111g> Yeah, we'll see. I am aware of this, its just a fun side project. There are patterns definitely, but getting a reliable estimate is a challenge for sure.
+12:14 < bridge> <ryozuki> @learath2 do u think i can brick a pc if i try my kernel on real hardware
+12:14 < bridge> <ryozuki> :justatest:
+12:14 < bridge> <ryozuki> i should get a old pc to try stuff
+12:34 < bridge> <learath2> If the firmware isn't buggy, you shouldn't really be able to
+12:34 < bridge> <ryozuki> thing is, how would i install it
+12:34 < bridge> <ryozuki> ok qemu i pass a raw image
+12:35 < bridge> <ryozuki> on*
+12:35 < bridge> <ryozuki> would it work with a usb?
+12:35 < bridge> <ryozuki> it has a uefi bootloader
+12:36 < bridge> <ryozuki> i thought i should port it to use limine bootloader it has a rly nice crate
+12:40 < bridge> <melon> @ryozuki i have old hardware
+12:40 < bridge> <melon> 
+12:40 < bridge> <melon> 1050ti, ryzen5, old hdd
+12:40 < bridge> <melon> 
+12:40 < bridge> <melon> if you want me to test it, just tell me the steps xd
+12:41 < bridge> <melon> i wonder how long a CI would take that tests an entire kernel
+12:57 < bridge> <jxsl13> between a day and a week maybe?
+12:58 < bridge> <jxsl13> might also depend on the tests, which only run on specific hardware
+13:07 < bridge> <ryozuki> qemu
+13:07 < bridge> <ryozuki> kernel itself isnt heavy, in fact should be fast to test, itd the user programs
+13:23 < bridge> <pilonpl> Can i test the kernel?
+13:29 < bridge> <learath2> If it's an uefi executable you can just have any bootloader chain into it. Or even directly boot it
+13:44 < chillerbot> Elo @ryozuki I just wanted to remind you that: implement a basic filesystem
+13:45 < bridge> <melon> i hate the fact that there is not a default filesystem for all linux applications xd
+13:46 < bridge> <ryozuki> do u want to? i can provide u the img and how to run it
+13:46 < bridge> <melon> dolphin, thunar, egui's own, qt's own
+13:46 < bridge> <ryozuki> but i dont want to share the source yet
+13:46 < bridge> <ryozuki> i wanna cleanup and only share it when it has useful stuff
+13:46 < bridge> <melon> i'd also like to test, i'm fine with just an img
+13:49 < bridge> <learath2> I guess ext3/4 is about as close as it gets to a "default"
+13:50 < bridge> <Solly (bun bun)> ext5 plz doesnt care about being stopped on write and compression
+13:51 < bridge> <Solly (bun bun)> btrfs is a pain to setup#
+13:51 < bridge> <Solly (bun bun)> btrfs is a pain to setup
+13:51 < bridge> <melon> hm ye, but even then you have ext3/4, some use fat32, btrfs, and that weird thing opensuse uses
+13:51 < bridge> <jxsl13> btrfs is shit
+13:51 < bridge> <Solly (bun bun)> no one uses fat32
+13:51 < bridge> <Solly (bun bun)> why
+13:51 < bridge> <learath2> I had no issues what so ever running or setting up btrfs
+13:51 < bridge> <jxsl13> bit rot protection sucks
+13:51 < bridge> <learath2> This laptop is my first experiment with it and it hasn't given me a single issue in 16 months or so now
+13:51 < bridge> <jxsl13> zfs is the better way
+13:52 < bridge> <learath2> Surely you mean bitrot detection
+13:52 < bridge> <melon> bitrot protection would be sick
+13:52 < bridge> <jxsl13> detection works, but it's annoying
+13:52 < bridge> <learath2> How would you "protect" against bitrot? It happens while nothing is running
+13:53 < bridge> <Solly (bun bun)> well it was a pain the first time when iu had no time what im doing, but now its fine i benefit greatly from compression x-x
+13:53 < bridge> <Solly (bun bun)> its just annoying that u have to have another grub pkg and testdisk doesnt work on it (and the btrfs version is wack)
+13:53 < bridge> <jxsl13> the drive should run at least 👀
+13:54 < bridge> <ryozuki> ```bash
+13:54 < bridge> <ryozuki> # run with, remove --enable-kvm if u dont have kvm
+13:54 < bridge> <ryozuki> qemu-system-x86_64 --enable-kvm -serial stdio -device isa-debug-exit,iobase=0xf4,iosize=0x04 -no-reboot -usb -m 128 -drive if=pflash,format=raw,unit=0,file=out/ovmf_prebuilt/x64/code.fd,readonly=on -drive if=pflash,format=raw,unit=1,file=out/ovmf_prebuilt/x64/vars.fd -drive format=raw,file=out/edos_uefi.img
+13:54 < bridge> <ryozuki> ```
+13:54 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1403707921866555412/edos-kernel.zip?ex=68988860&is=689736e0&hm=5bafdbce409c5da9bff78dfefa51af336520cfe9c4f9673028b4cfcb86063756&
+13:54 < bridge> <melon> zipbomb inc
+13:54 < bridge> <learath2> As far as I remember both zfs and btrfs provides bitrot detection, both using crc32
+13:54 < bridge> <ryozuki> ill do first fat16
+13:54 < bridge> <ryozuki> then fat32
+13:54 < bridge> <ryozuki> then something better
+13:54 < bridge> <ryozuki> i guess
+13:54 < bridge> <melon> do ntfs :koggers:
+13:55 < bridge> <jxsl13> yeah, the bitrot detection works and with snapshots and manual intervention you can recover your files with btrfs, but that one heck of an annoyance.
+13:55 < bridge> <ryozuki> i havent made a filesystem before
+13:55 < bridge> <learath2> Sane idea, FAT is very easy to work with
+13:55 < bridge> <Solly (bun bun)> i wonder if you could emulate vfs and just steal the kernal modules
+13:55 < bridge> <learath2> How does zfs do it better?
+13:55 < bridge> <ryozuki> @blaiszephyr u cant do anything in the kernel rn, just type stuff
+13:55 < bridge> <ryozuki> it runs a program on startup
+13:55 < bridge> <jxsl13> at least to my knowledge it is able to automatically recover those files
+13:55 < bridge> <ryozuki> that prints hello
+13:55 < bridge> <melon> i dont expect your kernel to magically solve for X, dont worry :D
+13:56 < bridge> <melon> i think just getting it to work on real hardware is a win
+13:56 < bridge> <ryozuki> xd
+13:56 < bridge> <ryozuki> as long as ur hardware doesnt have weird bugs it should work tm
+13:56 < bridge> <learath2> Hm, I would very much like to see sources on that. As far as I know both just store crcs for blocks for bitrot detection, a crc isn't an ecc, it simply doesn't contain enough information to correct the error
+13:56 < bridge> <ryozuki> but its uefi only
+13:57 < bridge> <learath2> and I'm guessing x86_64 only?
+13:57 < bridge> <Solly (bun bun)> <https://www.xda-developers.com/why-i-chose-btrfs-over-zfs-for-home-nas/>
+13:57 < bridge> <Solly (bun bun)> 1. cant change setup with zfs
+13:57 < bridge> <Solly (bun bun)> 2. btrfs is inhouse kernal module, zfs is not (dkms is not required)
+13:57 < bridge> <Solly (bun bun)> 3. less ram usage / energy effecient (/shrug)
+13:57 < bridge> <Solly (bun bun)> 4. per file/per volume compression
+13:57 < bridge> <jxsl13> crc is not parity, for sure.
+13:57 < bridge> <jxsl13> is only answers a single question
+13:57 < bridge> <jxsl13> whether the file is the same as when it was written
+13:58 < bridge> <ryozuki> yeah, no 32 bits either, just 64, there is so much stuff that changes, but i have plans to make a riscv kernel targeting the QEMU virt board, the thing with riscv is there is no standard boot process for all boards, each board has different stuff
+13:58 < bridge> <melon> you making me rm -rf my entire disk i see xd
+13:58 < bridge> <learath2> Technically crc is not cryptographically secure, so there exists a non-trivial set of bit manipulations you can do on a file that doesn't change its crc
+13:58 < bridge> <Solly (bun bun)> <https://news.ycombinator.com/item?id=8303333>
+13:58 < bridge> <Solly (bun bun)> 1. raid is better (sadly doesnt effect me yet)
+13:58 < bridge> <ryozuki> idk if it works but try just putting it on a usb
+13:58 < bridge> <learath2> So it's only really good against detecting non-malicious changes
+13:58 < bridge> <ryozuki> and then boot from the usb
+13:58 < bridge> <Solly (bun bun)> <https://news.ycombinator.com/item?id=8303333>
+13:58 < bridge> <Solly (bun bun)> 1. raid is better (sadly doesnt effect me yet) on zfs
+13:58 < bridge> <ryozuki> it shoudl work tm
+13:58 < bridge> <Solly (bun bun)> <https://www.xda-developers.com/why-i-chose-btrfs-over-zfs-for-home-nas/>
+13:58 < bridge> <Solly (bun bun)> 1. cant change setup with zfs
+13:58 < bridge> <Solly (bun bun)> 2. btrfs is inhouse kernal module, zfs is not (dkms is not required)
+13:58 < bridge> <Solly (bun bun)> 3. btrfs has less ram usage / energy effecient (/shrug)
+13:58 < bridge> <Solly (bun bun)> 4. btrfs has per file/per volume compression
+13:58 < bridge> <ryozuki> the eufi firmware is already in ur pc
+13:59 < bridge> <ryozuki> (ovmf is the uefi firmware for qemu, because qemu needs it to have "uefi")
+13:59 < bridge> <learath2> Is it a raw disk image that just contains an uefi binary? If so it likely won't boot
+13:59 < bridge> <ryozuki> no, it has a bootloader
+13:59 < bridge> <Solly (bun bun)> <https://news.ycombinator.com/item?id=8303333>
+13:59 < bridge> <Solly (bun bun)> 1. raid is better (sadly doesnt effect me yet) on zfs
+13:59 < bridge> <Solly (bun bun)> <https://groups.google.com/g/funtoo-dev/c/g9OY_vqVpCM/m/VTKF8Ef9ab4J>
+13:59 < bridge> <Solly (bun bun)> 2. zfs has better default compression
+14:00 < bridge> <Solly (bun bun)> 3. lots of jargin
+14:00 < bridge> <learath2> The uefi firmware reads from a FAT filesystem in a specific folder by default
+14:00 < bridge> <ryozuki> im using this https://github.com/rust-osdev/bootloader
+14:00 < bridge> <ryozuki> > Both implementations load the kernel at runtime from a FAT partition. This FAT partition is created
+14:00 < bridge> <ryozuki> > The configuration is read from a special section of the kernel's ELF file, which is created by the entry_point macro of the bootloader_api library.
+14:00 < bridge> <ryozuki> @learath2
+14:01 < bridge> <learath2> cool cool cool
+14:01 < bridge> <ryozuki> > It provides functions to create FAT-formatted bootable disk images, based on the compiled BIOS and UEFI bootloaders.
+14:01 < bridge> <ryozuki> file out/edos_uefi.img 
+14:01 < bridge> <ryozuki> out/edos_uefi.img: DOS/MBR boot sector; partition 1 : ID=0xee, start-CHS (0x0,0,2), end-CHS (0x3ff,255,63), startsector 1, 14463 sectors, extended partition table (last)
+14:01 < bridge> <melon> is it actually 100% rust?
+14:01 < bridge> <ryozuki> file says this
+14:01 < bridge> <ryozuki> it is 100% rust with some hand written inline assembly
+14:01 < bridge> <melon> is it actually 100% rust?, the entire kernel i mean
+14:01 < bridge> <melon> ye makes sense
+14:01 < bridge> <ryozuki> cuz for example u need to write assembly for interrupt and context switches
+14:02 < bridge> <melon> ooh, i thought inline assembly for performance
+14:02 < bridge> <milkeeycat> even rust compiler can't stand my code :feelsbadman:
+14:02 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1403709969848729600/image.png?ex=68988a48&is=689738c8&hm=912b8b975480262af7f43e8d0dddecf99b5d3c95977edd13baef833a1d78175f&
+14:02 < bridge> <ryozuki> nah, inline cuz some stuff cant be done, for example setting up syscalls and using privileged registers and ops
+14:02 < bridge> <ryozuki> like swapgs
+14:03 < bridge> <learath2> No there just aren't builtins to emit some assembly, nor would such assembly even fit the data model of some languages
+14:04 < bridge> <melon> makes sense, this sounds interesting but i never dipped deep into these things like - ever xd
+14:04 < bridge> <melon> ryo you could have your entire system run on almost 100% rust
+14:04 < bridge> <melon> https://system76.com/cosmic/
+14:05 < bridge> <melon> this as a de with a rust kernel and bootloader
+14:05 < bridge> <ryozuki> ```rust
+14:05 < bridge> <ryozuki> #[allow(unused)]
+14:05 < bridge> <ryozuki> #[unsafe(naked)]
+14:05 < bridge> <ryozuki> unsafe extern "C" fn syscall_entry() {
+14:05 < bridge> <ryozuki>     naked_asm!(
+14:05 < bridge> <ryozuki>         // Save user stack and switch to kernel stack
+14:05 < bridge> <ryozuki>         "swapgs",
+14:05 < bridge> <ryozuki>         "mov gs:0, rsp",         // Save user RSP to gs:0
+14:05 < bridge> <ryozuki>         "mov rsp, gs:8",           // Load kernel stack from gs:8
+14:05 < bridge> <ryozuki> 
+14:05 < bridge> <ryozuki>          // Save return info
+14:05 < bridge> <ryozuki>         "push r11",              // Save user RFLAGS
+14:05 < bridge> <ryozuki>         "push rcx",              // Save user RIP
+14:05 < bridge> <ryozuki> 
+14:05 < bridge> <ryozuki>         // Save syscall arguments
+14:05 < bridge> <ryozuki>         "push rax",              // syscall number
+14:05 < bridge> <ryozuki>         "push rdi",           
+14:05 < bridge> <ryozuki>         "push rsi",           
+14:05 < bridge> <ryozuki>         "push rdx",             
+14:05 < bridge> <ryozuki>         "push r10",             
+14:05 < bridge> <ryozuki>         "push r8",               
+14:05 < bridge> <ryozuki>         "push r9",               
+14:05 < bridge> <ryozuki> 
+14:05 < bridge> <ryozuki>         // Prepare args for Rust handler:
+14:05 < bridge> <ryozuki>         "mov rdi, [rsp + 0x30]", // rdi = syscall_num
+14:05 < bridge> <ryozuki>         "mov rsi, [rsp + 0x28]", 
+14:05 < bridge> <ryozuki>         "mov rdx, [rsp + 0x20]", 
+14:06 < bridge> <ryozuki>         "mov rcx, [rsp + 0x18]", 
+14:06 < bridge> <ryozuki>         "mov r8,  [rsp + 0x10]",
+14:06 < bridge> <ryozuki>         "mov r9,  [rsp + 0x08]", 
+14:06 < bridge> <ryozuki> 
+14:06 < bridge> <ryozuki> my handler
+14:06 < bridge> <ryozuki> im not a pro in x86 tho
+14:06 < bridge> <ryozuki> but it works xd
+14:06 < bridge> <learath2> Not exactly useful information tbh, you should look into becoming a typescript expert with a quintuple certification in AWS typescript
+14:06 < bridge> <melon> laughs in secret project nr. 3 # that uses typescript xd
+14:06 < bridge> <learath2> Oh cool, you do call into rust ASAP
+14:06 < bridge> <ryozuki> why cant i see that channel
+14:06 < bridge> <melon> secret project
+14:06 < bridge> <ryozuki> ofc i love rust
+14:06 < bridge> <melon> :Pepega:
+14:07 < bridge> <ryozuki> xd
+14:07 < bridge> <ryozuki> ok its a secret project that uses typescript
+14:07 < bridge> <ryozuki> either its some web thing
+14:07 < bridge> <ryozuki> or idk
+14:07 < bridge> <melon> angular go brrrr
+14:07 < bridge> <ryozuki> but well if it were in rust i would be interested in knowing
+14:07 < bridge> <melon> i wanted to use svelte but others disagreed
+14:08 < bridge> <ryozuki> @learath2 btw making a kernel in rust improved a lot last years, now u have a tier 2 target for kernels x86_64-unknown-none which disables red zones and stuff
+14:08 < bridge> <melon> tho initially i planned on using go for that, but eh typescript is easier to do a frontend with
+14:08 < bridge> <ryozuki> before u had to make ur own target
+14:11 < bridge> <ryozuki> ```rust
+14:11 < bridge> <ryozuki> #[unsafe(naked)]
+14:11 < bridge> <ryozuki> extern "x86-interrupt" fn timer_interrupt_handler(_stack_frame: InterruptStackFrame) {
+14:11 < bridge> <ryozuki>     core::arch::naked_asm!(
+14:11 < bridge> <ryozuki>         // Check if we come from user mode by checking CS
+14:11 < bridge> <ryozuki>         // The interrupt frame is at [rsp]
+14:11 < bridge> <ryozuki>         // CS is at offset 8
+14:11 < bridge> <ryozuki>         "mov rax, [rsp + 8]",    // Load CS
+14:11 < bridge> <ryozuki>         "test rax, 3",           // Test CPL bits
+14:11 < bridge> <ryozuki>         "jz 2f",                 // Jump if from kernel mode (CPL = 0)
+14:11 < bridge> <ryozuki> 
+14:11 < bridge> <ryozuki>         // Coming from user mode, swapgs
+14:11 < bridge> <ryozuki>         "swapgs",
+14:11 < bridge> <ryozuki> 
+14:11 < bridge> <ryozuki>         "2:",
+14:12 < bridge> <ryozuki>         // Save registers
+14:12 < bridge> <ryozuki>         "push rax",
+14:12 < bridge> <ryozuki>         "push rbx",
+14:12 < bridge> <ryozuki>         "push rcx",
+14:12 < bridge> <ryozuki>         "push rdx",
+14:12 < bridge> <ryozuki>         "push rsi",
+14:12 < bridge> <ryozuki>         "push rdi",
+14:12 < bridge> <ryozuki>         "push rbp",
+14:12 < bridge> <ryozuki>         "push r8",
+14:12 < bridge> <ryozuki>         "push r9",
+14:12 < bridge> <ryozuki>         "push r10",
+14:12 < bridge> <ryozuki>         "push r11",
+14:12 < bridge> <ryozuki>         "push r12",
+14:12 < bridge> <ryozuki>         "push r13",
+14:12 < bridge> <ryozuki>         "push r14",
+14:12 < bridge> <ryozuki>         "push r15",
+14:13 < bridge> <ryozuki> i probs need to save FPU/MMX registers, SSE registers too
+14:14 < bridge> <ryozuki> or idk i dont know
+14:15 < bridge> <ryozuki> @blaiszephyr did u try the os
+14:15 < bridge> <melon> busy correcting  report portfolios from my apprentice rn
+14:15 < bridge> <ryozuki> ah ok i forgot ur a teacher
+14:16 < bridge> <melon> also i need to setup the PC first, its in my basement xd
+14:16 < bridge> <ryozuki> xd
+14:16 < bridge> <ryozuki> ill go play some ffxiv
+14:16 < bridge> <ryozuki> new patch is out
+14:16 < bridge> <melon> i'm currently waiting for events in gw2 xd
+14:17 < bridge> <ryozuki> @learath2 how many ppl in the world u think know how to make a x86_64 kernel?
+14:17 < bridge> <ryozuki> :owo:
+14:17 < bridge> <ryozuki> its actually rly fun
+14:17 < bridge> <ryozuki> its been months since i coded a lot outside work
+14:18 < bridge> <melon> glad you're enjoying your time xd
+14:18 < bridge> <learath2> Hm, hard to estimate, but I wouldn't say there are much more than 20k. It's a very niche thing
+14:19 < bridge> <learath2> I included people capable of contributing to a kernel. If we are talking about making ones own, there are probably less, maybe even less than half that
+14:19 < bridge> <ryozuki> uh
+14:19 < bridge> <ryozuki> i wonder if i could contribute to kernel
+14:19 < bridge> <ryozuki> but i guess u need more knowledge about hardware and drivers
+14:19 < bridge> <ryozuki> than kernel itself
+14:19 < bridge> <ryozuki> to be useful nowadays
+14:20 < bridge> <melon> torvalds kernel? its mostly maintenance and adding new hardware now anyway, right?
+14:20 < bridge> <melon> less code more copy paste
+14:20 < bridge> <learath2> Yes, the kernel provides you a lot of structure, it's like a "framework", writing a kernel driver is not like writing a kernel
+14:20 < bridge> <ryozuki> there is another field i want to try, which is reverse engineering, but the learning stuff seems even more obscure than os dev,
+14:20 < bridge> <ryozuki> so far i dabbled into compilers and kernels, and vms
+14:21 < bridge> <melon> RE is a lot of fun, i played around with it using ghdira and ddnet, as it was easier to understand what you're seeing with the source
+14:25 < bridge> <learath2> Having all the system.h signatures makes it a lot easier to work with teeworlds/ddnet clients
+14:26 < bridge> <learath2> I once started creating FLIRT signatures for all system.cpp functions to make it much faster to RE those things but then I got distracted from it
+14:28 < bridge> <learath2> FunctionId in Ghidra if you only need it to work in ghidra
+14:39 < bridge> <aegisub> if you want to suffer I recommend getting into multimedia
+14:43 < bridge> <ryozuki> nah doesnt look interesting to me
+14:43 < bridge> <ryozuki> also i hate the twitter ffmpeg guy
+14:43 < bridge> <aegisub> lol fair
+15:14 < bridge> <pilonpl> yeah the image is fine and how to run in in QEMU
+15:51 < bridge> <ryozuki> i sent it
+15:51 < bridge> <ryozuki> .
+15:51 < bridge> <pilonpl> yeah i see it now lol
+15:51 < bridge> <ryozuki> there was a bug with a cr3 page but it didnt show up in the normal kernel execution xd
+15:51 < bridge> <ryozuki> but well i fixed it now im adding elf
+15:56 < bridge> <pilonpl> okay so are there any features?
+15:56 < bridge> <pilonpl> or is it totally useless lol
+15:57 < bridge> <ryozuki> bruv i just said it
+15:57 < bridge> <ryozuki> not much yet
+15:57 < bridge> <ryozuki> but does it show in qemu?
+15:57 < bridge> <ryozuki> can u share screen
+15:57 < bridge> <ryozuki> xd
+15:57 < bridge> <pilonpl> i mean yeah it works
+15:58 < bridge> <ryozuki> nice
+16:00 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1403739638518124574/PXL_20250809_135956687.jpg?ex=6898a5ea&is=6897546a&hm=a260ae2c6600410acf12e4881679dcae0744654a5a81145b31b9e2b654ae6cd4&
+16:00 < bridge> <ryozuki> i have 2 riscv boards here
+16:00 < bridge> <ryozuki> :owo:
+16:00 < bridge> <ryozuki> @pilonpl ill add a filesystem and cli as soon as i can
+16:01 < bridge> <pilonpl> do you plan on doing anything interesting?
+16:02 < bridge> <pilonpl> i mean anythin unusual
+16:02 < bridge> <pilonpl> i mean anything unusual
+16:22 < bridge> <Assa> I actually wonder what information you leaked about yourself with this barcode 🤔 maybe less than I think
+16:24 < bridge> <Assa> I actually wonder what information you leaked about yourself with this barcode 🤔 maybe less than I think (ofc not the barcode alone, but publicly available data added)
+16:25 < bridge> <ryozuki> poggies
+16:25 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1403746066364498060/image.png?ex=6898abe6&is=68975a66&hm=36ea1ed35f969cdb44286df9700d0eb685cbc1a800ba622b5faaf528526d08a6&
+16:27 < bridge> <kollpotato> how does drawing to screen work without any fancy drivers
+16:27 < bridge> <ryozuki> framebuffer
+16:27 < bridge> <ryozuki> https://en.wikipedia.org/wiki/Framebuffer
+16:27 < bridge> <Assa> ofc your still need a driver for your graphics device
+16:27 < bridge> <ryozuki> idk how an actual gpu driver works
+16:27 < bridge> <kollpotato> magic
+16:28 < bridge> <ryozuki> yeah but this works for now xd
+16:38 < bridge> <kebscs> The barcode is just the product id, same as the code below barcode
+16:38 < bridge> <Assa> I know
+16:41 < bridge> <ryozuki> fixed the newline stuff xd
+16:41 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1403750042698776706/image.png?ex=6898af9a&is=68975e1a&hm=ad67a03553958bf4130d792ec170218706e4c41be3076f37cc586481d531d2b4&
+16:43 < bridge> <kollpotato> edos is the next templeos
+16:44 < bridge> <ryozuki> btw the font rendering is manual
+16:44 < bridge> <ryozuki> im using font8x8
+16:44 < bridge> <ryozuki> thats why dots have no kerning xd
+16:45 < bridge> <kollpotato> sounds like normal behavior from a bitmap font
+16:46 < bridge> <ryozuki> ye
+16:51 < bridge> <pilonpl> Nice, when doom on edos?
+16:51 < bridge> <ryozuki> :justatest:
+16:53 < bridge> <pilonpl> Btw how do you print stuff from C?
+16:55 < bridge> <Jupstar ✪> Same procedure as every year
+16:56 < bridge> <Solly (bun bun)> `printf("your mum\n")`
+16:56 < bridge> <Solly (bun bun)> `printf("your mum is this much weight: %d\n", (int)1e10)`
+16:57 < bridge> <kollpotato> would only work if edos has the same syscall
+16:58 < bridge> <kollpotato> its probably much more simple than printf
+17:03 < bridge> <ryozuki> ```C
+17:03 < bridge> <ryozuki> static inline long syscall_3args(long syscall_num, long arg1, long arg2, long arg3) {
+17:03 < bridge> <ryozuki>     long result;
+17:04 < bridge> <ryozuki>     __asm__ volatile (
+17:04 < bridge> <ryozuki>         "syscall"
+17:04 < bridge> <ryozuki>         : "=a"(result)
+17:04 < bridge> <ryozuki>         : "a"(syscall_num), "D"(arg1), "S"(arg2), "d"(arg3)
+17:04 < bridge> <ryozuki>         : "rcx", "r11", "memory"
+17:04 < bridge> <ryozuki>     );
+17:04 < bridge> <ryozuki>     return result;
+17:04 < bridge> <ryozuki> }
+17:04 < bridge> <ryozuki> 
+17:04 < bridge> <ryozuki> static inline long syscall_1arg(long syscall_num, long arg1) {
+17:04 < bridge> <ryozuki>     long result;
+17:04 < bridge> <ryozuki>     __asm__ volatile (
+17:04 < bridge> <ryozuki>         "syscall"
+17:04 < bridge> <ryozuki>         : "=a"(result)
+17:04 < bridge> <ryozuki>         : "a"(syscall_num), "D"(arg1)
+17:04 < bridge> <ryozuki>         : "rcx", "r11", "memory"
+17:04 < bridge> <ryozuki>     );
+17:04 < bridge> <ryozuki>     return result;
+17:04 < bridge> <ryozuki> }
+17:04 < bridge> <ryozuki> 
+17:04 < bridge> <ryozuki> #define SYS_WRITE 1
+17:04 < bridge> <ryozuki> #define SYS_EXIT  60
+17:04 < bridge> <ryozuki> 
+17:04 < bridge> <ryozuki> long write(int fd, const void* buf, long count) {
+17:04 < bridge> <ryozuki>     return syscall_3args(SYS_WRITE, fd, (long)buf, count);
+17:04 < bridge> <ryozuki> }
+17:04 < bridge> <ryozuki> 
+17:04 < bridge> <ryozuki> void exit(int status) {
+17:04 < bridge> <ryozuki> i cant use C std
+17:04 < bridge> <ryozuki> ```bash
+17:04 < bridge> <ryozuki> clang -target x86_64-unknown-none -ffreestanding -nostdlib -static -Wl,--entry=_start
+17:05 < bridge> <ryozuki> ```
+17:07 < bridge> <ryozuki> btw rust inline assembly syntax is way better
+17:09 < bridge> <learath2> :pepeW:
+17:09 < bridge> <ryozuki> yeah i also plan on doing a riscv kernel
+17:10 < bridge> <ryozuki> iforgot how much ram this has i guess its 8mb or smth
+17:10 < bridge> <learath2> You have to implement libc for edOS
+17:10 < bridge> <ryozuki> https://www.waveshare.com/wiki/ESP32-C6-DEV-KIT-N8
+17:10 < bridge> <ryozuki> https://www.digikey.es/es/products/detail/espressif-systems/ESP32-C6-DEVKITC-1-N8/17728861
+17:10 < bridge> <ryozuki> indeed,  i will do it if i get to that point, will be fun
+17:11 < bridge> <ryozuki> or if u want u can do it for me mister C
+17:11 < bridge> <ryozuki> actually
+17:11 < bridge> <ryozuki> i could do libc in rust
+17:11 < bridge> <ryozuki> the irony
+17:12 < bridge> <ryozuki> > Adopts ESP32-C6-WROOM-1-N8 module with RISC-V 32-bit single-core processor, up to 160MHz main frequency.
+17:12 < bridge> <ryozuki> > Integrated 320KB ROM, 512KB HP SRAM, 16KB LP SRAM and 8MB Flash memory.
+17:12 < bridge> <ryozuki> > Integrated 2.4GHz WiFi 6, Bluetooth Low Energy (Bluetooth LE) and IEEE 802.15.4 (Zigbee 3.0 and Thread) wireless communication, with superior RF performance.
+17:12 < bridge> <ryozuki> > Type-C connector, easier to use.
+17:12 < bridge> <ryozuki> > Onboard CH343 and CH334 chips can meet the needs of USB and UART development via a Type-C interface.
+17:12 < bridge> <ryozuki> > Rich peripheral interfaces, compatible with the pinout of the ESP32-C6-DevKitC-1-N8 development board, offer strong compatibility and expandability.
+17:12 < bridge> <ryozuki> > The castellated module allows soldering directly to carrier boards.
+17:14 < bridge> <Assa> @robyt3 there is a followup to this one: Disable test local server button when not in map directory
+17:14 < bridge> <robyt3> I thought about this, but then you don't get the information from the error message explaining why it doesn't work
+17:15 < bridge> <Assa> hmm a hover tooltip on the disabled buttons would be nice
+17:15 < bridge> <Assa> I guess we don't have that
+17:16 < bridge> <robyt3> Yeah, we should move away from the bottom tooltip in general
+17:16 < bridge> <robyt3> I'd consider moving the tooltip client component to the UI, like on 0.7, then we can more easily reuse that in the editor
+17:30 < bridge> <robyt3> That was easy to reproduce, got a very informative crash dump: `Error occurred on Saturday, August 9, 2025 at 17:28:38.` (that's all)
+17:30 < bridge> <ryozuki> is dobry ur alter ego?
+17:31 < bridge> <ryozuki> the pfp looks almost same xd
+18:31 < bridge> <fokkonaut> I receive lots of emails about the tune lock topic so here are my 2 cents:
+18:31 < bridge> <fokkonaut> In my PR I explained my previous discussion with @corneum about the implementation details.
+18:31 < bridge> <fokkonaut> Only thing that was missing in my implementation was real clientside prediction, as it only supported predicting your own stacked tunings correctly.
+18:31 < bridge> <fokkonaut> In most cases it worked pretty fine and people like cyberFighter and some others did some experiments with it already aswell as rcon-only testing.
+18:31 < bridge> <fokkonaut> It's really fun, and imho my implementation might not be the best code-wise, but logic wise.
+18:31 < bridge> <fokkonaut> In my mod it's optimized even further than in the current PR (references instead of copied etc.)
+18:31 < bridge> <fokkonaut> All these discussions, people not being able to agree, features being delayed and discussed to death, that's a mentality that made me quit ddnet development.
+18:31 < bridge> <fokkonaut> Just as a little piece of information on the tune lock topic and ddnet development in general.
+18:32 < bridge> <Jupstar ✪> I see a lot of cargos right now
+18:32 < bridge> <Jupstar ✪> :deen_star:
+18:33 < bridge> <Jupstar ✪> Emails ? :lol:
+18:33 < bridge> <Jupstar ✪> How come that ppl write by email
+18:35 < bridge> <kebscs> I agree on the overdiscussion topic
+18:36 < bridge> <kebscs> Idc which tune lock impl gets merged but are good, I didn't see yours when I made mine
+18:36 < bridge> <kebscs> Idc which tune lock impl gets merged both are good, I didn't see yours when I made mine
+18:37 < bridge> <fokkonaut> This was just a reference to @louis.place, requesting additive tune locks
+18:50 < bridge> <louis> i dont think theres ever too much discussion
+18:51 < bridge> <louis> When u choose an implementation in ddnet its almost never patched later on so i think its importsnt to choose the best implementation, idk
+18:53 < bridge> <louis> id assume github notification emails xd
+19:08 < bridge> <Jupstar ✪> Ah yeah chiller made me diaable them years ago
+19:08 < bridge> <Jupstar ✪> Disable
+19:16 < bridge> <Solly (bun bun)> who just joined vc, mewoed, then left
+19:16 < bridge> <Solly (bun bun)> D:
+19:50 < bridge> <qxdfox> mb
+19:50 < bridge> <qxdfox> reflex
+19:58 < bridge> <pioooooo> Any comment from maintainer? #10651
+19:58 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/10651
+19:59 < bridge> <pioooooo> I want to work on this
+20:00 < bridge> <pioooooo> Also plz merge this fix #10570
+20:00 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10570
+20:00 < bridge> <pioooooo> Also plz merge or comment on this fix #10570
+20:06 < bridge> <kollpotato> chiller do u have some sort of bot client flooder
+20:06 < bridge> <kollpotato> i wanna see how much memory ddnet uses with 64 players
+20:07 < bridge> <pioooooo> there should be a srv command for that
+20:07 < bridge> <pioooooo> in debug build
+20:07 < bridge> <kollpotato> oh really
+20:07 < bridge> <pioooooo> go search for it in code
+20:07 < bridge> <qxdfox> dbg_dummies 64
+20:07 < bridge> <qxdfox> i think
+20:11 < bridge> <kollpotato> but if its debug build it means more memory might be used
+20:11 < bridge> <qxdfox> just remove the if statements around it so it works in release
+20:12 < bridge> <kollpotato> thanks
+20:22 < bridge> <kollpotato> so according to my machine 63 players use 4kb less than 1 player
+20:32 < bridge> <Solly (bun bun)> im fucking confused *on my machine*
+20:32 < bridge> <kollpotato> no its my machine!!!!
+20:34 < bridge> <Solly (bun bun)> o rite
+20:36 < bridge> <soulyvevo> i think @sollybunny (me) is developing something important look at him in the dev vc
+20:36 < bridge> <soulyvevo> i bet he does something revolutionary to ddnet community
+20:36 < bridge> <Solly (bun bun)> no im afk
+20:36 < bridge> <Solly (bun bun)> xD
+20:36 < bridge> <soulyvevo> i bet his afk
+20:36 < bridge> <Solly (bun bun)> (she btw)
+20:36 < bridge> <soulyvevo> i bet shes afk
+20:37 < bridge> <Solly (bun bun)> afk
+20:37 < bridge> <Solly (bun bun)> amazing fucking keyboarding
+20:54 < bridge> <Ewan> wyd in there solly
+21:15 < bridge> <Solly (bun bun)> wouldnt u like to know
+21:20 < bridge> <Ewan> i did ask
+21:47 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1403827024098754670/image.png?ex=6898f74c&is=6897a5cc&hm=a8efe5aa759b4ecfaf87e186b0f1b43488f3248d9f0485879d3a6de5af254455&
+21:51 < bridge> <ryozuki> https://cdn.discordapp.com/attachments/293493549758939136/1403827989350973571/image.png?ex=6898f832&is=6897a6b2&hm=6807756aa6ee9b6b66bd9aa7daad3fa04fbbd8b648ea6643a34094fcceb9e631&
+21:51 < bridge> <ryozuki> :brownbear:
+21:58 < bridge> <Solly (bun bun)> uhmm... nu-in much what abot u?
+22:04 < bridge> <Ewan> awesome...
+22:04 < bridge> <Ewan> just hanging out tbh, trying to update my resume by end of today
+22:58 < bridge> <Solly (bun bun)> im getting stack use after return i was so confused
+22:58 < bridge> <Solly (bun bun)> its fucking
+22:58 < bridge> <Solly (bun bun)> lambda being captured by lambda
+22:58 < bridge> <Solly (bun bun)> xd
+23:00 < bridge> <Ewan> try static
+23:00 < bridge> <Solly (bun bun)> it captures unfortunatley
+23:00 < bridge> <Ewan> try a real function
+23:00 < bridge> <Solly (bun bun)> im turning the captures into arguments but its a bit annoying
+23:00 < bridge> <Ewan> yeah
+23:00 < bridge> <Ewan> that's the thing you have to do
+23:00 < bridge> <Ewan> rip
+23:00 < bridge> <Solly (bun bun)> i mean i could inline the lambda into each lambda its used in
+23:01 < bridge> <Solly (bun bun)> i could also make it a method of client but thats intrusive (this is tclient context)
+23:02 < bridge> <Ewan> i'd need more info on what you're doing to advise in any direction, but i feel like it'd be unwelcome anyway
+23:02 < bridge> <Ewan> good luck
+23:03 < bridge> <Solly (bun bun)> have conditions work whilst the client is connecting so that `password` can be automated
+23:04 < bridge> <Solly (bun bun)> so i have a dummy server info which is from the server browser
+23:04 < bridge> <Solly (bun bun)> and a function which returns a ptr to either the real server info or this one
+23:04 < bridge> <Solly (bun bun)> and a function which returns a ptr to either the real server info or the fake one depending on whats available
+23:11 < bridge> <Ewan> idk how the lambdas pertain to that specifically but it's ok
+23:11 < bridge> <Ewan> you've probably got it under control
+23:12 < bridge> <Solly (bun bun)> i hav
+23:13 < bridge> <Solly (bun bun)> conditionals are stored in a list of lambdas
+23:13 < bridge> <Solly (bun bun)> screenshot because its smaller
+23:13 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1403848609639694388/image.png?ex=68990b66&is=6897b9e6&hm=969735e8ba7f1c43c0c92c610d46802a5a5c535635e6bc7363dfa6f594849490&
+23:13 < bridge> <Ewan> i'd wager those are actually std::functions which are contextually convertible from lambdas but are distinct things
+23:13 < bridge> <Ewan> because you can't actually refer to the type of a lambda
+23:14 < bridge> <Solly (bun bun)> ...
+23:14 < bridge> <Solly (bun bun)> no its actually a templated function which implements a lambda like container with the extra content given by this constructor
+23:14 < bridge> <Solly (bun bun)> no its actually a templated function which implements a lambda like container with the extra content given by the constructor used by emplace_back
+23:14 < bridge> <Solly (bun bun)> no its actually a templated constructor which implements a lambda like container with the extra content given by the other args
+23:15 < bridge> <Solly (bun bun)> (thats a joke its an std::function)
+23:16 < bridge> <Ewan> yeah i mean
+23:16 < bridge> <Ewan> lambdas aren't actually a Thing at the end of the day
+23:16 < bridge> <Solly (bun bun)> no its actually a templated constructor which implements a std::function like container with the extra content given by the other args
+23:17 < bridge> <Ewan> they are purely syntax to describe a function-local subroutine or a normal function defined in a different spot
+23:17 < bridge> <Ewan> which one of those two it ends up as depends on its captures
+23:19 < bridge> <pioooooo> :nouis:
