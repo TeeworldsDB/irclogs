@@ -1,0 +1,667 @@
+00:18 < bridge> <Assa> #10732 is now ready 😎
+00:18 < bridge> <Assa> Thank you for solving the blocker Robyt :deen_star:
+00:18 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10732
+03:34 < bridge> <robertshar> https://cdn.discordapp.com/attachments/1409565579139879047/1409669037876707400/image.png?ex=68ae3819&is=68ace699&hm=752b20e6d77b46c6828530d75d5a4d38810dc5a9d9be9f2b195e4d5354ad8bc0&
+03:34 < bridge> <robertshar> https://cdn.discordapp.com/attachments/1141990897156886600/1407198351899889745/image.png?ex=68a53b17&is=68a3e997&hm=e3c6725f33e44d8776b159d26f97505e987cb74d686497b3f42e406b0fdb0f8f&
+03:34 < bridge> <robertshar> https://cdn.discordapp.com/attachments/1141990897156886600/1407198367494307892/image.png?ex=68a53b1b&is=68a3e99b&hm=310f286db2b545dfb46f6e67064ebb33b360a4c56de2f29ecf517b843006f75f&
+03:34 < bridge> <robertshar> https://cdn.discordapp.com/attachments/1141990897156886600/1407198388818153512/image.png?ex=68a53b20&is=68a3e9a0&hm=ea8a1525f2ef469cf0bbd649694827cd9e3113f3375607937a5365d5278607d5& @everyone
+08:18 < bridge> <ryozuki> morning fellas
+08:20 < bridge> <Ewan> gm
+08:20 < bridge> <Ewan> 4070 ti super in the mail
+08:20 < bridge> <Ewan> to my address for my computer
+09:01 < bridge> <ryozuki> i said a day ago or smth about a CoreLocal structure
+09:01 < bridge> <ryozuki> i decided to do something better
+09:02 < bridge> <ryozuki> ```rust
+09:02 < bridge> <ryozuki> #[repr(C)]
+09:02 < bridge> <ryozuki> pub struct PerCpuData {
+09:02 < bridge> <ryozuki>     pub tss: TaskStateSegment,
+09:02 < bridge> <ryozuki>     // Since we use those after heap is done, we can store pointers to the heap allocations.
+09:02 < bridge> <ryozuki>     pub lapic: *mut LocalApic,
+09:02 < bridge> <ryozuki>     pub scheduler: *mut Scheduler,
+09:02 < bridge> <ryozuki> }
+09:02 < bridge> <ryozuki> 
+09:02 < bridge> <ryozuki> #[used]
+09:02 < bridge> <ryozuki> #[unsafe(link_section = ".percpu")]
+09:02 < bridge> <ryozuki> static mut PERCPU_TEMPLATE: PerCpuData = PerCpuData {
+09:02 < bridge> <ryozuki>     lapic: core::ptr::null_mut(),
+09:02 < bridge> <ryozuki>     tss: TaskStateSegment::new(),
+09:02 < bridge> <ryozuki>     scheduler: core::ptr::null_mut(),
+09:02 < bridge> <ryozuki> };
+09:02 < bridge> <ryozuki> 
+09:02 < bridge> <ryozuki> unsafe extern "C" {
+09:02 < bridge> <ryozuki>     static __percpu_start: u8;
+09:02 < bridge> <ryozuki>     static __percpu_size: usize;
+09:02 < bridge> <ryozuki> }
+09:02 < bridge> <ryozuki> 
+09:02 < bridge> <ryozuki> pub fn get_percpu_data() -> &'static mut PerCpuData {
+09:02 < bridge> <ryozuki>     let cpu_id = get_current_cpu_id();
+09:02 < bridge> <ryozuki>     unsafe {
+09:02 < bridge> <ryozuki>         let base = &__percpu_start as *const u8 as usize;
+09:02 < bridge> <ryozuki>         let offset = cpu_id * (&__percpu_size as *const usize as usize);
+09:02 < bridge> <ryozuki>         &mut *((base + offset) as *mut PerCpuData)
+09:03 < bridge> <ryozuki>     }
+09:03 < bridge> <ryozuki> }
+09:03 < bridge> <ryozuki> 
+09:05 < bridge> <melon> <a:KannaSleep:742473892391551106>  gumo
+09:05 < bridge> <ryozuki> gumo
+09:05 < bridge> <ryozuki> gomen
+09:06 < bridge> <ryozuki> i woke up at 6
+09:06 < bridge> <melon> i love your posted code-snippets, they make me google funny words and learn funny things
+09:06 < bridge> <ryozuki> maybe i have a problem
+09:06 < bridge> <ryozuki> xd
+09:07 < ws-client> **<ChillerDragon>** @filoqcus these are all masters i could find https://paste.zillyhuhn.com/IB
+09:07 < ws-client> **<ChillerDragon>** not sure if ddnet servers these days even still use udp masters for but the ddnet master you need to allow tcp in your firewall to master1.ddnet.org
+09:08 < bridge> <ryozuki> ```rust
+09:08 < bridge> <ryozuki> #[unsafe(naked)]
+09:08 < bridge> <ryozuki> #[unsafe(no_mangle)]
+09:08 < bridge> <ryozuki> pub unsafe extern "C" fn timer_interrupt_handler() {
+09:08 < bridge> <ryozuki>     naked_asm!(
+09:08 < bridge> <ryozuki>         // CPU has already pushed SS, RSP, RFLAGS, CS, RIP
+09:08 < bridge> <ryozuki>         // Save all general purpose registers
+09:08 < bridge> <ryozuki>         "push rax",
+09:08 < bridge> <ryozuki>         "push rcx",
+09:08 < bridge> <ryozuki>         "push rdx",
+09:08 < bridge> <ryozuki>         "push rbx",
+09:08 < bridge> <ryozuki>         "push rbp",
+09:08 < bridge> <ryozuki>         "push rsi",
+09:08 < bridge> <ryozuki>         "push rdi",
+09:08 < bridge> <ryozuki>         "push r8",
+09:08 < bridge> <ryozuki>         "push r9",
+09:09 < bridge> <ryozuki>         "push r10",
+09:09 < bridge> <ryozuki>         "push r11",
+09:09 < bridge> <ryozuki>         "push r12",
+09:09 < bridge> <ryozuki>         "push r13",
+09:09 < bridge> <ryozuki>         "push r14",
+09:09 < bridge> <ryozuki>         "push r15",
+09:09 < bridge> <ryozuki> 
+09:09 < bridge> <ryozuki>         // At this point, RSP points to the saved context
+09:09 < bridge> <ryozuki>         // Pass it as first argument to timer_schedule
+09:09 < bridge> <ryozuki>         "mov rdi, rsp",
+09:09 < bridge> <ryozuki> 
+09:09 < bridge> <ryozuki>         // Ensure stack is 16-byte aligned before call
+09:09 < bridge> <ryozuki>         // The push operations above pushed 15 registers (8 bytes each = 120 bytes)
+09:09 < bridge> <ryozuki>         // CPU pushed 5 values (40 bytes)
+09:09 < bridge> <ryozuki>         // Total: 160 bytes, which is divisible by 16, so we're aligned
+09:09 < bridge> <Ewan> do u have edos as an edlang compiler target
+09:09 < bridge> <ryozuki> edlang is a bit abandoned
+09:09 < bridge> <ryozuki> if u have a proper OS i will want to make lot of user land apps
+09:10 < bridge> <ryozuki> a compiler would be nice too
+09:10 < bridge> <ryozuki> my dream is to make my own walled garden of software
+09:10 < bridge> <Ewan> sounds like it
+09:10 < bridge> <ryozuki> like some sort of pure state where u made everything and can say u made all the software in this running system
+09:10 < bridge> <ryozuki> i would then only need to learn hardware engineering
+09:10 < bridge> <ryozuki> which probs will not happen
+09:11 < bridge> <Ewan> u never know
+09:12 < bridge> <ryozuki> @mpft im so excited about making my own os that now making normal software feels boring
+09:12 < bridge> <ryozuki> its weird
+09:12 < bridge> <ryozuki> at work im thinking about edos
+09:12 < bridge> <ryozuki> xd
+09:13 < bridge> <ryozuki> https://edgl.dev/blog/creating-a-kernel-p2/
+09:13 < bridge> <ryozuki> part 2 of the kernel blog
+09:13 < bridge> <ryozuki> this one is just serial debug
+09:17 < ws-client> **<ChillerDragon>** @filoqcus untested 🤷 https://gist.github.com/ChillerDragon/51b4f4fe771b2a68ca4132173d4aaaf6
+09:21 < ws-client> **<ChillerDragon>** @filoqcus tbh not sure if this even works. What you are planning to do is probably illegal. Servers listed in the master should be real game servers that can also be joined.
+09:22 < ws-client> **<ChillerDragon>** i think the master also tests the connection so you have to allow that too but then you are kinda tricking the system
+09:23 < ws-client> **<ChillerDragon>** @filoqcus you should just share the ip of your server to your friends or tell them to add it to favorites then it also shows in the server browser
+09:32 < bridge> <Ewan> damn I need a project
+09:40 < bridge> <learath2> The master server will do a heartbeat from an undisclosed ip, you need to be able to answer that. Your best bet is to just allow chal packets from any ip
+09:44 < ws-client> **<ChillerDragon>** @learath2 isnt that illegal master registration then?
+09:45 < ws-client> **<ChillerDragon>** ddnet admin giving advice on how to bypass master challenge hrhrhrhr
+09:45 < ws-client> **<ChillerDragon>** @learath2 omg lerato nobody commented on our epic rcon draft!!!!!!! they will never do it, will they? .-.
+09:45 < bridge> <learath2> Hm, idk if the rules cover it very well, but that's how most ddos protected servers work, no?
+09:46 < ws-client> **<ChillerDragon>** @learath2 idk if he is planning to ddos protect the way i understood it he wants a private server
+09:46 < bridge> <learath2> We also let password protected servers exist, so not every server has to be accessible to the public I guess
+09:47 < ws-client> **<ChillerDragon>** ok but they have password icon
+09:47 < ws-client> **<ChillerDragon>** and can be filtered
+09:47 < bridge> <learath2> Let me stare at the masterserver rules a bit
+09:47 < ws-client> **<ChillerDragon>** i think its too late
+09:47 < ws-client> **<ChillerDragon>** you are going to jail
+09:47 < ws-client> **<ChillerDragon>** i will tell minus
+10:04 < ws-client> **<ChillerDragon>** @learath2 can i technically push straight to master without branch and pr? (asking for a friend)
+10:05 < bridge> <learath2> We were talking about protecting the master branch. Idk if we did though
+10:05 < ws-client> **<ChillerDragon>** scary
+10:05 < ws-client> **<ChillerDragon>** so if i clone ddnet/ddnet on my vps and accidentally push on master the ddnet repo gets my nudes straight on master?
+10:05 < ws-client> **<ChillerDragon>** gg
+10:05 < bridge> <filoqcus> :omo:
+10:06 < ws-client> **<ChillerDragon>** @learath2 i in fact have already accidentally pushed to ddnet/ddnet master before. Before i was maintainer. Could you by any chance double check this ._.
+10:07 < bridge> <filoqcus> I did it, I only need 3 IP addresses
+10:07 < ws-client> **<ChillerDragon>** pro @filoqcus 
+10:07 < ws-client> **<ChillerDragon>** now you are going to jail too @filoqcus 
+10:07 < bridge> <filoqcus> Nooo:justatest:
+10:07 < bridge> <learath2> Do not share with the class what ip you had to whitelist
+10:07 < ws-client> **<ChillerDragon>** xd
+10:08 < ws-client> **<ChillerDragon>** lawyer josspit, am i in trouble? because of "beihilfe"?
+10:08 < bridge> <learath2> Oh btw afaict it rotates every once in a while
+10:09 < ws-client> **<ChillerDragon>** i will delete this gist before it spreads
+10:10 < bridge> <filoqcus> @learath2 As I understand it, these 3 IPs are needed 
+10:10 < bridge> <filoqcus> 
+10:10 < bridge> <filoqcus> 1. 49.12.97.180
+10:10 < bridge> <filoqcus> 2. 154.21.95.54
+10:10 < bridge> <filoqcus> 3. 193.32.248.189
+10:10 < ws-client> **<ChillerDragon>** bru xd
+10:10 < bridge> <filoqcus> XD
+10:10 < ws-client> **<ChillerDragon>** either he is troll or its language barrier
+10:10 < bridge> <ryozuki> is that ur ip
+10:11 < ws-client> **<ChillerDragon>** @filoqcus he said "Do **not** share" xxxD
+10:11 < bridge> <filoqcus> D:
+10:11 < ws-client> **<ChillerDragon>** big jail <:banhammer:392813948858269696>
+10:11 < bridge> <ryozuki> its in irc log
+10:11 < ws-client> **<ChillerDragon>** was it deleted? xd
+10:11 < bridge> <filoqcus> But why
+10:11 < ws-client> **<ChillerDragon>** you are doing shady shenanigans
+10:12 < ws-client> **<ChillerDragon>** the master server is supposed to list playable servers
+10:12 < bridge> <filoqcus> Master servers
+10:12 < ws-client> **<ChillerDragon>** your server is not playable if it has a whitelist
+10:12 < bridge> <filoqcus> hmm
+10:12 < bridge> <filoqcus> 🥲
+10:12 < ws-client> **<ChillerDragon>** just psst
+10:12 < ws-client> **<ChillerDragon>** heinrich is afk anyways
+10:12 < ws-client> **<ChillerDragon>** and lerato is gangster admin
+10:12 < ws-client> **<ChillerDragon>** nobody nows what shady stuff u do here
+10:13 < bridge> <filoqcus> I understood what consequences this could have, so I won't)
+10:13 < bridge> <filoqcus> :omo:
+10:13 < ws-client> **<ChillerDragon>** JAIL
+10:13 < bridge> <filoqcus> Yea
+10:14 < ws-client> **<ChillerDragon>** @learath2 remember when heinrich almost deleted entire kog from masters because they required login to play?
+10:14 < ws-client> **<ChillerDragon>** and ddnet essentially did ban kog 
+10:15 < ws-client> **<ChillerDragon>** there is the filter by needs auth and its on by default
+10:15 < ws-client> **<ChillerDragon>** the average player thinks kog has like 3 game servers
+10:16 < ws-client> **<ChillerDragon>** its is also kinda cool tbh because you can really feel that there is a different set of players in these underground servers with the entry barrier
+10:16 < ws-client> **<ChillerDragon>** no tiktok Linear andys with 3 week play time will be found there, veterans only
+10:21 < bridge> <melon> StGB § 27
+10:21 < bridge> <melon> 
+10:21 < bridge> <melon> you're cooked
+10:25 < bridge> <ryozuki> what
+11:06 < bridge> <Assa> > discourage the use of std::optional in the entire code base.
+11:06 < bridge> <Assa> :pepeRage:
+11:15 < ws-client> **<ChillerDragon>** @ryozuki Strafgesetzbuch! 🍺
+11:16 < ws-client> **<ChillerDragon>** there is jail time waiting for me if i touch german soil again. Because i helped bypass master server laws.
+11:16 < ws-client> **<ChillerDragon>** @Assa <:nouis:745612528834445313> 
+11:16 < ws-client> **<ChillerDragon>** rust > std::optional
+11:18 < ws-client> **<ChillerDragon>** my efforts of 69 pr goal have officially failed
+11:18 < ws-client> **<ChillerDragon>** worst maintainer ever
+11:21 < bridge> <tails290> Hello. will there be any more updates?
+11:23 < ws-client> **<ChillerDragon>** lol
+11:23 < ws-client> **<ChillerDragon>** i guess it has been a while since last release
+11:23 < ws-client> **<ChillerDragon>** @tails290 yes there is still dev activity. Where do you play? Windows? Steam?
+11:24 < bridge> <tails290> Steam
+11:24 < ws-client> **<ChillerDragon>** you can select nightly on steam
+11:24 < ws-client> **<ChillerDragon>** then you get dailyish updates (currently broken lmao)
+11:24 < bridge> <robyt3> You can switch to the Steam beta version in the settings to use the latest features
+11:24 < ws-client> **<ChillerDragon>** deen right now:    <:justatest:572499997178986510>
+11:24 < bridge> <robyt3> I assume the next release was already around the corner but #10763 blocks it
+11:24 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/10763
+11:24 < ws-client> **<ChillerDragon>** latest removed features you mean @robyt3 ? xd
+11:25 < bridge> <tails290> Bro if it doesn't work, why did you write
+11:25 < ws-client> **<ChillerDragon>** because it will be fixed eventually
+11:26 < ws-client> **<ChillerDragon>** a task force is working on it
+11:26 < ws-client> **<ChillerDragon>** depending on which release you use right now it still might be newer
+11:26 < bridge> <robyt3> The latest nightly is from 2025-08-22 according to the build log
+11:27 < ws-client> **<ChillerDragon>** bleedingly edge
+11:27 < ws-client> **<ChillerDragon>** @tails290 if you are bored you can also check out https://tclient.app/
+11:28 < bridge> <tails290> Okay thank you.I thought it had been abandoned for a long time
+11:29 < ws-client> **<ChillerDragon>** ddnet? no lol
+11:30 < ws-client> **<ChillerDragon>** teeworlds was abandoned :c 
+11:30 < ws-client> **<ChillerDragon>** @tails290 what made you think its abandoned? <:tee_thinking:478629518358085653>
+11:31 < bridge> <tails290> In 2024 there were more videos about him on YouTube and TikTok
+11:31 < bridge> <kollpotato> tiktok propaganda
+11:31 < ws-client> **<ChillerDragon>** developer activity is not stricly tied to social media presence
+11:32 < bridge> <tails290> What
+11:32 < ws-client> **<ChillerDragon>** @tails290 then its on you to make new videos now!!!!
+11:33 < bridge> <kollpotato> videos about pull requests?
+11:33 < ws-client> **<ChillerDragon>** .-.
+11:33 < ws-client> **<ChillerDragon>** about da game
+11:34 < ws-client> **<ChillerDragon>** @Patiga twmap-py has no other docs than `help()` right? not some big file i can search in or something?
+11:34 < bridge> <filoqcus> when https://github.com/ddnet/ddnet-accounts
+11:34 < bridge> <filoqcus> :kek:
+11:34 < ws-client> **<ChillerDragon>** this winter
+11:34 < bridge> <filoqcus> rlly?
+11:34 < ws-client> **<ChillerDragon>** no xd
+11:34 < ws-client> **<ChillerDragon>** idk
+11:34 < bridge> <filoqcus> bruh
+11:34 < bridge> <filoqcus> D:
+11:34 < ws-client> **<ChillerDragon>** hrhrhrhr
+11:35 < bridge> <filoqcus> How do you communicate via webhook, or what is it? Do you use your own Discord client? What does it look like?
+11:35 < bridge> <kollpotato> twmap-py is a wrapper around the rust implementation, isnt api the same?
+11:35 < bridge> <filoqcus> xd
+11:35 < bridge> <kollpotato> https://chat.zillyhuhn.com/
+11:36 < bridge> <filoqcus> :poggers2:
+11:36 < ws-client> **<ChillerDragon>** @kollpotato yea i was thinking the same, so i should read the rust docs? on crates.io?
+11:36 < ws-client> **<ChillerDragon>** wait not crates xd
+11:36 < ws-client> **<ChillerDragon>** docs.rs
+11:36 < ws-client> **<ChillerDragon>** rust nob detected
+11:36 < ws-client> **<ChillerDragon>** https://docs.rs/twmap/0.13.3/twmap/
+11:37 < ws-client> **<ChillerDragon>** @filoqcus ye looks like dis:
+11:37 < ws-client> **<ChillerDragon>** https://zillyhuhn.com/cs/.3fb30e1c-6ed5-40b1-87d0-c69d4aaf4d3b.png
+11:37 < ws-client> **<ChillerDragon>** signup token is "nimrocks"
+11:38 < ws-client> **<ChillerDragon>** oops my taskbar got leaked
+11:38 < bridge> <kollpotato> gnome detected
+11:38 < ws-client> **<ChillerDragon>** gnomer
+11:38 < bridge> <kollpotato> gooner
+11:38 < bridge> <Assa> @chillerdragon how did your 69 PRs fail?
+11:38 < ws-client> **<ChillerDragon>** @Assa its been weeks and its 80
+11:38 < bridge> <kollpotato> it's 79 now
+11:38 < bridge> <kollpotato> there's still hope
+11:38 < ws-client> **<ChillerDragon>** that changes everything!
+11:38 < ws-client> **<ChillerDragon>** xd
+11:39 < bridge> <kollpotato> yes
+11:39 < bridge> <kollpotato> give me ur account credentials and i go merge 10 random prs
+11:39 < bridge> <kollpotato> i will take no responsibility
+11:39 < ws-client> **<ChillerDragon>** you can use !merge for that @kollpotato 
+11:40 < ws-client> **<ChillerDragon>** !merge
+11:40 < chillerbot12> usage: merge [pr id] - to merge ddnet pr using chiler maintainer credentials
+11:40 < bridge> <Assa> @chillerdragon don't give up, it'll be a hard and sweaty path, but it'll be worth it :greenthing:
+11:41 < ws-client> **<ChillerDragon>** ur complicated render prs are basically the evil villain in this story smh
+11:41 < bridge> <Assa> !merge 10732
+11:41 < chillerbot12> using chilors github maintainer credentials to automatically merge https://github.com/ddnet/ddnet/pull/10732 ...
+11:41 < ws-client> **<ChillerDragon>** <:justatest:572499997178986510>
+11:42 < bridge> <Assa> it's the last complicated one, I promise
+11:43 < bridge> <Assa> All followups (besides editor :justatest: ) are just cleanups and smaller things :justatest:
+11:43 < ws-client> **<ChillerDragon>** go cleanup fat skins hrhrhrh
+11:43 < ws-client> **<ChillerDragon>** road to 0 features
+11:43 < bridge> <Assa> okay maybe one more which is a tad more complicated 🙈
+11:43 < ws-client> **<ChillerDragon>** pf
+11:44 < ws-client> **<ChillerDragon>** enjoy stale pr then
+11:44 < bridge> <teero777> gm
+11:44 < ws-client> **<ChillerDragon>** teerowo
+11:44 < bridge> <Assa> 2 features on my list for rendering
+11:44 < bridge> <Assa> - Zoom optimization (very small)
+11:44 < bridge> <Assa> - Rotation clipping
+11:45 < bridge> <Assa> both have huge benefits
+11:45 < bridge> <teero777> :happy:
+11:46 < bridge> <Assa> this is not how you get to 69 PRs
+11:47 < bridge> <Assa> > **<ChillerDragon>** enjoy stale pr then
+11:47 < bridge> <Assa> this is not how you get to 69 PRs
+11:55 < bridge> <Assa> 2 features on my list for rendering
+11:55 < bridge> <Assa> - Zoom optimization (very small in terms of code size)
+11:55 < bridge> <Assa> - Rotation clipping
+11:56 < bridge> <Assa> both have huge benefits and are based on quad clusters
+12:46 < ws-client> **<ChillerDragon>** @robyt3 lez merge #10785 before the end of my shift
+12:46 < chillerbot12> https://github.com/ddnet/ddnet/issues/10785
+12:49 < bridge> <robyt3> Updated
+12:49 < ws-client> **<ChillerDragon>** 🚀
+12:53 < ws-client> **<ChillerDragon>** @robyt3 wat dis do? https://github.com/ddnet/ddnet/pull/10785/files#diff-9bc2378398eb6b7e1ab70a095b206eccef287f58209d704b1aff0650ea3cf426R598
+12:53 < bridge> <Solly (bun bun)> look at linked issue
+12:53 < bridge> <Solly (bun bun)> u have
+12:53 < bridge> <Solly (bun bun)> y u is confuzzled
+13:01 < bridge> <robyt3> Maximum chat message length plus some extra because the log contains `Chat: ` as prefix
+13:02 < ws-client> **<ChillerDragon>** i wish we had https://github.com/ddnet/ddnet/pull/10712 then you could do ``char m_aDescription[256 + str_length("Chat: ")];``
+13:05 < bridge> <patiga> chillerdragon: no docs apart from `help` and your type hints (also failed ping)
+13:05 < bridge> <patiga> you can ofc also always ask here :)
+13:06 < ws-client> **<ChillerDragon>** ye i was 60% sure ur lowercased
+13:07 < ws-client> **<ChillerDragon>** but then i decided to not use twmap at all hrhrhrhr
+13:07 < ws-client> **<ChillerDragon>** i was trying to figure out how to dump map settings didnt find it in the rust docs <:tee_thinking:478629518358085653>
+13:07 < ws-client> **<ChillerDragon>** when with C++ `config_retrieve` then
+13:07 < bridge> <patiga> map.info.settings
+13:08 < ws-client> **<ChillerDragon>** https://zillyhuhn.com/cs/.2a8b6382-8c1e-4d13-b0ba-b918bae975a5.png
+13:08 < ws-client> **<ChillerDragon>** this looks like map details to me
+13:08 < ws-client> **<ChillerDragon>** not the ddnet config thingy
+13:08 < ws-client> **<ChillerDragon>** called "server settings" in editor i think
+13:08 < bridge> <patiga> same thing actually
+13:08 < ws-client> **<ChillerDragon>** watfak
+13:08 < ws-client> **<ChillerDragon>** ah
+13:08 < ws-client> **<ChillerDragon>** `    pub settings: Vec<String>,`
+13:08 < ws-client> **<ChillerDragon>** dis i assume
+13:09 < bridge> <patiga> yup 👍
+13:09 < ws-client> **<ChillerDragon>** yea thats not obvious somehow when skimming the docs
+13:09 < ws-client> **<ChillerDragon>** as someone who uses the editor and doesnt speak the datafile protocol fluently i assume an entire different thing smh
+13:09 < ws-client> **<ChillerDragon>** could maybe use some doc comment and example value idk
+13:09 < bridge> <patiga> would you have found it, if `settings` was an attribute of the `Map` struct directly?
+13:10 < ws-client> **<ChillerDragon>** i found this very page
+13:10 < ws-client> **<ChillerDragon>** and closed it instantly because i realized thats a different thing
+13:10 < bridge> <patiga> very fair, that is rather datafile/internal terminology, not editor speak
+13:10 < ws-client> **<ChillerDragon>** i assume they are represented in the file together?
+13:11 < ws-client> **<ChillerDragon>** because datafile is extendable smh
+13:11 < ws-client> **<ChillerDragon>** i rly never looked into that file at all ever
+13:11 < bridge> <patiga> wdym?
+13:11 < ws-client> **<ChillerDragon>** in the editor UI those are two things
+13:11 < ws-client> **<ChillerDragon>** and you mixed them together
+13:11 < ws-client> **<ChillerDragon>** i assume that has a low level reason
+13:11 < bridge> <patiga> yea they are in the same map item
+13:11 < ws-client> **<ChillerDragon>** yep
+13:11 < bridge> <patiga> (in the info item)
+13:12 < bridge> <patiga> never really gave that more thought xd
+13:12 < ws-client> **<ChillerDragon>** thats obvious to you the datafile hacker
+13:12 < ws-client> **<ChillerDragon>** i am editor andy
+13:12 < ws-client> **<ChillerDragon>** if i read author, version, cred .. my brain goes off and sees only this
+13:12 < ws-client> **<ChillerDragon>** https://zillyhuhn.com/cs/.d1770d08-d612-4db2-ac96-60cf2759559a.png
+13:13 < bridge> <patiga> do you think improved docs would be sufficient, or do you think we need some relocation/renaming?
+13:13 < ws-client> **<ChillerDragon>** dis is entire different section in my head
+13:13 < ws-client> **<ChillerDragon>** https://zillyhuhn.com/cs/.7bcaa9d1-14b9-487d-ae46-66fab8f93cd8.png
+13:13 < ws-client> **<ChillerDragon>** can you put images in docs.rs? xd
+13:14 < bridge> <patiga> I don't think so
+13:14 < ws-client> **<ChillerDragon>** i think improved docs are enuff
+13:14 < ws-client> **<ChillerDragon>** https://docs.rs/image-rs/latest/image_rs/
+13:14 < ws-client> **<ChillerDragon>** they have images in docs
+13:14 < bridge> <patiga> o tru
+13:14 < bridge> <patiga> ig possible
+13:14 < ws-client> **<ChillerDragon>** i assume readme ah syntax markdown `![text](url)`
+13:15 < ws-client> **<ChillerDragon>** or url then text idk i always mess order up
+13:15 < ws-client> **<ChillerDragon>** if these docs showed both my screens i would have never clicked away xd
+13:15 < bridge> <patiga> https://docs.rs/image/latest/image/imageops/enum.FilterType.html (also reminded me of this)
+13:15 < ws-client> **<ChillerDragon>** but its up to you
+13:15 < ws-client> **<ChillerDragon>** maybe some text comment and some example string of `sv_deepfly 1` somewhere also works
+13:16 < bridge> <patiga> wanted to ask exactly that
+13:16 < bridge> <patiga> I think I'd try that first
+13:16 < ws-client> **<ChillerDragon>** its just the last thing in the list and looks so generic
+13:16 < ws-client> **<ChillerDragon>** it doesnt even have the editor exposed name "server settings"
+13:16 < bridge> <patiga> if you like you can ofc do a pull request, otherwise I'd also do that in a while
+13:16 < ws-client> **<ChillerDragon>** my brain doesnt even see it
+13:17 < ws-client> **<ChillerDragon>** ye i thought about it but i think im too lazy sry xd
+13:17 < bridge> <patiga> kinda expected that ^^
+13:17 < bridge> <patiga> I think that might be the first naming issue I hit with twmap
+13:22 < ws-client> **<ChillerDragon>** wdym naming issue? xd @patiga 
+13:23 < ws-client> **<ChillerDragon>** you mean that the name "settings" is named wrong? and so far everything had a perfect name?
+13:24 < ws-client> **<ChillerDragon>** not sure if that is really a naming issue.
+13:25 < ws-client> **<ChillerDragon>** i guess one comment above the field might be enough so that the search in docs.rs for "server settings" gets a hit
+13:28 < bridge> <patiga> perfect is exaggerated, I just meant I haven't heard about another misunderstanding like this before
+13:34 < bridge> <Solly (bun bun)> sizeof("Chat: ")
+13:35 < bridge> <Solly (bun bun)> [galaxybrain](https://cdn.discordapp.com/emojis/632454743951671296.webp?size=48&name=galaxybrain)
+13:35 < bridge> <Solly (bun bun)> thats just 4 right
+13:35 < bridge> <Solly (bun bun)> doesnt work
+13:38 < bridge> <kebscs> sizeof - 1
+13:39 < bridge> <Solly (bun bun)> i think it gets instantly cast to a ptr
+13:39 < bridge> <Solly (bun bun)> or not
+13:39 < bridge> <Solly (bun bun)> yeah - 1
+13:40 < bridge> <kebscs> idk what ptr but sizeof counts null terminator
+13:40 < bridge> <kebscs> strlen doesnt
+13:40 < bridge> <Solly (bun bun)> "asdasdas" -> char*
+13:40 < bridge> <Solly (bun bun)> instead of char[]
+13:40 < bridge> <Solly (bun bun)> but sizeof doesnt make that happen
+13:40 < bridge> <Solly (bun bun)> cuz its not a function
+13:42 < ChillerDragon> oh yea sizeof - 1 works i used such strlen macro already
+13:42 < ChillerDragon> but then it might not be power of 2 aligned which is bad for cpu speed
+13:43 < ChillerDragon> i guess a simple comment like `// "Chat: " prefix` should also do
+13:44 < ChillerDragon> https://zillyhuhn.com/cs/.bc6cf6f3-6a5f-49ba-abde-5c5050a374f7.png
+13:45 < ChillerDragon> for pointer u need pointer ... duh
+13:45 < ChillerDragon> https://zillyhuhn.com/cs/.4c855b51-e1bc-4d1f-8da6-e198da33f27e.png
+13:56 < bridge> <Solly (bun bun)> @chillerdragon i cant make it compatible with original teesmash since it has more than 10 levels of health
+13:56 < bridge> <Solly (bun bun)> and also the default configs are horrible
+13:57 < bridge> <Solly (bun bun)> and its all pretty borked
+14:09 < bridge> <Solly (bun bun)> @chillerdragon
+14:09 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1411321808883552256/image.png?ex=68b43b5c&is=68b2e9dc&hm=39d690955c28cc22a9de8c7cbc4b866593bcf174cdeb36ed601cfbc4e77382ca&
+14:09 < bridge> <Solly (bun bun)> can i use the gun and hammer pickup here for the pickups?
+15:08 < ws-client> **<ChillerDragon>** wat gun for wat pickups
+15:09 < bridge> <ryozuki> i just had a grand realization
+15:09 < bridge> <ryozuki> the default branch name to be trunk
+15:09 < bridge> <ryozuki> makes a lot of sense
+15:09 < bridge> <ryozuki> and u dont get woke anti slavery guys
+15:09 < bridge> <ryozuki> and u dont surrender to main
+15:09 < bridge> <ryozuki> and branches from a trunk
+15:09 < bridge> <ryozuki> it just makes sense
+15:09 < ws-client> **<ChillerDragon>** why was trunk even replaced by master
+15:09 < bridge> <ryozuki> idk
+15:09 < bridge> <ryozuki> apparently Linus hates svn and svn used trunk as default
+15:10 < bridge> <ryozuki> and so he didnt use trunk (?)
+15:10 < bridge> <ryozuki> when making git
+15:10 < ws-client> **<ChillerDragon>** be careful discussing that
+15:10 < bridge> <ryozuki> afaik tw used trunk
+15:10 < bridge> <ryozuki> cuz svn
+15:10 < bridge> <ryozuki> why
+15:10 < ws-client> **<ChillerDragon>** last time i got 3 weeks ban for discussing branch names in here
+15:10 < bridge> <ryozuki> ?? xd
+15:10 < bridge> <Jupstar ✪> Bcs chiller is boomer
+15:10 < bridge> <Jupstar ✪> Main
+15:10 < ws-client> **<ChillerDragon>** im not kidding
+15:11 < bridge> <ryozuki> im now a pro trunk
+15:11 < bridge> <ryozuki> make trunk great again
+15:11 < bridge> <Jupstar ✪> And Main alone
+15:11 < bridge> <ryozuki> https://www.vinnie.work/blog/2020-10-08-git-master-main-trunk
+15:12 < bridge> <ryozuki> > The most common reason I've seen for going to main is that its popular, short, to the point, and doesn't "interrupt muscle memory" (which sounds like a C coder's comment). My personal experience with revision control is deeply seeded in using subversion. In subversion you have trunk, branches, and tags. Trunk in this context refers to the fact that revision control commonly creates tree structures from graph theory. In my opinion, other than Linu
+15:12 < bridge> <ryozuki> xdd
+15:13 < bridge> <Jupstar ✪> Wrong
+15:13 < bridge> <Jupstar ✪> It's the main branch. Not the trunk branch
+15:13 < bridge> <Jupstar ✪> It makes most sense
+15:14 < bridge> <ryozuki> if u think of git as a tree
+15:14 < bridge> <ryozuki> it makes sense
+15:14 < bridge> <Jupstar ✪> It also makes sense with main
+15:14 < bridge> <ryozuki> :deen_star:
+15:14 < bridge> <ryozuki> lets stop cuz discussding this has no intellectual merit actually xd
+15:14 < bridge> <ryozuki> i achieved clean kernel threads on edos v2
+15:14 < bridge> <Jupstar ✪> The real question is
+15:15 < bridge> <ryozuki> ```
+15:15 < bridge> <ryozuki> [9.986945] Next id (kernel = true): 0
+15:15 < bridge> <ryozuki> [9.987044] hi from kthread
+15:15 < bridge> <ryozuki> [10.985461] Context switch from kernel
+15:15 < bridge> <ryozuki> [10.985574] Next id (kernel = true): 1
+15:15 < bridge> <ryozuki> [10.985681] hi from kthread2, 206
+15:15 < bridge> <ryozuki> [11.984080] Context switch from kernel
+15:15 < bridge> <ryozuki> [11.984170] Next id (kernel = true): 2
+15:15 < bridge> <ryozuki> [11.984253] hi from kthread3, 3
+15:15 < bridge> <ryozuki> [12.982708] Context switch from kernel
+15:15 < bridge> <ryozuki> [12.982819] Next id (kernel = true): 0
+15:15 < bridge> <ryozuki> [12.982911] hi from kthread
+15:15 < bridge> <ryozuki> [13.981330] Context switch from kernel
+15:15 < bridge> <ryozuki> [13.981446] Next id (kernel = true): 1
+15:15 < bridge> <ryozuki> [13.981550] hi from kthread2, 208
+15:15 < bridge> <ryozuki> [14.979952] Context switch from kernel
+15:15 < bridge> <ryozuki> [14.980038] Next id (kernel = true): 2
+15:15 < bridge> <ryozuki> [14.980114] hi from kthread3, 4
+15:15 < bridge> <ryozuki> [15.978579] Context switch from kernel
+15:15 < bridge> <ryozuki> [15.978663] Next id (kernel = true): 0
+15:15 < bridge> <ryozuki> [15.978733] hi from kthread
+15:15 < bridge> <ryozuki> ```
+15:15 < bridge> <Jupstar ✪> Why fork
+15:15 < bridge> <mo_lt> why spoon
+15:15 < bridge> <ryozuki> im context swithcing every 1 second more or less to see logs
+15:15 < bridge> <ryozuki> i also added dmesg style logging
+15:15 < bridge> <ryozuki> to see the time it takes
+15:15 < bridge> <ryozuki> u can see the small drift in 1 second
+15:16 < bridge> <ryozuki> cuz my calibration is not exact
+15:16 < bridge> <ryozuki> ```
+15:16 < bridge> <ryozuki> [0.000000] APIC Timer Calibration Results:
+15:16 < bridge> <ryozuki> [0.000000]   Calibration time: 35ms
+15:16 < bridge> <ryozuki> [0.000000]   APIC ticks elapsed: 35002472
+15:16 < bridge> <ryozuki> [0.000000]   APIC frequency: 1000070628 Hz (1000) MHz
+15:16 < bridge> <ryozuki> [0.000000]   TSC frequency: 4406088342 Hz (4.41) GHz
+15:16 < bridge> <ryozuki> [0.000000]   Ticks per microsecond: 1000
+15:16 < bridge> <ryozuki> ```
+15:16 < bridge> <ryozuki> oh this time it got it perfect
+15:16 < bridge> <ryozuki> qemu apic runs at 1ghz
+15:16 < bridge> <ryozuki> sometimes my calbiration says 999
+15:17 < bridge> <ryozuki> there is also a HPET that has femtosecond precision i think
+15:18 < bridge> <ryozuki> but im not using it
+15:18 < bridge> <ryozuki> https://wiki.osdev.org/HPET
+15:18 < bridge> <ryozuki> HPET, or High Precision Event Timer, is a piece of hardware designed by Intel and Microsoft to replace older PIT and RTC. It consists of (usually 64-bit) main counter (which counts up), as well as from 3 to 32 32-bit or 64-bit wide comparators. HPET is programmed using memory mapped IO, and the base address of HPET can be found using ACPI.
+15:18 < bridge> <ryozuki> im using the pit to calibrate
+15:20 < bridge> <Jupstar ✪> You already have a terminal app?
+15:26 < bridge> <ryozuki> on edos v2 no
+15:26 < bridge> <ryozuki> im going slow to have a really good base
+15:26 < bridge> <ryozuki> on v1 yes and i could run programs
+15:27 < bridge> <ryozuki> rendering is actually easy so im not doing it now
+15:27 < bridge> <ryozuki> (rendering with framebuffer)
+15:33 < bridge> <ryozuki> i tried mixing rust async in edos v1
+15:33 < bridge> <ryozuki> im going full separated threads
+15:33 < bridge> <ryozuki> now
+15:33 < bridge> <ryozuki> no async
+15:53 < bridge> <qxdfox> why are all chat commands also registered in rcon? Is there any specific reason as to why or just because
+15:57 < bridge> <chillerdragon> @qxdfox: I assume because of the shared structure. They use the same arg parser and cmdlist concept and so on
+15:58 < bridge> <chillerdragon> Them being accessible in rcon also to the user might be convinient for admins. Also it helps with speed. Because rcon has no ratelimit but chat has even for authed players
+17:33 < bridge> <Solly (bun bun)> @chillerdragon https://github.com/ddnet-insta/ddnet-insta/pull/416/files
+17:33 < bridge> <Solly (bun bun)> @chillerdragon <https://github.com/ddnet-insta/ddnet-insta/pull/416>
+17:38 < bridge> <Solly (bun bun)> @chillerdragon warmup seems to not work
+18:04 < bridge> <chillerdragon> I hate warmup
+18:04 < bridge> <chillerdragon> I have ptsd from that code
+21:32 < bridge> <Cammodude> pip list gives this
+21:32 < bridge> <Cammodude> https://cdn.discordapp.com/attachments/293493549758939136/1411433406885265569/image.png?ex=68b4a34b&is=68b351cb&hm=f2e871544734417ac636100170ee387b951f011fdde87922d380cb3dc0a70062&
+21:32 < bridge> <Cammodude> and pip install does nothing
+21:33 < bridge> <Cammodude> unless theres a special pip update command i dont know of
+21:33 < bridge> <patiga> try `pip install --upgrade matplotlib`
+21:34 < bridge> <Cammodude> ah now it does stuff
+21:34 < bridge> <patiga> 🎉
+21:34 < bridge> <Cammodude> its 3.10.6 now
+21:34 < bridge> <patiga> nice, hopefully the script also runs now
+21:34 < bridge> <Cammodude> nope
+21:34 < bridge> <Cammodude> https://cdn.discordapp.com/attachments/293493549758939136/1411434035774755000/image.png?ex=68b4a3e1&is=68b35261&hm=85fa2c984283194a8500aaf47a0c856f863082c8015bf18ce19f58b5d8108897&
+21:35 < bridge> <Cammodude> how do i delete stuff with pip now
+21:35 < bridge> <patiga> ah oh god
+21:35 < bridge> <Cammodude> or actually
+21:35 < bridge> <patiga> you are on linux
+21:35 < bridge> <Cammodude> i dont recall ever doing pip install matplotlib
+21:36 < bridge> <patiga> ouch
+21:36 < bridge> <Cammodude> so its system i presume
+21:36 < bridge> <patiga> then you'll need to update it with your system package manager
+21:36 < bridge> <patiga> (which distro you on btw?)
+21:36 < bridge> <Cammodude> mint 21.3
+21:37 < bridge> <Cammodude> i dont see any python related stuff in update manager
+21:37 < bridge> <Cammodude> ill update anyway
+21:37 < bridge> <patiga> did pip give you a warning before it let you install kaitaistruct?
+21:37 < bridge> <Cammodude> i dont think so
+21:38 < bridge> <Cammodude> i closed that terminal so i cant check either
+21:38 < bridge> <Cammodude> but if it did give me an error it just continued on
+21:39 < bridge> <patiga> we only see a warning here, the script might've still run to the end
+21:40 < bridge> <Cammodude> hah im just blind :kek:
+21:40 < bridge> <patiga> though your python dependency management might've just gotten a little more complicated. I'm not familiar with mint and pip usually warns you before something goes wrong
+21:40 < bridge> <Cammodude> https://cdn.discordapp.com/attachments/293493549758939136/1411435445392379985/output.png?ex=68b4a531&is=68b353b1&hm=215c71717a53b607c8ed1293d56bf5c89881a1803a1f5ccb18d152ff060a697d&
+21:40 < bridge> <Cammodude> update manager was covering the folder
+21:40 < bridge> <Cammodude> so i couldnt see it
+21:40 < bridge> <Cammodude> ty
+21:40 < bridge> <patiga> yw!
+22:05 < bridge> <ryozuki> night question: how many stacks needs a user thread
+22:08 < bridge> <patiga> 2?
+22:10 < bridge> <melon> i call 1
+22:11 < bridge> <patiga> at least one user stack and one os stack afaik
+22:11 < bridge> <melon> i think the OS itself determines additionals for ops
+22:13 < bridge> <ryozuki> 2 stacks, because one is needed in the TSS when doing a privilege level change
+22:13 < bridge> <patiga> tss?
+22:13 < bridge> <ryozuki> task state segment
+22:13 < bridge> <ryozuki> when ur in ring 3 (user) and get an interrupt
+22:14 < bridge> <ryozuki> cpu looks at TSS for the stack to use on ring 0 for the kernel
+22:14 < bridge> <ryozuki> that stack needs to be separate for each ring 3 thread
+22:14 < bridge> <patiga> yea thats the one I thought of I think
+22:14 < bridge> <ryozuki> so no corruption happens
+22:14 < bridge> <ryozuki> and it uses the stack in the interrupt handler
+22:15 < bridge> <ryozuki> its called RSP0
+22:15 < bridge> <ryozuki> https://en.wikipedia.org/wiki/Task_state_segment#Inner-level_stack_pointers
+22:15 < bridge> <ryozuki> > The TSS contains 6 fields for specifying the new stack pointer when a privilege level change happens. The field SS0 contains the stack segment selector for CPL=0, and the field ESP0/RSP0 contains the new ESP/RSP value for CPL=0. When an interrupt happens in protected (32-bit) mode, the x86 CPU will look in the TSS for SS0 and ESP0 and load their values into SS and ESP respectively. This allows for the kernel to use a different stack than the user
+22:16 < bridge> <ryozuki> u also need to use a different stack for double fault handlers
+22:18 < bridge> <teero777> yo ryo do you know how much faster syscalls can be generally? I mean they are hella slow compared to anything else in programming so I wondered if there was a way to speed them up. Might be a silly question.
+22:19 < bridge> <ryozuki> yes, in a fully cooperative kernel they can be way faster, because if u cooperate by yielding at known points, you can only save the state you need, instead of all the registers and x87 state, for example, rust async is fully cooperative, rust creates a state machine where at yield points (.awaits) a new variant in the enum state machine is made, saving only the stat needed, for example it may be as little as one u64
+22:19 < bridge> <ryozuki> most real world kernels need to preempt non cooperatively because user programs need to be stoppepd at any point
+22:19 < bridge> <ryozuki> so you need to save all info
+22:20 < bridge> <ryozuki> yes, in a fully cooperative kernel they can be way faster, because if u cooperate by yielding at known points, you can only save the state you need, instead of all the registers and x87 state, for example, rust async is fully cooperative, rust creates a state machine where at yield points (.awaits) a new variant in the enum state machine is made, saving only the state needed, for example it may be as little as one u64
+22:20 < bridge> <ryozuki> i havent looked into RTOS but maybe they do that
+22:20 < bridge> <teero777> thanks, good to know :D
+22:21 < bridge> <ryozuki> (btw im no expert i just learnt this when making OSes xD)
+22:22 < bridge> <ryozuki> if ur curios, right now this is how i save in a context switch:
+22:22 < bridge> <ryozuki> 
+22:22 < bridge> <ryozuki> ```rust
+22:22 < bridge> <ryozuki> #[unsafe(naked)]
+22:22 < bridge> <ryozuki> #[unsafe(no_mangle)]
+22:22 < bridge> <ryozuki> pub unsafe extern "C" fn timer_interrupt_handler() {
+22:22 < bridge> <ryozuki>     naked_asm!(
+22:22 < bridge> <ryozuki>         // CPU has already pushed SS, RSP, RFLAGS, CS, RIP
+22:22 < bridge> <ryozuki>         // Save all general purpose registers
+22:22 < bridge> <ryozuki>         "push rax",
+22:22 < bridge> <ryozuki>         "push rcx",
+22:22 < bridge> <ryozuki>         "push rdx",
+22:22 < bridge> <ryozuki>         "push rbx",
+22:22 < bridge> <ryozuki>         "push rbp",
+22:22 < bridge> <ryozuki>         "push rsi",
+22:22 < bridge> <ryozuki>         "push rdi",
+22:22 < bridge> <ryozuki>         "push r8",
+22:22 < bridge> <ryozuki>         "push r9",
+22:23 < bridge> <ryozuki>         "push r10",
+22:23 < bridge> <ryozuki>         "push r11",
+22:23 < bridge> <ryozuki>         "push r12",
+22:23 < bridge> <ryozuki>         "push r13",
+22:23 < bridge> <ryozuki>         "push r14",
+22:23 < bridge> <ryozuki>         "push r15",
+22:23 < bridge> <ryozuki> 
+22:23 < bridge> <ryozuki>         // At this point, RSP points to the saved context
+22:23 < bridge> <ryozuki>         // Pass it as first argument to timer_schedule
+22:23 < bridge> <ryozuki>         "mov rdi, rsp",
+22:23 < bridge> <ryozuki> 
+22:23 < bridge> <ryozuki>         // Ensure stack is 16-byte aligned before call
+22:23 < bridge> <ryozuki>         // The push operations above pushed 15 registers (8 bytes each = 120 bytes)
+22:23 < bridge> <ryozuki> i dont save x87 yet cuz i didnt enable it
+22:23 < bridge> <ryozuki> but thats 512 bytes afaik
+22:23 < bridge> <ryozuki> on a syscall u have to do the same as the interrupt handler more or less
+22:23 < bridge> <ryozuki> well maybe u can just save callee saved regs
+22:24 < bridge> <ryozuki> (im not sure now)
+22:24 < bridge> <ryozuki> @teero777 btw linux has an optimization for some syscalls
+22:24 < bridge> <ryozuki> its called the vdso
+22:24 < bridge> <ryozuki> https://man7.org/linux/man-pages/man7/vdso.7.html
+22:24 < bridge> <ryozuki> interesting read
+22:24 < bridge> <teero777> I haven't gotten into OS/kernel dev at all although I'm planning for it once I finish my ongoing project
+22:25 < bridge> <ryozuki> nice, did u get inspired by me or u already wanted? :D
+22:25 < bridge> <ryozuki> https://tenor.com/view/burger-eating-frieren-frieren-beyond-journey%27s-end-sousou-no-frieren-gif-13425073513713719938
+22:25 < bridge> <ryozuki> lot of things make sense to me now
+22:26 < bridge> <teero777> I wanted to do it for some time but then I saw your sexy screenshots here and got back the motivation
+22:26 < bridge> <ryozuki> its dope and if u use C its easier cuz more examples
+22:26 < bridge> <ryozuki> im using rust cuz i dont wanna use C
+22:26 < bridge> <ryozuki> anyway if u do start and have doubts feel free to ask
+22:27 < bridge> <teero777> yea, will, thx :owo:
+22:29 < bridge> <ryozuki> btw i tried to look at C inline asm but the syntax was weird xD
+22:29 < bridge> <teero777> what is this prejudice😭
+22:29 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1411447831574876342/Screenshot_20250830-222922.png?ex=68b4b0ba&is=68b35f3a&hm=5dd308598b4835094e1cd45332492133eefe289e1f31620bfc5b21ab57c581a2&
+22:31 < bridge> <teero777> Yea I looked into it for optimization things but tbh it's useless most of the time, clang does a pretty good job. It's really hard to find anything worth doing inline asm for.
+22:31 < bridge> <teero777> Ofc your use case is different
+22:34 < bridge> <teero777> It was like
+22:34 < bridge> <teero777> 1. spend an hour understanding things
+22:34 < bridge> <teero777> 2. oh, it's slower than what the compiler did...
+22:35 < bridge> <ryozuki> xD
+22:36 < bridge> <ryozuki> yeah i think asm is only useful for constant time (cryptography) and maybe codecs
+22:36 < bridge> <ryozuki> and for stuff that breaks out of standards (something non system v compliant)
+22:36 < bridge> <ryozuki> for example the interrupt handler u cant do it with rust or C code
+22:36 < bridge> <ryozuki> u need to use asm
+22:37 < bridge> <ryozuki> @nikhard whatch u writing
+22:37 < bridge> <melon> can your car run out of blinker fluid yet
+22:37 < bridge> <teero777> :justatest:
+22:38 < bridge> <teero777> I'm fighting the code
+22:38 < bridge> <teero777> gdb is assisting me
+22:38 < bridge> <melon> :peepoSpreadsheet:
+22:38 < bridge> <teero777> that I know of
+22:38 < bridge> <melon> did you ask AI yet
+22:39 < bridge> <teero777> AI doesn't take my 3700loc and if it does it spews bs xd
+22:39 < bridge> <melon> 😢
+22:39 < bridge> <teero777> I even tried to give it some telemetry data but nope, and after a single prompt it's rate limited anyways xd
+22:40 < bridge> <nikhard> sad letter about my helplessness and crying for help :(
+22:40 < bridge> <nikhard> but for real want help with modifying ninja weapon animation, it's not moving
+22:42 < bridge> <ryozuki> if its not code this isnt the place probs
+22:43 < bridge> <nikhard> well, #questions ?
+22:43 < bridge> <nikhard> ah, wait, yea, it's code
+22:47 < bridge> <nikhard> Maybe you know where does weapon animations stores?
+22:47 < bridge> <nikhard> Like where coded weapons recoil movement and it's rotation, animations. Not `datasrc/content.py`, it's not wery helping with my problem
+22:49 < bridge> <patiga> `content.py` is indeed the right place, but it is used to generate other files
+22:49 < bridge> <patiga> not sure if you have to execute it manually/something different
+22:49 < bridge> <teero777> Did you know about descriptor structs in c? Or whatever they are called.
+22:49 < bridge> <teero777> it's pwetty
+22:50 < bridge> <teero777> googling doesn't even bring anything up wow
+22:51 < bridge> <melon> descriptor strucs as in
+22:51 < bridge> <melon> 
+22:51 < bridge> <melon> ```c
+22:51 < bridge> <melon> struct myStruct {
+22:51 < bridge> <melon> int something;
+22:51 < bridge> <melon> uint16_t somethingmore;
+22:51 < bridge> <melon> char *somethingevenharder;
+22:51 < bridge> <melon> };
+22:51 < bridge> <melon> ```
+22:51 < bridge> <melon> ?
+22:52 < bridge> <melon> i guess its just a defined interface to describe the data structure
+22:53 < bridge> <nikhard> Well my problem exactly is in that file generates `Animation` for *ninja_swing* and after attaching `anim.attach.frames.Add(AnimKeyframe(0.20, 32, 0, 0))`, the **x** and **y** value does nothing in game. With hammer, feet, body - works, but not with ninja.
+22:53 < bridge> <nikhard> So I assume there is some cut for ninja exactly, but not in that file. maybe)
+22:55 < bridge> <teero777> descriptor structs as in you have 2 structs instead of one, one of them is a suffixed with `descriptor` or `desc` and holds all data that won't be changed past initialization. And the *real* struct that holds data that may change at any time has the descriptor structs inside of it to get the *static* data out of
+22:55 < bridge> <melon> oh so it is an interface
+22:55 < bridge> <teero777> kinda, depends on what you mean with an interface xd
+22:56 < bridge> <melon> well an interface in the broad sense to me is just defining mutable data which can be inherited and changed, but it can also hold immutable structs
+22:57 < bridge> <melon> i guess i see interfaces more like templates
+22:57 < bridge> <melon> xd
+22:57 < bridge> <teero777> I'm restructuring and kinda redoing the whole vehicle simulation thing so I wanted to try doing this and it's been working out great.
+22:57 < bridge> <teero777> have a few commits laying on local cuz it's not at the level it was before
+22:57 < bridge> <patiga> if you change something in the file, does compiling again do smth or is it immediately finished?
+22:58 < bridge> <teero777> @blaiszephyr anyways today is early sleepy so gn
+22:58 < bridge> <nikhard> Doing. Updating 123 entries 💀
+22:58 < bridge> <patiga> gn :>
+22:59 < bridge> <melon> gn Teeto <3
+22:59 < bridge> <patiga> then change something drastic in the animation to verify that actually nothing is changing
+22:59 < bridge> <patiga> like remove all keyframes or smth
+23:00 < bridge> <nikhard> already
+23:00 < bridge> <nikhard> i make foot moving when ninja animates and commented ninja's anim, it stops in vertical position
+23:03 < bridge> <patiga> ah, so stuff is indeed changing
+23:06 < bridge> <patiga> I don't know why the position doesn't change, it *should* afaict
+23:14 < bridge> <ryozuki> im going sleep too
+23:16 < bridge> <pioooooo> gm
+23:22 < bridge> <nikhard> well i make myself a unicorn, worth enough
+23:22 < bridge> <nikhard> muzzleoffset and offset are working tough
+23:22 < bridge> <nikhard> https://cdn.discordapp.com/attachments/293493549758939136/1411461173093601340/image.png?ex=68b4bd27&is=68b36ba7&hm=ccb35d62850889fde2870fd98c35963a3c968e543182997cb15d140e4c202012&

@@ -1,0 +1,161 @@
+00:08 < bridge> <chairn> how are you sure the stack is aligned on 16-byte boundaries ? You pushed 160 bytes, but the stack might not be aligned if it wasn't when entering the interrupt
+00:10 < bridge> <chairn> you obviously can in C, you just have to signal it to the compiler with  `__attribute__((interrupt))`
+01:16 < bridge> <patiga> just because of x86 calling convention ig
+02:23 < bridge> <Solly (bun bun)> you could try getting the text extents of all of em
+02:24 < bridge> <Solly (bun bun)> since emojis are wide and you know the width of an invalid one
+02:24 < bridge> <Solly (bun bun)> theres some bozo nerd way of extracting it directly from the font i bet
+02:25 < bridge> <Solly (bun bun)> ```py
+02:25 < bridge> <Solly (bun bun)> from fontTools.ttLib import TTFont
+02:25 < bridge> <Solly (bun bun)> 
+02:25 < bridge> <Solly (bun bun)> font = TTFont("YourFont.ttf")
+02:25 < bridge> <Solly (bun bun)> cmap = font.getBestCmap()
+02:25 < bridge> <Solly (bun bun)> emoji_codepoints = [cp for cp in cmap if 0x1F300 <= cp <= 0x1FAFF]  # Common emoji range
+02:25 < bridge> <Solly (bun bun)> supported_emojis = [chr(cp) for cp in emoji_codepoints]
+02:25 < bridge> <Solly (bun bun)> 
+02:25 < bridge> <Solly (bun bun)> print("Supported emojis:", supported_emojis)
+02:25 < bridge> <Solly (bun bun)> ```
+02:25 < bridge> <Solly (bun bun)> vibe answer
+02:38 < bridge> <kebscs> https://fontdrop.info/
+02:39 < bridge> <kebscs> drag and drop ddnet fonts here and scroll down
+02:39 < bridge> <kebscs> fonts are in ddnet\data\fonts
+02:39 < bridge> <redayt765> https://media.discordapp.net/attachments/1200986673316626544/1411485710656995488/1.jpg?ex=68b4d401&is=68b38281&hm=652924a3794c670fbd3934659c2b6b76ba6b9a1812fc191abb06dad0239f1936&=&format=webp&width=741&height=989 https://media.discordapp.net/attachments/1200986673316626544/1411481635953840168/2.png?ex=68b4d036&is=68b37eb6&hm=1664b1bdf4db96da8acc506e97618254f430696a23bd01e972dda8f036fee62f&=&format=webp&quality=lossless&width=741&height=989 https
+02:46 < bridge> <imilchshake> :feelsamazingman: :banhammer:
+04:23 < bridge> <heroshima0113> https://media.discordapp.net/attachments/1411487806567481449/1411487825312088084/1.jpg?ex=68b4d5f9&is=68b38479&hm=c108c7200c00fbac23bf4a42865f10871aa39314665ca9c07bcc7d49abe047f0&=&format=webp&width=1208&height=1610 https://media.discordapp.net/attachments/1411487806567481449/1411487825974525952/2.jpg?ex=68b4d5f9&is=68b38479&hm=683660b47c173cefa8609926aa2512008ffd947f784c2e34adfa5d66339b9978&=&format=webp&width=1208&height=1610 https://media.
+06:15 < bridge> <ryozuki> u cant do a context switch in the interrupt using c
+06:16 < bridge> <ryozuki> ur probs right ill check it out
+06:17 < bridge> <ryozuki> altho idk if it matters the 16 byte in kernel code cuz im not using x87 and using soft floats
+06:24 < bridge> <ryozuki> ah, when entering the interrupt the cpu switches the stacks to a kernel stack i pre allocated, thats where i i know its aligned
+06:24 < bridge> <ryozuki> just woke up
+06:25 < bridge> <ryozuki> ah, when entering the interrupt the cpu switches the stack to a kernel stack i pre allocated, thats where i i know its aligned
+06:36 < bridge> <ryozuki> ur partially right, when entering the interrupt handler:
+06:36 < bridge> <ryozuki> 
+06:36 < bridge> <ryozuki> - if there is a privilege level change, the stack is changed to a known predefined stack (which ofc is aligned), hence why the cpu automatically pushes "SS, RSP, RFLAGS, CS, RIP" to the new stack.
+06:37 < bridge> <ryozuki> - if there is no level change, ur right it may be misaligned because it uses the same stack
+06:48 < bridge> <ryozuki> i added a `"and rsp, -16",` before the cld
+06:48 < bridge> <ryozuki> ur partially right, when entering the interrupt handler:
+06:48 < bridge> <ryozuki> 
+06:48 < bridge> <ryozuki> - if there is a privilege level change, the stack is changed to a known predefined stack (which ofc is aligned).
+06:48 < bridge> <ryozuki> - if there is no level change, ur right it may be misaligned because it uses the same stack
+06:53 < bridge> <ryozuki> i added a `sub rsp, 8` `and rsp, -16,` before the cld
+08:37 < bridge> <y00hohoho> how can i display scores instead of finish times in serverlist? (like fng and some block servers.)
+10:38 < bridge> <chillerdragon> Wasn’t the same question asked here already even with the same example modes?
+10:38 < bridge> <chillerdragon> You can adjust the flags that get snapped in gamecontext.cpp there is one for time score
+10:39 < bridge> <chillerdragon> @y00hohoho: what are you working on?
+11:31 < bridge> <chairn> but any program can manipulate the stack, and the interrupt can happen any moment, which means it could very well not be aligned on 16 bytes when entering the interrupt
+11:49 < ws-client> **<ChillerDragon>** @kebscs kebso r u here? c:
+11:49 < ws-client> **<ChillerDragon>** which chat and rcon commands take colors as argument?
+12:29 < ws-client> **<ChillerDragon>** @robyt3 bump https://github.com/ddnet/ddnet/pull/10748#issuecomment-3218056205
+12:31 < ws-client> **<ChillerDragon>** bruv i accidentally hid my comment and now there is no option to unhide, gg
+12:33 < bridge> <chillerdragon> Also I can’t delete it????
+12:33 < bridge> <melon> ^ maintainer btw
+13:30 < bridge> <Solly (bun bun)> being a mainter doesnt mean you know how to use git and github
+14:00 < bridge> <kebscs> idk maybe there isnt
+14:00 < bridge> <kebscs> if it works in console and config files i guess itll work
+14:00 < bridge> <kebscs> i rly dont remember this pr from 1 year ago
+14:20 < bridge> <Assa> gumi ^^
+14:23 < bridge> <melon> gumy
+14:24 < bridge> <teero777> halo
+14:24 < bridge> <teero777> pillow on desk is so good
+14:37 < bridge> <tsfreddie> mainer?
+14:51 < bridge> <teero777> what?
+14:51 < bridge> <teero777> https://cdn.discordapp.com/attachments/293493549758939136/1411694857000587284/image.png?ex=68b596c9&is=68b44549&hm=e22ac147c71f31539fb054492ddd15aedabf27fda1fa997f0edfba94b5f709f6&
+14:51 < bridge> <teero777> sorry but im not a mainer
+14:52 < bridge> <tsfreddie> miner
+14:52 < bridge> <teero777> what?
+14:52 < bridge> <tsfreddie> mer
+14:52 < bridge> <tsfreddie> m
+14:52 < bridge> <tsfreddie> r
+14:55 < bridge> <inv41idu53rn4m3> one who mains
+15:07 < bridge> <teero777> mains what
+15:16 < bridge> <chillerdragon> gores
+15:17 < bridge> <Cellegen> How's chillerdragon of all people would be inexperienced of using git and github? :kek:
+15:18 < bridge> <chillerdragon> fr I’m the GitHubber
+15:19 < bridge> <Cellegen> Ur the github breaker
+15:27 < bridge> <y00hohoho> im bored of playing with 70 ms, so im compiling my own block server with block features
+15:39 < ws-client> **<ChillerDragon>** @y00hohoho why not use any of the exisiting block servers? Like F-DDrace or DDNet++
+15:49 < bridge> <tsfreddie> GitHub Influencer [noun]
+15:49 < bridge> <tsfreddie> > A person who influence the quality of GitHub services by abusing and spamming its systems
+15:51 < ws-client> **<ChillerDragon>** <:kek:623709640789852179>
+15:53 < bridge> <Assa> @chillerdragon can you review #10732? Should be relatively simple, it's not so big anymore since the first commit is now merged
+15:53 < bridge> <DDNet> https://github.com/ddnet/ddnet/pull/10732
+15:53 < bridge> <Assa> pretty please :owo:
+15:59 < ws-client> **<ChillerDragon>** yea i rly dont understand that code
+16:09 < bridge> <Assa> skillissue :feelsbadman:
+16:26 < bridge> <Solly (bun bun)> where is the snap filled in (`m_Snap.m_aCharacters`)
+16:26 < bridge> <Solly (bun bun)> and `Client.m_RenderPos`
+16:41 < ChillerDragon> i dont understand the question souly
+17:04 < bridge> <Solly (bun bun)> @chillerdragon at some point they are filled inw ith data
+17:04 < bridge> <Solly (bun bun)> im just getting 0s
+17:04 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1411728318348263506/image.png?ex=68b5b5f3&is=68b46473&hm=b7166875a3b9a5e7c544e04f0a35a5c9f8240abe51153faa606300ecd22da517&
+17:04 < ws-client> **<ChillerDragon>** server or client?
+17:04 < bridge> <Solly (bun bun)> client
+17:04 < bridge> <Solly (bun bun)> ```cpp
+17:04 < bridge> <Solly (bun bun)> // Update woosh sound effect
+17:04 < bridge> <Solly (bun bun)> for (auto &Client : m_aClients)
+17:04 < bridge> <Solly (bun bun)> {
+17:04 < bridge> <Solly (bun bun)>     const auto &Char = m_Snap.m_aCharacters[Client.ClientId()];
+17:04 < bridge> <Solly (bun bun)>     const bool ShouldPlaying = Char.m_Active && Char.m_Cur.m_VelY > 64;
+17:04 < bridge> <Solly (bun bun)>     const bool IsPlaying = Client.m_SfxFallingWoosh.IsValid();
+17:04 < bridge> <Solly (bun bun)>     if(ShouldPlaying && !IsPlaying)
+17:04 < bridge> <Solly (bun bun)>     {
+17:04 < bridge> <Solly (bun bun)>         Client.m_SfxFallingWoosh = Sound()->PlayAt(CSounds::CHN_WORLD, 0, IEngineSound::FLAG_LOOP, 1.0f, Client.m_RenderPos);
+17:04 < bridge> <Solly (bun bun)>         Sound()->SetLoopTime(Client.m_SfxFallingWoosh, 0.2f);
+17:04 < bridge> <Solly (bun bun)>     }
+17:04 < bridge> <Solly (bun bun)>     else if(!ShouldPlaying && IsPlaying)
+17:04 < bridge> <Solly (bun bun)>     {
+17:04 < bridge> <Solly (bun bun)>         Sound()->StopVoice(Client.m_SfxFallingWoosh);
+17:04 < bridge> <Solly (bun bun)>     }
+17:04 < bridge> <Solly (bun bun)>     else if(IsPlaying)
+17:04 < bridge> <Solly (bun bun)>     {
+17:05 < bridge> <Solly (bun bun)>         Sound()->SetVoicePosition(Client.m_SfxFallingWoosh, Client.m_RenderPos);
+17:05 < bridge> <Solly (bun bun)>     }
+17:05 < bridge> <Solly (bun bun)>     log_info("gameclient", "a isplaying: %d, shouldplaying: %d, speed: %d pos: %f %f", IsPlaying, ShouldPlaying, Char.m_Cur.m_VelY, Client.m_RenderPos.x, Client.m_RenderPos.y);
+17:05 < bridge> <Solly (bun bun)> }
+17:05 < bridge> <Solly (bun bun)> ```
+17:05 < bridge> <Solly (bun bun)> im doing this on gameclient new snapshot
+17:05 < bridge> <Solly (bun bun)> at the end
+17:06 < ws-client> **<ChillerDragon>** `void CGameClient::OnNewSnapshot()`
+17:06 < ws-client> **<ChillerDragon>** ?
+17:06 < ws-client> **<ChillerDragon>** sounds good to me
+17:10 < bridge> <Solly (bun bun)> @chillerdragon it does to me too
+17:10 < bridge> <Solly (bun bun)> but it dont work
+17:34 < ws-client> **<ChillerDragon>** sadge
+17:34 < ws-client> **<ChillerDragon>** @robyt3 can you send me tutorial how to review? https://github.com/ddnet/ddnet/pull/10732
+17:35 < ws-client> **<ChillerDragon>** there is so much moved and refactored code idk how to reason about what the code did before and what it does now
+17:48 < bridge> <Solly (bun bun)> i figuerd it out
+17:48 < bridge> <Solly (bun bun)> but i unfigured out how to add a sound
+17:48 < bridge> <Solly (bun bun)> i added it to content.py
+17:48 < bridge> <Assa> I can give you a small Tutorial on render layers, 
+17:48 < bridge> <Assa> - `Init` is called once on map load and stuff like gpu upload and clip regions are calulated there
+17:48 < bridge> <Assa> - DoRender controls if a layer gets rendered, otherwise it's skipper
+17:48 < bridge> <Assa> - Render renders the layer, like thousands of times per second
+17:48 < bridge> <Assa> 
+17:48 < bridge> <Assa> This PR changes how quads are initialized by putting them in clusters, and changes rendering by checking each cluster before rendering it
+17:49 < bridge> <Solly (bun bun)> i hate content.py so much
+17:54 < bridge> <Assa> even before this PR quads were rendered in chunks, like 256 at a time, but even if they were offscreen. By adding clip regions you can skip these offscreen quad render calls
+17:55 < bridge> <Assa> and thereby improve fps a lot on quad heavy maps
+18:06 < ws-client> **<ChillerDragon>** https://zillyhuhn.com/cs/.b7fc4738-20f8-46de-8070-3d71d06ff62c.png
+18:06 < ws-client> **<ChillerDragon>** ono stepdad crashed
+18:07 < ws-client> **<ChillerDragon>** he opened multiple clients and then dis happened josspit any idea?
+18:14 < bridge> <Assa> do you know if he is on nightly? (can't Tell by hash)
+18:19 < ws-client> **<ChillerDragon>** @Assa he said he does not play nightly
+18:21 < bridge> <Assa> because nightly has some clearing feature for the graphics buffer, glad it's not it
+18:22 < ws-client> **<ChillerDragon>** assa the crasher
+19:07 < bridge> <Solly (bun bun)> why is my sound not playing the right sound
+19:07 < bridge> <Solly (bun bun)> 😭
+20:55 < bridge> <cellegenrih> amazing
+21:53 < bridge> <.thedominator> Whoever is working on the anticheat system that's bad guys someone needs to fix this i keep getting banned false positive
+21:55 < bridge> <.thedominator> put more time guys on making player experience better than this pls 👍
+21:58 < bridge> <Solly (bun bun)> https://tenor.com/view/sip-gif-6006336834717846617
+21:58 < bridge> <kollpotato> coming right up sir, we won't disappoint
+22:31 < bridge> <ryozuki> https://tenor.com/view/rip-bozo-gif-22294771
+22:32 < bridge> <kollpotato> where kernel
+22:32 < bridge> <ryozuki> sopn
+22:40 < ws-client> **<ChillerDragon>** @.thedominator there are multiple anti cheat systems. Which server were you playing on?
+22:46 < bridge> <melon> I respect your dedication chiller, but that tee just got rm -rf'd from the discord.
+22:46 < bridge> <kollpotato> why
+22:47 < bridge> <melon> I don't leak interna
+22:47 < bridge> <kollpotato> he was chill
+22:47 < bridge> <kollpotato> alright
+22:54 < bridge> <kollpotato> @ryozuki why are ddnet docs on ur website xd?
+22:54 < bridge> <kollpotato> https://cdn.discordapp.com/attachments/293493549758939136/1411816421478109326/image.png?ex=68b60801&is=68b4b681&hm=93395f68ac4ac1875f97f2e37ba32848fc0ba883b73794f453cfe5e87261b75b&
