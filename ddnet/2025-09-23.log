@@ -1,0 +1,570 @@
+00:05 < bridge> <Assa> they should open a ticket, but the PR robyt link was only integrated into yesterdays (mondays) nightly
+00:33 < bridge> <chillerdragon> Ono crashes
+00:33 < bridge> <chillerdragon> Where are the backtraces!
+00:34 < bridge> <chillerdragon> @learath2: weren’t you working on automated crash reports?
+03:42 < bridge> <lahcxn> Today i joined a server and developed my way through LearnToPlay
+09:42 < bridge> <Assa> The hook collision line bug count is now officially at 8, making them more broken then the old speedtiles 💀
+09:56 < bridge> <Assa> Learath don't answer, he's trolling
+09:56 < bridge> <Assa> obv bait, no triangulation
+09:56 < bridge> <learath2> I’m working on 80 different things including moving across europe and doing a full time masters program. Soooo one day we might get automated crash reports
+10:05 < ws-client> **<ChillerDragon>** @Assa do we have an ddnet issue for https://github.com/teeworlds/teeworlds/issues/2977 ?
+10:18 < bridge> <Assa> I was writing one rn, you were faster
+10:19 < ws-client> **<ChillerDragon>** blazingly issuer
+10:19 < ws-client> **<ChillerDragon>** maybe you should hide your DDNET backtrace from the TEEWORLDS issue xd
+10:19 < bridge> <Assa> I already know where this is crashing btw
+10:19 < ws-client> **<ChillerDragon>** me too
+10:19 < ws-client> **<ChillerDragon>** its in the trace xd
+10:19 < bridge> <Assa> OnMapLoad it reads nullptr quads
+10:19 < ws-client> **<ChillerDragon>** `pSrc=0x0`
+10:19 < ws-client> **<ChillerDragon>** `pSrc[SrcIndex].m_Skip`
+10:20 < bridge> <Assa> it clearly says DDNet.exe :justatest:
+10:20 < ws-client> **<ChillerDragon>** yes
+10:20 < ws-client> **<ChillerDragon>** still troll 
+10:21 < bridge> <Assa> I am troll, didn't even notice that I was writing in teeworlds issues xD
+10:21 < ws-client> **<ChillerDragon>** no you didnt ofc
+10:22 < ws-client> **<ChillerDragon>** but now that you know i think its not nice leaving other projects traces there
+10:22 < bridge> <Assa> also I think I found out how to crash ddnet as well with a bug since 18.4
+10:22 < bridge> <Assa> do you know how I see the screen values?
+10:22 < ws-client> **<ChillerDragon>** imo it is rude to report bugs from forks upstream
+10:23 < ws-client> **<ChillerDragon>** screen values?
+10:23 < bridge> <Assa> Yes, if you manage to line up ScreenX0 perfectly, the client should crash in rendering xD
+10:23 < bridge> <Assa> https://github.com/ddnet/ddnet/issues/7922#issuecomment-3322893594
+10:24 < ws-client> **<ChillerDragon>** u mean if they are in some dbg hud?
+10:24 < ws-client> **<ChillerDragon>** idk
+10:24 < ws-client> **<ChillerDragon>** i dont do gfx
+10:45 < bridge> <Assa> time to crash 18.4
+11:01 < bridge> <Assa> Crashed ✅ I can now crash 18.0 and know, that the bug is not present in the new version. I can also create a pull request removing this debug assertion and doing a better validity check
+11:01 < bridge> <learath2> That’s illegal, don’t be crashing clients <a:angy:708860880498196542>
+11:01 < bridge> <Assa> I am crashing clients in order to crash less clients 😠
+11:58 < bridge> <Jupstar ✪> Not crashing != not having a bug tho.
+11:58 < bridge> <Jupstar ✪> 
+11:58 < bridge> <Jupstar ✪> Hiding bugs usually just leads to more bugs
+12:00 < bridge> <Assa> Yes, but I understand how this happened and tried to explain it. Ofc you can continue hunting ghosts
+12:00 < bridge> <Jupstar ✪> I see no explaination at all
+12:01 < bridge> <Assa> >  because X0 was able to be bigger then XR in principle
+12:01 < bridge> <Assa> Click on the issue, there is a bigger explanation
+12:01 < bridge> <Jupstar ✪> That is not an explaination of the bug
+12:01 < bridge> <Jupstar ✪> That is the explaination of the crash
+12:02 < bridge> <Assa> Guess I'll spin up the debugger and reproduce again
+12:05 < bridge> <Assa> The bug is, that X0 >= X1 and the layer is still beeing drawn, or do you want to know how X0 and X1 are beeing set?
+12:06 < bridge> <Assa> @jupeyy_keks btw the reported crash was on normal zoom and I can crash it on normal zoom
+12:23 < bridge> <Jupstar ✪> OK then tell what leads to this value
+12:23 < bridge> <Jupstar ✪> A bug in our projection?
+12:24 < bridge> <Jupstar ✪> Especially on normal zoom
+12:26 < bridge> <Jupstar ✪> The camera goes out of bounds?
+12:26 < bridge> <Jupstar ✪> That is the issue right?
+12:26 < bridge> <Jupstar ✪> Like out of map bounds or smth
+12:27 < bridge> <Assa> The crash itself is here `unsigned int NumVertices = ((Visuals.m_pTilesOfLayer[y * pTileLayer->m_Width + XR].IndexBufferByteOffset() - Visuals.m_pTilesOfLayer[y * pTileLayer->m_Width + X0].IndexBufferByteOffset()) / sizeof(unsigned int)) + (Visuals.m_pTilesOfLayer[y * pTileLayer->m_Width + XR].DoDraw() ? 6lu : 0lu);
+12:27 < bridge> <Assa> `
+12:27 < bridge> <Assa> 
+12:27 < bridge> <Assa> If X0 > XR, then NumVertices underflows
+12:27 < bridge> <Assa> link to old code: https://github.com/ddnet/ddnet/blob/36825f51715569c77598a206dbaf0b3212982184/src/game/client/components/maplayers.cpp#L905
+12:28 < bridge> <Assa> XR is X1 -1
+12:29 < bridge> <Assa> I find it really hard to reproduce right now, the debugger lags on the map border there
+12:29 < bridge> <Assa> it's a bug on the map border , because this clips X0 and X1 value
+12:31 < bridge> <Assa> it would help if I'd link the right old code from 18.0 https://github.com/ddnet/ddnet/blob/6888f75fac87096e153f61f2a5db5903450c5927/src/game/client/components/maplayers.cpp#L1004
+12:31 < bridge> <Assa> here is the bug: https://github.com/ddnet/ddnet/blob/6888f75fac87096e153f61f2a5db5903450c5927/src/game/client/components/maplayers.cpp#L1017
+12:31 < bridge> <Assa> Should have been X1 >= m_Width
+12:31 < bridge> <Assa> 
+12:31 < bridge> <Assa> Any my PR didn't even fix it, it was fixed between 18.0 and 18.4
+12:33 < bridge> <Jupstar ✪> but your pr moves random stuff
+12:33 < bridge> <Assa> "random"
+12:33 < bridge> <Jupstar ✪> Ifc if you magically fixed it. Just explain wtf the bug is
+12:34 < bridge> <Jupstar ✪> How hard can it be to reproduce it
+12:34 < bridge> <Assa> you need to be at the map border and produce exact x1 and x0 values
+12:34 < bridge> <Assa> how hard can this be?
+12:35 < bridge> <Jupstar ✪> Yes that would be the correct answer
+12:35 < bridge> <Assa> It was fixed between 18.0.3 and 18.1, I want to pinpoint the commit now
+12:38 < bridge> <Assa> ~It was fixed between 18.1 and 18.2, I want to pinpoint the commit now~
+12:38 < bridge> <Assa> ~~It was fixed between 18.1 and 18.2, I want to pinpoint the commit now~~
+12:40 < bridge> <Assa> 18.3 to 18.4
+12:47 < bridge> <Jupstar ✪> @essigautomat so why not simply check if x0 >= x1?
+12:48 < bridge> <Jupstar ✪> in the continue
+12:48 < bridge> <Assa> the loop has nothing to do with x0 and x1, it iterates over rows
+12:49 < bridge> <Jupstar ✪> and it skipped the row if x0 > x1 previously
+12:49 < bridge> <Jupstar ✪> dunno what you refactored
+12:50 < bridge> <Jupstar ✪> but the > simply gets >=
+12:50 < bridge> <Assa> it skips every row if X0 > x1 previously, you can move this out of the loop
+12:50 < bridge> <Jupstar ✪> Anyway, without the assert it sounds to me that you could make zoom = -1 and crash client
+12:51 < bridge> <Assa> and then there is the X0 <= XR check in my PR, which prevents this
+12:51 < bridge> <Jupstar ✪> Good, but you ignore the case
+12:51 < bridge> <Jupstar ✪> previously if x0 really was bigger it crashed
+12:51 < bridge> <patiga> wow if you haven't seen https://discord.com/channels/252358080522747904/295908390956433410/1419937088232620094 yet, its worth it :heartw:
+12:51 < bridge> <patiga> my favorite ddnet animation as of yet by far
+12:51 < bridge> <Jupstar ✪> that is not the same
+12:52 < bridge> <Assa> I don't think a crash is more desirable, I can add the debug message for the else case
+12:53 < bridge> <Jupstar ✪> i just told you a case
+12:53 < bridge> <Jupstar ✪> which could fuck up some stuff, if you dont prove otherwise
+12:53 < bridge> <Jupstar ✪> anyway, @essigautomat now neutral again. this bug only happens in 18.0-18.4?
+12:53 < bridge> <Jupstar ✪> not before not after?
+12:54 < bridge> <Assa> I only managed to crash it in 18.0, the issue was only about 18.0, as far as I can tell it was there until 18.3
+12:59 < bridge> <Assa> do the screen values swap with zoom = -1?
+13:00 < bridge> <Assa> because the PR i provided shouldn't crash, it should just render nothing
+13:00 < bridge> <Assa> because the PR i provided shouldn't crash, it should just render nothing, if this is the case
+13:04 < bridge> <chillerdragon> This one? https://m.bilibili.com/video/BV1oHp2zPEPt
+13:06 < bridge> <Assa> 18.0 code:
+13:06 < bridge> <Assa> ```
+13:06 < bridge> <Assa>             if(X0 > X1)
+13:06 < bridge> <Assa>                 continue;
+13:06 < bridge> <Assa>             int XR = X1 - 1;
+13:06 < bridge> <Assa> ```
+13:06 < bridge> <Assa> 
+13:06 < bridge> <Assa> `If X0 == X1, XR < X0` which underflows NumVertices
+13:07 < bridge> <Assa> 
+13:07 < bridge> <Assa> How can this happen? At this point idk
+13:07 < bridge> <Assa> Solution: Check if XR >= X0, what my PR does
+13:07 < bridge> <patiga> yea, sry chiller ^^
+13:07 < bridge> <chillerdragon> yea it’s cute :3
+13:30 < bridge> <Jupstar ✪> But before 18 it did not happen, right? So there was a check previously preventing it.
+13:30 < bridge> <Jupstar ✪> 
+13:30 < bridge> <Jupstar ✪> But anyway, if you tested with negative value fine, just write it in your PR
+13:32 < ws-client> **<ChillerDragon>** wtf is `git replace` ?? and why did it not create conflicts????
+13:33 < ws-client> **<ChillerDragon>** i just swapped out a old commit in the history not affecting any shas on top of it. Not creating conflicts even if the other commits were based on the now outdated changes??????
+13:33 < ws-client> **<ChillerDragon>** it gets even weirder
+13:33 < ws-client> **<ChillerDragon>** the code still compiles
+13:33 < ws-client> **<ChillerDragon>** ?????
+13:34 < MMC> https://desuarchive.org/qa/thread/3570832/#3571069 gem
+13:35 < bridge> <Jupstar ✪> git replace me
+13:35 < bridge> <Jupstar ✪> Do i want to click a random link by a random person?
+13:35 < ws-client> **<ChillerDragon>** looks like 4chan
+13:35 < bridge> <Jupstar ✪> chiller you go first
+13:35 < ws-client> **<ChillerDragon>** pretty boring
+13:35 < ws-client> **<ChillerDragon>** and non tw related
+13:35 < bridge> <Jupstar ✪> delete
+13:36 < ws-client> **<ChillerDragon>** git replace is giga troll ngl
+13:36 < ws-client> **<ChillerDragon>** it creates just a fake history
+13:36 < ws-client> **<ChillerDragon>** not doing any actual changes to the code
+13:36 < ws-client> **<ChillerDragon>** well that also sounds op to bypass reviews xd
+13:36 < ws-client> **<ChillerDragon>** but not useful for me who actually needs to replace
+13:37 < bridge> <Jupstar ✪> wtf
+13:37 < bridge> <Jupstar ✪> git replace is super epyc
+13:37 < ws-client> **<ChillerDragon>** u know it?
+13:37 < bridge> <Jupstar ✪> didn't know it's so cool
+13:37 < bridge> <Jupstar ✪> No, I just read about what it can do
+13:37 < ws-client> **<ChillerDragon>** u understand it?
+13:37 < ws-client> **<ChillerDragon>** for me it did random garbage
+13:37 < bridge> <Jupstar ✪> Ok but export & importing kinda sucks
+13:37 < bridge> <Jupstar ✪> Would be cool if it just works in a repo
+13:38 < bridge> <Jupstar ✪> You can fix old commits without changing history kinda
+13:38 < bridge> <Jupstar ✪> But only to a certain limit
+13:38 < bridge> <Assa> I don't get why this should crash with a negative zoom value, except if you think that this should invert the screen. If you set `zoom -29` you zoom out of the map. Can you specify what you mean?
+13:38 < bridge> <Jupstar ✪> I expect that
+13:38 < ws-client> **<ChillerDragon>** @Jupstar ✪ but i want to change history.. i guess i need rebase then
+13:38 < ws-client> **<ChillerDragon>** i wonder if i can cherry pick during an interactive rebase xd
+13:39 < ws-client> **<ChillerDragon>** or just swap out the sha in the rebase editor
+13:39 < ws-client> **<ChillerDragon>** that might actually work
+13:39 < bridge> <Jupstar ✪> You want to truely change history?
+13:39 < ws-client> **<ChillerDragon>** yes
+13:39 < ws-client> **<ChillerDragon>** its pr
+13:39 < bridge> <Jupstar ✪> `git rebease --interactive HEAD~4`
+13:39 < bridge> <Jupstar ✪> Best tool
+13:39 < bridge> <Jupstar ✪> of git
+13:39 < ws-client> **<ChillerDragon>** i have two branches
+13:39 < ws-client> **<ChillerDragon>** branch a and b
+13:39 < ws-client> **<ChillerDragon>** b is based on a
+13:39 < ws-client> **<ChillerDragon>** a got force pushed
+13:39 < ws-client> **<ChillerDragon>** b has commits on top
+13:40 < ws-client> **<ChillerDragon>** now i need to get b updated with the new commits from a
+13:40 < bridge> <Jupstar ✪> git rebase interactive you can just change commit hashes
+13:40 < ws-client> **<ChillerDragon>** interesting
+13:40 < ws-client> **<ChillerDragon>** i will try that
+13:40 < ws-client> **<ChillerDragon>** fakin git replace sidequest xd
+13:40 < bridge> <Jupstar ✪> gl
+13:40 < ws-client> **<ChillerDragon>** i wonder if i need to delete .git because i dont understand git replace xd
+13:40 < bridge> <Jupstar ✪> Honestly just start from scratch
+13:41 < bridge> <Jupstar ✪> git init --bare
+13:41 < ws-client> **<ChillerDragon>** fr
+13:41 < bridge> <robyt3> `git checkout b`, `git rebase -i a`, then discard commits from a in the interactive rebase log to keep only original commits from b
+13:41 < bridge> <Jupstar ✪> sick
+13:41 < ws-client> **<ChillerDragon>** o
+13:41 < bridge> <Jupstar ✪> Chiller just use llm no joke
+13:41 < ws-client> **<ChillerDragon>** i dont trust it
+13:42 < bridge> <Jupstar ✪> I bet these questions got answered 200000 times
+13:42 < ws-client> **<ChillerDragon>** last time i asked llm with git question it couldnt help me
+13:42 < bridge> <Jupstar ✪> And they are accurate enough
+13:42 < ws-client> **<ChillerDragon>** i lost my merge head
+13:42 < bridge> <Jupstar ✪> lmao
+13:42 < ws-client> **<ChillerDragon>** i still dont know how to get it back
+13:42 < ws-client> **<ChillerDragon>** its so easy to lose it
+13:42 < ws-client> **<ChillerDragon>** and llm rly didnt get me
+13:42 < bridge> <Jupstar ✪> I dunno, once it's pushed to github it will stay
+13:42 < bridge> <Jupstar ✪> You can restore anything
+13:42 < ws-client> **<ChillerDragon>** no
+13:42 < ws-client> **<ChillerDragon>** imagine dis
+13:42 < bridge> <Jupstar ✪> Even if you force push
+13:42 < ws-client> **<ChillerDragon>** u have conflicts
+13:43 < bridge> <Jupstar ✪> So just randomly push your stuff for backup
+13:43 < ws-client> **<ChillerDragon>** then you solve them
+13:43 < ws-client> **<ChillerDragon>** then you do `git merge --continue` ye?
+13:43 < ws-client> **<ChillerDragon>** or rebase --continue
+13:43 < bridge> <Jupstar ✪> I never merge
+13:43 < bridge> <Jupstar ✪> I always rebase
+13:43 < ws-client> **<ChillerDragon>** same thing
+13:43 < ws-client> **<ChillerDragon>** but u wanna do rebase --continue rite?
+13:43 < bridge> <Jupstar ✪> yes
+13:43 < ws-client> **<ChillerDragon>** now
+13:43 < bridge> <Jupstar ✪> At some point
+13:43 < ws-client> **<ChillerDragon>** the big danger is
+13:43 < ws-client> **<ChillerDragon>** that it is quite easy to break `git rebase --continue`
+13:44 < ws-client> **<ChillerDragon>** if u ran the wrong command
+13:44 < bridge> <Jupstar ✪> in worst case you do git rebase --abort
+13:44 < bridge> <Jupstar ✪> Dunno wtf you done
+13:44 < ws-client> **<ChillerDragon>** you cant
+13:44 < ws-client> **<ChillerDragon>** you cant abort
+13:44 < ws-client> **<ChillerDragon>** or continue
+13:44 < ws-client> **<ChillerDragon>** if you lost the merge head thing
+13:44 < bridge> <Jupstar ✪> wtf? XD
+13:44 < bridge> <Jupstar ✪> Show me your prompt
+13:44 < ws-client> **<ChillerDragon>** it says THERE IS NO REBASE HAPPENING
+13:44 < bridge> <Jupstar ✪> No way it suggested to fuck up that badly
+13:44 < ws-client> **<ChillerDragon>** happens quite often
+13:44 < ws-client> **<ChillerDragon>** for example if you do `git rebase --committer-date-is-author-date`
+13:45 < bridge> <Jupstar ✪> What are you using, Cellegen AI?
+13:45 < ws-client> **<ChillerDragon>** i dont use ai
+13:45 < ws-client> **<ChillerDragon>** i can hallucinate on my own
+13:46 < bridge> <Jupstar ✪> if you commited stuff you can restore, they have a hash somewhere
+13:46 < bridge> <Jupstar ✪> How hard can you fuck up
+13:46 < ws-client> **<ChillerDragon>** thing is
+13:46 < bridge> <Jupstar ✪> Only stupid you can do is force reset without ever having commited
+13:46 < ws-client> **<ChillerDragon>** some commands like --abort or --continue only work while rebasing or merging
+13:46 < bridge> <Jupstar ✪> So always type git stash before resetting
+13:46 < ws-client> **<ChillerDragon>** and that depends on some file being there
+13:46 < ws-client> **<ChillerDragon>** and that file is easy to lose
+13:47 < bridge> <Jupstar ✪> No matter if you use the stash ever again
+13:47 < ws-client> **<ChillerDragon>** then i am done solving all conflicts
+13:47 < ws-client> **<ChillerDragon>** and cant finish
+13:47 < ws-client> **<ChillerDragon>** i could only create a new commit
+13:47 < ws-client> **<ChillerDragon>** but not finish the rebase or merge
+13:47 < bridge> <Jupstar ✪> Ok
+13:48 < ws-client> **<ChillerDragon>** maybe i suck at pomting idk
+13:48 < bridge> <Jupstar ✪> Nah
+13:48 < bridge> <Jupstar ✪> I simply don't believe you
+13:48 < bridge> <Jupstar ✪> Ez
+13:48 < ws-client> **<ChillerDragon>** i dont think its that of an edge case given how often it happens to me
+13:48 < ws-client> **<ChillerDragon>** omg
+13:48 < ws-client> **<ChillerDragon>** i will show u sec
+13:48 < ws-client> **<ChillerDragon>** need to create conflict
+13:48 < bridge> <Jupstar ✪> lies
+13:48 < bridge> <kebscs> did noone ever notice that?
+13:48 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1420014040033267712/492792492-29ddc46c-f4c0-42d9-9133-29e6982c61cd.png?ex=68d3daa1&is=68d28921&hm=30d8026a3c133d51ccc7d20a92f384731df541c56a2c6c53da5aa34fdbc3ef09&
+13:49 < bridge> <Jupstar ✪> Wasn't that on purpose
+13:49 < bridge> <Jupstar ✪> Bcs normal entities have "cfrom"
+13:49 < bridge> <Jupstar ✪> text
+13:49 < bridge> <Jupstar ✪> or smth similar
+13:49 < bridge> <kebscs> whats cfrom
+13:49 < bridge> <Jupstar ✪> Cant boot up the game rn
+13:49 < bridge> <Jupstar ✪> Just update your screenshots with default entities in the PR
+13:49 < bridge> <Jupstar ✪> That is what matters more than your custom ones
+13:50 < bridge> <kebscs> these are the default comfort
+13:50 < bridge> <Jupstar ✪> Bro
+13:50 < bridge> <Jupstar ✪> cl_entities "default"
+13:50 < ws-client> **<ChillerDragon>** ok i struggle to lose merge head aaa
+13:50 < ws-client> **<ChillerDragon>** omg wat i did all the last times
+13:51 < ws-client> **<ChillerDragon>** A
+13:51 < ws-client> **<ChillerDragon>** GOT IT
+13:51 < ws-client> **<ChillerDragon>** STASH
+13:51 < bridge> <Jupstar ✪> I'll read in an hour, chiller.
+13:51 < bridge> <Jupstar ✪> 
+13:51 < ws-client> **<ChillerDragon>** adoihaihod
+13:51 < bridge> <Jupstar ✪> Gl breaking your stuff
+13:51 < ws-client> **<ChillerDragon>** dont @Jupstar ✪ 
+13:51 < ws-client> **<ChillerDragon>** i have it
+13:51 < ws-client> **<ChillerDragon>** `git merge conflictbranch`
+13:51 < ws-client> **<ChillerDragon>** solve all conflicts
+13:51 < ws-client> **<ChillerDragon>** `git add . && git stash && git stash pop`
+13:51 < ws-client> **<ChillerDragon>** `git merge --continue`
+13:52 < ws-client> **<ChillerDragon>** `fatal: There is no merge in progress (MERGE_HEAD missing).`
+13:53 < bridge> <Jupstar ✪> Am Arsch
+13:53 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1420015306910339173/image.png?ex=68d3dbcf&is=68d28a4f&hm=e55190672feceab6d17eb1ba03f51dff9537a1f7b08daaec77782bc9c44067c3&
+13:53 < ws-client> **<ChillerDragon>** fr
+13:53 < bridge> <kebscs> not that bad
+13:54 < bridge> <kebscs> client's default is comfort for long time now
+13:54 < bridge> <Jupstar ✪> Idc anyway, just update pr for whoever cares
+13:54 < bridge> <Jupstar ✪> Wtf really?
+13:55 < bridge> <kebscs> yea
+13:55 < bridge> <Assa> aaaaaaaaa this assertion issue makes me crazy
+13:55 < bridge> <Assa> why did 18.0 crash for me this one time exactly there?
+13:56 < bridge> <Assa> why can't I reproduce it
+13:56 < bridge> <Assa> all bs
+13:56 < bridge> <kebscs> cl_assets_entities default value is default but im pretty sure it was comfort for me when i installed game
+14:00 < bridge> <kebscs> or maybe is not, on phone i have default
+14:00 < bridge> <Assa> that's in general an issue if you have text written over something and text in an image itself
+14:00 < bridge> <kebscs> wtf
+14:01 < bridge> <kebscs> should be comfort though, since its shipped with the client and looks way more modern
+14:01 < bridge> <Assa> like you will unbreak sbs entities and break others instead
+14:01 < bridge> <kebscs> yea thats why i dont like the old entities, text on texture is bad
+14:02 < Jfif> Hi
+14:03 < bridge> <kebscs> hi
+14:03 < Jfif> Test
+14:06 < bridge> <Assa> @jupeyy_keks can we merge https://github.com/ddnet/ddnet/pull/10936 ? I am pretty sure you and I can count to 1
+14:08 < bridge> <Assa> And together, we're 2 ❤️ :owo:
+14:15 < bridge> <Assa> @kebscs since you tested the hook collision line, did you test different tuning values?
+14:17 < bridge> <Assa> because of tune hook_length 9999 and hook_fire_speed 1 :omo:
+14:17 < bridge> <Jupstar ✪> Ok
+14:18 < bridge> <kebscs> ah right
+14:18 < bridge> <kebscs> i found 1 now with tune
+14:18 < bridge> <Jupstar ✪> And i thought chiller is our new merge bot
+14:18 < bridge> <kebscs> https://cdn.discordapp.com/attachments/293493549758939136/1420021468649099294/image.png?ex=68d3e18c&is=68d2900c&hm=5b62b6e12f47e476e8f96b17f7d74badf8f70f8772653ba604070357d90e7302&
+14:18 < bridge> <kebscs> this should extend to cursor, not player hit pos
+14:18 < bridge> <Assa> chiller is skillchecked for anything related to gfx 🙁
+14:18 < bridge> <kebscs> tune hook_fire_speed 1; tune hook_length 600
+14:19 < bridge> <kebscs> ah nvm
+14:19 < bridge> <kebscs> idk whats going on
+14:19 < bridge> <Assa> wrong actually 💀 this is how it should look like
+14:19 < bridge> <Assa> yeah
+14:20 < bridge> <kebscs> well idk why this works like that
+14:20 < bridge> <kebscs> but ig works fine
+14:21 < bridge> <kebscs> length with no tunes or basic tunes is good
+14:21 < bridge> <kebscs> and with tele outs
+14:21 < bridge> <kebscs> so better than before
+14:21 < bridge> <Assa> explanation:
+14:21 < bridge> <Assa> The hook takes longer than 5 seconds to hit the player, so the simulation ends and we hit the case I added for unknown hook states. Unknown hook is blue and for exceeding simulations the length is only an approximation
+14:22 < bridge> <Assa> same happens with 2 teleouts, hook will color blue
+14:22 < bridge> <kebscs> yea but idk why it doesnt launches towards cursor
+14:22 < bridge> <kebscs> jank physics
+14:22 < bridge> <Assa> exactly
+14:22 < bridge> <Assa> xD
+14:22 < bridge> <Assa> this is also why I give up on small hook lengths and hook_fire_speed <= 0
+14:22 < bridge> <Assa> I don't even want to know what a negative hook fire speed does
+14:23 < bridge> <kebscs> wait 1 more thing
+14:23 < bridge> <kebscs> line isnt attached to player when you hold hammer
+14:23 < bridge> <kebscs> do same thing as with tele
+14:23 < bridge> <Assa> same thing as with the teleouts, do you wish the line to be visually connected (even if it doesn't color and doesn't hook there)
+14:24 < bridge> <Assa> alright
+14:28 < bridge> <Assa> @kebscs you can't do that, that would break the jank physics, Id need to add an extra line element for it
+14:29 < bridge> <kebscs> add the short line to vLineSegments
+14:34 < bridge> <Assa> this is actually really useful, you can predict where a hook goes into a wall:
+14:34 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1420025458438963231/screenshot_2025-09-23_14-33-38.png?ex=68d3e544&is=68d293c4&hm=51a09b57c4555a8306de954f24f8abf77e26b9cda35988b007178dca37b8f7de&
+14:36 < bridge> <Assa> jank physics will have a kink of course
+14:36 < bridge> <Assa> https://cdn.discordapp.com/attachments/293493549758939136/1420026154869456906/screenshot_2025-09-23_14-35-53.png?ex=68d3e5ea&is=68d2946a&hm=ffeb2a56dc984ec3deb42ab5fc2078137d98a0a70447c2241a04279da86a04cf&
+14:46 < bridge> <kebscs> ok now its perfect
+14:47 < bridge> <Assa> it still suffers from floating point precision issues, but compared to before, I would call it a day
+14:47 < bridge> <learath2> What is this even 😄
+14:47 < bridge> <Assa> the hook collision line rework I am working on
+14:48 < bridge> <Assa> and before you say the second image is wrong, it isn't
+14:49 < bridge> <learath2> Is that really how far the hook makes it before getting to the hook from tele?
+14:49 < bridge> <Assa> no, the second image is from a simulation time exceeded state with jank physics
+14:50 < bridge> <Assa> and the hook actually follows that line
+14:51 < bridge> <learath2> I don't get how we can have an indeterminate state for a finite process
+14:51 < bridge> <learath2> What does it mean for the "simulation time" to be exceeded?
+14:51 < bridge> <Assa> with the right physics, I can make your hook take a million ticks in the future and bring your PC into it's knees
+14:52 < bridge> <learath2> Do our tune bounds even allow that? Wouldn't using the hook in such a state also do that?
+14:53 < bridge> <Assa> the hook line simulates the actual hook up to 5 seconds in the future with my PR. Currently it's unlimited and I can bring my PC to lags with it
+14:53 < bridge> <Assa> no, the hook is calculated tick by tick, the hookline is calculated all in one frame
+14:54 < bridge> <Assa> the tune bounds allow that
+14:54 < bridge> <learath2> Ok, I see the issue. Why not simulate the hook line tick by tick too?
+14:54 < bridge> <learath2> Maybe do it 10 ticks at a time to simulate the "instant" effect
+14:54 < bridge> <Assa> this would need a full restrusture but would be possible
+14:55 < bridge> <Assa> also you would need to hold still in order to get this effect, what if the player moves in the next tick?
+14:55 < bridge> <learath2> Guess it's not worth it
+14:55 < bridge> <kebscs> i like current code, maps should use these tunes
+14:55 < bridge> <Assa> I limited it to 250 ticks, e.g. 5 seconds
+14:55 < bridge> <kebscs> i like current code, maps shouldnt use these tunes
+14:56 < bridge> <Assa> because I assume that if the hook takes longer, the hook line loses it's value
+14:56 < bridge> <learath2> Well move = restart simulation is probably the sanest idea if you want to give that a try
+14:56 < bridge> <learath2> For sane tunes it should look pretty much the same if you simulate like 50 ticks at a time or so
+14:57 < bridge> <learath2> But yeah very doubtful if the amount of reworking needed is worth the trouble
+14:58 < bridge> <Assa> also this wouldn't be stateless, I'd need to track this for every player of the possible 64
+14:58 < bridge> <learath2> Another good point though we probably already store enough state to derive your newly required state
+14:59 < bridge> <learath2> No, we don't
+14:59 < bridge> <learath2> So yeah, more state needed
+14:59 < bridge> <Assa> you'd at least need to store enough information to know where to continue the simulation
+14:59 < bridge> <learath2> Which can be derived from the tick the simulation started at, no?
+15:00 < bridge> <learath2> Anyway, we don't store that currently, so yeah, new state
+15:01 < bridge> <Assa> storing a tick is not enough, if you mean that <.<
+15:01 < bridge> <Assa> but yeah
+15:01 < bridge> <Assa> because we accumulate quantization errors
+15:04 < bridge> <Assa> so we'd at least store the position, the hook tick, and the direction
+15:04 < bridge> <learath2> 5s is probably good enough, it's just very arbitrary. So I'd worry there might be a combination of tunes and amount of players where it does still lag
+15:04 < bridge> <Assa> oh and the player target position to detect changes
+15:05 < bridge> <Assa> I agree, would you prefer a config variable for this?
+15:06 < bridge> <Solly (bun bun)> If this is about hook prediction you can curve the hook depending on ur and that's enough for me
+15:06 < bridge> <Solly (bun bun)> Ur velocity*
+15:06 < bridge> <Assa> and we don't do that lol
+15:07 < bridge> <learath2> Hm, not a horrible idea, but it's really hard to get config options in nowadays
+15:07 < bridge> <Assa> do we actually oO
+15:08 < bridge> <learath2> Idk what he means by curve, but technically if you are going fast enough you can get your hook inside a gap and by the time it hooks onto something you will be well past the gap. Soo, very technically the hook will curve
+15:09 < bridge> <learath2> Or more correctly the path of the hook will appear curved from the perspective of the tee
+15:09 < bridge> <Assa> the line shows the path the hook head takes, not what the hook animation should look like
+15:10 < bridge> <learath2> Yeah, it's not something you need to take into account at all
+15:10 < bridge> <Assa> because the chain will just connect the head position to the player, you can easily see this with telehooks
+15:19 < Unidentified> Why there's so much sexual garbage on russian servers
+15:19 < Unidentified> Do mods even exist here?
+15:24 < Unidentified> .
+15:24 < Unidentified> .
+15:26 < bridge> <melon> .
+15:52 < bridge> <pilonpl> i mean #✉-create-a-ticket might be a better place to report such stuff
+16:05 < Brap> IN LOVING MEMORY OF AOE
+16:05 < Brap> We gather with heavy hearts to remember Aoe, Valid Trans Woman who lived simply but left a lasting mark on those who truly saw her. Short in stature and thin in frame, she resided in a modest hut, lived on her own terms, and walked through life with a spirit that was raw, real, and entirely her. Of Lesothese descent, Aoe cherished her roots and found deep joy in the bold, comforting flavors of Leso cuisine.
+16:05 < Brap> Meals with her were more than sustenance-they were expressions of love, memory, and identity. Food was one of the many ways she kept her culture close, and she shared it generously. She was a person of contradictions-gentle but blunt, quiet but unforgettable.
+16:06 < Brap>  She bore a scent that many found hard to ignore. Earthy, unapologetic, and part of the unfiltered truth. She carried in every aspect of his life. Aoe did not pretend. She was who she was. Tragically, Aoe became heckin' infamous. We do not pretend to understand the weight she carried, nor the pain that brought her to that moment. But we do know this: she mattered. Her life, in all its complexity, was worthy of love, compassion, an
+16:06 < Brap> Let us not define her by how she left us, but remember her for how she lived-with honesty, depth, cultural pride, and a stubborn refusal to be anyone but herself. May we carry forward her memory not only with sorrow, but with tenderness and truth.
+16:06 < Brap> Rest peacefully, Aoe. You were seen. You are missed. You are loved.
+16:08 < bridge> <Assa> why can't I block this spam app
+16:09 < Brap> OMG DA FUGGIN SPAMMERINOS RUINERINO OUR DISCORD SERVERINO
+16:19 < bridge> <Solly (bun bun)> Uhh
+16:26 < bridge> <ryozuki> mom, multischeduling is hard af
+16:26 < bridge> <ryozuki> i refactored my scheduler cuz i had bugs
+16:27 < bridge> <ryozuki> now i got a better scheduler, but i want to use oneshot timer in lapic, which means the timer is not periodic and i must reset the counter when i reschedule for example
+16:27 < bridge> <ryozuki> the problem is depending on ur logic u can not set the timer again and the current cpu goes idle, this is how u save power when nothing to do
+16:27 < bridge> <ryozuki> and u usually wake up with an external interrupt
+16:27 < bridge> <ryozuki> but i have a. bug where some schedulers go idle forever when they shouldnt xd
+16:28 < bridge> <ryozuki> rip
+16:28 < bridge> <ryozuki> damn atomics
+16:46 < bridge> <pilonpl> What scheduling algorithm are you using?
+17:18 < bridge> <melon> :feelscryman:
+17:18 < bridge> <melon> https://cdn.discordapp.com/attachments/293493549758939136/1420066790347640985/image.png?ex=68d40bc2&is=68d2ba42&hm=755803a504e377e8d1879191ab0bfb20db62c00722d82d8f96a7926e683bb79d&
+17:18 < bridge> <melon> i blame ryo
+17:27 < bridge> <learath2> It's good for your cpu, think of it like a workout
+17:28 < bridge> <inv41idu53rn4m3> -# Ryo ni natta
+17:28 < bridge> <melon> :kek:
+17:28 < bridge> <learath2> I have a massive emerge waiting for me too
+17:44 < bridge> <ryozuki> the algo is not the hard thing, its simple round robin
+17:44 < bridge> <ryozuki> the hard thing is handling properly wake, sleep, etc
+18:16 < bridge> <kebscs> oh so vs profiler works on ddnet
+18:16 < bridge> <kebscs> thought it didnt because its a cmake project
+18:20 < ChillerD1> omg why am i ChillerD1
+18:21 < ChillerDragon> a
+18:21 < ChillerDragon> ez
+18:22 < bridge> <robyt3> You can generate a VS project with cmake
+18:25 < bridge> <kebscs> yea ik, but i dont like it
+18:25 < bridge> <kebscs> just checked and profiler works well with cmake project too
+18:31 < bridge> <Jupstar ✪> @chillerdragon what do you say to the new element.io design :lol:
+18:32 < bridge> <Jupstar ✪> Didn't thought they'd ever update it again
+18:33 < bridge> <Jupstar ✪> directly found a super obvious bug. scrolling doesnt remove the hover element
+18:34 < bridge> <Jupstar ✪> I dunno looks bit cleaner, but not a huge change
+18:44 < bridge> <melon> i swear to god zed is making me go crashout
+18:44 < bridge> <melon> on arch, its zeditor
+18:44 < bridge> <melon> on gentoo, its zedit
+18:44 < bridge> <melon> on nix, its zed-editor
+18:44 < bridge> <melon> god why
+18:45 < bridge> <melon> i swear package maintainers are making me go crashout
+18:46 < ws-client1> **<ChillerDragon>** @Jupstar ✪ one does not find bugs in element, only rare working features
+18:47 < ws-client1> **<ChillerDragon>** https://zillyhuhn.com/cs/.564c399d-fe8f-4ae3-b304-43fbe676f0f5.png
+18:47 < ws-client1> **<ChillerDragon>** i basically only use matrix on my phone
+18:47 < ws-client1> **<ChillerDragon>** i dont even notice a change here
+19:01 < bridge> <Jupstar ✪> @essigautomat i dont see it happening with normal zoom in 18.0.. like how?
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> Your map border explaination is good, but i dont think in 18.0 it can happen
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> let's assume x0 == width
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> ```cpp
+19:01 < bridge> <Jupstar ✪> if(X0 >= pTileLayer->m_Width)
+19:01 < bridge> <Jupstar ✪>         DrawLayer = false;
+19:01 < bridge> <Jupstar ✪> ```
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> -> cannot happen.
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> Let's assume it's width -1
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> X1 would be == width:
+19:01 < bridge> <Jupstar ✪> ```cpp
+19:01 < bridge> <Jupstar ✪> if(X1 > pTileLayer->m_Width)
+19:01 < bridge> <Jupstar ✪>     {
+19:01 < bridge> <Jupstar ✪>         X1 = pTileLayer->m_Width;
+19:01 < bridge> <Jupstar ✪>         DrawBorder = true;
+19:01 < bridge> <Jupstar ✪>     }
+19:01 < bridge> <Jupstar ✪> ```
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> => X1 - 1 >= X0
+19:01 < bridge> <Jupstar ✪> 
+19:01 < bridge> <Jupstar ✪> What I can imagine is that zoom is very small (near) so that x0 == x1 or that zoom is negative
+19:02 < bridge> <Jupstar ✪> Or this is some weird ass floating point thing..
+19:02 < bridge> <Jupstar ✪> 
+19:02 < bridge> <Jupstar ✪> But x1 is always ceil and x0 always floor
+19:02 < bridge> <Jupstar ✪> Must be some insane behavior
+19:04 < bridge> <robyt3> AFAICT, the zoom level should always be clamped to minimum `0.01f`
+19:15 < ws-client1> **<ChillerDragon>** which madafak
+19:15 < ws-client1> **<ChillerDragon>** https://zillyhuhn.com/cs/.92571263-17dc-4702-8c99-37d87925b6b6.png
+19:32 < ws-client1> **<ChillerDragon>** @Solly (bun bun) souly u broke ma prod xd
+19:33 < ws-client1> **<ChillerDragon>** `sv_gametype zCatch` now falls back to ddrace
+19:33 < ws-client1> **<ChillerDragon>** bru
+19:33 < ws-client1> **<ChillerDragon>** https://zillyhuhn.com/cs/.61db8243-0d02-42d5-8e3c-462a00380048.png
+19:33 < ws-client1> **<ChillerDragon>** also kebs watefek is dis
+19:34 < ws-client1> **<ChillerDragon>** i hate update day
+19:38 < bridge> <kebscs> :kek:
+19:38 < bridge> <kebscs> if ure making ctf server and dont need flipping, u can disable that
+19:39 < bridge> <kebscs> IGameController::TileFlagsToPickupFlags
+20:22 < ws-client1> **<ChillerDragon>** yea i just got jumpscared paired with sollys bug when i ended up with ddrace and saw ctf with drunk weapons
+20:23 < ws-client1> **<ChillerDragon>** ctf5*
+20:43 < bridge> <lahcxn> Today, @acidbone. and i developed even more than yesterday
+20:54 < bridge> <thrava> a challenge for me
+20:54 < bridge> <thrava> https://cdn.discordapp.com/attachments/293493549758939136/1420121139413254144/image.png?ex=68d43e60&is=68d2ece0&hm=dc62866699a8169553ed6288aaa13eb32fe6d3e5d13c392ee1741c79d97e49ed&
+20:55 < bridge> <thrava> I decided to write a centrally managed database interaction class
+20:58 < bridge> <Assa> I agree and this issue drives me mad because I managed a crash once on the mapborder but no second time
+21:00 < bridge> <Assa> This can't be some wrong ordering in the buffer
+21:12 < bridge> <Krumplee> we reached a breakthrough in cognitive chat filter and automatic restrictions
+21:26 < ws-client1> **<ChillerDragon>** bruv @avolicious
+21:26 < ws-client1> **<ChillerDragon>** this crash hurt
+21:26 < ws-client1> **<ChillerDragon>** https://zillyhuhn.com/cs/.34a6097d-8fe8-4d16-8726-d7b9c72bdd27.png
+21:27 < ws-client1> **<ChillerDragon>** do you have any plan on how to approach it?
+21:27 < ws-client1> **<ChillerDragon>** i know u really dont want to turn on traces on prod
+21:27 < ws-client1> **<ChillerDragon>** and told me to play on beta
+21:28 < ws-client1> **<ChillerDragon>** but on beta i can not even use my own name
+21:28 < bridge> <melon> when play on beta?
+21:28 < ws-client1> **<ChillerDragon>** i guess as soon as it opens
+21:54 < bridge> <gorp_tw> extremely true
+21:54 < bridge> <gorp_tw> element gotta be the worst app of all time next to discord
+21:54 < bridge> <gorp_tw> this post brought to you by xmpp gang
+21:54 < bridge> <gorp_tw> (make a MUC bridge, nerds)
+22:06 < bridge> <Solly (bun bun)> @chillerdragon see pr on insta
+22:06 < bridge> <Solly (bun bun)> <https://github.com/ddnet-insta/ddnet-insta/pull/429>
+22:11 < bridge> <blazulite> @sollybunny see pr on tclient communities
+22:12 < bridge> <blazulite> https://github.com/SollyBunny/ddnet-custom-communities/pull/7
+22:12 < bridge> <blazulite> :trollet:
+22:12 < bridge> <blazulite> <https://github.com/SollyBunny/ddnet-custom-communities/pull/7>
+22:16 < bridge> <Solly (bun bun)> do ping me for waiting prs im fine with that 👀
+22:17 < ws-client1> **<ChillerDragon>** oh good to know
+22:17 < ws-client1> **<ChillerDragon>** will do sec
+22:17 < ws-client1> **<ChillerDragon>** @Solly (bun bun) https://github.com/ddnet/ddnet/pull/10793
+22:18 < bridge> <Solly (bun bun)> @chillerdragon do u want a review?
+22:18 < ws-client1> **<ChillerDragon>** no
+22:18 < ws-client1> **<ChillerDragon>** only merge
+22:18 < bridge> <Solly (bun bun)> err i cant...
+22:18 < bridge> <Solly (bun bun)> im not a maintainer
+22:18 < ws-client1> **<ChillerDragon>** bruv
+22:18 < bridge> <Solly (bun bun)> also i would have to review it
+22:18 < ws-client1> **<ChillerDragon>** epic thanks for insta pr tho
+22:18 < bridge> <Solly (bun bun)> if i merged it
+22:18 < ws-client1> **<ChillerDragon>** no review needed
+22:18 < ws-client1> **<ChillerDragon>** because: trust me bro
+22:18 < bridge> <Solly (bun bun)> .___.
+22:18 < bridge> <Solly (bun bun)> plz wait for ci on my pr btwe
+22:19 < bridge> <Solly (bun bun)> even tho its the most simple change
+22:19 < ws-client1> **<ChillerDragon>** pf
+22:20 < ws-client1> **<ChillerDragon>** i cba to wait for ci i need to update prod now
+22:20 < ws-client1> **<ChillerDragon>** so i can test
+22:20 < bridge> <Solly (bun bun)> no way thats still not default
+22:20 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1420142869276000377/image.png?ex=68d4529d&is=68d3011d&hm=22b59c81eee3a73352d51b3d241346564003e11c2275d632523d2cd207b4c07c&
+22:21 < bridge> <Solly (bun bun)> "why do this is broken, tclient wouldnt edit this"
+22:21 < ws-client1> **<ChillerDragon>** yes its troller filter
+22:21 < bridge> <Solly (bun bun)> wheres the issue
+22:22 < bridge> <Solly (bun bun)> im just confused why this is added by tclient
+22:22 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1420143267500134470/image.png?ex=68d452fb&is=68d3017b&hm=cb0ef1ae56327fec43e64ab901743dd6d3ba04a99657d7208dc750a4d58abf58&
+22:22 < bridge> <Solly (bun bun)> it must be some accidently git-blame-myself
+22:22 < bridge> <Solly (bun bun)> does default client really not have this
+22:24 < bridge> <Solly (bun bun)> its a lock on ddnet instead of a key
+22:24 < bridge> <Solly (bun bun)> weird
+22:24 < bridge> <Solly (bun bun)> no its just not
+22:24 < ws-client1> **<ChillerDragon>** are you some git diffing?
+22:24 < bridge> <Solly (bun bun)> that is wack
+22:24 < ws-client1> **<ChillerDragon>** to minimize upstream diff?
+22:24 < bridge> <Solly (bun bun)> git pulling and being confused
+22:25 < bridge> <Solly (bun bun)> ddnet really doesnt show account servers as an icon
+22:25 < bridge> <Solly (bun bun)> that is crazy
+22:25 < bridge> <Solly (bun bun)> i took that for granted
+22:25 < ws-client1> **<ChillerDragon>** tclienter
+22:27 < ws-client1> **<ChillerDragon>** ur fix works thanks @Solly (bun bun) 
+22:27 < bridge> <Solly (bun bun)> epic
+22:30 < ws-client1> **<ChillerDragon>** @Solly (bun bun) btw https://github.com/ddnet-insta/ddnet-insta/issues/427
+22:30 < bridge> <Solly (bun bun)> o yes
+22:31 < bridge> <Solly (bun bun)> epic debug print
+22:31 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1420145618726424577/image.png?ex=68d4552c&is=68d303ac&hm=5578abfb7f312c130bf372e1854750c5d00c5e0a20837f61a5b42e809a340932&
+22:31 < ws-client1> **<ChillerDragon>** debogger
+23:01 < bridge> <Solly (bun bun)> @chillerdragon can u reopen a pr?
+23:01 < bridge> <Solly (bun bun)> https://github.com/ddnet/ddnet/pull/8710
+23:01 < bridge> <Solly (bun bun)> https://cdn.discordapp.com/attachments/293493549758939136/1420153220361228478/image.png?ex=68d45c40&is=68d30ac0&hm=48c149b4f50dcfd511e4f90b344505f70ef628c11eb924266a2d60210cc2160d&
+23:01 < bridge> <Solly (bun bun)> i wish to fight final boss
+23:01 < bridge> <Solly (bun bun)> deen and hein
+23:21 < bridge> <Solly (bun bun)> @chillerdragon il just make a new pr
