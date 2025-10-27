@@ -1,0 +1,466 @@
+00:02 < bridge> <louis> ye. also i think my prediction code for the shotgun collision has a skill issue
+00:02 < bridge> <louis> can prediction only fire every 2 ticks cus of snaps or smth?
+01:17 < bridge> <kebscs> i think it fires multiple times per tick
+01:17 < bridge> <kebscs> depends what youre trying to do
+01:18 < bridge> <kebscs> i remmber with the alternating switches, i couldnt predict properly, bcs the prediction would change state multiple times in a tick
+01:18 < bridge> <kebscs> instead of once on 1 hit
+01:40 < bridge> <louis> yea its doing that for me for some reason
+01:40 < bridge> <louis> idk if its only for the alternating, ig i could check
+02:10 < bridge> <louis> well idk as long as everythings in Tick() shouldn't it call once per tick :thonk:
+02:23 < bridge> <totar> Prediction happens every tick
+02:24 < bridge> <totar> Idk what your issue is though
+02:26 < bridge> <totar> Snapshots are every other tick but  you knew that
+03:44 < bridge> <Teero> til rustup can uninstall itself. very cool very nice
+03:44 < bridge> <Teero> https://cdn.discordapp.com/attachments/293493549758939136/1430733697447104563/image0.png?ex=68fada17&is=68f98897&hm=2f84c22ce2bb7c33097c769663214651fcf3c094dead5f906f4275e56335d023&
+04:13 < bridge> <Teero> gh workflows are so useful.
+04:19 < bridge> <slayerblacking> yo can u see my bug report?
+07:32 < bridge> <melon> mooorning!
+07:32 < bridge> <melon> @ryozuki ! - are you still semi in charge of the wiki?
+07:41 < bridge> <ryozuki> not much
+07:41 < bridge> <ryozuki> idk if i have admin rights
+07:41 < bridge> <ryozuki> oh i do
+07:41 < bridge> <ryozuki> why @blaiszephyr ?
+07:42 < bridge> <ryozuki> im just busy with life
+07:42 < bridge> <ryozuki> :d
+07:42 < bridge> <melon> thats fair, just wanted to make sure xd
+07:42 < bridge> <Assa> @louis.place make sure you use the pred methods, even for intratick
+07:42 < bridge> <melon> if you have time, do you mind adding me back into the auto-moderation group?
+07:42 < bridge> <melon> i want to help Acqua out a bit
+07:42 < bridge> <ryozuki> i can do that
+07:42 < bridge> <ryozuki> whats ur user
+07:42 < bridge> <melon> `melonew`
+07:43 < bridge> <melon> `Melonew`
+07:43 < bridge> <ryozuki> done
+07:50 < bridge> <ryozuki> i slept so bad today
+07:50 < bridge> <ryozuki> i need 2 coffees
+07:54 < bridge> <Ewan> rip
+10:09 < bridge> <Solly (bun bun)> is the wiki back?
+10:15 < bridge> <totar> this comment in kernel.h is funny, "works for now"
+10:15 < bridge> <totar> 
+10:15 < bridge> <totar> ```cpp
+10:15 < bridge> <totar> // This kernel thingie makes the structure very flat and basically singletons.
+10:15 < bridge> <totar> // I'm not sure if this is a good idea but it works for now.
+10:15 < bridge> <totar> ```
+10:15 < bridge> <totar> it predates the git history
+10:22 < bridge> <melon> yeah its being restored slowly
+10:31 < bridge> <Solly (bun bun)> fromw hat?
+10:31 < bridge> <Solly (bun bun)> from what?
+10:33 < bridge> <melon> wayback machine, mostly
+10:33 < bridge> <Solly (bun bun)> ah i see
+11:16 < bridge> <carmine1985> Do you know if it is possible to rotate the camera? Is it necessary to paint on screen each thing with a rotation ? Or there's some ready made function provided by SDL?
+11:19 < bridge> <Assa> This feature exists in sdl 3, but we're still at sdl 2, <https://wiki.libsdl.org/SDL3/SDL_DisplayOrientation>
+11:20 < bridge> <Assa> it's certainly possible to do that somehow, however I am sure something will break
+11:20 < bridge> <Solly (bun bun)> we dont use texture drawing so you can set a draw texture then rotate that
+11:21 < bridge> <Assa> might actually be easiest, to rotate everything in the shaders and only use vulkan or opengl3 for your test(?)
+11:21 < bridge> <Solly (bun bun)> thats for potrait/landscape
+11:22 < bridge> <Solly (bun bun)> `SDL_SetRenderTarget(renderer, texture);`
+11:22 < bridge> <Solly (bun bun)> then make a quad and draw a texture with that etxture on it
+11:23 < bridge> <Solly (bun bun)> you can apply transforms, make sure to zoom in an appropriate amount so you dont end up seeing black
+11:23 < bridge> <Solly (bun bun)> this will rotate hud aswell though which isnt very good
+11:23 < bridge> <Solly (bun bun)> we dont seperate hud very cleanly though so you would have to manually go through each component and set/reset render target
+11:23 < bridge> <Assa> The netcode also certainly doesn't like this, so player might appear out of nowhere
+11:23 < bridge> <Solly (bun bun)> its rendering only
+11:24 < bridge> <Solly (bun bun)> you would actually need to use 2 textures so u can then render hud ontop of your transformed game
+11:24 < bridge> <melon> i'd just go with Assa's approach of implementing it in the graphic shader
+11:24 < bridge> <melon> 
+11:24 < bridge> <melon> otherwise you'll burn yourself out just modifying each renderer call
+11:24 < bridge> <Solly (bun bun)> not everything goes through a shader though?
+11:24 < bridge> <Solly (bun bun)> does it
+11:25 < bridge> <Solly (bun bun)> and you still need to diffrentiate hud
+11:25 < bridge> <Solly (bun bun)> you could set a render flag instead
+11:25 < bridge> <melon> hmm... true
+11:26 < bridge> <Solly (bun bun)> the modifying shaders would be less intensive
+11:26 < bridge> <Solly (bun bun)> if everything does go thru one
+11:26 < bridge> <Solly (bun bun)> ogl1 cant do it in any way so doesnt matter
+11:26 < bridge> <melon> yeah it'd be for modern backends only anyway that way
+11:26 < bridge> <Assa> you could add a rotating step to the vulkan pipeline. It's true, that not everything runs through a shader, but it doesn't have to
+11:26 < bridge> <Solly (bun bun)> oh wait you could modify the quad rendering
+11:26 < bridge> <melon> implement it for both shader and matrix :kek:
+11:26 < bridge> <Solly (bun bun)> oh wait you could modify the quad rendering (this is still with render flag)
+11:27 < bridge> <Solly (bun bun)> you would also want to generalize a out of bounds function so you can modify it to give it increased range
+11:27 < bridge> <Solly (bun bun)> so you dont have to zoom in
+12:28 < bridge> <totar> Someone told me they have lag in newer versions, I don't have any solution for them
+12:28 < bridge> <totar> https://cdn.discordapp.com/attachments/293493549758939136/1287187497268412506/image.png?ex=68fab446&is=68f962c6&hm=da97dd87a189ed714392002a01800c2372fddbfbac3741afb0c97bdd89b12d4c&
+12:28 < bridge> <zhn> https://github.com/ddnet/ddnet/commit/8ef1f35f89d538372a346f4fbc9bedd67ff73195
+12:33 < bridge> <milkeeycat> @learath2 look at dis trol assembly
+12:33 < bridge> <milkeeycat> https://cdn.discordapp.com/attachments/293493549758939136/1287379045020991559/image.png?ex=68fabdea&is=68f96c6a&hm=eaf6fa1d7a0928e7e02367804d9c53571ec9e07a8bd759b8795952f5c6968190&
+12:41 < bridge> <aegisub> 🍿
+12:44 < bridge> <carmine1985> Thanks for considering my question. Specifying, I would rotate the camera by a variable angle, not the screen orientation.
+12:44 < bridge> <carmine1985> Which would be an optimal way to achieve it, using functions and methods already integrated in the current source code?
+14:12 < bridge> <ryozuki> 🍿
+14:21 < bridge> <bombencie> 🐴
+14:21 < bridge> <Solly (bun bun)> oh wait quad transforms doesnt work due to texture mapping
+15:15 < bridge> <kebscs> Closed as completed, right? :boo:
+15:19 < bridge> <cellegenrih> Well, heinrich is totally against that idea, I predicted that based on the fact that he lacked to engage in this convo in the first place, with non other than one of the most influential players in DDNet
+15:20 < bridge> <cellegenrih> As he said, if a maintainer would like to be interested in having community voting despite a single decision and make a meaningful change, go ahead
+15:29 < bridge> <chillerdragon> Who is the most influential player in ddnet @cellegenrih
+15:29 < bridge> <milkeeycat> nameless tee
+15:30 < bridge> <cellegenrih> Stepfunn, most interestingly
+15:30 < bridge> <cellegenrih> Even tho he just popped up few years ago, he already made a name for himself here and almost everyone knows him pretty much
+15:30 < bridge> <totar> @learath2 what would you think of this idea if the the client requests an OTC for the specific address of the server, and then the account server only auths the client if it receives the OTC from the address that the client asked for, thus you can't MITM?
+15:31 < bridge> <cellegenrih> Ah, ofc
+15:31 < bridge> <cellegenrih> :nouis:
+15:32 < bridge> <totar> @learath2 what would you think of this idea if the the client requests an OTC for the specific address of the game server, and then the account server only auths the client if it receives the OTC from the address that the client asked for, thus you can't MITM?
+15:34 < bridge> <ryozuki> chillerdragon
+15:42 < bridge> <cellegenrih> most influential 0.7 person
+15:53 < bridge> <learath2> I would have to sit down and think about it
+19:12 < bridge> <louis> this is different from osrs though, don't the developers of osrs create the polls with the intention of implementing either side? that seems very different from the community of the game creating the actual poll and expecting developers to implement one of the sides
+19:24 < bridge> <Skeith> :greenthing:
+19:33 < bridge> <totar> the developers of osrs also want to improve their game so they desire to know the opinions of the players :troll:
+19:34 < bridge> <learath2> This. We are actively trying to destroy this game. I personally do an evil laugh every night
+19:35 < bridge> <manikoo> lerato omg
+19:35 < bridge> <Skeith> "Just as a very simple example of where it can go wrong: Imagine a little-used feature wanted by a small minority of players. They'd probably vote yes, the others would ignore the vote. The players voting yes would want the feature implemented then, but this would continuously waste developer time at the expense of the majority who don't care about the feature."
+19:35 < bridge> <Skeith> 
+19:35 < bridge> <Skeith> There's an option to skip the question in OSRS, skipped votes are omitted btw, if enough people don't care, then it can literally just be ignored
+19:36 < bridge> <totar> louis is correct, the polls only work if the developers want to know the answer to the question.
+19:36 < bridge> <totar> if you secretly hope they aren't going to pick one option then don't post the poll
+19:37 < bridge> <Skeith> Ya
+19:37 < bridge> <Skeith> You can quite literally look up all the times the voting system has had "problems" for OSRS
+19:38 < bridge> <Skeith> I play OSRS, so I could just TLDR tbh, honestly the main issue is the devs wanting something and the players not wanting it lol
+19:39 < bridge> <kebscs> voting would be nice when hein says he doesnt like smth
+19:39 < bridge> <Skeith> But is that a problem
+19:39 < bridge> <kebscs> then players vote in favor to get a feature in
+19:40 < bridge> <kebscs> so we would get more opinions rather than just hein's "I don't think I like this"
+19:40 < bridge> <Skeith> or the fact that RS3 players exist on the same subscription, so the 2 communities can somewhat sabotage each other out of spite :greenthing:
+19:42 < bridge> <Skeith> Hey man, if we end up ruining the game, at least you nerds can move the fuck on to something else? :troll:
+19:43 < bridge> <Skeith> Or we just launch oldschool DDNet
+19:43 < bridge> <Skeith> fixed
+19:45 < bridge> <Skeith> @learath2 $5 to reopen the post
+19:45 < bridge> <Skeith> Honestly not an ideal look for hein once again
+19:46 < bridge> <learath2> Ngl he really doesn't seem to be thinking about the PR angle of closing the issue called "Community-wide voting" complaining about how the decision making in this project should be more democratic
+19:50 < bridge> <Skeith> Lets add it as a solution to heinrich
+19:50 < bridge> <Skeith> seems valid
+19:51 < bridge> <melon> having an issue that screams "maintainers just say no and close stuff the community wants" being closed by a single maintainer is
+19:51 < bridge> <melon> peak
+19:52 < bridge> <Skeith> He feels like he has definitely lost his marbles over the years
+19:52 < bridge> <manikoo> chiller maintainer btw
+19:53 < bridge> <Skeith> One thing he's not wrong about, other maintainers are too quiet
+19:53 < bridge> <Jupstar ✪> not true
+19:54 < bridge> <Jupstar ✪> what does that mean?
+19:54 < bridge> <Jupstar ✪> marbles are small balls
+19:54 < bridge> <Jupstar ✪> did he lose his balls?
+19:54 < bridge> <Skeith> His decision making feels like it's against the game more and more
+19:54 < bridge> <Jupstar ✪> do you say you know the size of them?
+19:54 < bridge> <Skeith> Oh no, he's trolling!
+19:54 < bridge> <Skeith> I'd never
+19:54 < bridge> <Jupstar ✪> i disagree
+19:55 < bridge> <Jupstar ✪> heinrich never changed a single bit.
+19:55 < bridge> <Jupstar ✪> 
+19:55 < bridge> <Jupstar ✪> and i personally think that is his biggest weakness
+19:55 < bridge> <Jupstar ✪> he is smart af, but he cannot adapt
+19:55 < bridge> <Skeith> Juppyboy, why didn't you say anything in this post
+19:55 < bridge> <melon> the issue wasnt graphic or rust related
+19:55 < bridge> <melon> :Shruggo:
+19:55 < bridge> <learath2> What do you think my biggest weakness is?
+19:55 < bridge> <Jupstar ✪> that you talk but never deliver
+19:55 < bridge> <Skeith> True
+19:56 < bridge> <learath2> Actual truth
+19:56 < bridge> <kebscs> its so rare to see other maintainer than roby and monthly deen release
+19:56 < bridge> <Skeith> Learath talks then drinks instead
+19:56 < bridge> <learath2> Maybe we should make Jupstar the BDFL for ddnet 🤔
+19:56 < bridge> <Skeith> He just talked back against me, I refuse
+19:56 < bridge> <Skeith> :greenthing:
+19:57 < bridge> <learath2> You have chiller out there every day
+19:57 < bridge> <Jupstar ✪> If I'd be dictator I'd first of all free teeworlds
+19:57 < bridge> <Jupstar ✪> so ddnet has compatition again
+19:57 < bridge> <Skeith> Fuck a teeworld
+19:58 < bridge> <kebscs> but chiller became one very recently
+19:58 < bridge> <learath2> I really should start delivering things. I have like 8 projects, so I don't make progress on any of them
+19:58 < bridge> <Skeith> If you mean free it from being ddnet's problem, I agree :J
+19:58 < bridge> <Skeith> Time to abort the Teeworlds baby
+19:59 < bridge> <manikoo> abort :nouis:
+19:59 < bridge> <Skeith> nouis is the result of Teeworlds inbreeding, it should've been prevented long ago
+20:00 < bridge> <Skeith> sometimes
+20:01 < bridge> <Skeith> Aight guys, today we'll actually make meaningful decisions and changes to the game, surely?
+20:02 < bridge> <manikoo> if juppy become that thing you said earlier, opengl renderers will be deleted from the game
+20:02 < bridge> <Jupstar ✪> i've ddnet-rs, i am happy.
+20:02 < bridge> <Jupstar ✪> 
+20:02 < bridge> <Jupstar ✪> no limitations
+20:02 < bridge> <Skeith> ddnet-rs isn't real
+20:02 < bridge> <manikoo> no ddnet-rs is disabled ddnet's kid
+20:02 < bridge> <Jupstar ✪> imagine heinrich's potential if he could stop his ideology
+20:02 < bridge> <Jupstar ✪> he'd be free and do smart things
+20:02 < bridge> <Jupstar ✪> instead of wasting his time
+20:03 < bridge> <Jupstar ✪> i am sadly only partially smart
+20:03 < bridge> <Jupstar ✪> but i have the motivation
+20:03 < bridge> <Jupstar ✪> and mindset
+20:03 < bridge> <Skeith> If he's so smart, why game bad?
+20:03 < bridge> <manikoo> https://tenor.com/view/shia-la-beouf-fire-just-do-it-inspiration-motivation-gif-4214625
+20:03 < bridge> <Jupstar ✪> reasons are stated above
+20:03 < bridge> <Jupstar ✪> exactly
+20:03 < bridge> <louis> game seems ok to me
+20:03 < bridge> <Skeith> Sounds like a fucking idiot to me
+20:03 < bridge> <Skeith> dunno
+20:03 < bridge> <louis> Just need anti tas, accounts, more features
+20:03 < bridge> <Jupstar ✪> i turn on boss music and be the boss
+20:03 < bridge> <Jupstar ✪> that is how you win
+20:04 < bridge> <manikoo> "just need"
+20:04 < bridge> <manikoo> ofc game is perfect
+20:04 < bridge> <manikoo> except its bad side of community
+20:05 < bridge> <louis> if i was dictator i'd add unlockable skins thru point +rankpoint progression too
+20:05 < bridge> <louis> i love clout and cosmetics
+20:06 < bridge> <Skeith> Put the coolest cosmetics behind the hardest things so people pay real life money to have other people do it for them
+20:06 < bridge> <manikoo> ples no
+20:06 < bridge> <learath2> Why lie? You are the vulkanwizard
+20:07 < bridge> <Jupstar ✪> I wish I could spent more time on graphics apis, but sadly that is where my mindset ends
+20:07 < bridge> <learath2> At this point I'm starting to wonder if I should just issue a bounty for someone to write a teehistorian TAS matcher
+20:07 < bridge> <manikoo> vulcan 
+20:07 < bridge> <manikoo> archmage
+20:07 < bridge> <manikoo> vulcan archmage
+20:07 < bridge> <Jupstar ✪> i dunno why but for some reason you cannot just have endless motivation of any project
+20:07 < bridge> <Jupstar ✪> ig there are some weird blockers
+20:07 < bridge> <Jupstar ✪> i never been like 100% at work
+20:08 < bridge> <learath2> Some people do have the ability to summon infinite motivation. I can't either
+20:08 < bridge> <Jupstar ✪> probs bcs i think that it's not truely the right thing to do
+20:08 < bridge> <Skeith> noby would've had it done, but he's gonezo with irl, which is shocking tbh, how'd noby irl before yall freaks
+20:08 < bridge> <manikoo> noby summon needed
+20:08 < bridge> <Jupstar ✪> for ddnet-rs i defs would say i had insane motivation
+20:08 < bridge> <Jupstar ✪> i did like 90% of the code after my full time job
+20:08 < bridge> <Jupstar ✪> that is not even a joke
+20:08 < bridge> <learath2> I don't speak street. What does gonezo with irl mean
+20:09 < bridge> <Teero> i can do it sometimes. at some point you just don't have any more feature ideas or you get stuck on a bug, so have to pause
+20:09 < bridge> <Skeith> gone
+20:09 < bridge> <Skeith> he disappeared cause irl
+20:09 < bridge> <manikoo> oh man we remembered same person xd
+20:09 < bridge> <learath2> I can do it for a max of 1 week. Then I get bored 😄
+20:09 < bridge> <Skeith> noby's my boy
+20:09 < bridge> <Skeith> (not literally)
+20:10 < bridge> <manikoo> :justatest:
+20:11 < bridge> <Skeith> Honestly it wouldn't be too hard to wipe the current mess that is top5 and just prevent it in the future based on (accounts)
+20:11 < bridge> <Skeith> But alas
+20:11 < bridge> <Skeith> we're all stupid ig
+20:11 < bridge> <louis> explain how you would do it then
+20:12 < bridge> <Skeith> I'd manually fucking do it
+20:12 < bridge> <Skeith> I've done worse
+20:12 < bridge> <Skeith> And I have infinite free time
+20:12 < bridge> <learath2> Wanna be the cleanup tsar?
+20:12 < bridge> <Skeith> I can clean top5, but top20 is gone
+20:12 < bridge> <learath2> Without accounts being there they just reruin the top5 too quickly honestly
+20:12 < bridge> <Skeith> I aint touchin that
+20:13 < bridge> <Skeith> Ya, make accounts, I wouldn't mind cleaning after
+20:13 < bridge> <learath2> Can you find noby and ruin his irl so he comes back?
+20:13 < bridge> <melon> reminds me of @teero777
+20:13 < bridge> <manikoo> ruin someone's irl for the sake of the our beloved game
+20:13 < bridge> <manikoo> sounds perfect
+20:14 < bridge> <melon> yep sounds about right
+20:14 < bridge> <manikoo> noby might just say no
+20:14 < bridge> <manikoo> :feelsbadman:
+20:14 < bridge> <manikoo> torture
+20:15 < bridge> <Skeith> and afaik, there are other people that would gladly help with this process
+20:16 < bridge> <Teero> lol
+20:16 < bridge> <melon> AM I WRONG THO?
+20:16 < bridge> <melon> you're coding till 4am DAILY for MONTHS now
+20:16 < bridge> <melon> yet no accountss
+20:16 < bridge> <melon> yet no accounts
+20:16 < bridge> <melon> smh
+20:16 < bridge> <melon> /s
+20:16 < bridge> <Skeith> tsk
+20:16 < bridge> <manikoo> ofcourse but only if it will truly help
+20:16 < bridge> <Teero> @blaiszephyr no youre not wrong xD
+20:16 < bridge> <Jupstar ✪> teero is defs a monster for his age
+20:16 < bridge> <Skeith> The help would be being able to look back on the leaderboard with fond memories!
+20:17 < bridge> <melon> thats what the raw power of 6gb ram does to you
+20:17 < bridge> <Teero> i just dont have a life
+20:17 < bridge> <Skeith> I mean, we can just start fresh and not give a fuck, which is what I've been saying for awhile now
+20:17 < bridge> <manikoo> yeah, even if there is no me :kek:
+20:17 < bridge> <Skeith> We're all dead in 100 years and so is this game
+20:18 < bridge> <Skeith> WAHOO
+20:18 < bridge> <manikoo> game will be alive as long as we are
+20:18 < bridge> <Skeith> I mean, it's been around for quite a long time, and people are still having conversations like this, so it'll be around for awhile ya
+20:19 < bridge> <melon> yeah skeith, you're old
+20:19 < bridge> <Skeith> no u
+20:19 < bridge> <melon> :(
+20:19 < bridge> <manikoo> both
+20:22 < bridge> <Skeith> The real solution is to remove the admins from their admin role prison, back to moderator they go
+20:23 < bridge> <Skeith> Then they'll finally do something!
+20:23 < bridge> <manikoo> #derekforadmin
+20:23 < bridge> <manikoo> or me admin
+20:23 < bridge> <manikoo> i will do nothing
+20:23 < bridge> <Skeith> Admin role = retirement
+20:23 < bridge> <manikoo> sure
+20:24 < bridge> <Skeith> oh, ya you're fit for the role
+20:24 < bridge> <manikoo> no im young
+20:24 < bridge> <Skeith> louis is like 12
+20:24 < bridge> <Skeith> louis is like 18
+20:25 < bridge> <louis> False
+20:25 < bridge> <Skeith> 19
+20:26 < bridge> <Skeith> They grow so fast :feelsbadman:
+20:26 < bridge> <louis> also false
+20:26 < bridge> <manikoo> that many roles at young age
+20:26 < bridge> <Skeith> 20
+20:26 < bridge> <melon> Skeith you're 27, now stop grooming our admin
+20:26 < bridge> <Skeith> aint no way you're 17 still, fetus for life
+20:26 < bridge> <melon> ~~Skeith you're 27, now stop grooming our admin~~
+20:26 < bridge> <Skeith> BRO IM 30
+20:26 < bridge> <melon> EEEEEW
+20:27 < bridge> <Teero> typical #developer evening
+20:27 < bridge> <totar> I will be jealous of whoever hires him
+20:27 < bridge> <manikoo> divide in half
+20:27 < bridge> <Skeith> I'm being bullied
+20:27 < bridge> <manikoo> no
+20:28 < bridge> <Teero> you can hire me
+20:28 < bridge> <melon> hi being bullied i'm melon
+20:28 < bridge> <totar> maybe if I get enough money and a reason
+20:29 < bridge> <Teero> but im a complete retard i forgot that i shifted the map by 200 and thats why i couldnt see the pickups
+20:29 < bridge> <totar> but I'd probably have to give you boring tasks compared to what you've been doing
+20:29 < bridge> <louis> whats your expected salary
+20:29 < bridge> <totar> most programming jobs are pretty boring
+20:30 < bridge> <totar> that make money that is
+20:30 < bridge> <manikoo> 6-7 ddcoins
+20:30 < bridge> <manikoo> per year
+20:30 < bridge> <Teero> pickups work in demos yay
+20:30 < bridge> <Teero> https://cdn.discordapp.com/attachments/293493549758939136/1430986870732361830/image.png?ex=68fbc5e0&is=68fa7460&hm=5283102845df3ee105cfe347c2f4862118e806d683fda72739244c73e679ac91&
+20:31 < bridge> <Skeith> Makes me feel gay just lookin at it
+20:31 < bridge> <manikoo> and watafak is this
+20:31 < bridge> <totar> demo library
+20:32 < bridge> <totar> actually this might be the most useful thing you've made so far
+20:32 < bridge> <Teero> run_gay_25
+20:32 < bridge> <Teero> there isn't any rust lib for it yet so yea it might
+20:32 < bridge> <Teero> haha get clapped rust rewriters
+20:33 < bridge> <manikoo> i have a large teero-made tas of some big maze
+20:33 < bridge> <manikoo> thats treasure
+20:33 < bridge> <Teero> xddd
+20:33 < bridge> <Teero> what, you have the 50h one?
+20:33 < bridge> <manikoo> biggest one
+20:33 < bridge> <Teero> i might have posted it somewhere i guess
+20:33 < bridge> <manikoo> sure
+20:34 < bridge> <Teero> but you should thank tater for that, it's his solver
+20:34 < bridge> <manikoo> couple
+20:34 < bridge> <Teero> i only made the map and some extensions for it so it would work
+20:34 < bridge> <totar> you provided critically important motiviation
+20:34 < bridge> <Teero> XDDD
+20:34 < bridge> <totar> I'm so serious
+20:35 < bridge> <melon> his car simulation is good
+20:35 < bridge> <Jupstar ✪> give it one woman and his interest in tryharding the whole day is gone 😏
+20:35 < bridge> <melon> teero should add modules
+20:35 < bridge> <melon> so i can add my car's specs
+20:35 < bridge> <melon> so i can add my cars specs
+20:36 < bridge> <melon> bold of you to assume it requires a woman, @imilchshake should be enough
+20:36 < bridge> <Jupstar ✪> oh yeah, didn't want to assume anything @teero777
+20:36 < bridge> <Jupstar ✪> all of the homo
+20:37 < bridge> <Teero> @totar btw this is what i meant before. i couldnt find a video
+20:37 < bridge> <Teero> https://cdn.discordapp.com/attachments/293493549758939136/1430988499980386445/image.png?ex=68fbc764&is=68fa75e4&hm=de47b215e405f44d847cbaf1c5297a673b3c984975842a623bde30e1167a2337&
+20:37 < bridge> <melon> "Bumm"
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon> 
+20:37 < bridge> <melon>                               :hyperlaugh:
+20:38 < bridge> <Jupstar ✪> u mean that game, where you have to keep balance?
+20:38 < bridge> <totar> nice
+20:38 < bridge> <Jupstar ✪> flash games from 2001
+20:38 < bridge> <totar> no he did this irl
+20:38 < bridge> <Teero> no, irl
+20:38 < bridge> <Teero> nah i was describing a crash
+20:38 < bridge> <Teero> but hard to describe in vc
+20:38 < bridge> <Teero> i ran into a segfault
+20:38 < bridge> <Skeith> Max confusion, time to add bikes to ddnet
+20:39 < bridge> <Skeith> hein somehow f3s
+20:39 < bridge> <Teero> XD
+20:39 < bridge> <manikoo> headshot made some physics
+20:40 < bridge> <Teero> @totar btw do you know what shader the AAA games use to load in assets on the fly? they dont just appear is a like a checkerboard appear animation
+20:40 < bridge> <totar> what?
+20:40 < bridge> <Teero> @totar btw do you know what shader the AAA games use to load in assets on the fly? they dont just appear, it's a like a checkerboard appear animation
+20:40 < bridge> <totar> I think that's just a unreal engine thing
+20:40 < bridge> <Teero> okay
+20:40 < bridge> <totar> I think that's just an unreal engine thing
+20:40 < bridge> <totar> the dithering thing
+20:40 < bridge> <totar> I know the one
+20:40 < bridge> <Teero> yea
+20:41 < bridge> <totar> it's so they can do transparency in a lazy way
+20:41 < bridge> <Teero> i dont like the font
+20:42 < bridge> <Teero> maybe some semi bold will do
+20:44 < bridge> <Teero> yea that looks ok
+21:04 < bridge> <pink bencie> https://cdn.discordapp.com/attachments/1099813577017278515/1380285610790486056/BUMM_EXPLOSION.gif
+21:47 < bridge> <melon> :justatest:
+22:12 < bridge> <totar> :(
+22:12 < bridge> <totar> I wanted triangles
+22:14 < bridge> <totar> I want triangles
+22:22 < bridge> <robyt3> Anyone know Italian? Easy contribution: #11107
+22:22 < bridge> <DDNet> https://github.com/ddnet/ddnet/issues/11107
+22:26 < bridge> <Ewan> @learath2 ?
+22:28 < bridge> <Jupstar ✪> @thekid36 your moment to shine
+23:01 < bridge> <learath2> I do know some Italian, but we have actual Italians here that can handle this 😛
+23:21 < bridge> <vahemaaa> great idea heinric
+23:25 < bridge> <Teero> im so stupid. i was wondering why specifically the gun shooting sound wasn't playing in demos that i generated.... i had gun sounds turned off in the settings
+23:25 < bridge> <imilchshake> :ddnet_lgbt:
+23:25 < bridge> <big eyed bencie> https://cdn.discordapp.com/attachments/1284360899414589491/1431030374133403698/image.png?ex=68fbee64&is=68fa9ce4&hm=8f2841755a0699ed83d81143f259f158c119bf341891739470a2a3a025dc57f4&
+23:25 < bridge> <big eyed bencie> ddnet-rs pause thing progress
+23:25 < bridge> <big eyed bencie> decided to work on this again after so long
+23:25 < bridge> <Teero> https://cdn.discordapp.com/attachments/293493549758939136/1431030884622008401/generated.demo?ex=68fbeede&is=68fa9d5e&hm=73d0455812c820c15ab844f7d21016fa6784e05ced39966927ee275e6327cb15&
+23:25 < bridge> <Teero> looks so good :o
+23:26 < bridge> <big eyed bencie> tyy
+23:26 < bridge> <big eyed bencie> this space gives me so much anxiety I swear
+23:26 < bridge> <big eyed bencie> https://cdn.discordapp.com/attachments/293493549758939136/1431031065262162012/image.png?ex=68fbef09&is=68fa9d89&hm=6b169dd72f352b78ecc2117517d8bcd90ea686692e85659010044d3f4b09e2aa&
+23:26 < bridge> <big eyed bencie> IDFK WHAT TO PUT IN THERE
+23:27 < bridge> <Jupstar ✪> I'm interested in server list. Did you ever create a concept for that?
+23:27 < bridge> <Teero> don't its a window
+23:27 < bridge> <imilchshake> hide a small smiley! :)
+23:27 < bridge> <Teero> @jupeyy_keks go make that ui, now
+23:27 < bridge> <Jupstar ✪> Not today
+23:27 < bridge> <Teero> that is what they always say
+23:27 < bridge> <big eyed bencie> not yet
+23:27 < bridge> <big eyed bencie> aye aye captain, I'll work on it rn 🫡
+23:27 < bridge> <Teero> https://tenor.com/view/maybe-not-tomorrow-casablanca-q-hindi-kulfy-gif-826077656938177571
+23:28 < bridge> <Jupstar ✪> This weekend i want to tackle some short comings
+23:28 < bridge> <Teero> i didn't know you were doing any fight sports
+23:28 < bridge> <Teero> vs. children seems unfair though
+23:28 < bridge> <Jupstar ✪> I don't fight against you
+23:29 < bridge> <Teero> @jupeyy_keks open this demo
+23:29 < bridge> <Teero> it will lock away your computer
+23:30 < bridge> <Teero> the thing is the gun sound WAS played, but only once when the demo started. this is probably a demo viewer bug, not sure. if anyone wants to investigate
+23:31 < bridge> <Teero> to reproduce open this demo with gun sounds turned off
+23:31 < bridge> <big eyed bencie> :nouis:
+23:32 < bridge> <big eyed bencie> ok I fixed the empty space
+23:32 < bridge> <big eyed bencie> https://cdn.discordapp.com/attachments/1172868875273117726/1431032484849647697/image.png?ex=68fbf05b&is=68fa9edb&hm=48016a12e63edc44c1a62a8ce0a0b8017433db395762a9389739000a38d959e8&
+23:32 < bridge> <big eyed bencie> what do we think chat
+23:32 < bridge> <Teero> also i think its a weird thing that your hearing range doesn't increase with zooming
+23:32 < bridge> <Teero> epic
+23:32 < bridge> <big eyed bencie> @louis.place do u approve
+23:33 < bridge> <big eyed bencie> oh right "dont ping admins for silly stuff" mb mb mb i forgot
+23:33 < bridge> <Teero> make it DDRust netowkr
+23:33 < bridge> <Teero> make it DDRust network
+23:33 < bridge> <Skeith> dw, louis is a troll he deserves it
+23:34 < bridge> <big eyed bencie> I mean it is certainly ddnet-rs soo
+23:34 < bridge> <big eyed bencie> talking about trolls
+23:34 < bridge> <big eyed bencie> hi skeith!!
+23:34 < bridge> <Skeith> Sup!
+23:34 < bridge> <big eyed bencie> hyd?
+23:34 < bridge> <Skeith> Doin, wbu
+23:34 < bridge> <big eyed bencie> kawl
+23:34 < bridge> <big eyed bencie> I'm doing good I think
+23:34 < bridge> <Teero> @blazulite are you good with UX?
+23:34 < bridge> <big eyed bencie> I'm bored af lmao
+23:34 < bridge> <big eyed bencie> I... think?
+23:34 < bridge> <Teero> cool xd
+23:34 < bridge> <big eyed bencie> I try my best 🫠
+23:35 < bridge> <big eyed bencie> I'm not that good at it but
+23:35 < bridge> <big eyed bencie> hey I try xd
+23:35 < bridge> <louis> the map image should be under the (i) Map instead of on the ranking
+23:35 < bridge> <louis> and the ranking could have trophies or maybe a pedestal for top3 with player skins
+23:35 < bridge> <big eyed bencie> that actually makes a lot of sense
+23:35 < bridge> <louis> but very cool very cool
+23:36 < bridge> <big eyed bencie> could you make a little drawing of what you mean or smth? I can't really imagine it honestly x9
+23:36 < bridge> <big eyed bencie> could you make a little drawing of what you mean or smth? I can't really imagine it honestly x)
+23:36 < bridge> <louis> (also if u have dropdown for country instead of displaying a scrollable list i think u could fit in more space or just make it looked less cramped)
+23:36 < bridge> <big eyed bencie> yeah
+23:37 < bridge> <big eyed bencie> I was thinking in adding a chevron on the Country filter it actually
+23:37 < bridge> <big eyed bencie> kinda like this
+23:37 < bridge> <big eyed bencie> https://cdn.discordapp.com/attachments/293493549758939136/1431033886233722890/image.png?ex=68fbf1a9&is=68faa029&hm=ab7b7bbd756236076465d9d7241de5fb1bbf9e30e6ba3f108b6af00bd5df80aa&
+23:37 < bridge> <louis> https://cdn.discordapp.com/attachments/293493549758939136/1431033926004113419/image.png?ex=68fbf1b3&is=68faa033&hm=780d7d8305b3a140459ae2be7351d38541f77637bbbb9ebcf57eb76fc1e345e8&
+23:37 < bridge> <big eyed bencie> (very quick concept)
+23:38 < bridge> <big eyed bencie> OOOOHH
+23:38 < bridge> <big eyed bencie> Wait that's awesome actually
+23:38 < bridge> <big eyed bencie> you're a genius mr louis
+23:38 < bridge> <big eyed bencie> hope u get a raise💯
+23:50 < bridge> <01000111g> 6Kopf
+23:53 < bridge> <Teero> i have big ui/ux problems, everything is ugly.
+23:53 < bridge> <Teero> i don't think imgui can be much prettier though
+23:53 < bridge> <Teero> so it's okay
